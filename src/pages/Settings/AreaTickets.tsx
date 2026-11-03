@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { AlertTriangle, ArrowRight, Loader2, Plus, Scale, ScanBarcode, TicketCheck } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -461,7 +461,7 @@ function AreasSettings({
   )
 }
 
-function TerminalSettings({
+export function TerminalSettings({
   venueId,
   terminals,
   areas,
@@ -499,6 +499,14 @@ function TerminalSettings({
     },
     onError: error => toast({ title: 'No se pudo actualizar', description: apiError(error, 'Intenta de nuevo.'), variant: 'destructive' }),
   })
+  // Dos toques en el mismo cuadro llegan antes de que `isPending` deshabilite los interruptores: el segundo saldría con
+  // los datos viejos. El candado es síncrono (full-testingv2 del 2-nov vio 2 PUT y 2 avisos con un doble clic).
+  const guardando = useRef(false)
+  const guardar = (vars: Parameters<typeof mutation.mutate>[0]) => {
+    if (guardando.current) return
+    guardando.current = true
+    mutation.mutate(vars, { onSettled: () => (guardando.current = false) })
+  }
 
   return (
     <Card className={panelClass}>
@@ -522,7 +530,7 @@ function TerminalSettings({
               <Select
                 value={terminal.fulfillmentAreaId ?? NONE}
                 onValueChange={value =>
-                  mutation.mutate({ terminalId: terminal.id, input: { fulfillmentAreaId: value === NONE ? null : value } })
+                  guardar({ terminalId: terminal.id, input: { fulfillmentAreaId: value === NONE ? null : value } })
                 }
               >
                 <SelectTrigger className="w-56">
@@ -562,7 +570,7 @@ function TerminalSettings({
                     disabled={mutation.isPending}
                     onCheckedChange={checked => {
                       const { input, apagada } = cambioDeCapacidad(terminal, key as CapacidadDeVales, checked)
-                      mutation.mutate({ terminalId: terminal.id, input, apagada })
+                      guardar({ terminalId: terminal.id, input, apagada })
                     }}
                   />
                 </label>
@@ -570,7 +578,7 @@ function TerminalSettings({
               <Select
                 value={terminal.scaleProfileId ?? NONE}
                 onValueChange={value =>
-                  mutation.mutate({ terminalId: terminal.id, input: { scaleProfileId: value === NONE ? null : value } })
+                  guardar({ terminalId: terminal.id, input: { scaleProfileId: value === NONE ? null : value } })
                 }
               >
                 <SelectTrigger>
