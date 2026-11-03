@@ -6,6 +6,10 @@ All notable changes to the web dashboard frontend will be documented in this fil
 
 ### Added
 
+- Internal support can review the payment holding a terminal from its venue detail and request release with a reason and confirmation.
+  The sale stays protected; rejected or uncertain results refresh the actual status, and navigation invalidates old confirmations.
+  Restricted to SUPERADMIN devices supporting payment configuration, with Spanish/English copy.
+
 - Public onboarding document delivery at `/documentos/:id`: individual private invitations, account-free mobile uploads, confirmed-file recovery, safe retry/discard, contact and privacy consent, and a receipt after submission. Includes Spanish/English copy and a separate bootstrap that excludes authentication and analytics. Refreshed with Avoqado branding, a violet/blue palette, a concise introduction, and local terminal summary/presentation PDFs that open separately from the form.
 
 - **Organization master catalog workflow (ENTERPRISE/custom entitlement)**: adds tenant-scoped item browsing and editing, safe XLSX

@@ -243,7 +243,8 @@ export function SalesReport() {
   const { venueTimezone } = useVenueDateTime()
   const venueId = activeVenue?.id ?? ''
   const { can } = useAccess()
-  const canReview = can('sale-verifications:review')
+  // `review` sólo deja ver la venta; decidirla (aprobar o rechazar) pide `approve`, que PlayTelecom le niega al supervisor.
+  const canApprove = can('sale-verifications:approve')
 
   // Back-office review dialog state
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false)
@@ -816,7 +817,7 @@ export function SalesReport() {
                 <th className="px-6 py-4 font-black text-[10px] uppercase text-muted-foreground text-center">
                   {t('playtelecom:sales.status', { defaultValue: 'Estado' })}
                 </th>
-                {canReview && (
+                {canApprove && (
                   <th className="px-6 py-4 font-black text-[10px] uppercase text-muted-foreground text-center">
                     {t('playtelecom:sales.actions', { defaultValue: 'Acciones' })}
                   </th>
@@ -826,7 +827,7 @@ export function SalesReport() {
             <tbody className="divide-y divide-border/30">
               {verificationsData === undefined ? (
                 !falloDeCarga(verificationsQuery) && <tr>
-                  <td colSpan={canReview ? 6 : 5} className="p-0">
+                  <td colSpan={canApprove ? 6 : 5} className="p-0">
                     <div className="space-y-0 divide-y divide-border/30">
                       {Array.from({ length: 5 }).map((_, i) => (
                         <div key={i} className="flex items-center gap-4 px-6 py-4">
@@ -842,7 +843,7 @@ export function SalesReport() {
                 </tr>
               ) : verifications.length === 0 ? (
                 <tr>
-                  <td colSpan={canReview ? 6 : 5} className="px-6 py-12 text-center">
+                  <td colSpan={canApprove ? 6 : 5} className="px-6 py-12 text-center">
                     <Receipt className="w-8 h-8 mx-auto text-muted-foreground mb-2" />
                     <p className="text-sm text-muted-foreground">
                       {t('playtelecom:sales.noVerifications', { defaultValue: 'No hay verificaciones de venta' })}
@@ -994,7 +995,7 @@ export function SalesReport() {
                     </td>
 
                     {/* Actions: only PENDING + permission */}
-                    {canReview && (
+                    {canApprove && (
                       <td className="px-6 py-4 text-center">
                         {verification.status === 'PENDING' && verification.hasVerification ? (
                           <div className="flex items-center justify-center gap-1">

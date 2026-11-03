@@ -630,7 +630,12 @@
     "rejectedSummary": "de ellas, {{count}} rechazada",
     "rejectedSummary_plural": "de ellas, {{count}} rechazadas",
     "unknownHeadersTitle": "Hay columnas de tu archivo que no estoy leyendo",
-    "unknownHeadersHint": "Si alguna de ellas debía afectar la venta (por ejemplo el estatus), revisa que su nombre coincida con el de la plantilla antes de confirmar."
+    "unknownHeadersHint": "Si alguna de ellas debía afectar la venta (por ejemplo el estatus), revisa que su nombre coincida con el de la plantilla antes de confirmar.",
+    "retry": "Reintentar",
+    "duplicate": "Repetido",
+    "linkingDuplicate": "Este número de vinculación ya fue registrado en otra venta",
+    "portedDuplicate": "Este número portado ya fue registrado en otra venta",
+    "formatHintLinking": "Excel (.xlsx) con columnas: ID SIM, Promotor, ID Promotor, ID Tienda, Nombre de la Tienda, Fecha, Tipo de Venta, Forma de Pago, Monto de Venta, Número de vinculación y, en las portabilidades, Número portado. Opcionales: Estatus de Venta (Aprobada o Rechazada) y Motivo de Rechazo."
   },
   "common": {
     "active": "Activo",

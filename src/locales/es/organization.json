@@ -1437,6 +1437,8 @@
       "SALES_GOAL_UPDATED": "Meta de ventas actualizada",
       "SALES_REPORT_EXPORTED": "Reporte de ventas exportado",
       "SALES_RETENTION_SET": "Retención de ventas configurada",
+      "SALE_VERIFICATION_NUMBER_EDIT": "Número de vinculación corregido",
+      "SALE_VERIFICATION_NUMBER_SET": "Número de vinculación capturado",
       "SALE_VERIFICATION_EDIT": "Verificación de venta editada",
       "SALE_VERIFICATION_EDITED_VIA_MCP": "Verificación editada desde el asistente",
       "SALE_VERIFICATION_REOPENED_VIA_MCP": "Verificación reabierta desde el asistente",
