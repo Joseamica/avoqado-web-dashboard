@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Loader2, Router, Tablet } from 'lucide-react'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -26,11 +27,12 @@ export function GatewayTab({ venueId }: { venueId: string }) {
   const { formatDateTime } = useVenueDateTime()
   const [isFormOpen, setFormOpen] = useState(false)
 
-  const { data: gateway, isLoading } = useQuery({
+  const gatewayQuery = useQuery({
     queryKey: ['printGateway', venueId],
     queryFn: () => getGateway(venueId),
     enabled: !!venueId,
   })
+  const { data: gateway, isLoading } = gatewayQuery
 
   return (
     <div className="space-y-4">
@@ -39,11 +41,12 @@ export function GatewayTab({ venueId }: { venueId: string }) {
         <p>{t('gateway.intro')}</p>
       </div>
 
+      <AvisoDeCarga query={gatewayQuery} hayDatos={gateway !== undefined} />
       {isLoading ? (
         <div className="flex items-center justify-center gap-2 py-12 text-muted-foreground">
           <Loader2 className="h-5 w-5 animate-spin" /> {t('loading')}
         </div>
-      ) : !gateway ? (
+      ) : gateway === undefined ? null : !gateway ? (
         <Card className="border-input">
           <CardContent className="flex flex-col items-center gap-4 py-10 text-center">
             <Tablet className="h-8 w-8 text-muted-foreground" />
@@ -82,7 +85,7 @@ export function GatewayTab({ venueId }: { venueId: string }) {
         </Card>
       )}
 
-      {isFormOpen && <GatewayFormModal venueId={venueId} gateway={gateway ?? null} onClose={() => setFormOpen(false)} />}
+      {isFormOpen && gateway !== undefined && <GatewayFormModal venueId={venueId} gateway={gateway} onClose={() => setFormOpen(false)} />}
     </div>
   )
 }

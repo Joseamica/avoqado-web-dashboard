@@ -1,4 +1,5 @@
 import api from '@/api'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -143,11 +144,14 @@ export default function GoogleIntegration() {
   const [reviewLink, setReviewLink] = useState('')
   const [reviewLinkError, setReviewLinkError] = useState<string | null>(null)
 
-  const { data: venueSettings } = useQuery({
+  const venueSettingsQuery = useQuery({
     queryKey: ['venue-settings', venueId],
     queryFn: async () => (await api.get(`/api/v1/dashboard/venues/${venueId}/settings`)).data,
     enabled: !!venueId,
   })
+  const { data: venueSettings } = venueSettingsQuery
+  // Vacío borra la liga (`clearHint`): sin la lectura, un clic en Guardar la perdería.
+  const lecturaLista = venueSettings !== undefined
   useEffect(() => {
     if (venueSettings?.googleReviewLink != null) setReviewLink(venueSettings.googleReviewLink)
   }, [venueSettings?.googleReviewLink])
@@ -323,10 +327,12 @@ export default function GoogleIntegration() {
             <CardDescription>{t('reviewRedirect.description')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
+            <AvisoDeCarga query={venueSettingsQuery} hayDatos={lecturaLista} />
             <Label htmlFor="google-review-link">{t('reviewRedirect.inputLabel')}</Label>
             <Input
               id="google-review-link"
               value={reviewLink}
+              disabled={!lecturaLista}
               onChange={e => {
                 setReviewLink(e.target.value)
                 setReviewLinkError(validateGoogleReviewLink(e.target.value))
@@ -338,7 +344,7 @@ export default function GoogleIntegration() {
             <p className="text-xs text-muted-foreground">{t('reviewRedirect.clearHint')}</p>
             <Button
               onClick={() => saveReviewLinkMutation.mutate(reviewLink)}
-              disabled={!!reviewLinkError || saveReviewLinkMutation.isPending}
+              disabled={!lecturaLista || !!reviewLinkError || saveReviewLinkMutation.isPending}
             >
               {saveReviewLinkMutation.isPending ? (
                 <>

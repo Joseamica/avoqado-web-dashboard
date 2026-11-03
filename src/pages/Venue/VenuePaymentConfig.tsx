@@ -1,3 +1,4 @@
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
@@ -5,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useAuth } from '@/context/AuthContext'
 import { useToast } from '@/hooks/use-toast'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { cn } from '@/lib/utils'
 import type { ProviderCostStructure, VenuePricingStructure } from '@/services/paymentProvider.service'
 import { paymentProviderAPI } from '@/services/paymentProvider.service'
@@ -456,17 +458,22 @@ const VenuePaymentConfig: React.FC = () => {
     enabled: !!venue?.id,
   })
 
-  const { data: costStructures = [] } = useQuery({
+  const costQuery = useQuery({
     queryKey: ['venue-cost-structures', venue?.id],
     queryFn: () => paymentProviderAPI.getVenueCostStructuresByVenueId(venue!.id),
     enabled: !!venue?.id && !!paymentConfig,
   })
+  const { data: costStructures = [] } = costQuery
 
-  const { data: pricingStructures = [] } = useQuery({
+  const pricingQuery = useQuery({
     queryKey: ['venue-pricing-structures', venue?.id],
     queryFn: () => paymentProviderAPI.getVenuePricingStructuresByVenueId(venue!.id),
     enabled: !!venue?.id && !!paymentConfig,
   })
+  const { data: pricingStructures = [] } = pricingQuery
+
+  // Sin estas dos lecturas no se sabe si ya hay tarifa: «Configurar Tarifas» reemplazaría la vigente.
+  const tarifasSinLeer = costQuery.data === undefined || pricingQuery.data === undefined
 
   // === COMPUTED VALUES ===
 
@@ -833,7 +840,8 @@ const VenuePaymentConfig: React.FC = () => {
             )}
           </div>
 
-          {!primaryPricing || !primaryCost ? (
+          <AvisoDeCarga query={falloDeCarga(pricingQuery) ? pricingQuery : costQuery} hayDatos={!tarifasSinLeer} />
+          {tarifasSinLeer ? null : !primaryPricing || !primaryCost ? (
             <div className="flex flex-col items-center py-8 text-center">
               <div className="p-4 rounded-full bg-yellow-500/10 mb-4">
                 <AlertCircle className="w-8 h-8 text-yellow-500" />

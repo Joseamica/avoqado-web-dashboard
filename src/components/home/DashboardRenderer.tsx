@@ -5,6 +5,8 @@
  * hero KPIs + chart rows using progressive loading.
  */
 
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
@@ -131,7 +133,7 @@ const ProgressiveChartSection = ({
     }
   }, [chartDef.rangePolicy, selectedRange, venueTimezone])
 
-  const { data, isLoading } = useQuery({
+  const chartQuery = useQuery({
     queryKey: [chartDef.dataSource.type, endpoint, venueId, effectiveRange.from.toISOString(), effectiveRange.to.toISOString()],
     queryFn: async () => {
       if (chartDef.dataSource.type === 'metric') {
@@ -142,6 +144,7 @@ const ProgressiveChartSection = ({
     enabled: isVisible,
     staleTime: 5 * 60 * 1000,
   })
+  const { data, isLoading } = chartQuery
 
   const Component = CHART_COMPONENT_MAP[chartDef.componentId]
 
@@ -152,7 +155,12 @@ const ProgressiveChartSection = ({
         skeleton={getSkeletonForType(chartDef.skeletonType)}
       >
         {data && Component ? (
-          <Component data={data} />
+          <>
+            <AvisoDeCarga query={chartQuery} hayDatos />
+            <Component data={data} />
+          </>
+        ) : falloDeCarga(chartQuery) ? (
+          <AvisoDeCarga query={chartQuery} hayDatos={false} />
         ) : (
           <div>{t('noData')}</div>
         )}
@@ -200,6 +208,8 @@ const PaymentMethodsPieSection = ({
             <div className="h-6 bg-muted rounded w-1/2 mx-auto"></div>
             <div className="h-64 bg-muted rounded-full w-64 mx-auto"></div>
           </div>
+        ) : dashboardData.basicData === undefined && falloDeCarga(dashboardData.basicQuery) ? (
+          <AvisoDeCarga query={dashboardData.basicQuery} hayDatos={false} />
         ) : !paymentMethodsData || paymentMethodsData.length === 0 ? (
           <div className="flex items-center justify-center h-full">
             <p className="text-muted-foreground">{t('noData')}</p>
@@ -280,7 +290,7 @@ const PaymentMethodsPieSection = ({
           </ChartContainer>
         )}
       </CardContent>
-      {!isBasicLoading && paymentMethodsData && paymentMethodsData.length > 0 && compareType && (
+      {!isBasicLoading && paymentMethodsData && paymentMethodsData.length > 0 && compareType && dashboardData.comparacionLista && (
         <CardFooter className="flex-col gap-2 text-sm">
           <div className="flex items-center gap-2 font-medium leading-none">
             {amountChangePercentage > 0 ? (

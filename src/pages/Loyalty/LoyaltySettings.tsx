@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { GlassCard } from '@/components/ui/glass-card'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { FeatureGate } from '@/components/billing/FeatureGate'
 import { PermissionGate } from '@/components/PermissionGate'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
@@ -110,10 +111,11 @@ export default function LoyaltySettings() {
 	const [enableExpiration, setEnableExpiration] = useState(false)
 
 	// Fetch loyalty config
-	const { data: config, isLoading } = useQuery({
+	const configQuery = useQuery({
 		queryKey: ['loyalty-config', venueId],
 		queryFn: () => loyaltyService.getConfig(venueId),
 	})
+	const { data: config, isLoading } = configQuery
 
 	const {
 		register,
@@ -218,6 +220,17 @@ export default function LoyaltySettings() {
 					</div>
 				</div>
 			</div>
+		)
+	}
+
+	// Sin la lectura, el formulario traería los valores de fábrica y al guardar pisaría la configuración real.
+	if (config === undefined) {
+		return (
+			<FeatureGate feature="LOYALTY_PROGRAM">
+				<div className="p-6">
+					<AvisoDeCarga query={configQuery} hayDatos={false} />
+				</div>
+			</FeatureGate>
 		)
 	}
 

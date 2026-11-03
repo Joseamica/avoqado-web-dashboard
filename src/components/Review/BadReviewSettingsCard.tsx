@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { Bell, AlertTriangle } from 'lucide-react'
 
 import api from '@/api'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
@@ -57,7 +58,7 @@ export function BadReviewSettingsDialog({ open, onOpenChange }: BadReviewSetting
   const [isDirty, setIsDirty] = useState(false)
 
   // Fetch venue settings
-  const { data: venueSettings, isLoading } = useQuery({
+  const venueSettingsQuery = useQuery({
     queryKey: ['venue-settings', venueId],
     queryFn: async () => {
       const response = await api.get<VenueSettings>(`/api/v1/dashboard/venues/${venueId}/settings`)
@@ -65,6 +66,9 @@ export function BadReviewSettingsDialog({ open, onOpenChange }: BadReviewSetting
     },
     enabled: !!venueId,
   })
+  const { data: venueSettings, isLoading } = venueSettingsQuery
+  // Sin la lectura, guardar pondría el umbral y los roles de fábrica encima de los reales.
+  const lecturaLista = venueSettings !== undefined
 
   // Initialize settings from fetched data
   useEffect(() => {
@@ -118,7 +122,7 @@ export function BadReviewSettingsDialog({ open, onOpenChange }: BadReviewSetting
   }
 
   const handleSave = () => {
-    updateMutation.mutate(settings)
+    if (lecturaLista) updateMutation.mutate(settings)
   }
 
   return (
@@ -132,11 +136,12 @@ export function BadReviewSettingsDialog({ open, onOpenChange }: BadReviewSetting
           <DialogDescription>{t('settings.badReviews.description')}</DialogDescription>
         </DialogHeader>
 
+        <AvisoDeCarga query={venueSettingsQuery} hayDatos={lecturaLista} />
         {isLoading ? (
           <div className="flex items-center justify-center py-6">
             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
           </div>
-        ) : (
+        ) : !lecturaLista ? null : (
           <div className="space-y-6">
             {/* Enable notifications toggle */}
             <div className="flex items-center justify-between">

@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useParams } from 'react-router-dom'
 
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { LoadingButton } from '@/components/loading-button'
 import { LoadingScreen } from '@/components/spinner'
 import { Button } from '@/components/ui/button'
@@ -29,11 +30,12 @@ export default function DiscountForm() {
   const isEditing = !!discountId
 
   // Fetch existing discount if editing
-  const { data: existingDiscount, isLoading: isLoadingDiscount } = useQuery({
+  const discountQuery = useQuery({
     queryKey: ['discount', venueId, discountId],
     queryFn: () => discountService.getDiscount(venueId, discountId!),
     enabled: isEditing,
   })
+  const { data: existingDiscount, isLoading: isLoadingDiscount } = discountQuery
 
   // Fetch form data options
   const { products, categoryOptions, customerGroupOptions, dayOptions, isLoading: isLoadingOptions } = useDiscountFormData(venueId)
@@ -200,6 +202,15 @@ export default function DiscountForm() {
     return <LoadingScreen message="Cargando descuentos" />
   }
 
+  // Editando, sin el descuento el formulario saldría de fábrica y guardar le borraría reglas, productos y vigencia.
+  if (isEditing && existingDiscount === undefined) {
+    return (
+      <div className="p-6">
+        <AvisoDeCarga query={discountQuery} hayDatos={false} />
+      </div>
+    )
+  }
+
   return (
     <div className="bg-background text-foreground">
       {/* Header */}
@@ -226,6 +237,7 @@ export default function DiscountForm() {
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="px-4 pb-8 space-y-6 max-w-4xl">
+          <AvisoDeCarga query={discountQuery} hayDatos />
           <DiscountFormFields
             form={form}
             products={products}

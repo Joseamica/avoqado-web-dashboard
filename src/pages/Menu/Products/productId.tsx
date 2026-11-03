@@ -7,6 +7,8 @@ import {
   IVA_QUERY_KEY,
   type BloqueoIva,
 } from '@/services/menu.service'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { recipesApi } from '@/services/inventory.service'
 import AlertDialogWrapper from '@/components/alert-dialog'
 import MultipleSelector from '@/components/multi-selector'
@@ -110,27 +112,32 @@ export default function ProductId() {
   inventarioElegido.current = { trackInventory, inventoryMethod }
 
   // Traemos la información del producto
-  const { data, isLoading } = useQuery({
+  const productQuery = useQuery({
     queryKey: ['product', venueId, productId],
     queryFn: () => getProduct(venueId!, productId!),
     enabled: !!venueId && !!productId,
   })
+  const { data, isLoading } = productQuery
   // Una variante (talla/color): nombre, descripción, categoría, tipo, foto, IVA y extras son del padre — se ven, no se editan ni se mandan.
   const esVariante = !!data?.productGroupId
 
   // Traemos las categorías disponibles para el selector
-  const { data: categories } = useQuery({
+  const categoriesQuery = useQuery({
     queryKey: ['menu-categories', venueId],
     queryFn: () => getMenuCategories(venueId!),
     enabled: !!venueId,
   })
+  const { data: categories } = categoriesQuery
 
   // Traemos los grupos de modificadores disponibles para el selector
-  const { data: modifierGroups } = useQuery({
+  const modifierGroupsQuery = useQuery({
     queryKey: ['modifier-groups', venueId],
     queryFn: () => getModifierGroups(venueId!),
     enabled: !!venueId,
   })
+  const { data: modifierGroups } = modifierGroupsQuery
+  // Sin la lista, todo modificador parece borrado: se mandaría vacío y el SERVIDOR quitaría los que tiene, mientras la pantalla los sigue enseñando.
+  const modificadoresListos = modifierGroups !== undefined
 
   const estadoIva = useEstadoIva(venueId)
   const ivaCambio = iva !== undefined && iva !== data?.ivaTratamiento
@@ -138,19 +145,22 @@ export default function ProductId() {
   const pideAvisoIva = ivaCambio && iva !== 'IVA_16' && estadoIva.data?.encendido !== true
 
   // Fetch recipe data if product has RECIPE inventory method
-  const { data: recipeData } = useQuery({
+  const recipeQuery = useQuery({
     queryKey: ['product-recipe', venueId, productId],
     queryFn: async () => {
       if (!productId) return null
       try {
         const response = await recipesApi.get(venueId!, productId)
         return response.data.data
-      } catch {
-        return null
+      } catch (error) {
+        // Sólo un 404 significa «sin receta»; lo demás es un fallo, no un producto sin ingredientes.
+        if ((error as { response?: { status?: number } })?.response?.status === 404) return null
+        throw error
       }
     },
     enabled: !!venueId && !!productId && data?.inventoryMethod === 'RECIPE',
   })
+  const recipeData = recipeQuery.data
 
   const from = (location.state as any)?.from || '/'
 
@@ -439,6 +449,7 @@ export default function ProductId() {
   // Manejador del submit
   // function onSubmit(formValues: z.infer<typeof FormSchema>) {
   function onSubmit(formValues: any) {
+    if (!modificadoresListos) return
     if (pideAvisoIva) {
       setPorConfirmarIva(formValues) // el guardado espera el «Continuar» del aviso del primer encendido
       return
@@ -447,12 +458,20 @@ export default function ProductId() {
   }
 
   // Imagen a mostrar: si hay una nueva (subida) úsala, si no usa la de la BD
-  if (!venueId || !productId || isLoading) {
+  if (!venueId || !productId || isLoading || categoriesQuery.isLoading) {
     return <div>{t('forms.messages.loading')}</div>
   }
 
   if (!data) {
-    return <div>{t('products.detail.notFound')}</div>
+    // Un 404 es un producto que no existe; lo demás es una lectura que no llegó.
+    const noExiste = (productQuery.error as { response?: { status?: number } } | null)?.response?.status === 404
+    if (noExiste || !falloDeCarga(productQuery)) return <div>{t('products.detail.notFound')}</div>
+    return <AvisoDeCarga query={productQuery} hayDatos={false} />
+  }
+
+  // Sin categorías el formulario nunca se llena (ver el efecto de arriba): saldría la ficha en blanco.
+  if (categories === undefined) {
+    return <AvisoDeCarga query={categoriesQuery} hayDatos={false} />
   }
 
   const displayedImageUrl = imageUrl || data.imageUrl
@@ -496,7 +515,7 @@ export default function ProductId() {
             onClick={form.handleSubmit(onSubmit)}
             variant="default"
             size="sm"
-            disabled={!(form.formState.isDirty || ivaCambio) || saveProduct.isPending}
+            disabled={!(form.formState.isDirty || ivaCambio) || saveProduct.isPending || !modificadoresListos}
           >
             {saveProduct.isPending ? t('products.detail.saving') : t('modifiers.forms.save')}
           </LoadingButton>
@@ -538,6 +557,8 @@ export default function ProductId() {
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="container mx-auto pt-6 pb-20 px-4 grow overflow-auto">
           <div className="max-w-4xl">
+            <AvisoDeCarga query={categoriesQuery} hayDatos />
+            <AvisoDeCarga query={modifierGroupsQuery} hayDatos={modificadoresListos} />
             {/* IVA por producto (6b, §5.5): aviso fijo de aparatos viejos, sólo con el IVA encendido */}
             <AvisoAparatosIva venueId={venueId!} className="mb-4" />
             {esVariante && (
@@ -1192,7 +1213,9 @@ export default function ProductId() {
                   {/* ✅ PROGRESSIVE DISCLOSURE: Show recipe ingredients when tracking by recipe */}
                   {trackInventory && inventoryMethod === 'RECIPE' && (
                     <div className="pl-4 border-l-2 border-primary space-y-4">
-                      {recipeData && recipeData.lines && recipeData.lines.length > 0 ? (
+                      {falloDeCarga(recipeQuery) && !recipeData ? (
+                        <AvisoDeCarga query={recipeQuery} hayDatos={false} />
+                      ) : recipeData && recipeData.lines && recipeData.lines.length > 0 ? (
                         <>
                           <div className="space-y-2">
                             <Label>{t('products.detail.inventory.ingredients')}</Label>

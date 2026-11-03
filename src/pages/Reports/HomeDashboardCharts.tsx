@@ -1,3 +1,5 @@
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
@@ -33,7 +35,7 @@ export default function HomeDashboardCharts() {
         {...dashboardData}
         isBasicLoading={isBasicLoading}
         exportLoading={exportLoading}
-        isBasicError={isBasicError}
+        isBasicError={isBasicError || (dashboardData.basicData === undefined && falloDeCarga(dashboardData.basicQuery))}
         exportToJSON={exportToJSON}
         exportToCSV={exportToCSV}
       />
@@ -43,7 +45,7 @@ export default function HomeDashboardCharts() {
       </div>
 
       <div className="flex-1 p-2 md:p-4 space-y-4 mx-auto w-full section-soft cards-tinted">
-        {isBasicError ? (
+        {dashboardData.basicData === undefined && falloDeCarga(dashboardData.basicQuery) ? (
           <Card className="p-6">
             <div className="text-center space-y-4">
               <h2 className="text-xl font-semibold text-destructive">{t('error.failedTitle')}</h2>
@@ -59,10 +61,13 @@ export default function HomeDashboardCharts() {
             </div>
           </Card>
         ) : (
+          <>
+          <AvisoDeCarga query={dashboardData.basicQuery} hayDatos />
           <DashboardRenderer
             resolvedDashboard={resolvedDashboard}
             dashboardData={dashboardData}
           />
+          </>
         )}
       </div>
     </div>

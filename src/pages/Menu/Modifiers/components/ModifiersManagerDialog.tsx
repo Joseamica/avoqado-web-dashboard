@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { Info, ListChecks, Package, Pencil, Plus, Trash2 } from 'lucide-react'
 
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -22,6 +23,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { useToast } from '@/hooks/use-toast'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import {
   getModifierGroup,
   getProducts,
@@ -94,17 +96,22 @@ export function ModifiersManagerDialog({ venueId, modifierGroupId, onClose }: Mo
 
   const open = !!modifierGroupId
 
-  const { data: group, isLoading } = useQuery({
+  const groupQuery = useQuery({
     queryKey: ['modifier-group', modifierGroupId, venueId],
     queryFn: () => getModifierGroup(venueId, modifierGroupId!),
     enabled: open && !!venueId,
   })
+  const { data: group } = groupQuery
 
-  const { data: allProducts } = useQuery({
+  const productsQuery = useQuery({
     queryKey: ['products', venueId, 'orderBy:name'],
     queryFn: () => getProducts(venueId, { orderBy: 'name' }),
     enabled: open && !!venueId,
   })
+  const { data: allProducts } = productsQuery
+
+  // El formulario se llena de las dos lecturas: sin ellas guardar pisaría el obligatorio, el mínimo y el máximo del grupo.
+  const lecturaLista = group !== undefined && allProducts !== undefined
 
   const form = useForm<GroupFormValues>({
     defaultValues: { name: '', description: '', required: false, minSelections: 0, maxSelections: 1, products: [] },
@@ -230,7 +237,7 @@ export function ModifiersManagerDialog({ venueId, modifierGroupId, onClose }: Mo
             <Button
               type="button"
               data-tour="modifier-editor-save"
-              disabled={!form.formState.isDirty || saveGroupMutation.isPending}
+              disabled={!lecturaLista || !form.formState.isDirty || saveGroupMutation.isPending}
               onClick={form.handleSubmit(values => saveGroupMutation.mutate(values))}
             >
               {saveGroupMutation.isPending ? t('modifiers.toasts.saving') : t('modifiers.forms.save')}
@@ -272,9 +279,10 @@ export function ModifiersManagerDialog({ venueId, modifierGroupId, onClose }: Mo
 
         {subView.kind === 'list' && (
           <>
-            {isLoading ? (
+            <AvisoDeCarga query={falloDeCarga(groupQuery) ? groupQuery : productsQuery} hayDatos={lecturaLista} />
+            {groupQuery.isLoading || productsQuery.isLoading ? (
               <div className="py-10 text-center text-sm text-muted-foreground">{t('forms.messages.loading')}</div>
-            ) : (
+            ) : !lecturaLista ? null : (
               <Form {...form}>
                 {/* ── Group settings ─────────────────────────────────── */}
                 <section className="space-y-4 rounded-2xl border border-input bg-card p-6" data-tour="modifier-editor-group">

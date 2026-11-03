@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -76,7 +77,7 @@ export function RecipeDialog({ open, onOpenChange, mode, product }: RecipeDialog
   })
 
   // Fetch recipe for edit mode
-  const { data: recipe, isLoading: recipeLoading } = useQuery({
+  const recipeQuery = useQuery({
     queryKey: ['recipe', venueId, product?.id],
     queryFn: async () => {
       if (!product) return null
@@ -85,6 +86,9 @@ export function RecipeDialog({ open, onOpenChange, mode, product }: RecipeDialog
     },
     enabled: !!venueId && !!product && mode === 'edit' && open,
   })
+  const { data: recipe, isLoading: recipeLoading } = recipeQuery
+  // Crear no lee nada. Al editar, sin la lectura el SERVIDOR borraría todos los ingredientes: reemplaza la lista con la que reciba.
+  const lecturaLista = mode !== 'edit' || recipe !== undefined
 
   // Fetch raw materials to show names in create mode (use same cache as AddIngredientDialog)
   const { data: rawMaterialsData } = useQuery({
@@ -306,20 +310,20 @@ export function RecipeDialog({ open, onOpenChange, mode, product }: RecipeDialog
       }
       createMutation.mutate(payload)
     } else {
+      if (!recipe) return
       // For edit mode, we update the recipe metadata
       // Lines are managed separately via add/remove ingredient
       const payload: CreateRecipeDto = {
         ...data,
-        lines:
-          recipe?.lines.map(line => ({
-            rawMaterialId: line.rawMaterialId,
-            quantity: Number(line.quantity),
-            unit: line.unit,
-            isOptional: line.isOptional,
-            substituteNotes: line.substituteNotes || undefined,
-            isVariable: line.isVariable,
-            linkedModifierGroupId: line.linkedModifierGroupId,
-          })) || [],
+        lines: recipe.lines.map(line => ({
+          rawMaterialId: line.rawMaterialId,
+          quantity: Number(line.quantity),
+          unit: line.unit,
+          isOptional: line.isOptional,
+          substituteNotes: line.substituteNotes || undefined,
+          isVariable: line.isVariable,
+          linkedModifierGroupId: line.linkedModifierGroupId,
+        })),
       }
       updateMutation.mutate(payload)
     }
@@ -352,11 +356,12 @@ export function RecipeDialog({ open, onOpenChange, mode, product }: RecipeDialog
             <DialogDescription>{mode === 'create' ? t('recipes.subtitle') : `${tCommon('edit')} ${product.name}`}</DialogDescription>
           </DialogHeader>
 
+          <AvisoDeCarga query={recipeQuery} hayDatos={lecturaLista} />
           {recipeLoading && mode === 'edit' ? (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
-          ) : (
+          ) : !lecturaLista ? null : (
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
               {/* Recipe Metadata */}
               <div className="grid grid-cols-3 gap-4">

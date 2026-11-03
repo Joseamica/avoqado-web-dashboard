@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
@@ -48,11 +49,12 @@ export function PrivacyNoticeModal({ venueId, open, onClose, onSaved }: PrivacyN
 	// escribió si la consulta tarda en resolver (ver el efecto de abajo).
 	const initializedRef = useRef(false)
 
-	const { data, isLoading } = useQuery({
+	const noticeQuery = useQuery({
 		queryKey: ['privacy-notice', venueId],
 		queryFn: () => marketingService.getPrivacyNotice(venueId),
 		enabled: open && Boolean(venueId),
 	})
+	const { data, isLoading } = noticeQuery
 
 	const notice = data?.notice ?? null
 
@@ -61,7 +63,8 @@ export function PrivacyNoticeModal({ venueId, open, onClose, onSaved }: PrivacyN
 			initializedRef.current = false
 			return
 		}
-		if (initializedRef.current || isLoading) return
+		// Sin la lectura no se precarga ni se marca: al reintentar tiene que traer el texto vigente, nunca una hoja vacía.
+		if (initializedRef.current || data === undefined) return
 		// Precarga el texto vigente — editar ya no significa reescribir desde cero.
 		// Guardar sigue creando una versión NUEVA (ver docstring arriba): esto sólo
 		// evita que el usuario tenga que copiar/pegar lo que ya existe.
@@ -74,7 +77,7 @@ export function PrivacyNoticeModal({ venueId, open, onClose, onSaved }: PrivacyN
 		setContent(notice?.content ?? notice?.draftContent ?? '')
 		setLanguage((notice?.language as PrivacyNoticeLanguage) || 'es')
 		initializedRef.current = true
-	}, [open, isLoading, notice?.language, notice?.content])
+	}, [open, data, notice?.language, notice?.content])
 
 	const saveMutation = useMutation({
 		mutationFn: () => marketingService.updatePrivacyNotice(venueId, { content: content.trim(), language }),
@@ -96,7 +99,18 @@ export function PrivacyNoticeModal({ venueId, open, onClose, onSaved }: PrivacyN
 		},
 	})
 
-	const canSave = content.trim().length > 0 && !saveMutation.isPending
+	const canSave = data !== undefined && content.trim().length > 0 && !saveMutation.isPending
+
+	// Sin el aviso vigente no se sabe qué se está reemplazando: publicar uno tecleado de memoria lo dejaría como vigente.
+	if (data === undefined && !isLoading) {
+		return (
+			<FullScreenModal open={open} onClose={onClose} title={t('privacyNotice.title')} contentClassName="bg-muted/30">
+				<div className="mx-auto max-w-2xl p-6">
+					<AvisoDeCarga query={noticeQuery} hayDatos={false} />
+				</div>
+			</FullScreenModal>
+		)
+	}
 
 	return (
 		<FullScreenModal
@@ -111,6 +125,7 @@ export function PrivacyNoticeModal({ venueId, open, onClose, onSaved }: PrivacyN
 			contentClassName="bg-muted/30"
 		>
 			<div className="mx-auto max-w-2xl space-y-4 p-6">
+				<AvisoDeCarga query={noticeQuery} hayDatos />
 				<p className="text-sm text-muted-foreground">{t('privacyNotice.description')}</p>
 
 				<div className="rounded-2xl border border-border/50 bg-card p-4 text-sm" data-testid="privacy-notice-current-version">
@@ -162,6 +177,7 @@ export function PrivacyNoticeModal({ venueId, open, onClose, onSaved }: PrivacyN
 						id="privacy-notice-content"
 						value={content}
 						onChange={e => setContent(e.target.value)}
+						disabled={data === undefined}
 						placeholder={t('privacyNotice.contentPlaceholder')}
 						rows={16}
 						className="min-h-[320px] font-mono text-sm"

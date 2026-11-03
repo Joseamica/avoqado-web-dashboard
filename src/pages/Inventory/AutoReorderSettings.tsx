@@ -4,7 +4,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useToast } from '@/hooks/use-toast'
 import { useNavigate } from 'react-router-dom'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { FeatureGate } from '@/components/billing/FeatureGate'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Switch } from '@/components/ui/switch'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -26,11 +28,12 @@ export default function AutoReorderSettings() {
   const { venueId, fullBasePath } = useCurrentVenue()
   const qc = useQueryClient()
 
-  const { data, isLoading } = useQuery({
+  const settingsQuery = useQuery({
     queryKey: ['autoReorderSettings', venueId],
     queryFn: () => getAutoReorderSettings(venueId!),
     enabled: !!venueId,
   })
+  const { data, isLoading } = settingsQuery
 
   const [enabled, setEnabled] = useState<boolean | undefined>(undefined)
   const [cap, setCap] = useState<number | null | undefined>(undefined)
@@ -64,9 +67,22 @@ export default function AutoReorderSettings() {
     onSuccess: r => toast({ title: t('autoReorder.runNowDone', { orders: r.result.ordersCreated, emails: r.result.emailsSent }) }),
   })
 
+  // Sin la lectura, guardar apagaría el reabasto y borraría el tope diario y la urgencia: el SERVIDOR reemplaza la configuración.
+  if (data === undefined) {
+    return (
+      <FeatureGate feature="AUTO_REORDER">
+        <div className="mx-auto max-w-2xl space-y-6 p-4">
+          <AvisoDeCarga query={settingsQuery} hayDatos={false} />
+          {isLoading && <Skeleton className="h-64 w-full rounded-2xl" />}
+        </div>
+      </FeatureGate>
+    )
+  }
+
   return (
     <FeatureGate feature="AUTO_REORDER">
       <div className="mx-auto max-w-2xl space-y-6 p-4">
+        <AvisoDeCarga query={settingsQuery} hayDatos />
         <div>
           <h2 className="text-xl font-semibold text-foreground">{t('autoReorder.title')}</h2>
           <p className="mt-1 text-sm text-muted-foreground">{t('autoReorder.subtitle')}</p>

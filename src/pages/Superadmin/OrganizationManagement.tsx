@@ -1,3 +1,4 @@
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -672,16 +673,17 @@ const ACCOUNT_TYPE_LABELS: Record<AccountType, { label: string; color: string }>
   TERTIARY: { label: 'Terciaria', color: 'text-purple-600 bg-purple-500/10' },
 }
 
-const PaymentConfigDialog: React.FC<PaymentConfigDialogProps> = ({ open, onOpenChange, organization }) => {
+export const PaymentConfigDialog: React.FC<PaymentConfigDialogProps> = ({ open, onOpenChange, organization }) => {
   const { toast } = useToast()
   const queryClient = useQueryClient()
 
   // Fetch org payment config
-  const { data: paymentData, isLoading } = useQuery({
+  const paymentQuery = useQuery({
     queryKey: ['org-payment-config', organization?.id],
     queryFn: () => organizationAPI.getOrganizationPaymentConfig(organization!.id),
     enabled: !!organization && open,
   })
+  const { data: paymentData, isLoading } = paymentQuery
 
   // Fetch merchant accounts for dropdowns
   const { data: merchantAccounts = [] } = useQuery({
@@ -888,8 +890,12 @@ const PaymentConfigDialog: React.FC<PaymentConfigDialogProps> = ({ open, onOpenC
           <div className="flex items-center justify-center py-12">
             <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
           </div>
+        ) : paymentData === undefined ? (
+          // Sin la lectura, el formulario saldría en blanco y guardar reemplazaría las cuentas y el procesador de la org.
+          <AvisoDeCarga query={paymentQuery} hayDatos={false} />
         ) : (
           <Tabs defaultValue="config" className="flex-1 overflow-hidden flex flex-col">
+            <AvisoDeCarga query={paymentQuery} hayDatos />
             <TabsList className="inline-flex h-10 items-center justify-start rounded-full bg-muted/60 px-1 py-1 text-muted-foreground border border-border w-full">
               <TabsTrigger
                 value="config"

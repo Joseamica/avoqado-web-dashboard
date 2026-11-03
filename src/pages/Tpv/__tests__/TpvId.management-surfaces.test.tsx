@@ -1,13 +1,15 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { onlineManager, QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { AxiosError, type AxiosAdapter } from 'axios'
 import { MemoryRouter, Route, Routes, useNavigate, type NavigateFunction } from 'react-router-dom'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import TpvId from '../TpvId'
 
-const { apiGet, apiPost, toast, sesion, contexto } = vi.hoisted(() => ({
+const { apiGet, apiPatch, apiPost, toast, sesion, contexto } = vi.hoisted(() => ({
   apiGet: vi.fn(),
+  apiPatch: vi.fn(),
   apiPost: vi.fn(),
   toast: vi.fn(),
   sesion: { role: 'OWNER' },
@@ -19,6 +21,7 @@ vi.mock('@/api', () => ({
     get: apiGet,
     post: apiPost,
     put: vi.fn(),
+    patch: apiPatch,
     delete: vi.fn(),
   },
 }))
@@ -583,5 +586,101 @@ describe('device detail management surfaces', () => {
       expect(screen.queryByTestId('customer-display-section')).not.toBeInTheDocument()
       expect(screen.queryByText('detail.errors.refreshError')).not.toBeInTheDocument()
     })
+  })
+})
+
+describe('SUPERADMIN: las cuentas de comercio de la terminal (el SERVIDOR reemplaza la lista completa)', () => {
+  // Radix Select usa pointer capture, que jsdom no trae. Funciones planas: `mockReset: true` vaciaría un vi.fn().
+  Element.prototype.hasPointerCapture = () => false
+  Element.prototype.setPointerCapture = () => {}
+  Element.prototype.releasePointerCapture = () => {}
+
+  const CUENTAS = [
+    { id: 'cuenta-a', displayName: 'Cuenta A', provider: { name: 'Blumon' } },
+    { id: 'cuenta-b', displayName: 'Cuenta B', provider: { name: 'AngelPay' } },
+  ]
+  const lecturas = (falla?: RegExp) => (url: string) => {
+    if (falla?.test(url)) return Promise.reject(new Error('500'))
+    if (/superadmin\/terminals\/device-1/.test(url)) return Promise.resolve({ data: { data: { id: 'device-1', assignedMerchantIds: ['cuenta-a'] } } })
+    if (/superadmin\/merchant-accounts/.test(url)) return Promise.resolve({ data: { data: CUENTAS } })
+    return Promise.resolve({
+      data: {
+        id: 'device-1',
+        name: 'Terminal',
+        serialNumber: 'ABC',
+        type: 'TPV_ANDROID',
+        status: 'ACTIVE',
+        venueId: 'venue-1',
+        activatedAt: '2026-10-01T00:00:00.000Z',
+        capabilities: {
+          requiresActivation: false,
+          canManagePaymentConfiguration: true,
+          canAcceptTerminalPaymentRequests: true,
+          customerDisplay: { presence: 'UNSUPPORTED', invertibility: 'UNSUPPORTED', canRequestInversion: false, observedAt: null, stale: false },
+          supportedRemoteCommands: [],
+        },
+      },
+    })
+  }
+  const vincularB = async () => {
+    const user = userEvent.setup()
+    const selector = screen.queryByText('Seleccionar cuenta...')?.closest('button')
+    if (selector) {
+      await user.click(selector)
+      await user.click(await screen.findByRole('option', { name: /Cuenta B/ }))
+    }
+    const vincular = screen.queryByRole('button', { name: /Vincular cuenta/ })
+    if (vincular) await user.click(vincular)
+  }
+  const asentar = () => act(async () => void (await new Promise(r => setTimeout(r, 30))))
+
+  beforeEach(() => {
+    sesion.role = 'SUPERADMIN'
+    apiPatch.mockResolvedValue({ data: { data: {} } })
+  })
+  afterEach(() => onlineManager.setOnline(true))
+
+  it('🔴 con la terminal sin leer avisa y vincular no le quita las cuentas que ya tiene', async () => {
+    apiGet.mockImplementation(lecturas(/superadmin\/terminals\/device-1/))
+    renderDetail()
+    await screen.findByText('device.sections.superadmin')
+    await asentar()
+    await vincularB()
+    await asentar()
+    expect(apiPatch).not.toHaveBeenCalled()
+    expect(screen.getByText('loadFailure.empty')).toBeInTheDocument()
+    expect(screen.queryByText('No hay cuentas de comercio asignadas')).toBeNull()
+  })
+
+  it('con el catálogo de cuentas sin leer no dice que no hay ni ofrece vincular', async () => {
+    apiGet.mockImplementation(lecturas(/superadmin\/merchant-accounts/))
+    renderDetail()
+    await screen.findByText('device.sections.superadmin')
+    await asentar()
+    expect(screen.getByText('loadFailure.empty')).toBeInTheDocument()
+    expect(screen.queryByText('No hay cuentas de comercio asignadas')).toBeNull()
+    expect(screen.queryByRole('button', { name: /Vincular cuenta/ })).toBeNull()
+  })
+
+  it('con la lectura sana vincular suma a las que ya tiene y quitar conserva las demás', async () => {
+    apiGet.mockImplementation(lecturas())
+    renderDetail()
+    await screen.findByText('Seleccionar cuenta...')
+    await vincularB()
+    await waitFor(() => expect(apiPatch).toHaveBeenCalledTimes(1))
+    expect(apiPatch.mock.calls[0][1]).toEqual({ assignedMerchantIds: ['cuenta-a', 'cuenta-b'] })
+    expect(screen.queryByText('loadFailure.empty')).toBeNull()
+  })
+
+  it('si la red se cae justo después de leer el aparato, avisa y no ofrece vincular', async () => {
+    const sana = lecturas()
+    apiGet.mockImplementation((url: string) => {
+      if (url.includes('/tpv/device-1')) onlineManager.setOnline(false)
+      return sana(url)
+    })
+    renderDetail()
+    expect((await screen.findAllByText('loadFailure.empty')).length).toBeGreaterThan(0)
+    expect(screen.queryByText('No hay cuentas de comercio asignadas')).toBeNull()
+    expect(screen.queryByRole('button', { name: /Vincular cuenta/ })).toBeNull()
   })
 })

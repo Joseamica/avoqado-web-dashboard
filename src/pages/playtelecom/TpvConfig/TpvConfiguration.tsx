@@ -16,6 +16,7 @@ import { useTranslation } from 'react-i18next'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { AUTH_STATUS_QUERY_KEY } from '@/services/auth.service'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { Tabs, TabsContent } from '@/components/ui/tabs'
 import { ToastAction } from '@/components/ui/toast'
 import { Button } from '@/components/ui/button'
@@ -180,12 +181,15 @@ export function TpvConfiguration() {
   }
 
   // --- TPV settings (hooks must be unconditional) ---
-  const { data: tpvSettings, isLoading: settingsLoading } = useQuery({
+  const tpvSettingsQuery = useQuery({
     queryKey: ['venue', venueId, 'tpv-settings'],
     queryFn: () => tpvSettingsService.getVenueSettings(venueId!),
     enabled: !!venueId,
     staleTime: 60000,
   })
+  const { data: tpvSettings, isLoading: settingsLoading } = tpvSettingsQuery
+  // Sin la lectura, guardar mandaría los módulos de fábrica a TODAS las terminales y quitaría horario, tolerancia y geocerca propios.
+  const lecturaLista = tpvSettings !== undefined
 
   const [modules, setModules] = useState<ModuleToggleState>(DEFAULT_MODULES)
   // Empty string = inherit from org (no venue-level override). A real time/number
@@ -271,8 +275,8 @@ export function TpvConfiguration() {
   }, [])
 
   const handleSave = useCallback(() => {
-    saveMutation.mutate()
-  }, [saveMutation])
+    if (lecturaLista) saveMutation.mutate()
+  }, [lecturaLista, saveMutation])
 
   // --- Summary data for General tab ---
   const { data: categoriesData } = useQuery({
@@ -409,7 +413,7 @@ export function TpvConfiguration() {
               <RotateCcw className="w-3.5 h-3.5 mr-1" />
               {t('playtelecom:tpvConfig.resetDefaults', { defaultValue: 'Restaurar Defaults' })}
             </Button>
-            <Button size="sm" onClick={handleSave} disabled={!hasChanges || saveMutation.isPending}>
+            <Button size="sm" onClick={handleSave} disabled={!hasChanges || saveMutation.isPending || !lecturaLista}>
               {saveMutation.isPending ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Save className="w-3.5 h-3.5 mr-1" />}
               {t('playtelecom:tpvConfig.saveSync', { defaultValue: 'Guardar y Sincronizar' })}
             </Button>
@@ -577,6 +581,8 @@ export function TpvConfiguration() {
               </div>
               {settingsLoading ? (
                 <Skeleton className="h-10 w-full" />
+              ) : !lecturaLista ? (
+                <span className="text-2xl font-bold">—</span>
               ) : (
                 <div className="space-y-2">
                   <div className="flex items-baseline gap-2">
@@ -787,6 +793,7 @@ export function TpvConfiguration() {
 
         {/* TPV Tab */}
         <TabsContent value="tpv" className="space-y-6">
+          <AvisoDeCarga query={tpvSettingsQuery} hayDatos={lecturaLista} />
           {settingsLoading ? (
             <div className="grid grid-cols-12 gap-6">
               <div className="col-span-12 xl:col-span-8 space-y-6">
@@ -809,10 +816,10 @@ export function TpvConfiguration() {
           ) : (
             <div className="grid grid-cols-12 gap-6">
               <div className="col-span-12 xl:col-span-8 space-y-6">
-                <ModuleToggles values={modules} onChange={handleModuleChange} />
+                {lecturaLista && <ModuleToggles values={modules} onChange={handleModuleChange} />}
 
                 {/* Attendance — Lateness config */}
-                {modules.attendanceTracking && (
+                {lecturaLista && modules.attendanceTracking && (
                   <GlassCard className="p-5">
                     <div className="flex items-center gap-3 mb-4">
                       <div className="p-2 rounded-xl bg-linear-to-br from-green-500/20 to-green-500/5">
@@ -896,7 +903,7 @@ export function TpvConfiguration() {
                 <TerminalManagement />
               </div>
               <div className="col-span-12 xl:col-span-4 hidden xl:flex">
-                <PhonePreview modules={modules} className="sticky top-6" />
+                {lecturaLista && <PhonePreview modules={modules} className="sticky top-6" />}
               </div>
             </div>
           )}
