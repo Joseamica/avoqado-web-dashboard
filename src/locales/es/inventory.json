@@ -1657,6 +1657,10 @@
     "suma": "Suma de sus variantes",
     "sumaFiltrada": "Suma de las que coinciden"
   },
+  "stockLoad": {
+    "failed": "No pudimos cargar el inventario. Inténtalo de nuevo.",
+    "partial": "No pudimos cargar todo el inventario: esta lista puede estar incompleta o desactualizada."
+  },
   "stockExport": {
     "button": "Exportar",
     "exporting": "Exportando…",
