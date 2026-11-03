@@ -537,7 +537,7 @@ test.describe('Tarjetas de regalo — lista y detalle', () => {
     await expect(page.locator('[data-tour="gift-card-detail-balance"]')).toContainText('1,500.00')
     await expect(page.locator('[data-tour="gift-card-actions"]')).toHaveCount(0)
     await page.goto('/venues/venue-alpha/settings/gift-cards')
-    await expect(page.getByText(/only a manager or the owner can change it/i)).toBeVisible({ timeout: 15_000 })
+    await expect(page.getByText(/a manager or the owner changes the amounts/i)).toBeVisible({ timeout: 15_000 })
     await expect(page.getByRole('switch', { name: 'Sell gift cards' })).toBeDisabled()
     expect(s.ops).toHaveLength(0)
     expect(s.puts).toHaveLength(0)

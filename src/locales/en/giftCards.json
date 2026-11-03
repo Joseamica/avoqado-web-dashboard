@@ -19,7 +19,7 @@
   },
   "turnOn": {
     "title": "Sell gift cards",
-    "body": "Your customers gift balance to spend at your business. Turn on the switch to start selling them."
+    "body": "Your customers gift balance to spend at your business. Turn on the switch to start selling them on the Android and Windows point of sale. Not yet on iPad and iPhone."
   },
   "teaser": {
     "title": "What you can do with gift cards",
@@ -337,7 +337,7 @@
     "title": "Gift cards",
     "subtitle": "Turn them on and choose the amounts and validity.",
     "info": "What you set here applies to the cards you sell from now on.",
-    "readOnly": "You can see this setup, but only a manager or the owner can change it.",
+    "readOnly": "You can see this setup. A manager or the owner changes the amounts; an admin or the owner turns them on or off.",
     "loadError": "We couldn't load the setup.",
     "refreshError": "We couldn't reload the setup. You're seeing the last version that loaded.",
     "switch": {
@@ -346,7 +346,7 @@
       "label": "Sell gift cards",
       "proBadge": "Pro",
       "offDescription": "Off: the point of sale doesn't sell cards. To turn it on you need to accept the rules.",
-      "onDescription": "On: the point of sale sells cards and takes payments with their balance.",
+      "onDescription": "On: the Android and Windows point of sale sells cards and takes payments with their balance. Not yet on iPad and iPhone.",
       "downgraded": "Your plan no longer includes selling gift cards. You can turn them off; the ones you already sold can still be used to pay.",
       "onToast": "Gift cards turned on",
       "offToast": "Gift cards turned off",
