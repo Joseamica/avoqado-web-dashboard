@@ -24,6 +24,7 @@ import { PERMISSION_DEPENDENCIES, resolvePermissions } from '@/lib/permissions/p
 import {
   DASHBOARD_SUPER_CATEGORIES,
   TPV_SUPER_CATEGORIES,
+  filterCategoriesByModules,
   filterPermissionsBySearch,
   type SuperCategory,
 } from '@/lib/permissions/permissionGroups'
@@ -172,18 +173,10 @@ export function PermissionEditorModal({ open, onClose, role, venueId }: Permissi
       'ORDERS': 'ONLINE_ORDERING',
     }
 
-    // Categorías de un módulo (VenueModule), no de un plan: sólo las ve la tienda que lo tiene.
-    // «Verificación de ventas» es de PlayTelecom (founder, 2-nov): a nadie más le sirve.
-    const categoryModuleMap: Record<string, string> = {
-      'SALE_VERIFICATIONS': 'SERIALIZED_INVENTORY',
-    }
-
-    return superCategories
+    return filterCategoriesByModules(superCategories, checkModuleAccess)
       .map(superCat => ({
         ...superCat,
         categoryKeys: superCat.categoryKeys.filter(catKey => {
-          const requiredModule = categoryModuleMap[catKey]
-          if (requiredModule && !checkModuleAccess(requiredModule)) return false
           const requiredFeature = categoryFeatureMap[catKey]
           if (!requiredFeature) return true
           return checkFeatureAccess(requiredFeature)

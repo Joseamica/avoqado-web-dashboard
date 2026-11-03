@@ -120,6 +120,20 @@ describe('Roles y permisos — guardar el MANAGER conserva «Aprobar o rechazar 
     expect(denied).toContain(APPROVE)
   })
 
+  it('si el admin vuelve a marcar «Aprobar o rechazar ventas», al guardar ya no va negado', async () => {
+    h.modules = new Set(['SERIALIZED_INVENTORY'])
+    renderEditor()
+    await userEvent.click(await screen.findByText('Verificación de ventas', {}, ESPERA))
+    const [casilla] = await screen.findAllByRole('checkbox', { name: /Aprobar o rechazar ventas/ }, ESPERA)
+    await userEvent.click(casilla)
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar Cambios' }))
+    await waitFor(() => expect(h.update).toHaveBeenCalled(), ESPERA)
+
+    const [, , permissions, denied] = h.update.mock.calls[0] as [string, StaffRole, string[], string[]]
+    expect(denied).not.toContain(APPROVE)
+    expect(permissions).toContain(APPROVE)
+  })
+
   it('con un catálogo viejo que no conoce el permiso (pestaña abierta de antes): se manda como llegó', async () => {
     // Simula el bundle de antes de la Parte A: ni el catálogo ni los de fábrica conocen `approve`.
     const categoria = PERMISSION_CATEGORIES.SALE_VERIFICATIONS as unknown as { permissions: string[] }
