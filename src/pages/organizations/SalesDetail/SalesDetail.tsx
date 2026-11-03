@@ -727,7 +727,14 @@ export default function SalesDetail() {
         </div>
       </div>
 
-      <AvisoDeCarga query={listQuery} hayDatos={listQuery.data !== undefined} />
+      {/* Si el servidor rechaza el filtro dice qué hacer («acota las fechas»): ese mensaje vale más que el aviso genérico. */}
+      {alertFilterError ? (
+        <SummaryQueryBoundary isError message={alertFilterError} retryLabel="Reintentar" onRetry={() => void listQuery.refetch()}>
+          {null}
+        </SummaryQueryBoundary>
+      ) : (
+        <AvisoDeCarga query={listQuery} hayDatos={listQuery.data !== undefined} />
+      )}
 
       {/* Mobile card list */}
       {isMobile && (
