@@ -870,7 +870,7 @@ export default function SalesDetail() {
                       </div>
                     </td>
                     <td className="px-3 py-2">{statusBadge(row.status)}</td>
-                    <td className="px-3 py-2 text-xs">
+                    <td className={`px-3 py-2 text-xs ${row.numberAlerts?.length ? 'min-w-56' : ''}`}>
                       {row.rejectionReasons.length > 0 || row.reviewNotes?.trim() || row.numberAlerts?.length ? (
                         <div className="space-y-0.5">
                           <NumberAlertBadges alerts={row.numberAlerts ?? []} />

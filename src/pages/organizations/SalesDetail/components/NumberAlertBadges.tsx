@@ -9,7 +9,7 @@ export function NumberAlertBadges({ alerts }: { alerts: NumberAlert[] }) {
       {alerts.map(a => (
         <Badge
           key={a.code}
-          className="whitespace-normal text-left font-normal bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-700"
+          className="whitespace-normal rounded-md px-2 py-0.5 text-left font-normal bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-700"
         >
           {numberAlertText(a)}
         </Badge>
