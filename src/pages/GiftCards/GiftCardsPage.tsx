@@ -19,7 +19,15 @@ import { motivoSinVenta, avisoDeError } from './giftCardText'
 import { decidirVista } from './vista'
 
 /** «Apagado se ve y se explica»: por qué hoy no se venden tarjetas nuevas (lo vendido siempre se cobra). */
-function AvisoDeVenta({ motivo, canManage, settingsHref }: { motivo: GiftCardNotSellableReason | null; canManage: boolean; settingsHref: string }) {
+function AvisoDeVenta({
+  motivo,
+  canManage,
+  settingsHref,
+}: {
+  motivo: GiftCardNotSellableReason | null
+  canManage: boolean
+  settingsHref: string
+}) {
   const { t } = useTranslation('giftCards')
   if (!motivo) return null
   return (
@@ -65,6 +73,11 @@ export default function GiftCardsPage() {
     hasAccess: tier.hasAccess,
   })
   const settingsHref = `${fullBasePath}/settings/gift-cards`
+  // En la lista, apagadas el interruptor lo ve todo el que entra; prendidas, sólo quien puede apagarlas.
+  const conInterruptor = !!settings.data && (!settings.data.enabled || canToggle)
+  const motivo = settings.data ? motivoSinVenta(settings.data, { resolved: tier.isResolved, hasAccess: tier.hasAccess }) : null
+  // Prendidas, el interruptor ya dice «tu plan ya no incluye» y «falta un paso»: arriba no se repite.
+  const avisoArriba = conInterruptor && settings.data?.enabled && (motivo === 'NOT_IN_PLAN' || motivo === 'KEYS_MISSING') ? null : motivo
   // La pestaña vive en el hash (#cards / #reports): se comparte por liga y sobrevive a recargar (ui-patterns.md).
   const location = useLocation()
   const navigate = useNavigate()
@@ -122,16 +135,10 @@ export default function GiftCardsPage() {
         </div>
       ) : (
         <>
-          {settings.data && venueId && (!settings.data.enabled || canToggle) && (
+          {settings.data && venueId && conInterruptor && (
             <GiftCardsSwitch key={`switch-${venueId}`} venueId={venueId} settings={settings.data} canToggle={canToggle} />
           )}
-          {settings.data && (
-            <AvisoDeVenta
-              motivo={motivoSinVenta(settings.data, { resolved: tier.isResolved, hasAccess: tier.hasAccess })}
-              canManage={canManage}
-              settingsHref={settingsHref}
-            />
-          )}
+          {settings.data && <AvisoDeVenta motivo={avisoArriba} canManage={canManage} settingsHref={settingsHref} />}
           <Tabs value={pestana} onValueChange={cambiarPestana}>
             <TabsList className="rounded-full border border-border bg-muted/60 px-1 py-1">
               <TabsTrigger

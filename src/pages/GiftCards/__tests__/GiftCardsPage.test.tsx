@@ -8,10 +8,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { GiftCardSettingsView } from '@/types/giftCard'
 
 const access = vi.hoisted(() => ({ allowed: [] as string[] }))
+const plan = vi.hoisted(() => ({ hasAccess: true }))
 vi.mock('@/hooks/use-access', () => ({ useAccess: () => ({ can: (p: string) => access.allowed.includes(p), isLoading: false }) }))
 vi.mock('@/hooks/use-tier-feature-access', async importOriginal => ({
   ...(await importOriginal<typeof import('@/hooks/use-tier-feature-access')>()),
-  useTierFeatureAccess: () => ({ hasAccess: true, isResolved: true, isLoading: false, requiredTier: 'PRO' }),
+  useTierFeatureAccess: () => ({ hasAccess: plan.hasAccess, isResolved: true, isLoading: false, requiredTier: 'PRO' }),
 }))
 const svc = vi.hoisted(() => ({ getGiftCardSettings: vi.fn(), updateGiftCardSettings: vi.fn() }))
 vi.mock('@/services/giftCard.service', () => svc)
@@ -61,6 +62,7 @@ const elSwitch = () => screen.findByRole('switch', { name: 'settings.switch.labe
 beforeEach(() => {
   vi.clearAllMocks()
   access.allowed = ADMIN
+  plan.hasAccess = true
   svc.getGiftCardSettings.mockResolvedValue(AJUSTES)
 })
 
@@ -113,5 +115,25 @@ describe('Tarjetas de regalo: prender en la misma página', () => {
     pintar()
     expect(await screen.findByText('lista-de-tarjetas')).toBeInTheDocument()
     expect(screen.queryByRole('switch', { name: 'settings.switch.label' })).not.toBeInTheDocument()
+  })
+
+  // CI del PR #254: con el interruptor en la lista, el aviso de arriba repetía lo que ya dice el interruptor.
+  it('🔴 sin plan y prendidas: «tu plan ya no incluye» sale una vez, y el gerente, sin interruptor, lo ve arriba', async () => {
+    plan.hasAccess = false
+    svc.getGiftCardSettings.mockResolvedValue({ ...AJUSTES, enabled: true, hasCards: true })
+    const primero = pintar()
+    expect(await screen.findByText('settings.switch.downgraded')).toBeInTheDocument()
+    expect(screen.queryByText('notice.NOT_IN_PLAN')).not.toBeInTheDocument()
+    primero.unmount()
+    access.allowed = GERENTE
+    pintar()
+    expect(await screen.findByText('notice.NOT_IN_PLAN')).toBeInTheDocument()
+  })
+
+  it('🔴 prendidas sin llaves: el aviso sale una sola vez', async () => {
+    svc.getGiftCardSettings.mockResolvedValue({ ...AJUSTES, enabled: true, hasCards: true, llavesConfiguradas: false })
+    pintar()
+    await screen.findByText('lista-de-tarjetas')
+    expect(await screen.findAllByText('notice.KEYS_MISSING')).toHaveLength(1)
   })
 })
