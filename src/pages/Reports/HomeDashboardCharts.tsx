@@ -35,7 +35,7 @@ export default function HomeDashboardCharts() {
         {...dashboardData}
         isBasicLoading={isBasicLoading}
         exportLoading={exportLoading}
-        isBasicError={isBasicError}
+        isBasicError={isBasicError || (dashboardData.basicData === undefined && falloDeCarga(dashboardData.basicQuery))}
         exportToJSON={exportToJSON}
         exportToCSV={exportToCSV}
       />

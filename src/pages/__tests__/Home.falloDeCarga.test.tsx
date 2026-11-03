@@ -3,7 +3,7 @@
  * Cada fuente se protege por separado y los filtros siguen a la mano. Un negocio de verdad en cero se ve igual que hoy.
  */
 import { onlineManager, QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { configure, render, screen, waitFor } from '@testing-library/react'
+import { configure, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -15,6 +15,10 @@ const m = vi.hoisted(() => ({
   calendario: (() => Promise.resolve({ data: [] })) as () => Promise<unknown>,
   puedeLiquidacion: true,
   ANIO_COMPARA: 2020,
+  navegaciones: 0,
+  navegar: () => {
+    m.navegaciones++
+  },
 }))
 vi.mock('@/services/dashboard.progressive.service', () => ({
   DashboardProgressiveService: class {
@@ -52,7 +56,13 @@ vi.mock('@/components/announcements/AnnouncementBanner', () => ({ AnnouncementBa
 vi.mock('@/components/onboarding/HomeSetupChecklist', () => ({ HomeSetupChecklist: () => null }))
 vi.mock('@/components/onboarding/PaymentActivationCard', () => ({ PaymentActivationCard: () => null }))
 vi.mock('@/components/home/HomeDatePicker', () => ({ HomeDatePicker: () => <div data-testid="filtro-fechas" /> }))
-vi.mock('@/components/home/PerformanceChart', () => ({ PerformanceChart: () => <div data-testid="grafica" /> }))
+vi.mock('@/components/home/PerformanceChart', () => ({
+  PerformanceChart: ({ ocultarComparacion }: { ocultarComparacion?: boolean }) => <div data-testid="grafica" data-sin-comparacion={String(!!ocultarComparacion)} />,
+}))
+vi.mock('react-router-dom', async importOriginal => ({
+  ...(await importOriginal<typeof import('react-router-dom')>()),
+  useNavigate: () => m.navegar,
+}))
 vi.mock('@/components/ui/tooltip', () => ({
   TooltipProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
   Tooltip: ({ children }: { children: ReactNode }) => <>{children}</>,
@@ -141,6 +151,31 @@ describe('Inicio si falla la carga', () => {
     expect(document.body.textContent).toMatch(/1,000/)
   })
 
+  it('«Reintentar» de la liquidación reintenta sin irse a otra pantalla', async () => {
+    let llamadas = 0
+    m.navegaciones = 0
+    m.calendario = () => {
+      llamadas++
+      return Promise.reject(new Error('500'))
+    }
+    pintar()
+    await waitFor(() => expect(liquidacion().textContent).toMatch(/loadFailure\.empty/))
+    const antes = llamadas
+    fireEvent.click(within(liquidacion()).getByRole('button', { name: 'retry' }))
+    await waitFor(() => expect(llamadas).toBeGreaterThan(antes))
+    expect(m.navegaciones).toBe(0)
+  })
+
+  it('recarga de la liquidación caída: el importe sigue y avisa', async () => {
+    m.calendario = () => Promise.resolve({ data: [] })
+    pintar()
+    await waitFor(() => expect(liquidacion().textContent).toMatch(/\$0/))
+    m.calendario = () => Promise.reject(new Error('500'))
+    await client.refetchQueries({ queryKey: ['settlement-calendar'] })
+    await waitFor(() => expect(liquidacion().textContent).toMatch(/loadFailure\.partial/))
+    expect(liquidacion().textContent).toMatch(/\$0/)
+  })
+
   it('sin permiso de liquidaciones no se inventa una tarjeta en $0', async () => {
     m.puedeLiquidacion = false
     pintar()
@@ -154,6 +189,7 @@ describe('Inicio si falla la carga', () => {
     pintar()
     await screen.findByText('newHome.performance.compareFailed')
     expect(ventasNetas()).toBeInTheDocument()
+    expect(screen.getByTestId('grafica')).toHaveAttribute('data-sin-comparacion', 'true')
     expect(document.body.textContent).toMatch(/1,000/)
     expect(document.body.textContent).not.toMatch(/100\s?%/)
   })

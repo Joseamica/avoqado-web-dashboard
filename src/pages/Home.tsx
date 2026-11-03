@@ -412,10 +412,12 @@ export default function Home() {
                         </TooltipContent>
                       </Tooltip>
                     </div>
-                    {settlementQuery.data === undefined && falloDeCarga(settlementQuery) ? (
-                      <AvisoDeCarga query={settlementQuery} hayDatos={false} />
-                    ) : settlementQuery.data === undefined ? (
-                      <Skeleton className="h-8 w-24" />
+                    {/* Toda la tarjeta navega: «Reintentar» sólo reintenta. */}
+                    <div onClick={event => event.stopPropagation()} onKeyDown={event => event.stopPropagation()}>
+                      <AvisoDeCarga query={settlementQuery} hayDatos={settlementQuery.data !== undefined} />
+                    </div>
+                    {settlementQuery.data === undefined ? (
+                      !falloDeCarga(settlementQuery) && <Skeleton className="h-8 w-24" />
                     ) : (
                       <p className="text-2xl font-bold tracking-tight">{Currency(todaySettlement, false)}</p>
                     )}
@@ -489,6 +491,7 @@ export default function Home() {
                       {null}
                     </SummaryQueryBoundary>
                   )}
+                  {!dashboardData.comparacionCaida && <AvisoDeCarga query={dashboardData.compareQuery} hayDatos />}
                   <div className="grid gap-6 md:grid-cols-[220px_1fr]">
                     <div className="flex flex-col">
                       <p className="text-sm text-muted-foreground">{t('newHome.performance.netSales')}</p>
@@ -526,6 +529,7 @@ export default function Home() {
                         currentLabel={currentPeriodLabel}
                         compareLabel={compareDateLabel}
                         emptyLabel={t('newHome.performance.noData')}
+                        ocultarComparacion={dashboardData.comparacionCaida}
                       />
                     </div>
                   </div>
