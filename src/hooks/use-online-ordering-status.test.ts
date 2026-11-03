@@ -21,13 +21,13 @@ describe('useOnlineOrderingStatus', () => {
   })
 
   it('mapea cada permiso a su can*', () => {
-    const r = setup(['online-orders:manage', 'orders:update', 'orders:cancel-unpaid', 'online-orders:pause'])
-    expect(r).toMatchObject({ canManage: true, canAnswer: true, canCancel: true, canPause: true, keepsStoreOpen: true, hasPlan: true, tierLoading: false })
+    const r = setup(['online-orders:manage', 'orders:update', 'orders:cancel-unpaid', 'online-orders:pause', 'payments:refund'])
+    expect(r).toMatchObject({ canManage: true, canAnswer: true, canCancel: true, canPause: true, canRefund: true, keepsStoreOpen: true, hasPlan: true, tierLoading: false })
   })
 
   it('sólo orders:read ⇒ nada de lo demás', () => {
     const r = setup(['orders:read'])
-    expect(r).toMatchObject({ canManage: false, canAnswer: false, canCancel: false, canPause: false, keepsStoreOpen: false })
+    expect(r).toMatchObject({ canManage: false, canAnswer: false, canCancel: false, canPause: false, canRefund: false, keepsStoreOpen: false })
   })
 
   it('hasPlan y tierLoading vienen de useVenueTier', () => {

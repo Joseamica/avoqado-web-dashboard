@@ -33,13 +33,14 @@ import { StorefrontShareCard } from './StorefrontShareCard'
 
 const PREP_OPTIONS = [10, 15, 20, 25, 30, 40, 45, 60, 90]
 const REQUIREMENTS: StoreRequirement[] = ['address', 'phone', 'privacyNotice']
-// El 4.º paso refleja la regla `NO_PAYMENT_MODE` del servidor: no se enciende (ni se queda encendida) sin un medio de pago.
-// Hoy el único es «Pagar al recoger» (la tarjeta en línea es «Muy pronto»); cuando exista, este paso cuenta cualquiera de los dos.
+// El 4.º paso refleja la regla `NO_PAYMENT_MODE` del servidor: no se enciende (ni se queda encendida) sin un medio de pago VIVO:
+// «Pagar al recoger», o la tarjeta prendida con un Stripe que sí cobra (`card.merchantStatus === 'READY'`).
 const STEPS: (StoreRequirement | 'payment')[] = [...REQUIREMENTS, 'payment']
 
 const schema = z.object({
   enabled: z.boolean(),
   acceptsPayAtPickup: z.boolean(),
+  acceptsCardOnline: z.boolean(),
   manualPause: z.boolean(),
   minOrderAmount: z
     .number({ invalid_type_error: 'range' })
@@ -55,6 +56,7 @@ type FormValues = z.infer<typeof schema>
 const toForm = (s: OnlineOrderingSettings): FormValues => ({
   enabled: s.enabled,
   acceptsPayAtPickup: s.acceptsPayAtPickup,
+  acceptsCardOnline: !!s.acceptsCardOnline, // `!!`: un servidor sin fase 2 no lo manda y zod no deja guardar con undefined
   manualPause: s.manualPause,
   minOrderAmount: s.minOrderAmount,
   defaultPrepMinutes: s.defaultPrepMinutes,
@@ -79,7 +81,7 @@ function buildPatch(values: FormValues, saved: FormValues): Partial<OnlineOrderi
  */
 function RequirementsList({
   missing,
-  payAtPickup,
+  hasPayment,
   basePath,
   canOpenBusinessSettings,
   focusRef,
@@ -87,8 +89,8 @@ function RequirementsList({
   onWriteNotice,
 }: {
   missing: StoreRequirement[]
-  /** El valor VIVO del formulario: apagar «Pagar al recoger» sin guardar ya quita el «Todo listo». */
-  payAtPickup: boolean
+  /** Con el valor VIVO del formulario: apagar «Pagar al recoger» sin guardar ya quita el «Todo listo». */
+  hasPayment: boolean
   basePath: string
   canOpenBusinessSettings: boolean
   focusRef: RefObject<HTMLDivElement>
@@ -96,7 +98,7 @@ function RequirementsList({
   onWriteNotice: () => void
 }) {
   const { t } = useTranslation('onlineOrdering')
-  const allSet = missing.length === 0 && payAtPickup
+  const allSet = missing.length === 0 && hasPayment
   return (
     // Destino estable del foco tras publicar (el botón que abrió el editor desaparece). `Alert` no reenvía `ref` en React 18.
     <div ref={focusRef} tabIndex={-1} className="outline-none">
@@ -106,7 +108,7 @@ function RequirementsList({
           {/* Sin viñetas, Safari/VoiceOver deja de anunciarla como lista si no lleva el rol explícito. */}
           <ul role="list" className="space-y-2">
             {STEPS.map(r => {
-              const done = r === 'payment' ? payAtPickup : !missing.includes(r)
+              const done = r === 'payment' ? hasPayment : !missing.includes(r)
               return (
                 <li key={r} className="flex flex-wrap items-center gap-x-2 gap-y-1">
                   {done ? (
@@ -189,6 +191,9 @@ export function SettingsTab() {
   const hours = watch('hours')
   const enabled = watch('enabled')
   const payAtPickup = !!watch('acceptsPayAtPickup')
+  const cardOn = !!watch('acceptsCardOnline')
+  const merchantStatus = settings?.card?.merchantStatus ?? 'NOT_CONNECTED'
+  const hasPayment = payAtPickup || (cardOn && merchantStatus === 'READY')
 
   const watched = watch()
   const hasChanges = !!saved && Object.keys(buildPatch(watched, saved)).length > 0
@@ -259,7 +264,7 @@ export function SettingsTab() {
 
   // «Encender» se bloquea, y su texto lo dice, sólo con la tienda GUARDADA apagada y algo pendiente: un dato del negocio o la forma de
   // cobro. Con ella encendida, apagarla sin guardar debe poder volverse a encender, y la lista que el texto señala ni se ve.
-  const enableBlocked = !settings.enabled && (missing.length > 0 || !payAtPickup)
+  const enableBlocked = !settings.enabled && (missing.length > 0 || !hasPayment)
 
   const store = settings.store
   const pause = pauseLabel(store, formatTime)
@@ -293,7 +298,7 @@ export function SettingsTab() {
       {!settings.enabled && (!!settings.requirements || serverMissing.length > 0) && (
         <RequirementsList
           missing={missing}
-          payAtPickup={payAtPickup}
+          hasPayment={hasPayment}
           basePath={fullBasePath}
           canOpenBusinessSettings={canOpenBusinessSettings}
           focusRef={stepsRef}
@@ -341,12 +346,31 @@ export function SettingsTab() {
                 )}
               />
             </div>
-            <div className="flex items-center justify-between gap-4 rounded-lg border border-input p-3 opacity-70">
-              <Label htmlFor="oo-card">{t('settings.cardOnline')}</Label>
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground">{t('settings.soon')}</span>
-                <Switch id="oo-card" aria-label={t('settings.cardOnline')} checked={false} disabled />
+            <div className="space-y-1.5 rounded-lg border border-input p-3">
+              <div className="flex items-center justify-between gap-4">
+                <Label htmlFor="oo-card">{t('settings.cardOnline')}</Label>
+                <Controller
+                  control={control}
+                  name="acceptsCardOnline"
+                  render={({ field }) => (
+                    <Switch id="oo-card" aria-label={t('settings.cardOnline')} checked={!!field.value} onCheckedChange={field.onChange} />
+                  )}
+                />
               </div>
+              {/* Encenderla no exige Stripe (el servidor lo deja); cobrar sí: la línea dice qué falta, con el valor VIVO del switch. */}
+              <p className="text-xs text-muted-foreground">
+                {!cardOn
+                  ? t('settings.card.off')
+                  : merchantStatus === 'READY'
+                    ? t('settings.card.ready')
+                    : t(merchantStatus === 'NOT_CHARGEABLE' ? 'settings.card.notChargeable' : 'settings.card.notConnected')}{' '}
+                {cardOn && merchantStatus !== 'READY' && canOpenBusinessSettings && (
+                  // Integraciones es de ADMIN o más (la misma guardia que la configuración del negocio): sin ella, ni liga.
+                  <Link to={`${fullBasePath}/settings/integrations`} className="text-primary underline underline-offset-2">
+                    {t(merchantStatus === 'NOT_CHARGEABLE' ? 'settings.card.review' : 'settings.card.connect')}
+                  </Link>
+                )}
+              </p>
             </div>
           </div>
 

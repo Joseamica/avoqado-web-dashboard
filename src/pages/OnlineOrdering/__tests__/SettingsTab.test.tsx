@@ -45,6 +45,8 @@ const base = (over: Record<string, unknown> = {}) => ({
   minOrderAmount: 50,
   defaultPrepMinutes: 20,
   acceptsPayAtPickup: true,
+  acceptsCardOnline: false,
+  card: { enabled: false, merchantStatus: 'NOT_CONNECTED' },
   manualPause: false,
   pausedUntil: null,
   hours: null,
@@ -498,6 +500,89 @@ describe('SettingsTab', () => {
     await userEvent.click(await screen.findByRole('switch', { name: 'settings.enable' }))
     await userEvent.click(screen.getByRole('button', { name: 'settings.save' }))
     expect(await screen.findByText('Activa un modo de pago')).toBeInTheDocument()
+  })
+
+  // ── Fase 2: la tarjeta en línea (el switch es real; cobrar depende del Stripe del negocio) ──
+  const tarjeta = () => screen.getByRole('switch', { name: 'settings.cardOnline' })
+
+  it('tarjeta apagada: el switch se puede usar y dice «Apagado: tus clientes sólo pueden pagar al recoger.»', async () => {
+    getSettings.mockResolvedValue(base())
+    renderTab()
+    await formularioCargado()
+    expect(tarjeta()).toBeEnabled()
+    expect(tarjeta()).not.toBeChecked()
+    expect(screen.getByText('settings.card.off')).toBeInTheDocument()
+    expect(screen.queryByText('settings.soon')).toBeNull()
+  })
+
+  it('tarjeta prendida con Stripe listo: «Tus clientes pueden pagar con tarjeta.» y sin liga', async () => {
+    getSettings.mockResolvedValue(base({ acceptsCardOnline: true, card: { enabled: true, merchantStatus: 'READY' } }))
+    renderTab()
+    await formularioCargado()
+    expect(tarjeta()).toBeChecked()
+    expect(screen.getByText('settings.card.ready')).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /settings\.card\./ })).toBeNull()
+  })
+
+  it('tarjeta prendida sin Stripe: «conecta tu cuenta de Stripe» con la liga «Conectar Stripe» a Integraciones', async () => {
+    getSettings.mockResolvedValue(base({ acceptsCardOnline: true, card: { enabled: true, merchantStatus: 'NOT_CONNECTED' } }))
+    renderTab()
+    await formularioCargado()
+    expect(screen.getByText('settings.card.notConnected')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'settings.card.connect' })).toHaveAttribute('href', '/venues/taqueria/settings/integrations')
+  })
+
+  it('tarjeta prendida con Stripe que no cobra: «todavía no puede cobrar» con la liga «Revisar Stripe»', async () => {
+    getSettings.mockResolvedValue(base({ acceptsCardOnline: true, card: { enabled: true, merchantStatus: 'NOT_CHARGEABLE' } }))
+    renderTab()
+    await formularioCargado()
+    expect(screen.getByText('settings.card.notChargeable')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'settings.card.review' })).toHaveAttribute('href', '/venues/taqueria/settings/integrations')
+  })
+
+  it('sin acceso a Integraciones (sólo ADMIN o más) no hay liga sin salida', async () => {
+    access.role = 'MANAGER'
+    getSettings.mockResolvedValue(base({ acceptsCardOnline: true, card: { enabled: true, merchantStatus: 'NOT_CONNECTED' } }))
+    renderTab()
+    await formularioCargado()
+    expect(screen.getByText('settings.card.notConnected')).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'settings.card.connect' })).toBeNull()
+  })
+
+  it('prender la tarjeta y guardar manda acceptsCardOnline: true', async () => {
+    getSettings.mockResolvedValue(base())
+    updateSettings.mockResolvedValue(putToday({ acceptsCardOnline: true }))
+    renderTab()
+    await formularioCargado()
+    await userEvent.click(tarjeta())
+    expect(screen.getByText('settings.card.notConnected')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'settings.save' }))
+    await waitFor(() => expect(updateSettings).toHaveBeenCalledWith('venue-1', { acceptsCardOnline: true }))
+  })
+
+  it('con la tarjeta prendida y Stripe listo, quitar «Pagar al recoger» sigue dejando encender (la tarjeta es forma de cobro)', async () => {
+    getSettings.mockResolvedValue(base({ acceptsCardOnline: true, card: { enabled: true, merchantStatus: 'READY' } }))
+    updateSettings.mockResolvedValue(putToday({ enabled: true, acceptsPayAtPickup: false, acceptsCardOnline: true }))
+    renderTab()
+    await formularioCargado()
+    await userEvent.click(screen.getByRole('switch', { name: 'settings.payAtPickup' }))
+    expect(screen.getByText('settings.requirements.allSet')).toBeInTheDocument()
+    expect(within(paso('payment')).getByText('settings.requirements.done')).toBeInTheDocument()
+    const encender = screen.getByRole('switch', { name: 'settings.enable' })
+    expect(encender).toBeEnabled()
+    await userEvent.click(encender)
+    await userEvent.click(screen.getByRole('button', { name: 'settings.save' }))
+    await waitFor(() => expect(updateSettings).toHaveBeenCalledWith('venue-1', { enabled: true, acceptsPayAtPickup: false }))
+  })
+
+  it.each(['NOT_CONNECTED', 'NOT_CHARGEABLE'])('con la tarjeta prendida pero Stripe %s, quitar «Pagar al recoger» NO deja encender', async st => {
+    getSettings.mockResolvedValue(base({ acceptsCardOnline: true, card: { enabled: true, merchantStatus: st } }))
+    renderTab()
+    await formularioCargado()
+    await userEvent.click(screen.getByRole('switch', { name: 'settings.payAtPickup' }))
+    expect(within(paso('payment')).getByText('settings.requirements.pending')).toBeInTheDocument()
+    expect(screen.getByRole('switch', { name: 'settings.enable' })).toBeDisabled()
+    expect(screen.getByText('settings.enableBlocked')).toBeInTheDocument()
   })
 
   it('«Usar horario» muestra el editor y un 09:00–09:00 bloquea guardar; apagar manda hours:null', async () => {

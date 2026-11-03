@@ -6,7 +6,12 @@
 import api from '@/api'
 import type {
   ActionResult,
+  CardRefund,
+  CardRefundReason,
+  CardRefundResolveMethod,
+  CardRefundResult,
   Inbox,
+  InboxOrder,
   MenuCategoriesSummary,
   MenuProductsPage,
   OnlineOrderingSettings,
@@ -23,6 +28,8 @@ export const onlineOrderingKeys = {
   categories: (v: string) => ['online-ordering', v, 'menu', 'categories'] as const,
   products: (v: string, q: object) => ['online-ordering', v, 'menu', 'products', q] as const,
   inbox: (v: string) => ['online-ordering', v, 'inbox'] as const,
+  order: (v: string, orderId: string) => ['online-ordering', v, 'order', orderId] as const,
+  cardRefunds: (v: string, orderId: string) => ['online-ordering', v, 'order', orderId, 'card-refunds'] as const,
 }
 
 export const getSettings = async (venueId: string): Promise<OnlineOrderingSettings> =>
@@ -68,6 +75,42 @@ export const cancelOrder = (venueId: string, orderId: string) => act(venueId, or
 
 export const pauseOrdering = async (venueId: string, minutes: PauseMinutes): Promise<{ pausedUntil: string | null; manualPause: boolean }> =>
   (await api.post(`${base(venueId)}/pause`, { minutes })).data.data
+
+/**
+ * UN pedido en línea por el id de su cuenta, con la forma de la bandeja (la bandeja sólo guarda 24 h). `null` = 404: la cuenta no es
+ * pedido en línea.
+ */
+export const getOnlineOrder = async (venueId: string, orderId: string): Promise<InboxOrder | null> => {
+  try {
+    return (await api.get(`${base(venueId)}/orders/${orderId}`)).data.data
+  } catch (error) {
+    if ((error as { response?: { status?: number } } | undefined)?.response?.status === 404) return null
+    throw error
+  }
+}
+
+export const listCardRefunds = async (venueId: string, orderId: string): Promise<CardRefund[]> =>
+  (await api.get(`${base(venueId)}/orders/${orderId}/card-refunds`)).data.data
+
+/**
+ * 🔴 `amount` en PESOS como texto («120.50»), nunca centavos. La llave y `expectedLatestRefundId` (la última devolución que vio el
+ * operador, `null` si ninguna) son los del intento: los MISMOS en sus reintentos.
+ */
+export const createCardRefund = async (
+  venueId: string,
+  orderId: string,
+  body: { amount: string; reason: CardRefundReason; note?: string; expectedLatestRefundId: string | null },
+  idempotencyKey: string,
+): Promise<CardRefundResult> =>
+  (await api.post(`${base(venueId)}/orders/${orderId}/card-refund`, body, { headers: { 'Idempotency-Key': idempotencyKey } })).data.data
+
+export const resolveCardRefund = async (
+  venueId: string,
+  orderId: string,
+  refundId: string,
+  body: { method: CardRefundResolveMethod; note?: string },
+): Promise<{ status: 'RESOLVED'; replay: boolean }> =>
+  (await api.post(`${base(venueId)}/orders/${orderId}/card-refund/${refundId}/resolve`, body)).data.data
 
 /** `fallback` ya viene traducido por la UI (`t('…')`): nada de texto fijo en español aquí. */
 export function serverMessage(error: unknown, fallback: string): string {
