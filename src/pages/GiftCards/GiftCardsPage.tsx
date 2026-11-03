@@ -10,6 +10,7 @@ import { useAccess } from '@/hooks/use-access'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { GIFT_CARDS_FEATURE, useGiftCardSettings } from '@/hooks/use-gift-cards'
 import { useTierFeatureAccess } from '@/hooks/use-tier-feature-access'
+import { GiftCardsSwitch } from '@/pages/Settings/components/giftCards/GiftCardsSwitch'
 import type { GiftCardNotSellableReason } from '@/types/giftCard'
 import { GiftCardReports } from './components/GiftCardReports'
 import { GiftCardsList } from './components/GiftCardsList'
@@ -18,7 +19,15 @@ import { motivoSinVenta, avisoDeError } from './giftCardText'
 import { decidirVista } from './vista'
 
 /** «Apagado se ve y se explica»: por qué hoy no se venden tarjetas nuevas (lo vendido siempre se cobra). */
-function AvisoDeVenta({ motivo, canManage, settingsHref }: { motivo: GiftCardNotSellableReason | null; canManage: boolean; settingsHref: string }) {
+function AvisoDeVenta({
+  motivo,
+  canManage,
+  settingsHref,
+}: {
+  motivo: GiftCardNotSellableReason | null
+  canManage: boolean
+  settingsHref: string
+}) {
   const { t } = useTranslation('giftCards')
   if (!motivo) return null
   return (
@@ -26,7 +35,8 @@ function AvisoDeVenta({ motivo, canManage, settingsHref }: { motivo: GiftCardNot
       <Info className="h-4 w-4" />
       <AlertDescription className="flex flex-wrap items-center justify-between gap-3 text-sm">
         <span>{t(`notice.${motivo}`)}</span>
-        {canManage && motivo !== 'KEYS_MISSING' && (
+        {/* Apagadas, el interruptor está aquí mismo: no hay que ir a Ajustes (founder, 3-nov-2026). */}
+        {canManage && motivo !== 'KEYS_MISSING' && motivo !== 'DISABLED' && (
           <Button asChild variant="outline" size="sm">
             <Link to={settingsHref}>{t('notice.goToSettings')}</Link>
           </Button>
@@ -52,6 +62,7 @@ export default function GiftCardsPage() {
   const { venueId, fullBasePath } = useCurrentVenue()
   const { can } = useAccess()
   const canManage = can('giftCards:manage')
+  const canToggle = can('giftCards:enable')
   const settings = useGiftCardSettings(venueId ?? undefined)
   const tier = useTierFeatureAccess(GIFT_CARDS_FEATURE)
   const vista = decidirVista({
@@ -62,6 +73,11 @@ export default function GiftCardsPage() {
     hasAccess: tier.hasAccess,
   })
   const settingsHref = `${fullBasePath}/settings/gift-cards`
+  // En la lista, apagadas el interruptor lo ve todo el que entra; prendidas, sólo quien puede apagarlas.
+  const conInterruptor = !!settings.data && (!settings.data.enabled || canToggle)
+  const motivo = settings.data ? motivoSinVenta(settings.data, { resolved: tier.isResolved, hasAccess: tier.hasAccess }) : null
+  // Prendidas, el interruptor ya dice «tu plan ya no incluye» y «falta un paso»: arriba no se repite.
+  const avisoArriba = conInterruptor && settings.data?.enabled && (motivo === 'NOT_IN_PLAN' || motivo === 'KEYS_MISSING') ? null : motivo
   // La pestaña vive en el hash (#cards / #reports): se comparte por liga y sobrevive a recargar (ui-patterns.md).
   const location = useLocation()
   const navigate = useNavigate()
@@ -111,23 +127,18 @@ export default function GiftCardsPage() {
           </div>
           <h3 className="mt-4 text-lg font-semibold">{t('turnOn.title')}</h3>
           <p className="mt-2 max-w-md text-sm text-muted-foreground">{t('turnOn.body')}</p>
-          {canManage ? (
-            <Button asChild className="mt-4" data-tour="gift-cards-turn-on-cta">
-              <Link to={settingsHref}>{t('turnOn.cta')}</Link>
-            </Button>
-          ) : (
-            <p className="mt-4 text-xs text-muted-foreground">{t('turnOn.askOwner')}</p>
+          {settings.data && venueId && (
+            <div className="mt-4 w-full max-w-lg text-left">
+              <GiftCardsSwitch key={`switch-${venueId}`} venueId={venueId} settings={settings.data} canToggle={canToggle} />
+            </div>
           )}
         </div>
       ) : (
         <>
-          {settings.data && (
-            <AvisoDeVenta
-              motivo={motivoSinVenta(settings.data, { resolved: tier.isResolved, hasAccess: tier.hasAccess })}
-              canManage={canManage}
-              settingsHref={settingsHref}
-            />
+          {settings.data && venueId && conInterruptor && (
+            <GiftCardsSwitch key={`switch-${venueId}`} venueId={venueId} settings={settings.data} canToggle={canToggle} />
           )}
+          {settings.data && <AvisoDeVenta motivo={avisoArriba} canManage={canManage} settingsHref={settingsHref} />}
           <Tabs value={pestana} onValueChange={cambiarPestana}>
             <TabsList className="rounded-full border border-border bg-muted/60 px-1 py-1">
               <TabsTrigger

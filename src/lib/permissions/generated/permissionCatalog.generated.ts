@@ -21,7 +21,7 @@
  * nadie, ni siquiera armando un rol personalizado. Una copia a mano no se queda
  * desactualizada con ruido, se queda desactualizada en silencio.
  *
- * 77 categorías · 255 permisos · derivado de avoqado-server · huella 4a273cfa6263fa20.
+ * 77 categorías · 256 permisos · derivado de avoqado-server · huella 8cd8786538dadf52.
  */
 
 export const PERMISSION_CATEGORIES = {
@@ -366,7 +366,7 @@ export const PERMISSION_CATEGORIES = {
   },
   GIFT_CARDS: {
     label: 'Tarjetas de regalo',
-    permissions: ['giftCards:read', 'giftCards:sell', 'giftCards:redeem', 'giftCards:manage'],
+    permissions: ['giftCards:read', 'giftCards:sell', 'giftCards:redeem', 'giftCards:manage', 'giftCards:enable'],
   },
   MARKETING: {
     label: 'Marketing',
@@ -516,4 +516,4 @@ export const SUPER_CATEGORY_KEYS = {
 } as const satisfies Record<string, readonly PermissionCategoryKey[]>
 
 /** Huella del catálogo del servidor del que salió este archivo. */
-export const CATALOG_DIGEST = '4a273cfa6263fa20'
+export const CATALOG_DIGEST = '8cd8786538dadf52'

@@ -55,12 +55,12 @@ const SETTINGS: GiftCardSettingsView = {
   updatedAt: null,
 }
 
-function renderSwitch(over: Partial<GiftCardSettingsView> = {}, canManage = true) {
+function renderSwitch(over: Partial<GiftCardSettingsView> = {}, canToggle = true) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
   const invalidate = vi.spyOn(client, 'invalidateQueries')
   render(
     <QueryClientProvider client={client}>
-      <GiftCardsSwitch venueId="v1" settings={{ ...SETTINGS, ...over }} canManage={canManage} />
+      <GiftCardsSwitch venueId="v1" settings={{ ...SETTINGS, ...over }} canToggle={canToggle} />
     </QueryClientProvider>,
   )
   return { invalidate }
@@ -169,5 +169,16 @@ describe('GiftCardsSwitch (switch canónico, spec §9)', () => {
     tier.current = { hasAccess: true, isResolved: false, isLoading: true, requiredTier: 'PRO' }
     renderSwitch()
     expect(screen.queryByText('settings.switch.planUnknown')).not.toBeInTheDocument()
+  })
+  it('sin permiso de mover el interruptor, se ve apagado y dice a quién pedírselo', () => {
+    renderSwitch({}, false)
+    expect(elSwitch()).toBeDisabled()
+    expect(screen.getByText('settings.switch.askAdmin')).toBeInTheDocument()
+    expect(svc.updateGiftCardSettings).not.toHaveBeenCalled()
+  })
+
+  it('con permiso no aparece ese aviso', () => {
+    renderSwitch()
+    expect(screen.queryByText('settings.switch.askAdmin')).not.toBeInTheDocument()
   })
 })

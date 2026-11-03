@@ -498,6 +498,7 @@
       "giftCards_sell": "Sell gift cards at the counter",
       "giftCards_redeem": "Take payments with gift card balance",
       "giftCards_manage": "Adjust, block, replace and cancel gift cards",
+      "giftCards_enable": "Turn gift cards on and off",
       "tpv-settings_read": "View POS settings",
       "tpv-settings_update": "Edit POS settings",
       "billing_read": "View billing",

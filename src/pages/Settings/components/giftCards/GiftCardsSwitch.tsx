@@ -33,7 +33,7 @@ import type { GiftCardSettingsView } from '@/types/giftCard'
  * - Si la consulta del plan FALLÓ (sin resolver y sin cargar: el gate hace fail-open), apagado no se queda muerto sin
  *   explicar: lo dice y deja volver a pedir el plan (lote ⭐).
  */
-export function GiftCardsSwitch({ venueId, settings, canManage }: { venueId: string; settings: GiftCardSettingsView; canManage: boolean }) {
+export function GiftCardsSwitch({ venueId, settings, canToggle }: { venueId: string; settings: GiftCardSettingsView; canToggle: boolean }) {
   const { t } = useTranslation('giftCards')
   const { toast } = useToast()
   const { hasAccess, isResolved, isLoading } = useTierFeatureAccess(GIFT_CARDS_FEATURE)
@@ -44,7 +44,7 @@ export function GiftCardsSwitch({ venueId, settings, canManage }: { venueId: str
   const enVuelo = useRef(false)
   const planComprobado = isResolved && hasAccess
   const prendido = settings.enabled
-  const planSinConfirmar = !prendido && canManage && !isResolved && !isLoading
+  const planSinConfirmar = !prendido && canToggle && !isResolved && !isLoading
 
   const guardar = async (prender: boolean) => {
     if (enVuelo.current) return
@@ -67,7 +67,7 @@ export function GiftCardsSwitch({ venueId, settings, canManage }: { venueId: str
   }
 
   const alCambiar = (prender: boolean) => {
-    if (!canManage || update.isPending) return
+    if (!canToggle || update.isPending) return
     if (prender && !planComprobado) return
     setAcepta(false)
     setDialogo(prender ? 'prender' : 'apagar')
@@ -101,12 +101,17 @@ export function GiftCardsSwitch({ venueId, settings, canManage }: { venueId: str
           <Switch
             checked={prendido}
             onCheckedChange={alCambiar}
-            disabled={!canManage || update.isPending || (!prendido && !planComprobado)}
+            disabled={!canToggle || update.isPending || (!prendido && !planComprobado)}
             aria-label={t('settings.switch.label')}
           />
         </div>
       </div>
 
+      {!canToggle && (
+        <p className="mt-3 border-t border-input pt-3 text-xs leading-relaxed text-muted-foreground" data-tour="gift-cards-switch-ask-admin">
+          {t('settings.switch.askAdmin')}
+        </p>
+      )}
       {planSinConfirmar && (
         <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-input pt-3">
           <p className="text-xs leading-relaxed text-warning-foreground">{t('settings.switch.planUnknown')}</p>
