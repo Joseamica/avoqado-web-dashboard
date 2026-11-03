@@ -1,4 +1,3 @@
-import type { EstadoDeCarga } from '@/lib/falloDeCarga'
 import DataTable from '@/components/data-table'
 import { Badge } from '@/components/ui/badge'
 import { StatusPulse } from '@/components/ui/status-pulse'
@@ -19,7 +18,6 @@ export interface SortState {
 }
 
 interface OrgTerminalsTableProps {
-  query: EstadoDeCarga | null
   data: OrgTerminal[]
   total: number
   /** Highest version in the org fleet — terminals below it render as outdated. */
@@ -84,7 +82,6 @@ export function OrgTerminalsTable({
   onRowClick,
   onSelectionChange,
   clearSelectionTrigger,
-  query,
 }: OrgTerminalsTableProps) {
   const { t, i18n } = useTranslation('organization')
   const { formatDateTime } = useVenueDateTime()
@@ -304,7 +301,7 @@ export function OrgTerminalsTable({
 
   return (
     <DataTable<OrgTerminal>
-      query={query}
+      query={null}
       data={data}
       rowCount={total}
       columns={columns}

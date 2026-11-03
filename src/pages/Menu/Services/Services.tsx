@@ -1,4 +1,3 @@
-import { esSinPermiso } from '@/lib/reintentoSinPermiso'
 import { getProducts, updateProduct, deleteProduct } from '@/services/menu.service'
 import { useToast } from '@/hooks/use-toast'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -109,12 +108,13 @@ export default function Services() {
   const [statusFilter, setStatusFilter] = useState<string[]>([])
 
   // Fetch products (shared cache with Products page)
-  const { data: allProducts, isLoading, isError, error: loadError, isPaused, isFetching, refetch } = useQuery({
+  const listQuery = useQuery({
     queryKey: ['products', venueId, 'orderBy:name'],
     queryFn: () => getProducts(venueId!, { orderBy: 'name' }),
     staleTime: 30 * 1000,
     refetchOnWindowFocus: true,
   })
+  const { data: allProducts, isLoading } = listQuery
 
   useMenuSocketEvents(venueId, {
     onAvailabilityChanged: () => {
@@ -547,33 +547,21 @@ export default function Services() {
         )}
       </div>
 
-      {(isError || isPaused) && (
-        <div data-testid="catalog-read-error" role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-input p-3 text-sm">
-          <span>{t('catalog.loadError')}</span>
-          {!esSinPermiso(loadError) && (
-            <Button variant="outline" size="sm" disabled={isFetching} onClick={() => refetch()}>
-              {tCommon('errors.retry')}
-            </Button>
-          )}
-        </div>
-      )}
-      {(!(isError || isPaused) || (allProducts?.length ?? 0) > 0) && (
-        <DataTable
-          query={null}
-          data={filteredServices}
-          rowCount={filteredServices.length}
-          columns={columns}
-          isLoading={isLoading}
-          enableSearch={false}
-          tableId="menu:services"
-          pagination={pagination}
-          setPagination={setPagination}
-          onRowClick={row => {
-            setEditProductId(row.id)
-            setEditWizardOpen(true)
-          }}
-        />
-      )}
+      <DataTable
+        query={listQuery}
+        data={filteredServices}
+        rowCount={filteredServices.length}
+        columns={columns}
+        isLoading={isLoading}
+        enableSearch={false}
+        tableId="menu:services"
+        pagination={pagination}
+        setPagination={setPagination}
+        onRowClick={row => {
+          setEditProductId(row.id)
+          setEditWizardOpen(true)
+        }}
+      />
 
       {/* Delete confirmation dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

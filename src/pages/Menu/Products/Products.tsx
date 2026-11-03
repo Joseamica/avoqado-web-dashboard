@@ -1,4 +1,3 @@
-import { esSinPermiso } from '@/lib/reintentoSinPermiso'
 import { getProducts, updateProduct, deleteProduct } from '@/services/menu.service'
 import { productInventoryApi, type AdjustInventoryStockDto } from '@/services/inventory.service'
 import { useToast } from '@/hooks/use-toast'
@@ -332,16 +331,7 @@ export default function Products() {
   const [visibleColumns, setVisibleColumns] = useState<string[]>(defaultVisibleColumns)
 
   // ✅ WORLD-CLASS: Fetch products sorted alphabetically by name
-  const {
-    data: products,
-    isLoading,
-    isError,
-    error: loadError,
-    isPaused,
-    isFetching,
-    refetch,
-    dataUpdatedAt: _dataUpdatedAt,
-  } = useQuery({
+  const listQuery = useQuery({
     queryKey: ['products', venueId, 'orderBy:name'],
     queryFn: () => getProducts(venueId!, { orderBy: 'name' }),
     // ✅ FIX: Reduce staleTime to keep inventory data fresh
@@ -350,6 +340,11 @@ export default function Products() {
     staleTime: 30 * 1000, // 30 seconds
     refetchOnWindowFocus: true, // Refetch when user returns to tab
   })
+  const {
+    data: products,
+    isLoading,
+    dataUpdatedAt: _dataUpdatedAt,
+  } = listQuery
 
   // ✅ REAL-TIME: Listen to menu/inventory socket events for automatic badge updates
   useMenuSocketEvents(venueId, {
@@ -1272,36 +1267,24 @@ export default function Products() {
         </div>
       </div>
 
-      {(isError || isPaused) && (
-        <div data-testid="catalog-read-error" role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-input p-3 text-sm">
-          <span>{t('catalog.loadError')}</span>
-          {!esSinPermiso(loadError) && (
-            <Button variant="outline" size="sm" disabled={isFetching} onClick={() => refetch()}>
-              {tCommon('errors.retry')}
-            </Button>
-          )}
-        </div>
-      )}
-      {(!(isError || isPaused) || (products?.length ?? 0) > 0) && (
-        <FamiliasDesplegadas.Provider value={familiasDesplegadas}>
-          <ElegidosParaAgrupar.Provider value={seleccionParaAgrupar}>
-            <DataTable
-              query={null}
-              data={filas}
-              rowCount={filas.length}
-              columns={filteredColumns}
-              isLoading={isLoading}
-              enableSearch={false}
-              tableId="menu:products"
-              pagination={pagination}
-              setPagination={setPagination}
-              onRowClick={modoAgrupar ? tocarFila : abrirProducto}
-              renderSubComponent={variantesDesplegadas}
-              getRowId={fila => fila.id}
-            />
-          </ElegidosParaAgrupar.Provider>
-        </FamiliasDesplegadas.Provider>
-      )}
+      <FamiliasDesplegadas.Provider value={familiasDesplegadas}>
+        <ElegidosParaAgrupar.Provider value={seleccionParaAgrupar}>
+          <DataTable
+            query={listQuery}
+            data={filas}
+            rowCount={filas.length}
+            columns={filteredColumns}
+            isLoading={isLoading}
+            enableSearch={false}
+            tableId="menu:products"
+            pagination={pagination}
+            setPagination={setPagination}
+            onRowClick={modoAgrupar ? tocarFila : abrirProducto}
+            renderSubComponent={variantesDesplegadas}
+            getRowId={fila => fila.id}
+          />
+        </ElegidosParaAgrupar.Provider>
+      </FamiliasDesplegadas.Provider>
 
       {/* El producto con variantes recién creado se abre ENCIMA de este diálogo: al cerrarlo se sigue con el resto de los grupos. */}
       <GroupFromSourcesDialog

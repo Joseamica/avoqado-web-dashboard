@@ -86,7 +86,7 @@ export default function InventorySummary() {
   const [isExporting, setIsExporting] = useState(false)
 
   // Fetch real products with inventory data
-  const { data: products, isLoading: isLoadingProducts, isFetching: isFetchingProducts, isError: productsFailed, isPaused: isProductsPaused, refetch: refetchProducts } = useQuery({
+  const { data: products, isLoading: isLoadingProducts, isFetching: isFetchingProducts, isError: productsFailed, error: productsError, isPaused: isProductsPaused, refetch: refetchProducts } = useQuery({
     queryKey: inventoryKeys.productsSummary(venueId ?? ''),
     queryFn: () => getProducts(venueId!),
     enabled: !!venueId && !isLoadingAccess && hasAccess,
@@ -783,7 +783,7 @@ export default function InventorySummary() {
           isError={physicalLoadFailed}
           message={tInventory(physicalIsEmpty ? 'stockLoad.failed' : 'stockLoad.partial')}
           retryLabel={tCommon('retry')}
-          onRetry={retryLoad}
+          onRetry={esSinPermiso(productsError) && !ingredientsLoadFailed ? undefined : retryLoad}
         >
           {null}
         </SummaryQueryBoundary>
@@ -805,7 +805,7 @@ export default function InventorySummary() {
           isError={recipesLoadFailed}
           message={tInventory(recipesAreEmpty ? 'stockLoad.failed' : 'stockLoad.partial')}
           retryLabel={tCommon('retry')}
-          onRetry={retryLoad}
+          onRetry={esSinPermiso(productsError) ? undefined : retryLoad}
         >
           {null}
         </SummaryQueryBoundary>

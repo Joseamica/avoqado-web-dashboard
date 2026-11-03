@@ -92,3 +92,23 @@ describe('GiftCardsList · pie de la lista (lote ⭐)', () => {
     expect(boton.querySelector('.animate-spin')).not.toBeNull()
   })
 })
+
+describe('GiftCardsList · si falla la recarga con tarjetas ya cargadas', () => {
+  const todas = { pages: [{ ...PAGINA, total: 1 }] }
+
+  it('sin permiso no ofrece acciones que no lo van a arreglar (Codex r2)', () => {
+    q.current = consulta({ data: { pages: [PAGINA] }, isError: true, error: { response: { status: 403 } }, hasNextPage: true })
+    render(<GiftCardsList venueId="v1" />)
+
+    expect(screen.queryByRole('button', { name: 'list.loadMore' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'list.refresh' })).toBeNull()
+  })
+
+  it('en pausa sin internet avisa y deja reintentar, aunque ya estén todas (Codex r2)', () => {
+    q.current = consulta({ data: todas, isPaused: true })
+    render(<GiftCardsList venueId="v1" />)
+
+    expect(screen.getByRole('alert')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'list.refresh' })).toBeInTheDocument()
+  })
+})

@@ -339,7 +339,7 @@ export default function StockCountsPage() {
       </Alert>
 
       {/* Filters row */}
-      {!sourceIsEmpty && !loadFailed && (
+      {!sourceIsEmpty && (!loadFailed || hasFilters) && (
         <div className="flex flex-wrap items-center gap-3">
           {/* Expandable search */}
           <div className="relative flex items-center">

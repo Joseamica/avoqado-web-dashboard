@@ -382,6 +382,16 @@ describe('Si falla la carga del inventario', () => {
     expect(aviso()).not.toBeInTheDocument()
   })
 
+  it('sin permiso de productos no ofrece un «Reintentar» que no lo va a arreglar (Codex r2)', async () => {
+    mocks.products.mockRejectedValue({ response: { status: 403 } })
+    renderSummary()
+
+    expect(await screen.findByRole('alert')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'retry' })).not.toBeInTheDocument()
+    fireEvent.click(pestanaRecetas())
+    expect(screen.queryByRole('button', { name: 'retry' })).not.toBeInTheDocument()
+  })
+
   it('un negocio de verdad vacío sigue diciendo «Sin resultados», sin aviso', async () => {
     renderSummary()
     await terminoDeCargar()

@@ -283,7 +283,7 @@ export function GiftCardsList({ venueId }: { venueId: string }) {
                     </p>
                   )}
                 </div>
-                {query.hasNextPage ? (
+                {esSinPermiso(query.error) ? null : query.hasNextPage ? (
                   <Button
                     variant="outline"
                     size="sm"
@@ -297,7 +297,7 @@ export function GiftCardsList({ venueId }: { venueId: string }) {
                 ) : (
                   // Se acabaron las páginas pero faltan filas (una venta nueva desplazó la lista) o la relectura falló:
                   // volver a empezar sí las trae.
-                  (cards.length < total || query.isError) && (
+                  (cards.length < total || query.isError || query.isPaused) && (
                     <Button variant="outline" size="sm" className="cursor-pointer" onClick={() => void query.refetch()} disabled={query.isFetching}>
                       {t('list.refresh')}
                     </Button>

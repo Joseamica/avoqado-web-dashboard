@@ -534,13 +534,12 @@ export default function OrganizationTerminals() {
           </Button>
         </div>
 
-        {falloDeCarga(listQuery) && isOrgEmpty ? (
-          <AvisoDeCarga
-            query={listQuery}
-            hayDatos={false}
-            volverAlInicio={searchParams.toString() ? () => setSearchParams(new URLSearchParams()) : undefined}
-          />
-        ) : isOrgEmpty ? (
+        <AvisoDeCarga
+          query={listQuery}
+          hayDatos={!isOrgEmpty}
+          volverAlInicio={isOrgEmpty && searchParams.toString() ? () => setSearchParams(new URLSearchParams()) : undefined}
+        />
+        {falloDeCarga(listQuery) && isOrgEmpty ? null : isOrgEmpty ? (
           <EmptyOrgState onCreate={openCreateDialog} />
         ) : (
           <>
@@ -616,7 +615,6 @@ export default function OrganizationTerminals() {
                 <EmptyResultsState query={debouncedSearch} onClear={handleClearAll} />
               ) : (
                 <OrgTerminalsTable
-                  query={listQuery}
                   data={terminals}
                   total={paginationData?.total ?? 0}
                   latestVersion={summary?.latestVersion ?? null}

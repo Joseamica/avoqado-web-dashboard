@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter } from 'react-router-dom'
@@ -73,6 +73,19 @@ function renderPage() {
 beforeEach(() => vi.clearAllMocks())
 
 describe('StockCountsPage', () => {
+  it('si falla una búsqueda, «Limpiar filtros» sigue ahí para salir (Codex r2)', async () => {
+    list.mockResolvedValue(pagina([fila({})], 1, 1, 1))
+    const user = userEvent.setup()
+    renderPage()
+    await waitFor(() => expect(document.querySelector('.lucide-search')).not.toBeNull())
+    list.mockRejectedValue(new Error('500'))
+    await user.click(document.querySelector('.lucide-search')!.closest('button')!)
+    await user.type(screen.getByPlaceholderText('Buscar por ID, autor o nota'), 'agua')
+
+    expect(await screen.findByText(es.stockCounts.loadError, undefined, { timeout: 5000 })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Limpiar filtros' })).toBeInTheDocument()
+  })
+
   it('un borrador sin capturas dice «Sin contar» y «0 de 137 contados», nunca un número', async () => {
     list.mockResolvedValue(pagina([fila({})], 1, 1, 1))
     renderPage()

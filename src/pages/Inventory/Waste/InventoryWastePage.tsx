@@ -254,7 +254,7 @@ function InventoryWasteList() {
         <AlertDescription>{t('wasteReports.info')}</AlertDescription>
       </Alert>
 
-      {!loadFailed && (!isEmpty || hasFilters) && (
+      {(hasFilters || (!loadFailed && !isEmpty)) && (
         <div className="flex flex-wrap items-center gap-3">
           <div className="relative flex items-center">
             {isSearchOpen ? (
