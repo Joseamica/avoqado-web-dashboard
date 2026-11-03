@@ -32,12 +32,14 @@ import { useToast } from '@/hooks/use-toast'
 import { useDebounce } from '@/hooks/useDebounce'
 import { InventoryLabelModal } from './components/InventoryLabelModal'
 import { FeatureGate } from '@/components/billing/FeatureGate'
+import { SummaryQueryBoundary } from '@/components/SummaryQueryBoundary'
 import { includesNormalized } from '@/lib/utils'
-import { reintentarSalvoSinPermiso } from '@/lib/reintentoSinPermiso'
+import { esSinPermiso, reintentarSalvoSinPermiso } from '@/lib/reintentoSinPermiso'
 import { inventoryKeys, invalidateStockOverviewQueries, invalidateWasteQueries } from '@/lib/queryKeys/inventory'
 import { formatWasteQuantity, previewAfterWaste, readWasteSummary } from '@/lib/inventoryWaste'
 import { getIntlLocale } from '@/utils/i18n-locale'
 import { buildSummaryAdjustment, isSummaryAmountValid, isSummaryLossAction, type SummaryStockAction } from './summaryAdjustment'
+import { physicalRowsToExport, recipeRowsToExport } from './stockOverviewExport'
 import { NombreDeFamilia, TablaConFamilias } from './components/TablaConFamilias'
 import { familiaDeProducto, filasDeExistencias, sumarExistencias, type FilaConFamilia } from './stockFamilies'
 import {
@@ -57,8 +59,9 @@ const estaBaja = (r: FilaFisica) => (r.__familia ? r.__familia.variantes.some(ba
 export default function InventorySummary() {
   const { t: _t } = useTranslation() // Prefixed with _ to mark as intentionally unused (will be used for i18n later)
   const { t: tInventory, i18n } = useTranslation('inventory')
+  const { t: tCommon } = useTranslation('common')
   const navigate = useNavigate()
-  const { venueId, fullBasePath } = useCurrentVenue()
+  const { venueId, venueSlug, fullBasePath } = useCurrentVenue()
   const { hasAccess, isLoading: isLoadingAccess } = useTierFeatureAccess('INVENTORY_TRACKING')
   const { toast } = useToast()
   const queryClient = useQueryClient()
@@ -80,9 +83,10 @@ export default function InventorySummary() {
   const [activeTab, setActiveTab] = useState('physical')
   const [labelModalOpen, setLabelModalOpen] = useState(false)
   const [adjustIngredient, setAdjustIngredient] = useState<RawMaterial | null>(null)
+  const [isExporting, setIsExporting] = useState(false)
 
   // Fetch real products with inventory data
-  const { data: products, isLoading: isLoadingProducts } = useQuery({
+  const { data: products, isLoading: isLoadingProducts, isFetching: isFetchingProducts, isError: productsFailed, error: productsError, isPaused: isProductsPaused, refetch: refetchProducts } = useQuery({
     queryKey: inventoryKeys.productsSummary(venueId ?? ''),
     queryFn: () => getProducts(venueId!),
     enabled: !!venueId && !isLoadingAccess && hasAccess,
@@ -92,7 +96,7 @@ export default function InventorySummary() {
   })
 
   // Fetch raw materials (ingredients) to merge into the physical tab
-  const { data: rawMaterialsResponse, isLoading: isLoadingRawMaterials } = useQuery({
+  const { data: rawMaterialsResponse, isLoading: isLoadingRawMaterials, isFetching: isFetchingRawMaterials, isPaused: isRawMaterialsPaused, error: rawMaterialsError, refetch: refetchRawMaterials } = useQuery({
     queryKey: inventoryKeys.rawMaterials(venueId ?? ''),
     queryFn: () => rawMaterialsApi.getAll(venueId!, { active: true }),
     enabled: !!venueId && !isLoadingAccess && hasAccess,
@@ -109,6 +113,19 @@ export default function InventorySummary() {
   }, [rawMaterialsResponse])
 
   const isLoading = isLoadingAccess || isLoadingProducts || isLoadingRawMaterials
+
+  // Una lista vacía por un fallo no es un negocio sin artículos. Sin internet la consulta se pausa en vez de fallar, y vuelve
+  // sola con la red. Mientras se reintenta no se avisa: si vuelve a fallar, regresa.
+  const recipesLoadFailed = (productsFailed && !isFetchingProducts) || isProductsPaused
+  // Sin permiso de ingredientes no es un fallo: ese rol tampoco los ve en la tabla.
+  const ingredientsLoadFailed =
+    (rawMaterialsError != null && !esSinPermiso(rawMaterialsError) && !isFetchingRawMaterials) || isRawMaterialsPaused
+  // Esta pestaña espera las dos consultas: antes de avisar hay que saber qué llegó.
+  const physicalLoadFailed = !isLoading && (recipesLoadFailed || ingredientsLoadFailed)
+  const retryLoad = () => {
+    if (recipesLoadFailed) void refetchProducts()
+    if (ingredientsLoadFailed) void refetchRawMaterials()
+  }
 
   // Stock Adjustment Mutation
   const adjustStockMutation = useMutation({
@@ -198,6 +215,10 @@ export default function InventorySummary() {
       products?.filter((p: InventoryProduct) => p.inventoryMethod === 'RECIPE') ?? [],
     [products],
   )
+
+  // Sin contar filtros: que una búsqueda no encuentre nada no quiere decir que no haya llegado nada.
+  const physicalIsEmpty = productPhysicalRows.length === 0 && ingredientRows.length === 0
+  const recipesAreEmpty = recipeItems.length === 0
 
   // Apply filters/search uniformly across product + ingredient rows
   const filteredPhysicalRows = useMemo<StockOverviewRow[]>(() => {
@@ -632,23 +653,63 @@ export default function InventorySummary() {
     </>
   )
 
+  // Sale lo mismo que se ve en la pestaña, con sus filtros. Las filas ya están en memoria: no le pide nada al servidor.
+  const handleExport = async () => {
+    const onRecipes = activeTab === 'recipes'
+    // Sin esto, un fallo de carga bajaría un archivo incompleto que parece bueno.
+    if (onRecipes ? recipesLoadFailed : physicalLoadFailed) {
+      toast({ title: tInventory('stockExport.loadFailed'), description: tInventory('stockExport.loadFailedHint'), variant: 'destructive' })
+      return
+    }
+    const rows = onRecipes
+      ? recipeRowsToExport(filteredRecipeItems, tInventory)
+      : physicalRowsToExport(filteredPhysicalRows, tInventory, getShortLabel)
+    if (rows.length === 0) {
+      toast({ title: tInventory('stockExport.empty') })
+      return
+    }
+    setIsExporting(true)
+    try {
+      const { exportSheetsToExcel, generateFilename } = await import('@/utils/export')
+      await exportSheetsToExcel(
+        [{ name: tInventory('stockExport.sheetName'), rows }],
+        generateFilename(onRecipes ? 'existencias-receta' : 'existencias', venueSlug ?? undefined),
+      )
+      toast({ title: tInventory('stockExport.done'), description: tInventory('stockExport.doneCount', { count: rows.length }) })
+    } catch {
+      toast({ title: tInventory('stockExport.failed'), description: tInventory('stockExport.failedHint'), variant: 'destructive' })
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
+  // Una recarga cuenta como carga: tras un ajuste, la lista vieja sigue en pantalla hasta que llega la nueva, y el archivo
+  // saldría con los números de antes. Las recetas sólo dependen de los productos.
+  const isExportDataLoading = isFetchingProducts || (activeTab !== 'recipes' && isFetchingRawMaterials)
+
   // Import / Export buttons live in the table tab on the right.
   const importExportTab = (
     <>
       <button
         type="button"
-        className="inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors cursor-pointer"
+        disabled
+        className="inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-xs font-medium text-muted-foreground cursor-not-allowed"
       >
         <Upload className="h-3.5 w-3.5" />
-        Importar
+        {tInventory('stockImport.button')}
+        <Badge variant="outline" className="text-[10px] h-4 px-1.5 font-normal">
+          {tInventory('stockImport.soon')}
+        </Badge>
       </button>
       <span className="h-4 w-px bg-border" aria-hidden />
       <button
         type="button"
-        className="inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors cursor-pointer"
+        onClick={handleExport}
+        disabled={isExportDataLoading || isExporting}
+        className="inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
       >
         <Download className="h-3.5 w-3.5" />
-        Exportar
+        {isExporting ? tInventory('stockExport.exporting') : tInventory('stockExport.button')}
       </button>
     </>
   )
@@ -691,7 +752,7 @@ export default function InventorySummary() {
               }`}
             >
               Artículos e Ingredientes
-              <span className="ml-1.5 text-xs opacity-60">{filteredPhysicalRows.length}</span>
+              {!physicalLoadFailed && <span className="ml-1.5 text-xs opacity-60">{filteredPhysicalRows.length}</span>}
               {activeTab === 'physical' && (
                 <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
               )}
@@ -705,7 +766,7 @@ export default function InventorySummary() {
               }`}
             >
               Basados en Receta
-              <span className="ml-1.5 text-xs opacity-60">{filteredRecipeItems.length}</span>
+              {!recipesLoadFailed && <span className="ml-1.5 text-xs opacity-60">{filteredRecipeItems.length}</span>}
               {activeTab === 'recipes' && (
                 <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
               )}
@@ -718,31 +779,53 @@ export default function InventorySummary() {
       <div className="px-4 sm:px-6 pt-5">
 
       <TabsContent value="physical" className="mt-4">
-        <TablaConFamilias<StockOverviewRow>
-          data={filasFisicas}
-          columns={physicalColumns}
-          conFiltro={hayFiltro}
-          isLoading={isLoading}
-          tableId="inventory:mixed"
-          tableTabLeft={filterRow}
-          tableTab={importExportTab}
-        />
+        <SummaryQueryBoundary
+          isError={physicalLoadFailed}
+          message={tInventory(physicalIsEmpty ? 'stockLoad.failed' : 'stockLoad.partial')}
+          retryLabel={tCommon('retry')}
+          onRetry={esSinPermiso(productsError) && !ingredientsLoadFailed ? undefined : retryLoad}
+        >
+          {null}
+        </SummaryQueryBoundary>
+        {!(physicalLoadFailed && physicalIsEmpty) && (
+          <TablaConFamilias<StockOverviewRow>
+            query={null}
+            data={filasFisicas}
+            columns={physicalColumns}
+            conFiltro={hayFiltro}
+            isLoading={isLoading}
+            tableId="inventory:mixed"
+            tableTabLeft={filterRow}
+            tableTab={importExportTab}
+          />
+        )}
       </TabsContent>
       <TabsContent value="recipes" className="mt-4">
-        <DataTable
-          data={filteredRecipeItems}
-          rowCount={filteredRecipeItems.length}
-          columns={recipeColumns}
-          isLoading={isLoading}
-          enableSearch={false}
-          showColumnCustomizer={false}
-          tableId="inventory:recipes"
-          tableTabLeft={filterRow}
-          tableTab={importExportTab}
-          onRowClick={row => {
-            navigate(`${fullBasePath}/inventory/recipes?productId=${row.id}`)
-          }}
-        />
+        <SummaryQueryBoundary
+          isError={recipesLoadFailed}
+          message={tInventory(recipesAreEmpty ? 'stockLoad.failed' : 'stockLoad.partial')}
+          retryLabel={tCommon('retry')}
+          onRetry={esSinPermiso(productsError) ? undefined : retryLoad}
+        >
+          {null}
+        </SummaryQueryBoundary>
+        {!(recipesLoadFailed && recipesAreEmpty) && (
+          <DataTable
+            query={null}
+            data={filteredRecipeItems}
+            rowCount={filteredRecipeItems.length}
+            columns={recipeColumns}
+            isLoading={isLoadingAccess || isLoadingProducts}
+            enableSearch={false}
+            showColumnCustomizer={false}
+            tableId="inventory:recipes"
+            tableTabLeft={filterRow}
+            tableTab={importExportTab}
+            onRowClick={row => {
+              navigate(`${fullBasePath}/inventory/recipes?productId=${row.id}`)
+            }}
+          />
+        )}
       </TabsContent>
 
       </div>

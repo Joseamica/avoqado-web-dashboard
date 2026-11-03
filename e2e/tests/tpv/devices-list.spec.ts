@@ -329,7 +329,7 @@ test.describe('Dispositivos — lista A1', () => {
     await page.setViewportSize({ width: 1600, height: 900 })
     await setup(page, { kind: 'error' })
     await page.goto(`/venues/${VENUE_SLUG}/devices`)
-    await expect(page.getByText('No se pudo cargar la lista de dispositivos.')).toBeVisible({ timeout: 20_000 })
+    await expect(page.getByText('No pudimos cargar esta información. Inténtalo de nuevo.')).toBeVisible({ timeout: 20_000 })
     await expect(page.getByRole('button', { name: 'Reintentar' })).toBeVisible()
     await expect(page.getByText('Todavía no hay dispositivos.')).toHaveCount(0)
   })

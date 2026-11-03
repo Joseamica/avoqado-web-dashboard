@@ -621,9 +621,9 @@ test.describe('catalog read failure', () => {
       })
       await navigate(page)
 
-      const alert = page.getByTestId('catalog-read-error')
+      const alert = page.getByRole('alert').filter({ hasText: /We couldn't load this information|No pudimos cargar esta información/ })
       const retry = alert.getByRole('button', { name: /^(Retry|Reintentar)$/ })
-      const message = /^(Could not load or refresh the catalog\. Please try again\.|No se pudo cargar o actualizar el catálogo\. Intenta de nuevo\.)$/
+      const message = /^(We couldn't load this information\. Please try again\.|No pudimos cargar esta información\. Inténtalo de nuevo\.)$/
       await expect(alert).toBeVisible({ timeout: 30_000 })
       await expect(alert).toHaveAttribute('role', 'alert')
       await expect(alert.getByText(message)).toBeVisible()
@@ -638,17 +638,8 @@ test.describe('catalog read failure', () => {
       await retry.click()
       await retryStarted
       try {
-        // An initial no-data query may hide its alert while pending.
-        await expect.poll(() =>
-          page.locator('[data-testid="catalog-read-error"]:visible').evaluateAll(alerts =>
-            alerts.every(alert => {
-              const buttons = Array.from(alert.querySelectorAll('button')).filter(button =>
-                button.checkVisibility({ visibilityProperty: true }),
-              )
-              return buttons.length > 0 && buttons.every(button => button.disabled)
-            }),
-          ),
-        ).toBe(true)
+        // Sin datos, la consulta vuelve a «cargando» y el aviso se quita mientras reintenta.
+        await expect(alert).not.toBeVisible()
       } finally {
         releaseFailure()
       }

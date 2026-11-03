@@ -17,6 +17,8 @@ export function useOnlineOrderingStatus() {
     canAnswer,
     canCancel: can('orders:cancel-unpaid'),
     canPause: can('online-orders:pause'),
+    // Devolver a la tarjeta un pedido cobrado: el mismo permiso del reembolso de siempre (sin candado de plan).
+    canRefund: can('payments:refund'),
     // El servidor no registra latido para un superadmin sin membresía (P2-04); `useAccess` no distingue la
     // membresía, así que se trata a todo superadmin como "no mantiene abierta la tienda".
     keepsStoreOpen: canAnswer && role !== 'SUPERADMIN',

@@ -113,10 +113,11 @@ const TrainingManagement: React.FC = () => {
   const navigate = useNavigate()
 
   // Data fetching
-  const { data: response, isLoading } = useQuery({
+  const listQuery = useQuery({
     queryKey: ['superadmin-trainings'],
     queryFn: () => trainingAPI.getAll({ limit: 100 }),
   })
+  const { data: response, isLoading } = listQuery
 
   const { data: organizations = [] } = useQuery<OrganizationSimple[]>({
     queryKey: ['superadmin-organizations-list'],
@@ -503,6 +504,7 @@ const TrainingManagement: React.FC = () => {
             <div className="py-8 text-sm text-muted-foreground text-center">Cargando entrenamientos...</div>
           ) : (
             <DataTable
+              query={listQuery}
               columns={columns}
               data={filteredTrainings}
               pagination={{ pageIndex: 0, pageSize: 20 }}

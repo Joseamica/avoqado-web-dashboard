@@ -139,8 +139,9 @@ export function actionTone(action: string): ActionTone {
     return 'destructive'
   }
   // Lo que un dueño audita: dinero perdonado, anulado, revertido o autorizado
-  // por encima de las reglas normales.
-  if (/(COMPED|VOIDED|OVERRIDE|REVERSED|REVERSAL|CLAWBACK|REFUND|DISCREPANC|VARIANCE|WENT_NEGATIVE|OVERPAY|SOBREPAGO|SUSPENDED|QUARANTINED)/.test(a)) {
+  // por encima de las reglas normales; algo atorado que alguien debe destrabar,
+  // y el dinero cobrado de más o por fuera (tarjeta en línea) que hay que devolver.
+  if (/(COMPED|VOIDED|OVERRIDE|REVERSED|REVERSAL|CLAWBACK|REFUND|DISCREPANC|VARIANCE|WENT_NEGATIVE|OVERPAY|SOBREPAGO|SUSPENDED|QUARANTINED|STUCK|CAPTURED_OUTSIDE|DOUBLE_PAYMENT)/.test(a)) {
     return 'attention'
   }
   if (/(CREATED|ADDED|ISSUED|APPROVED|CONFIRMED|COMPLETED|ACTIVATED|ENABLED|GRANTED|PUBLISHED|RECEIVED|ACCEPTED|REACTIVATED|UNLOCKED|GENERATED)/.test(a)) {

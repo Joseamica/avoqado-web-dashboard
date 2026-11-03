@@ -1,3 +1,4 @@
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import React, { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -69,10 +70,11 @@ const SettlementConfigurations: React.FC = () => {
   })
 
   // Queries
-  const { data: configurations = [], isLoading } = useQuery({
+  const listQuery = useQuery({
     queryKey: ['settlement-configurations'],
     queryFn: () => getSettlementConfigurations(),
   })
+  const { data: configurations = [], isLoading } = listQuery
 
   const { data: merchantAccounts = [] } = useQuery({
     queryKey: ['merchant-accounts-list'],
@@ -351,7 +353,7 @@ const SettlementConfigurations: React.FC = () => {
       </div>
 
       {/* Warning for merchants without config */}
-      {merchantsWithoutConfig.length > 0 && (
+      {!falloDeCarga(listQuery) && merchantsWithoutConfig.length > 0 && (
         <Card className="border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800">
           <CardHeader className="pb-2">
             <CardTitle className="text-amber-800 dark:text-amber-200 flex items-center gap-2">
@@ -453,7 +455,7 @@ const SettlementConfigurations: React.FC = () => {
             </Select>
           </div>
 
-          <DataTable columns={columns} data={filteredConfigurations} isLoading={isLoading} rowCount={filteredConfigurations.length} />
+          <DataTable query={listQuery} columns={columns} data={filteredConfigurations} isLoading={isLoading} rowCount={filteredConfigurations.length} />
         </CardContent>
       </Card>
 

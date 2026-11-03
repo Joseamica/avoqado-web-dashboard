@@ -87,10 +87,11 @@ const ModuleManagement: React.FC = () => {
   const { toast } = useToast()
 
   // Fetch all modules
-  const { data: modules = [], isLoading } = useQuery({
+  const listQuery = useQuery({
     queryKey: ['superadmin-modules'],
     queryFn: moduleAPI.getAllModules,
   })
+  const { data: modules = [], isLoading } = listQuery
 
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedModule, setSelectedModule] = useState<Module | null>(null)
@@ -468,6 +469,7 @@ const ModuleManagement: React.FC = () => {
             <div className="py-8 text-sm text-muted-foreground text-center">Cargando módulos...</div>
           ) : (
             <DataTable
+              query={listQuery}
               columns={columns}
               data={filteredModules}
               pagination={{ pageIndex: 0, pageSize: 20 }}

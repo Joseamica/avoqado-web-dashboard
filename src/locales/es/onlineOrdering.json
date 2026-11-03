@@ -58,7 +58,14 @@
     "enableBlocked": "Completa lo que falta arriba para poder encenderla.",
     "payAtPickup": "Pagar al recoger",
     "cardOnline": "Tarjeta en línea",
-    "soon": "Muy pronto",
+    "card": {
+      "off": "Apagado: tus clientes sólo pueden pagar al recoger.",
+      "ready": "Tus clientes pueden pagar con tarjeta.",
+      "notConnected": "Para cobrar con tarjeta, conecta tu cuenta de Stripe.",
+      "notChargeable": "Tu cuenta de Stripe todavía no puede cobrar.",
+      "connect": "Conectar Stripe",
+      "review": "Revisar Stripe"
+    },
     "minOrder": "Pedido mínimo (MXN)",
     "minOrderHelp": "El precio ya incluye IVA. Déjalo en blanco para no cambiarlo.",
     "prepTime": "Tiempo de preparación",
@@ -162,6 +169,12 @@
       "payAtPickup": "Cobrar al recoger {{amount}}",
       "paid": "Pagado",
       "noCharge": "Sin cobro",
+      "cardAuthorized": "Con tarjeta: se cobra al aceptar",
+      "cardConfirming": "Confirmando el pago…",
+      "cardPaid": "Pagado con tarjeta",
+      "cardCapturedRefund": "Tarjeta cobrada: devuélvela desde el panel",
+      "cardNotCharged": "No se cobró la tarjeta",
+      "cardReleasing": "Liberando la tarjeta…",
       "collectFirst": "Falta cobrarlo",
       "deadline": "Quedan {{time}} para aceptar",
       "expired": "Se acabó el tiempo para aceptar",
@@ -192,7 +205,8 @@
         "OUT_OF_ITEMS": "Sin ingredientes",
         "CLOSED": "Cerrado",
         "TOO_BUSY": "Muy ocupados",
-        "OTHER": "Otro"
+        "OTHER": "Otro",
+        "PAYMENT_FAILED": "No se pudo cobrar la tarjeta"
       },
       "note": "Nota (opcional)",
       "confirm": "Rechazar"
@@ -214,6 +228,45 @@
       "minutes": "{{minutes}} min",
       "resume": "Reanudar",
       "failed": "No se pudo cambiar la pausa. Vuelve a intentar."
+    }
+  },
+  "cardRefund": {
+    "open": "Devolver a la tarjeta",
+    "title": "Devolver a la tarjeta · pedido #{{number}}",
+    "description": "El dinero regresa a la tarjeta con la que pagó el cliente.",
+    "history": "Devoluciones de este pedido",
+    "empty": "Todavía no hay devoluciones.",
+    "loadFailed": "No se pudieron cargar las devoluciones.",
+    "reload": "Volver a cargar",
+    "changed": "Hay una devolución nueva en la lista. Revísala antes de devolver.",
+    "confirmAnother": "Ya hay una devolución de {{amount}} de hace {{minutes}} min. ¿Hacer OTRA devolución de {{amount}}?",
+    "confirmYes": "Sí, otra devolución",
+    "upTo": "Puedes devolver hasta {{amount}}",
+    "amount": "Monto a devolver (MXN)",
+    "amountInvalid": "Escribe un monto mayor a $0 con máximo 2 decimales.",
+    "reason": "Motivo",
+    "note": "Nota (opcional)",
+    "submit": "Devolver a la tarjeta",
+    "sending": "Devolviendo…",
+    "noResponse": "No hubo respuesta. Vuelve a intentarlo: no se devuelve dos veces.",
+    "error": "No se pudo hacer la devolución. Vuelve a intentar.",
+    "outcome": {
+      "done": "Devuelto a la tarjeta",
+      "sending": "Enviando a Stripe…",
+      "processing": "Stripe está procesando la devolución",
+      "failed": "El banco no hizo la devolución; no se anotó nada",
+      "reversed": "La devolución falló después: devuélvelo por otro medio",
+      "resolved": "Ya se devolvió por otro medio",
+      "unknown": "La devolución está en proceso; revisa en un momento"
+    },
+    "other": {
+      "title": "Devolver por otro medio:",
+      "cash": "Efectivo de la caja",
+      "transfer": "Transferencia",
+      "confirmCASH": "¿Ya le devolviste {{amount}} al cliente en efectivo? Sale de la caja abierta y no se puede deshacer.",
+      "confirmBANK_TRANSFER": "¿Ya le transferiste {{amount}} al cliente? Queda anotado y no se puede deshacer.",
+      "confirmYes": "Sí, ya se lo devolví",
+      "confirmNo": "Todavía no"
     }
   }
 }

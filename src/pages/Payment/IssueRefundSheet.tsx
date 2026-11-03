@@ -15,12 +15,14 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { ToastAction } from '@/components/ui/toast'
 import { useToast } from '@/hooks/use-toast'
 import { Currency } from '@/utils/currency'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, Minus, Plus, X } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Link } from 'react-router-dom'
 import { textoDelServidorEnIdioma } from '@/pages/GiftCards/giftCardText'
 import { quedoEnDuda } from '@/pages/Commissions/envioUnico'
 import { lineRefundAmount, type RefundableItem } from './refundAmount'
@@ -62,6 +64,11 @@ interface IssueRefundSheetProps {
    * artículos (`propinaQueCabe`). Con 0 la casilla se oculta.
    */
   remainingTipAmount?: number
+  /**
+   * Liga al detalle de la cuenta del pago. Un cobro de pedido en línea con tarjeta se devuelve desde ahí («Devolver a la
+   * tarjeta»): el servidor responde `409 ONLINE_ORDER_REFUND_VIA_ONLINE_ORDERS` y el aviso lleva esta liga.
+   */
+  orderHref?: string
   open: boolean
   onOpenChange: (open: boolean) => void
   onRefunded: () => void
@@ -77,6 +84,7 @@ export function IssueRefundSheet({
   paymentTipAmount = 0,
   remainingSaleAmount = 0,
   remainingTipAmount = 0,
+  orderHref,
   open,
   onOpenChange,
   onRefunded,
@@ -188,6 +196,8 @@ export function IssueRefundSheet({
     onError: (err: any) => {
       const delServidor = textoDelServidorEnIdioma(err, tGiftCards)
       const sinConfirmar = delServidor === undefined && quedoEnDuda(err)
+      const irAlPedido: string | undefined = err?.response?.data?.code === 'ONLINE_ORDER_REFUND_VIA_ONLINE_ORDERS' ? orderHref : undefined
+      const irAlPedidoTexto = t('refund.goToOrder', { defaultValue: 'Ver la cuenta' })
       toast({
         title: sinConfirmar
           ? t('refund.errorUnknownTitle', { defaultValue: 'Reembolso sin confirmar' })
@@ -199,6 +209,12 @@ export function IssueRefundSheet({
             ? t('refund.errors.forbidden', { defaultValue: 'No tienes permiso para emitir reembolsos. Pídeselo a quien administra el negocio.' })
             : err?.response?.data?.message || err?.message),
         variant: 'destructive',
+        // El Toaster vive dentro del router (root.tsx): la liga funciona.
+        action: irAlPedido ? (
+          <ToastAction altText={irAlPedidoTexto} asChild>
+            <Link to={irAlPedido}>{irAlPedidoTexto}</Link>
+          </ToastAction>
+        ) : undefined,
       })
     },
   })

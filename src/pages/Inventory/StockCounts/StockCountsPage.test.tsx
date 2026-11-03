@@ -73,6 +73,20 @@ function renderPage() {
 beforeEach(() => vi.clearAllMocks())
 
 describe('StockCountsPage', () => {
+  it('si falla un filtro que va al servidor, «Limpiar filtros» sigue ahí para salir (Codex r2)', async () => {
+    list.mockResolvedValue(pagina([fila({})], 1, 1, 1))
+    const user = userEvent.setup()
+    renderPage()
+    const tipo = await screen.findByRole('button', { name: /Tipo/ })
+    list.mockRejectedValue(new Error('500'))
+    await user.click(tipo)
+    await user.click((await screen.findAllByRole('checkbox')).slice(-1)[0])
+    await user.click(screen.getByRole('button', { name: 'Aplicar' }))
+
+    expect(await screen.findByText(es.stockCounts.loadError, undefined, { timeout: 10_000 })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Limpiar filtros' })).toBeInTheDocument()
+  }, 30_000)
+
   it('un borrador sin capturas dice «Sin contar» y «0 de 137 contados», nunca un número', async () => {
     list.mockResolvedValue(pagina([fila({})], 1, 1, 1))
     renderPage()

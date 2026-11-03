@@ -67,7 +67,7 @@ export default function CreditPackPurchasesTab() {
   const [adjustQuantity, setAdjustQuantity] = useState(0)
   const [adjustReason, setAdjustReason] = useState('')
 
-  const { data: purchasesData, isLoading } = useQuery({
+  const listQuery = useQuery({
     queryKey: ['credit-pack-purchases', venueId, pagination.pageIndex, pagination.pageSize, statusFilter],
     queryFn: () =>
       creditPackService.getPurchases(venueId, {
@@ -76,6 +76,7 @@ export default function CreditPackPurchasesTab() {
         status: statusFilter.length === 1 ? (statusFilter[0] as CreditPurchaseStatus) : undefined,
       }),
   })
+  const { data: purchasesData, isLoading } = listQuery
 
   const purchases = useMemo(() => {
     let result = purchasesData?.data || []
@@ -375,6 +376,7 @@ export default function CreditPackPurchasesTab() {
       </div>
 
       <DataTable
+        query={listQuery}
         data={purchases}
         columns={columns}
         isLoading={isLoading}

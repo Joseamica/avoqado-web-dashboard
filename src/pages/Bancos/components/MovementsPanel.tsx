@@ -16,6 +16,7 @@
  * Extraído del BankAccountMovementsSheet para reusarse como página del hub Bancos
  * (bancos/movimientos) y dentro del Sheet. El Sheet queda como wrapper delgado.
  */
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { useMemo, useState } from 'react'
 import { useQuery, keepPreviousData } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
@@ -385,24 +386,19 @@ export function MovementsPanel({
       </div>
 
       {/* Estado de cuenta */}
-      {movs.isError ? (
-        <div className="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">{t('movements.table.loadError')}</div>
-      ) : (
-        <>
-          <DataTable
-            data={movs.data?.movements ?? []}
-            rowCount={movs.data?.total ?? 0}
-            columns={columns}
-            isLoading={movs.isLoading}
-            pagination={pagination}
-            setPagination={setPagination}
-            onRowClick={m => setSelectedMovement(m)}
-            tableId="bancos-movimientos"
-          />
-          {!movs.isLoading && movs.data?.movements.length === 0 && (
-            <div className="rounded-xl bg-muted/40 px-4 py-10 text-center text-sm text-muted-foreground">{t('movements.table.empty')}</div>
-          )}
-        </>
+      <DataTable
+        query={movs}
+        data={movs.data?.movements ?? []}
+        rowCount={movs.data?.total ?? 0}
+        columns={columns}
+        isLoading={movs.isLoading}
+        pagination={pagination}
+        setPagination={setPagination}
+        onRowClick={m => setSelectedMovement(m)}
+        tableId="bancos-movimientos"
+      />
+      {!movs.isLoading && !falloDeCarga(movs) && movs.data?.movements.length === 0 && (
+        <div className="rounded-xl bg-muted/40 px-4 py-10 text-center text-sm text-muted-foreground">{t('movements.table.empty')}</div>
       )}
 
       <MovementDetailSheet movement={selectedMovement} onClose={() => setSelectedMovement(null)} />

@@ -58,7 +58,14 @@
     "enableBlocked": "Complete what is missing above to turn it on.",
     "payAtPickup": "Pay at pickup",
     "cardOnline": "Card online",
-    "soon": "Coming soon",
+    "card": {
+      "off": "Off: your customers can only pay at pickup.",
+      "ready": "Your customers can pay by card.",
+      "notConnected": "To charge cards, connect your Stripe account.",
+      "notChargeable": "Your Stripe account can't charge yet.",
+      "connect": "Connect Stripe",
+      "review": "Review Stripe"
+    },
     "minOrder": "Minimum order (MXN)",
     "minOrderHelp": "Price already includes tax. Leave blank to keep it unchanged.",
     "prepTime": "Preparation time",
@@ -162,6 +169,12 @@
       "payAtPickup": "Collect at pickup {{amount}}",
       "paid": "Paid",
       "noCharge": "No charge",
+      "cardAuthorized": "By card: charged when you accept",
+      "cardConfirming": "Confirming the payment…",
+      "cardPaid": "Paid by card",
+      "cardCapturedRefund": "Card charged: refund it from the dashboard",
+      "cardNotCharged": "The card wasn't charged",
+      "cardReleasing": "Releasing the card…",
       "collectFirst": "Payment still due",
       "deadline": "{{time}} left to accept",
       "expired": "Time to accept is up",
@@ -192,7 +205,8 @@
         "OUT_OF_ITEMS": "Out of items",
         "CLOSED": "Closed",
         "TOO_BUSY": "Too busy",
-        "OTHER": "Other"
+        "OTHER": "Other",
+        "PAYMENT_FAILED": "The card couldn't be charged"
       },
       "note": "Note (optional)",
       "confirm": "Reject"
@@ -214,6 +228,45 @@
       "minutes": "{{minutes}} min",
       "resume": "Resume",
       "failed": "Couldn't change the pause. Try again."
+    }
+  },
+  "cardRefund": {
+    "open": "Refund to card",
+    "title": "Refund to card · order #{{number}}",
+    "description": "The money goes back to the card the customer paid with.",
+    "history": "Refunds for this order",
+    "empty": "No refunds yet.",
+    "loadFailed": "Couldn't load the refunds.",
+    "reload": "Reload",
+    "changed": "There is a new refund in the list. Check it before refunding.",
+    "confirmAnother": "There is already a {{amount}} refund from {{minutes}} min ago. Make ANOTHER {{amount}} refund?",
+    "confirmYes": "Yes, another refund",
+    "upTo": "You can refund up to {{amount}}",
+    "amount": "Amount to refund (MXN)",
+    "amountInvalid": "Enter an amount above $0 with at most 2 decimals.",
+    "reason": "Reason",
+    "note": "Note (optional)",
+    "submit": "Refund to card",
+    "sending": "Refunding…",
+    "noResponse": "No response. Try again: it won't be refunded twice.",
+    "error": "Couldn't make the refund. Try again.",
+    "outcome": {
+      "done": "Refunded to the card",
+      "sending": "Sending to Stripe…",
+      "processing": "Stripe is processing the refund",
+      "failed": "The bank didn't make the refund; nothing was recorded",
+      "reversed": "The refund failed later: refund it another way",
+      "resolved": "Already refunded another way",
+      "unknown": "The refund is in progress; check again in a moment"
+    },
+    "other": {
+      "title": "Refund another way:",
+      "cash": "Cash from the drawer",
+      "transfer": "Bank transfer",
+      "confirmCASH": "Did you already give the customer {{amount}} in cash? It comes out of the open drawer and can't be undone.",
+      "confirmBANK_TRANSFER": "Did you already transfer {{amount}} to the customer? It is recorded and can't be undone.",
+      "confirmYes": "Yes, I returned it",
+      "confirmNo": "Not yet"
     }
   }
 }

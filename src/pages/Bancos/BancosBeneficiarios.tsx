@@ -284,6 +284,7 @@ function BeneficiariesList({ venueId }: { venueId: string }) {
       </div>
 
       <DataTable
+        query={null}
         data={beneficiaries}
         columns={columns}
         rowCount={beneficiaries.length}

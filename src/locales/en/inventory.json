@@ -1656,5 +1656,39 @@
     "ver": "Show variants of {{name}}",
     "suma": "Sum of its variants",
     "sumaFiltrada": "Sum of the matching ones"
+  },
+  "stockLoad": {
+    "failed": "We couldn't load the inventory. Please try again.",
+    "partial": "We couldn't load all of the inventory: this list may be incomplete or out of date."
+  },
+  "stockExport": {
+    "button": "Export",
+    "exporting": "Exporting…",
+    "sheetName": "Stock",
+    "done": "Excel downloaded",
+    "doneCount": "Items: {{count}}",
+    "empty": "There are no items to export",
+    "loadFailed": "We couldn't load the inventory",
+    "loadFailedHint": "No file was downloaded. Reload the page and try again.",
+    "failed": "Couldn't export",
+    "failedHint": "No file was downloaded. Please try again.",
+    "columns": {
+      "item": "Item",
+      "kind": "Type",
+      "sku": "SKU",
+      "available": "Available",
+      "unit": "Unit",
+      "minimum": "Minimum",
+      "theoretical": "Available (theoretical)",
+      "price": "Price"
+    },
+    "kinds": {
+      "product": "Product",
+      "ingredient": "Ingredient"
+    }
+  },
+  "stockImport": {
+    "button": "Import",
+    "soon": "Coming soon"
   }
 }

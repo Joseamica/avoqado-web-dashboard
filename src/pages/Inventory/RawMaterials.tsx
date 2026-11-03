@@ -1,3 +1,4 @@
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { useState, useMemo, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router-dom'
@@ -121,7 +122,7 @@ export default function RawMaterials() {
   })
 
   // Fetch raw materials - minimal backend filtering, do most client-side
-  const { data: rawMaterialsData, isLoading } = useQuery({
+  const listQuery = useQuery({
     queryKey: ['rawMaterials', venueId, debouncedSearchTerm],
     queryFn: async () => {
       const filters = {
@@ -132,6 +133,7 @@ export default function RawMaterials() {
     },
     enabled: !!venueId,
   })
+  const { data: rawMaterialsData, isLoading } = listQuery
 
   // Fetch purchase orders for confirmed stock calculation (must be before rawMaterials useMemo)
   const { data: confirmedStockData } = useQuery({
@@ -960,7 +962,7 @@ export default function RawMaterials() {
         </div>
 
         {/* Onboarding Banner */}
-        {!isLoading && rawMaterials?.length === 0 && activeFiltersCount === 0 && (
+        {!isLoading && !falloDeCarga(listQuery) && rawMaterials?.length === 0 && activeFiltersCount === 0 && (
           <Alert className="mb-2 border-blue-200 bg-blue-50 dark:bg-blue-950/20 dark:border-blue-800">
             <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
             <AlertTitle className="text-blue-800 dark:text-blue-300">{t('onboarding.title')}</AlertTitle>
@@ -1148,6 +1150,7 @@ export default function RawMaterials() {
 
       {/* Data Table - Fully responsive */}
       <DataTable
+        query={listQuery}
         data={rawMaterials || []}
         rowCount={rawMaterials?.length || 0}
         columns={filteredColumns}

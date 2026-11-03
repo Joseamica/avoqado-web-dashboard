@@ -8,7 +8,7 @@ interface SummaryQueryBoundaryProps {
   isError?: boolean
   message: string
   retryLabel: string
-  onRetry: () => void
+  onRetry?: () => void
 }
 
 /** Evita presentar $0 como dato real cuando la consulta agregada no respondió. */
@@ -37,9 +37,11 @@ export function SummaryQueryBoundary({
     return (
       <div role="alert" className="mb-4 flex items-center justify-between gap-3 rounded-lg border border-destructive/30 bg-destructive/10 p-4">
         <p className="text-sm text-destructive">{message}</p>
-        <Button type="button" variant="outline" size="sm" onClick={onRetry}>
-          {retryLabel}
-        </Button>
+        {onRetry && (
+          <Button type="button" variant="outline" size="sm" onClick={onRetry}>
+            {retryLabel}
+          </Button>
+        )}
       </div>
     )
   }

@@ -209,7 +209,8 @@ export default function CfdiList() {
     setPagination(p => (p.pageIndex === 0 ? p : { ...p, pageIndex: 0 }))
   }, [statusFilter, flowFilter, debouncedReceptorRfc, dateRange])
 
-  const { data, isLoading, isError } = useCfdis(filters, { enabled: hasCfdi })
+  const listQuery = useCfdis(filters, { enabled: hasCfdi })
+  const { data, isLoading } = listQuery
   // C3 (ola final, I-1): ventas sacadas de la global sin factura del cliente. Aviso accesorio: si no responde, no aparece.
   const { data: extraccionesPendientes } = useExtraccionesPendientes({ enabled: hasCfdi })
   const download = useDownloadCfdiFile()
@@ -472,13 +473,8 @@ export default function CfdiList() {
           <ExtraccionesPendientesAviso total={extraccionesPendientes.total} enProceso={extraccionesPendientes.enProceso} />
         )}
 
-        {hasCfdi && isError && (
-          <div className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
-            {t('list.loadError')}
-          </div>
-        )}
-
         <DataTable
+          query={listQuery}
           data={cfdis}
           rowCount={total}
           columns={columns}

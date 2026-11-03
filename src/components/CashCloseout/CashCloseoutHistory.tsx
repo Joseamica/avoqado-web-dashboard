@@ -1,3 +1,5 @@
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
@@ -38,11 +40,12 @@ export function CashCloseoutHistory({ venueId }: CashCloseoutHistoryProps) {
   const [page, setPage] = useState(1)
   const pageSize = 5
 
-  const { data, isLoading } = useQuery({
+  const listQuery = useQuery({
     queryKey: ['cash-closeout', 'history', venueId, page, pageSize],
     queryFn: () => getCloseoutHistory(venueId, page, pageSize),
     enabled: !!venueId,
   })
+  const { data, isLoading } = listQuery
 
   const closeouts = data?.data || []
   const pagination = data?.pagination
@@ -77,9 +80,13 @@ export function CashCloseoutHistory({ venueId }: CashCloseoutHistoryProps) {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground text-center py-8">
-            {t('history.empty')}
-          </p>
+          {falloDeCarga(listQuery) ? (
+            <AvisoDeCarga query={listQuery} hayDatos={false} volverAlInicio={page > 1 ? () => setPage(1) : undefined} />
+          ) : (
+            <p className="text-sm text-muted-foreground text-center py-8">
+              {t('history.empty')}
+            </p>
+          )}
         </CardContent>
       </Card>
     )
@@ -101,6 +108,7 @@ export function CashCloseoutHistory({ venueId }: CashCloseoutHistoryProps) {
         </CardDescription>
       </CardHeader>
       <CardContent>
+        <AvisoDeCarga query={listQuery} hayDatos />
         <Table>
           <TableHeader>
             <TableRow>

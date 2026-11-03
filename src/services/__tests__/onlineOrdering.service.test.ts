@@ -20,6 +20,10 @@ import {
   pauseOrdering,
   serverMessage,
   onlineOrderingKeys,
+  listCardRefunds,
+  createCardRefund,
+  resolveCardRefund,
+  getOnlineOrder,
 } from '../onlineOrdering.service'
 
 const base = '/api/v1/dashboard/venues/v1/online-ordering'
@@ -81,6 +85,46 @@ describe('onlineOrdering.service', () => {
     expect(post).toHaveBeenCalledWith(`${base}/pause`, { minutes: null })
   })
 
+  // ── Fase 2: devolver a la tarjeta (contrato del servidor: monto en PESOS como texto, llave en el encabezado) ──
+  it('listCardRefunds: GET …/orders/:orderId/card-refunds', async () => {
+    get.mockResolvedValue({ data: { data: [{ id: 'r1', amount: '120.50' }] } })
+    expect(await listCardRefunds('v1', 'o1')).toEqual([{ id: 'r1', amount: '120.50' }])
+    expect(get).toHaveBeenLastCalledWith(`${base}/orders/o1/card-refunds`)
+  })
+
+  it('createCardRefund: POST …/card-refund con Idempotency-Key y el monto en pesos como texto', async () => {
+    post.mockResolvedValue({ data: { data: { status: 'RECORDED', cardRefundStatus: 'RECORDED', replay: false } } })
+    const res = await createCardRefund(
+      'v1',
+      'o1',
+      { amount: '120.50', reason: 'RETURNED_GOODS', note: 'faltó un taco', expectedLatestRefundId: 'r1' },
+      'llave-123456',
+    )
+    expect(res).toEqual({ status: 'RECORDED', cardRefundStatus: 'RECORDED', replay: false })
+    expect(post).toHaveBeenLastCalledWith(
+      `${base}/orders/o1/card-refund`,
+      { amount: '120.50', reason: 'RETURNED_GOODS', note: 'faltó un taco', expectedLatestRefundId: 'r1' },
+      { headers: { 'Idempotency-Key': 'llave-123456' } },
+    )
+    expect(typeof post.mock.calls[0][1].amount).toBe('string')
+  })
+
+  it('resolveCardRefund: POST …/card-refund/:refundId/resolve con el método', async () => {
+    post.mockResolvedValue({ data: { data: { status: 'RESOLVED', replay: false } } })
+    expect(await resolveCardRefund('v1', 'o1', 'r1', { method: 'CASH' })).toEqual({ status: 'RESOLVED', replay: false })
+    expect(post).toHaveBeenLastCalledWith(`${base}/orders/o1/card-refund/r1/resolve`, { method: 'CASH' })
+  })
+
+  it('getOnlineOrder: un pedido por su cuenta; 404 ⇒ null (no es pedido en línea), lo demás truena', async () => {
+    get.mockResolvedValueOnce({ data: { data: { orderId: 'o1', paymentMode: 'CARD_ONLINE' } } })
+    expect(await getOnlineOrder('v1', 'o1')).toEqual({ orderId: 'o1', paymentMode: 'CARD_ONLINE' })
+    expect(get).toHaveBeenLastCalledWith(`${base}/orders/o1`)
+    get.mockRejectedValueOnce({ response: { status: 404, data: { message: 'Esta cuenta no es un pedido en línea.' } } })
+    expect(await getOnlineOrder('v1', 'o2')).toBeNull()
+    get.mockRejectedValueOnce({ response: { status: 500, data: {} } })
+    await expect(getOnlineOrder('v1', 'o3')).rejects.toBeTruthy()
+  })
+
   it('serverMessage lee las dos formas de error', () => {
     expect(serverMessage({ response: { data: { success: false, code: 'X', error: 'Desde transición' } } }, 'F')).toBe('Desde transición')
     expect(serverMessage({ response: { data: { message: 'Desde global' } } }, 'F')).toBe('Desde global')
@@ -93,5 +137,7 @@ describe('onlineOrdering.service', () => {
     expect(onlineOrderingKeys.categories('v')).toEqual(['online-ordering', 'v', 'menu', 'categories'])
     expect(onlineOrderingKeys.products('v', { search: 'a' })).toEqual(['online-ordering', 'v', 'menu', 'products', { search: 'a' }])
     expect(onlineOrderingKeys.inbox('v')).toEqual(['online-ordering', 'v', 'inbox'])
+    expect(onlineOrderingKeys.order('v', 'o')).toEqual(['online-ordering', 'v', 'order', 'o'])
+    expect(onlineOrderingKeys.cardRefunds('v', 'o')).toEqual(['online-ordering', 'v', 'order', 'o', 'card-refunds'])
   })
 })

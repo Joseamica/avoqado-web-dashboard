@@ -125,11 +125,12 @@ export default function Reservations() {
   }, [pagination, activeTab, channelFilter, debouncedSearchTerm, today])
 
   // Fetch reservations
-  const { data: reservationsData, isLoading } = useQuery({
+  const listQuery = useQuery({
     queryKey: ['reservations', venueId, queryParams],
     queryFn: () => reservationService.getReservations(venueId, queryParams),
     refetchOnWindowFocus: true,
   })
+  const { data: reservationsData, isLoading } = listQuery
 
   // Fetch stats for today
   const { data: statsData } = useQuery({
@@ -347,6 +348,7 @@ export default function Reservations() {
       {/* Data Table */}
       <div data-tour="reservations-overview-table">
       <DataTable
+        query={listQuery}
         data={reservations}
         columns={columns}
         isLoading={isLoading}

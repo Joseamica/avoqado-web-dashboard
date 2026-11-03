@@ -1,3 +1,5 @@
+import { esSinPermiso } from '@/lib/reintentoSinPermiso'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { useCallback, useMemo, useState } from 'react'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import type { ColumnDef, PaginationState } from '@tanstack/react-table'
@@ -237,7 +239,7 @@ function InventoryWasteList() {
 
   // Un fallo NO es «aún no hay mermas»: se dice y se ofrece reintentar. Si ya hay filas y falla una
   // página siguiente, la tabla se queda y «Cargar más» es el reintento.
-  const loadFailed = query.isError && reports.length === 0
+  const loadFailed = falloDeCarga(query) && reports.length === 0
   const isEmpty = !query.isLoading && !loadFailed && reports.length === 0
 
   return (
@@ -252,7 +254,7 @@ function InventoryWasteList() {
         <AlertDescription>{t('wasteReports.info')}</AlertDescription>
       </Alert>
 
-      {!loadFailed && (!isEmpty || hasFilters) && (
+      {(hasFilters || (!loadFailed && !isEmpty)) && (
         <div className="flex flex-wrap items-center gap-3">
           <div className="relative flex items-center">
             {isSearchOpen ? (
@@ -323,9 +325,11 @@ function InventoryWasteList() {
             <AlertTriangle className="h-6 w-6 text-destructive" />
           </div>
           <h3 className="mt-4 text-lg font-semibold text-destructive">{t('wasteReports.loadError')}</h3>
-          <Button variant="outline" size="sm" className="mt-4" onClick={() => void query.refetch()}>
-            {t('wasteReports.retry')}
-          </Button>
+          {!esSinPermiso(query.error) && (
+            <Button variant="outline" size="sm" className="mt-4" onClick={() => void query.refetch()}>
+              {t('wasteReports.retry')}
+            </Button>
+          )}
         </div>
       ) : isEmpty ? (
         <div className="flex flex-col items-center justify-center rounded-lg border border-dashed bg-muted/30 py-16 px-6 text-center">
@@ -337,6 +341,7 @@ function InventoryWasteList() {
         </div>
       ) : (
         <DataTable<WasteReport>
+          query={query}
           columns={columns}
           data={reports}
           rowCount={reports.length}

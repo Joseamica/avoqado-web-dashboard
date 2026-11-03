@@ -27,6 +27,16 @@ describe('actionOutcome', () => {
     expect(actionOutcome(http(409, { success: false, code: 'ORDER_HAS_PAYMENTS', error: 'x' }), 'CANCELLED_BY_STAFF')).toBe('hasPayments')
   })
 
+  it('409 ONLINE_ORDER_CONFIRMING_PAYMENT (segundo «Aceptar» mientras se cobra la tarjeta) ⇒ confirming, no error', () => {
+    expect(actionOutcome(http(409, { message: 'Estamos confirmando el pago', code: 'ONLINE_ORDER_CONFIRMING_PAYMENT' }), 'ACCEPTED')).toBe(
+      'confirming',
+    )
+  })
+
+  it('409 ONLINE_ORDER_PAID_BY_CARD ⇒ paidByCard', () => {
+    expect(actionOutcome(http(409, { message: 'Ya se pagó con tarjeta', code: 'ONLINE_ORDER_PAID_BY_CARD' }), 'COMPLETED')).toBe('paidByCard')
+  })
+
   it('sin respuesta ⇒ network', () => {
     expect(actionOutcome({ isAxiosError: true, message: 'Network Error', code: 'ERR_NETWORK' }, 'ACCEPTED')).toBe('network')
   })

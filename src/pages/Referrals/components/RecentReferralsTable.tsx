@@ -1,3 +1,5 @@
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
@@ -123,11 +125,12 @@ export function RecentReferralsTable({
     [page, pageSize, statusFilter],
   )
 
-  const { data, isLoading } = useQuery({
+  const listQuery = useQuery({
     queryKey: ['referrals', 'list', venueId, queryParams],
     queryFn: () => referralsService.listReferrals(venueId, queryParams),
     enabled: !!venueId,
   })
+  const { data, isLoading } = listQuery
 
   // ─── Memoized rows / pagination ────────────────────────────────────
   const items = useMemo(() => data?.items ?? [], [data?.items])
@@ -166,6 +169,8 @@ export function RecentReferralsTable({
         </Select>
       </div>
 
+      <AvisoDeCarga query={listQuery} hayDatos={items.length > 0} volverAlInicio={page > 1 && items.length === 0 ? () => setPage(1) : undefined} />
+
       <GlassCard className="border-input overflow-hidden">
         <Table data-testid="recent-referrals-table">
           <TableHeader>
@@ -185,7 +190,7 @@ export function RecentReferralsTable({
                 </TableCell>
               </TableRow>
             )}
-            {!isLoading && items.length === 0 && (
+            {!isLoading && !falloDeCarga(listQuery) && items.length === 0 && (
               <TableRow>
                 <TableCell
                   colSpan={5}

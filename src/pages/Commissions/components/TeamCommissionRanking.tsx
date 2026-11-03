@@ -455,6 +455,7 @@ export default function TeamCommissionRanking() {
 
       {/* Table */}
       <DataTable<StaffRankingData>
+        query={null}
         columns={columns}
         data={rankingData}
         pagination={pagination}

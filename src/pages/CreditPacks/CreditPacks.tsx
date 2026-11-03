@@ -84,10 +84,11 @@ export default function CreditPacks() {
   const [editingPackId, setEditingPackId] = useState<string | undefined>()
 
   // ─── Data ────────────────────────────────────────────────
-  const { data: packsData, isLoading } = useQuery({
+  const listQuery = useQuery({
     queryKey: ['credit-packs', venueId],
     queryFn: () => creditPackService.getCreditPacks(venueId),
   })
+  const { data: packsData, isLoading } = listQuery
 
   const deactivateMutation = useMutation({
     mutationFn: (packId: string) => creditPackService.deactivateCreditPack(venueId, packId),
@@ -412,6 +413,7 @@ export default function CreditPacks() {
           </div>
 
           <DataTable
+            query={listQuery}
             data={packs}
             columns={columns}
             isLoading={isLoading}

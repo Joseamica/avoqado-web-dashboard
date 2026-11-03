@@ -86,7 +86,7 @@ export default function Customers() {
 	}, [searchTerm])
 
 	// Fetch customers
-	const { data: customersData, isLoading: isLoadingCustomers } = useQuery({
+	const listQuery = useQuery({
 		queryKey: ['customers', venueId, pagination.pageIndex, pagination.pageSize, sortBy, sortOrder, selectedGroupId, showPendingOnly, debouncedSearch],
 		queryFn: () =>
 			customerService.getCustomers(venueId, {
@@ -102,6 +102,7 @@ export default function Customers() {
 			}),
 		refetchOnWindowFocus: true,
 	})
+	const { data: customersData, isLoading: isLoadingCustomers } = listQuery
 
 	// Fetch customer groups for filter
 	const { data: groupsData } = useQuery({
@@ -423,6 +424,7 @@ export default function Customers() {
 
 			{/* Data Table */}
 			<DataTable
+				query={listQuery}
 				data={customers}
 				columns={columns}
 				isLoading={isLoadingCustomers}

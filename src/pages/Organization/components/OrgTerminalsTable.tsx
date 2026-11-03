@@ -301,6 +301,7 @@ export function OrgTerminalsTable({
 
   return (
     <DataTable<OrgTerminal>
+      query={null}
       data={data}
       rowCount={total}
       columns={columns}

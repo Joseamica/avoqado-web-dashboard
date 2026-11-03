@@ -133,6 +133,30 @@ describe('InventoryWastePage', () => {
     expect(screen.getByRole('button', { name: es.wasteReports.retry })).toBeInTheDocument()
   })
 
+  it('si falla una búsqueda, «Borrar filtros» sigue ahí para salir (Codex r2)', async () => {
+    list.mockResolvedValue(pagina([reporte({})], 1, 1))
+    const user = userEvent.setup()
+    renderPage()
+    await screen.findByText('Aguacate')
+    list.mockRejectedValue(new Error('500'))
+    await user.click(screen.getByRole('button', { name: es.wasteReports.searchPlaceholder }))
+    await user.type(screen.getByPlaceholderText(es.wasteReports.searchPlaceholder), 'agua')
+
+    expect(await screen.findByText(es.wasteReports.loadError, undefined, { timeout: 5000 })).toBeInTheDocument()
+
+    list.mockResolvedValue(pagina([reporte({})], 1, 1))
+    // La «X» de la búsqueda y el de la barra se llaman igual: el de la barra es el último.
+    await user.click(screen.getAllByRole('button', { name: es.wasteReports.clearFilters }).slice(-1)[0])
+    expect(await screen.findByText('Aguacate', undefined, { timeout: 5000 })).toBeInTheDocument()
+  })
+
+  it('sin permiso no ofrece un «Reintentar» que no lo va a arreglar (Codex r1)', async () => {
+    list.mockRejectedValue({ response: { status: 403 } })
+    renderPage()
+    expect(await screen.findByText(es.wasteReports.loadError, undefined, { timeout: 5000 })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: es.wasteReports.retry })).toBeNull()
+  })
+
   it('sin mermas lo dice y explica dónde se registran', async () => {
     list.mockResolvedValue(pagina([], 1, 0))
     renderPage()

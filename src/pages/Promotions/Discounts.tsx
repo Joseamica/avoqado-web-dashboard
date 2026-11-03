@@ -65,7 +65,7 @@ export default function Discounts() {
 	const [isSearchOpen, setIsSearchOpen] = useState(false)
 
 	// Fetch discounts
-	const { data: discountsData, isLoading: isLoadingDiscounts } = useQuery({
+	const listQuery = useQuery({
 		queryKey: ['discounts', venueId, pagination.pageIndex, pagination.pageSize, selectedType, selectedScope, activeFilter],
 		queryFn: () =>
 			discountService.getDiscounts(venueId, {
@@ -77,6 +77,7 @@ export default function Discounts() {
 			}),
 		refetchOnWindowFocus: true,
 	})
+	const { data: discountsData, isLoading: isLoadingDiscounts } = listQuery
 
 	// Delete discount mutation
 	const deleteDiscountMutation = useMutation({
@@ -362,6 +363,7 @@ export default function Discounts() {
 
 			{/* Data Table */}
 			<DataTable
+				query={listQuery}
 				data={filteredDiscounts}
 				columns={columns}
 				isLoading={isLoadingDiscounts}

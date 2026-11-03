@@ -1,3 +1,4 @@
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
 import { Archive, ArchiveRestore, MoreHorizontal, Pencil, Plus, Rocket, Trash2 } from 'lucide-react'
@@ -53,7 +54,7 @@ export default function Bundles() {
   const [publishErrors, setPublishErrors] = useState<string[] | null>(null)
   const [toDelete, setToDelete] = useState<Promotion | null>(null)
 
-  const { data, isLoading } = useQuery({
+  const listQuery = useQuery({
     queryKey: ['promotions', venueId, statusFilter],
     queryFn: () =>
       promotionService.getPromotions(venueId!, {
@@ -62,6 +63,7 @@ export default function Bundles() {
       }),
     enabled: !!venueId && hasAccess,
   })
+  const { data, isLoading } = listQuery
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ['promotions', venueId] })
 
@@ -257,7 +259,7 @@ export default function Bundles() {
         />
 
         <div className="mt-6">
-          {!isLoading && rows.length === 0 ? (
+          {!isLoading && !falloDeCarga(listQuery) && rows.length === 0 ? (
             <div className="mt-10 rounded-2xl border border-input bg-card p-8 text-center space-y-3">
               <p className="text-lg font-medium">{t('bundles.activation.emptyTitle')}</p>
               <ol className="mx-auto max-w-md list-decimal space-y-1 pl-5 text-left text-sm text-muted-foreground">
@@ -274,6 +276,7 @@ export default function Bundles() {
             // onSearch pinta una caja MUERTA (data-table.tsx:187): el filtrado
             // client-side lo hace onSearch.
             <DataTable
+              query={listQuery}
               data={rows}
               columns={columns}
               rowCount={rows.length}

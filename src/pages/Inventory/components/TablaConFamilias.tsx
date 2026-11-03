@@ -1,3 +1,4 @@
+import type { EstadoDeCarga } from '@/lib/falloDeCarga'
 import DataTable from '@/components/data-table'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -28,6 +29,7 @@ interface Props<R> {
   /** Búsqueda o filtro activo: las familias que quedan salen desplegadas, con sólo las variantes que cumplen. */
   conFiltro: boolean
   isLoading?: boolean
+  query: EstadoDeCarga | null
   tableId?: string
   tableTabLeft?: ReactNode
   tableTab?: ReactNode
@@ -37,7 +39,7 @@ interface Props<R> {
  * La `DataTable` de existencias con cada familia desplegable: sus variantes se pintan con las MISMAS columnas, así que cada una
  * conserva su propio control de existencias. Sin familias pinta exactamente lo mismo que `DataTable` (nada se despliega).
  */
-export function TablaConFamilias<R extends { id: string }>({ data, columns, conFiltro, isLoading, tableId, tableTabLeft, tableTab }: Props<R>) {
+export function TablaConFamilias<R extends { id: string }>({ data, columns, conFiltro, isLoading, query, tableId, tableTabLeft, tableTab }: Props<R>) {
   // Las que el chevron cambió respecto al default: plegadas sin filtro, desplegadas con filtro. Entrar o salir del filtro las olvida.
   const [invertidas, setInvertidas] = useState<Set<string>>(() => new Set())
   useEffect(() => {
@@ -67,6 +69,7 @@ export function TablaConFamilias<R extends { id: string }>({ data, columns, conF
         rowCount={data.length}
         columns={columns}
         isLoading={isLoading}
+        query={query}
         enableSearch={false}
         showColumnCustomizer={false}
         tableId={tableId}

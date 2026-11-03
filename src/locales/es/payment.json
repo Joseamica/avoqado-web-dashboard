@@ -831,6 +831,7 @@
       "includeTipOff": "Solo se reembolsa el producto; la propina del mesero queda intacta.",
       "exceeds": "El importe excede el máximo reembolsable"
     },
-    "confirmTitle": "Reembolso de {{amount}}"
+    "confirmTitle": "Reembolso de {{amount}}",
+    "goToOrder": "Ver la cuenta"
   }
 }
