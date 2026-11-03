@@ -19,9 +19,7 @@
   },
   "turnOn": {
     "title": "Vende tarjetas de regalo",
-    "body": "Tus clientes regalan saldo para gastar en tu negocio. Primero préndelas en Configuración.",
-    "cta": "Prender tarjetas de regalo",
-    "askOwner": "Pídele al dueño o al gerente que las prenda en Configuración."
+    "body": "Tus clientes regalan saldo para gastar en tu negocio. Prende el interruptor para empezar a venderlas."
   },
   "teaser": {
     "title": "Qué puedes hacer con las tarjetas de regalo",
@@ -343,6 +341,7 @@
     "loadError": "No pudimos cargar la configuración.",
     "refreshError": "No pudimos volver a leer la configuración. Ves lo último que se cargó.",
     "switch": {
+      "askAdmin": "Sólo el dueño o un administrador pueden prenderlas o apagarlas.",
       "title": "Vender tarjetas de regalo",
       "label": "Vender tarjetas de regalo",
       "proBadge": "Pro",

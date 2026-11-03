@@ -10,6 +10,7 @@ import { useAccess } from '@/hooks/use-access'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { GIFT_CARDS_FEATURE, useGiftCardSettings } from '@/hooks/use-gift-cards'
 import { useTierFeatureAccess } from '@/hooks/use-tier-feature-access'
+import { GiftCardsSwitch } from '@/pages/Settings/components/giftCards/GiftCardsSwitch'
 import type { GiftCardNotSellableReason } from '@/types/giftCard'
 import { GiftCardReports } from './components/GiftCardReports'
 import { GiftCardsList } from './components/GiftCardsList'
@@ -26,7 +27,8 @@ function AvisoDeVenta({ motivo, canManage, settingsHref }: { motivo: GiftCardNot
       <Info className="h-4 w-4" />
       <AlertDescription className="flex flex-wrap items-center justify-between gap-3 text-sm">
         <span>{t(`notice.${motivo}`)}</span>
-        {canManage && motivo !== 'KEYS_MISSING' && (
+        {/* Apagadas, el interruptor está aquí mismo: no hay que ir a Ajustes (founder, 3-nov-2026). */}
+        {canManage && motivo !== 'KEYS_MISSING' && motivo !== 'DISABLED' && (
           <Button asChild variant="outline" size="sm">
             <Link to={settingsHref}>{t('notice.goToSettings')}</Link>
           </Button>
@@ -52,6 +54,7 @@ export default function GiftCardsPage() {
   const { venueId, fullBasePath } = useCurrentVenue()
   const { can } = useAccess()
   const canManage = can('giftCards:manage')
+  const canToggle = can('giftCards:enable')
   const settings = useGiftCardSettings(venueId ?? undefined)
   const tier = useTierFeatureAccess(GIFT_CARDS_FEATURE)
   const vista = decidirVista({
@@ -111,16 +114,17 @@ export default function GiftCardsPage() {
           </div>
           <h3 className="mt-4 text-lg font-semibold">{t('turnOn.title')}</h3>
           <p className="mt-2 max-w-md text-sm text-muted-foreground">{t('turnOn.body')}</p>
-          {canManage ? (
-            <Button asChild className="mt-4" data-tour="gift-cards-turn-on-cta">
-              <Link to={settingsHref}>{t('turnOn.cta')}</Link>
-            </Button>
-          ) : (
-            <p className="mt-4 text-xs text-muted-foreground">{t('turnOn.askOwner')}</p>
+          {settings.data && venueId && (
+            <div className="mt-4 w-full max-w-lg text-left">
+              <GiftCardsSwitch key={`switch-${venueId}`} venueId={venueId} settings={settings.data} canToggle={canToggle} />
+            </div>
           )}
         </div>
       ) : (
         <>
+          {settings.data && venueId && (!settings.data.enabled || canToggle) && (
+            <GiftCardsSwitch key={`switch-${venueId}`} venueId={venueId} settings={settings.data} canToggle={canToggle} />
+          )}
           {settings.data && (
             <AvisoDeVenta
               motivo={motivoSinVenta(settings.data, { resolved: tier.isResolved, hasAccess: tier.hasAccess })}

@@ -31,6 +31,7 @@ const OWNER_PERMS = [
   'giftCards:sell',
   'giftCards:redeem',
   'giftCards:manage',
+  'giftCards:enable',
   'billing:subscriptions:read',
   'billing:subscriptions:manage',
 ]
@@ -660,6 +661,25 @@ test.describe('Tarjetas de regalo — plan y configuración', () => {
     await expect(fila(page, '4821')).toBeVisible({ timeout: 15_000 })
     await expect(page.getByText(/your plan no longer includes selling gift cards/i)).toBeVisible()
     await expect(page.getByText(/included in pro/i)).toHaveCount(0)
+  })
+
+  test('obligatoria 1 (página): se prenden en Clientes › Tarjetas de regalo SIN recargar y sin ir a Ajustes', async ({ page }) => {
+    const s = estado({ settings: SETTINGS_NUNCA, cards: [] })
+    await setupApiMocks(page, { userRole: StaffRole.OWNER, venues: [VENUE], planState: PRO })
+    await mockGiftCards(page, s)
+    await hideDevtools(page)
+    await page.goto('/venues/venue-alpha/gift-cards')
+    const sw = page.getByRole('switch', { name: 'Sell gift cards' })
+    await expect(sw).not.toBeChecked({ timeout: 15_000 })
+    await sw.click()
+    await page.locator('#gift-cards-consent').click()
+    await page.locator('[data-tour="gift-cards-activate-confirm"]').click()
+    await expect.poll(() => s.puts.length).toBe(1)
+    expect(s.puts[0]).toEqual({ enabled: true, aceptaTerminos: true })
+    // 🔴 la prueba: la misma página ya cambió con lo que devolvió el server, sin recargar y sin navegar
+    await expect(page.getByRole('switch', { name: 'Sell gift cards' })).toBeChecked()
+    await expect(page).toHaveURL(/\/gift-cards$/)
+    await page.screenshot({ path: 'test-results/gift-cards-page-on-light.png', fullPage: true })
   })
 
   test('obligatoria 1 (configuración): prender con las reglas aceptadas deja el switch prendido SIN recargar', async ({ page }) => {

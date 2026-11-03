@@ -74,7 +74,7 @@ export default function GiftCardSettings() {
           {data && (
             <>
               {/* key: el diálogo abierto o el borrador no cruzan a otra sucursal (cambiar de sucursal no desmonta la ruta). */}
-              <GiftCardsSwitch key={`switch-${venueId}`} venueId={venueId} settings={data} canManage={canManage} />
+              <GiftCardsSwitch key={`switch-${venueId}`} venueId={venueId} settings={data} canToggle={can('giftCards:enable')} />
               <GiftCardRulesForm key={`rules-${venueId}`} venueId={venueId} settings={data} canManage={canManage} />
               <div className="rounded-2xl border border-input bg-card p-6">
                 <h2 className="flex items-center gap-2 text-base font-semibold">

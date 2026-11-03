@@ -19,9 +19,7 @@
   },
   "turnOn": {
     "title": "Sell gift cards",
-    "body": "Your customers gift balance to spend at your business. First turn them on in Settings.",
-    "cta": "Turn on gift cards",
-    "askOwner": "Ask the owner or a manager to turn them on in Settings."
+    "body": "Your customers gift balance to spend at your business. Turn on the switch to start selling them."
   },
   "teaser": {
     "title": "What you can do with gift cards",
@@ -343,6 +341,7 @@
     "loadError": "We couldn't load the setup.",
     "refreshError": "We couldn't reload the setup. You're seeing the last version that loaded.",
     "switch": {
+      "askAdmin": "Only the owner or an admin can turn them on or off.",
       "title": "Sell gift cards",
       "label": "Sell gift cards",
       "proBadge": "Pro",
