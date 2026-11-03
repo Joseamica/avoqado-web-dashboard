@@ -6,7 +6,11 @@
  * otro fallo conserva los 3 reintentos por defecto de TanStack Query.
  */
 export function reintentarSalvoSinPermiso(failureCount: number, error: unknown): boolean {
-  const status = (error as { response?: { status?: number } } | null)?.response?.status
-  if (status === 401 || status === 403) return false
+  if (esSinPermiso(error)) return false
   return failureCount < 3
+}
+
+export function esSinPermiso(error: unknown): boolean {
+  const status = (error as { response?: { status?: number } } | null)?.response?.status
+  return status === 401 || status === 403
 }

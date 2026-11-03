@@ -33,11 +33,12 @@ import { useDebounce } from '@/hooks/useDebounce'
 import { InventoryLabelModal } from './components/InventoryLabelModal'
 import { FeatureGate } from '@/components/billing/FeatureGate'
 import { includesNormalized } from '@/lib/utils'
-import { reintentarSalvoSinPermiso } from '@/lib/reintentoSinPermiso'
+import { esSinPermiso, reintentarSalvoSinPermiso } from '@/lib/reintentoSinPermiso'
 import { inventoryKeys, invalidateStockOverviewQueries, invalidateWasteQueries } from '@/lib/queryKeys/inventory'
 import { formatWasteQuantity, previewAfterWaste, readWasteSummary } from '@/lib/inventoryWaste'
 import { getIntlLocale } from '@/utils/i18n-locale'
 import { buildSummaryAdjustment, isSummaryAmountValid, isSummaryLossAction, type SummaryStockAction } from './summaryAdjustment'
+import { physicalRowsToExport, recipeRowsToExport } from './stockOverviewExport'
 import { NombreDeFamilia, TablaConFamilias } from './components/TablaConFamilias'
 import { familiaDeProducto, filasDeExistencias, sumarExistencias, type FilaConFamilia } from './stockFamilies'
 import {
@@ -58,7 +59,7 @@ export default function InventorySummary() {
   const { t: _t } = useTranslation() // Prefixed with _ to mark as intentionally unused (will be used for i18n later)
   const { t: tInventory, i18n } = useTranslation('inventory')
   const navigate = useNavigate()
-  const { venueId, fullBasePath } = useCurrentVenue()
+  const { venueId, venueSlug, fullBasePath } = useCurrentVenue()
   const { hasAccess, isLoading: isLoadingAccess } = useTierFeatureAccess('INVENTORY_TRACKING')
   const { toast } = useToast()
   const queryClient = useQueryClient()
@@ -80,9 +81,10 @@ export default function InventorySummary() {
   const [activeTab, setActiveTab] = useState('physical')
   const [labelModalOpen, setLabelModalOpen] = useState(false)
   const [adjustIngredient, setAdjustIngredient] = useState<RawMaterial | null>(null)
+  const [isExporting, setIsExporting] = useState(false)
 
   // Fetch real products with inventory data
-  const { data: products, isLoading: isLoadingProducts } = useQuery({
+  const { data: products, isLoading: isLoadingProducts, isFetching: isFetchingProducts, isError: productsFailed } = useQuery({
     queryKey: inventoryKeys.productsSummary(venueId ?? ''),
     queryFn: () => getProducts(venueId!),
     enabled: !!venueId && !isLoadingAccess && hasAccess,
@@ -92,7 +94,7 @@ export default function InventorySummary() {
   })
 
   // Fetch raw materials (ingredients) to merge into the physical tab
-  const { data: rawMaterialsResponse, isLoading: isLoadingRawMaterials } = useQuery({
+  const { data: rawMaterialsResponse, isLoading: isLoadingRawMaterials, isFetching: isFetchingRawMaterials, error: rawMaterialsError } = useQuery({
     queryKey: inventoryKeys.rawMaterials(venueId ?? ''),
     queryFn: () => rawMaterialsApi.getAll(venueId!, { active: true }),
     enabled: !!venueId && !isLoadingAccess && hasAccess,
@@ -632,23 +634,65 @@ export default function InventorySummary() {
     </>
   )
 
+  // Sale lo mismo que se ve en la pestaña, con sus filtros. Las filas ya están en memoria: no le pide nada al servidor.
+  const handleExport = async () => {
+    const onRecipes = activeTab === 'recipes'
+    // Sin esto, un fallo de carga bajaría un archivo incompleto que parece bueno. Sin permiso de ingredientes no es un
+    // fallo: ese rol tampoco los ve en la tabla.
+    const ingredientsFailed = !onRecipes && rawMaterialsError != null && !esSinPermiso(rawMaterialsError)
+    if (productsFailed || ingredientsFailed) {
+      toast({ title: tInventory('stockExport.loadFailed'), description: tInventory('stockExport.loadFailedHint'), variant: 'destructive' })
+      return
+    }
+    const rows = onRecipes
+      ? recipeRowsToExport(filteredRecipeItems, tInventory)
+      : physicalRowsToExport(filteredPhysicalRows, tInventory, getShortLabel)
+    if (rows.length === 0) {
+      toast({ title: tInventory('stockExport.empty') })
+      return
+    }
+    setIsExporting(true)
+    try {
+      const { exportSheetsToExcel, generateFilename } = await import('@/utils/export')
+      await exportSheetsToExcel(
+        [{ name: tInventory('stockExport.sheetName'), rows }],
+        generateFilename(onRecipes ? 'existencias-receta' : 'existencias', venueSlug ?? undefined),
+      )
+      toast({ title: tInventory('stockExport.done'), description: tInventory('stockExport.doneCount', { count: rows.length }) })
+    } catch {
+      toast({ title: tInventory('stockExport.failed'), description: tInventory('stockExport.failedHint'), variant: 'destructive' })
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
+  // Una recarga cuenta como carga: tras un ajuste, la lista vieja sigue en pantalla hasta que llega la nueva, y el archivo
+  // saldría con los números de antes. Las recetas sólo dependen de los productos.
+  const isExportDataLoading = isFetchingProducts || (activeTab !== 'recipes' && isFetchingRawMaterials)
+
   // Import / Export buttons live in the table tab on the right.
   const importExportTab = (
     <>
       <button
         type="button"
-        className="inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors cursor-pointer"
+        disabled
+        className="inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-xs font-medium text-muted-foreground cursor-not-allowed"
       >
         <Upload className="h-3.5 w-3.5" />
-        Importar
+        {tInventory('stockImport.button')}
+        <Badge variant="outline" className="text-[10px] h-4 px-1.5 font-normal">
+          {tInventory('stockImport.soon')}
+        </Badge>
       </button>
       <span className="h-4 w-px bg-border" aria-hidden />
       <button
         type="button"
-        className="inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors cursor-pointer"
+        onClick={handleExport}
+        disabled={isExportDataLoading || isExporting}
+        className="inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
       >
         <Download className="h-3.5 w-3.5" />
-        Exportar
+        {isExporting ? tInventory('stockExport.exporting') : tInventory('stockExport.button')}
       </button>
     </>
   )
@@ -733,7 +777,7 @@ export default function InventorySummary() {
           data={filteredRecipeItems}
           rowCount={filteredRecipeItems.length}
           columns={recipeColumns}
-          isLoading={isLoading}
+          isLoading={isLoadingAccess || isLoadingProducts}
           enableSearch={false}
           showColumnCustomizer={false}
           tableId="inventory:recipes"

@@ -1656,5 +1656,35 @@
     "ver": "Ver variantes de {{name}}",
     "suma": "Suma de sus variantes",
     "sumaFiltrada": "Suma de las que coinciden"
+  },
+  "stockExport": {
+    "button": "Exportar",
+    "exporting": "Exportando…",
+    "sheetName": "Existencias",
+    "done": "Excel descargado",
+    "doneCount": "Artículos: {{count}}",
+    "empty": "No hay artículos para exportar",
+    "loadFailed": "No pudimos cargar el inventario",
+    "loadFailedHint": "No se descargó ningún archivo. Recarga la página e inténtalo de nuevo.",
+    "failed": "No se pudo exportar",
+    "failedHint": "No se descargó ningún archivo. Inténtalo de nuevo.",
+    "columns": {
+      "item": "Artículo",
+      "kind": "Tipo",
+      "sku": "SKU",
+      "available": "Disponible",
+      "unit": "Unidad",
+      "minimum": "Mínimo",
+      "theoretical": "Disponible (teórico)",
+      "price": "Precio"
+    },
+    "kinds": {
+      "product": "Producto",
+      "ingredient": "Ingrediente"
+    }
+  },
+  "stockImport": {
+    "button": "Importar",
+    "soon": "Muy pronto"
   }
 }
