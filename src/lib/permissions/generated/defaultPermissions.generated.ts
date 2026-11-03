@@ -20,8 +20,8 @@ import { StaffRole } from '@/types'
  * Se guarda la lista LITERAL, comodines incluidos: un `scale:*` intacto sigue concediendo lo
  * que la plataforma agregue mañana bajo ese recurso. Expandirlo congelaría al dashboard.
  *
- * 9 roles · huella 6adfaa7673f8495a.
- * ADMIN 117 · CASHIER 44 · HOST 18 · KITCHEN 9 · MANAGER 137 · OWNER 121 · SUPERADMIN 5 · VIEWER 16 · WAITER 44
+ * 9 roles · huella d82cae95149c7e13.
+ * ADMIN 118 · CASHIER 44 · HOST 18 · KITCHEN 9 · MANAGER 138 · OWNER 122 · SUPERADMIN 5 · VIEWER 16 · WAITER 44
  */
 export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
   ADMIN: [
@@ -75,6 +75,7 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'referral:fulfill-courtesy',
     'serialized-inventory:*',
     'sale-verifications:review',
+    'sale-verifications:approve',
     'inventory:org-manage',
     'commissions:read',
     'commissions:create',
@@ -350,6 +351,7 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'serialized-inventory:sell',
     'serialized-inventory:create',
     'sale-verifications:review',
+    'sale-verifications:approve',
     'calendar:connect_self',
     'calendar:view_status',
     'online-orders:manage',
@@ -461,6 +463,7 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'serialized-inventory:sell',
     'serialized-inventory:create',
     'sale-verifications:review',
+    'sale-verifications:approve',
     'sale-verifications:reopen',
     'sale-verifications:edit',
     'manual-sales:create',
@@ -555,4 +558,4 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
   ],
 } as Record<StaffRole, string[]>
 
-export const DEFAULT_PERMISSIONS_DIGEST = '6adfaa7673f8495a'
+export const DEFAULT_PERMISSIONS_DIGEST = 'd82cae95149c7e13'

@@ -44,7 +44,12 @@ const m = vi.hoisted(() => ({
   t: (k: string, o?: string | { defaultValue?: string }) => (typeof o === 'string' ? o : (o?.defaultValue ?? k)),
   // Las mismas referencias en cada pintada, como las dan sus contextos: un objeto nuevo reiniciaría los formularios.
   venue: { venueId: 'v1', venueSlug: 'mi-negocio', fullBasePath: '/venues/mi-negocio', venue: { id: 'v1', name: 'Mi negocio', timezone: 'America/Mexico_City' } },
-  auth: { user: { role: 'SUPERADMIN', venues: [] }, staffInfo: { role: 'OWNER' }, checkFeatureAccess: () => true },
+  auth: {
+    user: { role: 'SUPERADMIN', venues: [] },
+    staffInfo: { role: 'OWNER' },
+    checkFeatureAccess: () => true,
+    checkModuleAccess: () => false,
+  },
 }))
 vi.mock('@/api', () => ({ default: { get: m.get, put: m.put, post: m.post, patch: m.patch, delete: vi.fn() } }))
 vi.mock('@/hooks/use-current-venue', () => ({ useCurrentVenue: () => m.venue }))

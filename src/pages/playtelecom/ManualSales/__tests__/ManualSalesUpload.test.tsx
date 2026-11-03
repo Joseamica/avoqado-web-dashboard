@@ -36,6 +36,18 @@ vi.mock('@/services/manualSale.service', () => ({
 }))
 
 // ---------------------------------------------------------------------------
+// Interruptor del número de vinculación (nivel organización). `undefined` = todavía no se sabe.
+// ---------------------------------------------------------------------------
+let mockLinking: { enabled: boolean | undefined; isError: boolean; refetch: () => void } = {
+  enabled: false,
+  isError: false,
+  refetch: () => {},
+}
+vi.mock('@/services/saleVerification.org.service', () => ({
+  useOrgLinkingNumberEnabled: () => mockLinking,
+}))
+
+// ---------------------------------------------------------------------------
 // Mock org context — orgId comes from useCurrentOrganization (sibling pattern:
 // OrgStockControlPage / OrgComisionesPage)
 // ---------------------------------------------------------------------------
@@ -74,24 +86,48 @@ vi.mock('@/hooks/use-toast', () => ({ toast: (...args: unknown[]) => mockToast(.
 // own tests; here we only need to trigger the page's onUpload callback.
 // ---------------------------------------------------------------------------
 vi.mock('@/pages/playtelecom/Stock/components/BulkUploadSection', () => ({
-  BulkUploadSection: ({ onUpload }: { onUpload?: (file: File) => Promise<unknown> }) => (
-    <button
-      onClick={() => {
-        const file = new File(['dummy'], 'ventas.xlsx')
-        void onUpload?.(file)
-      }}
-    >
-      mock-upload-trigger
-    </button>
+  BulkUploadSection: ({ onUpload, formatHint }: { onUpload?: (file: File) => Promise<unknown>; formatHint?: string }) => (
+    <>
+      <p>{formatHint}</p>
+      <button
+        onClick={() => {
+          const file = new File(['dummy'], 'ventas.xlsx')
+          void onUpload?.(file)
+        }}
+      >
+        mock-upload-trigger
+      </button>
+    </>
   ),
 }))
 
 import ManualSalesUpload from '../ManualSalesUpload'
 
 const SAMPLE_ROWS: ManualSaleRow[] = [
-  { iccid: '8952140063000001234', storeName: 'BAE Pavón', saleDate: '2026-07-01', saleType: 'Línea nueva', paymentForm: 'Efectivo', amount: 200 },
-  { iccid: '8952140063000001235', storeName: 'BAE Pavón', saleDate: '2026-07-01', saleType: 'Portabilidad', paymentForm: 'Tarjeta', amount: 250 },
-  { iccid: '8952140063000001236', storeName: 'BAE Papagayo', saleDate: '2026-07-02', saleType: 'Línea nueva', paymentForm: 'No aplica', amount: 'No aplica' },
+  {
+    iccid: '8952140063000001234',
+    storeName: 'BAE Pavón',
+    saleDate: '2026-07-01',
+    saleType: 'Línea nueva',
+    paymentForm: 'Efectivo',
+    amount: 200,
+  },
+  {
+    iccid: '8952140063000001235',
+    storeName: 'BAE Pavón',
+    saleDate: '2026-07-01',
+    saleType: 'Portabilidad',
+    paymentForm: 'Tarjeta',
+    amount: 250,
+  },
+  {
+    iccid: '8952140063000001236',
+    storeName: 'BAE Papagayo',
+    saleDate: '2026-07-02',
+    saleType: 'Línea nueva',
+    paymentForm: 'No aplica',
+    amount: 'No aplica',
+  },
 ]
 
 const PREVIEW_RESULT: BulkManualSalesResult = {
@@ -114,6 +150,7 @@ describe('ManualSalesUpload', () => {
     mockCan.mockReset()
     mockCan.mockReturnValue(true)
     mockToast.mockReset()
+    mockLinking = { enabled: false, isError: false, refetch: vi.fn() }
 
     mockParseSalesFile.mockResolvedValue({ rows: SAMPLE_ROWS, unknownHeaders: [] })
     mockPreviewManualSales.mockResolvedValue(PREVIEW_RESULT)
@@ -195,6 +232,7 @@ describe('ManualSalesUpload', () => {
     fireEvent.click(screen.getByRole('button', { name: /Descargar template/i }))
 
     expect(mockDownloadTemplate).toHaveBeenCalledTimes(1)
+    expect(mockDownloadTemplate).toHaveBeenCalledWith(false)
   })
 
   // Regression (the bug Isaac hit): on /organizations/:orgId routes there is no
@@ -332,5 +370,117 @@ describe('ManualSalesUpload — columnas no leídas', () => {
     await uploadSampleFile()
 
     expect(screen.queryByText('Hay columnas de tu archivo que no estoy leyendo')).not.toBeInTheDocument()
+  })
+
+  describe('número de vinculación', () => {
+    beforeEach(() => {
+      mockParseSalesFile.mockResolvedValue({ rows: SAMPLE_ROWS, unknownHeaders: [] })
+    })
+
+    const DUP_PREVIEW: BulkManualSalesResult = {
+      crear: [
+        { index: 0, iccid: '8952140063000001234', storeName: 'BAE Pavón', linkingDuplicate: true },
+        { index: 1, iccid: '8952140063000001235', storeName: 'BAE Pavón' },
+      ],
+      omitir: [],
+      error: [],
+    }
+
+    it('apagado: la plantilla sale sin las columnas, el texto no las menciona y no hay «Repetido»', async () => {
+      mockLinking = { enabled: false, isError: false, refetch: vi.fn() }
+      // El SERVIDOR con el interruptor apagado no manda `linkingDuplicate`.
+      mockPreviewManualSales.mockResolvedValue({ ...DUP_PREVIEW, crear: DUP_PREVIEW.crear.map(({ linkingDuplicate: _l, ...r }) => r) })
+      render(<ManualSalesUpload />)
+
+      expect(screen.queryByText(/Número de vinculación/)).not.toBeInTheDocument()
+      fireEvent.click(screen.getByRole('button', { name: /Descargar template/i }))
+      expect(mockDownloadTemplate).toHaveBeenCalledWith(false)
+
+      await uploadSampleFile()
+      await screen.findByText('Vista previa')
+      expect(screen.queryByText('Repetido')).not.toBeInTheDocument()
+    })
+
+    it('apagado: las columnas de número no viajan en la vista previa ni al aplicar, y se avisan como no leídas', async () => {
+      mockLinking = { enabled: false, isError: false, refetch: vi.fn() }
+      mockParseSalesFile.mockResolvedValue({
+        rows: SAMPLE_ROWS.map(r => ({ ...r, linkingNumber: '5512345678', portedNumber: '5598765432' })),
+        unknownHeaders: [],
+      })
+      mockPreviewManualSales.mockResolvedValue(DUP_PREVIEW)
+      mockApplyManualSales.mockResolvedValue({ crear: [], omitir: [], error: [] })
+      render(<ManualSalesUpload />)
+
+      await uploadSampleFile()
+      const sent = mockPreviewManualSales.mock.calls[0][1] as ManualSaleRow[]
+      expect(sent).toHaveLength(3)
+      sent.forEach(r => {
+        expect(r).not.toHaveProperty('linkingNumber')
+        expect(r).not.toHaveProperty('portedNumber')
+      })
+      expect(await screen.findByText('Número de vinculación · Número portado')).toBeInTheDocument()
+
+      fireEvent.click(await screen.findByRole('button', { name: /Crear/ }))
+      await waitFor(() => expect(mockApplyManualSales).toHaveBeenCalled())
+      ;(mockApplyManualSales.mock.calls[0][1] as ManualSaleRow[]).forEach(r => {
+        expect(r).not.toHaveProperty('linkingNumber')
+        expect(r).not.toHaveProperty('portedNumber')
+      })
+    })
+
+    it('desconocido (la consulta falló): «Repetido» sale igual con lo que mandó el servidor', async () => {
+      mockLinking = { enabled: undefined, isError: true, refetch: vi.fn() }
+      mockPreviewManualSales.mockResolvedValue(DUP_PREVIEW)
+      render(<ManualSalesUpload />)
+
+      await uploadSampleFile()
+      expect(await screen.findAllByText('Repetido')).toHaveLength(1)
+    })
+
+    it('prendido: la plantilla lleva las columnas, el texto las menciona y la fila repetida dice «Repetido»', async () => {
+      mockLinking = { enabled: true, isError: false, refetch: vi.fn() }
+      mockPreviewManualSales.mockResolvedValue(DUP_PREVIEW)
+      render(<ManualSalesUpload />)
+
+      expect(screen.getByText(/Número de vinculación/)).toBeInTheDocument()
+      expect(screen.getByText(/Número portado/)).toBeInTheDocument()
+      fireEvent.click(screen.getByRole('button', { name: /Descargar template/i }))
+      expect(mockDownloadTemplate).toHaveBeenCalledWith(true)
+
+      await uploadSampleFile()
+      const badges = await screen.findAllByText('Repetido')
+      expect(badges).toHaveLength(1)
+      expect(badges[0].closest('tr')).toHaveTextContent('8952140063000001234')
+    })
+
+    it('prendido: el portado repetido también dice «Repetido»', async () => {
+      mockLinking = { enabled: true, isError: false, refetch: vi.fn() }
+      mockPreviewManualSales.mockResolvedValue({
+        crear: [{ index: 0, iccid: '8952140063000001234', storeName: 'BAE Pavón', portedDuplicate: true }],
+        omitir: [],
+        error: [],
+      })
+      render(<ManualSalesUpload />)
+
+      await uploadSampleFile()
+      expect(await screen.findByText('Repetido')).toBeInTheDocument()
+    })
+
+    it.each([
+      ['cargando', false],
+      ['con error', true],
+    ])('%s: «Descargar template» queda en gris con «Reintentar», que vuelve a consultar', (_label, isError) => {
+      const refetch = vi.fn()
+      mockLinking = { enabled: undefined, isError, refetch }
+      render(<ManualSalesUpload />)
+
+      const download = screen.getByRole('button', { name: /Descargar template/i })
+      expect(download).toBeDisabled()
+      fireEvent.click(download)
+      expect(mockDownloadTemplate).not.toHaveBeenCalled()
+
+      fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
+      expect(refetch).toHaveBeenCalledTimes(1)
+    })
   })
 })

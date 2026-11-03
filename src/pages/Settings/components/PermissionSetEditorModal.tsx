@@ -10,7 +10,13 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { PERMISSION_CATEGORIES } from '@/lib/permissions/roleHierarchy'
 import { DEFAULT_PERMISSIONS } from '@/lib/permissions/defaultPermissions'
-import { DASHBOARD_SUPER_CATEGORIES, TPV_SUPER_CATEGORIES, filterPermissionsBySearch } from '@/lib/permissions/permissionGroups'
+import {
+  DASHBOARD_SUPER_CATEGORIES,
+  TPV_SUPER_CATEGORIES,
+  filterCategoriesByModules,
+  filterPermissionsBySearch,
+} from '@/lib/permissions/permissionGroups'
+import { useAuth } from '@/context/AuthContext'
 import { StaffRole } from '@/types'
 import permissionSetService, { type PermissionSet } from '@/services/permissionSet.service'
 
@@ -48,6 +54,17 @@ export default function PermissionSetEditorModal({ open, onClose, permissionSet,
   const { t } = useTranslation('settings')
   const queryClient = useQueryClient()
   const { toast } = useToast()
+  const { checkModuleAccess } = useAuth()
+
+  // Las categorías que esta tienda puede ver (las de un módulo sólo si lo tiene). Esconder no toca
+  // `selectedPermissions`: lo que el conjunto ya tiene se guarda igual.
+  const visibleSuperCategories = useMemo(
+    () => ({
+      dashboard: filterCategoriesByModules(DASHBOARD_SUPER_CATEGORIES, checkModuleAccess),
+      tpv: filterCategoriesByModules(TPV_SUPER_CATEGORIES, checkModuleAccess),
+    }),
+    [checkModuleAccess],
+  )
 
   const isEditing = !!permissionSet
 
@@ -83,13 +100,16 @@ export default function PermissionSetEditorModal({ open, onClose, permissionSet,
       setSearchTerm('')
       setExpandedCategories(new Set())
       // Auto-select first category for customize step
-      const allSuperCats = [...DASHBOARD_SUPER_CATEGORIES, ...TPV_SUPER_CATEGORIES]
+      const allSuperCats = [...visibleSuperCategories.dashboard, ...visibleSuperCategories.tpv]
       if (allSuperCats.length > 0 && allSuperCats[0].categoryKeys.length > 0) {
         setSelectedCategoryKey(allSuperCats[0].categoryKeys[0])
       } else {
         setSelectedCategoryKey(null)
       }
     }
+    // Sin `visibleSuperCategories` a propósito: este efecto reinicia el conjunto, y la sesión puede
+    // refrescar los módulos de la tienda a media edición (borraría lo que el admin lleva marcado).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, permissionSet])
 
   const selectedPermissionsSet = useMemo(() => new Set(selectedPermissions), [selectedPermissions])
@@ -97,10 +117,10 @@ export default function PermissionSetEditorModal({ open, onClose, permissionSet,
   // Filter super categories by search
   const filteredAllCategories = useMemo(
     () => [
-      ...filterPermissionsBySearch(DASHBOARD_SUPER_CATEGORIES, debouncedSearchTerm),
-      ...filterPermissionsBySearch(TPV_SUPER_CATEGORIES, debouncedSearchTerm),
+      ...filterPermissionsBySearch(visibleSuperCategories.dashboard, debouncedSearchTerm),
+      ...filterPermissionsBySearch(visibleSuperCategories.tpv, debouncedSearchTerm),
     ],
-    [debouncedSearchTerm],
+    [visibleSuperCategories, debouncedSearchTerm],
   )
 
   const handlePermissionChange = useCallback((permission: string, enabled: boolean) => {

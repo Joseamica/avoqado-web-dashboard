@@ -630,7 +630,12 @@
     "rejectedSummary": "{{count}} of them rejected",
     "rejectedSummary_plural": "{{count}} of them rejected",
     "unknownHeadersTitle": "Some columns in your file are not being read",
-    "unknownHeadersHint": "If any of them was meant to affect the sale (the status, for example), check that its name matches the template before confirming."
+    "unknownHeadersHint": "If any of them was meant to affect the sale (the status, for example), check that its name matches the template before confirming.",
+    "retry": "Retry",
+    "duplicate": "Duplicate",
+    "linkingDuplicate": "This linking number was already registered on another sale",
+    "portedDuplicate": "This ported number was already registered on another sale",
+    "formatHintLinking": "Excel (.xlsx) with columns: ID SIM, Promotor, ID Promotor, ID Tienda, Nombre de la Tienda, Fecha, Tipo de Venta, Forma de Pago, Monto de Venta, Número de vinculación and, on portability rows, Número portado. Optional: Estatus de Venta (Aprobada or Rechazada) and Motivo de Rechazo."
   },
   "common": {
     "active": "Active",
