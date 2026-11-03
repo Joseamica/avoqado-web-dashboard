@@ -32,6 +32,7 @@ import { GlassCard } from '@/components/ui/glass-card'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { toast } from '@/hooks/use-toast'
 import { useCurrentOrganization } from '@/hooks/use-current-organization'
+import { useOrgLinkingNumberEnabled } from '@/services/saleVerification.org.service'
 import { BulkUploadSection } from '@/pages/playtelecom/Stock/components/BulkUploadSection'
 import {
   applyManualSales,
@@ -69,11 +70,16 @@ interface PreviewRow {
   motivo?: string
   /** Estatus normalizado por el backend; ausente en las filas que ni siquiera se pudieron resolver. */
   saleStatus?: 'COMPLETED' | 'REJECTED'
+  linkingDuplicate?: boolean
+  portedDuplicate?: boolean
 }
 
 export default function ManualSalesUpload() {
   const { t } = useTranslation(['playtelecom', 'common'])
   const { orgId } = useCurrentOrganization()
+  // `undefined` = todavía no se sabe (cargando o con error): NUNCA se trata como apagado.
+  const { enabled: linkingEnabled, refetch: refetchLinking } = useOrgLinkingNumberEnabled(orgId)
+  const showLinking = linkingEnabled === true
 
   const [rows, setRows] = useState<ManualSaleRow[]>([])
   // Columnas que el archivo trae y el parser NO leyó. Se muestran ANTES de confirmar:
@@ -137,7 +143,7 @@ export default function ManualSalesUpload() {
   }
 
   const handleDownloadTemplate = () => {
-    void downloadTemplate()
+    void downloadTemplate(showLinking)
   }
 
   const handleCreate = async () => {
@@ -163,7 +169,14 @@ export default function ManualSalesUpload() {
         .map((r): PreviewRow | null => {
           const row = rows[r.index]
           if (!row) return null
-          return { bucket, row, motivo: r.motivo, saleStatus: r.saleStatus }
+          return {
+            bucket,
+            row,
+            motivo: r.motivo,
+            saleStatus: r.saleStatus,
+            linkingDuplicate: r.linkingDuplicate,
+            portedDuplicate: r.portedDuplicate,
+          }
         })
         .filter((r): r is PreviewRow => r !== null)
 
@@ -199,10 +212,17 @@ export default function ManualSalesUpload() {
             {t('manualSales.subtitle', { defaultValue: 'Sube el archivo, revisa la vista previa y confirma para crear las ventas.' })}
           </p>
         </div>
-        <Button variant="outline" onClick={handleDownloadTemplate}>
-          <Download className="mr-2 h-4 w-4" />
-          {t('manualSales.downloadTemplate', { defaultValue: 'Descargar template' })}
-        </Button>
+        <div className="flex items-center gap-2">
+          {linkingEnabled === undefined && (
+            <Button variant="ghost" onClick={refetchLinking}>
+              {t('manualSales.retry', { defaultValue: 'Reintentar' })}
+            </Button>
+          )}
+          <Button variant="outline" disabled={linkingEnabled === undefined} onClick={handleDownloadTemplate}>
+            <Download className="mr-2 h-4 w-4" />
+            {t('manualSales.downloadTemplate', { defaultValue: 'Descargar template' })}
+          </Button>
+        </div>
       </div>
 
       {/* BulkUploadSection is shared with the SIM-stock upload, whose default copy describes a
@@ -214,10 +234,17 @@ export default function ManualSalesUpload() {
         accept=".xlsx,.csv"
         showTemplateButton={false}
         dragDropLabel={t('manualSales.dragDrop', { defaultValue: 'Arrastra aquí tu Excel de ventas (.xlsx)' })}
-        formatHint={t('manualSales.formatHint', {
-          defaultValue:
-            'Excel (.xlsx) con columnas: ID SIM, Promotor, ID Promotor, ID Tienda, Nombre de la Tienda, Fecha, Tipo de Venta, Forma de Pago, Monto de Venta. Opcionales: Estatus de Venta (Aprobada o Rechazada) y Motivo de Rechazo.',
-        })}
+        formatHint={
+          showLinking
+            ? t('manualSales.formatHintLinking', {
+                defaultValue:
+                  'Excel (.xlsx) con columnas: ID SIM, Promotor, ID Promotor, ID Tienda, Nombre de la Tienda, Fecha, Tipo de Venta, Forma de Pago, Monto de Venta, Número de vinculación y, en las portabilidades, Número portado. Opcionales: Estatus de Venta (Aprobada o Rechazada) y Motivo de Rechazo.',
+              })
+            : t('manualSales.formatHint', {
+                defaultValue:
+                  'Excel (.xlsx) con columnas: ID SIM, Promotor, ID Promotor, ID Tienda, Nombre de la Tienda, Fecha, Tipo de Venta, Forma de Pago, Monto de Venta. Opcionales: Estatus de Venta (Aprobada o Rechazada) y Motivo de Rechazo.',
+              })
+        }
       />
 
       {unknownHeaders.length > 0 && (
@@ -282,7 +309,7 @@ export default function ManualSalesUpload() {
                   </tr>
                 </thead>
                 <tbody>
-                  {previewRows.map(({ bucket, row, motivo, saleStatus }, idx) => {
+                  {previewRows.map(({ bucket, row, motivo, saleStatus, linkingDuplicate, portedDuplicate }, idx) => {
                     const { className, icon: Icon } = BUCKET_BADGE[bucket]
                     return (
                       <tr key={`${row.iccid}-${idx}`} className="border-b border-input/50 align-top">
@@ -310,6 +337,25 @@ export default function ManualSalesUpload() {
                                 defaultValue: bucket === 'crear' ? 'Crear' : bucket === 'omitir' ? 'Omitir' : 'Error',
                               })}
                             </Badge>
+                            {showLinking && (linkingDuplicate || portedDuplicate) && (
+                              <Badge
+                                className="border-transparent bg-amber-500/15 text-amber-600 dark:text-amber-400"
+                                title={[
+                                  linkingDuplicate &&
+                                    t('manualSales.linkingDuplicate', {
+                                      defaultValue: 'Este número de vinculación ya fue registrado en otra venta',
+                                    }),
+                                  portedDuplicate &&
+                                    t('manualSales.portedDuplicate', {
+                                      defaultValue: 'Este número portado ya fue registrado en otra venta',
+                                    }),
+                                ]
+                                  .filter(Boolean)
+                                  .join(' · ')}
+                              >
+                                {t('manualSales.duplicate', { defaultValue: 'Repetido' })}
+                              </Badge>
+                            )}
                             {motivo && <span className="text-xs text-muted-foreground">{motivo}</span>}
                           </div>
                         </td>
