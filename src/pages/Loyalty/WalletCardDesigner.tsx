@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { CreditCard, Image as ImageIcon, Palette, Upload, Loader2, Info, Gift } from 'lucide-react'
 
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -19,6 +20,7 @@ import loyaltyService from '@/services/loyalty.service'
 import CounterPosterCard from './components/CounterPosterCard'
 import { SectionHeader } from './components/SectionHeader'
 import { WalletCardPreview } from './components/WalletCardPreview'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { cn } from '@/lib/utils'
 
 /**
@@ -125,19 +127,21 @@ export default function WalletCardDesigner() {
   const stampInput = useRef<HTMLInputElement>(null)
   const iconInput = useRef<HTMLInputElement>(null)
 
-  const { data: guardado, isLoading } = useQuery({
+  const guardadoQuery = useQuery({
     queryKey: ['wallet-card-design', venueId],
     queryFn: () => walletCardService.getDesign(venueId!),
     enabled: !!venueId,
   })
+  const { data: guardado, isLoading } = guardadoQuery
 
   // Los sellos de la vista previa salen de la config REAL del negocio, no de un
   // número inventado: si configuró "al 7 va gratis", eso es lo que debe ver aquí.
-  const { data: config } = useQuery({
+  const configQuery = useQuery({
     queryKey: ['loyalty-config', venueId],
     queryFn: () => loyaltyService.getConfig(venueId!),
     enabled: !!venueId,
   })
+  const { data: config } = configQuery
 
   useEffect(() => {
     if (guardado) setBorrador(guardado)
@@ -228,6 +232,16 @@ export default function WalletCardDesigner() {
     }
   }
 
+  if (!borrador && falloDeCarga(guardadoQuery)) {
+    return (
+      <FeatureGate feature="LOYALTY_PROGRAM">
+        <div className="p-4 md:p-6">
+          <AvisoDeCarga query={guardadoQuery} hayDatos={false} />
+        </div>
+      </FeatureGate>
+    )
+  }
+
   if (isLoading || !borrador) {
     // 🔴 Esqueleto, no un spinner centrado. El esqueleto ya enseña la forma de la
     // pantalla —editor a la izquierda, tarjeta a la derecha— así que cuando el
@@ -256,6 +270,7 @@ export default function WalletCardDesigner() {
   return (
     <FeatureGate feature="LOYALTY_PROGRAM">
       <div className="space-y-6 p-4 md:p-6">
+        <AvisoDeCarga query={guardadoQuery} hayDatos />
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <PageTitleWithInfo title={t('card.title')} tooltip={t('card.info')} />
@@ -287,99 +302,105 @@ export default function WalletCardDesigner() {
             <GlassCard className="p-6">
               <SectionHeader icon={Gift} title={t('card.program.title')} description={t('card.program.description')} />
 
-              <div
-                ref={filaInterruptor}
-                className={`flex items-center justify-between rounded-lg border p-3 transition-colors ${
-                  resaltarInterruptor ? 'border-foreground bg-muted' : 'border-border/60'
-                }`}
-              >
-                <div className="pr-4">
-                  <Label className="text-sm">{t('card.program.enabled')}</Label>
-                  <p className="mt-0.5 text-xs text-muted-foreground">{t('card.program.enabledHint')}</p>
-                </div>
-                <Switch
-                  checked={programa.stampsEnabled}
-                  onCheckedChange={v => setPrograma(p => ({ ...p, stampsEnabled: v }))}
-                  aria-label={t('card.program.enabled')}
-                />
-              </div>
-
-              <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label className="text-sm">{t('card.program.required')}</Label>
-                  <Input
-                    type="number"
-                    min={2}
-                    max={50}
-                    /* Vaciable a propósito: con `|| 10` no se puede borrar el 1 para escribir 12. */
-                    value={programa.stampsRequired ?? ''}
-                    onChange={e => {
-                      const raw = e.target.value
-                      setPrograma(p => ({ ...p, stampsRequired: raw === '' ? undefined : parseInt(raw, 10) }))
-                    }}
-                  />
-                  <p className="text-xs text-muted-foreground">{t('card.program.requiredHint')}</p>
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-sm">{t('card.program.rewardLabel')}</Label>
-                  <Input
-                    maxLength={60}
-                    placeholder={t('card.program.rewardLabelPlaceholder')}
-                    value={programa.stampRewardLabel}
-                    onChange={e => setPrograma(p => ({ ...p, stampRewardLabel: e.target.value }))}
-                  />
-                  <p className="text-xs text-muted-foreground">{t('card.program.rewardLabelHint')}</p>
-                </div>
-              </div>
-
-              <div className="mt-4 space-y-2">
-                <Label className="text-sm">{t('card.program.rewardType')}</Label>
-                <div className="flex flex-wrap gap-2">
-                  {(['FREE_PRODUCT', 'FIXED_AMOUNT', 'PERCENTAGE'] as const).map(tipo => (
-                    <button
-                      key={tipo}
-                      type="button"
-                      onClick={() => setPrograma(p => ({ ...p, stampRewardType: tipo }))}
-                      className={cn(
-                        'cursor-pointer rounded-lg border px-3 py-1.5 text-sm transition-colors',
-                        programa.stampRewardType === tipo
-                          ? 'border-primary bg-primary/10 text-foreground'
-                          : 'border-input text-muted-foreground hover:bg-accent',
-                      )}
-                    >
-                      {t(`card.program.rewardTypes.${tipo}`)}
-                    </button>
-                  ))}
-                </div>
-                {programa.stampRewardType === 'FREE_PRODUCT' ? (
-                  <p className="text-xs text-muted-foreground">{t('card.program.freeProductHint')}</p>
-                ) : (
-                  <div className="pt-1">
-                    <Input
-                      type="number"
-                      min={0}
-                      max={programa.stampRewardType === 'PERCENTAGE' ? 100 : undefined}
-                      value={programa.stampRewardValue ?? ''}
-                      onChange={e => {
-                        const raw = e.target.value
-                        setPrograma(p => ({ ...p, stampRewardValue: raw === '' ? undefined : parseFloat(raw) }))
-                      }}
-                      placeholder={programa.stampRewardType === 'PERCENTAGE' ? '15' : '50'}
+              {/* Sin la lectura estos valores serían los de fábrica: guardar apagaría los sellos de verdad. */}
+              <AvisoDeCarga query={configQuery} hayDatos={config !== undefined} />
+              {config !== undefined && (
+                <>
+                  <div
+                    ref={filaInterruptor}
+                    className={`flex items-center justify-between rounded-lg border p-3 transition-colors ${
+                      resaltarInterruptor ? 'border-foreground bg-muted' : 'border-border/60'
+                    }`}
+                  >
+                    <div className="pr-4">
+                      <Label className="text-sm">{t('card.program.enabled')}</Label>
+                      <p className="mt-0.5 text-xs text-muted-foreground">{t('card.program.enabledHint')}</p>
+                    </div>
+                    <Switch
+                      checked={programa.stampsEnabled}
+                      onCheckedChange={v => setPrograma(p => ({ ...p, stampsEnabled: v }))}
+                      aria-label={t('card.program.enabled')}
                     />
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {programa.stampRewardType === 'PERCENTAGE' ? t('card.program.percentageHint') : t('card.program.fixedAmountHint')}
-                    </p>
                   </div>
-                )}
-              </div>
 
-              <div className="mt-5 flex justify-end">
-                <Button size="sm" onClick={() => guardarPrograma.mutate()} disabled={guardarPrograma.isPending}>
-                  {guardarPrograma.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {t('card.program.save')}
-                </Button>
-              </div>
+                  <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label className="text-sm">{t('card.program.required')}</Label>
+                      <Input
+                        type="number"
+                        min={2}
+                        max={50}
+                        /* Vaciable a propósito: con `|| 10` no se puede borrar el 1 para escribir 12. */
+                        value={programa.stampsRequired ?? ''}
+                        onChange={e => {
+                          const raw = e.target.value
+                          setPrograma(p => ({ ...p, stampsRequired: raw === '' ? undefined : parseInt(raw, 10) }))
+                        }}
+                      />
+                      <p className="text-xs text-muted-foreground">{t('card.program.requiredHint')}</p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-sm">{t('card.program.rewardLabel')}</Label>
+                      <Input
+                        maxLength={60}
+                        placeholder={t('card.program.rewardLabelPlaceholder')}
+                        value={programa.stampRewardLabel}
+                        onChange={e => setPrograma(p => ({ ...p, stampRewardLabel: e.target.value }))}
+                      />
+                      <p className="text-xs text-muted-foreground">{t('card.program.rewardLabelHint')}</p>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 space-y-2">
+                    <Label className="text-sm">{t('card.program.rewardType')}</Label>
+                    <div className="flex flex-wrap gap-2">
+                      {(['FREE_PRODUCT', 'FIXED_AMOUNT', 'PERCENTAGE'] as const).map(tipo => (
+                        <button
+                          key={tipo}
+                          type="button"
+                          onClick={() => setPrograma(p => ({ ...p, stampRewardType: tipo }))}
+                          className={cn(
+                            'cursor-pointer rounded-lg border px-3 py-1.5 text-sm transition-colors',
+                            programa.stampRewardType === tipo
+                              ? 'border-primary bg-primary/10 text-foreground'
+                              : 'border-input text-muted-foreground hover:bg-accent',
+                          )}
+                        >
+                          {t(`card.program.rewardTypes.${tipo}`)}
+                        </button>
+                      ))}
+                    </div>
+                    {programa.stampRewardType === 'FREE_PRODUCT' ? (
+                      <p className="text-xs text-muted-foreground">{t('card.program.freeProductHint')}</p>
+                    ) : (
+                      <div className="pt-1">
+                        <Input
+                          type="number"
+                          min={0}
+                          max={programa.stampRewardType === 'PERCENTAGE' ? 100 : undefined}
+                          value={programa.stampRewardValue ?? ''}
+                          onChange={e => {
+                            const raw = e.target.value
+                            setPrograma(p => ({ ...p, stampRewardValue: raw === '' ? undefined : parseFloat(raw) }))
+                          }}
+                          placeholder={programa.stampRewardType === 'PERCENTAGE' ? '15' : '50'}
+                        />
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {programa.stampRewardType === 'PERCENTAGE' ? t('card.program.percentageHint') : t('card.program.fixedAmountHint')}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="mt-5 flex justify-end">
+                    <Button size="sm" onClick={() => guardarPrograma.mutate()} disabled={guardarPrograma.isPending}>
+                      {guardarPrograma.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      {t('card.program.save')}
+                    </Button>
+                  </div>
+                </>
+              )}
             </GlassCard>
 
             <GlassCard className="p-6">

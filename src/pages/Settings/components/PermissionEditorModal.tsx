@@ -7,7 +7,9 @@ import { useRoleConfig } from '@/hooks/use-role-config'
 import { useToast } from '@/hooks/use-toast'
 import { useAuth } from '@/context/AuthContext'
 
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -52,7 +54,7 @@ export function PermissionEditorModal({ open, onClose, role, venueId }: Permissi
   const { t } = useTranslation('settings')
   const { t: tCommon } = useTranslation('common')
   const { toast } = useToast()
-  const { getDisplayName: getRoleDisplayName, configs: roleConfigs, updateConfigsAsync, isUpdating: isUpdatingConfig } = useRoleConfig()
+  const { getDisplayName: getRoleDisplayName, configs: roleConfigs, configQuery, updateConfigsAsync, isUpdating: isUpdatingConfig } = useRoleConfig()
   const queryClient = useQueryClient()
 
   // Permission state
@@ -115,13 +117,17 @@ export function PermissionEditorModal({ open, onClose, role, venueId }: Permissi
   }, [modifiedPermissions])
 
   // Fetch role permissions
-  const { data: rolePermissionsData, isLoading: isLoadingPermissions } = useQuery({
+  const rolePermissionsQuery = useQuery({
     queryKey: ['rolePermissions', venueId],
     queryFn: () => rolePermissionService.getAllRolePermissions(venueId),
     enabled: !!venueId && open,
   })
 
-  const currentRolePermission = rolePermissionsData?.data.find(rp => rp.role === role)
+  const currentRolePermission = rolePermissionsQuery.data?.data.find(rp => rp.role === role)
+  // Sin la lectura no hay qué marcar: lo no marcado viaja como «quitado» y el rol perdería casi todos sus permisos.
+  const permisosListos = currentRolePermission !== undefined
+  // Es otra lectura: guardar la apariencia sin ella pondría el nombre de fábrica encima del propio.
+  const aparienciaLista = configQuery.data !== undefined
 
   // Initialize permissions when modal opens or data loads
   useEffect(() => {
@@ -316,6 +322,8 @@ export function PermissionEditorModal({ open, onClose, role, venueId }: Permissi
   }, [open, roleDisplayName, roleDescription, roleColor, roleShowAsSeller, roleConfigs, role])
 
   const handleSave = useCallback(async () => {
+    if ((hasChanges && !permisosListos) || (hasConfigChanges && !aparienciaLista)) return
+
     // Save role config changes if any (display name, description, color)
     if (hasConfigChanges) {
       try {
@@ -381,7 +389,7 @@ export function PermissionEditorModal({ open, onClose, role, venueId }: Permissi
       setHasConfigChanges(false)
       onClose()
     }
-  }, [defaultEfectivos, modifiedPermissions, allPermissions, currentRolePermission, updateMutation, hasChanges, hasConfigChanges, role, roleDisplayName, roleDescription, roleColor, roleShowAsSeller, updateConfigsAsync, toast, tCommon, t, onClose])
+  }, [permisosListos, aparienciaLista, defaultEfectivos, modifiedPermissions, allPermissions, currentRolePermission, updateMutation, hasChanges, hasConfigChanges, role, roleDisplayName, roleDescription, roleColor, roleShowAsSeller, updateConfigsAsync, toast, tCommon, t, onClose])
 
   const handleClose = useCallback(() => {
     if (hasChanges || hasConfigChanges) {
@@ -421,7 +429,7 @@ export function PermissionEditorModal({ open, onClose, role, venueId }: Permissi
           // Wait for rolePermissionsData to load before allowing save. Without
           // this guard a click during the initial fetch sends modifiedPermissions=[]
           // and wipes the role (see handleSave comment).
-          (hasChanges && isLoadingPermissions)
+          (hasChanges && !permisosListos)
         }
         size="sm"
         className="min-w-[100px]"
@@ -461,10 +469,12 @@ export function PermissionEditorModal({ open, onClose, role, venueId }: Permissi
           )}
 
           {/* Role Appearance (display name, description, color) */}
-          <Collapsible open={appearanceOpen} onOpenChange={setAppearanceOpen}>
+          <AvisoDeCarga query={configQuery} hayDatos={aparienciaLista} />
+          <Collapsible open={appearanceOpen && aparienciaLista} onOpenChange={setAppearanceOpen}>
             <CollapsibleTrigger asChild>
               <button
                 type="button"
+                disabled={!aparienciaLista}
                 className="w-full rounded-xl border border-border p-4 sm:p-5 flex items-center justify-between gap-4 hover:bg-accent/30 transition-colors cursor-pointer"
               >
                 <div className="flex items-center gap-3 min-w-0">
@@ -584,86 +594,92 @@ export function PermissionEditorModal({ open, onClose, role, venueId }: Permissi
             </CollapsibleContent>
           </Collapsible>
 
-          {/* Full Access toggle card */}
-          <div className="rounded-xl border border-border p-4 sm:p-5 flex items-center justify-between gap-4">
-            <div>
-              <h3 className="text-sm font-semibold">{t('rolePermissions.allPermissions', 'Full Access')}</h3>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {t('rolePermissions.wildcardActive', 'This role has wildcard permissions (*:*) granting full access to all features.')}
-              </p>
-            </div>
-            <Switch
-              checked={isFullAccess}
-              onCheckedChange={toggleFullAccess}
-              disabled={updateMutation.isPending || revertMutation.isPending}
-              className="data-[state=checked]:bg-foreground dark:data-[state=checked]:bg-foreground flex-shrink-0"
-            />
-          </div>
-
-          {/* Search */}
-          <PermissionSearch value={searchTerm} onChange={setSearchTerm} className="max-w-lg" />
-
-          {/* Two-column layout: Category Nav | Detail Panel */}
-          <div className="grid gap-5 md:grid-cols-[280px_1fr] lg:grid-cols-[320px_1fr] min-h-[400px]">
-            {/* Left: Category navigation (desktop) */}
-            <div className="hidden md:block rounded-xl border border-border overflow-hidden sticky top-0 self-start h-[calc(100vh-320px)]">
-              <PermissionCategoryNav
-                superCategories={filteredAllCategories}
-                selectedCategoryKey={selectedCategoryKey}
-                onSelectCategory={setSelectedCategoryKey}
-                getCategoryStatus={getCategoryStatus}
-                className="h-full"
-              />
-            </div>
-
-            {/* Right: Detail panel */}
-            <div className="min-w-0">
-              {/* Mobile: collapsible list */}
-              <div className="md:hidden space-y-3">
-                {filteredAllCategories.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground text-sm">
-                    {t('rolePermissions.noResultsFound')}
-                  </div>
-                ) : (
-                  filteredAllCategories.map(superCategory => (
-                    <PermissionSuperCategory
-                      key={superCategory.id}
-                      superCategory={superCategory}
-                      selectedPermissions={selectedPermissionsSet}
-                      defaultPermissions={defaultPermissions}
-                      impliedMap={impliedMap}
-                      onChange={handlePermissionChange}
-                      searchTerm={debouncedSearchTerm}
-                      isExpanded={expandedCategories.has(superCategory.id)}
-                      onToggleExpand={() => toggleCategoryExpansion(superCategory.id)}
-                      disabled={updateMutation.isPending || revertMutation.isPending}
-                      isOwnRole={isOwnRole}
-                    />
-                  ))
-                )}
+          <AvisoDeCarga query={rolePermissionsQuery} hayDatos={permisosListos} />
+          {rolePermissionsQuery.isLoading && <Skeleton className="h-96 w-full rounded-xl" />}
+          {permisosListos && (
+            <>
+              {/* Full Access toggle card */}
+              <div className="rounded-xl border border-border p-4 sm:p-5 flex items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-sm font-semibold">{t('rolePermissions.allPermissions', 'Full Access')}</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {t('rolePermissions.wildcardActive', 'This role has wildcard permissions (*:*) granting full access to all features.')}
+                  </p>
+                </div>
+                <Switch
+                  checked={isFullAccess}
+                  onCheckedChange={toggleFullAccess}
+                  disabled={updateMutation.isPending || revertMutation.isPending}
+                  className="data-[state=checked]:bg-foreground dark:data-[state=checked]:bg-foreground flex-shrink-0"
+                />
               </div>
 
-              {/* Desktop: selected category detail */}
-              <div className="hidden md:block">
-                {selectedCategoryKey ? (
-                  <PermissionDetailPanel
-                    categoryKey={selectedCategoryKey}
-                    selectedPermissions={selectedPermissionsSet}
-                    defaultPermissions={defaultPermissions}
-                    impliedMap={impliedMap}
-                    onChange={handlePermissionChange}
-                    disabled={updateMutation.isPending || revertMutation.isPending}
-                    isOwnRole={isOwnRole}
-                    searchTerm={debouncedSearchTerm}
+              {/* Search */}
+              <PermissionSearch value={searchTerm} onChange={setSearchTerm} className="max-w-lg" />
+
+              {/* Two-column layout: Category Nav | Detail Panel */}
+              <div className="grid gap-5 md:grid-cols-[280px_1fr] lg:grid-cols-[320px_1fr] min-h-[400px]">
+                {/* Left: Category navigation (desktop) */}
+                <div className="hidden md:block rounded-xl border border-border overflow-hidden sticky top-0 self-start h-[calc(100vh-320px)]">
+                  <PermissionCategoryNav
+                    superCategories={filteredAllCategories}
+                    selectedCategoryKey={selectedCategoryKey}
+                    onSelectCategory={setSelectedCategoryKey}
+                    getCategoryStatus={getCategoryStatus}
+                    className="h-full"
                   />
-                ) : (
-                  <div className="flex items-center justify-center h-48 text-muted-foreground text-sm">
-                    {t('rolePermissions.selectRoleDesc', 'Choose a category to customize permissions')}
+                </div>
+
+                {/* Right: Detail panel */}
+                <div className="min-w-0">
+                  {/* Mobile: collapsible list */}
+                  <div className="md:hidden space-y-3">
+                    {filteredAllCategories.length === 0 ? (
+                      <div className="text-center py-8 text-muted-foreground text-sm">
+                        {t('rolePermissions.noResultsFound')}
+                      </div>
+                    ) : (
+                      filteredAllCategories.map(superCategory => (
+                        <PermissionSuperCategory
+                          key={superCategory.id}
+                          superCategory={superCategory}
+                          selectedPermissions={selectedPermissionsSet}
+                          defaultPermissions={defaultPermissions}
+                          impliedMap={impliedMap}
+                          onChange={handlePermissionChange}
+                          searchTerm={debouncedSearchTerm}
+                          isExpanded={expandedCategories.has(superCategory.id)}
+                          onToggleExpand={() => toggleCategoryExpansion(superCategory.id)}
+                          disabled={updateMutation.isPending || revertMutation.isPending}
+                          isOwnRole={isOwnRole}
+                        />
+                      ))
+                    )}
                   </div>
-                )}
+
+                  {/* Desktop: selected category detail */}
+                  <div className="hidden md:block">
+                    {selectedCategoryKey ? (
+                      <PermissionDetailPanel
+                        categoryKey={selectedCategoryKey}
+                        selectedPermissions={selectedPermissionsSet}
+                        defaultPermissions={defaultPermissions}
+                        impliedMap={impliedMap}
+                        onChange={handlePermissionChange}
+                        disabled={updateMutation.isPending || revertMutation.isPending}
+                        isOwnRole={isOwnRole}
+                        searchTerm={debouncedSearchTerm}
+                      />
+                    ) : (
+                      <div className="flex items-center justify-center h-48 text-muted-foreground text-sm">
+                        {t('rolePermissions.selectRoleDesc', 'Choose a category to customize permissions')}
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
+            </>
+          )}
         </div>
       </FullScreenModal>
 

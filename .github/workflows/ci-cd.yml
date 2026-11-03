@@ -45,7 +45,8 @@ jobs:
   # 🧪 Quality Gate: Test, lint and build
   test-and-build:
     name: 🧪 Test, Lint & Build
-    runs-on: ubuntu-latest
+    # ubuntu-latest ya cae en 26.04 y Playwright 1.58 no instala ahí. Volver a latest al subir a una versión que lo soporte.
+    runs-on: ubuntu-24.04
     # Skip draft PRs
     if: github.event.pull_request.draft == false || github.event_name != 'pull_request'
     outputs:

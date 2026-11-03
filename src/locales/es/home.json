@@ -389,6 +389,7 @@
       "noData": "No hay datos disponibles para el período seleccionado",
       "today": "Hoy",
       "ndLabel": "N/D",
+      "compareFailed": "No pudimos cargar el periodo de comparación: lo que ves es sólo el periodo actual.",
       "details": {
         "grossSales": "Ventas brutas",
         "transactions": "Transacciones",

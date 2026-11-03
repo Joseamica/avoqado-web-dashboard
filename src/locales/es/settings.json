@@ -283,8 +283,7 @@
       "class_sessions": "Clases asignadas",
       "self_service": "Autoservicio",
       "staff_pay": "Pago al personal",
-      "marketing": "Marketing",
-      "cash_drawer": "Cajón de efectivo"
+      "marketing": "Marketing"
     },
     "categoryDescriptions": {
       "home": "Acceso al panel principal con métricas y resumen del negocio.",
@@ -914,6 +913,13 @@
       "reopenedCount": "Reabierta {{count}} veces",
       "incidentEmptyDefault": "No hay incidencias abiertas. Aquí aparecerían los problemas que el sistema detecta solo — un cobro externo que nadie confirmó a tiempo, una diferencia de importe — para que alguien los revise.",
       "incidentEmptyFiltered": "Ninguna incidencia coincide con estos filtros. Prueba con otros filtros o quítalos para ver más."
+    },
+    "terminals": {
+      "ruleHint": "Un aparato emite vales o los cobra, no las dos cosas.",
+      "issueOrCheckoutTitle": "Un aparato emite vales o los cobra",
+      "turnedOffCheckout": "Se apagó «Cobrar vales»: un aparato emite vales o los cobra, no las dos cosas. Para cobrar vales usa la caja.",
+      "turnedOffIssue": "Se apagó «Emitir vales»: un aparato emite vales o los cobra, no las dos cosas.",
+      "bothOnWarning": "Este aparato tiene «Emitir vales» y «Cobrar vales». Así sólo emite: apaga una de las dos. Para cobrar vales usa la caja."
     }
   }
 }

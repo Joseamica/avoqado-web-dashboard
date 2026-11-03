@@ -26,6 +26,8 @@ const h = vi.hoisted(() => ({
   roleConfig: {
     getDisplayName: (r: string) => r,
     configs: [] as unknown[],
+    // El editor espera la lectura de la apariencia antes de dejar guardar (develop, «lectura caída no pisa»).
+    configQuery: { data: [] as unknown[] },
     updateConfigsAsync: async () => {},
     isUpdating: false,
   },

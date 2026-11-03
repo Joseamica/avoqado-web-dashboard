@@ -52,7 +52,7 @@ import { TpvCommandType } from '@/types/tpv-commands'
 import { useTranslation } from 'react-i18next'
 import { ActivationCodeDialog } from './ActivationCodeDialog'
 import { ActivateTerminalModal } from './components/ActivateTerminalModal'
-import { getActivationRoute } from './deviceListPresentation'
+import { cuentasAlQuitar, cuentasAlVincular, getActivationRoute } from './deviceListPresentation'
 import {
   DeviceAppVersionCell,
   DeviceBatteryCell,
@@ -299,18 +299,20 @@ export default function Tpvs() {
   )
 
   // SUPERADMIN: Fetch terminals with assignedMerchantIds
-  const { data: superadminTerminals = [], refetch: refetchSuperadminTerminals } = useQuery({
+  const superadminTerminalsQuery = useQuery({
     queryKey: ['superadmin-terminals', venueId],
     queryFn: () => terminalAPI.getAllTerminals({ venueId: venueId! }),
     enabled: isSuperadmin && Boolean(venueId) && hasPaymentCapableDevice,
   })
+  const { data: superadminTerminals = [], refetch: refetchSuperadminTerminals } = superadminTerminalsQuery
 
   // SUPERADMIN: Fetch all merchant accounts (they are global, not per-venue)
-  const { data: merchantAccounts = [] } = useQuery({
+  const merchantAccountsQuery = useQuery({
     queryKey: ['merchant-accounts'],
     queryFn: () => paymentProviderAPI.getAllMerchantAccounts(),
     enabled: isSuperadmin && hasPaymentCapableDevice,
   })
+  const { data: merchantAccounts = [] } = merchantAccountsQuery
 
   // Create lookup map: terminalId -> assignedMerchantIds
   const terminalMerchantMap = useMemo(() => {
@@ -334,10 +336,10 @@ export default function Tpvs() {
   const handleLinkMerchant = async (terminalId: string, merchantId: string) => {
     const terminal = filteredData.find(device => device.id === terminalId)
     if (!canConfigurePayments(terminal?.capabilities)) return
+    const newIds = cuentasAlVincular(terminalMerchantMap.get(terminalId), merchantId)
+    if (!newIds) return
     setLinkingMerchant({ terminalId, merchantId })
     try {
-      const currentIds = terminalMerchantMap.get(terminalId) || []
-      const newIds = [...currentIds, merchantId]
       await terminalAPI.updateTerminal(terminalId, { assignedMerchantIds: newIds })
       refetchSuperadminTerminals()
       queryClient.invalidateQueries({ queryKey: ['merchant-accounts'] })
@@ -361,10 +363,10 @@ export default function Tpvs() {
   const handleUnlinkMerchant = async (terminalId: string, merchantId: string) => {
     const terminal = filteredData.find(device => device.id === terminalId)
     if (!canConfigurePayments(terminal?.capabilities)) return
+    const newIds = cuentasAlQuitar(terminalMerchantMap.get(terminalId), merchantId)
+    if (!newIds) return
     setUnlinkingMerchant({ terminalId, merchantId })
     try {
-      const currentIds = terminalMerchantMap.get(terminalId) || []
-      const newIds = currentIds.filter((id: string) => id !== merchantId)
       await terminalAPI.updateTerminal(terminalId, { assignedMerchantIds: newIds })
       refetchSuperadminTerminals()
       queryClient.invalidateQueries({ queryKey: ['merchant-accounts'] })
@@ -558,7 +560,11 @@ export default function Tpvs() {
               if (!canConfigurePayments(terminal.capabilities)) {
                 return <span className="text-xs text-muted-foreground">—</span>
               }
-              const assignedIds = terminalMerchantMap.get(terminal.id) || []
+              const assignedIds = terminalMerchantMap.get(terminal.id)
+              // Sin leer sus cuentas o el catálogo no se afirma «Sin asignar» ni se ofrece vincular.
+              if (!assignedIds || merchantAccountsQuery.data === undefined) {
+                return <span className="text-xs text-muted-foreground">—</span>
+              }
               const assignedAccounts = merchantAccounts.filter((m: MerchantAccount) => assignedIds.includes(m.id))
               const availableAccounts = merchantAccounts.filter((m: MerchantAccount) => !assignedIds.includes(m.id))
 
@@ -993,6 +999,8 @@ export default function Tpvs() {
               hayDatos={!loadFailed}
               volverAlInicio={loadFailed && pagination.pageIndex > 0 ? () => setPagination(prev => ({ ...prev, pageIndex: 0 })) : undefined}
             />
+            {/* Superadmin: la columna «Cuentas» sale de estas dos, no de la lista. */}
+            <AvisoDeCarga query={falloDeCarga(superadminTerminalsQuery) ? superadminTerminalsQuery : merchantAccountsQuery} hayDatos />
             {loadFailed ? null : (
               // Tabla cuando el CONTENIDO mide ≥ 64rem; tarjetas cuando no. Se mide el contenedor,
               // no la pantalla: la barra lateral se come ~16rem y por eso la tabla se partía.

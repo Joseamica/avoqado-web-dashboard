@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -24,11 +25,13 @@ vi.mock('react-i18next', () => ({
 
 function renderPage() {
   return render(
+    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })}>
     <MemoryRouter initialEntries={['/organizations/org-1/master-catalog/publications']}>
       <Routes>
         <Route path="/organizations/:orgId/master-catalog/publications" element={<CatalogPublicationsPage />} />
       </Routes>
-    </MemoryRouter>,
+    </MemoryRouter>
+    </QueryClientProvider>,
   )
 }
 
@@ -104,5 +107,21 @@ describe('CatalogPublicationsPage', () => {
     )
     expect(await screen.findByText('APPLIED')).toBeInTheDocument()
     expect(catalogApi.previewCatalogPublication).not.toHaveBeenCalled()
+  })
+})
+
+describe('CatalogPublicationsPage si falla el historial', () => {
+  beforeEach(() => vi.clearAllMocks())
+
+  it('avisa en vez de decir que no hay publicaciones, y Reintentar lo trae', async () => {
+    vi.mocked(catalogApi.listCatalogPublications).mockRejectedValueOnce(new Error('500'))
+    renderPage()
+    await screen.findByRole('alert')
+    expect(screen.queryByText('Aún no hay publicaciones.')).toBeNull()
+
+    vi.mocked(catalogApi.listCatalogPublications).mockResolvedValue({ items: [], nextCursor: null })
+    fireEvent.click(screen.getByRole('button', { name: 'retry' }))
+    await screen.findByText('Aún no hay publicaciones.')
+    expect(screen.queryByRole('alert')).toBeNull()
   })
 })

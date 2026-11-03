@@ -3,6 +3,7 @@
  * Flat list grouped by category, channel pills visible when enabled.
  * No tabs, no collapsible — everything visible at once.
  */
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
 import { useToast } from '@/hooks/use-toast'
@@ -49,10 +50,11 @@ export default function NotificationPreferences2() {
   const queryClient = useQueryClient()
   const { t } = useTranslation('notifications')
 
-  const { data: preferences = [], isLoading } = useQuery({
+  const preferencesQuery = useQuery({
     queryKey: ['notification-preferences'],
     queryFn: () => notificationService.getPreferences(),
   })
+  const { data: preferences = [], isLoading } = preferencesQuery
 
   const updatePreferenceMutation = useMutation({
     mutationFn: (pref: Parameters<typeof notificationService.updatePreferences>[0]) => notificationService.updatePreferences(pref),
@@ -105,8 +107,18 @@ export default function NotificationPreferences2() {
     )
   }
 
+  // Sin la lectura cada tipo sale con sus canales de fábrica, y tocar uno los guardaría encima de los que eligió la persona.
+  if (preferencesQuery.data === undefined) {
+    return (
+      <div className="p-4 sm:p-6 max-w-2xl mx-auto">
+        <AvisoDeCarga query={preferencesQuery} hayDatos={false} />
+      </div>
+    )
+  }
+
   return (
     <div className="p-4 sm:p-6 max-w-2xl mx-auto">
+      <AvisoDeCarga query={preferencesQuery} hayDatos />
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-foreground">{t('preferences')}</h1>

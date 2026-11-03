@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Cake, Info } from 'lucide-react'
 
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -40,11 +41,14 @@ export function BirthdayAutomationCard({ venueId }: { venueId: string }) {
 	const [bloques, setBloques] = useState<CampaignBlock[]>([{ type: 'paragraph', text: '' }])
 	const [cargado, setCargado] = useState(false)
 
-	const { data, isLoading } = useQuery({
+	const automationQuery = useQuery({
 		queryKey: ['birthday-automation', venueId],
 		queryFn: () => marketingService.getBirthdayAutomation(venueId),
 		enabled: Boolean(venueId),
 	})
+	const { data } = automationQuery
+	// `automation: null` es «sin configurar» y se puede crear. Sin `data` no se sabe: el texto propuesto pisaría el real y la pausaría.
+	const lecturaLista = data !== undefined
 
 	const automation = data?.automation ?? null
 
@@ -53,7 +57,7 @@ export function BirthdayAutomationCard({ venueId }: { venueId: string }) {
 			setCargado(false)
 			return
 		}
-		if (cargado || isLoading) return
+		if (cargado || !lecturaLista) return
 		if (automation) {
 			setSubject(automation.subject)
 			setDaysBefore(automation.daysBefore)
@@ -68,7 +72,7 @@ export function BirthdayAutomationCard({ venueId }: { venueId: string }) {
 			setActiva(false)
 		}
 		setCargado(true)
-	}, [abierto, isLoading, automation, cargado, t])
+	}, [abierto, lecturaLista, automation, cargado, t])
 
 	const guardar = useMutation({
 		mutationFn: () =>
@@ -84,7 +88,7 @@ export function BirthdayAutomationCard({ venueId }: { venueId: string }) {
 	})
 
 	const encendida = automation?.status === 'ACTIVE'
-	const puedeGuardar = subject.trim().length > 0 && bloques.length > 0 && !guardar.isPending
+	const puedeGuardar = lecturaLista && subject.trim().length > 0 && bloques.length > 0 && !guardar.isPending
 
 	return (
 		<>
@@ -96,22 +100,25 @@ export function BirthdayAutomationCard({ venueId }: { venueId: string }) {
 				<div className="flex-1 min-w-0">
 					<div className="flex items-center gap-2 flex-wrap">
 						<h2 className="font-medium">{t('birthday.title')}</h2>
-						{!isLoading && (
+						{lecturaLista && (
 							<Badge variant={encendida ? 'default' : 'outline'} data-testid="birthday-status">
 								{/* Tres estados: sin configurar ≠ pausada. */}
 								{!automation ? t('birthday.notConfigured') : encendida ? t('birthday.on') : t('birthday.paused')}
 							</Badge>
 						)}
 					</div>
-					<p className="text-sm text-muted-foreground mt-1">
-						{encendida
-							? t('birthday.onDescription', { count: automation!.daysBefore })
-							: t('birthday.offDescription')}
-					</p>
+					{lecturaLista && (
+						<p className="text-sm text-muted-foreground mt-1">
+							{encendida
+								? t('birthday.onDescription', { count: automation!.daysBefore })
+								: t('birthday.offDescription')}
+						</p>
+					)}
+					<AvisoDeCarga query={automationQuery} hayDatos={lecturaLista} />
 				</div>
 
 				<PermissionGate permission="marketing:manage">
-					<Button variant="outline" size="sm" onClick={() => setAbierto(true)} data-testid="birthday-configure">
+					<Button variant="outline" size="sm" onClick={() => setAbierto(true)} disabled={!lecturaLista} data-testid="birthday-configure">
 						{automation ? t('birthday.edit') : t('birthday.configure')}
 					</Button>
 				</PermissionGate>

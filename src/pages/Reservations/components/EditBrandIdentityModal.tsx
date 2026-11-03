@@ -14,11 +14,13 @@ import {
 import api from '@/api'
 import { storage, buildStoragePath } from '@/firebase'
 import { getDownloadURL, ref as storageRef, uploadBytesResumable } from 'firebase/storage'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { Button } from '@/components/ui/button'
 import { ColorPicker } from '@/components/ui/color-picker'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { useToast } from '@/hooks/use-toast'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { cn } from '@/lib/utils'
 
 type Step = 1 | 2
@@ -52,7 +54,7 @@ export function EditBrandIdentityModal({ open, onClose }: EditBrandIdentityModal
   const [step, setStep] = useState<Step>(1)
   const [previewMode, setPreviewMode] = useState<PreviewMode>('appointments')
 
-  const { data: venue } = useQuery<{
+  const venueQuery = useQuery<{
     id: string
     name: string
     logo?: string | null
@@ -67,6 +69,9 @@ export function EditBrandIdentityModal({ open, onClose }: EditBrandIdentityModal
     },
     enabled: !!venueId && open,
   })
+  const { data: venue } = venueQuery
+  // Sin la lectura, «Completar» mandaría logos, portada y color en null: además de borrarlos, el SERVIDOR elimina el logo viejo de Storage.
+  const lecturaLista = venue !== undefined
 
   const [logoFull, setLogoFull] = useState('')
   const [logoSmall, setLogoSmall] = useState('')
@@ -121,14 +126,14 @@ export function EditBrandIdentityModal({ open, onClose }: EditBrandIdentityModal
         <Button variant="secondary" onClick={onClose} className="rounded-full">
           {t('onlineBooking.brandIdentity.skip')}
         </Button>
-        <Button onClick={() => setStep(2)} className="rounded-full">
+        <Button onClick={() => setStep(2)} disabled={!lecturaLista} className="rounded-full">
           {t('onlineBooking.brandIdentity.next')}
         </Button>
       </>
     ) : (
       <Button
         onClick={() => saveMutation.mutate()}
-        disabled={saveMutation.isPending}
+        disabled={saveMutation.isPending || !lecturaLista}
         className="rounded-full"
       >
         {saveMutation.isPending ? (
@@ -156,7 +161,13 @@ export function EditBrandIdentityModal({ open, onClose }: EditBrandIdentityModal
       actions={headerActions}
       contentClassName={step === 2 ? 'bg-muted/30' : ''}
     >
-      {step === 1 ? (
+      {(!lecturaLista || falloDeCarga(venueQuery)) && (
+        <div className="mx-auto max-w-2xl px-4 pt-6">
+          <AvisoDeCarga query={venueQuery} hayDatos={lecturaLista} />
+          {venueQuery.isLoading && <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />}
+        </div>
+      )}
+      {!lecturaLista ? null : step === 1 ? (
         <Step1Content
           logoFull={logoFull}
           logoSmall={logoSmall}

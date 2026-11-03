@@ -8,6 +8,7 @@ import { z } from 'zod'
 import { AlertTriangle, CheckCircle2, HelpCircle, Info } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Switch } from '@/components/ui/switch'
@@ -513,10 +514,11 @@ export default function ReservationSettings() {
   const { t: tCommon } = useTranslation()
   const { t: tGcal } = useTranslation('googleCalendar')
 
-  const { data: settings, isLoading } = useQuery({
+  const settingsQuery = useQuery({
     queryKey: ['reservation-settings', venueId],
     queryFn: () => reservationService.getSettings(venueId),
   })
+  const { data: settings, isLoading } = settingsQuery
 
   // Whether the venue can actually collect money online. Reservation deposits,
   // upfront payments and credit-pack purchases all need a chargeable
@@ -762,6 +764,15 @@ export default function ReservationSettings() {
     )
   }
 
+  // Sin la lectura, el formulario traería los valores de fábrica y al guardar pisaría depósitos, prepago y cancelación reales.
+  if (settings === undefined) {
+    return (
+      <div className="p-4 bg-background text-foreground">
+        <AvisoDeCarga query={settingsQuery} hayDatos={false} />
+      </div>
+    )
+  }
+
   // Cast helpers — RHF's PathValue<K> generic can't unify with `number` here,
   // so we widen via `as any` at the call boundary. Schema validation still
   // enforces the actual numeric ranges at submit time.
@@ -800,6 +811,7 @@ export default function ReservationSettings() {
       </div>
 
       <form onSubmit={handleSave} className="p-4">
+        <AvisoDeCarga query={settingsQuery} hayDatos />
         {/* Dead-letter banner — surfaces only when there are failed Google
 				    Calendar sync rows. Lives outside the disabled-fieldset so the
 				    operator can interact with it even mid-save. */}

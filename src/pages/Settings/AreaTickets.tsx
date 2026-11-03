@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { AlertTriangle, ArrowRight, Loader2, Plus, Scale, ScanBarcode, TicketCheck } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -37,6 +37,7 @@ import {
   type ScaleProfile,
   type ScaleSettings as ScaleSettingsData,
 } from '@/services/areaTickets.service'
+import { CapacidadDeVales, cambioDeCapacidad, tieneEmitirYCobrar } from './areaTicketTerminalCapabilities'
 
 const NONE = '__none__'
 const panelClass = 'border-border/50 shadow-sm'
@@ -460,7 +461,7 @@ function AreasSettings({
   )
 }
 
-function TerminalSettings({
+export function TerminalSettings({
   venueId,
   terminals,
   areas,
@@ -473,20 +474,47 @@ function TerminalSettings({
   profiles: ScaleProfile[]
   onSaved: () => void
 }) {
+  const { t } = useTranslation('settings')
   const { toast } = useToast()
   const mutation = useMutation({
-    mutationFn: ({ terminalId, input }: { terminalId: string; input: Parameters<typeof updateAreaTicketTerminal>[2] }) =>
-      updateAreaTicketTerminal(venueId, terminalId, input),
-    onSuccess: onSaved,
+    mutationFn: ({
+      terminalId,
+      input,
+    }: {
+      terminalId: string
+      input: Parameters<typeof updateAreaTicketTerminal>[2]
+      apagada?: CapacidadDeVales | null
+    }) => updateAreaTicketTerminal(venueId, terminalId, input),
+    onSuccess: (_data, { apagada }) => {
+      // D5-A: si prender una casilla apagó la otra, se dice por qué.
+      if (apagada) {
+        toast({
+          title: t('areaTickets.terminals.issueOrCheckoutTitle'),
+          description: t(
+            apagada === 'canCheckoutAreaTickets' ? 'areaTickets.terminals.turnedOffCheckout' : 'areaTickets.terminals.turnedOffIssue',
+          ),
+        })
+      }
+      onSaved()
+    },
     onError: error => toast({ title: 'No se pudo actualizar', description: apiError(error, 'Intenta de nuevo.'), variant: 'destructive' }),
   })
+  // Dos toques en el mismo cuadro llegan antes de que `isPending` deshabilite los interruptores: el segundo saldría con
+  // los datos viejos. El candado es síncrono (full-testingv2 del 2-nov vio 2 PUT y 2 avisos con un doble clic).
+  const guardando = useRef(false)
+  const guardar = (vars: Parameters<typeof mutation.mutate>[0]) => {
+    if (guardando.current) return
+    guardando.current = true
+    mutation.mutate(vars, { onSettled: () => (guardando.current = false) })
+  }
 
   return (
     <Card className={panelClass}>
       <CardHeader>
         <CardTitle>Capacidades por terminal</CardTitle>
         <CardDescription>
-          Una terminal sólo ve las funciones marcadas. Caja, área y CEDIS pueden usar configuraciones distintas.
+          Una terminal sólo ve las funciones marcadas. Caja, área y CEDIS pueden usar configuraciones distintas.{' '}
+          {t('areaTickets.terminals.ruleHint')}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -501,8 +529,9 @@ function TerminalSettings({
               </div>
               <Select
                 value={terminal.fulfillmentAreaId ?? NONE}
+                disabled={mutation.isPending}
                 onValueChange={value =>
-                  mutation.mutate({ terminalId: terminal.id, input: { fulfillmentAreaId: value === NONE ? null : value } })
+                  guardar({ terminalId: terminal.id, input: { fulfillmentAreaId: value === NONE ? null : value } })
                 }
               >
                 <SelectTrigger className="w-56">
@@ -520,6 +549,14 @@ function TerminalSettings({
                 </SelectContent>
               </Select>
             </div>
+            {tieneEmitirYCobrar(terminal) && (
+              <p
+                className="mb-3 rounded-lg border border-warning-border bg-warning-muted px-3 py-2 text-sm text-warning-foreground"
+                data-tour="area-terminal-issue-and-checkout"
+              >
+                {t('areaTickets.terminals.bothOnWarning')}
+              </p>
+            )}
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               {[
                 ['canIssueAreaTickets', 'Emitir vales'],
@@ -530,14 +567,20 @@ function TerminalSettings({
                   {label}
                   <Switch
                     checked={Boolean(terminal[key as keyof AreaTicketTerminal])}
-                    onCheckedChange={checked => mutation.mutate({ terminalId: terminal.id, input: { [key]: checked } })}
+                    // D5 (Codex final #3): mientras se guarda un cambio, no se manda otro con datos viejos.
+                    disabled={mutation.isPending}
+                    onCheckedChange={checked => {
+                      const { input, apagada } = cambioDeCapacidad(terminal, key as CapacidadDeVales, checked)
+                      guardar({ terminalId: terminal.id, input, apagada })
+                    }}
                   />
                 </label>
               ))}
               <Select
                 value={terminal.scaleProfileId ?? NONE}
+                disabled={mutation.isPending}
                 onValueChange={value =>
-                  mutation.mutate({ terminalId: terminal.id, input: { scaleProfileId: value === NONE ? null : value } })
+                  guardar({ terminalId: terminal.id, input: { scaleProfileId: value === NONE ? null : value } })
                 }
               >
                 <SelectTrigger>
@@ -604,8 +647,7 @@ function ScaleSettings({
       toast({ title: 'Lectura de etiquetas guardada' })
       onSaved()
     },
-    onError: error =>
-      toast({ title: 'No se pudo guardar', description: apiError(error, 'Revisa el prefijo.'), variant: 'destructive' }),
+    onError: error => toast({ title: 'No se pudo guardar', description: apiError(error, 'Revisa el prefijo.'), variant: 'destructive' }),
   })
   const createMutation = useMutation({
     mutationFn: () =>
@@ -658,7 +700,8 @@ function ScaleSettings({
             <ScanBarcode className="h-5 w-5" /> Etiquetas impresas por una báscula externa
           </CardTitle>
           <CardDescription>
-            Para EAN-13 con formato prefijo de 2 dígitos + PLU de 5 dígitos + peso en gramos de 5 dígitos. El precio siempre sale del catálogo.
+            Para EAN-13 con formato prefijo de 2 dígitos + PLU de 5 dígitos + peso en gramos de 5 dígitos. El precio siempre sale del
+            catálogo.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -672,7 +715,9 @@ function ScaleSettings({
           <div className="grid gap-3 rounded-lg bg-muted/40 p-4 md:grid-cols-[minmax(0,1fr)_8rem_auto] md:items-end">
             <div className="space-y-1">
               <Label>Correspondencia de producto</Label>
-              <p className="text-sm text-muted-foreground">El PLU de la etiqueta debe coincidir con el SKU del producto vendido por peso.</p>
+              <p className="text-sm text-muted-foreground">
+                El PLU de la etiqueta debe coincidir con el SKU del producto vendido por peso.
+              </p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="variable-barcode-prefix">Prefijo</Label>

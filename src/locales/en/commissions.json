@@ -481,12 +481,12 @@
       "AMOUNT": "By amount",
       "AMOUNT_DESC": "Target in money ($)",
       "QUANTITY": "By quantity",
-      "QUANTITY_DESC": "Target in number of sales"
+      "QUANTITY_DESC": "Target in units sold"
     },
     "goalAmount": "Sales Goal",
     "goalAmountHint": "The target sales amount for this period",
     "goalQuantityLabel": "Sales quantity",
-    "goalQuantityHint": "The target number of sales for this period",
+    "goalQuantityHint": "The units to sell in this period",
     "currentQuantity": "Sold",
     "period": "Period",
     "selectPeriod": "Select period",

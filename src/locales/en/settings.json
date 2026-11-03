@@ -283,8 +283,7 @@
       "class_sessions": "Assigned classes",
       "self_service": "Self-service",
       "staff_pay": "Staff pay",
-      "marketing": "Marketing",
-      "cash_drawer": "Cash Drawer"
+      "marketing": "Marketing"
     },
     "categoryDescriptions": {
       "home": "Access the main dashboard with business metrics and summary.",
@@ -877,6 +876,13 @@
       "reopenedCount": "Reopened {{count}} times",
       "incidentEmptyDefault": "No incidents are open. Problems the system detects on its own — an external charge nobody confirmed in time, an amount mismatch — will show up here for someone to review.",
       "incidentEmptyFiltered": "No incident matches these filters. Try different filters or clear them to see more."
+    },
+    "terminals": {
+      "ruleHint": "A device either issues tickets or charges them, not both.",
+      "issueOrCheckoutTitle": "A device either issues or charges tickets",
+      "turnedOffCheckout": "«Charge tickets» was turned off: a device either issues tickets or charges them, not both. Use the register to charge tickets.",
+      "turnedOffIssue": "«Issue tickets» was turned off: a device either issues tickets or charges them, not both.",
+      "bothOnWarning": "This device has both «Issue tickets» and «Charge tickets». It only issues: turn one of them off. Use the register to charge tickets."
     }
   }
 }
