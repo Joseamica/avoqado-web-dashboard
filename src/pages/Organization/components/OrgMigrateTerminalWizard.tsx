@@ -483,9 +483,25 @@ export default function OrgMigrateTerminalWizard({ open, onOpenChange, orgId, te
                   {timedOut && (
                     <div className="space-y-1.5 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3">
                       <p className="text-sm font-medium text-amber-600 flex items-start gap-1">
-                        <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" /> {t('terminals.migrate.timeoutTitle')}
+                        <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />{' '}
+                        {t(
+                          !migStatus?.legacyApp
+                            ? 'terminals.migrate.timeoutTitle'
+                            : migStatus.cancellable
+                              ? 'terminals.migrate.timeoutTitleLegacy'
+                              : 'terminals.migrate.timeoutTitleLegacyDelivered',
+                        )}
                       </p>
-                      <p className="text-xs text-muted-foreground">{t('terminals.migrate.timeoutBody')}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {t(
+                          !migStatus?.legacyApp
+                            ? 'terminals.migrate.timeoutBody'
+                            : migStatus.cancellable
+                              ? 'terminals.migrate.timeoutBodyLegacy'
+                              : 'terminals.migrate.timeoutBodyLegacyDelivered',
+                          { venue: destinationName },
+                        )}
+                      </p>
                     </div>
                   )}
                   <DialogFooter className="gap-2 sm:gap-2">
