@@ -57,9 +57,11 @@ interface ReviewSaleDialogProps {
   onClose: () => void
   /** Optional callback fired after a successful review. */
   onReviewed?: (updated: SaleVerification | unknown) => void
+  /** PlayTelecom: la venta trae un número de vinculación/portado repetido; aprobar pide confirmar. */
+  numberDuplicate?: boolean
 }
 
-export function ReviewSaleDialog({ open, mode, verification, venueId, orgId, onClose, onReviewed }: ReviewSaleDialogProps) {
+export function ReviewSaleDialog({ open, mode, verification, venueId, orgId, onClose, onReviewed, numberDuplicate }: ReviewSaleDialogProps) {
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const [selectedReasons, setSelectedReasons] = useState<SaleVerificationRejectionReason[]>([])
@@ -177,6 +179,7 @@ export function ReviewSaleDialog({ open, mode, verification, venueId, orgId, onC
 
         {mode === 'approve' ? (
           <div className="py-2 text-sm text-muted-foreground">
+            {numberDuplicate && <p className="mb-2 font-medium text-foreground">Esta venta tiene un número repetido. ¿Aprobarla igual?</p>}
             La venta se marcará como <span className="font-bold text-green-700 dark:text-green-400">APROBADA</span>{' '}
             en la TPV del promotor.
           </div>
@@ -239,7 +242,13 @@ export function ReviewSaleDialog({ open, mode, verification, venueId, orgId, onC
             }
           >
             {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-            {mode === 'approve' ? 'Aprobar venta' : mode === 'mark-rejected' ? 'Rechazar venta' : 'Marcar para revisar'}
+            {mode === 'approve'
+              ? numberDuplicate
+                ? 'Aprobar igual'
+                : 'Aprobar venta'
+              : mode === 'mark-rejected'
+                ? 'Rechazar venta'
+                : 'Marcar para revisar'}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -986,6 +986,9 @@ export default function SalesDetail() {
         mode={reviewMode}
         verification={reviewVerification}
         orgId={orgId}
+        numberDuplicate={
+          linkingOn && !!reviewVerification?.numberAlerts?.some(a => a.code === 'LINKING_DUPLICATE' || a.code === 'PORTED_DUPLICATE')
+        }
         onClose={() => setReviewOpen(false)}
       />
 

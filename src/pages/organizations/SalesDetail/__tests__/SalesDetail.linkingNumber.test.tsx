@@ -474,3 +474,23 @@ describe('Ventas — Detalle: pendientes de la revisión de B2', () => {
     expect(within(fila('ICCID-LINEA')).getByRole('button', { name: 'Guardar' })).toBeDisabled()
   })
 })
+
+describe('Ventas — Detalle: aprobar con número repetido', () => {
+  const abrirAprobar = async (r: OrgSaleRow) => {
+    renderCon([r])
+    await screen.findByText(r.serialNumbers[0])
+    fireEvent.click(within(fila(r.serialNumbers[0])).getByRole('button', { name: /^Aprobar$/ }))
+  }
+
+  it('si la fila trae un repetido, el diálogo pide confirmar', async () => {
+    await abrirAprobar(venta({ id: 'sv-d', serial: 'ICCID-DUP', numberAlerts: [{ code: 'PORTED_DUPLICATE' }] }))
+    expect(await screen.findByText('Esta venta tiene un número repetido. ¿Aprobarla igual?')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Aprobar igual' })).toBeInTheDocument()
+  })
+
+  it('sin repetido, el diálogo es el de hoy', async () => {
+    await abrirAprobar(venta({ id: 'sv-n', serial: 'ICCID-NODUP', numberAlerts: [{ code: 'NOT_10_DIGITS' }] }))
+    expect(await screen.findByRole('button', { name: 'Aprobar venta' })).toBeInTheDocument()
+    expect(screen.queryByText(/número repetido/)).not.toBeInTheDocument()
+  })
+})
