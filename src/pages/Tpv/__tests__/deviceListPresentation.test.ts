@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  cuentasAlQuitar,
+  cuentasAlVincular,
   getActivationRoute,
   getAppVersion,
   getDeviceBattery,
@@ -205,5 +207,17 @@ describe('getLastSeen', () => {
   it('fecha inválida o ausente ⇒ null', () => {
     expect(getLastSeen(null, NOW)).toBeNull()
     expect(getLastSeen('no-es-fecha', NOW)).toBeNull()
+  })
+})
+
+describe('cuentas de una terminal: el SERVIDOR reemplaza la lista completa', () => {
+  it('sin haber leído lo que ya tiene no hay lista que mandar, porque le quitaría sus otras cuentas', () => {
+    expect(cuentasAlVincular(undefined, 'nueva')).toBeNull()
+    expect(cuentasAlQuitar(undefined, 'vieja')).toBeNull()
+  })
+  it('con lo leído conserva las demás, incluida una terminal de verdad sin cuentas', () => {
+    expect(cuentasAlVincular(['a', 'b'], 'c')).toEqual(['a', 'b', 'c'])
+    expect(cuentasAlVincular([], 'c')).toEqual(['c'])
+    expect(cuentasAlQuitar(['a', 'b'], 'a')).toEqual(['b'])
   })
 })

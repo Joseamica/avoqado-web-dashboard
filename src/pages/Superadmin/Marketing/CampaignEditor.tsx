@@ -10,6 +10,7 @@
  * Design: FullScreenModal Form Pattern (Rule 15)
  */
 
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { Button } from '@/components/ui/button'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { Input } from '@/components/ui/input'
@@ -67,11 +68,12 @@ function CampaignEditor() {
   })
 
   // Fetch existing campaign if editing
-  const { data: campaignData, isLoading: campaignLoading } = useQuery({
+  const campaignQuery = useQuery({
     queryKey: ['marketing-campaign', campaignId],
     queryFn: () => marketingService.getCampaign(campaignId!),
     enabled: isEditing,
   })
+  const { data: campaignData, isLoading: campaignLoading } = campaignQuery
 
   // Load campaign data when editing
   useEffect(() => {
@@ -211,6 +213,15 @@ function CampaignEditor() {
     )
   }
 
+  // Editando, sin la campaña el formulario saldría vacío y guardar pisaría su contenido.
+  if (isEditing && campaignData === undefined) {
+    return (
+      <div className="p-6">
+        <AvisoDeCarga query={campaignQuery} hayDatos={false} />
+      </div>
+    )
+  }
+
   return (
     <>
       <FullScreenModal
@@ -243,6 +254,7 @@ function CampaignEditor() {
         }
       >
         <div className="max-w-5xl mx-auto px-6 py-8">
+          <AvisoDeCarga query={campaignQuery} hayDatos />
           <div className="grid gap-6 lg:grid-cols-3">
             {/* Main Content - 2 columns */}
             <div className="lg:col-span-2 space-y-6">

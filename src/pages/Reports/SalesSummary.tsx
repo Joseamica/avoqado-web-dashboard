@@ -2,6 +2,8 @@ import { useState, useMemo, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
@@ -1035,16 +1037,12 @@ export default function SalesSummary() {
   }, [venueId, hasAccess, dateRange.from, dateRange.to, todayRange.from, todayRange.to, effectiveReportType, merchantAccountId, paymentMethodFilter, cardTypeFilter])
 
   // Fetch sales summary data from API
-  const {
-    data: apiResponse,
-    isLoading,
-    isError,
-    error,
-  } = useQuery({
+  const salesQuery = useQuery({
     queryKey: salesSummaryKeys.summary(apiFilters),
     queryFn: () => fetchSalesSummary(apiFilters),
     staleTime: 1000 * 60 * 5, // 5 minutes
   })
+  const { data: apiResponse, isLoading } = salesQuery
 
   // Period statement inputs — the additive API fields powering the Mercury-style
   // "estado de cuenta" (StatementSection derives all money math from these).
@@ -1162,11 +1160,8 @@ export default function SalesSummary() {
     }
   }
 
-  if (isLoading || !data) {
-    return <SalesSummarySkeleton />
-  }
-
-  if (isError) {
+  // Antes de preguntar si hay datos: sin ellos, el esqueleto de abajo se quedaría para siempre.
+  if (!data && falloDeCarga(salesQuery)) {
     return (
       <div className="p-4 md:p-6 space-y-6">
         <div className="flex items-center gap-3">
@@ -1178,13 +1173,13 @@ export default function SalesSummary() {
             })}
           />
         </div>
-        <GlassCard className="p-6">
-          <p className="text-destructive">
-            {error instanceof Error ? error.message : 'Error loading sales summary'}
-          </p>
-        </GlassCard>
+        <AvisoDeCarga query={salesQuery} hayDatos={false} />
       </div>
     )
+  }
+
+  if (isLoading || !data) {
+    return <SalesSummarySkeleton />
   }
 
   // Tarjetas de regalo (D5 r1). Con alguna cifra ≠ 0, «Total cobrado» explica que no trae lo cargado y sí lo pagado con saldo
@@ -1233,6 +1228,7 @@ export default function SalesSummary() {
 
   return (
     <div className="p-4 md:p-6 space-y-6">
+      <AvisoDeCarga query={salesQuery} hayDatos />
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3 flex-wrap">

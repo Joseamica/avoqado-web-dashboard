@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { AlertTriangle, HandCoins, Info, Landmark, Receipt, TrendingDown } from 'lucide-react'
 
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -51,7 +52,7 @@ const parsePesos = (v: string): number | undefined => {
  * Captura manual de la retención en ventas del periodo (ISR/IVA que clientes MORALES nos retuvieron).
  * En pesos en la UI; se envía en centavos. Reduce el ISR a pagar y el IVA en flujo. Requiere accounting:manage.
  */
-function RetencionCard({ period, enabled }: { period: string; enabled: boolean }) {
+export function RetencionCard({ period, enabled }: { period: string; enabled: boolean }) {
   const { t } = useTranslation('reports')
   const { toast } = useToast()
   const query = useSalesRetention(period, { enabled })
@@ -59,6 +60,8 @@ function RetencionCard({ period, enabled }: { period: string; enabled: boolean }
   const [isr, setIsr] = useState<number | undefined>(undefined)
   const [iva, setIva] = useState<number | undefined>(undefined)
   const [note, setNote] = useState('')
+  // Sin la lectura, lo que se guarde serían ceros encima de lo real: el SERVIDOR reemplaza.
+  const lecturaLista = query.data !== undefined
 
   // Hidrata desde el servidor al llegar el dato / cambiar de periodo.
   useEffect(() => {
@@ -91,6 +94,7 @@ function RetencionCard({ period, enabled }: { period: string; enabled: boolean }
           <h2 className="text-sm font-semibold text-foreground">{t('isr.retencion.title')}</h2>
         </div>
         <p className="text-xs text-muted-foreground">{t('isr.retencion.description')}</p>
+        <AvisoDeCarga query={query} hayDatos={lecturaLista} />
 
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="space-y-1">
@@ -102,7 +106,7 @@ function RetencionCard({ period, enabled }: { period: string; enabled: boolean }
               min={0}
               step="0.01"
               placeholder="0.00"
-              disabled={!enabled}
+              disabled={!enabled || !lecturaLista}
               value={isr ?? ''}
               onChange={e => setIsr(parsePesos(e.target.value))}
               className="h-10"
@@ -117,7 +121,7 @@ function RetencionCard({ period, enabled }: { period: string; enabled: boolean }
               min={0}
               step="0.01"
               placeholder="0.00"
-              disabled={!enabled}
+              disabled={!enabled || !lecturaLista}
               value={iva ?? ''}
               onChange={e => setIva(parsePesos(e.target.value))}
               className="h-10"
@@ -132,7 +136,7 @@ function RetencionCard({ period, enabled }: { period: string; enabled: boolean }
             type="text"
             maxLength={300}
             placeholder={t('isr.retencion.notePlaceholder')}
-            disabled={!enabled}
+            disabled={!enabled || !lecturaLista}
             value={note}
             onChange={e => setNote(e.target.value)}
             className="h-10"
@@ -141,9 +145,9 @@ function RetencionCard({ period, enabled }: { period: string; enabled: boolean }
 
         <div className="flex items-center justify-between gap-3 pt-1">
           <p className="text-xs text-muted-foreground">
-            {query.data?.hasEntry ? t('isr.retencion.captured') : t('isr.retencion.notCaptured')}
+            {lecturaLista && (query.data?.hasEntry ? t('isr.retencion.captured') : t('isr.retencion.notCaptured'))}
           </p>
-          <Button size="sm" onClick={onSave} disabled={!enabled || mutation.isPending} data-tour="isr-retencion-save">
+          <Button size="sm" onClick={onSave} disabled={!enabled || !lecturaLista || mutation.isPending} data-tour="isr-retencion-save">
             {mutation.isPending ? t('isr.retencion.saving') : t('isr.retencion.save')}
           </Button>
         </div>
@@ -156,13 +160,15 @@ function RetencionCard({ period, enabled }: { period: string; enabled: boolean }
  * Captura del SALDO de pérdidas fiscales de ejercicios anteriores pendiente de amortizar. Solo régimen
  * GENERAL: el ISR lo resta a la utilidad (topado). En pesos; se envía en centavos. Requiere accounting:manage.
  */
-function PerdidasCard({ enabled }: { enabled: boolean }) {
+export function PerdidasCard({ enabled }: { enabled: boolean }) {
   const { t } = useTranslation('reports')
   const { toast } = useToast()
   const query = useFiscalLoss({ enabled })
   const mutation = useSetFiscalLoss()
   const [saldo, setSaldo] = useState<number | undefined>(undefined)
   const [note, setNote] = useState('')
+  // Sin la lectura, lo que se guarde sería un saldo en cero encima del real: el SERVIDOR reemplaza.
+  const lecturaLista = query.data !== undefined
 
   useEffect(() => {
     const d = query.data
@@ -188,6 +194,7 @@ function PerdidasCard({ enabled }: { enabled: boolean }) {
           <h2 className="text-sm font-semibold text-foreground">{t('isr.perdidas.title')}</h2>
         </div>
         <p className="text-xs text-muted-foreground">{t('isr.perdidas.description')}</p>
+        <AvisoDeCarga query={query} hayDatos={lecturaLista} />
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="space-y-1">
             <label htmlFor="loss-saldo" className="block text-xs text-muted-foreground">
@@ -200,7 +207,7 @@ function PerdidasCard({ enabled }: { enabled: boolean }) {
               min={0}
               step="0.01"
               placeholder="0.00"
-              disabled={!enabled}
+              disabled={!enabled || !lecturaLista}
               value={saldo ?? ''}
               onChange={e => setSaldo(parsePesos(e.target.value))}
               className="h-10"
@@ -215,7 +222,7 @@ function PerdidasCard({ enabled }: { enabled: boolean }) {
               type="text"
               maxLength={300}
               placeholder={t('isr.perdidas.notePlaceholder')}
-              disabled={!enabled}
+              disabled={!enabled || !lecturaLista}
               value={note}
               onChange={e => setNote(e.target.value)}
               className="h-10"
@@ -224,9 +231,9 @@ function PerdidasCard({ enabled }: { enabled: boolean }) {
         </div>
         <div className="flex items-center justify-between gap-3 pt-1">
           <p className="text-xs text-muted-foreground">
-            {query.data?.hasEntry ? t('isr.perdidas.captured') : t('isr.perdidas.notCaptured')}
+            {lecturaLista && (query.data?.hasEntry ? t('isr.perdidas.captured') : t('isr.perdidas.notCaptured'))}
           </p>
-          <Button size="sm" onClick={onSave} disabled={!enabled || mutation.isPending}>
+          <Button size="sm" onClick={onSave} disabled={!enabled || !lecturaLista || mutation.isPending}>
             {mutation.isPending ? t('isr.perdidas.saving') : t('isr.perdidas.save')}
           </Button>
         </div>

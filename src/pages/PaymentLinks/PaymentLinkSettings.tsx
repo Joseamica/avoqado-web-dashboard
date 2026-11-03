@@ -2,6 +2,7 @@ import { Switch } from '@/components/ui/switch'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -212,11 +213,12 @@ export default function PaymentLinkSettings() {
   const queryClient = useQueryClient()
   const { toast } = useToast()
 
-  const { data, isLoading } = useQuery({
+  const settingsQuery = useQuery({
     queryKey: ['payment-link-settings', venueId],
     queryFn: () => paymentLinkService.getSettings(venueId!),
     enabled: !!venueId,
   })
+  const { data, isLoading } = settingsQuery
 
   // Local draft so toggles don't fire a network roundtrip per click. Saved
   // explicitly via the bottom "Guardar" button or auto on Switch change for
@@ -248,9 +250,19 @@ export default function PaymentLinkSettings() {
     )
   }
 
+  // Sin la lectura, el borrador trae los valores de fábrica y al guardar pisaría propinas, avisos y políticas reales.
+  if (data === undefined) {
+    return (
+      <div className="p-4 bg-background text-foreground">
+        <AvisoDeCarga query={settingsQuery} hayDatos={false} />
+      </div>
+    )
+  }
+
   return (
     <div className="p-4 bg-background text-foreground">
       <div className="max-w-2xl">
+        <AvisoDeCarga query={settingsQuery} hayDatos />
         {/* Header */}
         <div className="mb-8 flex items-start justify-between gap-4">
           <div>

@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Send } from 'lucide-react'
+import { Loader2, Send } from 'lucide-react'
 
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { Button } from '@/components/ui/button'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { Input } from '@/components/ui/input'
@@ -48,18 +49,22 @@ export function CampaignEditorModal({ venueId, campaignId, open, onClose }: Prop
 	const [mandando, setMandando] = useState(false)
 	const [cargado, setCargado] = useState(false)
 
-	const { data: campana, isLoading } = useQuery({
+	const campanaQuery = useQuery({
 		queryKey: ['campaign', venueId, campaignId],
 		queryFn: () => marketingService.getCampaign(venueId, campaignId!),
 		enabled: open && Boolean(campaignId),
 	})
+	const { data: campana, isLoading } = campanaQuery
+	// Editando, sin la campaña no hay formulario: guardar pisaría su texto con lo que se teclee.
+	const lecturaPendiente = Boolean(campaignId) && campana === undefined
 
 	useEffect(() => {
 		if (!open) {
 			setCargado(false)
 			return
 		}
-		if (cargado || isLoading) return
+		// Tampoco se marca como cargado si la lectura falló: al reintentar tiene que llenar el formulario.
+		if (cargado || lecturaPendiente) return
 		if (campana) {
 			setName(campana.name)
 			setSubject(campana.subject)
@@ -71,7 +76,7 @@ export function CampaignEditorModal({ venueId, campaignId, open, onClose }: Prop
 			setBloques(conocidos.length ? conocidos : [{ type: 'paragraph', text: '' }])
 		}
 		setCargado(true)
-	}, [open, isLoading, campana, cargado])
+	}, [open, lecturaPendiente, campana, cargado])
 
 	const guardar = useMutation({
 		mutationFn: () => {
@@ -96,6 +101,20 @@ export function CampaignEditorModal({ venueId, campaignId, open, onClose }: Prop
 
 	// Ya enviada: se puede abrir para ver, no para editar.
 	const soloLectura = Boolean(campana && campana.status !== 'DRAFT' && campana.status !== 'SCHEDULED')
+
+	if (lecturaPendiente) {
+		return (
+			<FullScreenModal open={open} onClose={onClose} title={t('campaigns.editTitle')} contentClassName="bg-muted/30">
+				<div className="mx-auto max-w-2xl p-6">
+					{isLoading ? (
+						<Loader2 className="mx-auto h-8 w-8 animate-spin text-muted-foreground" />
+					) : (
+						<AvisoDeCarga query={campanaQuery} hayDatos={false} />
+					)}
+				</div>
+			</FullScreenModal>
+		)
+	}
 
 	return (
 		<FullScreenModal
@@ -122,6 +141,7 @@ export function CampaignEditorModal({ venueId, campaignId, open, onClose }: Prop
 			contentClassName="bg-muted/30"
 		>
 			<div className="mx-auto max-w-2xl space-y-6 p-6">
+				<AvisoDeCarga query={campanaQuery} hayDatos />
 				<div className="space-y-2">
 					<Label htmlFor="campaign-name">{t('campaigns.fields.name')}</Label>
 					<Input

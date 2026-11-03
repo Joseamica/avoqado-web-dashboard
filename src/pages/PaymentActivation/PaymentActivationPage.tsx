@@ -22,8 +22,9 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Check, Circle, FileText } from 'lucide-react'
+import { Check, Circle, FileText, Loader2 } from 'lucide-react'
 
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -71,7 +72,7 @@ export default function PaymentActivationPage() {
   const queryClient = useQueryClient()
   const [guardando, setGuardando] = useState(false)
 
-  const { data } = useQuery<PaymentActivationStatus | null>({
+  const activacion = useQuery<PaymentActivationStatus | null>({
     queryKey: ['payment-activation', venueId],
     queryFn: async () => {
       const res = await paymentActivationService.get(venueId!)
@@ -80,6 +81,7 @@ export default function PaymentActivationPage() {
     enabled: !!venueId,
     retry: false,
   })
+  const { data, isLoading } = activacion
 
   const [direccion, setDireccion] = useState<DireccionCapturada>(VACIA)
   const [errorDireccion, setErrorDireccion] = useState('')
@@ -125,6 +127,19 @@ export default function PaymentActivationPage() {
     }
   }
 
+  // Sin la lectura no se sabe si ya hay dirección: la pantalla pediría otra y guardarla pisaría la capturada.
+  if (data === undefined) {
+    return (
+      <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 p-4 sm:p-6">
+        {isLoading ? (
+          <Loader2 className="mx-auto h-8 w-8 animate-spin text-muted-foreground" />
+        ) : (
+          <AvisoDeCarga query={activacion} hayDatos={false} />
+        )}
+      </div>
+    )
+  }
+
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 p-4 sm:p-6">
       <header className="flex flex-col gap-2">
@@ -135,6 +150,8 @@ export default function PaymentActivationPage() {
           })}
         </p>
       </header>
+
+      <AvisoDeCarga query={activacion} hayDatos />
 
       <Seccion
         titulo={t('paymentActivation.sections.address', { defaultValue: 'Dirección de tu local' })}

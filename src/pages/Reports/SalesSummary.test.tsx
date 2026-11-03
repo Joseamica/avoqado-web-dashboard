@@ -22,7 +22,7 @@ vi.mock('@/hooks/use-tier-feature-access', () => ({
 }))
 vi.mock('@/services/reports/salesSummary.service', async importOriginal => ({
   ...(await importOriginal<typeof import('@/services/reports/salesSummary.service')>()),
-  fetchSalesSummary: () => Promise.resolve(h.response),
+  fetchSalesSummary: () => (h.response instanceof Error ? Promise.reject(h.response) : Promise.resolve(h.response)),
 }))
 vi.mock('@/services/paymentProvider.service', () => ({
   getVenueMerchantAccountsByVenueId: () => Promise.resolve([]),
@@ -233,5 +233,17 @@ describe('SalesSummary · cifras de tarjetas de regalo (D5 r1)', () => {
     pintar()
     // La leyenda y el tooltip (que aquí se pinta en línea) dicen el método.
     expect((await screen.findAllByText('salesSummary.paymentTypes.cash')).length).toBeGreaterThan(0)
+  })
+})
+
+describe('Reporte de Ventas si falla la carga', () => {
+  it('avisa con Reintentar en vez de quedarse cargando para siempre', async () => {
+    h.response = new Error('500')
+    h.access = true
+    pintar()
+    await screen.findByRole('alert')
+    expect(screen.getByText('loadFailure.empty')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'retry' })).toBeInTheDocument()
+    expect(screen.queryByLabelText('Cargando resumen')).toBeNull()
   })
 })

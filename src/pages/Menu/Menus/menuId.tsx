@@ -1,4 +1,5 @@
 import AlertDialogWrapper from '@/components/alert-dialog'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { DondeSeUsaField } from './components/DondeSeUsaField'
 import { MultiSelectCombobox } from '@/components/multi-select-combobox'
 import { Button } from '@/components/ui/button'
@@ -103,10 +104,11 @@ export default function MenuId() {
   }
 
   // Consulta del menú a editar
-  const { data: menuData, isLoading: isMenuLoading } = useQuery({
+  const menuQuery = useQuery({
     queryKey: ['menus', menuId],
     queryFn: () => getMenu(venueId, menuId),
   })
+  const { data: menuData, isLoading: isMenuLoading } = menuQuery
 
   // Consulta de categorías del venue
   const { data: categories, isLoading: isCategoriesLoading } = useQuery({
@@ -246,6 +248,15 @@ export default function MenuId() {
   // Si aún se están cargando datos, mostramos el loading.
   if (isMenuLoading || isCategoriesLoading) {
     return <div>{t('menuId.loading')}</div>
+  }
+
+  // Sin el menú, el formulario saldría vacío y guardar le borraría las categorías, el horario y los días.
+  if (menuData === undefined) {
+    return (
+      <div className="p-4">
+        <AvisoDeCarga query={menuQuery} hayDatos={false} />
+      </div>
+    )
   }
 
   // Obtenemos valores del formulario
@@ -398,6 +409,7 @@ export default function MenuId() {
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="p-4 space-y-6">
+          <AvisoDeCarga query={menuQuery} hayDatos />
           <div className="grid grid-cols-1 xl:grid-cols-[1.35fr_1fr] gap-6">
             <CardShadcn className="border-border/60">
               <CardContentShadcn className="space-y-6 pt-6">

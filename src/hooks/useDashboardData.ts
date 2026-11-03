@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/context/AuthContext'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { useSocketEvents } from '@/hooks/use-socket-events'
 import { DashboardProgressiveService } from '@/services/dashboard.progressive.service'
 import { getLast7Days, getToday, getYesterday, getLast30Days, getPreviousPeriod } from '@/utils/datetime'
@@ -71,13 +72,7 @@ export const useDashboardData = () => {
   }, [t, venueTimezone])
 
   // Basic metrics query (priority load)
-  const {
-    data: basicData,
-    isLoading: isBasicLoading,
-    isError: isBasicError,
-    error: basicError,
-    refetch: refetchBasicData,
-  } = useQuery({
+  const basicQuery = useQuery({
     queryKey: ['basic_metrics', venueId, selectedRange.from.toISOString(), selectedRange.to.toISOString()],
     queryFn: async () => {
       return await dashboardService.getBasicMetrics(selectedRange)
@@ -87,13 +82,16 @@ export const useDashboardData = () => {
     refetchOnWindowFocus: false,
     refetchOnMount: true,
   })
+  const {
+    data: basicData,
+    isLoading: isBasicLoading,
+    isError: isBasicError,
+    error: basicError,
+    refetch: refetchBasicData,
+  } = basicQuery
 
   // Comparison data query
-  const {
-    data: compareData,
-    isLoading: isCompareLoading,
-    refetch: refetchCompareData,
-  } = useQuery({
+  const compareQuery = useQuery({
     queryKey: ['basic_metrics_compare', venueId, compareRange.from.toISOString(), compareRange.to.toISOString()],
     queryFn: async () => {
       if (!compareType) return null
@@ -105,6 +103,11 @@ export const useDashboardData = () => {
     refetchOnMount: true,
     enabled: !!compareType,
   })
+  const { data: compareData, isLoading: isCompareLoading, refetch: refetchCompareData } = compareQuery
+  // Sin leer el periodo anterior, sus ceros y su «+100 %» no son datos.
+  const comparacionCaida = compareData === undefined && falloDeCarga(compareQuery)
+  // También mientras carga o se reintenta: hasta que llegue, no hay nada contra qué comparar.
+  const comparacionLista = compareData !== undefined
 
   // Register socket event handlers
   useSocketEvents(
@@ -362,6 +365,10 @@ export const useDashboardData = () => {
     handleLast7Days,
     handleLast30Days,
     basicData,
+    basicQuery,
+    compareQuery,
+    comparacionCaida,
+    comparacionLista,
     isBasicLoading,
     isBasicError,
     basicError,

@@ -26,6 +26,7 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
 import { useAccess } from '@/hooks/use-access'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { FeatureGate } from '@/components/billing/FeatureGate'
 import referralsService from '@/services/referrals.service'
 import { getIntlLocale } from '@/utils/i18n-locale'
@@ -169,11 +170,12 @@ export default function ReferralsSettings() {
   const [editingTier, setEditingTier] = useState<1 | 2 | 3 | null>(null)
 
   // ── Queries ──────────────────────────────────────────────────────────────
-  const { data: config, isLoading: configLoading } = useQuery({
+  const configQuery = useQuery({
     queryKey: ['referrals-config', venueId],
     queryFn: () => referralsService.getConfig(venueId!),
     enabled: !!venueId,
   })
+  const { data: config, isLoading: configLoading } = configQuery
 
   const isActive = config?.active === true
 
@@ -283,6 +285,17 @@ export default function ReferralsSettings() {
           </div>
         </div>
       </div>
+    )
+  }
+
+  // Sin la lectura no se sabe si el programa ya está activo: el formulario de activar pisaría sus premios.
+  if (config === undefined) {
+    return (
+      <FeatureGate feature="REFERRAL_PROGRAM">
+        <div className="p-6">
+          <AvisoDeCarga query={configQuery} hayDatos={false} />
+        </div>
+      </FeatureGate>
     )
   }
 
