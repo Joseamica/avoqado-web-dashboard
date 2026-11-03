@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -24,11 +25,13 @@ vi.mock('react-i18next', () => ({
 
 function renderPage() {
   return render(
+    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })}>
     <MemoryRouter initialEntries={['/organizations/org-1/master-catalog/publications']}>
       <Routes>
         <Route path="/organizations/:orgId/master-catalog/publications" element={<CatalogPublicationsPage />} />
       </Routes>
-    </MemoryRouter>,
+    </MemoryRouter>
+    </QueryClientProvider>,
   )
 }
 

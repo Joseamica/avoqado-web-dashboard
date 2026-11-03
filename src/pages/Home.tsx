@@ -18,6 +18,8 @@ import {
   Vault,
 } from 'lucide-react'
 
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { SummaryQueryBoundary } from '@/components/SummaryQueryBoundary'
 import { KYCStatusBanner } from '@/components/KYCStatusBanner'
 import { McpAnnouncementBanner } from '@/components/home/McpAnnouncementBanner'
 import { McpConnectCard } from '@/components/home/McpConnectCard'
@@ -36,6 +38,7 @@ import { useDashboardData } from '@/hooks/useDashboardData'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useVenueTier } from '@/hooks/use-tier-feature-access'
 import { useAccess } from '@/hooks/use-access'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { reintentarSalvoSinPermiso } from '@/lib/reintentoSinPermiso'
 import { getRoleHierarchyLevel, ROLE_HIERARCHY } from '@/lib/permissions/roleHierarchy'
 import { HAYCASH_ONBOARDING_URL, openPartner } from '@/config/partners'
@@ -178,7 +181,7 @@ export default function Home() {
     }
   }, [venueTimezone])
 
-  const { data: settlementCalendar = [] } = useQuery({
+  const settlementQuery = useQuery({
     queryKey: ['settlement-calendar', 'today', venueId, todayIso],
     queryFn: async () => {
       const res = await getSettlementCalendar(venueId!, { from: todayRange.from, to: todayRange.to })
@@ -189,6 +192,7 @@ export default function Home() {
     staleTime: 60_000,
     retry: reintentarSalvoSinPermiso,
   })
+  const { data: settlementCalendar = [] } = settlementQuery
 
   // Conteos para "Centro de negocios" — sólo se hidratan cuando el tab está
   // activo, para no quemar requests si el usuario nunca lo abre.
@@ -202,20 +206,22 @@ export default function Home() {
   })
   const teamCount = teamCountData?.meta?.totalCount ?? 0
 
-  const { data: productsData, isLoading: isProductsLoading } = useQuery({
+  const productsQuery = useQuery({
     queryKey: ['home-business-products-count', venueId],
     queryFn: () => getProducts(venueId!, { includeRecipe: false, includeModifiers: false }),
     enabled: businessEnabled,
     staleTime: 60_000,
   })
+  const { data: productsData, isLoading: isProductsLoading } = productsQuery
   const productsCount = productsData?.length ?? 0
 
-  const { data: tpvsData, isLoading: isTpvsLoading } = useQuery({
+  const tpvsQuery = useQuery({
     queryKey: ['home-business-tpvs-count', venueId],
     queryFn: () => getTpvs(venueId!, { pageIndex: 0, pageSize: 1 }),
     enabled: businessEnabled,
     staleTime: 60_000,
   })
+  const { data: tpvsData, isLoading: isTpvsLoading } = tpvsQuery
   const tpvCount = tpvsData?.meta?.total ?? tpvsData?.data?.length ?? 0
 
   const todaySettlement = useMemo(() => {
@@ -374,7 +380,7 @@ export default function Home() {
               {/* Liquidación de hoy — celda hermana del chatbot. PRO (Available Balance):
                   oculta para venues sin acceso, para no dejar una card muerta ni disparar
                   el endpoint settlement-calendar (que ahora es 403 en free). */}
-              {hasAvailableBalance && (
+              {hasAvailableBalance && can('settlements:read') && (
                 <Card
                   className="cursor-pointer rounded-2xl border-input transition-colors hover:bg-muted/30 xl:col-span-3"
                   onClick={() => navigate(`${fullBasePath}/available-balance`)}
@@ -406,7 +412,13 @@ export default function Home() {
                         </TooltipContent>
                       </Tooltip>
                     </div>
-                    <p className="text-2xl font-bold tracking-tight">{Currency(todaySettlement, false)}</p>
+                    {settlementQuery.data === undefined && falloDeCarga(settlementQuery) ? (
+                      <AvisoDeCarga query={settlementQuery} hayDatos={false} />
+                    ) : settlementQuery.data === undefined ? (
+                      <Skeleton className="h-8 w-24" />
+                    ) : (
+                      <p className="text-2xl font-bold tracking-tight">{Currency(todaySettlement, false)}</p>
+                    )}
                   </CardContent>
                 </Card>
               )}
@@ -462,6 +474,21 @@ export default function Home() {
                     </DropdownMenu>
                   </div>
 
+                  {/* Sin la lectura no hay «$0»: al dueño le parecería que no vendió nada. Los filtros de arriba siguen. */}
+                  <AvisoDeCarga query={dashboardData.basicQuery} hayDatos={dashboardData.basicData !== undefined} />
+                  {dashboardData.basicData === undefined && !falloDeCarga(dashboardData.basicQuery) && <Skeleton className="h-64 w-full" />}
+                  {dashboardData.basicData !== undefined && (
+                    <>
+                  {dashboardData.comparacionCaida && (
+                    <SummaryQueryBoundary
+                      isError
+                      message={t('newHome.performance.compareFailed')}
+                      retryLabel={t('common:retry')}
+                      onRetry={() => void dashboardData.refetchCompareData()}
+                    >
+                      {null}
+                    </SummaryQueryBoundary>
+                  )}
                   <div className="grid gap-6 md:grid-cols-[220px_1fr]">
                     <div className="flex flex-col">
                       <p className="text-sm text-muted-foreground">{t('newHome.performance.netSales')}</p>
@@ -480,10 +507,12 @@ export default function Home() {
                           <span className="h-3 w-3 rounded-sm bg-primary" />
                           <span>{currentPeriodLabel}</span>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <span className="h-3 w-3 rounded-sm bg-primary/30" />
-                          <span className="text-muted-foreground">{compareDateLabel}</span>
-                        </div>
+                        {!dashboardData.comparacionCaida && (
+                          <div className="flex items-center gap-2">
+                            <span className="h-3 w-3 rounded-sm bg-primary/30" />
+                            <span className="text-muted-foreground">{compareDateLabel}</span>
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -517,6 +546,8 @@ export default function Home() {
                       </div>
                     ))}
                   </div>
+                    </>
+                  )}
                 </CardContent>
               </Card>
 
@@ -604,21 +635,21 @@ export default function Home() {
               <BusinessCard
                 icon={CreditCard}
                 title={t('newHome.businessCenter.payments')}
-                subtitle={t('newHome.businessCenter.paymentsSubCount', { count: dashboardData.totalTransactions })}
+                subtitle={falloDeCarga(dashboardData.basicQuery) ? '—' : t('newHome.businessCenter.paymentsSubCount', { count: dashboardData.totalTransactions })}
                 isLoading={dashboardData.isBasicLoading}
                 onClick={() => navigate(`${fullBasePath}/payments`)}
               />
               <BusinessCard
                 icon={Boxes}
                 title={t('newHome.businessCenter.items')}
-                subtitle={t('newHome.businessCenter.itemsSubCount', { count: productsCount })}
+                subtitle={falloDeCarga(productsQuery) ? '—' : t('newHome.businessCenter.itemsSubCount', { count: productsCount })}
                 isLoading={isProductsLoading}
                 onClick={() => navigate(`${fullBasePath}/menumaker/products`)}
               />
               <BusinessCard
                 icon={Smartphone}
                 title={t('newHome.businessCenter.devices')}
-                subtitle={t('newHome.businessCenter.devicesSubCount', { count: tpvCount })}
+                subtitle={falloDeCarga(tpvsQuery) ? '—' : t('newHome.businessCenter.devicesSubCount', { count: tpvCount })}
                 isLoading={isTpvsLoading}
                 onClick={() => navigate(`${fullBasePath}/devices`)}
               />

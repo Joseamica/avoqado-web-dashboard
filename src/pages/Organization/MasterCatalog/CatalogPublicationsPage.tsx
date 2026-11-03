@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
@@ -18,7 +19,6 @@ import {
 } from '@/features/master-catalog/api'
 import type {
   CatalogPublicationDecision,
-  CatalogPublicationListItem,
   CatalogPublicationPreview,
   CatalogPublicationResult,
 } from '@/features/master-catalog/types'
@@ -38,33 +38,16 @@ export default function CatalogPublicationsPage() {
   const [preview, setPreview] = useState<CatalogPublicationPreview | null>(null)
   const [decisionDrafts, setDecisionDrafts] = useState<Record<string, { decision: CatalogPublicationDecision; overrideId: string }>>({})
   const [recovery, setRecovery] = useState<CatalogPublicationResult | null>(null)
-  const [history, setHistory] = useState<CatalogPublicationListItem[]>([])
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
 
-  const [historyError, setHistoryError] = useState<unknown>(null)
-  // `vigente`: una respuesta que llega tras cambiar de organización o salir de la pantalla ya no cuenta.
-  const cargarHistorial = useCallback(
-    (vigente: () => boolean = () => true) => {
-      setHistoryError(null)
-      return listCatalogPublications(orgId, { pageSize: 25 })
-        .then(page => {
-          if (vigente()) setHistory(page.items)
-        })
-        .catch((error: unknown) => {
-          if (vigente()) setHistoryError(error ?? new Error('history'))
-        })
-    },
-    [orgId],
-  )
-
-  useEffect(() => {
-    let active = true
-    void cargarHistorial(() => active)
-    return () => {
-      active = false
-    }
-  }, [cargarHistorial])
+  // Una consulta por organización: el reintento no puede pintar el historial de otra, y sin internet se recupera sola.
+  const historyQuery = useQuery({
+    queryKey: ['catalog-publications-history', orgId],
+    queryFn: () => listCatalogPublications(orgId, { pageSize: 25 }),
+    enabled: !!orgId,
+  })
+  const history = historyQuery.data?.items ?? []
 
   const expired = Boolean(preview?.expiresAt && new Date(preview.expiresAt).getTime() <= Date.now())
   const hasUndecided = preview?.lines.some(line => line.fields.some(field => field.decision === 'UNDECIDED')) ?? false
@@ -354,10 +337,7 @@ export default function CatalogPublicationsPage() {
           <CardTitle>{t('masterCatalog.publications.history', { defaultValue: 'Historial reciente' })}</CardTitle>
         </CardHeader>
         <CardContent>
-          <AvisoDeCarga
-            query={{ isError: historyError !== null, isFetching: false, isPaused: false, error: historyError, refetch: cargarHistorial }}
-            hayDatos={history.length > 0}
-          />
+          <AvisoDeCarga query={historyQuery} hayDatos={historyQuery.data !== undefined} />
           <Table aria-label={t('masterCatalog.publications.historyLabel', { defaultValue: 'Historial de publicaciones' })}>
             <TableHeader>
               <TableRow>
@@ -374,7 +354,7 @@ export default function CatalogPublicationsPage() {
                   <TableCell>{batch.lineCount}</TableCell>
                 </TableRow>
               ))}
-              {history.length === 0 && historyError === null && (
+              {historyQuery.data !== undefined && history.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={3} className="py-10 text-center text-muted-foreground">
                     {t('masterCatalog.publications.historyEmpty', { defaultValue: 'Aún no hay publicaciones.' })}
