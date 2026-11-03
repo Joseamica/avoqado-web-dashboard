@@ -61,10 +61,11 @@
     "card": {
       "off": "Off: your customers can only pay at pickup.",
       "ready": "Your customers can pay by card.",
-      "notConnected": "To charge cards, connect your Stripe account.",
+      "notConnected": "To take card payments online, sign up with Stripe.",
       "notChargeable": "Your Stripe account can't charge yet.",
       "connect": "Connect Stripe",
-      "review": "Review Stripe"
+      "review": "Review Stripe",
+      "mercadoPagoSoon": "Coming soon: Mercado Pago."
     },
     "minOrder": "Minimum order (MXN)",
     "minOrderHelp": "Price already includes tax. Leave blank to keep it unchanged.",
