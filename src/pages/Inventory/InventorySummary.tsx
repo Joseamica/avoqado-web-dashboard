@@ -86,7 +86,7 @@ export default function InventorySummary() {
   const [isExporting, setIsExporting] = useState(false)
 
   // Fetch real products with inventory data
-  const { data: products, isLoading: isLoadingProducts, isFetching: isFetchingProducts, isError: productsFailed, refetch: refetchProducts } = useQuery({
+  const { data: products, isLoading: isLoadingProducts, isFetching: isFetchingProducts, isError: productsFailed, isPaused: isProductsPaused, refetch: refetchProducts } = useQuery({
     queryKey: inventoryKeys.productsSummary(venueId ?? ''),
     queryFn: () => getProducts(venueId!),
     enabled: !!venueId && !isLoadingAccess && hasAccess,
@@ -96,7 +96,7 @@ export default function InventorySummary() {
   })
 
   // Fetch raw materials (ingredients) to merge into the physical tab
-  const { data: rawMaterialsResponse, isLoading: isLoadingRawMaterials, isFetching: isFetchingRawMaterials, error: rawMaterialsError, refetch: refetchRawMaterials } = useQuery({
+  const { data: rawMaterialsResponse, isLoading: isLoadingRawMaterials, isFetching: isFetchingRawMaterials, isPaused: isRawMaterialsPaused, error: rawMaterialsError, refetch: refetchRawMaterials } = useQuery({
     queryKey: inventoryKeys.rawMaterials(venueId ?? ''),
     queryFn: () => rawMaterialsApi.getAll(venueId!, { active: true }),
     enabled: !!venueId && !isLoadingAccess && hasAccess,
@@ -114,14 +114,17 @@ export default function InventorySummary() {
 
   const isLoading = isLoadingAccess || isLoadingProducts || isLoadingRawMaterials
 
+  // Una lista vacía por un fallo no es un negocio sin artículos. Sin internet la consulta se pausa en vez de fallar, y vuelve
+  // sola con la red. Mientras se reintenta no se avisa: si vuelve a fallar, regresa.
+  const recipesLoadFailed = (productsFailed && !isFetchingProducts) || isProductsPaused
   // Sin permiso de ingredientes no es un fallo: ese rol tampoco los ve en la tabla.
-  const ingredientsFailed = rawMaterialsError != null && !esSinPermiso(rawMaterialsError)
-  // Una lista vacía por un fallo no es un negocio sin artículos. Mientras se reintenta no se avisa: si vuelve a fallar, regresa.
-  const recipesLoadFailed = productsFailed && !isFetchingProducts
-  const physicalLoadFailed = recipesLoadFailed || (ingredientsFailed && !isFetchingRawMaterials)
+  const ingredientsLoadFailed =
+    (rawMaterialsError != null && !esSinPermiso(rawMaterialsError) && !isFetchingRawMaterials) || isRawMaterialsPaused
+  // Esta pestaña espera las dos consultas: antes de avisar hay que saber qué llegó.
+  const physicalLoadFailed = !isLoading && (recipesLoadFailed || ingredientsLoadFailed)
   const retryLoad = () => {
-    if (productsFailed) void refetchProducts()
-    if (ingredientsFailed) void refetchRawMaterials()
+    if (recipesLoadFailed) void refetchProducts()
+    if (ingredientsLoadFailed) void refetchRawMaterials()
   }
 
   // Stock Adjustment Mutation
@@ -654,7 +657,7 @@ export default function InventorySummary() {
   const handleExport = async () => {
     const onRecipes = activeTab === 'recipes'
     // Sin esto, un fallo de carga bajaría un archivo incompleto que parece bueno.
-    if (productsFailed || (!onRecipes && ingredientsFailed)) {
+    if (onRecipes ? recipesLoadFailed : physicalLoadFailed) {
       toast({ title: tInventory('stockExport.loadFailed'), description: tInventory('stockExport.loadFailedHint'), variant: 'destructive' })
       return
     }

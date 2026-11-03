@@ -1,5 +1,5 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { configure, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { QueryClient, QueryClientProvider, onlineManager } from '@tanstack/react-query'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ReactNode } from 'react'
@@ -18,6 +18,7 @@ const mocks = vi.hoisted(() => ({
 }))
 // Esta pantalla pesa: en una máquina cargada cada dibujo tarda segundos y el límite de 5 s da rojos falsos.
 vi.setConfig({ testTimeout: 30_000 })
+configure({ asyncUtilTimeout: 10_000 })
 
 const t = (key: string, opts?: Record<string, unknown>) => {
   const raw = key.split('.').reduce<any>((o, k) => o?.[k], es)
@@ -102,7 +103,10 @@ beforeEach(() => {
   mocks.materials.mockResolvedValue({ data: [] })
   mocks.exportSheets.mockResolvedValue(undefined)
 })
-afterEach(() => client?.clear())
+afterEach(() => {
+  onlineManager.setOnline(true)
+  client?.clear()
+})
 
 describe('Exportar en Resumen de Existencias', () => {
   it('descarga TODO lo de la pestaña, no sólo la página que se ve, y dice cuántos artículos llevó', async () => {
@@ -384,6 +388,66 @@ describe('Si falla la carga del inventario', () => {
 
     expect(screen.getByText('Sin resultados')).toBeInTheDocument()
     expect(aviso()).not.toBeInTheDocument()
+  })
+
+  it('abrir la pantalla sin internet no dice «Sin resultados»: avisa, y al volver la red carga sola (Codex r1)', async () => {
+    onlineManager.setOnline(false)
+    mocks.products.mockResolvedValue([prenda(1)])
+    renderSummary()
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(es.stockLoad.failed)
+    expect(screen.queryByText('Sin resultados')).not.toBeInTheDocument()
+    expect(pestanaFisica()).not.toHaveTextContent(/\d/)
+
+    onlineManager.setOnline(true)
+
+    expect(await screen.findByText('Vestido 1')).toBeInTheDocument()
+    expect(aviso()).not.toBeInTheDocument()
+  })
+
+  it('reintentar sin internet no regresa al «Sin resultados» (Codex r1)', async () => {
+    mocks.products.mockRejectedValue(caida)
+    renderSummary()
+    await screen.findByRole('alert')
+    await terminoDeCargar()
+
+    onlineManager.setOnline(false)
+    fireEvent.click(reintentar())
+
+    await waitFor(() => expect(client.getQueryCache().getAll().some(q => q.state.fetchStatus === 'paused')).toBe(true))
+    expect(aviso()).toHaveTextContent(es.stockLoad.failed)
+    expect(screen.queryByText('Sin resultados')).not.toBeInTheDocument()
+  })
+
+  it('sin internet tampoco descarga un archivo con sólo una parte (Codex r1)', async () => {
+    mocks.products.mockResolvedValue([prenda(1)])
+    mocks.materials.mockResolvedValue({ data: [leche] })
+    renderSummary()
+    await terminoDeCargar()
+    onlineManager.setOnline(false)
+    void client.invalidateQueries()
+    await screen.findByRole('alert')
+
+    fireEvent.click(exportar())
+
+    await waitFor(() => expect(toasts()[0]).toMatchObject({ title: es.stockExport.loadFailed, variant: 'destructive' }))
+    expect(mocks.exportSheets).not.toHaveBeenCalled()
+  })
+
+  it('si fallan los ingredientes y los productos siguen cargando, espera a saber qué llegó antes de avisar (Codex r1)', async () => {
+    let responder = (_: unknown[]) => {}
+    mocks.products.mockReturnValue(new Promise(resolve => (responder = resolve)))
+    mocks.materials.mockRejectedValue(caida)
+    renderSummary()
+    await waitFor(() => expect(client.getQueryCache().getAll().some(q => q.state.status === 'error')).toBe(true))
+
+    expect(screen.getByTestId('esqueleto')).toBeInTheDocument()
+    expect(aviso()).not.toBeInTheDocument()
+
+    responder([prenda(1)])
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(es.stockLoad.partial)
+    expect(screen.getByText('Vestido 1')).toBeInTheDocument()
   })
 
   it('mientras carga no avisa de nada', async () => {
