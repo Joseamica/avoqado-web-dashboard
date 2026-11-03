@@ -25,6 +25,8 @@ interface PerformanceChartProps {
   compareLabel: string
   /** Mensaje a mostrar como pill superpuesta cuando ambos periodos están vacíos */
   emptyLabel: string
+  /** La comparación no se pudo leer: sus barras serían ceros que no son datos. */
+  ocultarComparacion?: boolean
 }
 
 export function PerformanceChart({
@@ -36,6 +38,7 @@ export function PerformanceChart({
   currentLabel,
   compareLabel,
   emptyLabel,
+  ocultarComparacion = false,
 }: PerformanceChartProps) {
   const { t } = useTranslation('home')
 
@@ -94,7 +97,7 @@ export function PerformanceChart({
           />
         )}
         <Bar dataKey="current" fill="var(--color-current)" radius={[4, 4, 0, 0]} maxBarSize={28} />
-        <Bar dataKey="compare" fill="var(--color-compare)" radius={[4, 4, 0, 0]} maxBarSize={28} />
+        {!ocultarComparacion && <Bar dataKey="compare" fill="var(--color-compare)" radius={[4, 4, 0, 0]} maxBarSize={28} />}
       </BarChart>
     </ChartContainer>
     {isEmpty && (

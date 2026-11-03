@@ -52,11 +52,7 @@ export function useRoleConfig() {
   const effectiveVenueId = venueId || user?.venues?.[0]?.id || null
 
   // Fetch role configs
-  const {
-    data: configData,
-    isLoading,
-    error,
-  } = useQuery({
+  const configQuery = useQuery({
     queryKey: roleConfigQueryKey(effectiveVenueId),
     queryFn: () => roleConfigService.getRoleConfigs(effectiveVenueId!),
     enabled: !!effectiveVenueId,
@@ -65,6 +61,7 @@ export function useRoleConfig() {
     // Roles sin `role-config:read` reciben 403 y se quedan con los nombres por defecto: reintentar no cambia eso.
     retry: reintentarSalvoSinPermiso,
   })
+  const { data: configData, isLoading, error } = configQuery
 
   const configs = useMemo(() => configData?.configs ?? [], [configData?.configs])
 
@@ -165,6 +162,8 @@ export function useRoleConfig() {
     activeRoles,
     isLoading,
     error,
+    // Para quien arma un formulario con `configs`: sin red `isLoading` y `error` no avisan que la lectura no llegó.
+    configQuery,
 
     // Getters
     getDisplayName,

@@ -13,6 +13,7 @@ import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Plus, Trash2, Save, Loader2, FileText, CalendarDays, Coins } from 'lucide-react'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -135,9 +136,11 @@ export default function ComisionesPage() {
           {t('comisiones.ratesHelp', { defaultValue: 'El monto de la comisión depende de las ventas acumuladas en la semana (Lun–Dom). El último tramo debe quedar abierto (sin máximo).' })}
         </p>
 
+        {/* Sin la lectura no hay editor: el SERVIDOR desactiva todas las tarifas y crea sólo las que recibe. */}
+        <AvisoDeCarga query={ratesQuery} hayDatos={ratesQuery.data !== undefined} />
         {ratesQuery.isLoading ? (
           <Skeleton className="h-40 w-full" />
-        ) : (
+        ) : ratesQuery.data === undefined ? null : (
           <div className="grid gap-6 md:grid-cols-2">
             {SALE_TYPES.map(({ type, labelKey, fallback }) => {
               const idxs = rates.map((r, i) => ({ r, i })).filter(x => x.r.saleType === type)
@@ -205,10 +208,11 @@ export default function ComisionesPage() {
         <p className="mb-4 text-sm text-muted-foreground">
           {t('comisiones.daysHelp', { defaultValue: 'En estos días el promotor puede retirar su comisión. No puede coexistir con el concurso de comisiones.' })}
         </p>
+        <AvisoDeCarga query={daysQuery} hayDatos={daysQuery.data !== undefined} />
         <div className="mb-3 flex flex-wrap gap-2">
           {daysQuery.isLoading ? (
             <Skeleton className="h-7 w-48" />
-          ) : activeDays.length === 0 ? (
+          ) : daysQuery.data === undefined ? null : activeDays.length === 0 ? (
             <span className="text-sm text-muted-foreground">{t('comisiones.noDays', { defaultValue: 'Sin días activos' })}</span>
           ) : (
             activeDays.map(d => (
@@ -219,8 +223,8 @@ export default function ComisionesPage() {
           )}
         </div>
         <div className="flex items-center gap-2">
-          <Input type="date" value={newDay} onChange={e => setNewDay(e.target.value)} className="w-44" />
-          <Button variant="outline" size="sm" className="cursor-pointer" onClick={addDay}>
+          <Input type="date" value={newDay} disabled={daysQuery.data === undefined} onChange={e => setNewDay(e.target.value)} className="w-44" />
+          <Button variant="outline" size="sm" className="cursor-pointer" disabled={daysQuery.data === undefined} onClick={addDay}>
             <Plus className="mr-1 h-4 w-4" /> {t('comisiones.addDay', { defaultValue: 'Agregar día' })}
           </Button>
           <Button className="ml-auto cursor-pointer" disabled={!daysDirty || saveDays.isPending} onClick={() => saveDays.mutate()}>
@@ -250,9 +254,10 @@ export default function ComisionesPage() {
           </Button>
         </div>
 
+        <AvisoDeCarga query={withdrawalsQuery} hayDatos={withdrawalsQuery.data !== undefined} />
         {withdrawalsQuery.isLoading ? (
           <Skeleton className="h-32 w-full" />
-        ) : withdrawals.length === 0 ? (
+        ) : withdrawalsQuery.data === undefined ? null : withdrawals.length === 0 ? (
           <p className="text-sm text-muted-foreground">{t('comisiones.noWithdrawals', { defaultValue: 'Aún no hay retiros.' })}</p>
         ) : (
           <div className="overflow-x-auto">

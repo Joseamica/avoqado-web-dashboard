@@ -6,6 +6,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { z } from 'zod'
 import { AlertCircle, CheckCircle2, Clock, ExternalLink, Info, Loader2, Upload, XCircle } from 'lucide-react'
 
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -125,11 +126,12 @@ export default function FiscalProfile() {
 
   const queryKey = ['venue-fiscal-profile', venueId]
 
-  const { data: profile, isLoading, isError } = useQuery({
+  const profileQuery = useQuery({
     queryKey,
     queryFn: () => fiscalProfileService.getProfile(venueId!),
     enabled: !!venueId,
   })
+  const { data: profile, isLoading } = profileQuery
 
   const form = useForm<FiscalProfileFormValues>({
     resolver: zodResolver(fiscalProfileFormSchema),
@@ -269,8 +271,8 @@ export default function FiscalProfile() {
   // 🔴 Requisito no negociable: si el GET falla, NUNCA mostrar el formulario vacío — se
   // vería idéntico a "todavía no he capturado mis datos" e invitaría a sobrescribir un
   // perfil ya válido con datos tecleados de memoria (el mismo tipo de accidente que
-  // originó este proyecto).
-  if (isError) {
+  // originó este proyecto). `undefined` y no `isError`: sin internet la consulta queda en pausa, sin error y sin datos.
+  if (profile === undefined) {
     return (
       <div className="container mx-auto pt-6 pb-20 px-4 md:px-6 lg:px-8 grow overflow-auto">
         <div className="max-w-3xl mx-auto">
@@ -286,6 +288,7 @@ export default function FiscalProfile() {
   return (
     <div className="container mx-auto pt-6 pb-20 px-4 md:px-6 lg:px-8 grow overflow-auto">
       <div className="max-w-3xl mx-auto space-y-6">
+        <AvisoDeCarga query={profileQuery} hayDatos />
         {/* Requisito 1: aviso visible arriba — la confusión más probable de la pantalla */}
         <Alert className="border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/50">
           <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />

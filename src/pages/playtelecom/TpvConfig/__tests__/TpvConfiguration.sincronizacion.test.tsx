@@ -2,7 +2,7 @@
  * Spec «pantalla del cliente» §13: el guardado por sucursal ENTREGA su respuesta a la pantalla y la pantalla dice a cuántas
  * terminales llegó. Los hijos pesados se simulan; lo que se prueba es el cableado real `mutationFn → onSuccess → toast`.
  */
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { onlineManager, QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
@@ -185,5 +185,70 @@ describe('TpvConfiguration — datos de la tienda (D5)', () => {
 
     await waitFor(() => expect(toast).toHaveBeenCalledWith({ title: 'playtelecom:tpvConfig.venueInfoSaved' }))
     expect(toast).not.toHaveBeenCalledWith(avisoDeRecarga)
+  })
+})
+
+describe('TpvConfiguration — sin leer los ajustes no se ofrecen los módulos (D4)', () => {
+  let qc: QueryClient
+  const abrir = () => {
+    qc = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
+    render(
+      <QueryClientProvider client={qc}>
+        <MemoryRouter initialEntries={['/wl/venues/tienda/tpv-config#tpv']}>
+          <TpvConfiguration />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    )
+  }
+  const moduloYGuardar = async () => {
+    const user = userEvent.setup()
+    const modulo = screen.queryByRole('button', { name: 'cambiar-modulo' })
+    if (modulo) await user.click(modulo)
+    await user.click(screen.getByRole('button', { name: 'playtelecom:tpvConfig.saveSync' }))
+  }
+  afterEach(() => onlineManager.setOnline(true))
+
+  it('🔴 con la lectura caída avisa y no manda los módulos de fábrica a todas las terminales', async () => {
+    vi.mocked(tpvSettingsService.getVenueSettings).mockRejectedValue(new Error('500'))
+    abrir()
+    expect(await screen.findByText('loadFailure.empty')).toBeInTheDocument()
+    await moduloYGuardar()
+    expect(tpvSettingsService.updateVenueSettings).not.toHaveBeenCalled()
+    expect(screen.getByRole('button', { name: 'playtelecom:tpvConfig.saveSync' })).toBeDisabled()
+  })
+
+  it('sin internet tampoco: al volver la red no sale nada', async () => {
+    onlineManager.setOnline(false)
+    abrir()
+    expect(await screen.findByText('loadFailure.empty')).toBeInTheDocument()
+    await moduloYGuardar()
+    act(() => onlineManager.setOnline(true))
+    await act(async () => {
+      await new Promise(r => setTimeout(r, 30))
+    })
+    expect(tpvSettingsService.updateVenueSettings).not.toHaveBeenCalled()
+  })
+
+  it('mientras la lectura no llega no deja guardar', async () => {
+    vi.mocked(tpvSettingsService.getVenueSettings).mockReturnValue(new Promise(() => {}))
+    abrir()
+    await moduloYGuardar()
+    expect(tpvSettingsService.updateVenueSettings).not.toHaveBeenCalled()
+    expect(screen.queryByText('loadFailure.empty')).toBeNull()
+  })
+
+  it('si falla la recarga con datos reales, conserva lo real, avisa y deja guardar', async () => {
+    vi.mocked(tpvSettingsService.getVenueSettings).mockResolvedValue({ ...BASE, enableBarcodeScanner: false })
+    vi.mocked(tpvSettingsService.updateVenueSettings).mockResolvedValue({ ...BASE })
+    abrir()
+    await screen.findByRole('button', { name: 'cambiar-modulo' })
+    vi.mocked(tpvSettingsService.getVenueSettings).mockRejectedValue(new Error('500'))
+    await act(async () => {
+      await qc.refetchQueries({ queryKey: ['venue', 'v1', 'tpv-settings'] })
+    })
+    expect(await screen.findByText('loadFailure.partial')).toBeInTheDocument()
+    await moduloYGuardar()
+    await waitFor(() => expect(tpvSettingsService.updateVenueSettings).toHaveBeenCalledTimes(1))
+    expect(vi.mocked(tpvSettingsService.updateVenueSettings).mock.calls[0][1]).toMatchObject({ enableBarcodeScanner: false, enableCashPayments: false })
   })
 })

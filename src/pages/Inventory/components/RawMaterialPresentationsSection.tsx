@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { Plus, Trash2 } from 'lucide-react'
 
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -44,11 +45,14 @@ export function RawMaterialPresentationsSection({ venueId, rawMaterialId, baseUn
   const { toast } = useToast()
   const [rows, setRows] = useState<PresentationRow[]>([])
 
-  const { data: saved, isLoading } = useQuery({
+  const savedQuery = useQuery({
     queryKey: ['raw-material-presentations', venueId, rawMaterialId],
     queryFn: () => getRawMaterialPresentations(venueId, rawMaterialId),
     enabled: Boolean(venueId && rawMaterialId),
   })
+  const { data: saved, isLoading } = savedQuery
+  // Se reemplaza el conjunto COMPLETO: sin leerlo, agregar una borraría las demás.
+  const lecturaLista = saved !== undefined
 
   useEffect(() => {
     if (saved) setRows(saved.map(p => ({ name: p.name, factorToBase: Number(p.factorToBase) })))
@@ -98,7 +102,7 @@ export function RawMaterialPresentationsSection({ venueId, rawMaterialId, baseUn
     setRows(prev => prev.map((row, i) => (i === index ? { ...row, ...patch } : row)))
 
   const handleSave = () => {
-    if (invalidReason) return
+    if (invalidReason || !lecturaLista) return
     mutation.mutate(rows.map(row => ({ name: row.name.trim(), factorToBase: row.factorToBase as number })))
   }
 
@@ -106,7 +110,7 @@ export function RawMaterialPresentationsSection({ venueId, rawMaterialId, baseUn
     <div className="rounded-2xl border border-input bg-card p-6" data-tour="raw-material-presentations">
       <div className="mb-1 flex items-center justify-between gap-4">
         <h3 className="text-base font-semibold">{t('presentations.title')}</h3>
-        {canEdit && (
+        {canEdit && lecturaLista && (
           <Button type="button" variant="outline" size="sm" onClick={() => setRows(prev => [...prev, { name: '', factorToBase: undefined }])}>
             <Plus className="mr-1 h-4 w-4" />
             {t('presentations.add')}
@@ -115,9 +119,10 @@ export function RawMaterialPresentationsSection({ venueId, rawMaterialId, baseUn
       </div>
       <p className="mb-4 text-sm text-muted-foreground">{t('presentations.description', { unit: unitLabel })}</p>
 
+      <AvisoDeCarga query={savedQuery} hayDatos={lecturaLista} />
       {isLoading ? (
         <p className="text-sm text-muted-foreground">{t('presentations.loading')}</p>
-      ) : rows.length === 0 ? (
+      ) : !lecturaLista ? null : rows.length === 0 ? (
         <p className="text-sm text-muted-foreground">{t('presentations.empty', { unit: unitLabel })}</p>
       ) : (
         <div className="space-y-3">
@@ -171,7 +176,7 @@ export function RawMaterialPresentationsSection({ venueId, rawMaterialId, baseUn
         </div>
       )}
 
-      {canEdit && (
+      {canEdit && lecturaLista && (
         <div className="mt-4 flex items-center justify-between gap-4">
           <p className="text-xs text-muted-foreground">{invalidReason ?? (isDirty ? t('presentations.unsaved') : '')}</p>
           <Button type="button" onClick={handleSave} disabled={!isDirty || Boolean(invalidReason) || mutation.isPending}>

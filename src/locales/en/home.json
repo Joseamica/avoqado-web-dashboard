@@ -389,6 +389,7 @@
       "noData": "No data available for the selected period",
       "today": "Today",
       "ndLabel": "N/A",
+      "compareFailed": "We couldn't load the comparison period: what you see is the current period only.",
       "details": {
         "grossSales": "Gross sales",
         "transactions": "Transactions",
