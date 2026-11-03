@@ -1,3 +1,4 @@
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { falloDeCarga } from '@/lib/falloDeCarga'
 import { useToast } from '@/hooks/use-toast'
 import { useTpvTour } from '@/hooks/useTpvTour'
@@ -197,8 +198,8 @@ export default function Tpvs() {
     // esqueleto y el buscador pierde el foco (bounded-data-and-query-load.md).
     placeholderData: keepPreviousData,
   })
-  const { data, isLoading, refetch } = listQuery
-  const loadFailed = falloDeCarga(listQuery) && !data
+  const { data, isLoading } = listQuery
+  const loadFailed = falloDeCarga(listQuery) && !data?.data?.length
 
   // 🔴 El TOTAL del server, no las filas de la página: con `rowCount = filas` el paginador
   // creía que todo cabía en una página y los dispositivos 21+ quedaban ocultos sin aviso.
@@ -987,20 +988,18 @@ export default function Tpvs() {
               )}
             </div>
 
-            {loadFailed ? (
-              <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm">
-                <span>{tTpv('list.loadError')}</span>
-                <Button size="sm" variant="outline" onClick={() => refetch()}>
-                  {tTpv('list.retry')}
-                </Button>
-              </div>
-            ) : (
+            <AvisoDeCarga
+              query={listQuery}
+              hayDatos={!loadFailed}
+              volverAlInicio={loadFailed && pagination.pageIndex > 0 ? () => setPagination(prev => ({ ...prev, pageIndex: 0 })) : undefined}
+            />
+            {loadFailed ? null : (
               // Tabla cuando el CONTENIDO mide ≥ 64rem; tarjetas cuando no. Se mide el contenedor,
               // no la pantalla: la barra lateral se come ~16rem y por eso la tabla se partía.
               <div data-tour="tpv-list" className="@container">
                 <div className="hidden @5xl:block">
                   <DataTable
-                    query={listQuery}
+                    query={null}
                     data={filteredData}
                     rowCount={totalDevices}
                     columns={columns}

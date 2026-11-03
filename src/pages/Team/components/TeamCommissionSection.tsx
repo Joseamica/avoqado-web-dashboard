@@ -138,7 +138,7 @@ export default function TeamCommissionSection({ staffId }: TeamCommissionSection
 	}
 
 	// Si falló la carga no es que gane $0 ni que no tenga comisiones.
-	if (falloDeCarga(listQuery) && !commissions) {
+	if (falloDeCarga(listQuery) && !commissions?.summaries?.length) {
 		return (
 			<GlassCard className="p-6">
 				<AvisoDeCarga query={listQuery} hayDatos={false} />

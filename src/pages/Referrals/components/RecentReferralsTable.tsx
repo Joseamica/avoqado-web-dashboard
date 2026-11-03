@@ -169,7 +169,7 @@ export function RecentReferralsTable({
         </Select>
       </div>
 
-      <AvisoDeCarga query={listQuery} hayDatos={items.length > 0} />
+      <AvisoDeCarga query={listQuery} hayDatos={items.length > 0} volverAlInicio={page > 1 && items.length === 0 ? () => setPage(1) : undefined} />
 
       <GlassCard className="border-input overflow-hidden">
         <Table data-testid="recent-referrals-table">

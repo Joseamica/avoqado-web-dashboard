@@ -50,7 +50,7 @@ describe('Historial de cortes si falla la carga', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('loadFailure.empty')
     expect(screen.queryByText('history.empty')).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'history.backToFirstPage' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'loadFailure.backToFirstPage' })).not.toBeInTheDocument()
   })
 
   it('un negocio sin cortes sigue diciendo que no hay', async () => {
@@ -71,7 +71,7 @@ describe('Historial de cortes si falla la carga', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('loadFailure.empty')
 
     mocks.historial.mockResolvedValue(pagina(1))
-    fireEvent.click(screen.getByRole('button', { name: 'history.backToFirstPage' }))
+    fireEvent.click(screen.getByRole('button', { name: 'loadFailure.backToFirstPage' }))
 
     expect(await screen.findByText(/history\.page/)).toBeInTheDocument()
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()

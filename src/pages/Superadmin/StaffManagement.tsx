@@ -1217,7 +1217,7 @@ const StaffManagement: React.FC = () => {
         )}
       </div>
 
-      <AvisoDeCarga query={listQuery} hayDatos={staffList.length > 0} />
+      <AvisoDeCarga query={listQuery} hayDatos={staffList.length > 0} volverAlInicio={page > 1 && staffList.length === 0 ? () => setPage(1) : undefined} />
 
       {/* Table */}
       <GlassCard className="overflow-hidden">

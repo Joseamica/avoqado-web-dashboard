@@ -195,11 +195,12 @@ export function StockControl() {
     enabled: !!venueId,
   })
 
-  const { data: categoryData, isLoading: isLoadingCategories } = useQuery({
+  const categoriesQuery = useQuery({
     queryKey: ['stock', 'categories', venueId],
     queryFn: () => getCategoryStock(venueId!),
     enabled: !!venueId,
   })
+  const { data: categoryData, isLoading: isLoadingCategories } = categoriesQuery
 
   const movementsQuery = useInfiniteQuery({
     queryKey: ['stock', 'movements', venueId, dateRangeIsoParams.dateFrom, dateRangeIsoParams.dateTo, responsibleStaffId],
@@ -457,6 +458,10 @@ ${dataRows}
                   </div>
                 </GlassCard>
               ))
+            ) : falloDeCarga(categoriesQuery) ? (
+              <div className="col-span-full">
+                <AvisoDeCarga query={categoriesQuery} hayDatos={false} />
+              </div>
             ) : (
               <GlassCard className="col-span-full p-8 text-center">
                 <Package className="w-10 h-10 mx-auto mb-2 text-muted-foreground opacity-50" />

@@ -81,14 +81,7 @@ export function CashCloseoutHistory({ venueId }: CashCloseoutHistoryProps) {
         </CardHeader>
         <CardContent>
           {falloDeCarga(listQuery) ? (
-            <>
-              <AvisoDeCarga query={listQuery} hayDatos={false} />
-              {page > 1 && (
-                <Button variant="outline" size="sm" onClick={() => setPage(1)}>
-                  {t('history.backToFirstPage')}
-                </Button>
-              )}
-            </>
+            <AvisoDeCarga query={listQuery} hayDatos={false} volverAlInicio={page > 1 ? () => setPage(1) : undefined} />
           ) : (
             <p className="text-sm text-muted-foreground text-center py-8">
               {t('history.empty')}

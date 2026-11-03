@@ -1,3 +1,4 @@
+import { esSinPermiso } from '@/lib/reintentoSinPermiso'
 import { getProducts, updateProduct, deleteProduct } from '@/services/menu.service'
 import { productInventoryApi, type AdjustInventoryStockDto } from '@/services/inventory.service'
 import { useToast } from '@/hooks/use-toast'
@@ -335,6 +336,7 @@ export default function Products() {
     data: products,
     isLoading,
     isError,
+    error: loadError,
     isPaused,
     isFetching,
     refetch,
@@ -1273,12 +1275,14 @@ export default function Products() {
       {(isError || isPaused) && (
         <div data-testid="catalog-read-error" role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-input p-3 text-sm">
           <span>{t('catalog.loadError')}</span>
-          <Button variant="outline" size="sm" disabled={isFetching} onClick={() => refetch()}>
-            {tCommon('errors.retry')}
-          </Button>
+          {!esSinPermiso(loadError) && (
+            <Button variant="outline" size="sm" disabled={isFetching} onClick={() => refetch()}>
+              {tCommon('errors.retry')}
+            </Button>
+          )}
         </div>
       )}
-      {(!(isError || isPaused) || products !== undefined) && (
+      {(!(isError || isPaused) || (products?.length ?? 0) > 0) && (
         <FamiliasDesplegadas.Provider value={familiasDesplegadas}>
           <ElegidosParaAgrupar.Provider value={seleccionParaAgrupar}>
             <DataTable

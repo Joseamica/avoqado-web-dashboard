@@ -33,7 +33,6 @@
   },
   "history": {
     "title": "Historial de Cortes",
-    "backToFirstPage": "Volver a la primera página",
     "empty": "No hay cortes de caja registrados",
     "showing": "Mostrando {{count}} de {{total}} cortes",
     "page": "Página {{current}} de {{total}}",

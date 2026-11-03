@@ -1,3 +1,4 @@
+import { esSinPermiso } from '@/lib/reintentoSinPermiso'
 import { falloDeCarga } from '@/lib/falloDeCarga'
 import { useCallback, useMemo, useState } from 'react'
 import { useInfiniteQuery } from '@tanstack/react-query'
@@ -324,9 +325,11 @@ function InventoryWasteList() {
             <AlertTriangle className="h-6 w-6 text-destructive" />
           </div>
           <h3 className="mt-4 text-lg font-semibold text-destructive">{t('wasteReports.loadError')}</h3>
-          <Button variant="outline" size="sm" className="mt-4" onClick={() => void query.refetch()}>
-            {t('wasteReports.retry')}
-          </Button>
+          {!esSinPermiso(query.error) && (
+            <Button variant="outline" size="sm" className="mt-4" onClick={() => void query.refetch()}>
+              {t('wasteReports.retry')}
+            </Button>
+          )}
         </div>
       ) : isEmpty ? (
         <div className="flex flex-col items-center justify-center rounded-lg border border-dashed bg-muted/30 py-16 px-6 text-center">

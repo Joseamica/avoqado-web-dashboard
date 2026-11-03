@@ -534,8 +534,12 @@ export default function OrganizationTerminals() {
           </Button>
         </div>
 
-        {falloDeCarga(listQuery) && !data ? (
-          <AvisoDeCarga query={listQuery} hayDatos={false} />
+        {falloDeCarga(listQuery) && isOrgEmpty ? (
+          <AvisoDeCarga
+            query={listQuery}
+            hayDatos={false}
+            volverAlInicio={searchParams.toString() ? () => setSearchParams(new URLSearchParams()) : undefined}
+          />
         ) : isOrgEmpty ? (
           <EmptyOrgState onCreate={openCreateDialog} />
         ) : (

@@ -213,7 +213,7 @@ function OrganizationActivityLog() {
           </Select>
         </div>
 
-        <AvisoDeCarga query={listQuery} hayDatos={logs.length > 0} />
+        <AvisoDeCarga query={listQuery} hayDatos={logs.length > 0} volverAlInicio={page > 1 && logs.length === 0 ? () => setPage(1) : undefined} />
 
         {/* Table */}
         {!(falloDeCarga(listQuery) && logs.length === 0) && (

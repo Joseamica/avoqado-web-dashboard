@@ -1,3 +1,4 @@
+import { esSinPermiso } from '@/lib/reintentoSinPermiso'
 import { getProducts, updateProduct, deleteProduct } from '@/services/menu.service'
 import { useToast } from '@/hooks/use-toast'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -108,7 +109,7 @@ export default function Services() {
   const [statusFilter, setStatusFilter] = useState<string[]>([])
 
   // Fetch products (shared cache with Products page)
-  const { data: allProducts, isLoading, isError, isPaused, isFetching, refetch } = useQuery({
+  const { data: allProducts, isLoading, isError, error: loadError, isPaused, isFetching, refetch } = useQuery({
     queryKey: ['products', venueId, 'orderBy:name'],
     queryFn: () => getProducts(venueId!, { orderBy: 'name' }),
     staleTime: 30 * 1000,
@@ -549,12 +550,14 @@ export default function Services() {
       {(isError || isPaused) && (
         <div data-testid="catalog-read-error" role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-input p-3 text-sm">
           <span>{t('catalog.loadError')}</span>
-          <Button variant="outline" size="sm" disabled={isFetching} onClick={() => refetch()}>
-            {tCommon('errors.retry')}
-          </Button>
+          {!esSinPermiso(loadError) && (
+            <Button variant="outline" size="sm" disabled={isFetching} onClick={() => refetch()}>
+              {tCommon('errors.retry')}
+            </Button>
+          )}
         </div>
       )}
-      {(!(isError || isPaused) || allProducts !== undefined) && (
+      {(!(isError || isPaused) || (allProducts?.length ?? 0) > 0) && (
         <DataTable
           query={null}
           data={filteredServices}

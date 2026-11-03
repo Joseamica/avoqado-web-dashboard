@@ -436,7 +436,7 @@ export default function PayLaterAging() {
     [formatDate, navigate, t, daysLabel, can]
   )
 
-  if (falloDeCarga(listQuery) && !data) {
+  if (falloDeCarga(listQuery) && !summary?.total_count) {
     return (
       <div className="p-4">
         <AvisoDeCarga query={listQuery} hayDatos={false} />

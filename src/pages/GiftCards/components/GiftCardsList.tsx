@@ -1,3 +1,4 @@
+import { esSinPermiso } from '@/lib/reintentoSinPermiso'
 import { falloDeCarga } from '@/lib/falloDeCarga'
 import { useCallback, useMemo, useState } from 'react'
 import type { ColumnDef, PaginationState } from '@tanstack/react-table'
@@ -236,9 +237,11 @@ export function GiftCardsList({ venueId }: { venueId: string }) {
           </div>
           <h3 className="mt-4 text-lg font-semibold text-destructive">{t('list.loadError')}</h3>
           <p className="mt-1 text-sm text-muted-foreground">{errorText}</p>
-          <Button variant="outline" size="sm" className="mt-4 cursor-pointer" onClick={() => void query.refetch()} data-tour="gift-cards-retry">
-            {t('list.retry')}
-          </Button>
+          {!esSinPermiso(query.error) && (
+            <Button variant="outline" size="sm" className="mt-4 cursor-pointer" onClick={() => void query.refetch()} data-tour="gift-cards-retry">
+              {t('list.retry')}
+            </Button>
+          )}
         </div>
       ) : isEmpty ? (
         <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-input bg-muted/30 px-6 py-16 text-center">
@@ -274,7 +277,7 @@ export function GiftCardsList({ venueId }: { venueId: string }) {
               <div className="flex items-center justify-between gap-3 px-4 py-3 text-sm text-muted-foreground">
                 <div className="space-y-0.5">
                   <span>{t('list.showing', { shown: cards.length, total })}</span>
-                  {query.isError && (
+                  {(query.isError || query.isPaused) && (
                     <p role="alert" className="text-destructive">
                       {errorText}
                     </p>

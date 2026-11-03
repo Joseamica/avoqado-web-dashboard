@@ -1,4 +1,4 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { QueryClient, QueryClientProvider, onlineManager } from '@tanstack/react-query'
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -253,6 +253,22 @@ describe('ExchangesToReviewSection', () => {
     expect(await screen.findByText('FUTURE_REASON')).toBeVisible()
     expect(screen.getByText('—')).toBeVisible()
     expect(screen.queryByRole('button', { name: 'Marcar revisado' })).not.toBeInTheDocument()
+  })
+  it('sin internet avisa en vez de quedarse en «cargando» (Codex r1)', async () => {
+    onlineManager.setOnline(false)
+    try {
+      mount()
+      expect(await screen.findByText('No se pudieron cargar los cambios.')).toBeVisible()
+      expect(screen.queryByText('No hay cambios por revisar')).not.toBeInTheDocument()
+    } finally {
+      onlineManager.setOnline(true)
+    }
+  })
+  it('sin permiso no ofrece un «Reintentar» que no lo va a arreglar (Codex r1)', async () => {
+    m.get.mockRejectedValue({ response: { status: 403 } })
+    mount()
+    expect(await screen.findByText('No se pudieron cargar los cambios.')).toBeVisible()
+    expect(screen.queryByRole('button', { name: 'Reintentar' })).not.toBeInTheDocument()
   })
   it('shows an empty state distinct from a retryable failure', async () => {
     m.get.mockRejectedValue(new Error('Network'))
