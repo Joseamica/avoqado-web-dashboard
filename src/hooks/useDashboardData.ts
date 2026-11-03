@@ -106,6 +106,8 @@ export const useDashboardData = () => {
   const { data: compareData, isLoading: isCompareLoading, refetch: refetchCompareData } = compareQuery
   // Sin leer el periodo anterior, sus ceros y su «+100 %» no son datos.
   const comparacionCaida = compareData === undefined && falloDeCarga(compareQuery)
+  // También mientras carga o se reintenta: hasta que llegue, no hay nada contra qué comparar.
+  const comparacionLista = compareData !== undefined
 
   // Register socket event handlers
   useSocketEvents(
@@ -366,6 +368,7 @@ export const useDashboardData = () => {
     basicQuery,
     compareQuery,
     comparacionCaida,
+    comparacionLista,
     isBasicLoading,
     isBasicError,
     basicError,

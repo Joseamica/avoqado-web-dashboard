@@ -481,12 +481,12 @@
       "AMOUNT": "Por monto",
       "AMOUNT_DESC": "Meta en pesos ($)",
       "QUANTITY": "Por cantidad",
-      "QUANTITY_DESC": "Meta en número de ventas"
+      "QUANTITY_DESC": "Meta en unidades vendidas"
     },
     "goalAmount": "Meta de ventas",
     "goalAmountHint": "El monto objetivo de ventas para este período",
     "goalQuantityLabel": "Cantidad de ventas",
-    "goalQuantityHint": "El número de ventas objetivo para este período",
+    "goalQuantityHint": "Las unidades que se quieren vender en este período",
     "currentQuantity": "Vendidos",
     "period": "Período",
     "selectPeriod": "Seleccionar período",

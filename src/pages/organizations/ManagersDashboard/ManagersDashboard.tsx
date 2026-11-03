@@ -4,7 +4,6 @@
  * Displays:
  * - Manager selector dropdown with profile
  * - Summary metrics (active managers, efficiency, stores, audits)
- * - Charts (compliance, team health, quality trends)
  * - Store assignment table with performance
  *
  * Access: Organization level (/wl/organizations/:orgSlug/managers)
@@ -23,7 +22,7 @@ import { useQuery } from '@tanstack/react-query'
 import { ChevronDown, ClipboardCheck, Mail, Phone, Store, TrendingUp, User, Users } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ComplianceChart, QualityTrendChart, StoreAssignmentTable, TeamHealthChart } from './components'
+import { StoreAssignmentTable } from './components'
 
 export function ManagersDashboard() {
   const { t } = useTranslation(['playtelecom', 'common'])
@@ -286,13 +285,6 @@ export function ManagersDashboard() {
           </div>
         </GlassCard>
       )}
-
-      {/* Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <ComplianceChart managerId={selectedManagerId} />
-        <TeamHealthChart managerId={selectedManagerId} />
-        <QualityTrendChart managerId={selectedManagerId} />
-      </div>
 
       {/* Store Assignment Table */}
       {!(selectedManagerId && managerDashboard === undefined && falloDeCarga(managerDashboardQuery)) && (

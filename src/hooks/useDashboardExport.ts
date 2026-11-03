@@ -17,7 +17,7 @@ interface UseDashboardExportProps {
   fiveStarReviews: number
   tipStats: { totalTips: number; avgTipPercentage: number | string }
   compareType: ComparisonPeriod
-  comparacionCaida?: boolean
+  comparacionLista?: boolean
   comparisonLabel: string
   compareAmount: number
   compareFiveStarReviews: number
@@ -39,7 +39,7 @@ export const useDashboardExport = ({
   fiveStarReviews,
   tipStats,
   compareType,
-  comparacionCaida,
+  comparacionLista,
   comparisonLabel,
   compareAmount,
   compareFiveStarReviews,
@@ -210,8 +210,8 @@ export const useDashboardExport = ({
           createdAt: new Date(review.createdAt).toISOString(),
         })),
         paymentMethods: paymentMethodsData,
-        // Sin leer el periodo anterior, sus ceros y su «+100 %» no van en el archivo.
-        comparison: compareType && !comparacionCaida
+        // Hasta leer el periodo anterior, sus ceros y su «+100 %» no van en el archivo.
+        comparison: compareType && comparacionLista
           ? {
               type: compareType,
               label: comparisonLabel,
@@ -258,7 +258,7 @@ export const useDashboardExport = ({
     venueId,
     i18n.language,
     compareType,
-    comparacionCaida,
+    comparacionLista,
     comparisonLabel,
     compareAmount,
     compareFiveStarReviews,
