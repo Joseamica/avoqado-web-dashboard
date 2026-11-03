@@ -7,6 +7,8 @@ import {
   IVA_QUERY_KEY,
   type BloqueoIva,
 } from '@/services/menu.service'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { recipesApi } from '@/services/inventory.service'
 import AlertDialogWrapper from '@/components/alert-dialog'
 import MultipleSelector from '@/components/multi-selector'
@@ -138,19 +140,22 @@ export default function ProductId() {
   const pideAvisoIva = ivaCambio && iva !== 'IVA_16' && estadoIva.data?.encendido !== true
 
   // Fetch recipe data if product has RECIPE inventory method
-  const { data: recipeData } = useQuery({
+  const recipeQuery = useQuery({
     queryKey: ['product-recipe', venueId, productId],
     queryFn: async () => {
       if (!productId) return null
       try {
         const response = await recipesApi.get(venueId!, productId)
         return response.data.data
-      } catch {
-        return null
+      } catch (error) {
+        // Sólo un 404 significa «sin receta»; lo demás es un fallo, no un producto sin ingredientes.
+        if ((error as { response?: { status?: number } })?.response?.status === 404) return null
+        throw error
       }
     },
     enabled: !!venueId && !!productId && data?.inventoryMethod === 'RECIPE',
   })
+  const recipeData = recipeQuery.data
 
   const from = (location.state as any)?.from || '/'
 
@@ -1192,7 +1197,9 @@ export default function ProductId() {
                   {/* ✅ PROGRESSIVE DISCLOSURE: Show recipe ingredients when tracking by recipe */}
                   {trackInventory && inventoryMethod === 'RECIPE' && (
                     <div className="pl-4 border-l-2 border-primary space-y-4">
-                      {recipeData && recipeData.lines && recipeData.lines.length > 0 ? (
+                      {falloDeCarga(recipeQuery) && !recipeData ? (
+                        <AvisoDeCarga query={recipeQuery} hayDatos={false} />
+                      ) : recipeData && recipeData.lines && recipeData.lines.length > 0 ? (
                         <>
                           <div className="space-y-2">
                             <Label>{t('products.detail.inventory.ingredients')}</Label>

@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -41,17 +42,29 @@ export default function CatalogPublicationsPage() {
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
 
+  const [historyError, setHistoryError] = useState<unknown>(null)
+  // `vigente`: una respuesta que llega tras cambiar de organización o salir de la pantalla ya no cuenta.
+  const cargarHistorial = useCallback(
+    (vigente: () => boolean = () => true) => {
+      setHistoryError(null)
+      return listCatalogPublications(orgId, { pageSize: 25 })
+        .then(page => {
+          if (vigente()) setHistory(page.items)
+        })
+        .catch((error: unknown) => {
+          if (vigente()) setHistoryError(error ?? new Error('history'))
+        })
+    },
+    [orgId],
+  )
+
   useEffect(() => {
     let active = true
-    void listCatalogPublications(orgId, { pageSize: 25 })
-      .then(page => {
-        if (active) setHistory(page.items)
-      })
-      .catch(() => undefined)
+    void cargarHistorial(() => active)
     return () => {
       active = false
     }
-  }, [orgId])
+  }, [cargarHistorial])
 
   const expired = Boolean(preview?.expiresAt && new Date(preview.expiresAt).getTime() <= Date.now())
   const hasUndecided = preview?.lines.some(line => line.fields.some(field => field.decision === 'UNDECIDED')) ?? false
@@ -341,6 +354,10 @@ export default function CatalogPublicationsPage() {
           <CardTitle>{t('masterCatalog.publications.history', { defaultValue: 'Historial reciente' })}</CardTitle>
         </CardHeader>
         <CardContent>
+          <AvisoDeCarga
+            query={{ isError: historyError !== null, isFetching: false, isPaused: false, error: historyError, refetch: cargarHistorial }}
+            hayDatos={history.length > 0}
+          />
           <Table aria-label={t('masterCatalog.publications.historyLabel', { defaultValue: 'Historial de publicaciones' })}>
             <TableHeader>
               <TableRow>
@@ -357,7 +374,7 @@ export default function CatalogPublicationsPage() {
                   <TableCell>{batch.lineCount}</TableCell>
                 </TableRow>
               ))}
-              {history.length === 0 && (
+              {history.length === 0 && historyError === null && (
                 <TableRow>
                   <TableCell colSpan={3} className="py-10 text-center text-muted-foreground">
                     {t('masterCatalog.publications.historyEmpty', { defaultValue: 'Aún no hay publicaciones.' })}

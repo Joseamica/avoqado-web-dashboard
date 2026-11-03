@@ -61,6 +61,7 @@ vi.mock('react-i18next', () => ({
 }))
 
 import ProductId from '../productId'
+import { recipesApi } from '@/services/inventory.service'
 
 const producto = (type: string) => ({
   id: 'p1',
@@ -82,11 +83,11 @@ const producto = (type: string) => ({
   inventory: { currentStock: 10, minimumStock: 2 },
 })
 
-function pintar() {
+function pintar(ruta = '/menumaker/products/p1') {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
     <QueryClientProvider client={qc}>
-      <MemoryRouter initialEntries={['/menumaker/products/p1']}>
+      <MemoryRouter initialEntries={[ruta]}>
         <Routes>
           <Route path="/menumaker/products/:productId" element={<ProductId />} />
         </Routes>
@@ -177,5 +178,27 @@ describe('ficha de producto: el tipo (W1)', () => {
     pintar()
     const tipo = await screen.findByRole('combobox', { name: 'products.create.type' })
     await waitFor(() => expect(tipo).toHaveTextContent('products.create.types.food'))
+  })
+})
+
+describe('la receta del producto si falla su lectura', () => {
+  const conReceta = () => {
+    svc.getProduct.mockResolvedValue({ ...producto('REGULAR'), inventoryMethod: 'RECIPE' })
+    return vi.mocked(recipesApi.get)
+  }
+
+  it('un fallo avisa, y no dice que no tiene ingredientes', async () => {
+    conReceta().mockRejectedValue(Object.assign(new Error('500'), { response: { status: 500 } }))
+    pintar('/menumaker/products/p1#inventory')
+    await screen.findByRole('alert')
+    expect(screen.queryByText('products.detail.inventory.noIngredients')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'products.detail.inventory.addIngredient' })).toBeNull()
+  })
+
+  it('un 404 sí es un producto sin receta, y ofrece agregarla sin avisar', async () => {
+    conReceta().mockRejectedValue(Object.assign(new Error('404'), { response: { status: 404 } }))
+    pintar('/menumaker/products/p1#inventory')
+    await screen.findByRole('button', { name: 'products.detail.inventory.addIngredient' })
+    expect(screen.queryByRole('alert')).toBeNull()
   })
 })

@@ -106,3 +106,19 @@ describe('CatalogPublicationsPage', () => {
     expect(catalogApi.previewCatalogPublication).not.toHaveBeenCalled()
   })
 })
+
+describe('CatalogPublicationsPage si falla el historial', () => {
+  beforeEach(() => vi.clearAllMocks())
+
+  it('avisa en vez de decir que no hay publicaciones, y Reintentar lo trae', async () => {
+    vi.mocked(catalogApi.listCatalogPublications).mockRejectedValueOnce(new Error('500'))
+    renderPage()
+    await screen.findByRole('alert')
+    expect(screen.queryByText('Aún no hay publicaciones.')).toBeNull()
+
+    vi.mocked(catalogApi.listCatalogPublications).mockResolvedValue({ items: [], nextCursor: null })
+    fireEvent.click(screen.getByRole('button', { name: 'retry' }))
+    await screen.findByText('Aún no hay publicaciones.')
+    expect(screen.queryByRole('alert')).toBeNull()
+  })
+})

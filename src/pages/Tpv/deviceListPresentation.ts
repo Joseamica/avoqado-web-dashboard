@@ -63,6 +63,17 @@ export function getDeviceRole(device: Pick<DeviceListInput, 'type'>): DeviceRole
  *   INACTIVE) → código de 6 caracteres que se teclea en la terminal. Antes le pedía la serie otra vez
  *   y el server respondía «is not in PENDING_ACTIVATION status».
  */
+/**
+ * La lista de cuentas de una terminal al vincular o quitar una. El SERVIDOR reemplaza la lista completa: si no se leyó
+ * lo que ya tiene (`actuales` sin definir), no hay lista que mandar, porque le quitaría sus otras cuentas.
+ */
+export function cuentasAlVincular(actuales: string[] | undefined, cuenta: string): string[] | null {
+  return actuales ? [...actuales, cuenta] : null
+}
+export function cuentasAlQuitar(actuales: string[] | undefined, cuenta: string): string[] | null {
+  return actuales ? actuales.filter(id => id !== cuenta) : null
+}
+
 export type ActivationRoute = 'bindSerial' | 'generateCode'
 
 export function getActivationRoute(device: Pick<DeviceListInput, 'status' | 'serialNumber'>): ActivationRoute {
