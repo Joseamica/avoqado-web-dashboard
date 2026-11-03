@@ -558,6 +558,8 @@ function TerminalSettings({
                   {label}
                   <Switch
                     checked={Boolean(terminal[key as keyof AreaTicketTerminal])}
+                    // D5 (Codex final #3): mientras se guarda un cambio, no se manda otro con datos viejos.
+                    disabled={mutation.isPending}
                     onCheckedChange={checked => {
                       const { input, apagada } = cambioDeCapacidad(terminal, key as CapacidadDeVales, checked)
                       mutation.mutate({ terminalId: terminal.id, input, apagada })
