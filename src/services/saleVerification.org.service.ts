@@ -7,6 +7,7 @@
  * Backend endpoints: /api/v1/dashboard/organizations/:orgId/sale-verifications/*
  */
 
+import { useQuery } from '@tanstack/react-query'
 import api from '@/api'
 import type { SaleVerificationRejectionReason, SaleVerificationStatus } from './saleVerification.service'
 
@@ -80,6 +81,22 @@ export interface OrgSaleTerminal {
   serialNumber: string
 }
 
+export type NumberAlertCode = 'LINKING_DUPLICATE' | 'PORTED_DUPLICATE' | 'NOT_10_DIGITS' | 'LINKING_MISSING' | 'PORTED_MISSING'
+
+/** Dónde ya está el mismo número (fechas en ISO; `date` del histórico puede ser null). */
+export type NumberMatch =
+  | { kind: 'SALE'; verificationId: string; status: SaleVerificationStatus; date: string; staffName: string; venueName: string }
+  | { kind: 'HISTORICAL'; date: string | null }
+
+/** Una alerta del número; los repetidos traen cuántas otras ventas lo tienen y las más recientes. */
+export interface NumberAlert {
+  code: NumberAlertCode
+  total?: number
+  matches?: NumberMatch[]
+}
+
+export type NumberSource = 'TPV' | 'BACKOFFICE' | 'EXTERNAL_SALE' | 'IMPORT'
+
 export interface OrgSaleRow {
   /**
    * 🔴 Es el id de la verificación cuando existe, y el del PAGO cuando no. Sólo el
@@ -114,6 +131,17 @@ export interface OrgSaleRow {
   registeredFromVenue: OrgSaleRegisteredFromVenue | null
   /** TPV terminal that captured the sale (resolved from deviceId). Null if no match. */
   terminal: OrgSaleTerminal | null
+  /** Número de vinculación y portado (sólo dígitos). Null si no se capturó o la función está apagada. */
+  linkingNumber?: string | null
+  portedNumber?: string | null
+  linkingNumberSource?: NumberSource | null
+  portedNumberSource?: NumberSource | null
+  linkingNumberSetAt?: string | null
+  portedNumberSetAt?: string | null
+  /** Venta registrada a mano en Ventas externas. */
+  isExternalSale?: boolean
+  /** Vacío si el interruptor está apagado. */
+  numberAlerts?: NumberAlert[]
 }
 
 export interface OrgSalePagination {
@@ -243,6 +271,8 @@ export interface ListOrgSalesParams {
   fromDate?: string
   toDate?: string
   search?: string
+  /** Exige fromDate y toDate; el servidor lo ignora con el interruptor apagado. */
+  numberAlert?: 'any' | 'duplicate' | 'missing' | 'not10'
 }
 
 export interface RangeParams {
@@ -367,11 +397,7 @@ export async function reviewOrgSaleVerification(orgId: string, saleVerificationI
  * chars) and is recorded in server logs for audit. SIM/payment/commission
  * state is NOT touched by the backend — only the verification status moves.
  */
-export async function reopenOrgSaleVerification(
-  orgId: string,
-  saleVerificationId: string,
-  params: { reason: string },
-): Promise<unknown> {
+export async function reopenOrgSaleVerification(orgId: string, saleVerificationId: string, params: { reason: string }): Promise<unknown> {
   const url = `/api/v1/dashboard/organizations/${orgId}/sale-verifications/${saleVerificationId}/reopen`
   const response = await api.post(url, params)
   return response.data.data
@@ -398,12 +424,48 @@ export interface EditOrgSaleParams {
  * Returns the updated verification; callers should invalidate the list +
  * summary queries.
  */
-export async function editOrgSaleVerification(
-  orgId: string,
-  saleVerificationId: string,
-  params: EditOrgSaleParams,
-): Promise<unknown> {
+export async function editOrgSaleVerification(orgId: string, saleVerificationId: string, params: EditOrgSaleParams): Promise<unknown> {
   const url = `/api/v1/dashboard/organizations/${orgId}/sale-verifications/${saleVerificationId}`
   const response = await api.patch(url, params)
   return response.data.data
+}
+
+export interface SetOrgSaleNumbersParams {
+  linkingNumber?: string
+  portedNumber?: string
+  /** Permite guardar un número de 9 dígitos. */
+  allowNineDigits?: boolean
+  reason?: string
+}
+
+/** Corrige los números de una venta (permiso `sale-verifications:edit`); queda en la bitácora. */
+export async function setOrgSaleVerificationNumbers(
+  orgId: string,
+  saleVerificationId: string,
+  params: SetOrgSaleNumbersParams,
+): Promise<unknown> {
+  const url = `/api/v1/dashboard/organizations/${orgId}/sale-verifications/${saleVerificationId}/numbers`
+  const response = await api.patch(url, params)
+  return response.data.data
+}
+
+/** ¿Está prendida la captura del número en esta organización? */
+export async function getLinkingNumberStatus(orgId: string): Promise<boolean> {
+  const response = await api.get(`/api/v1/dashboard/organizations/${orgId}/sale-verifications/linking-number-status`)
+  return response.data.enabled === true
+}
+
+/** `enabled: undefined` = todavía no se sabe (cargando o con error): nunca se trata como apagado. */
+export function useOrgLinkingNumberEnabled(orgId: string | undefined): {
+  enabled: boolean | undefined
+  isError: boolean
+  refetch: () => void
+} {
+  const q = useQuery({
+    queryKey: ['org', orgId, 'linking-number-status'],
+    queryFn: () => getLinkingNumberStatus(orgId as string),
+    enabled: !!orgId,
+    staleTime: 60_000,
+  })
+  return { enabled: q.data, isError: q.isError, refetch: () => void q.refetch() }
 }
