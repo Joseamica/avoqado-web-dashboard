@@ -13,7 +13,7 @@ test('summary explains terms and preserves visible plan/status when collapsed', 
   const onlineOrders = page.locator('.avq-feature').filter({ has: page.locator('summary', { hasText: 'Pedidos en línea' }) })
   await expect(onlineOrders.locator('summary')).toHaveText('Pedidos en línea (Pro)')
   await onlineOrders.locator('summary').click()
-  await expect(onlineOrders).toContainText('web para recoger; aviso y cobro en el POS: en preparación')
+  await expect(onlineOrders).toContainText('web para recoger; aviso y comanda en el POS; paga al recoger o con tarjeta al pedir')
   await expect(page.locator('.avq-feature summary').filter({ hasText: 'Delivery' })).toContainText('Premium')
   await expect(page.locator('.avq-feature summary').filter({ hasText: /^POS/ })).toContainText('Funciones Pro')
   await expect(page.locator('.avq-feature summary').filter({ hasText: /^Inventario/ })).toContainText('Incluye un piloto')
