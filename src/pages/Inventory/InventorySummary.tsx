@@ -668,8 +668,7 @@ export default function InventorySummary() {
 
   // Una recarga cuenta como carga: tras un ajuste, la lista vieja sigue en pantalla hasta que llega la nueva, y el archivo
   // saldría con los números de antes. Las recetas sólo dependen de los productos.
-  const isExportDataLoading =
-    isLoadingAccess || isFetchingProducts || (activeTab !== 'recipes' && isFetchingRawMaterials)
+  const isExportDataLoading = isFetchingProducts || (activeTab !== 'recipes' && isFetchingRawMaterials)
 
   // Import / Export buttons live in the table tab on the right.
   const importExportTab = (
@@ -778,7 +777,7 @@ export default function InventorySummary() {
           data={filteredRecipeItems}
           rowCount={filteredRecipeItems.length}
           columns={recipeColumns}
-          isLoading={isLoading}
+          isLoading={isLoadingAccess || isLoadingProducts}
           enableSearch={false}
           showColumnCustomizer={false}
           tableId="inventory:recipes"

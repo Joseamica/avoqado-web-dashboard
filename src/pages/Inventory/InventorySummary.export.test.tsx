@@ -32,13 +32,17 @@ vi.mock('@/hooks/useDebounce', () => ({ useDebounce: (v: unknown) => v }))
 vi.mock('@/hooks/useStockAdjustmentTour', () => ({ useStockAdjustmentTour: () => ({ start: vi.fn() }) }))
 vi.mock('@/hooks/useInventoryWelcomeTour', () => ({ useInventoryWelcomeTour: () => ({ start: vi.fn() }) }))
 vi.mock('@/hooks/use-unit-translation', () => ({ useUnitTranslation: () => ({ getShortLabel: (unit: string) => unit }) }))
+// Como la tabla real: mientras carga sólo pinta el esqueleto, así que el botón ni existe (Codex r2).
 vi.mock('@/components/data-table', () => ({
-  default: ({ tableTab, tableTabLeft }: { tableTab: ReactNode; tableTabLeft: ReactNode }) => (
-    <div>
-      {tableTabLeft}
-      {tableTab}
-    </div>
-  ),
+  default: ({ tableTab, tableTabLeft, isLoading }: { tableTab: ReactNode; tableTabLeft: ReactNode; isLoading: boolean }) =>
+    isLoading ? (
+      <div data-testid="esqueleto" />
+    ) : (
+      <div>
+        {tableTabLeft}
+        {tableTab}
+      </div>
+    ),
 }))
 vi.mock('@/components/billing/FeatureGate', () => ({ FeatureGate: ({ children }: { children: ReactNode }) => children }))
 vi.mock('./components/InventoryLabelModal', () => ({ InventoryLabelModal: () => null }))
@@ -225,7 +229,8 @@ describe('Exportar en Resumen de Existencias', () => {
     mocks.products.mockReturnValue(new Promise(() => {}))
     renderSummary()
 
-    expect(exportar()).toBeDisabled()
+    expect(await screen.findByTestId('esqueleto')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: es.stockExport.button })).not.toBeInTheDocument()
   })
 
   it('mientras se recarga tras un ajuste no baja los números de antes (Codex r1)', async () => {
@@ -254,7 +259,7 @@ describe('Exportar en Resumen de Existencias', () => {
     renderSummary()
     await waitFor(() => expect(screen.getByRole('button', { name: /Basados en Receta\s*1/ })).toBeInTheDocument())
 
-    expect(exportar()).toBeDisabled()
+    expect(screen.getByTestId('esqueleto')).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: /Basados en Receta/ }))
     expect(exportar()).toBeEnabled()
