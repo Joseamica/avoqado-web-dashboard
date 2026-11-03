@@ -18,6 +18,8 @@ import { SelectionSummaryBar } from '@/components/selection-summary-bar'
 import { StatusFilterTabs, type StatusTab } from '@/components/StatusFilterTabs'
 import { SummaryCards, type SummaryCardItem } from '@/components/SummaryCards'
 import { SummaryQueryBoundary } from '@/components/SummaryQueryBoundary'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -303,12 +305,7 @@ export default function Orders() {
   // TODOS los filtros — los del listado y los de monto (total/propina) que antes se aplicaban
   // aquí sobre 10,000 filas. `groups` = sólo los del listado (pestañas); `filteredGroups` =
   // también los de monto (tarjetas). La pestaña activa se aplica sobre los grupos.
-  const {
-    data: ordersSummary,
-    isLoading: isSummaryLoading,
-    isError: isSummaryError,
-    refetch: refetchSummary,
-  } = useQuery({
+  const summaryQuery = useQuery({
     queryKey: [
       'orders-summary',
       venueId,
@@ -339,6 +336,10 @@ export default function Orders() {
     retry: 1,
     refetchOnWindowFocus: false,
   })
+  const { data: ordersSummary, refetch: refetchSummary } = summaryQuery
+  // Sin leer no hay tarjetas en $0: sin internet la consulta se pausa sin marcar error, y al reintentar ya no «carga» aunque siga sin datos.
+  const isSummaryLoading = ordersSummary === undefined && !falloDeCarga(summaryQuery)
+  const isSummaryError = ordersSummary === undefined && falloDeCarga(summaryQuery)
 
   const {
     statuses,
@@ -1033,6 +1034,7 @@ export default function Orders() {
         </div>
       </div>
 
+      {ordersSummary !== undefined && <AvisoDeCarga query={summaryQuery} hayDatos />}
       <SummaryQueryBoundary
         isLoading={isSummaryLoading}
         isError={isSummaryError}

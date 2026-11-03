@@ -62,6 +62,8 @@ import {
   MessageSquare,
 } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { cn } from '@/lib/utils'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useAccess } from '@/hooks/use-access'
@@ -325,10 +327,7 @@ export function SalesReport() {
   }, [startDate, endDate, venueTimezone])
 
   // Fetch sale verifications
-  const {
-    data: verificationsData,
-    isLoading: isLoadingVerifications,
-  } = useQuery({
+  const verificationsQuery = useQuery({
     queryKey: [
       'sale-verifications',
       venueId,
@@ -352,9 +351,10 @@ export function SalesReport() {
       }),
     enabled: !!venueId,
   })
+  const { data: verificationsData } = verificationsQuery
 
   // Fetch summary
-  const { data: summary, isLoading: isLoadingSummary } = useQuery({
+  const summaryQuery = useQuery({
     queryKey: ['sale-verifications-summary', venueId, apiDateRange.fromDate, apiDateRange.toDate],
     queryFn: () =>
       saleVerificationService.getSaleVerificationsSummary(venueId, {
@@ -363,6 +363,8 @@ export function SalesReport() {
       }),
     enabled: !!venueId,
   })
+  const { data: summary } = summaryQuery
+  const isLoadingSummary = summary === undefined
 
   // Fetch daily data for charts
   const { data: dailyData } = useQuery({
@@ -568,7 +570,9 @@ export function SalesReport() {
         </div>
       </GlassCard>
 
-      {/* Summary Metrics */}
+      {/* Summary Metrics: sin leer el resumen no hay ingresos $0 ni 0 ventas. */}
+      <AvisoDeCarga query={summaryQuery} hayDatos={summary !== undefined} />
+      {!(summary === undefined && falloDeCarga(summaryQuery)) && (
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Total Revenue */}
         <GlassCard className="p-5">
@@ -657,6 +661,7 @@ export function SalesReport() {
           </div>
         </GlassCard>
       </div>
+      )}
 
       {/* Charts Row */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -786,6 +791,8 @@ export function SalesReport() {
           </div>
         </div>
 
+        <AvisoDeCarga query={verificationsQuery} hayDatos={verificationsData !== undefined} />
+
         {/* Table */}
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
@@ -814,8 +821,8 @@ export function SalesReport() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border/30">
-              {isLoadingVerifications ? (
-                <tr>
+              {verificationsData === undefined ? (
+                !falloDeCarga(verificationsQuery) && <tr>
                   <td colSpan={canReview ? 6 : 5} className="p-0">
                     <div className="space-y-0 divide-y divide-border/30">
                       {Array.from({ length: 5 }).map((_, i) => (

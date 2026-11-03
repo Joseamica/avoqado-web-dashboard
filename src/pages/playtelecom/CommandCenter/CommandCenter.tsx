@@ -32,6 +32,9 @@ import {
 } from '@/hooks/useStoresAnalysis'
 import type { ActivityFeedEvent } from '@/services/storesAnalysis.service'
 import { GlassCard } from '@/components/ui/glass-card'
+import { PorFuente } from '@/components/PorFuente'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { LiveActivityFeed, InsightCard, GaugeChart } from '@/components/playtelecom'
 import { Badge } from '@/components/ui/badge'
 import { StatusPulse } from '@/components/ui/status-pulse'
@@ -115,16 +118,21 @@ export default function CommandCenter() {
   }, [activityDateFilter])
 
   // Fetch organization-wide data via venue-level endpoints (white-label access)
-  const { data: overview, isLoading: overviewLoading, refetch: refetchOverview } = useStoresOverview({ refetchInterval: 60000 })
+  const overviewQuery = useStoresOverview({ refetchInterval: 60000 })
+  const { data: overview, isLoading: overviewLoading, refetch: refetchOverview } = overviewQuery
   const { data: venuesResponse, isLoading: venuesLoading, refetch: refetchVenues } = useStoresVenues({ refetchInterval: 60000 })
-  const { data: onlineStaff, isLoading: _onlineStaffLoading, refetch: refetchOnlineStaff } = useStoresOnlineStaff({ refetchInterval: 60000 })
-  const { data: activityFeed, isLoading: activityFeedLoading, refetch: refetchActivityFeed } = useStoresActivityFeed(500, {
+  const onlineStaffQuery = useStoresOnlineStaff({ refetchInterval: 60000 })
+  const { data: onlineStaff, isLoading: _onlineStaffLoading, refetch: refetchOnlineStaff } = onlineStaffQuery
+  const activityFeedQuery = useStoresActivityFeed(500, {
     refetchInterval: 60000,
     startDate: activityDateRange.startDate,
     endDate: activityDateRange.endDate,
   })
-  const { data: stockSummary, isLoading: stockLoading, refetch: refetchStockSummary } = useStoresStockSummary({ refetchInterval: 120000 })
-  const { data: anomaliesData, isLoading: anomaliesLoading, refetch: refetchAnomalies } = useStoresAnomalies({ refetchInterval: 120000 })
+  const { data: activityFeed, isLoading: activityFeedLoading, refetch: refetchActivityFeed } = activityFeedQuery
+  const stockSummaryQuery = useStoresStockSummary({ refetchInterval: 120000 })
+  const { data: stockSummary, isLoading: stockLoading, refetch: refetchStockSummary } = stockSummaryQuery
+  const anomaliesQuery = useStoresAnomalies({ refetchInterval: 120000 })
+  const { data: anomaliesData, isLoading: anomaliesLoading, refetch: refetchAnomalies } = anomaliesQuery
   const { data: revenueChartData, isLoading: _revenueChartLoading, refetch: refetchRevenueChart } = useStoresRevenueVsTarget({
     refetchInterval: 120000,
     filterVenueId: chartVenueId,
@@ -139,24 +147,10 @@ export default function CommandCenter() {
   // Extract venues array from response
   const venues = venuesResponse?.venues
 
-  // Calculate KPIs from real organization data
+  // Calculate KPIs from real organization data. Cada número se pinta sólo si leyó SU fuente (PorFuente, abajo): una caída no borra las demás.
   const kpis = useMemo(() => {
-    if (!overview) {
-      return {
-        totalSales: 0,
-        salesTarget: 135000, // TODO: Get from config
-        moneyInStreet: 0,
-        stockSims: 0,
-        lowStockStores: 0,
-        anomalies: 0,
-        criticalAnomalies: 0,
-        promotersOnline: 0,
-        promotersTotal: 0,
-      }
-    }
-
     return {
-      totalSales: overview.todaySales || 0,
+      totalSales: overview?.todaySales || 0,
       salesTarget: 135000, // TODO: Get from organization config
       moneyInStreet: 45200, // TODO: Calculate from pending orders
       stockSims: stockSummary?.totalPieces || 0,
@@ -554,23 +548,27 @@ export default function CommandCenter() {
             <div className="p-2 bg-primary/10 text-primary rounded-lg">
               <DollarSign className="w-5 h-5" />
             </div>
-            <Badge
-              variant={salesAchieved ? 'default' : 'secondary'}
-              className="text-xs bg-green-500/10 text-green-600 dark:text-green-400 hover:bg-green-500/20"
-            >
-              +12.5% vs ayer
-            </Badge>
+            {overview !== undefined && (
+              <Badge
+                variant={salesAchieved ? 'default' : 'secondary'}
+                className="text-xs bg-green-500/10 text-green-600 dark:text-green-400 hover:bg-green-500/20"
+              >
+                +12.5% vs ayer
+              </Badge>
+            )}
           </div>
           <p className="text-muted-foreground text-xs font-bold uppercase tracking-wide">Venta Total Bruta</p>
-          <h3 className="text-3xl font-bold text-foreground mt-1">{formatCurrency(kpis.totalSales)}</h3>
-          <p className="text-[10px] text-muted-foreground mt-1">
-            Meta diaria: {formatCurrency(kpis.salesTarget)}{' '}
-            <span
-              className={cn('font-bold', salesAchieved ? 'text-green-600 dark:text-green-400' : 'text-orange-600 dark:text-orange-400')}
-            >
-              ({salesAchieved ? 'Cumplida' : `${salesVsTarget}%`})
-            </span>
-          </p>
+          <PorFuente query={overviewQuery}>
+            <h3 className="text-3xl font-bold text-foreground mt-1">{formatCurrency(kpis.totalSales)}</h3>
+            <p className="text-[10px] text-muted-foreground mt-1">
+              Meta diaria: {formatCurrency(kpis.salesTarget)}{' '}
+              <span
+                className={cn('font-bold', salesAchieved ? 'text-green-600 dark:text-green-400' : 'text-orange-600 dark:text-orange-400')}
+              >
+                ({salesAchieved ? 'Cumplida' : `${salesVsTarget}%`})
+              </span>
+            </p>
+          </PorFuente>
           <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-blue-500 dark:to-blue-400" />
         </GlassCard>
 
@@ -585,7 +583,10 @@ export default function CommandCenter() {
             </Button>
           </div>
           <p className="text-muted-foreground text-xs font-bold uppercase tracking-wide">Dinero en Calle (Riesgo)</p>
-          <h3 className="text-3xl font-bold text-foreground mt-1">{formatCurrency(kpis.moneyInStreet)}</h3>
+          {/* Misma fuente que la venta: su aviso ya salió en esa tarjeta. */}
+          <PorFuente query={overviewQuery} conAviso={false}>
+            <h3 className="text-3xl font-bold text-foreground mt-1">{formatCurrency(kpis.moneyInStreet)}</h3>
+          </PorFuente>
           <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-red-500 dark:from-red-400 to-orange-500 dark:to-orange-400" />
         </GlassCard>
 
@@ -600,8 +601,10 @@ export default function CommandCenter() {
             </div>
           </div>
           <p className="text-muted-foreground text-xs font-bold uppercase tracking-wide">Stock de SIMs</p>
-          <h3 className="text-3xl font-bold text-foreground mt-1">{kpis.stockSims.toLocaleString()}</h3>
-          <p className="text-[10px] text-muted-foreground mt-1">{kpis.lowStockStores} tiendas con stock bajo</p>
+          <PorFuente query={stockSummaryQuery}>
+            <h3 className="text-3xl font-bold text-foreground mt-1">{kpis.stockSims.toLocaleString()}</h3>
+            <p className="text-[10px] text-muted-foreground mt-1">{kpis.lowStockStores} tiendas con stock bajo</p>
+          </PorFuente>
         </GlassCard>
 
         {/* Anomalías Operativas */}
@@ -613,7 +616,10 @@ export default function CommandCenter() {
             <span className="text-xs font-bold text-muted-foreground">Hoy</span>
           </div>
           <p className="text-muted-foreground text-xs font-bold uppercase tracking-wide">Anomalías Operativas</p>
-          <h3 className="text-3xl font-bold text-foreground mt-1">{kpis.anomalies}</h3>
+          {/* Su aviso sale en la tabla de anomalías, que es la misma consulta. */}
+          <PorFuente query={anomaliesQuery} conAviso={false}>
+            <h3 className="text-3xl font-bold text-foreground mt-1">{kpis.anomalies}</h3>
+          </PorFuente>
           <div className="absolute bottom-0 left-0 w-full h-1 bg-orange-500 dark:bg-orange-400" />
         </GlassCard>
       </div>
@@ -831,25 +837,30 @@ export default function CommandCenter() {
               En vivo
             </Badge>
           </div>
-          <GaugeChart value={promotersPercentage} max={100} label="" size="sm" colorScheme="green" />
-          <div className="text-center mt-4">
-            <p className="text-3xl font-bold text-foreground">
-              {kpis.promotersOnline}
-              <span className="text-sm text-muted-foreground font-medium">/{kpis.promotersTotal}</span>
-            </p>
-            <p className="text-xs text-muted-foreground font-medium">Conectados ahora mismo</p>
-          </div>
+          <PorFuente query={onlineStaffQuery}>
+            <GaugeChart value={promotersPercentage} max={100} label="" size="sm" colorScheme="green" />
+            <div className="text-center mt-4">
+              <p className="text-3xl font-bold text-foreground">
+                {kpis.promotersOnline}
+                <span className="text-sm text-muted-foreground font-medium">/{kpis.promotersTotal}</span>
+              </p>
+              <p className="text-xs text-muted-foreground font-medium">Conectados ahora mismo</p>
+            </div>
+          </PorFuente>
         </GlassCard>
 
         {/* Live Activity Feed */}
         <GlassCard className="flex flex-col overflow-hidden p-4">
-          <LiveActivityFeed
-            activities={liveActivities}
-            maxHeight="h-64"
-            showTimestamps={false}
-            onViewAll={() => setActivityDialogOpen(true)}
-            viewAllLabel={t('commandCenter.activity.viewMore', { defaultValue: 'Ver mas' })}
-          />
+          <AvisoDeCarga query={activityFeedQuery} hayDatos={activityFeed !== undefined} />
+          {!(activityFeed === undefined && falloDeCarga(activityFeedQuery)) && (
+            <LiveActivityFeed
+              activities={liveActivities}
+              maxHeight="h-64"
+              showTimestamps={false}
+              onViewAll={() => setActivityDialogOpen(true)}
+              viewAllLabel={t('commandCenter.activity.viewMore', { defaultValue: 'Ver mas' })}
+            />
+          )}
         </GlassCard>
       </div>
 
@@ -939,6 +950,8 @@ export default function CommandCenter() {
           </div>
         </div>
 
+        <AvisoDeCarga query={anomaliesQuery} hayDatos={anomaliesData !== undefined} />
+        {!(anomaliesData === undefined && falloDeCarga(anomaliesQuery)) && (
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
@@ -1002,6 +1015,7 @@ export default function CommandCenter() {
             </TableBody>
           </Table>
         </div>
+        )}
       </GlassCard>
 
       <Dialog open={activityDialogOpen} onOpenChange={setActivityDialogOpen}>

@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ChevronLeft, ChevronRight, Loader2, Search } from 'lucide-react'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { GlassCard } from '@/components/ui/glass-card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -53,6 +55,7 @@ export function OrgCargasTab({ orgId, params, categories, venues }: OrgCargasTab
   const total = query.data?.pagination.total ?? 0
   const totalPages = query.data?.pagination.totalPages ?? 0
   const isFiltered = Boolean(search || registeredFromVenueId !== 'all' || categoryId !== 'all')
+  const sinCargas = query.data === undefined && falloDeCarga(query)
 
   return (
     <GlassCard className="p-6">
@@ -97,6 +100,8 @@ export function OrgCargasTab({ orgId, params, categories, venues }: OrgCargasTab
         </p>
       )}
 
+      <AvisoDeCarga query={query} hayDatos={query.data !== undefined} volverAlInicio={sinCargas && page > 1 ? () => setPage(1) : undefined} />
+      {!sinCargas && (
       <div className="hidden overflow-x-auto md:block">
         <table className="w-full">
           <thead>
@@ -117,6 +122,7 @@ export function OrgCargasTab({ orgId, params, categories, venues }: OrgCargasTab
           </tbody>
         </table>
       </div>
+      )}
 
       <div className="space-y-2 md:hidden">
         {groups.map(group => (

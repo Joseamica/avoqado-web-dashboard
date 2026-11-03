@@ -18,6 +18,8 @@ import { Tabs, TabsContent } from '@/components/ui/tabs'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
 import { useAuth } from '@/context/AuthContext'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { detalleNoCargo } from '@/lib/falloDeCarga'
 import { useBreadcrumb } from '@/context/BreadcrumbContext'
 import { useRoleConfig } from '@/hooks/use-role-config'
 import { StaffRole } from '@/types'
@@ -80,11 +82,12 @@ export default function TeamId() {
   const isSuperadmin = staffInfo?.role === StaffRole.SUPERADMIN
   const locale = getIntlLocale(i18n.language)
 
-  const { data: memberDetails, isLoading } = useQuery({
+  const memberQuery = useQuery({
     queryKey: ['team-member', venueId, memberId],
     queryFn: () => teamService.getTeamMember(venueId, memberId!),
     enabled: !!memberId,
   })
+  const { data: memberDetails, isLoading } = memberQuery
 
   // Deactivation impact: only fetched while the remove dialog is open — it's a
   // one-shot warning, not something the screen needs on every load. A failure here
@@ -206,6 +209,14 @@ export default function TeamId() {
     )
   }
 
+  if (detalleNoCargo(memberQuery)) {
+    return (
+      <div className="p-6">
+        <AvisoDeCarga query={memberQuery} hayDatos={false} />
+      </div>
+    )
+  }
+
   if (!memberDetails) {
     return (
       <div className="p-6 text-center py-24">
@@ -272,6 +283,7 @@ export default function TeamId() {
 
   return (
     <div className="p-6">
+      <AvisoDeCarga query={memberQuery} hayDatos />
       {/* ─── Header ─────────────────────────────────────── */}
       <div className="flex items-start justify-between mb-8">
         <div className="flex items-center gap-4">

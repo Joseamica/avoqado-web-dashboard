@@ -47,6 +47,7 @@ function pintar(entries: AttendanceEntry[], props: { canManage: boolean; current
   render(
     <AttendanceLog
       entries={entries}
+      query={{ data: entries, isError: false, isFetching: false, isPaused: false, error: null, refetch: () => undefined }}
       onApprove={() => undefined}
       onReject={() => undefined}
       onResetValidation={() => undefined}

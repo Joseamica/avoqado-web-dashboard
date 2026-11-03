@@ -3,6 +3,7 @@ import { useAuth } from '@/context/AuthContext'
 import { useQuery } from '@tanstack/react-query'
 import { getOrganizationStats, OrganizationStats, OrganizationVenue, getOrganizationVenues } from '@/services/organization.service'
 import { useCurrentVenue } from './use-current-venue'
+import type { EstadoDeCarga } from '@/lib/falloDeCarga'
 import { StaffRole } from '@/types'
 import { useMemo } from 'react'
 import { findMasterCatalogMembership, type MasterCatalogMembership } from '@/features/master-catalog/types'
@@ -16,6 +17,8 @@ interface UseCurrentOrganizationReturn {
   basePath: string
   /** List of venues in this organization (for venue selector) */
   venues: OrganizationVenue[]
+  /** `venues` cae a [] si esta lectura falló: una lista vacía no dice si la organización no tiene tiendas. */
+  venuesQuery: EstadoDeCarga & { data: unknown }
   /**
    * True when at least one venue in the org has the SERIALIZED_INVENTORY
    * module enabled. Used as a visibility gate for PlayTelecom-specific UI
@@ -134,13 +137,14 @@ export const useCurrentOrganization = (options: { includeVenues?: boolean; fetch
   })
 
   // Fetch organization venues (for venue selector)
-  const { data: venues, isLoading: isLoadingVenues } = useQuery({
+  const venuesQuery = useQuery({
     queryKey: ['organization', 'venues', orgId || orgSlugFromUrl],
     queryFn: () => getOrganizationVenues(orgId!),
     enabled: shouldFetch && !!orgId && options.includeVenues !== false,
     staleTime: 5 * 60 * 1000, // 5 minutes
     retry: 1,
   })
+  const { data: venues, isLoading: isLoadingVenues } = venuesQuery
 
   // Determine orgSlug: from URL or from organization data (future: when org has slug field)
   // For now, use URL param or fall back to orgId
@@ -178,6 +182,7 @@ export const useCurrentOrganization = (options: { includeVenues?: boolean; fetch
     orgSlug,
     basePath,
     venues: venues || [],
+    venuesQuery,
     hasSerializedInventory,
     isLoading: shouldFetch && (isLoadingOrg || isLoadingVenues),
     isOwner,

@@ -35,6 +35,7 @@ export function useIncomeStatement({ from, to, enabled = true }: UseIncomeStatem
     data: query.data,
     isLoading: query.isLoading,
     isFetching: query.isFetching,
+    isPaused: query.isPaused,
     isError: query.isError,
     error: query.error,
     refetch: query.refetch,

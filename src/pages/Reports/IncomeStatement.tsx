@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { AccountingErrorState } from '@/components/accounting/AccountingErrorState'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { mensajeDelReporte } from '@/components/accounting/errorDelReporte'
 import { AvisoIvaPorTasa, IvaPorTasa, tasasPresentes } from '@/components/accounting/IvaPorTasa'
 import { DateRangePicker } from '@/components/date-range-picker'
@@ -35,7 +37,11 @@ export default function IncomeStatement() {
   const from = toYmd(range.from, tz)
   const to = toYmd(range.to, tz)
 
-  const { data, isLoading, isError, error, refetch } = useIncomeStatement({ from, to })
+  const query = useIncomeStatement({ from, to })
+  const { data, error, refetch } = query
+  // Sin leer no hay tarjetas en $0: sin internet la consulta se pausa sin marcar error, y al reintentar ya no «carga» aunque siga sin datos.
+  const isLoading = data === undefined && !falloDeCarga(query)
+  const isError = data === undefined && falloDeCarga(query)
 
   const rev = data?.revenue
 
@@ -78,6 +84,8 @@ export default function IncomeStatement() {
           </Button>
         </div>
       </header>
+
+      {data !== undefined && <AvisoDeCarga query={query} hayDatos />}
 
       {/* KPI grid */}
       {isLoading ? (

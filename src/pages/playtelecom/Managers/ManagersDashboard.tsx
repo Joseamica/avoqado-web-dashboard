@@ -99,12 +99,14 @@ export function ManagersDashboard() {
   const selectedVenueId = storeFilter !== 'all' ? storeFilter : undefined
 
   // API hooks using venue-level endpoints (white-label access)
-  const { data: overview, isLoading: overviewLoading } = useStoresOverview({
+  const overviewQuery = useStoresOverview({
     startDate: startDateISO,
     endDate: endDateISO,
     filterVenueId: selectedVenueId,
   })
-  const { data: stockSummary } = useStoresStockSummary()
+  const { data: overview, isLoading: overviewLoading } = overviewQuery
+  const stockSummaryQuery = useStoresStockSummary()
+  const { data: stockSummary } = stockSummaryQuery
   const { data: anomalies } = useStoresAnomalies()
   const { data: venuesResponse } = useStoresVenues()
   const { data: revenueData } = useStoresRevenueVsTarget({ filterVenueId: selectedVenueId })
@@ -115,13 +117,14 @@ export function ManagersDashboard() {
   const startDateLocal = DateTime.fromJSDate(selectedRange.from).setZone(venueTimezone).toISODate() as string
   const endDateLocal = DateTime.fromJSDate(selectedRange.to).setZone(venueTimezone).toISODate() as string
 
-  const { data: attendanceData, isLoading: attendanceLoading } = useStoresStaffAttendance({
+  const attendanceQuery = useStoresStaffAttendance({
     startDate: startDateLocal,
     endDate: endDateLocal,
     filterVenueId: selectedVenueId,
     status: statusFilter !== 'all' ? statusFilter : undefined,
     refetchInterval: 30000,
   })
+  const { data: attendanceData, isLoading: attendanceLoading } = attendanceQuery
 
   // Extract venues array from response
   const venuesData = venuesResponse?.venues
@@ -561,7 +564,12 @@ export function ManagersDashboard() {
       </div>
 
       {/* KPI Cards */}
-      <ManagerKpiCards data={kpiData} formatCurrency={formatCurrency} anomalies={attendanceAnomalies} />
+      <ManagerKpiCards
+        data={kpiData}
+        formatCurrency={formatCurrency}
+        anomalies={attendanceAnomalies}
+        fuentes={{ tiendas: overviewQuery, incidencias: attendanceQuery, stock: stockSummaryQuery }}
+      />
 
       {/* Charts */}
       <ManagerCharts
@@ -575,6 +583,7 @@ export function ManagersDashboard() {
 
       {/* Attendance Log */}
       <AttendanceLog
+        query={attendanceQuery}
         canManage={can('attendance:manage')}
         currentStaffId={user?.id}
         entries={attendanceEntries}

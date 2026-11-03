@@ -19,6 +19,8 @@ import { MetricCard } from '@/components/ui/metric-card'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { AccountingErrorState } from '@/components/accounting/AccountingErrorState'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { DateRangePicker } from '@/components/date-range-picker'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useBankAndCash } from '@/hooks/useAccounting'
@@ -53,7 +55,11 @@ export default function BankAndCash() {
   const from = toYmd(range.from, tz)
   const to = toYmd(range.to, tz)
 
-  const { data, isLoading, isError, refetch } = useBankAndCash({ from, to })
+  const query = useBankAndCash({ from, to })
+  const { data, refetch } = query
+  // Sin leer no hay tarjetas en $0: sin internet la consulta se pausa sin marcar error, y al reintentar ya no «carga» aunque siga sin datos.
+  const isLoading = data === undefined && !falloDeCarga(query)
+  const isError = data === undefined && falloDeCarga(query)
   const accounts = data?.accounts ?? []
   const tot = data?.totals
   const rec = data?.reconciliation
@@ -78,6 +84,8 @@ export default function BankAndCash() {
           onUpdate={({ range: r }) => r.to && setRange({ from: r.from, to: r.to })}
         />
       </header>
+
+      {data !== undefined && <AvisoDeCarga query={query} hayDatos />}
 
       {/* KPI: caja / banco bruto / neto al banco */}
       {isLoading ? (

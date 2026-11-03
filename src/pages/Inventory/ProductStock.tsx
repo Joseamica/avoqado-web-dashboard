@@ -323,7 +323,8 @@ export default function ProductStock() {
         <p className="text-muted-foreground">{t('productStock.subtitle')}</p>
       </div>
 
-      {/* Stats Cards */}
+      {/* Stats Cards: sin leer los productos no hay 0 ni $0.00; el aviso sale en la tabla. */}
+      {listQuery.data !== undefined && (
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -365,6 +366,7 @@ export default function ProductStock() {
           </CardContent>
         </Card>
       </div>
+      )}
 
       {/* Search and Filters */}
       <div className="flex items-center gap-4">

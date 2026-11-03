@@ -37,6 +37,8 @@ import {
   AlertTriangle,
 } from 'lucide-react'
 import { DateTime } from 'luxon'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { useCurrentOrganization } from '@/hooks/use-current-organization'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useIsMobile } from '@/hooks/use-mobile'
@@ -496,19 +498,22 @@ export default function SalesDetail() {
         </div>
       </div>
 
-      {/* Summary cards */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-        <SummaryCard label="Total ventas" value={summaryQuery.data?.totalCount ?? 0} loading={summaryQuery.isLoading} />
-        <SummaryCard label="Aprobadas" value={summaryQuery.data?.completedCount ?? 0} loading={summaryQuery.isLoading} tone="success" />
-        <SummaryCard
-          label="En revisión por administración"
-          value={summaryQuery.data?.pendingCount ?? 0}
-          loading={summaryQuery.isLoading}
-          tone="warning"
-        />
-        <SummaryCard label="Revisar por promotor" value={summaryQuery.data?.failedCount ?? 0} loading={summaryQuery.isLoading} tone="danger" />
-        <SummaryCard label="Rechazadas" value={summaryQuery.data?.rejectedCount ?? 0} loading={summaryQuery.isLoading} tone="danger" />
-      </div>
+      {/* Summary cards: sin leer el resumen no hay contadores en 0. */}
+      <AvisoDeCarga query={summaryQuery} hayDatos={summaryQuery.data !== undefined} />
+      {!(summaryQuery.data === undefined && falloDeCarga(summaryQuery)) && (
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          <SummaryCard label="Total ventas" value={summaryQuery.data?.totalCount ?? 0} loading={summaryQuery.data === undefined} />
+          <SummaryCard label="Aprobadas" value={summaryQuery.data?.completedCount ?? 0} loading={summaryQuery.data === undefined} tone="success" />
+          <SummaryCard
+            label="En revisión por administración"
+            value={summaryQuery.data?.pendingCount ?? 0}
+            loading={summaryQuery.data === undefined}
+            tone="warning"
+          />
+          <SummaryCard label="Revisar por promotor" value={summaryQuery.data?.failedCount ?? 0} loading={summaryQuery.data === undefined} tone="danger" />
+          <SummaryCard label="Rechazadas" value={summaryQuery.data?.rejectedCount ?? 0} loading={summaryQuery.data === undefined} tone="danger" />
+        </div>
+      )}
 
       {/* Date range + export */}
       <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -641,11 +646,13 @@ export default function SalesDetail() {
         </div>
       </div>
 
+      <AvisoDeCarga query={listQuery} hayDatos={listQuery.data !== undefined} />
+
       {/* Mobile card list */}
       {isMobile && (
         <div className="space-y-3">
-          {listQuery.isLoading ? (
-            Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-40 w-full" />)
+          {listQuery.data === undefined ? (
+            !falloDeCarga(listQuery) && Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-40 w-full" />)
           ) : rows.length === 0 ? (
             <GlassCard className="p-8 text-center text-sm text-muted-foreground">No hay ventas que coincidan con los filtros.</GlassCard>
           ) : (
@@ -707,7 +714,8 @@ export default function SalesDetail() {
               </tr>
             </thead>
             <tbody>
-              {listQuery.isLoading ? (
+              {listQuery.data === undefined ? (
+                !falloDeCarga(listQuery) &&
                 Array.from({ length: 8 }).map((_, i) => (
                   <tr key={i} className="border-t border-border/30">
                     <td colSpan={16} className="px-3 py-3">

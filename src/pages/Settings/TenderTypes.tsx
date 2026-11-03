@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Banknote, Loader2, Lock, Pencil, Plus, Wallet, WalletCards } from 'lucide-react'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -70,19 +72,21 @@ export default function TenderTypes() {
   const [editing, setEditing] = useState<TenderType | null>(null)
   const [form, setForm] = useState<FormState>(EMPTY_FORM)
 
-  const { data: tenderTypes, isLoading } = useQuery({
+  const tenderTypesQuery = useQuery({
     queryKey: ['tender-types', venueId],
     queryFn: () => listTenderTypes(venueId!),
     enabled: !!venueId,
   })
+  const { data: tenderTypes, isLoading } = tenderTypesQuery
 
   // Comisiones pagadas. Es una lectura aparte del catálogo a propósito: el catálogo se
   // invalida en cada edición y este reporte no tiene por qué recargarse con ella.
-  const { data: commissions } = useQuery({
+  const commissionsQuery = useQuery({
     queryKey: ['tender-commissions', venueId],
     queryFn: () => getTenderCommissions(venueId!),
     enabled: !!venueId,
   })
+  const { data: commissions } = commissionsQuery
 
   const sections = useMemo(() => {
     const all = tenderTypes ?? []
@@ -328,9 +332,15 @@ export default function TenderTypes() {
         </div>
       ) : (
         <>
-          {renderSection(t('sections.primary'), sections.primary)}
-          {renderSection(t('sections.more'), sections.more)}
-          {renderSection(t('sections.disabled'), sections.disabled, t('sections.disabledEmpty'))}
+          <AvisoDeCarga query={tenderTypesQuery} hayDatos={tenderTypes !== undefined} />
+          {!(tenderTypes === undefined && falloDeCarga(tenderTypesQuery)) && (
+            <>
+              {renderSection(t('sections.primary'), sections.primary)}
+              {renderSection(t('sections.more'), sections.more)}
+              {renderSection(t('sections.disabled'), sections.disabled, t('sections.disabledEmpty'))}
+            </>
+          )}
+          <AvisoDeCarga query={commissionsQuery} hayDatos={commissions !== undefined} />
           {renderCommissions()}
         </>
       )}

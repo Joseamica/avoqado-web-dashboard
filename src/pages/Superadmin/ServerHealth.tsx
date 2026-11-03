@@ -2,6 +2,8 @@ import { useState, useMemo } from 'react'
 import { useServerMetrics } from '@/hooks/use-superadmin-queries'
 import type { ServerMetricsAlert } from '@/services/superadmin.service'
 import { GaugeChart } from '@/components/playtelecom/GaugeChart'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { StatusBadge } from '@/components/ui/status-badge'
 import { Card, CardHeader, CardContent, CardTitle } from '@/components/ui/card'
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table'
@@ -90,7 +92,11 @@ const eventLoopChartConfig = {
 
 export default function ServerHealth() {
   const [isPaused, setIsPaused] = useState(false)
-  const { data, isLoading, isError, error } = useServerMetrics(isPaused ? false : 30_000)
+  const metricsQuery = useServerMetrics(isPaused ? false : 30_000)
+  const { data, error } = metricsQuery
+  // Sin leer no hay memoria y CPU en 0 %: sin internet la consulta se pausa sin marcar error.
+  const isLoading = data === undefined && !falloDeCarga(metricsQuery)
+  const isError = data === undefined && falloDeCarga(metricsQuery)
 
   const current = data?.current
   const history = data?.history ?? []
@@ -144,6 +150,7 @@ export default function ServerHealth() {
 
   return (
     <div className="space-y-6 p-6">
+      <AvisoDeCarga query={metricsQuery} hayDatos />
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">

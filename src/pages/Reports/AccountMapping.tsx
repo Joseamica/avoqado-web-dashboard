@@ -9,6 +9,8 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { FeatureGate } from '@/components/billing/FeatureGate'
 import { AccountingErrorState } from '@/components/accounting/AccountingErrorState'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { SideBadge } from '@/components/accounting/StatusBadge'
 import { useAccess } from '@/hooks/use-access'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
@@ -84,9 +86,11 @@ function AccountMappingInner() {
         )}
       </header>
 
-      {mappingQuery.isLoading && hasAccess ? (
+      {mappingQuery.data !== undefined && <AvisoDeCarga query={mappingQuery} hayDatos />}
+
+      {mappingQuery.data === undefined && hasAccess && !falloDeCarga(mappingQuery) ? (
         <Skeleton className="h-64 rounded-2xl" />
-      ) : mappingQuery.isError && hasAccess ? (
+      ) : mappingQuery.data === undefined && hasAccess ? (
         <AccountingErrorState onRetry={() => mappingQuery.refetch()} />
       ) : needsFiscalSetup ? (
         <Card className="border-input">

@@ -6,6 +6,8 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { AccountingErrorState } from '@/components/accounting/AccountingErrorState'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { FeatureGate } from '@/components/billing/FeatureGate'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useTierFeatureAccess } from '@/hooks/use-tier-feature-access'
@@ -78,9 +80,11 @@ function FiscalReadinessInner() {
         </p>
       </header>
 
-      {query.isLoading && hasAccess ? (
+      {query.data !== undefined && <AvisoDeCarga query={query} hayDatos />}
+
+      {query.data === undefined && hasAccess && !falloDeCarga(query) ? (
         <Skeleton className="h-96 rounded-2xl" />
-      ) : query.isError && hasAccess ? (
+      ) : query.data === undefined && hasAccess ? (
         <AccountingErrorState onRetry={() => query.refetch()} />
       ) : needsFiscalSetup ? (
         <Card className="border-input">

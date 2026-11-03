@@ -1,6 +1,8 @@
 import { useState, useMemo, Fragment } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
@@ -96,11 +98,14 @@ export default function PaymentMethods() {
     [venueId, dateRange.from, dateRange.to],
   )
 
-  const { data: apiResponse, isLoading, isError, error } = useQuery({
+  const reportQuery = useQuery({
     queryKey: paymentMethodsKeys.report(apiFilters),
     queryFn: () => fetchPaymentMethods(apiFilters),
     staleTime: 1000 * 60 * 5,
   })
+  const { data: apiResponse, error } = reportQuery
+  const isLoading = apiResponse === undefined && !falloDeCarga(reportQuery)
+  const isError = apiResponse === undefined && falloDeCarga(reportQuery)
 
   const handleDateRangeUpdate = (values: { range: { from: Date; to: Date | undefined } }) => {
     if (values.range.from && values.range.to) {
@@ -193,6 +198,7 @@ export default function PaymentMethods() {
 
   return (
     <div className="p-4 md:p-6 space-y-6">
+      <AvisoDeCarga query={reportQuery} hayDatos />
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">

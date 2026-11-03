@@ -127,6 +127,7 @@ describe('OrgSidebar', () => {
       orgSlug: ORG_ID,
       basePath: `/organizations/${ORG_ID}`,
       venues: [],
+    venuesQuery: { data: [], isError: false, isFetching: false, isPaused: false, error: null, refetch: () => undefined },
       hasSerializedInventory: false,
       isLoading: false,
       isOwner: true,

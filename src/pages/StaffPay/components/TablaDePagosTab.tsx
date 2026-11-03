@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { ArrowDown, CheckCircle2, Circle } from 'lucide-react'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -140,7 +142,9 @@ export function TablaDePagosTab() {
   }
 
   const cargando = qNiveles.isLoading || qAsignaciones.isLoading || qTablas.isLoading
-  const fallo = qNiveles.isError || qAsignaciones.isError || qTablas.isError
+  // Sin internet la lectura se pausa: `isError` no lo ve, y sin esta guarda salía «crear tabla» con la tabla de verdad sin leer.
+  const lecturas = [qNiveles, qAsignaciones, qTablas]
+  const fallo = lecturas.some(q => q.data === undefined && falloDeCarga(q))
   if (cargando) {
     return (
       <div className="space-y-4" aria-busy="true" aria-live="polite">
@@ -185,15 +189,18 @@ export function TablaDePagosTab() {
         ))}
       </ol>
 
+      {lecturas.map((q, i) => <AvisoDeCarga key={i} query={q} hayDatos />)}
+
       {/* 1. Niveles */}
       <NivelesSection activos={activos} />
 
       {/* 2. Quién es qué */}
       <section className="rounded-lg border border-input p-4 space-y-3">
         <h3 className="font-semibold">{t('who.title')}</h3>
+        <AvisoDeCarga query={qEquipo} hayDatos={qEquipo.data !== undefined} />
         {qEquipo.isLoading ? (
           <Skeleton className="h-10 w-full" />
-        ) : miembros.length === 0 ? (
+        ) : qEquipo.data === undefined && falloDeCarga(qEquipo) ? null : miembros.length === 0 ? (
           <p className="text-sm text-muted-foreground">{t('who.empty')}</p>
         ) : (
           <>

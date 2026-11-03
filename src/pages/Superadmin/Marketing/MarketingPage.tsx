@@ -23,6 +23,8 @@ import { useToast } from '@/hooks/use-toast'
 import * as marketingService from '@/services/superadmin-marketing.service'
 import type { CampaignStatus, MarketingCampaign } from '@/services/superadmin-marketing.service'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { DateTime } from 'luxon'
 import {
   CheckCircle2,
@@ -80,7 +82,7 @@ function MarketingPage() {
   const [campaignToDelete, setCampaignToDelete] = useState<string | null>(null)
 
   // Fetch campaigns
-  const { data, isLoading, refetch } = useQuery({
+  const campaignsQuery = useQuery({
     queryKey: ['marketing-campaigns', statusFilter, searchQuery],
     queryFn: () =>
       marketingService.listCampaigns({
@@ -88,6 +90,7 @@ function MarketingPage() {
         search: searchQuery || undefined,
       }),
   })
+  const { data, isLoading, refetch } = campaignsQuery
 
   // Delete mutation
   const deleteMutation = useMutation({
@@ -309,12 +312,13 @@ function MarketingPage() {
             </div>
           )}
 
+          <AvisoDeCarga query={campaignsQuery} hayDatos={data !== undefined} />
           {/* Table */}
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
-          ) : !data?.campaigns.length ? (
+          ) : data === undefined && falloDeCarga(campaignsQuery) ? null : !data?.campaigns.length ? (
             <div className="text-center py-12">
               <Mail className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
               <p className="text-muted-foreground">No hay campañas</p>

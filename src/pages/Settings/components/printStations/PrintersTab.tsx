@@ -4,6 +4,8 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { Loader2, Pencil, Plus, Trash2 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -67,11 +69,12 @@ export function PrintersTab({ venueId }: { venueId: string }) {
   const [isFormOpen, setFormOpen] = useState(false)
   const [toDelete, setToDelete] = useState<Printer | null>(null)
 
-  const { data: printers, isLoading } = useQuery({
+  const printersQuery = useQuery({
     queryKey: ['printers', venueId],
     queryFn: () => getPrinters(venueId),
     enabled: !!venueId,
   })
+  const { data: printers, isLoading } = printersQuery
 
   const openCreate = () => {
     setEditing(null)
@@ -92,11 +95,12 @@ export function PrintersTab({ venueId }: { venueId: string }) {
         </Button>
       </div>
 
+      <AvisoDeCarga query={printersQuery} hayDatos={printers !== undefined} />
       {isLoading ? (
         <div className="flex items-center justify-center gap-2 py-12 text-muted-foreground">
           <Loader2 className="h-5 w-5 animate-spin" /> {t('loading')}
         </div>
-      ) : (printers?.length ?? 0) === 0 ? (
+      ) : printers === undefined && falloDeCarga(printersQuery) ? null : (printers?.length ?? 0) === 0 ? (
         <Card className="border-input">
           <CardContent className="py-10 text-center text-sm text-muted-foreground">{t('printers.empty')}</CardContent>
         </Card>

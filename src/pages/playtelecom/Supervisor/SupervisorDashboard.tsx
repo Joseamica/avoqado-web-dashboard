@@ -16,6 +16,8 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { GlassCard } from '@/components/ui/glass-card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
@@ -166,11 +168,12 @@ export function SupervisorDashboard() {
   const prevDayDates = useMemo(() => diaAnteriorDelNegocio(selectedRange.from, venueTimezone), [selectedRange.from, venueTimezone])
 
   // Use venue-level hooks for white-label access — pass date range to filter data
-  const { data: overview, isLoading: overviewLoading } = useStoresOverview({
+  const overviewQuery = useStoresOverview({
     startDate: startDateISO,
     endDate: endDateISO,
     filterVenueId: storeFilter !== 'all' ? storeFilter : undefined,
   })
+  const { data: overview, isLoading: overviewLoading } = overviewQuery
   const { data: previousOverview } = useStoresOverview({
     startDate: prevDayDates.start,
     endDate: prevDayDates.end,
@@ -192,12 +195,15 @@ export function SupervisorDashboard() {
     filterVenueId: storeFilter !== 'all' ? storeFilter : undefined,
   })
   const { data: _revenueData } = useStoresRevenueVsTarget()
-  const { data: storePerformanceData } = useStoresStorePerformance({ startDate: startDateISO, endDate: endDateISO })
-  const { data: attendanceData } = useStoresStaffAttendance({
+  const storePerformanceQuery = useStoresStorePerformance({ startDate: startDateISO, endDate: endDateISO })
+  const { data: storePerformanceData } = storePerformanceQuery
+  const attendanceQuery = useStoresStaffAttendance({
     date: selectedRange.from.toISOString().split('T')[0],
     filterVenueId: storeFilter !== 'all' ? storeFilter : undefined,
     refetchInterval: 30000,
   })
+  const { data: attendanceData } = attendanceQuery
+  const sinAsistencia = attendanceData === undefined && falloDeCarga(attendanceQuery)
   const { data: locData } = useQuery({
     queryKey: ['supervisor-terminal-locations', activeVenue?.id],
     queryFn: () => getSupervisorTerminalLocations(activeVenue!.id),
@@ -659,7 +665,9 @@ export function SupervisorDashboard() {
 
         {/* Tab: Operativo */}
         <TabsContent value="operativo" className="space-y-6 mt-4">
-          {/* Operational Coverage + Cash */}
+          {/* Operational Coverage + Cash: sin leer el resumen no hay «0 abiertas» ni efectivo en calle $0. */}
+          <AvisoDeCarga query={overviewQuery} hayDatos={overview !== undefined} />
+          {overview !== undefined && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {/* Coverage */}
             <GlassCard className="md:col-span-2 p-4 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-around relative overflow-hidden gap-4">
@@ -765,8 +773,10 @@ export function SupervisorDashboard() {
               )}
             </GlassCard>
           </div>
+          )}
 
           {/* Charts Row */}
+          <AvisoDeCarga query={storePerformanceQuery} hayDatos={storePerformanceData !== undefined} />
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {/* Pie - Sales by Store */}
             <GlassCard className="p-5 flex flex-col items-center justify-center min-h-[280px]">
@@ -951,7 +961,13 @@ export function SupervisorDashboard() {
                 {t('playtelecom:supervisor.storeDetail', { defaultValue: 'Detalle por Tienda' })}
               </h3>
             </div>
+            {falloDeCarga(attendanceQuery) && (
+              <div className="px-4 pt-4 sm:px-6">
+                <AvisoDeCarga query={attendanceQuery} hayDatos={attendanceData !== undefined} />
+              </div>
+            )}
             {/* Desktop table */}
+            {!sinAsistencia && (
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-left text-sm">
                 <thead className="bg-muted/30 text-xs uppercase font-bold text-muted-foreground">
@@ -1097,8 +1113,10 @@ export function SupervisorDashboard() {
                 </tbody>
               </table>
             </div>
+            )}
 
             {/* Mobile card list */}
+            {!sinAsistencia && (
             <div className="md:hidden divide-y divide-border/30">
               {storeDetailRows.length === 0 ? (
                 <div className="px-4 py-12 text-center text-muted-foreground">
@@ -1188,6 +1206,7 @@ export function SupervisorDashboard() {
                 ))
               )}
             </div>
+            )}
           </GlassCard>
 
           {/* Real-time Transactions */}

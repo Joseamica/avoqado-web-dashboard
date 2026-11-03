@@ -16,6 +16,8 @@ import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -85,16 +87,14 @@ export default function PromotionSales() {
     [venueId, dateRange.from, dateRange.to, reportType],
   )
 
-  const {
-    data: apiResponse,
-    isLoading,
-    isError,
-    error,
-  } = useQuery({
+  const reportQuery = useQuery({
     queryKey: promotionSalesKeys.report(apiFilters),
     queryFn: () => fetchPromotionSales(apiFilters),
     staleTime: 1000 * 60 * 5,
   })
+  const { data: apiResponse, error } = reportQuery
+  const isLoading = apiResponse === undefined && !falloDeCarga(reportQuery)
+  const isError = apiResponse === undefined && falloDeCarga(reportQuery)
 
   const handleDateRangeUpdate = (values: { range: { from: Date; to: Date | undefined } }) => {
     if (values.range.from && values.range.to) {
@@ -197,6 +197,7 @@ export default function PromotionSales() {
   return (
     <FeatureGate feature="PROMOTIONS">
       <div className="p-4 md:p-6 space-y-6">
+        <AvisoDeCarga query={reportQuery} hayDatos />
         {header}
 
         {/* Rango + período */}

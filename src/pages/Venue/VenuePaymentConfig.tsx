@@ -452,11 +452,14 @@ const VenuePaymentConfig: React.FC = () => {
 
   // === DATA FETCHING ===
 
-  const { data: paymentConfig, isLoading: configLoading } = useQuery({
+  const paymentConfigQuery = useQuery({
     queryKey: ['venue-payment-config', venue?.id],
     queryFn: () => paymentProviderAPI.getVenuePaymentConfigByVenueId(venue!.id),
     enabled: !!venue?.id,
   })
+  const { data: paymentConfig } = paymentConfigQuery
+  // `null` es «no tiene configuración» (lo que dice su 404). Sin leer no se sabe: no se invita a conectar lo que ya puede estar conectado.
+  const configLoading = !!venue?.id && paymentConfig === undefined && !falloDeCarga(paymentConfigQuery)
 
   const costQuery = useQuery({
     queryKey: ['venue-cost-structures', venue?.id],
@@ -614,6 +617,14 @@ const VenuePaymentConfig: React.FC = () => {
     )
   }
 
+  if (paymentConfig === undefined && falloDeCarga(paymentConfigQuery)) {
+    return (
+      <div className="p-6 max-w-4xl mx-auto">
+        <AvisoDeCarga query={paymentConfigQuery} hayDatos={false} />
+      </div>
+    )
+  }
+
   // === EMPTY STATE ===
 
   if (!paymentConfig) {
@@ -711,6 +722,7 @@ const VenuePaymentConfig: React.FC = () => {
   return (
     <TooltipProvider>
       <div className="p-6 max-w-5xl mx-auto space-y-6">
+        <AvisoDeCarga query={paymentConfigQuery} hayDatos />
         {/* === HEADER === */}
         <div className="flex items-center justify-between">
           <div>

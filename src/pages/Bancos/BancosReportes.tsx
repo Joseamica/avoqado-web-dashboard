@@ -14,6 +14,8 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
 import { Skeleton } from '@/components/ui/skeleton'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { cn } from '@/lib/utils'
 import { Currency } from '@/utils/currency'
 import { getIntlLocale } from '@/utils/i18n-locale'
@@ -96,10 +98,10 @@ function ReportsContent({ venueId, accounts }: { venueId: string; accounts: Banc
       queryFn: () => financialConnectionAPI.getMovementStats(venueId, account.id, range),
     })),
   })
-  const statsLoading = statsQueries.some(q => q.isLoading)
+  const statsLoading = statsQueries.some(q => q.data === undefined && !falloDeCarga(q))
   // Una cuenta que falla deja el total de LAS 4 categorías incompleto (cada categoría suma sobre
   // todas las cuentas) — nunca mostrar $0 fabricado cuando en realidad no se pudo leer todo.
-  const statsError = statsQueries.some(q => q.isError)
+  const statsError = statsQueries.some(q => falloDeCarga(q))
 
   const totals = useMemo(
     () => ({
@@ -168,8 +170,9 @@ function ReportsContent({ venueId, accounts }: { venueId: string; accounts: Banc
           <CardDescription>{t('hub.reports.trend.description')}</CardDescription>
         </CardHeader>
         <CardContent>
-          {trend.isLoading ? (
-            <Skeleton className="h-[220px] w-full" />
+          <AvisoDeCarga query={trend} hayDatos={trend.data !== undefined} />
+          {trend.data === undefined ? (
+            !falloDeCarga(trend) && <Skeleton className="h-[220px] w-full" />
           ) : (
             <ChartContainer config={chartConfig} className="aspect-auto h-[220px] w-full">
               <LineChart accessibilityLayer data={trend.data?.points ?? []} margin={{ left: 12, right: 12 }}>

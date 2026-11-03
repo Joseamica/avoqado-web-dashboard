@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import {
   Plus,
   Building2,
@@ -357,15 +359,17 @@ export default function Aggregators() {
 
   // ─── Queries ──────────────────────────────────────────────
 
-  const { data: aggregators = [], isLoading: loadingAgg } = useQuery({
+  const aggregatorsQuery = useQuery({
     queryKey: ['aggregators'],
     queryFn: () => aggregatorAPI.getAll(),
   })
+  const { data: aggregators = [], isLoading: loadingAgg } = aggregatorsQuery
 
-  const { data: commissions = [], isLoading: loadingComm } = useQuery({
+  const commissionsQuery = useQuery({
     queryKey: ['venue-commissions', selectedAggId],
     queryFn: () => aggregatorAPI.getCommissions(selectedAggId ? { aggregatorId: selectedAggId } : undefined),
   })
+  const { data: commissions = [], isLoading: loadingComm } = commissionsQuery
 
   // ─── Aggregator Mutations ─────────────────────────────────
 
@@ -599,12 +603,13 @@ export default function Aggregators() {
           </Button>
         </div>
 
+        <AvisoDeCarga query={aggregatorsQuery} hayDatos={aggregatorsQuery.data !== undefined} />
         {loadingAgg ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
             <span className="ml-2 text-muted-foreground text-sm">Cargando agregadores...</span>
           </div>
-        ) : aggregators.length === 0 ? (
+        ) : aggregatorsQuery.data === undefined && falloDeCarga(aggregatorsQuery) ? null : aggregators.length === 0 ? (
           <GlassCard className="p-10 text-center">
             <Layers className="w-10 h-10 mx-auto mb-3 text-muted-foreground opacity-40" />
             <p className="text-muted-foreground">No hay agregadores registrados</p>
@@ -811,12 +816,13 @@ export default function Aggregators() {
           </Button>
         </div>
 
+        <AvisoDeCarga query={commissionsQuery} hayDatos={commissionsQuery.data !== undefined} />
         {loadingComm ? (
           <div className="flex items-center justify-center py-10">
             <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
             <span className="ml-2 text-muted-foreground text-sm">Cargando comisiones...</span>
           </div>
-        ) : commissions.length === 0 ? (
+        ) : commissionsQuery.data === undefined && falloDeCarga(commissionsQuery) ? null : commissions.length === 0 ? (
           <GlassCard className="p-10 text-center">
             <Users className="w-10 h-10 mx-auto mb-3 text-muted-foreground opacity-40" />
             <p className="text-muted-foreground">No hay comisiones registradas</p>

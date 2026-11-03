@@ -15,6 +15,8 @@ import React, { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { useCurrentOrganization } from '@/hooks/use-current-organization'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { useDebounce } from '@/hooks/useDebounce'
 import {
   Store,
@@ -70,7 +72,7 @@ type ViewMode = 'grid' | 'list'
 const TiendasList: React.FC = () => {
   const { t } = useTranslation(['organization', 'common'])
   const navigate = useNavigate()
-  const { organization: _organization, basePath: _basePath, venues, isLoading, error } = useCurrentOrganization()
+  const { organization: _organization, basePath: _basePath, venues, venuesQuery, isLoading, error } = useCurrentOrganization()
 
   // State
   const [searchTerm, setSearchTerm] = useState('')
@@ -235,6 +237,8 @@ const TiendasList: React.FC = () => {
         />
       </div>
 
+      <AvisoDeCarga query={venuesQuery} hayDatos={venuesQuery.data !== undefined} />
+
       {/* Loading State */}
       {isLoading && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -245,7 +249,7 @@ const TiendasList: React.FC = () => {
       )}
 
       {/* Empty State */}
-      {!isLoading && filteredVenues.length === 0 && (
+      {!isLoading && filteredVenues.length === 0 && !(venuesQuery.data === undefined && falloDeCarga(venuesQuery)) && (
         <GlassCard className="p-12">
           <div className="flex flex-col items-center justify-center text-center">
             <Store className="w-12 h-12 text-muted-foreground mb-4" />

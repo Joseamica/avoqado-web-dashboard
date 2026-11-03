@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { CalendarClock, CheckCircle2, Loader2 } from 'lucide-react'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -138,11 +139,14 @@ function SettlementDialogBody({
   // In edit mode we need the existing settlement rows so we know which row id
   // to PUT per card type. Same query key as useMerchantBundle so the cache is
   // shared with the panel's hydration round-trip.
-  const { data: existingConfigs = [] } = useQuery<SettlementConfiguration[]>({
+  const configsQuery = useQuery<SettlementConfiguration[]>({
     queryKey: ['settlement-configs-by-merchant', merchantAccountId],
     queryFn: () => getSettlementConfigurations({ merchantAccountId: merchantAccountId! }),
     enabled: mode === 'edit' && !!merchantAccountId,
   })
+  const { data: existingConfigs = [] } = configsQuery
+  // Se guarda por id de fila: sin leerlas no se mandaría nada y el aviso diría «actualizada» igual.
+  const filasSinLeer = mode === 'edit' && configsQuery.data === undefined
   // Local form buffer — only commit to reducer when user clicks "Guardar".
   // Opening the dialog should not flip the panel's progress indicator.
   const [draft, setDraft] = useState<SettlementSlice>(state.settlement)
@@ -150,7 +154,7 @@ function SettlementDialogBody({
   const setField = (patch: Partial<SettlementSlice>) =>
     setDraft(prev => ({ ...prev, ...patch }))
 
-  const canSave = isSettlementValid(draft)
+  const canSave = isSettlementValid(draft) && !filasSinLeer
 
   const handleApplyAll = () => {
     // Take DÉBITO as reference (falls back to CRÉDITO, then 1) and copy to the
@@ -244,6 +248,7 @@ function SettlementDialogBody({
 
   return (
     <div className="space-y-4">
+      {mode === 'edit' && <AvisoDeCarga query={configsQuery} hayDatos={!filasSinLeer} />}
       <p className="text-xs text-muted-foreground">
         Cuándo se deposita al venue. T+N significa <strong>N días</strong> después
         del corte.

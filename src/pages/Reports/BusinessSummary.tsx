@@ -21,6 +21,8 @@ import { MetricCard } from '@/components/ui/metric-card'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { AccountingErrorState } from '@/components/accounting/AccountingErrorState'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { mensajeDelReporte } from '@/components/accounting/errorDelReporte'
 import { IvaPorTasa, tasasPresentes } from '@/components/accounting/IvaPorTasa'
 import { DateRangePicker } from '@/components/date-range-picker'
@@ -59,7 +61,11 @@ export default function BusinessSummary() {
   const from = toYmd(range.from, tz)
   const to = toYmd(range.to, tz)
 
-  const { data, isLoading, isError, error, refetch } = useBusinessSummary({ from, to })
+  const query = useBusinessSummary({ from, to })
+  const { data, error, refetch } = query
+  // Sin leer no hay tarjetas en $0: sin internet la consulta se pausa sin marcar error, y al reintentar ya no «carga» aunque siga sin datos.
+  const isLoading = data === undefined && !falloDeCarga(query)
+  const isError = data === undefined && falloDeCarga(query)
 
   const inv = data?.invoicing
   const col = data?.collection
@@ -87,6 +93,8 @@ export default function BusinessSummary() {
           onUpdate={({ range: r }) => r.to && setRange({ from: r.from, to: r.to })}
         />
       </header>
+
+      {data !== undefined && <AvisoDeCarga query={query} hayDatos />}
 
       {/* KPI grid */}
       {isLoading ? (

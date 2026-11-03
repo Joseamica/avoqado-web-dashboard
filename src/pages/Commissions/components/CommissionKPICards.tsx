@@ -64,6 +64,8 @@ const rankConfig = [
 interface CommissionKPICardsProps {
 	stats: CommissionStats | undefined
 	isLoading: boolean
+	/** Las estadísticas no se pudieron leer: el aviso va en la página y aquí no se pinta ningún número. */
+	statsCaidas?: boolean
 	/** Whether any commission configs exist */
 	hasConfigs?: boolean
 	isLoadingConfigs?: boolean
@@ -71,7 +73,7 @@ interface CommissionKPICardsProps {
 	onGoToConfig?: () => void
 }
 
-export default function CommissionKPICards({ stats, isLoading, hasConfigs = true, isLoadingConfigs = false, onGoToConfig }: CommissionKPICardsProps) {
+export default function CommissionKPICards({ stats, isLoading, statsCaidas = false, hasConfigs = true, isLoadingConfigs = false, onGoToConfig }: CommissionKPICardsProps) {
 	const { t, i18n } = useTranslation('commissions')
 
 	// Format currency
@@ -110,6 +112,8 @@ export default function CommissionKPICards({ stats, isLoading, hasConfigs = true
 			</GlassCard>
 		)
 	}
+
+	if (statsCaidas) return null
 
 	return (
 		<div className="grid grid-cols-1 lg:grid-cols-3 gap-4">

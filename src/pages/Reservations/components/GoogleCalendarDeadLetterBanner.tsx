@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { format, type Locale } from 'date-fns'
 import { es, enUS, fr } from 'date-fns/locale'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -165,14 +167,7 @@ function DeadLetterModal({
   const queryClient = useQueryClient()
   const [retryingId, setRetryingId] = useState<string | null>(null)
 
-  const {
-    data,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-    isLoading,
-    refetch,
-  } = useInfiniteQuery({
+  const listQuery = useInfiniteQuery({
     queryKey: ['gcal-dead-letter-list', venueId],
     queryFn: ({ pageParam }) =>
       googleCalendarService.listDeadLetter(venueId, {
@@ -183,6 +178,7 @@ function DeadLetterModal({
     getNextPageParam: lastPage => lastPage.nextCursor ?? undefined,
     enabled: open && !!venueId,
   })
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading, refetch } = listQuery
 
   const rows: DeadLetterRow[] = data?.pages.flatMap(p => p.rows) ?? []
 
@@ -226,11 +222,12 @@ function DeadLetterModal({
           <DialogDescription>{t('deadLetter.bannerPlural', { count: rows.length })}</DialogDescription>
         </DialogHeader>
 
+        <AvisoDeCarga query={listQuery} hayDatos={data !== undefined} />
         {isLoading ? (
           <div className="flex items-center justify-center py-8 text-muted-foreground">
             <Loader2 className="h-5 w-5 animate-spin" />
           </div>
-        ) : rows.length === 0 ? (
+        ) : data === undefined && falloDeCarga(listQuery) ? null : rows.length === 0 ? (
           <p className="py-6 text-center text-sm text-muted-foreground">{t('deadLetter.empty')}</p>
         ) : (
           <>

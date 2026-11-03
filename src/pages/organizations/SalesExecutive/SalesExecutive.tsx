@@ -25,6 +25,8 @@ import { useQuery } from '@tanstack/react-query'
 import { Bar, BarChart, CartesianGrid, LabelList, ResponsiveContainer, Tooltip as RechartsTooltip, XAxis, YAxis, Legend } from 'recharts'
 import { Link } from 'react-router-dom'
 import { Receipt, ChevronRight } from 'lucide-react'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { useCurrentOrganization } from '@/hooks/use-current-organization'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { GlassCard } from '@/components/ui/glass-card'
@@ -269,26 +271,30 @@ export default function SalesExecutive() {
       </div>
 
       {/* KPI cards — confirmed-only totals; pending/failed are counters, never part of totals */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <KpiCard label="Total aprobadas" value={summary.data?.completedCount ?? 0} loading={summary.isLoading} />
-        <KpiCard
-          label="Monto aprobado"
-          // confirmedRevenue excludes "en revisión" / "sin verificación"; fall back to
-          // legacy totalRevenue only while an older backend is still deployed.
-          value={MXN(summary.data?.confirmedRevenue ?? summary.data?.totalRevenue ?? 0)}
-          loading={summary.isLoading}
-          asString
-        />
-        <KpiCard label="En revisión por administración" value={summary.data?.pendingCount ?? 0} loading={summary.isLoading} tone="warning" />
-        <KpiCard label="Revisar por promotor" value={summary.data?.failedCount ?? 0} loading={summary.isLoading} tone="danger" />
-      </div>
+      <AvisoDeCarga query={summary} hayDatos={summary.data !== undefined} />
+      {!(summary.data === undefined && falloDeCarga(summary)) && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <KpiCard label="Total aprobadas" value={summary.data?.completedCount ?? 0} loading={summary.data === undefined} />
+          <KpiCard
+            label="Monto aprobado"
+            // confirmedRevenue excludes "en revisión" / "sin verificación"; fall back to
+            // legacy totalRevenue only while an older backend is still deployed.
+            value={MXN(summary.data?.confirmedRevenue ?? summary.data?.totalRevenue ?? 0)}
+            loading={summary.data === undefined}
+            asString
+          />
+          <KpiCard label="En revisión por administración" value={summary.data?.pendingCount ?? 0} loading={summary.data === undefined} tone="warning" />
+          <KpiCard label="Revisar por promotor" value={summary.data?.failedCount ?? 0} loading={summary.data === undefined} tone="danger" />
+        </div>
+      )}
 
       {/* Row 1: by month + by sim type */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <GlassCard className="p-4">
           <h2 className="text-sm font-semibold mb-3">Ventas Totales por Mes</h2>
-          {byMonth.isLoading ? (
-            <Skeleton className="h-64 w-full" />
+          <AvisoDeCarga query={byMonth} hayDatos={byMonth.data !== undefined} />
+          {byMonth.data === undefined ? (
+            !falloDeCarga(byMonth) && <Skeleton className="h-64 w-full" />
           ) : monthData.length === 0 ? (
             <EmptyChart />
           ) : (
@@ -308,8 +314,9 @@ export default function SalesExecutive() {
 
         <GlassCard className="p-4">
           <h2 className="text-sm font-semibold mb-3">Ventas por Tipo de SIM</h2>
-          {bySimType.isLoading ? (
-            <Skeleton className="h-64 w-full" />
+          <AvisoDeCarga query={bySimType} hayDatos={bySimType.data !== undefined} />
+          {bySimType.data === undefined ? (
+            !falloDeCarga(bySimType) && <Skeleton className="h-64 w-full" />
           ) : simTypeData.data.length === 0 ? (
             <EmptyChart />
           ) : (
@@ -343,8 +350,9 @@ export default function SalesExecutive() {
       {/* Row 2: by week */}
       <GlassCard className="p-4">
         <h2 className="text-sm font-semibold mb-3">Ventas Totales Semanales</h2>
-        {byWeek.isLoading ? (
-          <Skeleton className="h-48 w-full" />
+        <AvisoDeCarga query={byWeek} hayDatos={byWeek.data !== undefined} />
+        {byWeek.data === undefined ? (
+          !falloDeCarga(byWeek) && <Skeleton className="h-48 w-full" />
         ) : weekData.length === 0 ? (
           <EmptyChart />
         ) : (
@@ -366,8 +374,9 @@ export default function SalesExecutive() {
       {/* Row 2b: weekly sale-type table */}
       <GlassCard className="p-4 overflow-hidden">
         <h2 className="text-sm font-semibold mb-3">Ventas por Tipo de Venta (semanal)</h2>
-        {bySaleTypeWeekly.isLoading ? (
-          <Skeleton className="h-40 w-full" />
+        <AvisoDeCarga query={bySaleTypeWeekly} hayDatos={bySaleTypeWeekly.data !== undefined} />
+        {bySaleTypeWeekly.data === undefined ? (
+          !falloDeCarga(bySaleTypeWeekly) && <Skeleton className="h-40 w-full" />
         ) : (bySaleTypeWeekly.data ?? []).every(r => r.total === 0) ? (
           <EmptyChart />
         ) : (
@@ -383,8 +392,9 @@ export default function SalesExecutive() {
       {/* Row 2c: weekly SIM-type table */}
       <GlassCard className="p-4 overflow-hidden">
         <h2 className="text-sm font-semibold mb-3">Ventas por Tipo de SIM (semanal)</h2>
-        {bySimTypeWeekly.isLoading ? (
-          <Skeleton className="h-40 w-full" />
+        <AvisoDeCarga query={bySimTypeWeekly} hayDatos={bySimTypeWeekly.data !== undefined} />
+        {bySimTypeWeekly.data === undefined ? (
+          !falloDeCarga(bySimTypeWeekly) && <Skeleton className="h-40 w-full" />
         ) : (bySimTypeWeekly.data ?? []).every(r => r.total === 0) ? (
           <EmptyChart />
         ) : (
@@ -400,8 +410,9 @@ export default function SalesExecutive() {
       {/* Row 3: city heatmap table */}
       <GlassCard className="p-4 overflow-hidden">
         <h2 className="text-sm font-semibold mb-3">Ventas Totales por Ciudad</h2>
-        {byCity.isLoading ? (
-          <Skeleton className="h-48 w-full" />
+        <AvisoDeCarga query={byCity} hayDatos={byCity.data !== undefined} />
+        {byCity.data === undefined ? (
+          !falloDeCarga(byCity) && <Skeleton className="h-48 w-full" />
         ) : (byCity.data ?? []).length === 0 ? (
           <EmptyChart />
         ) : (
@@ -416,8 +427,9 @@ export default function SalesExecutive() {
       {/* Row 4: supervisor heatmap table */}
       <GlassCard className="p-4 overflow-hidden">
         <h2 className="text-sm font-semibold mb-3">Ventas Totales por Supervisor</h2>
-        {bySupervisor.isLoading ? (
-          <Skeleton className="h-48 w-full" />
+        <AvisoDeCarga query={bySupervisor} hayDatos={bySupervisor.data !== undefined} />
+        {bySupervisor.data === undefined ? (
+          !falloDeCarga(bySupervisor) && <Skeleton className="h-48 w-full" />
         ) : (bySupervisor.data ?? []).length === 0 ? (
           <EmptyChart />
         ) : (
@@ -432,8 +444,9 @@ export default function SalesExecutive() {
       {/* Row 5: store heatmap table */}
       <GlassCard className="p-4 overflow-hidden">
         <h2 className="text-sm font-semibold mb-3">Ventas Totales por Tienda</h2>
-        {byStore.isLoading ? (
-          <Skeleton className="h-48 w-full" />
+        <AvisoDeCarga query={byStore} hayDatos={byStore.data !== undefined} />
+        {byStore.data === undefined ? (
+          !falloDeCarga(byStore) && <Skeleton className="h-48 w-full" />
         ) : (byStore.data ?? []).length === 0 ? (
           <EmptyChart />
         ) : (
@@ -448,8 +461,9 @@ export default function SalesExecutive() {
       {/* Row 6: promoter heatmap table */}
       <GlassCard className="p-4 overflow-hidden">
         <h2 className="text-sm font-semibold mb-3">Ventas Totales por Promotor</h2>
-        {byPromoter.isLoading ? (
-          <Skeleton className="h-48 w-full" />
+        <AvisoDeCarga query={byPromoter} hayDatos={byPromoter.data !== undefined} />
+        {byPromoter.data === undefined ? (
+          !falloDeCarga(byPromoter) && <Skeleton className="h-48 w-full" />
         ) : (byPromoter.data ?? []).length === 0 ? (
           <EmptyChart />
         ) : (
@@ -465,8 +479,9 @@ export default function SalesExecutive() {
       <GlassCard className="p-4 overflow-hidden">
         <h2 className="text-sm font-semibold">Ventas Totales por Promotor por día</h2>
         <p className="text-xs text-muted-foreground mb-3">Mes en curso · solo ventas confirmadas</p>
-        {byPromoterDaily.isLoading ? (
-          <Skeleton className="h-48 w-full" />
+        <AvisoDeCarga query={byPromoterDaily} hayDatos={byPromoterDaily.data !== undefined} />
+        {byPromoterDaily.data === undefined ? (
+          !falloDeCarga(byPromoterDaily) && <Skeleton className="h-48 w-full" />
         ) : !byPromoterDaily.data || byPromoterDaily.data.rows.length === 0 ? (
           <EmptyChart />
         ) : (

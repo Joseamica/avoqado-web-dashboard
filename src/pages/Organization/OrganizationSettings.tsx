@@ -1,4 +1,5 @@
 import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { TpvSettingsFields } from '@/components/tpv/TpvSettingsFields'
 import { Badge } from '@/components/ui/badge'
@@ -342,7 +343,11 @@ export function OrgTpvConfigSection({ orgId }: { orgId: string }) {
     return user?.venues?.find(v => v.organizationId === orgId)?.id ?? null
   }, [activeVenue, orgId, user?.venues])
 
-  const { data: orgDefaults, isLoading, isError, isSuccess } = useOrgTpvDefaults({ venueId })
+  const orgDefaultsQuery = useOrgTpvDefaults({ venueId })
+  const { data: orgDefaults, isLoading, isSuccess } = orgDefaultsQuery
+  // Sin leer no se enseñan los valores de fábrica como si fueran los suyos: sin internet la consulta se pausa sin marcar error, y sin
+  // sucursal a la cual preguntar nunca corre.
+  const sinLeer = orgDefaults === undefined && (falloDeCarga(orgDefaultsQuery) || orgDefaultsQuery.fetchStatus === 'idle')
   const { data: stats } = useOrgTpvStats({ venueId })
   const upsertMutation = useUpsertOrgTpvDefaults({ venueId })
   // El servidor empuja estos ajustes a TODAS las terminales de todas las sucursales y sólo deja cambiarlos al dueño de la
@@ -444,10 +449,12 @@ export function OrgTpvConfigSection({ orgId }: { orgId: string }) {
         </div>
       )}
 
+      {orgDefaults !== undefined && <AvisoDeCarga query={orgDefaultsQuery} hayDatos />}
+
       {/* Settings fields */}
-      {isError ? (
+      {sinLeer ? (
         <p className="text-sm text-destructive">{t('settings.tpvLoadError')}</p>
-      ) : isLoading ? (
+      ) : orgDefaults === undefined ? (
         <div className="space-y-3">
           <div className="h-14 bg-muted/40 animate-pulse rounded-2xl" />
           <div className="h-14 bg-muted/40 animate-pulse rounded-2xl" />

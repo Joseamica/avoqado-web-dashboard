@@ -1,3 +1,5 @@
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
@@ -78,6 +80,8 @@ function ExpensesInner() {
   const expenses = hasAccess ? data?.expenses ?? [] : SAMPLE
   const summary = hasAccess ? data?.summary : { count: 1, totalCents: 116000, ivaCents: 16000, deducibleCents: 100000 }
   const needsFiscalSetup = hasAccess && data?.needsFiscalSetup
+  // Sin leer los gastos no hay tarjetas en $0. Sin acceso la consulta nunca corre y se ve la muestra.
+  const sinLeer = hasAccess && data === undefined
 
   return (
     <div className="p-4 space-y-5 bg-background">
@@ -115,8 +119,10 @@ function ExpensesInner() {
         </div>
       </header>
 
+      {!sinLeer && <AvisoDeCarga query={query} hayDatos />}
+
       {/* Resumen */}
-      {!needsFiscalSetup && (
+      {!needsFiscalSetup && !sinLeer && (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <SummaryCard label={t('expenses.summary.count')} value={String(summary?.count ?? 0)} />
           <SummaryCard label={t('expenses.summary.total')} value={Currency(summary?.totalCents ?? 0, true)} />
@@ -125,9 +131,9 @@ function ExpensesInner() {
         </div>
       )}
 
-      {query.isLoading && hasAccess ? (
+      {sinLeer && !falloDeCarga(query) ? (
         <Skeleton className="h-64 rounded-2xl" />
-      ) : query.isError && hasAccess ? (
+      ) : sinLeer ? (
         <AccountingErrorState onRetry={() => query.refetch()} />
       ) : needsFiscalSetup ? (
         <Card className="border-input">

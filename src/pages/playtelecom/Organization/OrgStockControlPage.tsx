@@ -20,6 +20,7 @@ import { DateRangePicker } from '@/components/date-range-picker'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { useCurrentOrganization } from '@/hooks/use-current-organization'
 import { useOrgStockSummary } from './StockControl/hooks/useOrgStockSummary'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { useInventoryByResponsible } from './StockControl/hooks/useInventoryByResponsible'
 import { InventoryResponsibleFilters } from './StockControl/components/InventoryResponsibleFilters'
 import { ExportDashboardButton } from './StockControl/components/ExportDashboardButton'
@@ -124,8 +125,10 @@ export default function OrgStockControlPage() {
     [queryParams, receivingVenueId, categoryId],
   )
 
-  const { data, isLoading, isError, error, refetch } = useOrgStockSummary(orgId, queryParams)
-  const { data: byResponsible, isLoading: isLoadingByResponsible } = useInventoryByResponsible(orgId, byResponsibleParams)
+  const summaryQuery = useOrgStockSummary(orgId, queryParams)
+  const { data, isLoading, error, refetch } = summaryQuery
+  const byResponsibleQuery = useInventoryByResponsible(orgId, byResponsibleParams)
+  const { data: byResponsible, isLoading: isLoadingByResponsible } = byResponsibleQuery
   const categoryOptions = useMemo(
     () => (data?.aggregatesByCategoria ?? []).map(category => ({ id: category.categoryId, name: category.categoryName })),
     [data?.aggregatesByCategoria],
@@ -169,7 +172,7 @@ export default function OrgStockControlPage() {
   }
 
   // ─── Error ───
-  if (isError || !data) {
+  if (!data) {
     const message = (error as any)?.response?.data?.message || 'Error al cargar los datos'
     return (
       <GlassCard className="p-8 text-center">
@@ -204,6 +207,7 @@ export default function OrgStockControlPage() {
 
   return (
     <div className="space-y-6">
+      <AvisoDeCarga query={summaryQuery} hayDatos />
       {/* Header — matches Supervisor/StockControl pattern */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
@@ -290,7 +294,7 @@ export default function OrgStockControlPage() {
               disabled={isLoadingByResponsible}
             />
           </div>
-          <OrgResumenTab data={data} byResponsible={byResponsible} isLoadingByResponsible={isLoadingByResponsible} />
+          <OrgResumenTab data={data} byResponsible={byResponsible} isLoadingByResponsible={isLoadingByResponsible} byResponsibleQuery={byResponsibleQuery} />
         </TabsContent>
         <TabsContent value="cargas" className="space-y-6 mt-4">
           <OrgCargasTab orgId={orgId!} params={queryParams} categories={categoryOptions} venues={venueOptions} />

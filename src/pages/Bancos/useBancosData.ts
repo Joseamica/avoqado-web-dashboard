@@ -10,6 +10,7 @@
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { financialConnectionAPI, type FinancialAccountSummary, type FinancialConnectionSummary } from '@/services/financialConnection.service'
 
 export interface BancosData {
@@ -67,8 +68,11 @@ export function useBancosData({ enabled = true }: { enabled?: boolean } = {}): B
     hasPendingConnection: !hasConnection && connections.length > 0,
     // Solo afirmar "no hay proveedores" cuando la query REALMENTE devolvió vacío (no cuando falló).
     hasProviders: !providersQuery.isError && (providersQuery.data ?? []).length > 0,
-    isLoading: connectionsQuery.isLoading || providersQuery.isLoading,
-    isError: connectionsQuery.isError,
+    // Por lo que se ha leído, no por el estado: sin internet la consulta se pausa sin marcar error y sin «cargar», y diría «sin cuentas».
+    isLoading:
+      (enabled && !!venueId && connectionsQuery.data === undefined && !falloDeCarga(connectionsQuery)) ||
+      (enabled && providersQuery.data === undefined && !falloDeCarga(providersQuery)),
+    isError: connectionsQuery.data === undefined && falloDeCarga(connectionsQuery),
     refetch: () => {
       void connectionsQuery.refetch()
       void providersQuery.refetch()

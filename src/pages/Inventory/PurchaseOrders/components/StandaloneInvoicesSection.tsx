@@ -3,6 +3,8 @@ import { FileText, Upload } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { Input } from '@/components/ui/input'
 import { useTierFeatureAccess } from '@/hooks/use-tier-feature-access'
 import { useAccess } from '@/hooks/use-access'
@@ -36,12 +38,15 @@ export function StandaloneInvoicesSection({ venueId }: { venueId: string }) {
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const debounced = useDebounce(search, 300)
-  const { data, isLoading, isError, isFetching } = useQuery({
+  const inboxQuery = useQuery({
     queryKey: ['supplier-invoice-inbox', venueId, page, debounced],
     queryFn: () => purchaseOrderInvoiceService.inbox(venueId, page, debounced),
     placeholderData: keepPreviousData, staleTime: 30000, retry: 1, refetchOnWindowFocus: false,
     enabled: !!venueId && inventory && cfdi && can('inventory:read'),
   })
+  const { data, isLoading, isFetching } = inboxQuery
+  // Por lo que se ha leído: sin internet la consulta se pausa sin marcar error, y diría «sin facturas».
+  const isError = data === undefined && falloDeCarga(inboxQuery)
 
   const register = useMutation({
     mutationFn: (xml: string) => purchaseOrderInvoiceService.registerStandalone(venueId, xml),
@@ -100,6 +105,7 @@ export function StandaloneInvoicesSection({ venueId }: { venueId: string }) {
         <p className="text-xs text-muted-foreground">{t('invoices.standalone.hint')}</p>
 
         <Input aria-label={t('invoices.receipt.searchInvoices')} placeholder={t('invoices.receipt.searchInvoices')} value={search} onChange={e => { setSearch(e.target.value); setPage(1) }} data-tour="supplier-invoice-search" />
+        {data !== undefined && <AvisoDeCarga query={inboxQuery} hayDatos />}
         {isError ? <p role="alert">{t('invoices.receipt.loadError')}</p> : isLoading ? (
           <p className="text-sm text-muted-foreground">{t('common:loading')}</p>
         ) : invoices.length === 0 ? (

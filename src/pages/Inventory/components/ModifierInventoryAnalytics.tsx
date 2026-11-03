@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -31,14 +33,7 @@ export function ModifierInventoryAnalytics() {
     }
   }
 
-  const {
-    data: summary,
-    isLoading,
-    refetch,
-    isRefetching,
-    isError,
-    error,
-  } = useQuery({
+  const summaryQuery = useQuery({
     queryKey: ['modifier-inventory-summary', venueId, dateRange],
     queryFn: async () => {
       const { startDate, endDate } = getDateRange(dateRange)
@@ -47,6 +42,9 @@ export function ModifierInventoryAnalytics() {
     },
     enabled: !!venueId,
   })
+  const { data: summary, refetch, isRefetching, error } = summaryQuery
+  const isLoading = summary === undefined && !falloDeCarga(summaryQuery)
+  const isError = summary === undefined && falloDeCarga(summaryQuery)
 
   if (isLoading) {
     return (
@@ -82,6 +80,7 @@ export function ModifierInventoryAnalytics() {
 
   return (
     <div className="space-y-6">
+      <AvisoDeCarga query={summaryQuery} hayDatos />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

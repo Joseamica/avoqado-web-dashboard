@@ -1,4 +1,3 @@
-import { falloDeCarga } from '@/lib/falloDeCarga'
 import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
@@ -147,25 +146,29 @@ export default function Profitability() {
         </div>
       </header>
 
-      {/* KPI strip */}
-      <KpiStrip
-        medianMarginPct={kpis.median}
-        atRiskCount={kpis.atRisk}
-        withoutPolicyCount={kpis.withoutPolicy}
-        costDriftCount={kpis.costDrift}
-        onJumpAtRisk={jumpAtRisk}
-        onJumpWithoutPolicy={() => openPolicyFor(undefined)}
-        onJumpCostDrift={jumpCostDrift}
-      />
+      {/* KPI strip: sin leer el catálogo no hay margen 0 % ni 0 en riesgo; el aviso sale en la tabla. */}
+      {data !== undefined && (
+        <>
+          <KpiStrip
+            medianMarginPct={kpis.median}
+            atRiskCount={kpis.atRisk}
+            withoutPolicyCount={kpis.withoutPolicy}
+            costDriftCount={kpis.costDrift}
+            onJumpAtRisk={jumpAtRisk}
+            onJumpWithoutPolicy={() => openPolicyFor(undefined)}
+            onJumpCostDrift={jumpCostDrift}
+          />
 
-      {/* Margin curve — the signature visual */}
-      <div className="mt-4">
-        <MarginCurve
-          rows={allRows}
-          activeStatus={statusFilter}
-          onZoneClick={s => setStatusFilter(prev => (prev === s ? null : s))}
-        />
-      </div>
+          {/* Margin curve — the signature visual */}
+          <div className="mt-4">
+            <MarginCurve
+              rows={allRows}
+              activeStatus={statusFilter}
+              onZoneClick={s => setStatusFilter(prev => (prev === s ? null : s))}
+            />
+          </div>
+        </>
+      )}
 
       {/* Cost change banner — only shown if drift > 0 */}
       <div className="mt-4">
@@ -246,7 +249,7 @@ export default function Profitability() {
         />
       </div>
 
-      {!isLoading && !falloDeCarga(listQuery) && allRows.length === 0 && (
+      {data !== undefined && allRows.length === 0 && (
         <div className="mt-8 rounded-2xl border border-dashed border-border bg-card/50 p-10 text-center">
           <h3 className="text-base font-medium">Aún no hay datos de rentabilidad</h3>
           <p className="mt-1 text-sm text-muted-foreground">

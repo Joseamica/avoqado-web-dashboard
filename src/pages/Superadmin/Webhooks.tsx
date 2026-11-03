@@ -16,6 +16,8 @@ import {
   type WebhookMetrics,
 } from '@/services/webhook.service'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { DateTime } from 'luxon'
 import { Activity, AlertTriangle, CheckCircle2, Clock, Eye, Filter, RefreshCw, TrendingUp, X, XCircle, Zap } from 'lucide-react'
 import { useState } from 'react'
@@ -58,7 +60,7 @@ function Webhooks() {
   })
 
   // Fetch webhook events
-  const { data: webhookData, isLoading } = useQuery({
+  const eventsQuery = useQuery({
     queryKey: ['webhookEvents', eventTypeFilter, statusFilter, startDate, endDate, page],
     queryFn: () =>
       listWebhookEvents({
@@ -70,6 +72,8 @@ function Webhooks() {
         offset: page * limit,
       }),
   })
+  const { data: webhookData, isLoading } = eventsQuery
+  const sinEventos = webhookData === undefined && falloDeCarga(eventsQuery)
 
   // Retry mutation
   const retryMutation = useMutation({
@@ -288,10 +292,11 @@ function Webhooks() {
             </div>
           )}
 
+          <AvisoDeCarga query={eventsQuery} hayDatos={webhookData !== undefined} volverAlInicio={sinEventos && page > 0 ? () => setPage(0) : undefined} />
           {/* Table */}
           {isLoading ? (
             <p className="text-center py-8 text-muted-foreground">{t('events.loading')}</p>
-          ) : !webhookData?.events.length ? (
+          ) : sinEventos ? null : !webhookData?.events.length ? (
             <p className="text-center py-8 text-muted-foreground">{t('events.noEvents')}</p>
           ) : (
             <>

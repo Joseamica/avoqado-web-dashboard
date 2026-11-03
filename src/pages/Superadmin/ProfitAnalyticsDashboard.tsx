@@ -9,6 +9,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Progress } from '@/components/ui/progress'
 import * as costManagementAPI from '@/services/cost-management.service'
 import { useQuery } from '@tanstack/react-query'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { endOfMonth, startOfMonth, subDays } from 'date-fns'
 import { DateTime } from 'luxon'
 import { 
@@ -31,7 +33,7 @@ const ProfitAnalyticsDashboard: React.FC = () => {
   const [selectedProvider, setSelectedProvider] = useState<string>('all')
 
   // Fetch profit metrics
-  const { data: profitMetrics, isLoading: metricsLoading } = useQuery({
+  const metricsQuery = useQuery({
     queryKey: ['profit-metrics', dateRange.startDate, dateRange.endDate, selectedVenue, selectedProvider],
     queryFn: () =>
       costManagementAPI.getProfitMetrics({
@@ -41,9 +43,10 @@ const ProfitAnalyticsDashboard: React.FC = () => {
         providerId: selectedProvider !== 'all' ? selectedProvider : undefined,
       }),
   })
+  const { data: profitMetrics, isLoading: metricsLoading } = metricsQuery
 
   // Fetch monthly profit data
-  const { data: monthlyData, isLoading: monthlyLoading } = useQuery({
+  const monthlyQuery = useQuery({
     queryKey: ['monthly-profits', dateRange.startDate, dateRange.endDate],
     queryFn: () =>
       costManagementAPI.getMonthlyProfits({
@@ -51,6 +54,7 @@ const ProfitAnalyticsDashboard: React.FC = () => {
         endDate: dateRange.endDate,
       }),
   })
+  const { data: monthlyData, isLoading: monthlyLoading } = monthlyQuery
 
   // Fetch cost structure analysis
   const { data: costAnalysis } = useQuery({
@@ -256,7 +260,9 @@ const ProfitAnalyticsDashboard: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Key Metrics */}
+      <AvisoDeCarga query={metricsQuery} hayDatos={profitMetrics !== undefined} />
+      {/* Key Metrics: sin leerlas no hay ganancia en $0. */}
+      {!(profitMetrics === undefined && falloDeCarga(metricsQuery)) && (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -330,6 +336,7 @@ const ProfitAnalyticsDashboard: React.FC = () => {
           </CardContent>
         </Card>
       </div>
+      )}
 
       {/* Detailed Analysis */}
       <Tabs defaultValue="venues" className="space-y-4">
@@ -447,6 +454,8 @@ const ProfitAnalyticsDashboard: React.FC = () => {
               <CardDescription>{t('profitAnalytics.monthlyAnalysis.description', 'Monthly aggregated profit data by venue')}</CardDescription>
             </CardHeader>
             <CardContent>
+              <AvisoDeCarga query={monthlyQuery} hayDatos={monthlyData !== undefined} />
+              {!(monthlyData === undefined && falloDeCarga(monthlyQuery)) && (
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -487,6 +496,7 @@ const ProfitAnalyticsDashboard: React.FC = () => {
                   ))}
                 </TableBody>
               </Table>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

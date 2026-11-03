@@ -2,6 +2,8 @@ import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { detalleNoCargo } from '@/lib/falloDeCarga'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -93,11 +95,12 @@ const KYCReview: React.FC = () => {
   const [rejectionReasonError, setRejectionReasonError] = useState<string | null>(null)
 
   // Fetch KYC data
-  const { data: kycData, isLoading } = useQuery<KYCData>({
+  const kycQuery = useQuery<KYCData>({
     queryKey: ['kyc-review', venueId],
     queryFn: () => superadminAPI.getKYCReview(venueId!),
     enabled: !!venueId,
   })
+  const { data: kycData, isLoading } = kycQuery
 
   // Approve mutation
   const approveMutation = useMutation({
@@ -199,6 +202,14 @@ const KYCReview: React.FC = () => {
     )
   }
 
+  if (detalleNoCargo(kycQuery)) {
+    return (
+      <div className="p-6">
+        <AvisoDeCarga query={kycQuery} hayDatos={false} />
+      </div>
+    )
+  }
+
   if (!kycData) {
     return (
       <div className="flex flex-col items-center justify-center h-screen space-y-4">
@@ -270,6 +281,7 @@ const KYCReview: React.FC = () => {
 
   return (
     <div className="space-y-6 p-6">
+      <AvisoDeCarga query={kycQuery} hayDatos />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">

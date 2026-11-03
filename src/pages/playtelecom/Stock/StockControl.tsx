@@ -189,11 +189,12 @@ export function StockControl() {
   )
 
   // ─── Queries ───
-  const { data: metricsData, isLoading: isLoadingMetrics } = useQuery({
+  const metricsQuery = useQuery({
     queryKey: ['stock', 'metrics', venueId],
     queryFn: () => getStockMetrics(venueId!),
     enabled: !!venueId,
   })
+  const { data: metricsData, isLoading: isLoadingMetrics } = metricsQuery
 
   const categoriesQuery = useQuery({
     queryKey: ['stock', 'categories', venueId],
@@ -476,7 +477,9 @@ ${dataRows}
             )}
           </div>
 
-          {/* Summary Bar */}
+          {/* Summary Bar: sin leer las métricas no hay «0 disponibles». */}
+          <AvisoDeCarga query={metricsQuery} hayDatos={metricsData !== undefined} />
+          {metricsData !== undefined && (
           <GlassCard className="p-4">
             <div className="flex flex-wrap items-center gap-6">
               <div className="flex items-center gap-2">
@@ -512,6 +515,7 @@ ${dataRows}
               </div>
             </div>
           </GlassCard>
+          )}
 
           {/* Stock vs Sales Chart & Low Stock Alerts */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

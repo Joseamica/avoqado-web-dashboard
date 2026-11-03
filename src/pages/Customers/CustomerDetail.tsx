@@ -2,6 +2,8 @@ import { useMemo, useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 
 import { useBreadcrumb } from '@/context/BreadcrumbContext'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { detalleNoCargo } from '@/lib/falloDeCarga'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
 	ArrowLeft,
@@ -75,11 +77,12 @@ export default function CustomerDetail() {
 	const [loyaltyTypeFilter, setLoyaltyTypeFilter] = useState<string>('')
 
 	// Fetch customer details
-	const { data: customer, isLoading } = useQuery({
+	const customerQuery = useQuery({
 		queryKey: ['customer', venueId, customerId],
 		queryFn: () => customerService.getCustomer(venueId, customerId!),
 		enabled: !!customerId,
 	})
+	const { data: customer, isLoading } = customerQuery
 
 	// Sin esto la miga de pan muestra el id crudo del cliente
 	// («Clientes > Cmtcc21810088c9ttprrunfk1»): el fallback solo sabe humanizar el slug de la URL.
@@ -266,6 +269,14 @@ export default function CustomerDetail() {
 		)
 	}
 
+	if (detalleNoCargo(customerQuery)) {
+		return (
+			<div className="p-6 bg-background text-foreground">
+				<AvisoDeCarga query={customerQuery} hayDatos={false} />
+			</div>
+		)
+	}
+
 	if (!customer) {
 		return (
 			<div className="p-6 bg-background text-foreground">
@@ -281,6 +292,7 @@ export default function CustomerDetail() {
 
 	return (
 		<div className="p-6 bg-background text-foreground">
+			<AvisoDeCarga query={customerQuery} hayDatos />
 			{/* Header */}
 			<div className="flex flex-col gap-3 mb-6 md:flex-row md:items-center md:justify-between">
 				<div className="flex items-center gap-3 min-w-0">

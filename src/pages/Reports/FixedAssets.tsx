@@ -10,6 +10,8 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { AccountingErrorState } from '@/components/accounting/AccountingErrorState'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { FeatureGate } from '@/components/billing/FeatureGate'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useTierFeatureAccess } from '@/hooks/use-tier-feature-access'
@@ -214,9 +216,11 @@ function FixedAssetsInner() {
         <p className="text-xs">{t('fixedAssets.optInHint')}</p>
       </div>
 
-      {assetsQuery.isLoading && hasAccess ? (
+      {assetsQuery.data !== undefined && <AvisoDeCarga query={assetsQuery} hayDatos />}
+
+      {assetsQuery.data === undefined && hasAccess && !falloDeCarga(assetsQuery) ? (
         <Skeleton className="h-64 rounded-2xl" />
-      ) : assetsQuery.isError && hasAccess ? (
+      ) : assetsQuery.data === undefined && hasAccess ? (
         <AccountingErrorState onRetry={() => assetsQuery.refetch()} />
       ) : needsFiscalSetup ? (
         <Card className="border-input">

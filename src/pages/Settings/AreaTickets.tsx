@@ -4,6 +4,8 @@ import { AlertTriangle, ArrowRight, Loader2, Plus, Scale, ScanBarcode, TicketChe
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -819,7 +821,7 @@ function ScaleSettings({
   )
 }
 
-function Operations({
+export function Operations({
   venueId,
   counters,
 }: {
@@ -831,6 +833,7 @@ function Operations({
     queryFn: () => getAreaTicketOperations(venueId),
     refetchInterval: 30_000,
   })
+  const sinVales = query.data === undefined && falloDeCarga(query)
   return (
     <div className="space-y-4">
       <div className="grid gap-3 md:grid-cols-3">
@@ -866,7 +869,9 @@ function Operations({
             <ScanBarcode className="h-5 w-5" /> Vales por entregar
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-0">
+        <CardContent className={sinVales ? 'p-4' : 'p-0'}>
+          <AvisoDeCarga query={query} hayDatos={query.data !== undefined} />
+          {!sinVales && (
           <Table>
             <TableHeader>
               <TableRow>
@@ -894,6 +899,7 @@ function Operations({
               )}
             </TableBody>
           </Table>
+          )}
         </CardContent>
       </Card>
     </div>

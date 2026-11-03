@@ -68,7 +68,7 @@ export default function GoogleIntegration() {
   }, [searchParams, setSearchParams, toast, t, queryClient, venueId])
 
   // Fetch integration status
-  const { data: integrationStatus, isLoading } = useQuery<GoogleIntegrationStatus>({
+  const statusQuery = useQuery<GoogleIntegrationStatus>({
     queryKey: ['google-integration', venueId],
     queryFn: async () => {
       const response = await api.get(`/api/v1/dashboard/venues/${venueId}/integrations/google/status`)
@@ -76,6 +76,7 @@ export default function GoogleIntegration() {
     },
     enabled: !!venueId,
   })
+  const { data: integrationStatus, isLoading } = statusQuery
 
   // Init OAuth mutation
   const initOAuthMutation = useMutation({
@@ -195,7 +196,9 @@ export default function GoogleIntegration() {
         <p className="text-muted-foreground mt-1">{t('description')}</p>
       </div>
 
-      {/* Main Status Card */}
+      {/* Main Status Card: sin leer el estado no se dice «no conectado» ni se ofrece conectar. */}
+      <AvisoDeCarga query={statusQuery} hayDatos={integrationStatus !== undefined} />
+      {integrationStatus !== undefined && (
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -318,6 +321,7 @@ export default function GoogleIntegration() {
           )}
         </CardContent>
       </Card>
+      )}
 
       {/* Google Review Redirect Card (PRO-gated) */}
       <FeatureGate feature="GOOGLE_REVIEW_REDIRECT">

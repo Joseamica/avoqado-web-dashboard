@@ -1,5 +1,7 @@
 import React, { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -34,42 +36,38 @@ export const DeleteConfirmDialog: React.FC<DeleteConfirmDialogProps> = ({
   const { formatDate } = useVenueDateTime()
 
   // Fetch cost structures for this merchant account
-  const {
-    data: costStructures = [],
-    refetch: refetchCosts,
-    isLoading: loadingCosts,
-  } = useQuery({
+  const costsQuery = useQuery({
     queryKey: ['merchant-account-costs', account?.id],
     queryFn: () => paymentProviderAPI.getProviderCostStructuresByMerchantAccount(account!.id),
     enabled: open && !!account,
   })
+  const { data: costStructures = [], refetch: refetchCosts } = costsQuery
 
   // Fetch venue configs for this merchant account
-  const {
-    data: venueConfigs = [],
-    refetch: refetchConfigs,
-    isLoading: loadingConfigs,
-  } = useQuery({
+  const configsQuery = useQuery({
     queryKey: ['merchant-account-configs', account?.id],
     queryFn: () => paymentProviderAPI.getVenueConfigsByMerchantAccount(account!.id),
     enabled: open && !!account,
   })
+  const { data: venueConfigs = [], refetch: refetchConfigs } = configsQuery
 
   // Fetch terminals that have this merchant account assigned
-  const {
-    data: assignedTerminals = [],
-    refetch: refetchTerminals,
-    isLoading: loadingTerminals,
-  } = useQuery({
+  const terminalsQuery = useQuery({
     queryKey: ['merchant-account-terminals', account?.id],
     queryFn: () => paymentProviderAPI.getTerminalsByMerchantAccount(account!.id),
     enabled: open && !!account,
   })
+  const { data: assignedTerminals = [], refetch: refetchTerminals } = terminalsQuery
 
   // Early return AFTER all hooks are called
   if (!account) return null
 
-  const isLoadingDependencies = loadingCosts || loadingConfigs || loadingTerminals
+  // Sin leer las tres no se sabe si hay dependencias: no se dice «Eliminar cuenta» ni se ofrece el botón.
+  const fuentes = [costsQuery, configsQuery, terminalsQuery]
+  const sinLeer = fuentes.filter(q => q.data === undefined)
+  const dependenciasSinLeer = sinLeer.length > 0
+  const caida = sinLeer.find(q => falloDeCarga(q))
+  const isLoadingDependencies = dependenciasSinLeer && !caida
 
   const handleDeleteCost = async (costId: string) => {
     setDeletingCost(costId)
@@ -122,7 +120,7 @@ export const DeleteConfirmDialog: React.FC<DeleteConfirmDialogProps> = ({
   const actualConfigCount = venueConfigs.length
   const actualTerminalCount = assignedTerminals.length
   const hasDependencies = actualCostCount > 0 || actualConfigCount > 0 || actualTerminalCount > 0
-  const canDelete = !isLoadingDependencies && actualCostCount === 0 && actualConfigCount === 0 && actualTerminalCount === 0
+  const canDelete = !dependenciasSinLeer && actualCostCount === 0 && actualConfigCount === 0 && actualTerminalCount === 0
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -138,7 +136,7 @@ export const DeleteConfirmDialog: React.FC<DeleteConfirmDialogProps> = ({
             </div>
             <div>
               <DialogTitle>
-                {isLoadingDependencies ? 'Verificando dependencias...' : hasDependencies ? 'Dependencias encontradas' : 'Eliminar cuenta'}
+                {isLoadingDependencies ? 'Verificando dependencias...' : hasDependencies ? 'Dependencias encontradas' : dependenciasSinLeer ? 'Dependencias sin verificar' : 'Eliminar cuenta'}
               </DialogTitle>
               <DialogDescription>{account.displayName || account.alias || account.externalMerchantId}</DialogDescription>
             </div>
@@ -146,6 +144,7 @@ export const DeleteConfirmDialog: React.FC<DeleteConfirmDialogProps> = ({
         </DialogHeader>
 
         <div className="py-4 space-y-4">
+          {caida && <AvisoDeCarga query={caida} hayDatos={false} />}
           {isLoadingDependencies ? (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
@@ -315,7 +314,7 @@ export const DeleteConfirmDialog: React.FC<DeleteConfirmDialogProps> = ({
                 </div>
               )}
             </>
-          ) : (
+          ) : dependenciasSinLeer ? null : (
             <div className="flex items-start gap-3 p-4 rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800">
               <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
               <div className="text-sm text-red-700 dark:text-red-300">
@@ -332,7 +331,7 @@ export const DeleteConfirmDialog: React.FC<DeleteConfirmDialogProps> = ({
           </Button>
           <Button variant="destructive" onClick={handleFinalDelete} disabled={loading || isLoadingDependencies || !canDelete}>
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {isLoadingDependencies ? 'Verificando...' : canDelete ? 'Eliminar Cuenta' : 'Elimina las dependencias primero'}
+            {isLoadingDependencies ? 'Verificando...' : canDelete ? 'Eliminar Cuenta' : hasDependencies ? 'Elimina las dependencias primero' : 'Dependencias sin verificar'}
           </Button>
         </DialogFooter>
       </DialogContent>

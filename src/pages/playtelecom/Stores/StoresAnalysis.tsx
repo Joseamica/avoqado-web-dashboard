@@ -18,6 +18,7 @@
  */
 
 import { useEffect, useMemo, useState } from 'react'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { GlassCard } from '@/components/ui/glass-card'
 import { CalendarHeatmap, GaugeChart, PhotoEvidenceViewer } from '@/components/playtelecom'
 import type { AttendanceDay, PhotoEvidence } from '@/components/playtelecom'
@@ -105,31 +106,35 @@ export function StoresAnalysis() {
   const currentStoreId = currentStore?.id || null
 
   // Fetch store summary data (centralized under STORES_ANALYSIS)
-  const { data: summaryData, isLoading: summaryLoading } = useQuery({
+  const summaryQuery = useQuery({
     queryKey: ['stores-analysis', 'store-summary', venueId, currentStoreId],
     queryFn: () => getStoreSummary(venueId!, currentStoreId!),
     enabled: !!venueId && !!currentStoreId,
   })
+  const { data: summaryData, isLoading: summaryLoading } = summaryQuery
 
   // Fetch sales trend data (centralized under STORES_ANALYSIS)
-  const { data: salesTrendData, isLoading: salesTrendLoading } = useQuery({
+  const salesTrendQuery = useQuery({
     queryKey: ['stores-analysis', 'store-sales-trend', venueId, currentStoreId],
     queryFn: () => getStoreSalesTrend(venueId!, currentStoreId!, { days: 7 }),
     enabled: !!venueId && !!currentStoreId,
   })
+  const { data: salesTrendData, isLoading: salesTrendLoading } = salesTrendQuery
 
   // Fetch inventory summary data (centralized under STORES_ANALYSIS)
-  const { data: serializedSummary } = useQuery({
+  const inventoryQuery = useQuery({
     queryKey: ['stores-analysis', 'store-inventory-summary', venueId, currentStoreId],
     queryFn: () => getStoreInventorySummary(venueId!, currentStoreId!),
     enabled: !!venueId && !!currentStoreId,
   })
+  const { data: serializedSummary } = inventoryQuery
 
-  const { data: revenueVsTarget } = useQuery({
+  const revenueQuery = useQuery({
     queryKey: ['stores-analysis', 'revenue-vs-target', venueId, currentStoreId],
     queryFn: () => getStoresRevenueVsTarget(venueId!, currentStoreId!),
     enabled: !!venueId && !!currentStoreId,
   })
+  const { data: revenueVsTarget } = revenueQuery
 
   const attendanceData: AttendanceDay[] = []
   const photoLogs: PhotoEvidence[] = []
@@ -192,32 +197,38 @@ export function StoresAnalysis() {
     value: string
     status: StatusPulseProps['status']
     icon: LucideIcon
+    /** Sin leer su fuente la tarjeta no se pinta: el aviso está arriba. */
+    leida: boolean
   }>>(() => [
     {
       label: 'Promotores Activos',
       value: totalPromoters > 0 ? `${activePromoters}/${totalPromoters}` : 'Sin datos',
       status: totalPromoters > 0 ? (promoterRatio >= 0.8 ? 'success' : promoterRatio >= 0.5 ? 'warning' : 'error') : 'neutral',
       icon: Users,
+      leida: summaryData !== undefined,
     },
     {
       label: 'Ventas Hoy',
       value: formatCurrency(summaryData?.todaySales ?? 0),
       status: (summaryData?.todaySales ?? 0) > 0 ? 'success' : 'neutral',
       icon: TrendingUp,
+      leida: summaryData !== undefined,
     },
     {
       label: 'Ventas Semana',
       value: formatCurrency(summaryData?.weekSales ?? 0),
       status: (summaryData?.weekSales ?? 0) > 0 ? 'info' : 'neutral',
       icon: TrendingUp,
+      leida: summaryData !== undefined,
     },
     {
       label: 'Stock Disponible',
       value: stockTotal > 0 ? `${stockAvailable}/${stockTotal}` : 'Sin datos',
       status: stockTotal > 0 ? (stockRatio >= 0.5 ? 'success' : stockRatio >= 0.2 ? 'warning' : 'error') : 'neutral',
       icon: Package,
+      leida: serializedSummary !== undefined,
     },
-  ], [activePromoters, totalPromoters, promoterRatio, stockAvailable, stockTotal, stockRatio, summaryData, formatCurrency])
+  ], [activePromoters, totalPromoters, promoterRatio, stockAvailable, stockTotal, stockRatio, summaryData, serializedSummary, formatCurrency])
 
   const isLoading = storesVenuesLoading || summaryLoading || salesTrendLoading
 
@@ -280,16 +291,24 @@ export function StoresAnalysis() {
         )}
       </div>
 
+      {/* Cada fuente con su aviso; lo que sale de ella no se pinta sin haberla leído. */}
+      <AvisoDeCarga query={summaryQuery} hayDatos={summaryData !== undefined} />
+      <AvisoDeCarga query={salesTrendQuery} hayDatos={salesTrendData !== undefined} />
+      <AvisoDeCarga query={inventoryQuery} hayDatos={serializedSummary !== undefined} />
+      <AvisoDeCarga query={revenueQuery} hayDatos={revenueVsTarget !== undefined} />
+
       {/* Row 1: Health Score + Progress + Calendar */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
         {/* Health Score Gauge */}
         <GlassCard className="p-6 flex items-center justify-center">
-          <GaugeChart
-            value={healthScore}
-            max={100}
-            label="Salud General"
-            colorScheme="auto"
-          />
+          {summaryData !== undefined && serializedSummary !== undefined && (
+            <GaugeChart
+              value={healthScore}
+              max={100}
+              label="Salud General"
+              colorScheme="auto"
+            />
+          )}
         </GlassCard>
 
         {/* Progress vs Goal */}
@@ -299,17 +318,19 @@ export function StoresAnalysis() {
               <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
                 Progreso vs Meta Semanal
               </h3>
-              <div className="flex items-baseline gap-2 mt-2">
-                <span className="text-2xl font-bold">{formatCurrency(weeklyActual)}</span>
-                {weeklyTarget > 0 && (
-                  <span className="text-muted-foreground">
-                    / {formatCurrency(weeklyTarget)}
-                  </span>
-                )}
-              </div>
+              {revenueVsTarget !== undefined && (
+                <div className="flex items-baseline gap-2 mt-2">
+                  <span className="text-2xl font-bold">{formatCurrency(weeklyActual)}</span>
+                  {weeklyTarget > 0 && (
+                    <span className="text-muted-foreground">
+                      / {formatCurrency(weeklyTarget)}
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
 
-            {weeklyTarget > 0 ? (
+            {revenueVsTarget === undefined ? null : weeklyTarget > 0 ? (
               <>
                 <Progress value={progressPercent} className="h-3" />
                 <div className="flex items-center gap-2">
@@ -347,7 +368,7 @@ export function StoresAnalysis() {
           <h3 className="text-sm font-bold text-foreground uppercase tracking-wider mb-4">
             Evolución de Ventas
           </h3>
-          {salesData.length === 0 ? (
+          {salesTrendData === undefined ? null : salesData.length === 0 ? (
             <p className="text-sm text-muted-foreground">Sin datos de ventas</p>
           ) : (
             <ResponsiveContainer width="100%" height={250}>
@@ -394,7 +415,7 @@ export function StoresAnalysis() {
           <h3 className="text-sm font-bold text-foreground uppercase tracking-wider mb-4">
             Mix de Productos
           </h3>
-          {productMix.length === 0 ? (
+          {summaryData === undefined ? null : productMix.length === 0 ? (
             <p className="text-sm text-muted-foreground">Sin datos de productos</p>
           ) : (
             <ResponsiveContainer width="100%" height={250}>
@@ -433,7 +454,7 @@ export function StoresAnalysis() {
 
       {/* Row 3: KPI Metrics */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {kpiMetrics.map((metric, index) => {
+        {kpiMetrics.filter(metric => metric.leida).map((metric, index) => {
           const Icon = metric.icon
           return (
             <GlassCard key={index} className="p-4">
@@ -459,7 +480,7 @@ export function StoresAnalysis() {
         <h3 className="text-sm font-bold text-foreground uppercase tracking-wider mb-4">
           Estado de Inventario
         </h3>
-        {inventoryItems.length === 0 ? (
+        {serializedSummary === undefined ? null : inventoryItems.length === 0 ? (
           <p className="text-sm text-muted-foreground">Sin datos de inventario</p>
         ) : (
           <Table>

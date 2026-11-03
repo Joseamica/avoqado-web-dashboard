@@ -16,6 +16,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { Loader2, ShoppingCart, ExternalLink, Settings2, Search, X, History } from 'lucide-react'
 
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
@@ -275,13 +277,16 @@ export default function EcommerceMerchantsGlobal() {
   const [statusFilter, setStatusFilter] = useState<string[]>([])
   const [activeFilter, setActiveFilter] = useState<string[]>([])
 
-  const { data: merchants = [], isLoading, error } = useQuery<MerchantRow[]>({
+  const merchantsQuery = useQuery<MerchantRow[]>({
     queryKey: ['superadmin-ecommerce-merchants'],
     queryFn: async () => {
       const res = await api.get('/api/v1/dashboard/superadmin/ecommerce-merchants')
       return res.data.data
     },
   })
+  const { data: merchants = [], error } = merchantsQuery
+  const isLoading = merchantsQuery.data === undefined && !falloDeCarga(merchantsQuery)
+  const sinLeer = merchantsQuery.data === undefined && falloDeCarga(merchantsQuery)
 
   /**
    * Status derived for filter purposes — collapses every "needs action" Stripe
@@ -390,6 +395,10 @@ export default function EcommerceMerchantsGlobal() {
 
       <DefaultFeePanel />
 
+      {merchantsQuery.data !== undefined && <AvisoDeCarga query={merchantsQuery} hayDatos />}
+
+      {/* Sin leer los comercios no hay GMV $0. */}
+      {merchantsQuery.data !== undefined && (
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Card>
           <CardContent className="pt-6">
@@ -418,6 +427,7 @@ export default function EcommerceMerchantsGlobal() {
           </CardContent>
         </Card>
       </div>
+      )}
 
       <Card>
         <CardHeader>
@@ -531,9 +541,9 @@ export default function EcommerceMerchantsGlobal() {
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
-          ) : error ? (
+          ) : sinLeer ? (
             <Alert variant="destructive">
-              <AlertDescription>Error al cargar: {(error as any).message}</AlertDescription>
+              <AlertDescription>Error al cargar: {(error as any)?.message ?? 'sin conexión'}</AlertDescription>
             </Alert>
           ) : merchants.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">

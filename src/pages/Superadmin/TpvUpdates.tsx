@@ -7,6 +7,8 @@
 
 import { useState, useRef, useEffect, useMemo } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga, type EstadoDeCarga } from '@/lib/falloDeCarga'
 import {
   Upload,
   Smartphone,
@@ -897,11 +899,13 @@ function DeleteDialog({ update, isOpen, onClose, onSuccess }: DeleteDialogProps)
 function UpdatesTable({
   updates,
   isLoading,
+  query,
   onEdit,
   onDelete,
 }: {
   updates: AppUpdate[]
   isLoading: boolean
+  query: EstadoDeCarga & { data: unknown }
   onEdit: (update: AppUpdate) => void
   onDelete: (update: AppUpdate) => void
 }) {
@@ -914,6 +918,8 @@ function UpdatesTable({
       </div>
     )
   }
+
+  if (query.data === undefined && falloDeCarga(query)) return null
 
   if (updates.length === 0) {
     return (
@@ -1058,14 +1064,11 @@ export default function TpvUpdates() {
   const [editingUpdate, setEditingUpdate] = useState<AppUpdate | null>(null)
   const [deletingUpdate, setDeletingUpdate] = useState<AppUpdate | null>(null)
 
-  const {
-    data: updates = [],
-    isLoading,
-    isFetching,
-  } = useQuery({
+  const updatesQuery = useQuery({
     queryKey: ['superadmin', 'app-updates', activeTab],
     queryFn: () => superadminAPI.getAppUpdates({ environment: activeTab }),
   })
+  const { data: updates = [], isLoading, isFetching } = updatesQuery
 
   const { data: latestSandbox } = useQuery({
     queryKey: ['superadmin', 'app-updates', 'latest', 'SANDBOX'],
@@ -1225,11 +1228,17 @@ export default function TpvUpdates() {
             </TabsList>
 
             <TabsContent value="PRODUCTION">
-              <UpdatesTable updates={updates} isLoading={isLoading} onEdit={setEditingUpdate} onDelete={setDeletingUpdate} />
+              <>
+                <AvisoDeCarga query={updatesQuery} hayDatos={updatesQuery.data !== undefined} />
+                <UpdatesTable updates={updates} isLoading={isLoading} query={updatesQuery} onEdit={setEditingUpdate} onDelete={setDeletingUpdate} />
+              </>
             </TabsContent>
 
             <TabsContent value="SANDBOX">
-              <UpdatesTable updates={updates} isLoading={isLoading} onEdit={setEditingUpdate} onDelete={setDeletingUpdate} />
+              <>
+                <AvisoDeCarga query={updatesQuery} hayDatos={updatesQuery.data !== undefined} />
+                <UpdatesTable updates={updates} isLoading={isLoading} query={updatesQuery} onEdit={setEditingUpdate} onDelete={setDeletingUpdate} />
+              </>
             </TabsContent>
           </Tabs>
         </div>

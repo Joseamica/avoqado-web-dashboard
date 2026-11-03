@@ -1,3 +1,4 @@
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { falloDeCarga } from '@/lib/falloDeCarga'
 import { useState, useMemo, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -136,7 +137,7 @@ export default function RawMaterials() {
   const { data: rawMaterialsData, isLoading } = listQuery
 
   // Fetch purchase orders for confirmed stock calculation (must be before rawMaterials useMemo)
-  const { data: confirmedStockData } = useQuery({
+  const confirmedStockQuery = useQuery({
     queryKey: ['purchase-orders-confirmed-stock', venueId],
     queryFn: async () => {
       const response = await purchaseOrderService.getPurchaseOrders(venueId!, {
@@ -171,6 +172,7 @@ export default function RawMaterials() {
     },
     enabled: !!venueId,
   })
+  const { data: confirmedStockData } = confirmedStockQuery
 
   // Client-side filtering for all Stripe-style filters
   const rawMaterials = useMemo(() => {
@@ -677,7 +679,9 @@ export default function RawMaterials() {
         ),
         cell: ({ row }) => {
           const material = row.original
-          const confirmed = confirmedStockData?.get(material.id) || 0
+          // Sin leer las órdenes de compra no se afirma «0.00 confirmado»: el aviso sale arriba de la tabla.
+          if (confirmedStockData === undefined) return <div className="text-center text-muted-foreground">—</div>
+          const confirmed = confirmedStockData.get(material.id) || 0
 
           return (
             <div className="flex flex-col items-center">
@@ -1147,6 +1151,8 @@ export default function RawMaterials() {
           )}
         </div>
       </div>
+
+      <AvisoDeCarga query={confirmedStockQuery} hayDatos={confirmedStockData !== undefined} />
 
       {/* Data Table - Fully responsive */}
       <DataTable

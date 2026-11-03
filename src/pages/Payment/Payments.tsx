@@ -34,6 +34,8 @@ import { SelectionSummaryBar } from '@/components/selection-summary-bar'
 import { StatusFilterTabs, type StatusTab } from '@/components/StatusFilterTabs'
 import { SummaryCards, type SummaryCardItem } from '@/components/SummaryCards'
 import { SummaryQueryBoundary } from '@/components/SummaryQueryBoundary'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { useAuth } from '@/context/AuthContext'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useSocketEvents } from '@/hooks/use-socket-events'
@@ -352,12 +354,7 @@ export default function Payments() {
   // búsqueda) y los que antes se aplicaban aquí sobre 10,000 filas (subtotal, propina, total,
   // internacional, marca). `groups` trae sólo los del listado (pestañas); `filteredGroups`
   // también los del navegador (tarjetas). La pestaña activa se aplica sobre los grupos.
-  const {
-    data: paymentsSummary,
-    isLoading: isSummaryLoading,
-    isError: isSummaryError,
-    refetch: refetchSummary,
-  } = useQuery({
+  const summaryQuery = useQuery({
     queryKey: [
       'payments-summary',
       venueId,
@@ -392,6 +389,10 @@ export default function Payments() {
     retry: 1,
     refetchOnWindowFocus: false,
   })
+  const { data: paymentsSummary, refetch: refetchSummary } = summaryQuery
+  // Sin leer no hay tarjetas en $0: sin internet la consulta se pausa sin marcar error, y al reintentar ya no «carga» aunque siga sin datos.
+  const isSummaryLoading = paymentsSummary === undefined && !falloDeCarga(summaryQuery)
+  const isSummaryError = paymentsSummary === undefined && falloDeCarga(summaryQuery)
 
   const { merchantAccounts, methods, sources, waiters, cardBrands } = useMemo(
     () => ({
@@ -1133,6 +1134,7 @@ export default function Payments() {
         )}
       </div>
 
+      {paymentsSummary !== undefined && <AvisoDeCarga query={summaryQuery} hayDatos />}
       <SummaryQueryBoundary
         isLoading={isSummaryLoading}
         isError={isSummaryError}

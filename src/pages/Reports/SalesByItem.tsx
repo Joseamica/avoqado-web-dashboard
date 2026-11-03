@@ -1,6 +1,8 @@
 import { Fragment, useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
@@ -464,16 +466,14 @@ export default function SalesByItem() {
   }), [venueId, dateRange.from, dateRange.to, reportType, groupBy, hoursFilter, customStartHour, customEndHour])
 
   // Fetch data
-  const {
-    data: apiResponse,
-    isLoading,
-    isError,
-    error,
-  } = useQuery({
+  const reportQuery = useQuery({
     queryKey: salesByItemKeys.report(apiFilters),
     queryFn: () => fetchSalesByItem(apiFilters),
     staleTime: 1000 * 60 * 5, // 5 minutes
   })
+  const { data: apiResponse, error } = reportQuery
+  const isLoading = apiResponse === undefined && !falloDeCarga(reportQuery)
+  const isError = apiResponse === undefined && falloDeCarga(reportQuery)
 
   // Ordena y junta las variantes de una familia en una fila (sin familias, es la misma tabla de siempre)
   const filas = useMemo(
@@ -553,6 +553,7 @@ export default function SalesByItem() {
   return (
     <FeatureGate feature="ADVANCED_REPORTS">
     <div className="p-4 md:p-6 space-y-6">
+      <AvisoDeCarga query={reportQuery} hayDatos />
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">

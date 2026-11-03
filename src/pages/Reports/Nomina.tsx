@@ -11,10 +11,12 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { FeatureGate } from '@/components/billing/FeatureGate'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { AccountingErrorState } from '@/components/accounting/AccountingErrorState'
 import { useAccess } from '@/hooks/use-access'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useTierFeatureAccess } from '@/hooks/use-tier-feature-access'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { useEmployees, useCreateEmployee, usePayrollPreview, useRunPayroll, useStampPayroll } from '@/hooks/useNomina'
 import type { PayrollPeriodicity } from '@/services/fiscal/nomina.service'
 import { Currency } from '@/utils/currency'
@@ -70,9 +72,9 @@ function NominaInner() {
         <p className="text-xs font-medium">{t('nomina.preliminarBanner')}</p>
       </div>
 
-      {empQuery.isLoading && hasAccess ? (
+      {empQuery.data === undefined && hasAccess && !falloDeCarga(empQuery) ? (
         <Skeleton className="h-64 rounded-2xl" />
-      ) : empQuery.isError && hasAccess ? (
+      ) : empQuery.data === undefined && falloDeCarga(empQuery) && hasAccess ? (
         <AccountingErrorState onRetry={() => empQuery.refetch()} />
       ) : needsFiscalSetup ? (
         <Card className="border-input">
@@ -101,7 +103,10 @@ function NominaInner() {
         </Card>
       ) : (
         <>
+          <AvisoDeCarga query={empQuery} hayDatos />
           {/* Preview de la corrida */}
+          <AvisoDeCarga query={preview} hayDatos={preview.data !== undefined} />
+          {!(preview.data === undefined && falloDeCarga(preview)) && (
           <Card className="border-input">
             <CardContent className="overflow-x-auto p-0">
               <table className="w-full text-sm">
@@ -142,6 +147,7 @@ function NominaInner() {
               </table>
             </CardContent>
           </Card>
+          )}
 
           {canManage && (
             <div className="flex justify-end gap-2">
