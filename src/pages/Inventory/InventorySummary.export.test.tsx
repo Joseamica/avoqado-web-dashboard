@@ -227,6 +227,42 @@ describe('Exportar en Resumen de Existencias', () => {
 
     expect(exportar()).toBeDisabled()
   })
+
+  it('mientras se recarga tras un ajuste no baja los números de antes (Codex r1)', async () => {
+    mocks.products.mockResolvedValue([prenda(5)])
+    renderSummary()
+    await terminoDeCargar()
+    expect(exportar()).toBeEnabled()
+
+    let responder = (_: unknown[]) => {}
+    mocks.products.mockReturnValue(new Promise(resolve => (responder = resolve)))
+    void client.invalidateQueries()
+
+    await waitFor(() => expect(exportar()).toBeDisabled())
+
+    responder([{ ...prenda(5), availableQuantity: 2 }])
+    await waitFor(() => expect(exportar()).toBeEnabled())
+    fireEvent.click(exportar())
+
+    await waitFor(() => expect(mocks.exportSheets).toHaveBeenCalledTimes(1))
+    expect(mocks.exportSheets.mock.calls[0][0][0].rows[0].Disponible).toBe(2)
+  })
+
+  it('las recetas se exportan aunque los ingredientes sigan cargando: no dependen de ellos (Codex r1)', async () => {
+    mocks.products.mockResolvedValue([prenda(1), receta])
+    mocks.materials.mockReturnValue(new Promise(() => {}))
+    renderSummary()
+    await waitFor(() => expect(screen.getByRole('button', { name: /Basados en Receta\s*1/ })).toBeInTheDocument())
+
+    expect(exportar()).toBeDisabled()
+
+    fireEvent.click(screen.getByRole('button', { name: /Basados en Receta/ }))
+    expect(exportar()).toBeEnabled()
+    fireEvent.click(exportar())
+
+    await waitFor(() => expect(mocks.exportSheets).toHaveBeenCalledTimes(1))
+    expect(mocks.exportSheets.mock.calls[0][0][0].rows).toHaveLength(1)
+  })
 })
 
 describe('Importar', () => {

@@ -84,7 +84,7 @@ export default function InventorySummary() {
   const [isExporting, setIsExporting] = useState(false)
 
   // Fetch real products with inventory data
-  const { data: products, isLoading: isLoadingProducts, isError: productsFailed } = useQuery({
+  const { data: products, isLoading: isLoadingProducts, isFetching: isFetchingProducts, isError: productsFailed } = useQuery({
     queryKey: inventoryKeys.productsSummary(venueId ?? ''),
     queryFn: () => getProducts(venueId!),
     enabled: !!venueId && !isLoadingAccess && hasAccess,
@@ -94,7 +94,7 @@ export default function InventorySummary() {
   })
 
   // Fetch raw materials (ingredients) to merge into the physical tab
-  const { data: rawMaterialsResponse, isLoading: isLoadingRawMaterials, error: rawMaterialsError } = useQuery({
+  const { data: rawMaterialsResponse, isLoading: isLoadingRawMaterials, isFetching: isFetchingRawMaterials, error: rawMaterialsError } = useQuery({
     queryKey: inventoryKeys.rawMaterials(venueId ?? ''),
     queryFn: () => rawMaterialsApi.getAll(venueId!, { active: true }),
     enabled: !!venueId && !isLoadingAccess && hasAccess,
@@ -666,6 +666,11 @@ export default function InventorySummary() {
     }
   }
 
+  // Una recarga cuenta como carga: tras un ajuste, la lista vieja sigue en pantalla hasta que llega la nueva, y el archivo
+  // saldría con los números de antes. Las recetas sólo dependen de los productos.
+  const isExportDataLoading =
+    isLoadingAccess || isFetchingProducts || (activeTab !== 'recipes' && isFetchingRawMaterials)
+
   // Import / Export buttons live in the table tab on the right.
   const importExportTab = (
     <>
@@ -684,7 +689,7 @@ export default function InventorySummary() {
       <button
         type="button"
         onClick={handleExport}
-        disabled={isLoading || isExporting}
+        disabled={isExportDataLoading || isExporting}
         className="inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
       >
         <Download className="h-3.5 w-3.5" />
