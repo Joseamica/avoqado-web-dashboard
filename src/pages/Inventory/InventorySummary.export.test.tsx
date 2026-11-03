@@ -1,5 +1,5 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { configure, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { QueryClient, QueryClientProvider, onlineManager } from '@tanstack/react-query'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ReactNode } from 'react'
@@ -18,6 +18,7 @@ const mocks = vi.hoisted(() => ({
 }))
 // Esta pantalla pesa: en una máquina cargada cada dibujo tarda segundos y el límite de 5 s da rojos falsos.
 vi.setConfig({ testTimeout: 30_000 })
+configure({ asyncUtilTimeout: 10_000 })
 
 const t = (key: string, opts?: Record<string, unknown>) => {
   const raw = key.split('.').reduce<any>((o, k) => o?.[k], es)
@@ -34,13 +35,24 @@ vi.mock('@/hooks/useInventoryWelcomeTour', () => ({ useInventoryWelcomeTour: () 
 vi.mock('@/hooks/use-unit-translation', () => ({ useUnitTranslation: () => ({ getShortLabel: (unit: string) => unit }) }))
 // Como la tabla real: mientras carga sólo pinta el esqueleto, así que el botón ni existe (Codex r2).
 vi.mock('@/components/data-table', () => ({
-  default: ({ tableTab, tableTabLeft, isLoading }: { tableTab: ReactNode; tableTabLeft: ReactNode; isLoading: boolean }) =>
+  default: ({
+    data,
+    tableTab,
+    tableTabLeft,
+    isLoading,
+  }: {
+    data: { id: string; name: string }[]
+    tableTab: ReactNode
+    tableTabLeft: ReactNode
+    isLoading: boolean
+  }) =>
     isLoading ? (
       <div data-testid="esqueleto" />
     ) : (
       <div>
         {tableTabLeft}
         {tableTab}
+        {data.length === 0 ? <p>Sin resultados</p> : data.map(fila => <p key={fila.id}>{fila.name}</p>)}
       </div>
     ),
 }))
@@ -91,7 +103,10 @@ beforeEach(() => {
   mocks.materials.mockResolvedValue({ data: [] })
   mocks.exportSheets.mockResolvedValue(undefined)
 })
-afterEach(() => client?.clear())
+afterEach(() => {
+  onlineManager.setOnline(true)
+  client?.clear()
+})
 
 describe('Exportar en Resumen de Existencias', () => {
   it('descarga TODO lo de la pestaña, no sólo la página que se ve, y dice cuántos artículos llevó', async () => {
@@ -267,6 +282,180 @@ describe('Exportar en Resumen de Existencias', () => {
 
     await waitFor(() => expect(mocks.exportSheets).toHaveBeenCalledTimes(1))
     expect(mocks.exportSheets.mock.calls[0][0][0].rows).toHaveLength(1)
+  })
+})
+
+describe('Si falla la carga del inventario', () => {
+  const caida = { response: { status: 500 } }
+  const aviso = () => screen.queryByRole('alert')
+  const reintentar = () => screen.getByRole('button', { name: 'retry' })
+  const pestanaFisica = () => screen.getByRole('button', { name: /Artículos e Ingredientes/ })
+  const pestanaRecetas = () => screen.getByRole('button', { name: /Basados en Receta/ })
+
+  it('si no cargó nada lo dice y deja reintentar, en vez de «Sin resultados» con el contador en 0', async () => {
+    mocks.products.mockRejectedValue(caida)
+    renderSummary()
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(es.stockLoad.failed)
+    expect(screen.queryByText('Sin resultados')).not.toBeInTheDocument()
+    expect(pestanaFisica()).not.toHaveTextContent(/\d/)
+
+    mocks.products.mockResolvedValue([prenda(1)])
+    fireEvent.click(reintentar())
+
+    expect(await screen.findByText('Vestido 1')).toBeInTheDocument()
+    expect(aviso()).not.toBeInTheDocument()
+    expect(pestanaFisica()).toHaveTextContent('1')
+  })
+
+  it('si sólo fallaron los productos enseña lo que sí llegó y avisa que falta algo; recetas no tiene nada que enseñar', async () => {
+    mocks.products.mockRejectedValue(caida)
+    mocks.materials.mockResolvedValue({ data: [leche] })
+    renderSummary()
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(es.stockLoad.partial)
+    expect(await screen.findByText('Leche')).toBeInTheDocument()
+
+    fireEvent.click(pestanaRecetas())
+
+    expect(aviso()).toHaveTextContent(es.stockLoad.failed)
+    expect(screen.queryByText('Sin resultados')).not.toBeInTheDocument()
+  })
+
+  it('si sólo fallaron los ingredientes avisa en su pestaña; las recetas no dependen de ellos', async () => {
+    mocks.products.mockResolvedValue([prenda(1), receta])
+    mocks.materials.mockRejectedValue(caida)
+    renderSummary()
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(es.stockLoad.partial)
+    expect(screen.getByText('Vestido 1')).toBeInTheDocument()
+
+    fireEvent.click(pestanaRecetas())
+
+    expect(aviso()).not.toBeInTheDocument()
+    expect(screen.getByText('Latte')).toBeInTheDocument()
+  })
+
+  it('reintentar repite sólo lo que falló', async () => {
+    mocks.products.mockResolvedValue([prenda(1)])
+    mocks.materials.mockRejectedValue(caida)
+    renderSummary()
+    await screen.findByRole('alert')
+    await terminoDeCargar()
+    mocks.products.mockClear()
+    mocks.materials.mockResolvedValue({ data: [leche] })
+
+    fireEvent.click(reintentar())
+
+    expect(await screen.findByText('Leche')).toBeInTheDocument()
+    expect(aviso()).not.toBeInTheDocument()
+    expect(mocks.products).not.toHaveBeenCalled()
+  })
+
+  it('si falla la recarga tras un ajuste conserva la lista y avisa que puede estar vieja; al reintentar se quita el aviso', async () => {
+    mocks.products.mockResolvedValue([prenda(1)])
+    renderSummary()
+    await screen.findByText('Vestido 1')
+
+    mocks.products.mockRejectedValue(caida)
+    void client.invalidateQueries()
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(es.stockLoad.partial)
+    expect(screen.getByText('Vestido 1')).toBeInTheDocument()
+    await terminoDeCargar()
+
+    mocks.products.mockReturnValue(new Promise(() => {}))
+    fireEvent.click(reintentar())
+
+    await waitFor(() => expect(aviso()).not.toBeInTheDocument())
+    expect(screen.getByText('Vestido 1')).toBeInTheDocument()
+  })
+
+  it('un rol sin permiso de ingredientes no tiene un fallo: ve lo suyo, sin aviso', async () => {
+    mocks.products.mockResolvedValue([prenda(1)])
+    mocks.materials.mockRejectedValue({ response: { status: 403 } })
+    renderSummary()
+    await waitFor(() => expect(client.getQueryCache().getAll().some(q => q.state.status === 'error')).toBe(true))
+    await terminoDeCargar()
+
+    expect(screen.getByText('Vestido 1')).toBeInTheDocument()
+    expect(aviso()).not.toBeInTheDocument()
+  })
+
+  it('un negocio de verdad vacío sigue diciendo «Sin resultados», sin aviso', async () => {
+    renderSummary()
+    await terminoDeCargar()
+
+    expect(screen.getByText('Sin resultados')).toBeInTheDocument()
+    expect(aviso()).not.toBeInTheDocument()
+  })
+
+  it('abrir la pantalla sin internet no dice «Sin resultados»: avisa, y al volver la red carga sola (Codex r1)', async () => {
+    onlineManager.setOnline(false)
+    mocks.products.mockResolvedValue([prenda(1)])
+    renderSummary()
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(es.stockLoad.failed)
+    expect(screen.queryByText('Sin resultados')).not.toBeInTheDocument()
+    expect(pestanaFisica()).not.toHaveTextContent(/\d/)
+
+    onlineManager.setOnline(true)
+
+    expect(await screen.findByText('Vestido 1')).toBeInTheDocument()
+    expect(aviso()).not.toBeInTheDocument()
+  })
+
+  it('reintentar sin internet no regresa al «Sin resultados» (Codex r1)', async () => {
+    mocks.products.mockRejectedValue(caida)
+    renderSummary()
+    await screen.findByRole('alert')
+    await terminoDeCargar()
+
+    onlineManager.setOnline(false)
+    fireEvent.click(reintentar())
+
+    await waitFor(() => expect(client.getQueryCache().getAll().some(q => q.state.fetchStatus === 'paused')).toBe(true))
+    expect(aviso()).toHaveTextContent(es.stockLoad.failed)
+    expect(screen.queryByText('Sin resultados')).not.toBeInTheDocument()
+  })
+
+  it('sin internet tampoco descarga un archivo con sólo una parte (Codex r1)', async () => {
+    mocks.products.mockResolvedValue([prenda(1)])
+    mocks.materials.mockResolvedValue({ data: [leche] })
+    renderSummary()
+    await terminoDeCargar()
+    onlineManager.setOnline(false)
+    void client.invalidateQueries()
+    await screen.findByRole('alert')
+
+    fireEvent.click(exportar())
+
+    await waitFor(() => expect(toasts()[0]).toMatchObject({ title: es.stockExport.loadFailed, variant: 'destructive' }))
+    expect(mocks.exportSheets).not.toHaveBeenCalled()
+  })
+
+  it('si fallan los ingredientes y los productos siguen cargando, espera a saber qué llegó antes de avisar (Codex r1)', async () => {
+    let responder = (_: unknown[]) => {}
+    mocks.products.mockReturnValue(new Promise(resolve => (responder = resolve)))
+    mocks.materials.mockRejectedValue(caida)
+    renderSummary()
+    await waitFor(() => expect(client.getQueryCache().getAll().some(q => q.state.status === 'error')).toBe(true))
+
+    expect(screen.getByTestId('esqueleto')).toBeInTheDocument()
+    expect(aviso()).not.toBeInTheDocument()
+
+    responder([prenda(1)])
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(es.stockLoad.partial)
+    expect(screen.getByText('Vestido 1')).toBeInTheDocument()
+  })
+
+  it('mientras carga no avisa de nada', async () => {
+    mocks.products.mockReturnValue(new Promise(() => {}))
+    renderSummary()
+
+    expect(await screen.findByTestId('esqueleto')).toBeInTheDocument()
+    expect(aviso()).not.toBeInTheDocument()
   })
 })
 
