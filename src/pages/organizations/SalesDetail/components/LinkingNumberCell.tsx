@@ -43,7 +43,8 @@ export function LinkingNumberCell({ row, orgId, canEdit }: { row: OrgSaleRow; or
       { field, digits, allowNine },
       {
         onSuccess: () => {
-          setEditing(null)
+          // Sólo cierra SU edición: la de otro número (si hubiera) sigue abierta con lo escrito.
+          setEditing(cur => (cur?.field === field ? null : cur))
           toast({ title: 'Número guardado' })
           void queryClient.invalidateQueries({ queryKey: ['org', orgId, 'sale-verifications'] })
         },
@@ -67,6 +68,9 @@ export function LinkingNumberCell({ row, orgId, canEdit }: { row: OrgSaleRow; or
     if (digits.length === 9) setNineToConfirm({ field: editing.field, digits })
     else send(editing.field, digits, false)
   }
+
+  // Con un guardado en vuelo nada de esta fila se edita: así una corrección no se pierde por otra.
+  const busy = save.isPending
 
   const fields: Field[] = row.isPortabilidad ? ['linkingNumber', 'portedNumber'] : ['linkingNumber']
 
@@ -92,6 +96,7 @@ export function LinkingNumberCell({ row, orgId, canEdit }: { row: OrgSaleRow; or
                 placeholder="10 dígitos"
                 className="h-8 w-32 font-mono text-xs"
                 value={editing.value}
+                disabled={busy}
                 onChange={e => setEditing({ field, value: e.target.value })}
                 onKeyDown={e => {
                   if (e.key === 'Escape') setEditing(null)
@@ -103,7 +108,7 @@ export function LinkingNumberCell({ row, orgId, canEdit }: { row: OrgSaleRow; or
                 variant="ghost"
                 className="h-8 w-8 cursor-pointer"
                 aria-label="Guardar"
-                disabled={!isSavable(normalize(editing.value)) || save.isPending}
+                disabled={!isSavable(normalize(editing.value)) || busy}
               >
                 {save.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
               </Button>
@@ -135,6 +140,7 @@ export function LinkingNumberCell({ row, orgId, canEdit }: { row: OrgSaleRow; or
                   variant="ghost"
                   className="h-6 w-6 cursor-pointer"
                   aria-label={EDIT_LABELS[field]}
+                  disabled={busy}
                   title={EDIT_LABELS[field]}
                   data-tour={`sale-${field === 'linkingNumber' ? 'linking' : 'ported'}-number-edit`}
                   onClick={() => setEditing({ field, value: value ?? '' })}

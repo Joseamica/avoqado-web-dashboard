@@ -451,7 +451,7 @@ export default function SalesDetail() {
           ? {
               'Número de vinculación': r.linkingNumber ?? '',
               'Número portado': r.portedNumber ?? '',
-              'Alertas de número': (r.numberAlerts ?? []).map(numberAlertText).join('; '),
+              'Alertas de número': (r.numberAlerts ?? []).map(numberAlertText).join(' | '),
             }
           : {}),
         'SIMs Adicionales': r.serialNumbers.slice(1).join(', '),
@@ -871,9 +871,9 @@ export default function SalesDetail() {
                     </td>
                     <td className="px-3 py-2">{statusBadge(row.status)}</td>
                     <td className="px-3 py-2 text-xs">
-                      {row.rejectionReasons.length > 0 || row.reviewNotes?.trim() || (linkingOn && row.numberAlerts?.length) ? (
+                      {row.rejectionReasons.length > 0 || row.reviewNotes?.trim() || row.numberAlerts?.length ? (
                         <div className="space-y-0.5">
-                          {linkingOn && <NumberAlertBadges alerts={row.numberAlerts ?? []} />}
+                          <NumberAlertBadges alerts={row.numberAlerts ?? []} />
                           {row.rejectionReasons.map(r => (
                             <div key={r} className="text-yellow-700 dark:text-yellow-400">
                               {SALE_VERIFICATION_REJECTION_REASON_LABELS[r]}
@@ -986,8 +986,12 @@ export default function SalesDetail() {
         mode={reviewMode}
         verification={reviewVerification}
         orgId={orgId}
+        // Sólo lo que manda el SERVIDOR (con el interruptor apagado no manda alertas): «desconocido» nunca es «apagado».
+        // Se lee de la fila vigente de la lista y no de la copia del clic.
         numberDuplicate={
-          linkingOn && !!reviewVerification?.numberAlerts?.some(a => a.code === 'LINKING_DUPLICATE' || a.code === 'PORTED_DUPLICATE')
+          !!(rows.find(r => r.id === reviewVerification?.id) ?? reviewVerification)?.numberAlerts?.some(
+            a => a.code === 'LINKING_DUPLICATE' || a.code === 'PORTED_DUPLICATE',
+          )
         }
         onClose={() => setReviewOpen(false)}
       />

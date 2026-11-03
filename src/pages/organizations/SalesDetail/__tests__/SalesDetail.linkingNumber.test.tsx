@@ -104,11 +104,14 @@ const porta = venta({
 
 const FLAG_ON = { enabled: true, isError: false, refetch: () => {} }
 
+let lastQc: QueryClient
+
 function renderCon(rows: OrgSaleRow[], flag: { enabled: boolean | undefined; isError: boolean; refetch: () => void } = FLAG_ON) {
   listMock.mockResolvedValue({ data: rows, pagination: { pageSize: 25, pageNumber: 1, totalCount: rows.length, totalPages: 1 } })
   summaryMock.mockResolvedValue({ totalCount: rows.length, completedCount: 0, pendingCount: rows.length, failedCount: 0, rejectedCount: 0 })
   flagMock.mockReturnValue(flag)
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  lastQc = qc
   return render(
     <QueryClientProvider client={qc}>
       <MemoryRouter>
@@ -414,6 +417,48 @@ describe('Ventas — Detalle: editar el número', () => {
   })
 })
 
+describe('Ventas — Detalle: una corrección no se pierde por otra en vuelo (Codex r1 #1)', () => {
+  it('con el guardado de vinculación en vuelo, los dos lápices quedan en gris y el campo abierto también', async () => {
+    let resolver: (v: unknown) => void = () => {}
+    setNumbersMock.mockReturnValue(new Promise(r => (resolver = r)))
+    renderCon([porta])
+    await screen.findByText('ICCID-PORTA')
+
+    fireEvent.click(within(fila('ICCID-PORTA')).getByRole('button', { name: 'Editar número de vinculación' }))
+    const input = within(fila('ICCID-PORTA')).getByRole('textbox', { name: 'Número de vinculación' })
+    fireEvent.change(input, { target: { value: '5511112222' } })
+    fireEvent.submit(input.closest('form')!)
+    await waitFor(() => expect(setNumbersMock).toHaveBeenCalledTimes(1))
+
+    expect(input).toBeDisabled()
+    expect(within(fila('ICCID-PORTA')).getByRole('button', { name: 'Editar número portado' })).toBeDisabled()
+
+    resolver({ id: 'sv-2' })
+    await waitFor(() => expect(within(fila('ICCID-PORTA')).getByRole('button', { name: 'Editar número portado' })).toBeEnabled())
+  })
+
+  it('al resolverse un guardado, sólo cierra SU edición: la del otro número sigue abierta con lo escrito', async () => {
+    let resolver: (v: unknown) => void = () => {}
+    setNumbersMock.mockReturnValue(new Promise(r => (resolver = r)))
+    renderCon([porta])
+    await screen.findByText('ICCID-PORTA')
+
+    fireEvent.click(within(fila('ICCID-PORTA')).getByRole('button', { name: 'Editar número de vinculación' }))
+    const lin = within(fila('ICCID-PORTA')).getByRole('textbox', { name: 'Número de vinculación' })
+    fireEvent.change(lin, { target: { value: '5511112222' } })
+    fireEvent.submit(lin.closest('form')!)
+    await waitFor(() => expect(setNumbersMock).toHaveBeenCalledTimes(1))
+
+    // Aunque el lápiz esté en gris, algo (p. ej. otra pestaña de código) abre el portado: debe sobrevivir.
+    const pencil = within(fila('ICCID-PORTA')).getByRole('button', { name: 'Editar número portado' })
+    expect(pencil).toBeDisabled()
+    resolver({ id: 'sv-2' })
+    await waitFor(() => expect(within(fila('ICCID-PORTA')).queryByRole('textbox')).not.toBeInTheDocument())
+    fireEvent.click(within(fila('ICCID-PORTA')).getByRole('button', { name: 'Editar número portado' }))
+    expect(within(fila('ICCID-PORTA')).getByRole('textbox', { name: 'Número portado' })).toBeInTheDocument()
+  })
+})
+
 describe('Ventas — Detalle: Excel (prendido)', () => {
   it('trae «Número de vinculación», «Número portado» y «Alertas de número» justo después de «ID SIM»', async () => {
     const conAlerta = venta({
@@ -431,7 +476,7 @@ describe('Ventas — Detalle: Excel (prendido)', () => {
     expect(keys.slice(i, i + 4)).toEqual(['ID SIM', 'Número de vinculación', 'Número portado', 'Alertas de número'])
     expect(rows[0]['Número de vinculación']).toBe('5522223333')
     expect(rows[0]['Número portado']).toBe('5598765432')
-    expect(rows[0]['Alertas de número']).toBe('Tiene 9 dígitos; Falta número portado')
+    expect(rows[0]['Alertas de número']).toBe('Tiene 9 dígitos | Falta número portado')
   })
 })
 
@@ -492,5 +537,48 @@ describe('Ventas — Detalle: aprobar con número repetido', () => {
     await abrirAprobar(venta({ id: 'sv-n', serial: 'ICCID-NODUP', numberAlerts: [{ code: 'NOT_10_DIGITS' }] }))
     expect(await screen.findByRole('button', { name: 'Aprobar venta' })).toBeInTheDocument()
     expect(screen.queryByText(/número repetido/)).not.toBeInTheDocument()
+  })
+
+  it('«desconocido» (la consulta del interruptor falló) no apaga el aviso: sigue pidiendo «¿Aprobarla igual?»', async () => {
+    const dup = venta({ id: 'sv-u', serial: 'ICCID-UNK', numberAlerts: [{ code: 'LINKING_DUPLICATE' }] })
+    renderCon([dup], { enabled: undefined, isError: true, refetch: () => {} })
+    await screen.findByText('ICCID-UNK')
+    fireEvent.click(within(fila('ICCID-UNK')).getByRole('button', { name: /^Aprobar$/ }))
+    expect(await screen.findByText('Esta venta tiene un número repetido. ¿Aprobarla igual?')).toBeInTheDocument()
+  })
+
+  it('«desconocido»: las insignias de «Razón» tampoco se esconden', async () => {
+    const dup = venta({ id: 'sv-u2', serial: 'ICCID-UNK2', numberAlerts: [{ code: 'NOT_10_DIGITS' }] })
+    renderCon([dup], { enabled: undefined, isError: true, refetch: () => {} })
+    await screen.findByText('ICCID-UNK2')
+    expect(within(fila('ICCID-UNK2')).getByText('Tiene 9 dígitos')).toBeInTheDocument()
+  })
+
+  it('usa la fila vigente de la lista, no la copia del clic: si el repetido llega después, el diálogo lo sabe', async () => {
+    const sinDup = venta({ id: 'sv-m', serial: 'ICCID-VIG' })
+    const conDup = venta({ id: 'sv-m', serial: 'ICCID-VIG', numberAlerts: [{ code: 'LINKING_DUPLICATE' }] })
+    renderCon([sinDup])
+    await screen.findByText('ICCID-VIG')
+    fireEvent.click(within(fila('ICCID-VIG')).getByRole('button', { name: /^Aprobar$/ }))
+    expect(await screen.findByRole('button', { name: 'Aprobar venta' })).toBeInTheDocument()
+
+    listMock.mockResolvedValue({ data: [conDup], pagination: { pageSize: 25, pageNumber: 1, totalCount: 1, totalPages: 1 } })
+    // Cualquier refetch de la lista (p. ej. la invalidación tras otra edición).
+    await lastQc.invalidateQueries({ queryKey: ['org', 'org-pt', 'sale-verifications'] })
+    expect(await screen.findByText('Esta venta tiene un número repetido. ¿Aprobarla igual?')).toBeInTheDocument()
+  })
+})
+
+describe('Ventas — Detalle: bitácora de la organización (m2)', () => {
+  it.each(['es', 'en'])('%s traduce las dos acciones del número de vinculación', async lang => {
+    const j = (await import(`../../../../locales/${lang}/organization.json`)).default as {
+      activityLog: { actions: Record<string, string> }
+    }
+    expect(j.activityLog.actions.SALE_VERIFICATION_NUMBER_EDIT).toBe(
+      lang === 'es' ? 'Número de vinculación corregido' : 'Linking number corrected',
+    )
+    expect(j.activityLog.actions.SALE_VERIFICATION_NUMBER_SET).toBe(
+      lang === 'es' ? 'Número de vinculación capturado' : 'Linking number captured',
+    )
   })
 })
