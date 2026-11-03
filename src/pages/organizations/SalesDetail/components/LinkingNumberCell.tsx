@@ -79,7 +79,7 @@ export function LinkingNumberCell({ row, orgId, canEdit }: { row: OrgSaleRow; or
           return (
             <form
               key={field}
-              className="inline-flex items-center gap-1"
+              className="inline-flex flex-wrap items-center gap-1"
               onSubmit={e => {
                 e.preventDefault()
                 submit()
@@ -117,6 +117,9 @@ export function LinkingNumberCell({ row, orgId, canEdit }: { row: OrgSaleRow; or
               >
                 <X className="h-4 w-4" />
               </Button>
+              {editing.value.trim() !== '' && !isSavable(normalize(editing.value)) && (
+                <p className="basis-full text-[10px] text-muted-foreground">Sólo 9 o 10 dígitos, sin +52</p>
+              )}
             </form>
           )
         }

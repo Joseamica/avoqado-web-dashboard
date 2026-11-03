@@ -319,7 +319,7 @@ export default function SalesDetail() {
   const pagination = listQuery.data?.pagination
   // Con el filtro de alertas el servidor puede negarse («acota las fechas»): se dice en vez de «No hay ventas».
   const alertFilterError =
-    numberAlertFilter && listQuery.isError
+    linkingOn && numberAlertFilter && listQuery.isError
       ? ((listQuery.error as any)?.response?.data?.message ?? 'No se pudo cargar la lista. Intenta de nuevo.')
       : null
   const colCount = linkingOn ? 17 : 16
@@ -503,7 +503,7 @@ export default function SalesDetail() {
       console.error('Export error:', err)
       toast({
         title: 'Error al exportar',
-        description: err?.message || 'Intenta de nuevo en unos momentos.',
+        description: err?.response?.data?.message ?? err?.message ?? 'Intenta de nuevo en unos momentos.',
         variant: 'destructive',
       })
     } finally {
@@ -595,7 +595,7 @@ export default function SalesDetail() {
         </DropdownMenu>
       </div>
 
-      {linking.isError && (
+      {linking.isError && linking.enabled === undefined && (
         <SummaryQueryBoundary
           isError
           message="No se pudo cargar el número de vinculación"

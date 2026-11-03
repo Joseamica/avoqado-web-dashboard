@@ -434,3 +434,43 @@ describe('Ventas — Detalle: Excel (prendido)', () => {
     expect(rows[0]['Alertas de número']).toBe('Tiene 9 dígitos; Falta número portado')
   })
 })
+
+describe('Ventas — Detalle: pendientes de la revisión de B2', () => {
+  it('un refetch fallido que conserva la respuesta vieja no pone el aviso junto a la columna que funciona', async () => {
+    renderCon([linea], { enabled: true, isError: true, refetch: () => {} })
+    await screen.findByText('ICCID-LINEA')
+    expect(screen.queryByText('No se pudo cargar el número de vinculación')).not.toBeInTheDocument()
+    expect(screen.getByRole('columnheader', { name: 'Número de vinculación' })).toBeInTheDocument()
+  })
+
+  it('el Excel muestra el mensaje del servidor («acota las fechas») y no el de axios', async () => {
+    const user = userEvent.setup()
+    renderCon([linea])
+    await screen.findByText('ICCID-LINEA')
+    listMock.mockRejectedValue(
+      Object.assign(new Error('Request failed with status code 400'), {
+        response: { data: { message: 'Hay demasiadas ventas con alerta en el rango; acota las fechas' } },
+      }),
+    )
+    await user.click(screen.getByRole('button', { name: /Exportar/ }))
+    await user.click(await screen.findByRole('menuitem', { name: /Excel/ }))
+    await waitFor(() =>
+      expect(toastMock).toHaveBeenCalledWith(
+        expect.objectContaining({ description: 'Hay demasiadas ventas con alerta en el rango; acota las fechas' }),
+      ),
+    )
+  })
+
+  it('un número con +52 (12 dígitos) dice «Sólo 9 o 10 dígitos, sin +52» y no deja guardar', async () => {
+    renderCon([linea])
+    await screen.findByText('ICCID-LINEA')
+    fireEvent.click(within(fila('ICCID-LINEA')).getByRole('button', { name: 'Editar número de vinculación' }))
+    const input = within(fila('ICCID-LINEA')).getByRole('textbox', { name: 'Número de vinculación' })
+    expect(screen.queryByText('Sólo 9 o 10 dígitos, sin +52')).not.toBeInTheDocument()
+
+    fireEvent.change(input, { target: { value: '+52 55 1234 5678' } })
+
+    expect(screen.getByText('Sólo 9 o 10 dígitos, sin +52')).toBeInTheDocument()
+    expect(within(fila('ICCID-LINEA')).getByRole('button', { name: 'Guardar' })).toBeDisabled()
+  })
+})
