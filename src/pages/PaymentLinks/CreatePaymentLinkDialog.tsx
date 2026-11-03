@@ -1,9 +1,10 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Banknote, Calendar, ChevronDown, DollarSign, Heart, Plus, Settings, Tag, Trash2 } from 'lucide-react'
+import { Banknote, Calendar, ChevronDown, DollarSign, Heart, Loader2, Plus, Settings, Tag, Trash2 } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
@@ -187,11 +188,14 @@ function PaymentLinkForm({ open, onClose, editingLinkId }: CreatePaymentLinkDial
   }, [usableMerchants, showMerchantPicker, selectedMerchantId])
 
   // ─── Load existing link for editing ────────────────────
-  const { data: existingLink } = useQuery({
+  const linkQuery = useQuery({
     queryKey: ['payment-link', venueId, editingLinkId],
     queryFn: () => paymentLinkService.getPaymentLink(venueId, editingLinkId!),
     enabled: isEditing && open,
   })
+  const { data: existingLink } = linkQuery
+  // Editando, sin la liga no hay formulario: guardar le quitaría la redirección y los artículos a una liga ya compartida.
+  const lecturaPendiente = isEditing && existingLink === undefined
 
   useEffect(() => {
     if (existingLink?.data) {
@@ -451,6 +455,7 @@ function PaymentLinkForm({ open, onClose, editingLinkId }: CreatePaymentLinkDial
   }
 
   const canSave =
+    !lecturaPendiente &&
     (selectedPurpose === 'donation' || !discountError(discount)) &&
     (selectedPurpose === 'item'
       ? selectedItems.length > 0
@@ -605,9 +610,18 @@ function PaymentLinkForm({ open, onClose, editingLinkId }: CreatePaymentLinkDial
             </div>
           </div>
         </div>
+      ) : lecturaPendiente ? (
+        <div className="mx-auto max-w-6xl p-6">
+          {linkQuery.isLoading ? (
+            <Loader2 className="mx-auto h-8 w-8 animate-spin text-muted-foreground" />
+          ) : (
+            <AvisoDeCarga query={linkQuery} hayDatos={false} />
+          )}
+        </div>
       ) : (
         /* ─── Step 2: Details Form ──────────────────────────── */
         <div className="mx-auto max-w-6xl p-6">
+          <AvisoDeCarga query={linkQuery} hayDatos />
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
             {/* Left: Form (2 cols) */}
             <fieldset disabled={isSaving || !!createdLink} className="lg:col-span-2 min-w-0 space-y-6">

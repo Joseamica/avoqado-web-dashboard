@@ -1,3 +1,4 @@
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
@@ -53,12 +54,13 @@ export default function ReservationBranding() {
   // Load persisted branding. Backend always merges with defaults so the
   // response shape is guaranteed — only `accentColor` is intentionally
   // nullable (null = inherit the venue primaryColor).
-  const { data: branding } = useQuery({
+  const brandingQuery = useQuery({
     queryKey: ['reservation-branding', venueId],
     queryFn: () => reservationBrandingService.getBranding(venueId),
     enabled: !!venueId,
     staleTime: 60_000,
   })
+  const { data: branding } = brandingQuery
 
   // Local editable copy, hydrated from the server. `dirty` tracks whether
   // the user has unsaved edits — Save button is disabled until something
@@ -118,6 +120,16 @@ export default function ReservationBranding() {
     },
   })
 
+  // Sin la lectura, el borrador trae los valores de fábrica y al guardar pisaría la marca real (también mientras carga: lo tocado ya no se reemplaza).
+  if (branding === undefined) {
+    return (
+      <div className="p-4 bg-background text-foreground">
+        <AvisoDeCarga query={brandingQuery} hayDatos={false} />
+        {brandingQuery.isLoading && <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />}
+      </div>
+    )
+  }
+
   // accentColor === null means "inherit the venue's brand color". The picker
   // must reflect that empty state instead of coercing null to a hex.
   const inheritsColor = draft.accentColor == null
@@ -125,6 +137,7 @@ export default function ReservationBranding() {
   return (
     <div className="p-4 bg-background text-foreground">
       <div className="max-w-4xl">
+        <AvisoDeCarga query={brandingQuery} hayDatos />
         {/* Header */}
         <div className="mb-8 flex items-start justify-between gap-4">
           <div>

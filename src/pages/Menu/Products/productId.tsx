@@ -112,27 +112,32 @@ export default function ProductId() {
   inventarioElegido.current = { trackInventory, inventoryMethod }
 
   // Traemos la información del producto
-  const { data, isLoading } = useQuery({
+  const productQuery = useQuery({
     queryKey: ['product', venueId, productId],
     queryFn: () => getProduct(venueId!, productId!),
     enabled: !!venueId && !!productId,
   })
+  const { data, isLoading } = productQuery
   // Una variante (talla/color): nombre, descripción, categoría, tipo, foto, IVA y extras son del padre — se ven, no se editan ni se mandan.
   const esVariante = !!data?.productGroupId
 
   // Traemos las categorías disponibles para el selector
-  const { data: categories } = useQuery({
+  const categoriesQuery = useQuery({
     queryKey: ['menu-categories', venueId],
     queryFn: () => getMenuCategories(venueId!),
     enabled: !!venueId,
   })
+  const { data: categories } = categoriesQuery
 
   // Traemos los grupos de modificadores disponibles para el selector
-  const { data: modifierGroups } = useQuery({
+  const modifierGroupsQuery = useQuery({
     queryKey: ['modifier-groups', venueId],
     queryFn: () => getModifierGroups(venueId!),
     enabled: !!venueId,
   })
+  const { data: modifierGroups } = modifierGroupsQuery
+  // Sin la lista, todo modificador parece borrado: se mandaría vacío y el SERVIDOR quitaría los que tiene, mientras la pantalla los sigue enseñando.
+  const modificadoresListos = modifierGroups !== undefined
 
   const estadoIva = useEstadoIva(venueId)
   const ivaCambio = iva !== undefined && iva !== data?.ivaTratamiento
@@ -444,6 +449,7 @@ export default function ProductId() {
   // Manejador del submit
   // function onSubmit(formValues: z.infer<typeof FormSchema>) {
   function onSubmit(formValues: any) {
+    if (!modificadoresListos) return
     if (pideAvisoIva) {
       setPorConfirmarIva(formValues) // el guardado espera el «Continuar» del aviso del primer encendido
       return
@@ -452,12 +458,20 @@ export default function ProductId() {
   }
 
   // Imagen a mostrar: si hay una nueva (subida) úsala, si no usa la de la BD
-  if (!venueId || !productId || isLoading) {
+  if (!venueId || !productId || isLoading || categoriesQuery.isLoading) {
     return <div>{t('forms.messages.loading')}</div>
   }
 
   if (!data) {
-    return <div>{t('products.detail.notFound')}</div>
+    // Un 404 es un producto que no existe; lo demás es una lectura que no llegó.
+    const noExiste = (productQuery.error as { response?: { status?: number } } | null)?.response?.status === 404
+    if (noExiste || !falloDeCarga(productQuery)) return <div>{t('products.detail.notFound')}</div>
+    return <AvisoDeCarga query={productQuery} hayDatos={false} />
+  }
+
+  // Sin categorías el formulario nunca se llena (ver el efecto de arriba): saldría la ficha en blanco.
+  if (categories === undefined) {
+    return <AvisoDeCarga query={categoriesQuery} hayDatos={false} />
   }
 
   const displayedImageUrl = imageUrl || data.imageUrl
@@ -501,7 +515,7 @@ export default function ProductId() {
             onClick={form.handleSubmit(onSubmit)}
             variant="default"
             size="sm"
-            disabled={!(form.formState.isDirty || ivaCambio) || saveProduct.isPending}
+            disabled={!(form.formState.isDirty || ivaCambio) || saveProduct.isPending || !modificadoresListos}
           >
             {saveProduct.isPending ? t('products.detail.saving') : t('modifiers.forms.save')}
           </LoadingButton>
@@ -543,6 +557,8 @@ export default function ProductId() {
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="container mx-auto pt-6 pb-20 px-4 grow overflow-auto">
           <div className="max-w-4xl">
+            <AvisoDeCarga query={categoriesQuery} hayDatos />
+            <AvisoDeCarga query={modifierGroupsQuery} hayDatos={modificadoresListos} />
             {/* IVA por producto (6b, §5.5): aviso fijo de aparatos viejos, sólo con el IVA encendido */}
             <AvisoAparatosIva venueId={venueId!} className="mb-4" />
             {esVariante && (

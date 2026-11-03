@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { CreditCard, Check } from 'lucide-react'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -29,7 +30,10 @@ export default function OrgPayoutConfigSection() {
 	const { can } = useAccess()
 	const { toast } = useToast()
 
-	const { data: orgPayoutConfig, isLoading } = useOrgPayoutConfig()
+	const orgPayoutQuery = useOrgPayoutConfig()
+	const { data: orgPayoutConfig, isLoading } = orgPayoutQuery
+	// `null` = sin configurar, y se puede crear. `undefined` = la lectura no llegó: guardar pisaría la de toda la organización.
+	const lecturaLista = orgPayoutConfig !== undefined
 	const upsertMutation = useUpsertOrgPayoutConfig()
 
 	const [aggregationPeriod, setAggregationPeriod] = useState<string>(
@@ -91,7 +95,7 @@ export default function OrgPayoutConfigSection() {
 						<p className="text-sm text-muted-foreground">{t('orgPayout.description')}</p>
 					</div>
 				</div>
-				{hasChanges && (
+				{hasChanges && lecturaLista && (
 					<Button
 						size="sm"
 						onClick={handleSave}
@@ -104,9 +108,10 @@ export default function OrgPayoutConfigSection() {
 				)}
 			</div>
 
+			<AvisoDeCarga query={orgPayoutQuery} hayDatos={lecturaLista} />
 			{isLoading ? (
 				<Skeleton className="h-28 w-full rounded-xl" />
-			) : (
+			) : !lecturaLista ? null : (
 				<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 					{/* Aggregation Period */}
 					<div className="space-y-2">

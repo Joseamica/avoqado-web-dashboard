@@ -3,6 +3,7 @@ import { CalendarClock, Plus, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -49,11 +50,12 @@ export function WorkScheduleSection({ venueId, staffVenueId }: Props) {
   const { can } = useAccess()
   const canManage = can('attendance:manage')
 
-  const { data, isLoading, isError, refetch } = useQuery({
+  const scheduleQuery = useQuery({
     queryKey: ['work-schedule', venueId, staffVenueId],
     queryFn: () => attendanceService.getWorkSchedule(venueId, staffVenueId),
     enabled: !!venueId && !!staffVenueId,
   })
+  const { data, isLoading, refetch } = scheduleQuery
 
   const [hasSchedule, setHasSchedule] = useState(false)
   const [weekly, setWeekly] = useState<WeeklySchedule>(DEFAULT_WEEK)
@@ -62,8 +64,9 @@ export function WorkScheduleSection({ venueId, staffVenueId }: Props) {
 
   // Con la carga fallida NO se edita: la pantalla mostraría los defaults 09–18 y un clic en
   // "Guardar" pisaría el cuadrante real con uno inventado (auditoría Codex fase 2, P2-7). Y sin
-  // permiso de administrar, todo es lectura, no sólo el botón final (P3-2).
-  const editable = canManage && !isError && !isLoading
+  // permiso de administrar, todo es lectura, no sólo el botón final (P3-2). Se mira `data` y no `isError`: sin red la
+  // consulta queda en pausa con `isError` e `isLoading` en false, y el guardado saldría solo al volver la conexión.
+  const editable = canManage && data !== undefined
 
   useEffect(() => {
     if (!data) return
@@ -106,7 +109,7 @@ export function WorkScheduleSection({ venueId, staffVenueId }: Props) {
           <div className="flex items-center gap-2">
             <CalendarClock className="h-4 w-4 text-muted-foreground" />
             <h3 className="text-sm font-medium">{t('workSchedule.title')}</h3>
-            {!hasSchedule && (
+            {data !== undefined && !hasSchedule && (
               <Badge variant="outline" className="rounded-full">
                 {t('workSchedule.none')}
               </Badge>
@@ -133,9 +136,10 @@ export function WorkScheduleSection({ venueId, staffVenueId }: Props) {
         <p className="text-xs text-muted-foreground">{t('workSchedule.hint')}</p>
         {!canManage && <p className="text-xs text-muted-foreground">{t('workSchedule.readOnly')}</p>}
 
+        {data !== undefined && <AvisoDeCarga query={scheduleQuery} hayDatos />}
         {isLoading ? (
           <p className="text-sm text-muted-foreground">{t('common:loading')}</p>
-        ) : isError ? (
+        ) : data === undefined ? (
           <div role="alert" className="rounded-lg border border-destructive/40 p-4 space-y-2">
             <p className="text-sm font-medium">{t('workSchedule.loadErrorTitle')}</p>
             <p className="text-xs text-muted-foreground">{t('workSchedule.loadErrorDesc')}</p>

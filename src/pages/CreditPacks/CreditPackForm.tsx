@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useFieldArray, useForm, type ControllerRenderProps } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { LoadingButton } from '@/components/loading-button'
 import { LoadingScreen } from '@/components/spinner'
 import { SearchCombobox, type SearchComboboxItem } from '@/components/search-combobox'
@@ -120,11 +121,14 @@ export default function CreditPackFormModal({ open, onClose, packId, onSuccess }
   const isEditing = !!packId
 
   // Fetch existing pack if editing
-  const { data: existingPack, isLoading: isLoadingPack } = useQuery({
+  const packQuery = useQuery({
     queryKey: ['credit-pack', venueId, packId],
     queryFn: () => creditPackService.getCreditPack(venueId, packId!),
     enabled: isEditing && open,
   })
+  const { data: existingPack, isLoading: isLoadingPack } = packQuery
+  // Editando, sin el paquete no hay formulario: guardar cambiaría su precio, también en Stripe.
+  const lecturaPendiente = isEditing && existingPack === undefined
 
   // Fetch venue products for selector
   const { data: productsData } = useQuery({
@@ -233,6 +237,7 @@ export default function CreditPackFormModal({ open, onClose, packId, onSuccess }
       actions={
         <LoadingButton
           loading={mutation.isPending}
+          disabled={lecturaPendiente}
           onClick={form.handleSubmit(onSubmit)}
           variant="default"
         >
@@ -242,8 +247,13 @@ export default function CreditPackFormModal({ open, onClose, packId, onSuccess }
     >
       {isLoadingPack ? (
         <LoadingScreen message="Cargando paquete..." />
+      ) : lecturaPendiente ? (
+        <div className="max-w-2xl mx-auto px-6 py-8">
+          <AvisoDeCarga query={packQuery} hayDatos={false} />
+        </div>
       ) : (
         <div className="max-w-2xl mx-auto px-6 py-8">
+          <AvisoDeCarga query={packQuery} hayDatos />
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               {/* Basic Info Card */}

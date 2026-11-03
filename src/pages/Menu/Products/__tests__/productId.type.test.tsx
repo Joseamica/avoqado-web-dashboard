@@ -5,11 +5,11 @@
  * La ficha debe mostrar y conservar el tipo real del producto, ofrecer los tipos del asistente y seguir mostrando los
  * tipos viejos de los productos que ya los tienen.
  */
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { onlineManager, QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 // Radix Select usa pointer capture, que jsdom no trae. Funciones planas, NO vi.fn() (mockReset: true las vaciaría).
 Element.prototype.hasPointerCapture = () => false
@@ -200,5 +200,56 @@ describe('la receta del producto si falla su lectura', () => {
     pintar('/menumaker/products/p1#inventory')
     await screen.findByRole('button', { name: 'products.detail.inventory.addIngredient' })
     expect(screen.queryByRole('alert')).toBeNull()
+  })
+})
+
+describe('las listas de la ficha si falla su lectura', () => {
+  const conModificadores = () =>
+    svc.getProduct.mockResolvedValue({ ...producto('REGULAR'), modifierGroups: [{ groupId: 'mg1', group: { id: 'mg1', name: 'Extras' } }] })
+  afterEach(() => onlineManager.setOnline(true))
+
+  it('🔴 falla sólo la lista de modificadores: avisa y guardar no le borra los que tiene', async () => {
+    conModificadores()
+    svc.getModifierGroups.mockRejectedValue(new Error('500'))
+    pintar()
+    await guardarSinTocarElTipo()
+    await new Promise(r => setTimeout(r, 30))
+    expect(svc.updateProduct).not.toHaveBeenCalled()
+    expect(screen.getByText('loadFailure.empty')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'modifiers.forms.save' })).toBeDisabled()
+  })
+
+  it('con la lista sana se guarda como hoy, con sus modificadores', async () => {
+    conModificadores()
+    svc.getModifierGroups.mockResolvedValue([{ id: 'mg1', name: 'Extras' }])
+    pintar()
+    await guardarSinTocarElTipo()
+    await waitFor(() => expect(svc.updateProduct).toHaveBeenCalledTimes(1))
+    expect(svc.updateProduct.mock.calls[0][2]).toMatchObject({ modifierGroupIds: ['mg1'] })
+    expect(screen.queryByText('loadFailure.empty')).toBeNull()
+  })
+
+  it('falla sólo la lista de categorías: avisa en vez de enseñar la ficha en blanco', async () => {
+    conModificadores()
+    svc.getMenuCategories.mockRejectedValue(new Error('500'))
+    pintar()
+    expect(await screen.findByText('loadFailure.empty')).toBeInTheDocument()
+    expect(screen.queryByRole('textbox', { name: 'products.create.sku' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'modifiers.forms.save' })).toBeNull()
+  })
+
+  it('sin internet avisa, no dice que el producto no existe', async () => {
+    conModificadores()
+    onlineManager.setOnline(false)
+    pintar()
+    expect(await screen.findByText('loadFailure.empty')).toBeInTheDocument()
+    expect(screen.queryByText('products.detail.notFound')).toBeNull()
+  })
+
+  it('un producto que de verdad no existe sigue diciéndolo', async () => {
+    svc.getProduct.mockRejectedValue(Object.assign(new Error('404'), { response: { status: 404 } }))
+    pintar()
+    expect(await screen.findByText('products.detail.notFound')).toBeInTheDocument()
+    expect(screen.queryByText('loadFailure.empty')).toBeNull()
   })
 })
