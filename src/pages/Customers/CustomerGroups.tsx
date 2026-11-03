@@ -72,7 +72,7 @@ export default function CustomerGroups() {
   const [deletingGroup, setDeletingGroup] = useState<CustomerGroup | null>(null)
 
   // Fetch customer groups
-  const { data: groupsData, isLoading } = useQuery({
+  const listQuery = useQuery({
     queryKey: ['customer-groups', venueId, pagination.pageIndex, pagination.pageSize],
     queryFn: () =>
       customerService.getCustomerGroups(venueId, {
@@ -81,6 +81,7 @@ export default function CustomerGroups() {
       }),
     refetchOnWindowFocus: true,
   })
+  const { data: groupsData, isLoading } = listQuery
 
   // Delete mutation
   const deleteGroupMutation = useMutation({
@@ -225,6 +226,7 @@ export default function CustomerGroups() {
 
       {/* Data Table */}
       <DataTable
+        query={listQuery}
         data={groups}
         columns={columns}
         isLoading={isLoading}

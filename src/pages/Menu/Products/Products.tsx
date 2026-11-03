@@ -335,6 +335,7 @@ export default function Products() {
     data: products,
     isLoading,
     isError,
+    isPaused,
     isFetching,
     refetch,
     dataUpdatedAt: _dataUpdatedAt,
@@ -1269,7 +1270,7 @@ export default function Products() {
         </div>
       </div>
 
-      {isError && (
+      {(isError || isPaused) && (
         <div data-testid="catalog-read-error" role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-input p-3 text-sm">
           <span>{t('catalog.loadError')}</span>
           <Button variant="outline" size="sm" disabled={isFetching} onClick={() => refetch()}>
@@ -1277,10 +1278,11 @@ export default function Products() {
           </Button>
         </div>
       )}
-      {(!isError || products !== undefined) && (
+      {(!(isError || isPaused) || products !== undefined) && (
         <FamiliasDesplegadas.Provider value={familiasDesplegadas}>
           <ElegidosParaAgrupar.Provider value={seleccionParaAgrupar}>
             <DataTable
+              query={null}
               data={filas}
               rowCount={filas.length}
               columns={filteredColumns}

@@ -211,7 +211,7 @@ export default function Orders() {
   // Multi-select filters, date range and search are sent to backend so pagination
   // respects them. Infinite query stitches pages 1, 2, 3... on scroll/load-more.
   // Amount filters (total/tip) remain client-side — backend does not support them yet.
-  const { data, isLoading, error, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
+  const listQuery = useInfiniteQuery({
     queryKey: ['orders-infinite', venueId, statusFilter, typeFilter, tableFilter, waiterFilter, dateRange, debouncedSearchTerm],
     initialPageParam: 1,
     queryFn: async ({ pageParam }) => {
@@ -240,6 +240,7 @@ export default function Orders() {
     },
     refetchOnWindowFocus: true,
   })
+  const { data, isLoading, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = listQuery
 
   // Flat list of loaded orders across all pages — fed to DataTable.
   const ordersLoaded = useMemo<Order[]>(() => {
@@ -1067,13 +1068,8 @@ export default function Orders() {
         </div>
       )}
 
-      {error && (
-        <div className={`p-4 mb-4 rounded bg-red-100 text-red-800`}>
-          {t('errorPrefix')}: {(error as Error).message}
-        </div>
-      )}
-
       <DataTable
+        query={listQuery}
         data={sortedData}
         rowCount={totalOrders}
         columns={filteredColumns}

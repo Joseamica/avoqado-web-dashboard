@@ -1,3 +1,5 @@
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga, type EstadoDeCarga } from '@/lib/falloDeCarga'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, ClickableTableRow } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -28,6 +30,11 @@ type DataTableProps<TData> = {
   rowCount: number
   columns: ColumnDef<TData, any>[]
   isLoading?: boolean
+  /**
+   * La consulta de la que salen las filas: si falla, la tabla lo dice en vez de «Sin resultados». Es obligatoria para que ninguna
+   * tabla nueva se olvide. `null` si los datos no vienen de una consulta, o si la pantalla ya resuelve su propio fallo.
+   */
+  query: EstadoDeCarga | null
   clickableRow?: (row: TData) => { to: string; state?: Record<string, any> }
   onRowClick?: (row: TData) => void
   pagination?: PaginationState
@@ -80,6 +87,7 @@ function DataTable<TData>({
   rowCount: _rowCount,
   columns,
   isLoading = false,
+  query,
   clickableRow,
   onRowClick,
   pagination,
@@ -401,6 +409,7 @@ function DataTable<TData>({
           </div>
         </div>
       )}
+      <AvisoDeCarga query={query} hayDatos={data.length > 0} />
       {(tableTab || tableTabLeft) && (
         <div className="flex items-end justify-between gap-2">
           {tableTabLeft ? (
@@ -536,7 +545,7 @@ function DataTable<TData>({
               </TableBody>
             )
           })
-        ) : (
+        ) : falloDeCarga(query) ? null : (
           <TableBody>
             <TableRow>
               <TableCell colSpan={allColumns.length} className={`h-10 text-center text-muted-foreground`}>

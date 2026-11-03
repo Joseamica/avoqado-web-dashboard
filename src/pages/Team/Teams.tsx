@@ -313,13 +313,7 @@ function TeamsContent() {
 
   // Fetch team members. Búsqueda y puesto van al servidor; conservar los datos anteriores (placeholderData) evita que cada tecla deje la tabla en «cargando»
   // (la tabla desmontaría el buscador y en Android se cerraría el teclado).
-  const {
-    data: teamData,
-    isLoading: isLoadingTeam,
-    isError: isTeamError,
-    isPlaceholderData,
-    refetch: refetchTeam,
-  } = useQuery({
+  const membersQuery = useQuery({
     queryKey: teamMembersQueryKey,
     queryFn: () =>
       teamService.getTeamMembers(venueId, pagination.pageIndex + 1, pagination.pageSize, debouncedSearchTerm || undefined, positionId || undefined),
@@ -330,6 +324,11 @@ function TeamsContent() {
     staleTime: 30_000,
     retry: 1,
   })
+  const {
+    data: teamData,
+    isLoading: isLoadingTeam,
+    isPlaceholderData,
+  } = membersQuery
 
   // Puestos del negocio para los chips (con cuántas personas lo tienen vigente) y el color de cada chip de la tabla.
   const { data: positionsData } = usePositions({ limit: 100 }, !rhApagado)
@@ -363,10 +362,11 @@ function TeamsContent() {
   ]
 
   // Fetch pending invitations
-  const { data: invitationsData, isLoading: isLoadingInvitations } = useQuery({
+  const invitationsQuery = useQuery({
     queryKey: ['team-invitations', venueId],
     queryFn: () => teamService.getPendingInvitations(venueId),
   })
+  const { data: invitationsData, isLoading: isLoadingInvitations } = invitationsQuery
 
   // Remove team member mutation
   const removeTeamMemberMutation = useMutation({
@@ -1034,19 +1034,6 @@ function TeamsContent() {
             </div>
           )}
 
-          {/* Un fallo de red no puede verse como «no hay gente» */}
-          {isTeamError && (
-            <div
-              role="alert"
-              className="flex items-center justify-between gap-3 rounded-lg border border-destructive/40 bg-destructive/5 px-3 py-2 text-sm"
-            >
-              <span>{tCommon('errors.serverUnavailableDescription')}</span>
-              <Button variant="outline" size="sm" onClick={() => refetchTeam()}>
-                {tCommon('errors.retryNow')}
-              </Button>
-            </div>
-          )}
-
           {/* Results count */}
           {(activeFiltersCount > 0 || debouncedSearchTerm) && (
             <div className="text-sm text-muted-foreground">
@@ -1059,6 +1046,7 @@ function TeamsContent() {
           )}
 
           <DataTable
+            query={membersQuery}
             data={filteredTeamMembers}
             columns={filteredTeamColumns}
             isLoading={isLoadingTeam}
@@ -1170,6 +1158,7 @@ function TeamsContent() {
           </p>
 
           <DataTable
+            query={invitationsQuery}
             data={filteredInvitations}
             columns={invitationColumns}
             isLoading={isLoadingInvitations}

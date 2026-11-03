@@ -1,3 +1,5 @@
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import React, { useState, useMemo, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
@@ -93,10 +95,11 @@ const MerchantAccounts: React.FC = () => {
   const [selectedAccount, setSelectedAccount] = useState<MerchantAccount | null>(null)
 
   // Fetch ALL merchant accounts (superadmin endpoint returns enriched venues/terminals)
-  const { data: allAccounts = [], isLoading } = useQuery({
+  const listQuery = useQuery({
     queryKey: ['merchant-accounts-all'],
     queryFn: () => paymentProviderAPI.getAllMerchantAccounts(),
   })
+  const { data: allAccounts = [], isLoading } = listQuery
 
   // Filter options derived from the accounts themselves — only show options that actually exist
   const providerOptions = useMemo(() => {
@@ -848,6 +851,8 @@ const MerchantAccounts: React.FC = () => {
           <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
           <span className="ml-3 text-muted-foreground">Cargando cuentas...</span>
         </div>
+      ) : falloDeCarga(listQuery) && allAccounts.length === 0 ? (
+        <AvisoDeCarga query={listQuery} hayDatos={false} />
       ) : filteredAccounts.length === 0 ? (
         <GlassCard className="p-12 text-center">
           <div className="p-4 rounded-full bg-muted/50 w-fit mx-auto mb-4">
@@ -909,6 +914,7 @@ const MerchantAccounts: React.FC = () => {
 
           {viewMode === 'table' ? (
             <DataTable
+              query={listQuery}
               data={filteredAccounts}
               rowCount={filteredAccounts.length}
               columns={columns}

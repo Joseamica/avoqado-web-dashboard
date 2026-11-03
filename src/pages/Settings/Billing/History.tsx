@@ -1,3 +1,6 @@
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
+import { esSinPermiso } from '@/lib/reintentoSinPermiso'
 import api from '@/api'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
@@ -58,18 +61,20 @@ export default function History() {
   const [invoiceSort, setInvoiceSort] = useState<string>('date-desc')
 
   // Fetch invoices
-  const { data: invoices, isLoading: loadingInvoices } = useQuery<StripeInvoice[]>({
+  const invoicesQuery = useQuery<StripeInvoice[]>({
     queryKey: ['venueInvoices', venueId],
     queryFn: () => getVenueInvoices(venueId),
     enabled: !!venueId,
   })
+  const { data: invoices, isLoading: loadingInvoices } = invoicesQuery
 
   // Fetch token purchases
-  const { data: tokenHistory, isLoading: loadingTokens } = useQuery({
+  const tokensQuery = useQuery({
     queryKey: ['tokenHistory', venueId],
     queryFn: () => getTokenHistory({ limit: 100 }),
     enabled: !!venueId,
   })
+  const { data: tokenHistory, isLoading: loadingTokens } = tokensQuery
 
   const tokenPurchases = useMemo(
     () => tokenHistory?.purchases?.records || [],
@@ -247,6 +252,14 @@ export default function History() {
 
   // Check if data is loading
   const isLoading = loadingInvoices || loadingTokens
+  // La tabla junta facturas y tokens: si falta uno, la lista está incompleta. Un rol sin permiso de tokens no tiene un fallo: ve lo suyo.
+  const failedQuery = isLoading
+    ? null
+    : falloDeCarga(invoicesQuery)
+      ? invoicesQuery
+      : falloDeCarga(tokensQuery) && !esSinPermiso(tokensQuery.error)
+        ? tokensQuery
+        : null
 
   return (
     <div className="px-8 pt-6">
@@ -287,9 +300,10 @@ export default function History() {
           </div>
         </CardHeader>
         <CardContent>
+          <AvisoDeCarga query={failedQuery} hayDatos={allBillingItems.length > 0} />
           {isLoading ? (
             <p className="text-muted-foreground">{t('loading')}</p>
-          ) : allBillingItems.length === 0 ? (
+          ) : failedQuery && allBillingItems.length === 0 ? null : allBillingItems.length === 0 ? (
             <Alert>
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>

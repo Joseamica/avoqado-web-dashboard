@@ -1,3 +1,4 @@
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { useCallback, useMemo, useState } from 'react'
 import type { ColumnDef, PaginationState } from '@tanstack/react-table'
 import { useTranslation } from 'react-i18next'
@@ -144,7 +145,7 @@ export function GiftCardsList({ venueId }: { venueId: string }) {
   }
 
   // Un fallo NO es «no hay tarjetas»: se dice y se ofrece reintentar. Con filas ya cargadas, se avisa en el pie.
-  const loadFailed = query.isError && cards.length === 0
+  const loadFailed = falloDeCarga(query) && cards.length === 0
   const isEmpty = !query.isLoading && !loadFailed && !stale && cards.length === 0
   const errorText = avisoDeError(query.error, t)
 
@@ -255,6 +256,7 @@ export function GiftCardsList({ venueId }: { venueId: string }) {
         </div>
       ) : (
         <DataTable<GiftCardRow>
+          query={null}
           columns={columns}
           data={cards}
           rowCount={cards.length}

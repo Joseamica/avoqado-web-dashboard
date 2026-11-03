@@ -166,7 +166,7 @@ export default function InventoryHistory() {
   }, [debouncedSearch, serverTypeFilter, dateFilter])
 
   // Fetch History Query
-  const { data, isLoading } = useQuery({
+  const listQuery = useQuery({
     queryKey: ['inventory-history', venueId, pagination.pageIndex, pagination.pageSize, debouncedSearch, serverTypeFilter],
     queryFn: async () => {
       const response = await inventoryHistoryApi.getGlobalMovements(venueId!, {
@@ -179,6 +179,7 @@ export default function InventoryHistory() {
     },
     enabled: !!venueId,
   })
+  const { data, isLoading } = listQuery
 
   const movements = useMemo(() => (data as any)?.data || [], [data])
   /** Total REAL del servidor (antes venía el literal 1000). */
@@ -747,6 +748,7 @@ export default function InventoryHistory() {
           </div>
         ) : (
           <DataTable
+            query={listQuery}
             columns={filteredColumns}
             data={filteredData}
             rowCount={totalMovements}

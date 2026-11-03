@@ -108,7 +108,7 @@ export default function Services() {
   const [statusFilter, setStatusFilter] = useState<string[]>([])
 
   // Fetch products (shared cache with Products page)
-  const { data: allProducts, isLoading, isError, isFetching, refetch } = useQuery({
+  const { data: allProducts, isLoading, isError, isPaused, isFetching, refetch } = useQuery({
     queryKey: ['products', venueId, 'orderBy:name'],
     queryFn: () => getProducts(venueId!, { orderBy: 'name' }),
     staleTime: 30 * 1000,
@@ -546,7 +546,7 @@ export default function Services() {
         )}
       </div>
 
-      {isError && (
+      {(isError || isPaused) && (
         <div data-testid="catalog-read-error" role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-input p-3 text-sm">
           <span>{t('catalog.loadError')}</span>
           <Button variant="outline" size="sm" disabled={isFetching} onClick={() => refetch()}>
@@ -554,8 +554,9 @@ export default function Services() {
           </Button>
         </div>
       )}
-      {(!isError || allProducts !== undefined) && (
+      {(!(isError || isPaused) || allProducts !== undefined) && (
         <DataTable
+          query={null}
           data={filteredServices}
           rowCount={filteredServices.length}
           columns={columns}

@@ -63,10 +63,11 @@ export default function ModifierGroups() {
     return () => setHeader({})
   }, [t, setHeader])
 
-  const { data: modifierGroups, isLoading } = useQuery({
+  const listQuery = useQuery({
     queryKey: ['modifier-groups', venueId],
     queryFn: () => getModifierGroups(venueId!),
   })
+  const { data: modifierGroups, isLoading } = listQuery
 
   // Mutation to delete a modifier group
   const deleteModifierGroupMutation = useMutation({
@@ -210,6 +211,7 @@ export default function ModifierGroups() {
       <ModifiersManagerDialog venueId={venueId!} modifierGroupId={editingGroupId} onClose={() => setEditingGroupId(null)} />
 
       <DataTable
+        query={listQuery}
         data={modifierGroups || []}
         rowCount={modifierGroups?.length}
         columns={columns}

@@ -1,3 +1,5 @@
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { Button } from '@/components/ui/button'
 import { GlassCard } from '@/components/ui/glass-card'
 import { Input } from '@/components/ui/input'
@@ -121,11 +123,12 @@ function OrganizationActivityLog() {
   )
 
   // Data fetching
-  const { data, isLoading } = useQuery<OrgActivityLogResponse>({
+  const listQuery = useQuery<OrgActivityLogResponse>({
     queryKey: ['org-activity-log', orgId, filters],
     queryFn: () => getOrgActivityLog(orgId!, filters),
     enabled: !!orgId,
   })
+  const { data, isLoading } = listQuery
 
   const { data: venues } = useQuery({
     queryKey: ['organization', 'venues', orgId],
@@ -210,7 +213,10 @@ function OrganizationActivityLog() {
           </Select>
         </div>
 
+        <AvisoDeCarga query={listQuery} hayDatos={logs.length > 0} />
+
         {/* Table */}
+        {!(falloDeCarga(listQuery) && logs.length === 0) && (
         <GlassCard className="overflow-hidden">
           {logs.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
@@ -256,6 +262,7 @@ function OrganizationActivityLog() {
             </Table>
           )}
         </GlassCard>
+        )}
 
         {/* Pagination */}
         {paginationData && paginationData.totalPages > 1 && (

@@ -62,7 +62,7 @@ const Terminals: React.FC = () => {
 
   const { data: venues = [] } = useQuery({ queryKey: ['venues'], queryFn: () => getAllVenues() })
 
-  const { data: terminals = [], isLoading } = useQuery({
+  const listQuery = useQuery({
     queryKey: ['terminals', selectedVenueId],
     queryFn: async () => {
       if (selectedVenueId === 'all') {
@@ -72,6 +72,7 @@ const Terminals: React.FC = () => {
       }
     },
   })
+  const { data: terminals = [], isLoading } = listQuery
 
   const createMutation = useMutation({
     mutationFn: terminalAPI.createTerminal,
@@ -529,6 +530,7 @@ const Terminals: React.FC = () => {
             <div className="py-8 text-center text-sm text-muted-foreground">{t('loading')}</div>
           ) : (
             <DataTable
+              query={listQuery}
               columns={columns}
               data={filteredTerminals}
               pagination={{ pageIndex: 0, pageSize: 20 }}

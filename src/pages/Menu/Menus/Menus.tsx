@@ -27,10 +27,11 @@ export default function Menus() {
 
   const location = useLocation()
 
-  const { data, isLoading } = useQuery({
+  const listQuery = useQuery({
     queryKey: ['menus', venueId],
     queryFn: () => getMenus(venueId),
   })
+  const { data, isLoading } = listQuery
 
   const [wizardOpen, setWizardOpen] = useState(false)
 
@@ -141,6 +142,7 @@ export default function Menus() {
       <MenuWizardDialog open={wizardOpen} onOpenChange={setWizardOpen} />
 
       <DataTable
+        query={listQuery}
         data={data || []}
         rowCount={data?.length}
         columns={columns}

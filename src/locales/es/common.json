@@ -58,6 +58,11 @@
   "none": "Ninguno",
   "na": "N/A",
   "unknown": "Desconocido",
+  "loadFailure": {
+    "empty": "No pudimos cargar esta información. Inténtalo de nuevo.",
+    "partial": "No pudimos actualizar esta lista: puede estar incompleta o desactualizada.",
+    "forbidden": "No tienes permiso para ver esta información."
+  },
   "no_results": "Sin resultados",
   "customize_columns": "Personalizar columnas",
   "primary": "Principal",

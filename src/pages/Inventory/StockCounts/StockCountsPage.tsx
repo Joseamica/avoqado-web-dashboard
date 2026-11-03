@@ -1,3 +1,4 @@
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { useCallback, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useInfiniteQuery } from '@tanstack/react-query'
@@ -315,7 +316,7 @@ export default function StockCountsPage() {
   // falso que prohíbe `testing-and-git.md` §3. Se dice que falló y se ofrece reintentar.
   // Cuando YA hay filas cargadas y falla una página siguiente, la tabla se queda (esas
   // filas existen) y «Cargar más» es el reintento.
-  const loadFailed = query.isError && counts.length === 0
+  const loadFailed = falloDeCarga(query) && counts.length === 0
   const sourceIsEmpty = !isLoading && !loadFailed && counts.length === 0
 
   return (
@@ -467,6 +468,7 @@ export default function StockCountsPage() {
         </div>
       ) : (
         <DataTable<StockCountRow>
+          query={query}
           columns={columns}
           data={filteredCounts}
           rowCount={filteredCounts.length}

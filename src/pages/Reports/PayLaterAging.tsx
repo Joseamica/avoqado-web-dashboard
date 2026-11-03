@@ -1,3 +1,5 @@
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -36,7 +38,6 @@ import { Currency } from '@/utils/currency'
 import { useVenueDateTime } from '@/utils/datetime'
 import { cn } from '@/lib/utils'
 import {
-  AlertCircle,
   AlertTriangle,
   Ban,
   CheckCircle,
@@ -168,7 +169,7 @@ export default function PayLaterAging() {
   // rojo de la segunda contradecía al de la primera (full-testing 30-oct).
   const cancelando = useRef(false)
 
-  const { data, isLoading, error } = useQuery({
+  const listQuery = useQuery({
     queryKey: ['pay-later-aging', venueId],
     queryFn: async () => {
       const response = await api.get<{ success: boolean; data: AgingData }>(
@@ -178,6 +179,7 @@ export default function PayLaterAging() {
     },
     refetchInterval: 60000, // Refresh every minute
   })
+  const { data, isLoading } = listQuery
 
   // Mutation to settle a single order
   const settleOrderMutation = useMutation({
@@ -434,20 +436,10 @@ export default function PayLaterAging() {
     [formatDate, navigate, t, daysLabel, can]
   )
 
-  if (error) {
+  if (falloDeCarga(listQuery) && !data) {
     return (
       <div className="p-4">
-        <Card className="border-destructive">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-destructive">
-              <AlertCircle className="h-5 w-5" />
-              {t('payLaterAging.error.title')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p>{t('payLaterAging.error.load', { message: (error as Error).message })}</p>
-          </CardContent>
-        </Card>
+        <AvisoDeCarga query={listQuery} hayDatos={false} />
       </div>
     )
   }
@@ -605,6 +597,7 @@ export default function PayLaterAging() {
           </CardHeader>
           <CardContent>
             <DataTable
+              query={listQuery}
               data={visibleOrders}
               rowCount={visibleOrders.length}
               columns={columns}

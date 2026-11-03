@@ -1,3 +1,4 @@
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
@@ -35,7 +36,7 @@ const TABS: Array<{ id: TabId; label: string; matcher: (r: DerivedRow) => boolea
 export default function Profitability() {
   const { venueId } = useCurrentVenue()
 
-  const { data, isLoading, isFetching, refetch } = useQuery({
+  const listQuery = useQuery({
     queryKey: ['inventory-profitability', venueId],
     queryFn: async () => {
       const res = await pricingApi.getProfitability(venueId!)
@@ -43,6 +44,7 @@ export default function Profitability() {
     },
     enabled: !!venueId,
   })
+  const { data, isLoading, isFetching, refetch } = listQuery
 
   const allRows = useMemo<DerivedRow[]>(() => (data ?? []).map(apiRowToDerived), [data])
 
@@ -233,6 +235,7 @@ export default function Profitability() {
       {/* Table */}
       <div className="mt-3">
         <UnifiedProfitabilityTable
+          query={listQuery}
           rows={filteredRows}
           isLoading={isLoading}
           onConfigurePolicy={openPolicyFor}
@@ -243,7 +246,7 @@ export default function Profitability() {
         />
       </div>
 
-      {!isLoading && allRows.length === 0 && (
+      {!isLoading && !falloDeCarga(listQuery) && allRows.length === 0 && (
         <div className="mt-8 rounded-2xl border border-dashed border-border bg-card/50 p-10 text-center">
           <h3 className="text-base font-medium">Aún no hay datos de rentabilidad</h3>
           <p className="mt-1 text-sm text-muted-foreground">

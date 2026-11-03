@@ -112,11 +112,12 @@ export function UsersManagement() {
   // Reset password dialog state
 
   // Fetch team members (scoped by venue or org)
-  const { data: teamData, isLoading } = useQuery({
+  const listQuery = useQuery({
     queryKey: teamQueryKey(venueId, teamScope),
     queryFn: () => getTeam(venueId!, teamScope),
     enabled: !!venueId,
   })
+  const { data: teamData, isLoading } = listQuery
   const teamMembers = useMemo(() => teamData?.team ?? [], [teamData?.team])
   const canViewAllOrgStaff = teamData?.meta?.canViewAllOrgStaff ?? false
 
@@ -562,6 +563,7 @@ export function UsersManagement() {
 
       {/* Users Table */}
       <DataTable
+        query={listQuery}
         data={filteredRows}
         columns={columns}
         rowCount={filteredRows.length}

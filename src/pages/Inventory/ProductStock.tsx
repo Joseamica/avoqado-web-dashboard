@@ -116,7 +116,7 @@ export default function ProductStock() {
 
   // Fetch all products (backend includes inventory relation)
   // ✅ WORLD-CLASS: Order by name (alphabetically) from backend for better performance
-  const { data: products = [], isLoading: isLoadingProducts } = useQuery<Product[]>({
+  const listQuery = useQuery<Product[]>({
     queryKey: ['products', venueId, 'orderBy:name'],
     queryFn: async () => {
       const data = await getProducts(venueId, { orderBy: 'name' })
@@ -124,6 +124,7 @@ export default function ProductStock() {
     },
     enabled: !!venueId,
   })
+  const { data: products = [], isLoading: isLoadingProducts } = listQuery
 
   // Filter and map products with Quantity Tracking inventory
   const productStockItems: ProductWithStock[] = useMemo(() => {
@@ -383,7 +384,7 @@ export default function ProductStock() {
 
       {/* Data Table */}
       <div className="rounded-md border bg-card">
-        <TablaConFamilias<ProductWithStock> columns={columns} data={filas} conFiltro={searchQuery !== '' || filterLowStock} />
+        <TablaConFamilias<ProductWithStock> query={listQuery} columns={columns} data={filas} conFiltro={searchQuery !== '' || filterLowStock} />
       </div>
 
       {/* Dialogs */}

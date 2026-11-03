@@ -1,3 +1,4 @@
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { useCallback, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
@@ -40,7 +41,7 @@ export default function TransfersPage() {
   const [dateFilter, setDateFilter] = useState<DateFilter | null>(null)
   const debouncedSearch = useDebounce(searchTerm, 300)
 
-  const { data, isLoading } = useQuery({
+  const listQuery = useQuery({
     queryKey: ['inventory-transfers', venueId, statusFilter],
     queryFn: () =>
       inventoryTransferService.list(venueId!, {
@@ -49,6 +50,7 @@ export default function TransfersPage() {
       }),
     enabled: !!venueId,
   })
+  const { data, isLoading } = listQuery
 
   const transfers = useMemo<InventoryTransferRow[]>(() => data?.data ?? [], [data])
 
@@ -239,7 +241,7 @@ export default function TransfersPage() {
 
   if (!venue) return null
 
-  const sourceIsEmpty = !isLoading && transfers.length === 0
+  const sourceIsEmpty = !isLoading && !falloDeCarga(listQuery) && transfers.length === 0
 
   return (
     <div className="p-6 space-y-3">
@@ -359,6 +361,7 @@ export default function TransfersPage() {
         </div>
       ) : (
         <DataTable<InventoryTransferRow>
+          query={listQuery}
           columns={columns}
           data={filteredTransfers}
           rowCount={filteredTransfers.length}

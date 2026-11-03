@@ -1,3 +1,5 @@
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { type ColumnDef } from '@tanstack/react-table'
@@ -36,7 +38,8 @@ export default function TeamCommissionSection({ staffId }: TeamCommissionSection
 	const { t, i18n } = useTranslation('commissions')
 
 	// Fetch staff commissions (includes calculations, summaries, stats, and tierProgress)
-	const { data: commissions, isLoading: isLoadingCommissions } = useStaffCommissions(staffId)
+	const listQuery = useStaffCommissions(staffId)
+	const { data: commissions, isLoading: isLoadingCommissions } = listQuery
 
 	// Con Pago al personal activo, este historial es lo CALCULADO (E6a-fix3, hermano de «Resumen de Comisiones»): misma consulta de
 	// estadísticas de la sede que la pantalla de Comisiones (en caché), y el enlace al recibo sólo para quien puede verlo.
@@ -134,6 +137,15 @@ export default function TeamCommissionSection({ staffId }: TeamCommissionSection
 		)
 	}
 
+	// Si falló la carga no es que gane $0 ni que no tenga comisiones.
+	if (falloDeCarga(listQuery) && !commissions) {
+		return (
+			<GlassCard className="p-6">
+				<AvisoDeCarga query={listQuery} hayDatos={false} />
+			</GlassCard>
+		)
+	}
+
 	return (
 		<GlassCard className="p-6">
 			<div className="flex items-center gap-3 mb-6">
@@ -183,6 +195,7 @@ export default function TeamCommissionSection({ staffId }: TeamCommissionSection
 					</div>
 					<div className="relative rounded-xl border border-border/50 overflow-hidden">
 						<DataTable<CommissionSummary>
+							query={listQuery}
 							columns={columns}
 							data={commissions.summaries}
 							pagination={{ pageIndex: 0, pageSize: 5 }}

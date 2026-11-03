@@ -173,6 +173,7 @@ function ExchangeList({ pendingReview = true, originalOrderId }: { pendingReview
       )}
       {!mixedTotals && rows.length > 0 && (
         <DataTable
+          query={null}
           data={rows}
           columns={columns}
           rowCount={total}

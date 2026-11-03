@@ -1,3 +1,4 @@
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { useCallback, useMemo, useState } from 'react'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import type { ColumnDef, PaginationState } from '@tanstack/react-table'
@@ -237,7 +238,7 @@ function InventoryWasteList() {
 
   // Un fallo NO es «aún no hay mermas»: se dice y se ofrece reintentar. Si ya hay filas y falla una
   // página siguiente, la tabla se queda y «Cargar más» es el reintento.
-  const loadFailed = query.isError && reports.length === 0
+  const loadFailed = falloDeCarga(query) && reports.length === 0
   const isEmpty = !query.isLoading && !loadFailed && reports.length === 0
 
   return (
@@ -337,6 +338,7 @@ function InventoryWasteList() {
         </div>
       ) : (
         <DataTable<WasteReport>
+          query={query}
           columns={columns}
           data={reports}
           rowCount={reports.length}

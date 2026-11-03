@@ -127,11 +127,12 @@ const OrganizationTeam: React.FC = () => {
 
   // ---------- Queries ----------
 
-  const { data: orgTeam, isLoading } = useQuery({
+  const listQuery = useQuery({
     queryKey: ['organization', 'team', orgId],
     queryFn: () => getOrganizationTeam(orgId!),
     enabled: !!orgId,
   })
+  const { data: orgTeam, isLoading } = listQuery
 
   // Richer team data with staffVenueId for mutations
   const { data: storesTeamData } = useQuery({
@@ -546,6 +547,7 @@ const OrganizationTeam: React.FC = () => {
 
       {/* Team Table */}
       <DataTable
+        query={listQuery}
         data={filteredRows}
         columns={columns}
         rowCount={filteredRows.length}

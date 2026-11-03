@@ -1,3 +1,4 @@
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { useToast } from '@/hooks/use-toast'
 import { useTpvTour } from '@/hooks/useTpvTour'
 import { deleteTpv, generateActivationCode, getTpvs, sendTpvCommand as sendTpvCommandApi, type TpvListDevice } from '@/services/tpv.service'
@@ -168,7 +169,7 @@ export default function Tpvs() {
 
   // Multi-select filters and search are sent to backend so pagination respects them.
   // Previously filtered client-side on paginated data — missed matches on other pages.
-  const { data, isLoading, isError, refetch } = useQuery({
+  const listQuery = useQuery({
     queryKey: [
       'tpvs',
       venueId,
@@ -196,6 +197,8 @@ export default function Tpvs() {
     // esqueleto y el buscador pierde el foco (bounded-data-and-query-load.md).
     placeholderData: keepPreviousData,
   })
+  const { data, isLoading, refetch } = listQuery
+  const loadFailed = falloDeCarga(listQuery) && !data
 
   // 🔴 El TOTAL del server, no las filas de la página: con `rowCount = filas` el paginador
   // creía que todo cabía en una página y los dispositivos 21+ quedaban ocultos sin aviso.
@@ -979,12 +982,12 @@ export default function Tpvs() {
                 </FilterPill>
               </FilterPillBar>
 
-              {!isLoading && !isError && (
+              {!isLoading && !loadFailed && (
                 <span className="shrink-0 text-sm text-muted-foreground tabular-nums">{tTpv('list.count', { count: totalDevices })}</span>
               )}
             </div>
 
-            {isError ? (
+            {loadFailed ? (
               <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm">
                 <span>{tTpv('list.loadError')}</span>
                 <Button size="sm" variant="outline" onClick={() => refetch()}>
@@ -997,6 +1000,7 @@ export default function Tpvs() {
               <div data-tour="tpv-list" className="@container">
                 <div className="hidden @5xl:block">
                   <DataTable
+                    query={listQuery}
                     data={filteredData}
                     rowCount={totalDevices}
                     columns={columns}

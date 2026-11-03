@@ -1,3 +1,5 @@
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -136,11 +138,12 @@ export default function OrganizationTerminals() {
     sortOrder: sort.sortOrder,
   }
 
-  const { data, isLoading, isFetching, refetch } = useQuery<OrgTerminalsResponse>({
+  const listQuery = useQuery<OrgTerminalsResponse>({
     queryKey: ['org-terminals', orgId, filters],
     queryFn: () => getOrgTerminals(orgId!, filters),
     enabled: !!orgId,
   })
+  const { data, isLoading, isFetching, refetch } = listQuery
 
   const { data: venues } = useQuery({
     queryKey: ['organization', 'venues', orgId],
@@ -531,7 +534,9 @@ export default function OrganizationTerminals() {
           </Button>
         </div>
 
-        {isOrgEmpty ? (
+        {falloDeCarga(listQuery) && !data ? (
+          <AvisoDeCarga query={listQuery} hayDatos={false} />
+        ) : isOrgEmpty ? (
           <EmptyOrgState onCreate={openCreateDialog} />
         ) : (
           <>
@@ -607,6 +612,7 @@ export default function OrganizationTerminals() {
                 <EmptyResultsState query={debouncedSearch} onClear={handleClearAll} />
               ) : (
                 <OrgTerminalsTable
+                  query={listQuery}
                   data={terminals}
                   total={paginationData?.total ?? 0}
                   latestVersion={summary?.latestVersion ?? null}

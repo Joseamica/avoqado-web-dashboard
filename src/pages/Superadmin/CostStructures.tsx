@@ -20,10 +20,11 @@ const CostStructures: React.FC = () => {
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const { formatDate } = useVenueDateTime()
-  const { data: costStructures = [], isLoading } = useQuery({
+  const listQuery = useQuery({
     queryKey: ['provider-cost-structures'],
     queryFn: () => paymentProviderAPI.getProviderCostStructures(),
   })
+  const { data: costStructures = [], isLoading } = listQuery
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedProviderId, setSelectedProviderId] = useState<string>('all')
   const [selectedMerchantId, setSelectedMerchantId] = useState<string>('all')
@@ -350,6 +351,7 @@ const CostStructures: React.FC = () => {
             <div className="py-8 text-center text-sm text-muted-foreground">{t('common.loading')}</div>
           ) : (
             <DataTable
+              query={listQuery}
               columns={columns}
               data={filteredCostStructures}
               pagination={{ pageIndex: 0, pageSize: 20 }}

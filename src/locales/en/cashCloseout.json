@@ -33,6 +33,7 @@
   },
   "history": {
     "title": "Closeout History",
+    "backToFirstPage": "Back to the first page",
     "empty": "No cash closeouts recorded",
     "showing": "Showing {{count}} of {{total}} closeouts",
     "page": "Page {{current}} of {{total}}",

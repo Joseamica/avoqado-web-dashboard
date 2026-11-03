@@ -1,3 +1,5 @@
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { GlassCard } from '@/components/ui/glass-card'
@@ -72,11 +74,12 @@ const OrganizationVenues: React.FC = () => {
     staffInfo?.role &&
     [StaffRole.SUPERADMIN, StaffRole.OWNER, StaffRole.ADMIN].includes(staffInfo.role as StaffRole)
 
-  const { data: venues, isLoading } = useQuery({
+  const listQuery = useQuery({
     queryKey: ['organization', 'venues', orgId, timeRange],
     queryFn: () => getOrganizationVenues(orgId!, { timeRange }),
     enabled: !!orgId && canViewOrgVenues,
   })
+  const { data: venues, isLoading } = listQuery
 
   const filteredVenues = useMemo(() => {
     if (!venues) return []
@@ -220,8 +223,10 @@ const OrganizationVenues: React.FC = () => {
           </div>
         </div>
 
+        <AvisoDeCarga query={listQuery} hayDatos={filteredVenues.length > 0} />
+
         {/* ── Content ── */}
-        {filteredVenues.length === 0 ? (
+        {falloDeCarga(listQuery) && filteredVenues.length === 0 ? null : filteredVenues.length === 0 ? (
           <GlassCard className="flex flex-col items-center justify-center py-16 text-muted-foreground">
             <Store className="h-12 w-12 mb-4 opacity-40" />
             <p className="text-lg font-medium">

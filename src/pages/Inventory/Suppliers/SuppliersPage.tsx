@@ -58,11 +58,7 @@ export default function SuppliersPage() {
   const [supplierToDelete, setSupplierToDelete] = useState<Supplier | null>(null)
 
   // Query suppliers
-  const {
-    data,
-    isLoading,
-    refetch: _refetch,
-  } = useQuery({
+  const listQuery = useQuery({
     queryKey: ['suppliers', venueId, debouncedSearchTerm],
     queryFn: async () => {
       const response = await supplierService.getSuppliers(venueId, {
@@ -72,6 +68,11 @@ export default function SuppliersPage() {
     },
     staleTime: 0,
   })
+  const {
+    data,
+    isLoading,
+    refetch: _refetch,
+  } = listQuery
 
   // Delete mutation
   const deleteMutation = useMutation({
@@ -327,6 +328,7 @@ export default function SuppliersPage() {
 
       {/* Table */}
       <DataTable
+        query={listQuery}
         columns={filteredColumns}
         data={filteredData}
         rowCount={filteredData.length}

@@ -123,7 +123,7 @@ export default function Recipes() {
   }, [activeTab])
 
   // Fetch products with recipes + pricing policy
-  const { data: productsData, isLoading } = useQuery({
+  const listQuery = useQuery({
     queryKey: ['products-with-recipes', venueId, debouncedSearchTerm],
     queryFn: async () => {
       const response = await api.get(`/api/v1/dashboard/venues/${venueId}/products`, {
@@ -136,6 +136,7 @@ export default function Recipes() {
     },
     enabled: !!venueId,
   })
+  const { data: productsData, isLoading } = listQuery
 
   // ─── Profitability helper ───
   const getProfitabilityStatus = (foodCostPercentage: number) => {
@@ -1099,6 +1100,7 @@ export default function Recipes() {
       {/* Data Table — Recipes Tab */}
       {activeTab === 'recipes' && (
         <DataTable
+          query={listQuery}
           data={recipesProducts || []}
           rowCount={recipesProducts?.length || 0}
           columns={filteredRecipesColumns}
@@ -1118,6 +1120,7 @@ export default function Recipes() {
       {/* Data Table — Pricing Tab */}
       {activeTab === 'pricing' && (
         <DataTable
+          query={listQuery}
           data={pricingProducts || []}
           rowCount={pricingProducts?.length || 0}
           columns={filteredPricingColumns}

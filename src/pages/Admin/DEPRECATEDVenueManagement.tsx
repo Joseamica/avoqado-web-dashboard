@@ -48,7 +48,7 @@ export default function VenueManagement() {
   const location = useLocation()
 
   // Query to fetch all venues
-  const { data: venues = [], isLoading: venuesLoading } = useQuery({
+  const listQuery = useQuery({
     queryKey: ['venues'],
     queryFn: async () => {
       const response = await api.get('/v1/admin/venues')
@@ -56,6 +56,7 @@ export default function VenueManagement() {
     },
     enabled: isSuperAdmin,
   })
+  const { data: venues = [], isLoading: venuesLoading } = listQuery
 
   // Query to fetch venue admins when a venue is selected
   const {
@@ -376,6 +377,7 @@ export default function VenueManagement() {
 
             return (
               <DataTable
+                query={listQuery}
                 data={filteredVenues}
                 rowCount={venues.length}
                 columns={columns}

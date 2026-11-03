@@ -9,6 +9,8 @@
  * - Bulk CSV upload
  */
 
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { DateRangePicker } from '@/components/date-range-picker'
@@ -199,13 +201,7 @@ export function StockControl() {
     enabled: !!venueId,
   })
 
-  const {
-    data: movementsData,
-    isLoading: isLoadingMovements,
-    hasNextPage: hasMoreMovements,
-    isFetchingNextPage: isFetchingMoreMovements,
-    fetchNextPage: fetchMoreMovements,
-  } = useInfiniteQuery({
+  const movementsQuery = useInfiniteQuery({
     queryKey: ['stock', 'movements', venueId, dateRangeIsoParams.dateFrom, dateRangeIsoParams.dateTo, responsibleStaffId],
     queryFn: ({ pageParam }) =>
       getStockMovements(venueId!, { limit: 100, page: Number(pageParam), ...dateRangeIsoParams, responsibleStaffId }),
@@ -216,6 +212,13 @@ export function StockControl() {
     retry: 1,
     refetchOnWindowFocus: false,
   })
+  const {
+    data: movementsData,
+    isLoading: isLoadingMovements,
+    hasNextPage: hasMoreMovements,
+    isFetchingNextPage: isFetchingMoreMovements,
+    fetchNextPage: fetchMoreMovements,
+  } = movementsQuery
 
   const { data: responsibles } = useQuery({
     queryKey: ['stock', 'responsibles', venueId],
@@ -611,6 +614,8 @@ ${dataRows}
               </Select>
             </div>
 
+            <AvisoDeCarga query={movementsQuery} hayDatos={filteredMovements.length > 0} />
+
             {/* Results count */}
             {(movementSearch || movementTypeFilter !== 'all' || movementCategoryFilter !== 'all' || responsibleStaffId) && (
               <p className="text-xs text-muted-foreground mb-3">
@@ -684,7 +689,7 @@ ${dataRows}
                         </tr>
                       )
                     })
-                  ) : (
+                  ) : falloDeCarga(movementsQuery) ? null : (
                     <tr>
                       <td colSpan={9} className="py-8 text-center text-muted-foreground">
                         {movementSearch || movementTypeFilter !== 'all' || movementCategoryFilter !== 'all' || responsibleStaffId
@@ -753,7 +758,7 @@ ${dataRows}
                     </div>
                   )
                 })
-              ) : (
+              ) : falloDeCarga(movementsQuery) ? null : (
                 <p className="py-8 text-center text-sm text-muted-foreground">
                   {movementSearch || movementTypeFilter !== 'all' || movementCategoryFilter !== 'all' || responsibleStaffId
                     ? t('playtelecom:stock.noResults', { defaultValue: 'No se encontraron movimientos con esos filtros' })

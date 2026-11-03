@@ -789,6 +789,7 @@ export default function InventorySummary() {
         </SummaryQueryBoundary>
         {!(physicalLoadFailed && physicalIsEmpty) && (
           <TablaConFamilias<StockOverviewRow>
+            query={null}
             data={filasFisicas}
             columns={physicalColumns}
             conFiltro={hayFiltro}
@@ -810,6 +811,7 @@ export default function InventorySummary() {
         </SummaryQueryBoundary>
         {!(recipesLoadFailed && recipesAreEmpty) && (
           <DataTable
+            query={null}
             data={filteredRecipeItems}
             rowCount={filteredRecipeItems.length}
             columns={recipeColumns}

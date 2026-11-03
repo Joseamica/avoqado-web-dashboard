@@ -72,10 +72,11 @@ export default function Waitlist() {
   }, [activeTab])
 
   // Fetch waitlist
-  const { data: waitlistData, isLoading } = useQuery({
+  const listQuery = useQuery({
     queryKey: ['waitlist', venueId, statusFilter],
     queryFn: () => reservationService.getWaitlist(venueId, statusFilter),
   })
+  const { data: waitlistData, isLoading } = listQuery
 
   const waitlist = waitlistData || []
 
@@ -294,6 +295,7 @@ export default function Waitlist() {
 
       {/* Table */}
       <DataTable
+        query={listQuery}
         data={waitlist}
         columns={columns}
         isLoading={isLoading}

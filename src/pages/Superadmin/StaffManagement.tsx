@@ -1,3 +1,5 @@
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -949,10 +951,11 @@ const StaffManagement: React.FC = () => {
     [page, debouncedSearch, activeParam, orgFilter],
   )
 
-  const { data, isLoading } = useQuery({
+  const listQuery = useQuery({
     queryKey: ['superadmin-staff', queryParams],
     queryFn: () => staffAPI.listStaff(queryParams),
   })
+  const { data, isLoading } = listQuery
 
   // Lightweight queries to get real totals (not just current page)
   const { data: activeCountData } = useQuery({
@@ -1214,6 +1217,8 @@ const StaffManagement: React.FC = () => {
         )}
       </div>
 
+      <AvisoDeCarga query={listQuery} hayDatos={staffList.length > 0} />
+
       {/* Table */}
       <GlassCard className="overflow-hidden">
         <Table>
@@ -1244,7 +1249,7 @@ const StaffManagement: React.FC = () => {
                   <TableCell className="py-3" />
                 </TableRow>
               ))
-            ) : staffList.length === 0 ? (
+            ) : falloDeCarga(listQuery) && staffList.length === 0 ? null : staffList.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="text-center py-16">
                   <div className="flex flex-col items-center gap-2">
