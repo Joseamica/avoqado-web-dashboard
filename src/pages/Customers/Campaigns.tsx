@@ -1,3 +1,4 @@
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
@@ -48,7 +49,7 @@ export default function Campaigns() {
 	const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 20 })
 	const [editando, setEditando] = useState<{ id: string | null } | null>(null)
 
-	const { data, isLoading } = useQuery({
+	const listQuery = useQuery({
 		queryKey: ['campaigns', venueId, pagination.pageIndex, pagination.pageSize],
 		queryFn: () =>
 			marketingService.listCampaigns(venueId, {
@@ -57,6 +58,7 @@ export default function Campaigns() {
 			}),
 		enabled: Boolean(venueId),
 	})
+	const { data, isLoading } = listQuery
 
 	const columns = useMemo<ColumnDef<CampaignListItem>[]>(
 		() => [
@@ -142,8 +144,9 @@ export default function Campaigns() {
 
 				{/* 🔴 O la tabla, o el mensaje de vacío — nunca los dos. Con la tabla vacía se
 				    veían DOS avisos encimados: su «Sin resultados» y el nuestro. */}
-				{!isLoading && (data?.total ?? 0) === 0 ? null : (
+				{!isLoading && !falloDeCarga(listQuery) && (data?.total ?? 0) === 0 ? null : (
 				<DataTable
+					query={listQuery}
 					data={data?.items ?? []}
 					columns={columns}
 					isLoading={isLoading}
@@ -155,7 +158,7 @@ export default function Campaigns() {
 				/>
 				)}
 
-				{!isLoading && (data?.total ?? 0) === 0 && (
+				{!isLoading && !falloDeCarga(listQuery) && (data?.total ?? 0) === 0 && (
 					<div className="mt-8 flex flex-col items-center text-center text-muted-foreground">
 						<Mail className="h-8 w-8 mb-3 opacity-60" aria-hidden="true" />
 						{/* Un vacío se explica; no se deja una tabla en blanco. */}

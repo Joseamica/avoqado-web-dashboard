@@ -61,7 +61,7 @@ export default function Coupons() {
   const [isSearchOpen, setIsSearchOpen] = useState(false)
 
   // Fetch coupons
-  const { data: couponsData, isLoading: isLoadingCoupons } = useQuery({
+  const listQuery = useQuery({
     queryKey: ['coupons', venueId, pagination.pageIndex, pagination.pageSize, selectedDiscountId, activeFilter],
     queryFn: () =>
       couponService.getCoupons(venueId, {
@@ -72,6 +72,7 @@ export default function Coupons() {
       }),
     refetchOnWindowFocus: true,
   })
+  const { data: couponsData, isLoading: isLoadingCoupons } = listQuery
 
   // Fetch discounts for filter
   const { data: discountsData } = useQuery({
@@ -322,6 +323,7 @@ export default function Coupons() {
 
       {/* Data Table */}
       <DataTable
+        query={listQuery}
         data={filteredCoupons}
         columns={columns}
         isLoading={isLoadingCoupons}

@@ -1,3 +1,5 @@
+import { esSinPermiso } from '@/lib/reintentoSinPermiso'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { useCallback, useMemo, useState } from 'react'
 import type { ColumnDef, PaginationState } from '@tanstack/react-table'
 import { useTranslation } from 'react-i18next'
@@ -144,7 +146,7 @@ export function GiftCardsList({ venueId }: { venueId: string }) {
   }
 
   // Un fallo NO es «no hay tarjetas»: se dice y se ofrece reintentar. Con filas ya cargadas, se avisa en el pie.
-  const loadFailed = query.isError && cards.length === 0
+  const loadFailed = falloDeCarga(query) && cards.length === 0
   const isEmpty = !query.isLoading && !loadFailed && !stale && cards.length === 0
   const errorText = avisoDeError(query.error, t)
 
@@ -235,9 +237,11 @@ export function GiftCardsList({ venueId }: { venueId: string }) {
           </div>
           <h3 className="mt-4 text-lg font-semibold text-destructive">{t('list.loadError')}</h3>
           <p className="mt-1 text-sm text-muted-foreground">{errorText}</p>
-          <Button variant="outline" size="sm" className="mt-4 cursor-pointer" onClick={() => void query.refetch()} data-tour="gift-cards-retry">
-            {t('list.retry')}
-          </Button>
+          {!esSinPermiso(query.error) && (
+            <Button variant="outline" size="sm" className="mt-4 cursor-pointer" onClick={() => void query.refetch()} data-tour="gift-cards-retry">
+              {t('list.retry')}
+            </Button>
+          )}
         </div>
       ) : isEmpty ? (
         <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-input bg-muted/30 px-6 py-16 text-center">
@@ -255,6 +259,7 @@ export function GiftCardsList({ venueId }: { venueId: string }) {
         </div>
       ) : (
         <DataTable<GiftCardRow>
+          query={null}
           columns={columns}
           data={cards}
           rowCount={cards.length}
@@ -272,13 +277,13 @@ export function GiftCardsList({ venueId }: { venueId: string }) {
               <div className="flex items-center justify-between gap-3 px-4 py-3 text-sm text-muted-foreground">
                 <div className="space-y-0.5">
                   <span>{t('list.showing', { shown: cards.length, total })}</span>
-                  {query.isError && (
+                  {(query.isError || query.isPaused) && (
                     <p role="alert" className="text-destructive">
                       {errorText}
                     </p>
                   )}
                 </div>
-                {query.hasNextPage ? (
+                {esSinPermiso(query.error) ? null : query.hasNextPage ? (
                   <Button
                     variant="outline"
                     size="sm"
@@ -292,7 +297,7 @@ export function GiftCardsList({ venueId }: { venueId: string }) {
                 ) : (
                   // Se acabaron las páginas pero faltan filas (una venta nueva desplazó la lista) o la relectura falló:
                   // volver a empezar sí las trae.
-                  (cards.length < total || query.isError) && (
+                  (cards.length < total || query.isError || query.isPaused) && (
                     <Button variant="outline" size="sm" className="cursor-pointer" onClick={() => void query.refetch()} disabled={query.isFetching}>
                       {t('list.refresh')}
                     </Button>

@@ -33,16 +33,16 @@ const c = { id: 'c', name: 'Cera' }
 
 describe('DataTable — getRowId', () => {
   it('🔴 lo que vive en una celda se queda con SU fila aunque un refetch quite la de arriba', () => {
-    const { rerender } = render(<DataTable data={[a, b, c]} rowCount={3} columns={columnas} getRowId={porId} />)
+    const { rerender } = render(<DataTable query={null} data={[a, b, c]} rowCount={3} columns={columnas} getRowId={porId} />)
     fireEvent.change(screen.getByLabelText('nota de Botella'), { target: { value: 'cuidado' } })
-    rerender(<DataTable data={[b, c]} rowCount={2} columns={columnas} getRowId={porId} />)
+    rerender(<DataTable query={null} data={[b, c]} rowCount={2} columns={columnas} getRowId={porId} />)
     expect(screen.getByLabelText('nota de Botella')).toHaveValue('cuidado')
     expect(screen.getByLabelText('nota de Cera')).toHaveValue('')
   })
 
   it('arrastrar sobre las casillas elige las filas por su id', () => {
     const elegidas = vi.fn()
-    render(<DataTable data={[a, b, c]} rowCount={3} columns={columnas} getRowId={porId} enableRowSelection onRowSelectionChange={elegidas} />)
+    render(<DataTable query={null} data={[a, b, c]} rowCount={3} columns={columnas} getRowId={porId} enableRowSelection onRowSelectionChange={elegidas} />)
     const casillas = screen.getAllByRole('checkbox', { name: 'Select row' })
     fireEvent.mouseDown(casillas[0].parentElement!)
     fireEvent.mouseEnter(screen.getByText('Cera').closest('tr')!)

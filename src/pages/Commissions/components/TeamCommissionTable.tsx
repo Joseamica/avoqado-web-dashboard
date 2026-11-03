@@ -1,3 +1,5 @@
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import DataTable from '@/components/data-table'
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
@@ -30,7 +32,8 @@ export default function TeamCommissionTable({ staffPayActive = false, puedeVerRe
   })
 
   // Fetch summaries. Sin fechas a propósito: el servidor pone la ventana de los últimos 12 meses y topa los renglones (`total`).
-  const { data: page, isLoading } = useCommissionSummariesPage()
+  const listQuery = useCommissionSummariesPage()
+  const { data: page, isLoading } = listQuery
   const summaries = page?.items
 
   // Format currency
@@ -131,6 +134,18 @@ export default function TeamCommissionTable({ staffPayActive = false, puedeVerRe
     )
   }
 
+  // Si falló la carga no es que no haya resúmenes.
+  if (falloDeCarga(listQuery) && !summaries?.length) {
+    return (
+      <div className="relative rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm shadow-sm">
+        {encabezado}
+        <div className="p-4">
+          <AvisoDeCarga query={listQuery} hayDatos={false} />
+        </div>
+      </div>
+    )
+  }
+
   // Empty state — no summaries yet
   if (!summaries || summaries.length === 0) {
     return (
@@ -153,6 +168,7 @@ export default function TeamCommissionTable({ staffPayActive = false, puedeVerRe
     <div className="relative rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm shadow-sm">
       {encabezado}
       <DataTable<CommissionSummary>
+        query={listQuery}
         columns={columns}
         data={summaries}
         showColumnCustomizer={false}

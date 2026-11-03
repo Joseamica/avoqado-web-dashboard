@@ -27,7 +27,7 @@ export default function CreditPackTransactionsTab() {
   const debouncedSearch = useDebounce(searchTerm, 300)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
 
-  const { data: transactionsData, isLoading } = useQuery({
+  const listQuery = useQuery({
     queryKey: ['credit-pack-transactions', venueId, pagination.pageIndex, pagination.pageSize, typeFilter],
     queryFn: () =>
       creditPackService.getTransactions(venueId, {
@@ -36,6 +36,7 @@ export default function CreditPackTransactionsTab() {
         type: typeFilter.length === 1 ? (typeFilter[0] as CreditTransactionType) : undefined,
       }),
   })
+  const { data: transactionsData, isLoading } = listQuery
 
   const transactions = useMemo(() => {
     let result = transactionsData?.data || []
@@ -252,6 +253,7 @@ export default function CreditPackTransactionsTab() {
       </div>
 
       <DataTable
+        query={listQuery}
         data={transactions}
         columns={columns}
         isLoading={isLoading}

@@ -1,3 +1,5 @@
+import { esSinPermiso } from '@/lib/reintentoSinPermiso'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { useCallback, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useInfiniteQuery } from '@tanstack/react-query'
@@ -315,7 +317,7 @@ export default function StockCountsPage() {
   // falso que prohíbe `testing-and-git.md` §3. Se dice que falló y se ofrece reintentar.
   // Cuando YA hay filas cargadas y falla una página siguiente, la tabla se queda (esas
   // filas existen) y «Cargar más» es el reintento.
-  const loadFailed = query.isError && counts.length === 0
+  const loadFailed = falloDeCarga(query) && counts.length === 0
   const sourceIsEmpty = !isLoading && !loadFailed && counts.length === 0
 
   return (
@@ -337,7 +339,7 @@ export default function StockCountsPage() {
       </Alert>
 
       {/* Filters row */}
-      {!sourceIsEmpty && !loadFailed && (
+      {!sourceIsEmpty && (!loadFailed || hasFilters) && (
         <div className="flex flex-wrap items-center gap-3">
           {/* Expandable search */}
           <div className="relative flex items-center">
@@ -446,9 +448,11 @@ export default function StockCountsPage() {
             <AlertTriangle className="h-6 w-6 text-destructive" />
           </div>
           <h3 className="mt-4 text-lg font-semibold text-destructive">{t('stockCounts.loadError')}</h3>
-          <Button variant="outline" size="sm" className="mt-4" onClick={() => void query.refetch()}>
-            {t('stockCounts.retry')}
-          </Button>
+          {!esSinPermiso(query.error) && (
+            <Button variant="outline" size="sm" className="mt-4" onClick={() => void query.refetch()}>
+              {t('stockCounts.retry')}
+            </Button>
+          )}
         </div>
       ) : sourceIsEmpty ? (
         <div className="flex flex-col items-center justify-center rounded-lg border border-dashed bg-muted/30 py-16 px-6 text-center">
@@ -467,6 +471,7 @@ export default function StockCountsPage() {
         </div>
       ) : (
         <DataTable<StockCountRow>
+          query={query}
           columns={columns}
           data={filteredCounts}
           rowCount={filteredCounts.length}

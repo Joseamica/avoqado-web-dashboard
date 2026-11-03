@@ -1,3 +1,5 @@
+import { falloDeCarga } from '@/lib/falloDeCarga'
+import { esSinPermiso } from '@/lib/reintentoSinPermiso'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { keepPreviousData, useInfiniteQuery } from '@tanstack/react-query'
@@ -152,27 +154,30 @@ function ExchangeList({ pendingReview = true, originalOrderId }: { pendingReview
       aria-label={t(pendingReview ? 'refunds.exchangesToReview.title' : 'refunds.exchangesToReview.all')}
     >
       <h2 className="text-lg font-semibold">{t(pendingReview ? 'refunds.exchangesToReview.title' : 'refunds.exchangesToReview.all')}</h2>
-      {query.isPending && <p role="status">{t('refunds.exchangesToReview.loading')}</p>}
+      {query.isPending && !query.isPaused && <p role="status">{t('refunds.exchangesToReview.loading')}</p>}
       {(query.isPlaceholderData || mixedTotals) && <p role="status">{t('refunds.exchangesToReview.updating')}</p>}
-      {query.isError && (
+      {falloDeCarga(query) && (
         <div role="alert" className="space-y-2">
           <p>{t('refunds.exchangesToReview.loadError')}</p>
-          <Button
-            variant="outline"
-            onClick={() => {
-              void (query.isFetchNextPageError ? query.fetchNextPage() : query.refetch())
-            }}
-            disabled={query.isFetching}
-          >
-            {t('refunds.exchangesToReview.retry')}
-          </Button>
+          {!esSinPermiso(query.error) && (
+            <Button
+              variant="outline"
+              onClick={() => {
+                void (query.isFetchNextPageError ? query.fetchNextPage() : query.refetch())
+              }}
+              disabled={query.isFetching}
+            >
+              {t('refunds.exchangesToReview.retry')}
+            </Button>
+          )}
         </div>
       )}
-      {!query.isPending && !query.isError && !query.isPlaceholderData && !mixedTotals && rows.length === 0 && (
+      {!query.isPending && !falloDeCarga(query) && !query.isPlaceholderData && !mixedTotals && rows.length === 0 && (
         <p>{t(pendingReview ? 'refunds.exchangesToReview.empty' : 'refunds.exchangesToReview.noMatches')}</p>
       )}
       {!mixedTotals && rows.length > 0 && (
         <DataTable
+          query={null}
           data={rows}
           columns={columns}
           rowCount={total}

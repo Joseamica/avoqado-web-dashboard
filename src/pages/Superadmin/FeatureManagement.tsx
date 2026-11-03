@@ -41,10 +41,11 @@ import { includesNormalized } from '@/lib/utils'
 
 const FeatureManagement: React.FC = () => {
   const { t, i18n } = useTranslation('superadmin')
-  const { data: features = [], isLoading } = useQuery({
+  const listQuery = useQuery({
     queryKey: ['superadmin-features'],
     queryFn: superadminAPI.getAllFeatures,
   })
+  const { data: features = [], isLoading } = listQuery
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
@@ -293,6 +294,7 @@ const FeatureManagement: React.FC = () => {
             <div className="py-8 text-sm text-muted-foreground">{t('common.loading')}</div>
           ) : (
             <DataTable
+              query={listQuery}
               columns={columns}
               data={filteredFeatures}
               pagination={{ pageIndex: 0, pageSize: 20 }}

@@ -70,10 +70,11 @@ export default function Categories() {
     return () => setHeader({})
   }, [t, setHeader, startCategoryTour])
 
-  const { data: categories, isLoading } = useQuery({
+  const listQuery = useQuery({
     queryKey: ['categories', venueId],
     queryFn: () => getMenuCategories(venueId),
   })
+  const { data: categories, isLoading } = listQuery
 
   const toggleActive = useMutation({
     mutationFn: async ({ categoryId, status }: { categoryId: string; status: boolean }) => {
@@ -208,6 +209,7 @@ export default function Categories() {
       />
 
       <DataTable
+        query={listQuery}
         data={categories || []}
         rowCount={categories?.length}
         columns={columns}

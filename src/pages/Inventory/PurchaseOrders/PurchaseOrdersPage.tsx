@@ -117,11 +117,12 @@ export default function PurchaseOrdersPage() {
   }, [selectedStatuses, debouncedSearchTerm])
 
   // Fetch purchase orders
-  const { data: purchaseOrders, isLoading } = useQuery({
+  const listQuery = useQuery({
     queryKey: ['purchase-orders', venue?.id, filters],
     queryFn: () => purchaseOrderService.getPurchaseOrders(venue!.id, filters),
     enabled: !!venue,
   })
+  const { data: purchaseOrders, isLoading } = listQuery
 
   // Fetch suppliers for filter
   const { data: suppliers } = useQuery({
@@ -911,6 +912,7 @@ export default function PurchaseOrdersPage() {
 
         {/* Table */}
         <DataTable<PurchaseOrder>
+          query={listQuery}
           columns={visibleColumns}
           data={filteredPurchaseOrders}
           rowCount={filteredPurchaseOrders.length}

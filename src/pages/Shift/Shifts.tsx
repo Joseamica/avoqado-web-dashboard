@@ -68,7 +68,7 @@ export default function Shifts() {
   const [shiftToEdit, setShiftToEdit] = useState<any>(null)
   const [editValues, setEditValues] = useState({ totalSales: 0, totalTips: 0 })
 
-  const { data, isLoading } = useQuery({
+  const listQuery = useQuery({
     queryKey: ['shifts', venueId, pagination.pageIndex, pagination.pageSize],
     queryFn: async () => {
       const response = await api.get(`/api/v1/dashboard/venues/${venueId}/shifts`, {
@@ -80,6 +80,7 @@ export default function Shifts() {
       return response.data
     },
   })
+  const { data, isLoading } = listQuery
 
   // Real-time shift updates via Socket.IO
   useShiftSocketEvents(venueId, {
@@ -499,6 +500,7 @@ export default function Shifts() {
       </div>
 
       <DataTable
+        query={listQuery}
         data={data?.data || []}
         rowCount={totalShifts}
         // enableColumnResizing={true}

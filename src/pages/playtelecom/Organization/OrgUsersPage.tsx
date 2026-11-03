@@ -162,7 +162,8 @@ export default function OrgUsersPage() {
   // Temp password dialog
 
   // Fetch team
-  const { data: teamData, isLoading } = useOrgTeam()
+  const listQuery = useOrgTeam()
+  const { data: teamData, isLoading } = listQuery
   const teamMembers = useMemo(() => teamData?.team ?? [], [teamData?.team])
 
   // Fetch zones
@@ -703,6 +704,7 @@ export default function OrgUsersPage() {
 
         {/* Table */}
         <DataTable
+          query={listQuery}
           data={filteredRows}
           columns={columns}
           rowCount={filteredRows.length}

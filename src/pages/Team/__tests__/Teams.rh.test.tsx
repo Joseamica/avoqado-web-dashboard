@@ -379,12 +379,13 @@ describe('Personas: lo que no cambia', () => {
     expect(cliente.getQueryCache().find({ queryKey: ['team-members', 'v1', 0, 20, '', ''] })).toBeDefined()
   })
 
-  it('un fallo de red no se ve como «no hay gente»: aparece el aviso con «Reintentar ahora»', async () => {
+  it('un fallo de red no se ve como «no hay gente»: aparece el aviso con «Reintentar»', async () => {
     m.getTeamMembers.mockRejectedValue(new Error('network'))
     montar()
     const aviso = await screen.findByRole('alert')
-    expect(aviso).toHaveTextContent(/problemas para conectar con el servidor/)
-    expect(within(aviso).getByRole('button', { name: 'Reintentar ahora' })).toBeInTheDocument()
+    expect(aviso).toHaveTextContent(/No pudimos cargar esta información/)
+    expect(within(aviso).getByRole('button', { name: 'Reintentar' })).toBeInTheDocument()
+    expect(screen.queryByText('Sin resultados')).not.toBeInTheDocument()
   })
 })
 

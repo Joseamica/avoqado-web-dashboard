@@ -199,7 +199,7 @@ export default function Payments() {
   // Infinite query: page 1 → 2 → 3 ... each backend page returns PAGE_SIZE rows.
   // Amount filters (subtotal/tip/total) and status tab remain client-side because the
   // backend does not support them yet.
-  const { data, isLoading, error, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
+  const listQuery = useInfiniteQuery({
     queryKey: [
       'payments-infinite',
       venueId,
@@ -232,6 +232,7 @@ export default function Payments() {
     },
     refetchOnWindowFocus: true,
   })
+  const { data, isLoading, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = listQuery
 
   // Flat list of loaded payments across all pages — fed to DataTable.
   const paymentsLoaded = useMemo<PaymentType[]>(() => {
@@ -1143,15 +1144,10 @@ export default function Payments() {
         <SummaryCards cards={summaryCards} className="mb-4" />
       </SummaryQueryBoundary>
 
-      {error && (
-        <div className={`p-4 mb-4 rounded bg-red-100 text-red-800`}>
-          {t('errorPrefix')}: {(error as Error).message}
-        </div>
-      )}
-
       {/* Data Table — wrapper kept only for the tour anchor (live-demo venta-tpv tour, useDemoTour) */}
       <div data-tour="payments-table">
         <DataTable
+          query={listQuery}
           data={filteredPayments}
           rowCount={totalPayments}
           columns={filteredColumns}

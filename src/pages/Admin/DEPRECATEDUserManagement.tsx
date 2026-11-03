@@ -55,13 +55,14 @@ export default function UserManagement() {
   const isSuperAdmin = user?.role === 'SUPERADMIN'
 
   // Query to fetch all users
-  const { data: userData = [], isLoading: usersLoading } = useQuery({
+  const listQuery = useQuery({
     queryKey: ['users'],
     queryFn: async () => {
       const response = await api.get('/v1/admin/users')
       return response.data.data as User[]
     },
   })
+  const { data: userData = [], isLoading: usersLoading } = listQuery
 
   // Filter users based on search and role criteria
   const filteredUsers =
@@ -516,7 +517,7 @@ export default function UserManagement() {
             )}
           </div>
 
-          <DataTable columns={columns} data={filteredUsers} rowCount={filteredUsers.length} isLoading={usersLoading} tableId="admin:users" />
+          <DataTable query={listQuery} columns={columns} data={filteredUsers} rowCount={filteredUsers.length} isLoading={usersLoading} tableId="admin:users" />
 
           <div className="text-xs text-muted-foreground mt-2">
             {t('admin.userManagement.showing', { filtered: filteredUsers.length, total: userData.length })}

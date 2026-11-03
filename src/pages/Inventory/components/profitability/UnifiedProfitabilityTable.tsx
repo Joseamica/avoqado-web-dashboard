@@ -1,3 +1,4 @@
+import type { EstadoDeCarga } from '@/lib/falloDeCarga'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { type ColumnDef } from '@tanstack/react-table'
@@ -10,6 +11,7 @@ import { getIntlLocale } from '@/utils/i18n-locale'
 import type { DerivedRow, ProfitabilityStatus } from '../../types/profitability'
 
 interface Props {
+  query: EstadoDeCarga | null
   rows: DerivedRow[]
   isLoading?: boolean
   onConfigurePolicy: (row: DerivedRow) => void
@@ -88,7 +90,7 @@ function SortHeader({ label, onSort }: { label: string; onSort: () => void }) {
   )
 }
 
-export function UnifiedProfitabilityTable({ rows, isLoading, onConfigurePolicy, onRowClick }: Props) {
+export function UnifiedProfitabilityTable({ query, rows, isLoading, onConfigurePolicy, onRowClick }: Props) {
   const { venue } = useCurrentVenue()
   const { i18n } = useTranslation()
 
@@ -208,6 +210,7 @@ export function UnifiedProfitabilityTable({ rows, isLoading, onConfigurePolicy, 
 
   return (
     <DataTable
+      query={query}
       data={rows}
       rowCount={rows.length}
       columns={columns}

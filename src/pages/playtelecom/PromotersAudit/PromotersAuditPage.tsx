@@ -175,7 +175,7 @@ export default function PromotersAuditPage() {
   }
 
   // Fetch staff attendance data
-  const { data: attendanceData, isLoading } = useQuery({
+  const listQuery = useQuery({
     queryKey: ['staff-attendance', venue?.organizationId, dateFilterKey, storeFilter, statusFilter],
     queryFn: async () => {
       if (!venue?.organizationId) return { staff: [] }
@@ -197,6 +197,7 @@ export default function PromotersAuditPage() {
     },
     enabled: !!venue?.organizationId,
   })
+  const { data: attendanceData, isLoading } = listQuery
 
   // Get all venues the user has access to for filter options
   const { data: venuesResponse } = useQuery({
@@ -618,6 +619,7 @@ export default function PromotersAuditPage() {
       {/* Table */}
       {!isLoading && (
         <DataTable
+          query={listQuery}
           columns={columns}
           data={filteredData}
           rowCount={filteredData.length}

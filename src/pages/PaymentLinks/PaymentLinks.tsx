@@ -126,7 +126,7 @@ export default function PaymentLinks() {
     irAPrimeraPagina()
   }
 
-  const { data: page, isLoading } = useQuery({
+  const listQuery = useQuery({
     queryKey: ['payment-links', venueId, activeStatusTab, statusFilter, debouncedSearch, pagination.pageIndex, pagination.pageSize],
     queryFn: () =>
       paymentLinkService.getPaymentLinks(venueId, {
@@ -139,6 +139,7 @@ export default function PaymentLinks() {
     // Al pasar de página se queda la anterior a la vista mientras llega la nueva (sin parpadeo a «vacío»).
     placeholderData: keepPreviousData,
   })
+  const { data: page, isLoading } = listQuery
   const links = useMemo(() => page?.paymentLinks ?? [], [page])
   const total = page?.total ?? 0
   // Si se archiva la última liga de la última página, esa página deja de existir: se regresa a la última que sí tiene.
@@ -596,6 +597,7 @@ export default function PaymentLinks() {
       {/* Table */}
       <div data-tour="payment-links-table">
         <DataTable
+          query={listQuery}
           columns={columns}
           data={links}
           rowCount={total}
