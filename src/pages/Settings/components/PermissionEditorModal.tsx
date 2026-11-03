@@ -47,7 +47,7 @@ interface PermissionEditorModalProps {
 }
 
 export function PermissionEditorModal({ open, onClose, role, venueId }: PermissionEditorModalProps) {
-  const { staffInfo, checkFeatureAccess } = useAuth()
+  const { staffInfo, checkFeatureAccess, checkModuleAccess } = useAuth()
   const { t } = useTranslation('settings')
   const { t: tCommon } = useTranslation('common')
   const { toast } = useToast()
@@ -172,17 +172,25 @@ export function PermissionEditorModal({ open, onClose, role, venueId }: Permissi
       'ORDERS': 'ONLINE_ORDERING',
     }
 
+    // Categorías de un módulo (VenueModule), no de un plan: sólo las ve la tienda que lo tiene.
+    // «Verificación de ventas» es de PlayTelecom (founder, 2-nov): a nadie más le sirve.
+    const categoryModuleMap: Record<string, string> = {
+      'SALE_VERIFICATIONS': 'SERIALIZED_INVENTORY',
+    }
+
     return superCategories
       .map(superCat => ({
         ...superCat,
         categoryKeys: superCat.categoryKeys.filter(catKey => {
+          const requiredModule = categoryModuleMap[catKey]
+          if (requiredModule && !checkModuleAccess(requiredModule)) return false
           const requiredFeature = categoryFeatureMap[catKey]
           if (!requiredFeature) return true
           return checkFeatureAccess(requiredFeature)
         })
       }))
       .filter(superCat => superCat.categoryKeys.length > 0)
-  }, [checkFeatureAccess])
+  }, [checkFeatureAccess, checkModuleAccess])
 
   // Combined categories (no Dashboard/TPV split — flat list like Square)
   const allSuperCategories = useMemo(() => {
@@ -364,7 +372,15 @@ export function PermissionEditorModal({ open, onClose, role, venueId }: Permissi
       // Sin esto, desmarcar una casilla no hacía absolutamente nada: `permissions` es
       // aditivo en el backend, así que la pantalla creía reemplazar y el backend sumaba.
       const seleccionados = new Set(modifiedPermissions)
-      const deniedToSave = defaultEfectivos.filter(p => !seleccionados.has(p))
+      // 🔴 Lo que el editor NO conoce se manda igual que llegó. Una pestaña abierta desde antes
+      // de que existiera un permiso (p. ej. `sale-verifications:approve`, que PlayTelecom le
+      // niega al MANAGER) no lo tiene en su catálogo ni en sus de fábrica: sin esto, guardar el
+      // rol borraría esa exclusión y le devolvería el permiso en silencio.
+      const conocidos = new Set<string>(allPermissions)
+      const negadosDesconocidos = (currentRolePermission?.deniedPermissions ?? []).filter(p => !conocidos.has(p))
+      const deniedToSave = Array.from(
+        new Set([...defaultEfectivos.filter(p => !seleccionados.has(p)), ...negadosDesconocidos]),
+      )
 
       updateMutation.mutate({ permissions: permissionsToSave, denied: deniedToSave })
     } else if (hasConfigChanges) {
@@ -372,7 +388,7 @@ export function PermissionEditorModal({ open, onClose, role, venueId }: Permissi
       setHasConfigChanges(false)
       onClose()
     }
-  }, [defaultEfectivos, modifiedPermissions, allPermissions, updateMutation, hasChanges, hasConfigChanges, role, roleDisplayName, roleDescription, roleColor, roleShowAsSeller, updateConfigsAsync, toast, tCommon, t, onClose])
+  }, [defaultEfectivos, modifiedPermissions, allPermissions, currentRolePermission, updateMutation, hasChanges, hasConfigChanges, role, roleDisplayName, roleDescription, roleColor, roleShowAsSeller, updateConfigsAsync, toast, tCommon, t, onClose])
 
   const handleClose = useCallback(() => {
     if (hasChanges || hasConfigChanges) {
