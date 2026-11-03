@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { act, render, screen } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import type { AreaTicketTerminal } from '@/services/areaTickets.service'
 
@@ -45,5 +45,9 @@ describe('TerminalSettings', () => {
     })
     await act(async () => {})
     expect(svc.updateAreaTicketTerminal).toHaveBeenCalledTimes(1)
+    // Codex r5: mientras guarda, el área y la báscula tampoco se pueden cambiar (si no, el candado se tragaría el cambio).
+    await waitFor(() => {
+      for (const selector of screen.getAllByRole('combobox')) expect(selector).toBeDisabled()
+    })
   })
 })

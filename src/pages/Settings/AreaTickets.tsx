@@ -529,6 +529,7 @@ export function TerminalSettings({
               </div>
               <Select
                 value={terminal.fulfillmentAreaId ?? NONE}
+                disabled={mutation.isPending}
                 onValueChange={value =>
                   guardar({ terminalId: terminal.id, input: { fulfillmentAreaId: value === NONE ? null : value } })
                 }
@@ -577,6 +578,7 @@ export function TerminalSettings({
               ))}
               <Select
                 value={terminal.scaleProfileId ?? NONE}
+                disabled={mutation.isPending}
                 onValueChange={value =>
                   guardar({ terminalId: terminal.id, input: { scaleProfileId: value === NONE ? null : value } })
                 }
