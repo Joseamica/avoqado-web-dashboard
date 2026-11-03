@@ -39,7 +39,7 @@
     "saleProtected": "La venta sigue protegida hasta confirmar el resultado de ese cobro.",
     "success": "Terminal liberada",
     "notReleased": "No se confirmó la liberación. Revisa el estado actualizado del cobro antes de volver a intentarlo.",
-    "error": "No pudimos confirmar la respuesta. Conservamos el motivo: revisa el estado actualizado antes de reintentar.",
+    "error": "No pudimos confirmar la respuesta: revisa el estado actualizado antes de reintentar.",
     "status": {
       "PENDING": "Pendiente de envío",
       "SENT": "Enviado a la terminal",

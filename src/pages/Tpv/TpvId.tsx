@@ -406,14 +406,15 @@ function TpvIdContent() {
         setReleaseFeedback({ ...body, requestId: selected.request.requestId, message: responseMessage || t('paymentRelease.error') })
       }
     } finally {
-      await Promise.allSettled([
-        queryClient.invalidateQueries({ queryKey: ['superadmin-terminal', selected.terminalId], exact: true }),
-        queryClient.invalidateQueries({ queryKey: ['tpv', selected.pageVenueId, selected.terminalId], exact: true }),
-      ])
+      // Los controles vuelven en cuanto contesta el POST: sin red, el refresco tarda en rendirse y no debe dejarlos muertos.
       if (releaseInFlightRef.current === selected.context) {
         releaseInFlightRef.current = null
         setReleaseInFlight(null)
       }
+      void Promise.allSettled([
+        queryClient.invalidateQueries({ queryKey: ['superadmin-terminal', selected.terminalId], exact: true }),
+        queryClient.invalidateQueries({ queryKey: ['tpv', selected.pageVenueId, selected.terminalId], exact: true }),
+      ])
     }
   }
 
@@ -1270,7 +1271,7 @@ function TpvIdContent() {
                             </div>
                             <div className="flex flex-wrap justify-between gap-2">
                               <dt className="text-muted-foreground">{t('paymentRelease.state')}</dt>
-                              <dd>{t(`paymentRelease.status.${blockingPaymentRequest.status}`)}</dd>
+                              <dd>{t(`paymentRelease.status.${blockingPaymentRequest.status}`, { defaultValue: blockingPaymentRequest.status })}</dd>
                             </div>
                             <div className="text-muted-foreground">
                               <dt className="sr-only">{t('paymentRelease.createdAt')}</dt>

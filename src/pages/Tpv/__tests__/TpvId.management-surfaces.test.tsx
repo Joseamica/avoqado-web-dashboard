@@ -137,13 +137,13 @@ describe('E1 soporte suelta la terminal sin decidir el resultado de la venta', (
     toast.mockReset()
     apiGet.mockImplementation(async (path: string) => {
       if (path.startsWith('/api/v1/dashboard/superadmin/terminals/')) {
-        const id = path.split('/').at(-1)
+        const id = path.split('/').pop()
         return { data: { data: { id, venueId: contexto.venueId, assignedMerchantIds: [], blockingPaymentRequest: blocker } } }
       }
       if (path.includes('/tpv/')) {
         return {
           data: {
-            id: path.split('/').at(-1),
+            id: path.split('/').pop(),
             name: 'Terminal de caja',
             serialNumber: 'PAX-E1',
             type: 'TPV_ANDROID',

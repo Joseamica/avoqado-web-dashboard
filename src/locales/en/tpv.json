@@ -39,7 +39,7 @@
     "saleProtected": "The sale remains protected until the outcome of that payment is confirmed.",
     "success": "Terminal released",
     "notReleased": "Release was not confirmed. Check the updated payment status before trying again.",
-    "error": "We could not confirm the response. Your reason was kept: check the updated status before retrying.",
+    "error": "We could not confirm the response: check the updated status before retrying.",
     "status": {
       "PENDING": "Awaiting dispatch",
       "SENT": "Sent to the terminal",

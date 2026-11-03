@@ -192,7 +192,7 @@ export async function releaseTerminalPaymentRequest(
   requestId: string,
   data: { venueId: string; reason: string },
 ): Promise<TerminalPaymentReleaseResult> {
-  const response = await api.post(`/api/v1/dashboard/superadmin/terminals/payment-requests/${requestId}/release`, data)
+  const response = await api.post(`/api/v1/dashboard/superadmin/terminals/payment-requests/${encodeURIComponent(requestId)}/release`, data)
   return response.data
 }
 
