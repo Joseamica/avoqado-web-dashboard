@@ -54,10 +54,10 @@ async function exportar(props: Record<string, unknown>) {
 }
 
 describe('exportar con la comparación', () => {
-  it('caída: el archivo no trae comparación', async () => {
-    expect((await exportar({ ...base, comparacionCaida: true })).comparison).toBeNull()
+  it('sin haber llegado (caída, cargando o reintentando): el archivo no trae comparación', async () => {
+    expect((await exportar({ ...base, comparacionLista: false })).comparison).toBeNull()
   })
-  it('sana: sigue igual', async () => {
-    expect((await exportar({ ...base, comparacionCaida: false })).comparison.percentageChanges.sales).toBe(100)
+  it('ya leída: sigue igual', async () => {
+    expect((await exportar({ ...base, comparacionLista: true })).comparison.percentageChanges.sales).toBe(100)
   })
 })

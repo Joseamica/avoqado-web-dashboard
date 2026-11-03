@@ -290,7 +290,7 @@ const PaymentMethodsPieSection = ({
           </ChartContainer>
         )}
       </CardContent>
-      {!isBasicLoading && paymentMethodsData && paymentMethodsData.length > 0 && compareType && !dashboardData.comparacionCaida && (
+      {!isBasicLoading && paymentMethodsData && paymentMethodsData.length > 0 && compareType && dashboardData.comparacionLista && (
         <CardFooter className="flex-col gap-2 text-sm">
           <div className="flex items-center gap-2 font-medium leading-none">
             {amountChangePercentage > 0 ? (

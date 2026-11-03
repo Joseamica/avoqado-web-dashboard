@@ -109,7 +109,7 @@ export const DashboardMetrics = ({
         icon: ICON_MAP[metric.iconName] || <DollarSign className="h-5 w-5 text-muted-foreground" />,
         heroIcon: HERO_ICON_MAP[metric.iconName],
         // Sin la comparación, el «+100 %» saldría contra un periodo que no se leyó.
-        percentage: compareType && !dashboardData.comparacionCaida ? (changeValue ?? null) : null,
+        percentage: compareType && dashboardData.comparacionLista ? (changeValue ?? null) : null,
         format: metric.format,
       }
     })
