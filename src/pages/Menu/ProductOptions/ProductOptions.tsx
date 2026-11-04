@@ -1,4 +1,4 @@
-import { falloDeCarga } from '@/lib/falloDeCarga'
+import { falloDeCarga, reintentarSirve } from '@/lib/falloDeCarga'
 import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { ChevronRight, Plus } from 'lucide-react'
 import { useState } from 'react'
@@ -55,9 +55,11 @@ export default function ProductOptions() {
           ) : q.data === undefined && falloDeCarga(q) ? (
             <div className="flex flex-col items-start gap-3">
               <p className="text-destructive">{t('biblioteca.error')}</p>
-              <Button type="button" variant="outline" onClick={() => q.refetch()}>
-                {t('biblioteca.reintentar')}
-              </Button>
+              {reintentarSirve(q.error) && (
+                <Button type="button" variant="outline" onClick={() => q.refetch()}>
+                  {t('biblioteca.reintentar')}
+                </Button>
+              )}
             </div>
           ) : items.length === 0 ? (
             <div className="flex flex-col items-start gap-4">

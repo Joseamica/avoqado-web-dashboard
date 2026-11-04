@@ -1,3 +1,4 @@
+import { reintentarSirve } from '@/lib/falloDeCarga'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
@@ -26,14 +27,14 @@ export default function CatalogAuditPage() {
   const [actions, setActions] = useState<string[]>([])
   const [action, setAction] = useState('')
   const [search, setSearch] = useState('')
-  const [error, setError] = useState(false)
+  const [error, setError] = useState<unknown>(null)
 
   async function load(page = 1) {
-    setError(false)
+    setError(null)
     try {
       setData(await listCatalogAudit(orgId, { page, pageSize: 25, action: action || undefined, search: search.trim() || undefined }))
-    } catch {
-      setError(true)
+    } catch (fallo) {
+      setError(fallo)
     }
   }
 
@@ -48,8 +49,8 @@ export default function CatalogAuditPage() {
       .then(value => {
         if (active) setData(value)
       })
-      .catch(() => {
-        if (active) setError(true)
+      .catch(fallo => {
+        if (active) setError(fallo)
       })
     return () => {
       active = false
@@ -98,16 +99,18 @@ export default function CatalogAuditPage() {
       </Card>
       <Card>
         <CardContent className="pt-6">
-          {error && (
+          {error != null && (
             <div role="alert" className="mb-4 flex flex-wrap items-center justify-between gap-2 text-destructive">
               <p>{t('masterCatalog.audit.loadError', { defaultValue: 'No se pudo cargar la bitácora.' })}</p>
-              <Button variant="outline" size="sm" onClick={() => void load(data?.pagination.page ?? 1)}>
-                {t('common:retry', { defaultValue: 'Reintentar' })}
-              </Button>
+              {reintentarSirve(error) && (
+                <Button variant="outline" size="sm" onClick={() => void load(data?.pagination.page ?? 1)}>
+                  {t('common:retry', { defaultValue: 'Reintentar' })}
+                </Button>
+              )}
             </div>
           )}
           {data === null ? (
-            !error && <Skeleton className="h-72 w-full" />
+            error == null && <Skeleton className="h-72 w-full" />
           ) : (
             <Table aria-label={t('masterCatalog.audit.tableLabel', { defaultValue: 'Bitácora del catálogo maestro' })}>
               <TableHeader>

@@ -1,13 +1,13 @@
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { SummaryQueryBoundary } from '@/components/SummaryQueryBoundary'
-import { esNoEncontrado, falloDeCarga, reintentarCarga, type EstadoDeCarga } from '@/lib/falloDeCarga'
+import { esNoEncontrado, falloDeCarga, reintentarCarga, reintentarSirve, type EstadoDeCarga } from '@/lib/falloDeCarga'
 import { esSinPermiso } from '@/lib/reintentoSinPermiso'
 
 /** «Reintentar» para un aviso con texto propio. Reintentar no arregla un 403 ni un 404: ahí no sale. */
 export function BotonReintentar({ query, className }: { query: EstadoDeCarga; className?: string }) {
   const { t } = useTranslation('common')
-  if (esSinPermiso(query.error) || esNoEncontrado(query.error)) return null
+  if (!reintentarSirve(query.error)) return null
   return (
     <Button type="button" variant="outline" size="sm" className={className} onClick={() => reintentarCarga(query)}>
       {t('retry')}

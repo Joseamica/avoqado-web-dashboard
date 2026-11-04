@@ -12,6 +12,7 @@
  * Access: ADMIN+ only
  */
 
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import DataTable from '@/components/data-table'
 import { CheckboxFilterContent, FilterPill, FilterPillBar } from '@/components/filters'
 import { Badge } from '@/components/ui/badge'
@@ -121,11 +122,12 @@ export function UsersManagement() {
   const canViewAllOrgStaff = teamData?.meta?.canViewAllOrgStaff ?? false
 
   // Fetch zones via venue-level endpoint
-  const { data: orgZones = [] } = useQuery({
+  const zonesQuery = useQuery({
     queryKey: ['stores-analysis', venueId, 'zones'],
     queryFn: () => getZones(venueId!),
     enabled: !!venueId,
   })
+  const { data: orgZones = [] } = zonesQuery
 
   // Fetch activity log for selected user
   const selectedMember = teamMembers.find(m => m.id === selectedUserId)
@@ -627,7 +629,7 @@ export function UsersManagement() {
                 <CheckboxFilterContent
                   title="Filtrar por Tienda"
                   options={storesOptions}
-                  fuente={listQuery}
+                  fuente={falloDeCarga(zonesQuery) ? zonesQuery : listQuery}
                   selectedValues={storesFilter}
                   searchable={storesOptions.length > 5}
                   onApply={setStoresFilter}

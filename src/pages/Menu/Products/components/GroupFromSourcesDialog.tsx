@@ -1,4 +1,4 @@
-import { falloDeCarga } from '@/lib/falloDeCarga'
+import { falloDeCarga, reintentarSirve } from '@/lib/falloDeCarga'
 import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { useMutation } from '@tanstack/react-query'
 import { AlertTriangle, ChevronDown, Loader2 } from 'lucide-react'
@@ -206,9 +206,11 @@ function PanelDeSugerencias(p: { venueId: string; onRevisar: (s: GroupSuggestion
       <div role="alert" className="space-y-2 rounded-xl border border-input bg-card p-4 text-sm">
         <p className="font-medium text-destructive">{t('fuentes.error')}</p>
         <p className="text-muted-foreground">{mensajeDeVariantes(q.error, t)}</p>
-        <Button variant="outline" size="sm" onClick={() => void q.refetch()} data-tour="group-sources-retry">
-          {t('fuentes.reintentar')}
-        </Button>
+        {reintentarSirve(q.error) && (
+          <Button variant="outline" size="sm" onClick={() => void q.refetch()} data-tour="group-sources-retry">
+            {t('fuentes.reintentar')}
+          </Button>
+        )}
       </div>
     )
   if (items.length === 0)
@@ -491,9 +493,11 @@ function PanelDeShopify(p: { venueId: string; activa: boolean; onRevisar: (x: Sh
       <div role="alert" className="space-y-2 rounded-xl border border-input bg-card p-4 text-sm">
         <p className="font-medium text-destructive">{t('shopify.error')}</p>
         <p className="text-muted-foreground">{mensajeDeVariantes(q.error, t)}</p>
-        <Button variant="outline" size="sm" onClick={() => void q.refetch()} data-tour="group-sources-shopify-retry">
-          {t('fuentes.reintentar')}
-        </Button>
+        {reintentarSirve(q.error) && (
+          <Button variant="outline" size="sm" onClick={() => void q.refetch()} data-tour="group-sources-shopify-retry">
+            {t('fuentes.reintentar')}
+          </Button>
+        )}
       </div>
     )
   else if (items.length === 0)

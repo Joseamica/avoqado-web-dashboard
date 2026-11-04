@@ -1,4 +1,4 @@
-import { falloDeCarga } from '@/lib/falloDeCarga'
+import { falloDeCarga, reintentarSirve } from '@/lib/falloDeCarga'
 import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -100,9 +100,11 @@ export function PeriodoCerradoView({ periodId, fecha, etiqueta, etiquetaAbierto 
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
             <span>{mensajeLegible(error) ?? t('period.error')}</span>
           </div>
-          <Button variant="outline" size="sm" className="cursor-pointer" onClick={() => refetch()}>
-            {t('period.retry')}
-          </Button>
+          {reintentarSirve(error) && (
+            <Button variant="outline" size="sm" className="cursor-pointer" onClick={() => refetch()}>
+              {t('period.retry')}
+            </Button>
+          )}
         </CardContent>
       </Card>
     )

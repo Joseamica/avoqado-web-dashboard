@@ -1,4 +1,4 @@
-import { esNoEncontrado, falloDeCarga } from '@/lib/falloDeCarga'
+import { falloDeCarga, reintentarSirve } from '@/lib/falloDeCarga'
 import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import api from '@/api'
 import { Badge } from '@/components/ui/badge'
@@ -78,7 +78,7 @@ export function ExchangeDetailContent({ exchangeId }: { exchangeId: string }) {
   // Con lo leído se sigue viendo; un 404 dice que ya no existe, sin «Reintentar».
   if (data === undefined) {
     if (!falloDeCarga(detalleQuery)) return <p role="status">{t('exchange.loading')}</p>
-    if (esNoEncontrado(detalleQuery.error)) return <AvisoDeCarga query={detalleQuery} hayDatos={false} deUnRegistro />
+    if (!reintentarSirve(detalleQuery.error)) return <AvisoDeCarga query={detalleQuery} hayDatos={false} deUnRegistro />
     return (
       <div role="alert">
         <p>{t('exchange.loadError')}</p>
