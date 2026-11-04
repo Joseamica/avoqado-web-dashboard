@@ -734,7 +734,7 @@
     },
     "impliedByInline": "incluido en",
     "includedInBadge": "Incluido",
-    "impliedByTooltip": "Este permiso viene incluido en otro que el rol conserva. Para quitarlo, quita también ese."
+    "impliedByTooltip": "Este permiso viene incluido en «{{permission}}», que el rol conserva. Para quitarlo, quita también ese."
   },
   "crypto": {
     "title": "Pagos con Criptomonedas",

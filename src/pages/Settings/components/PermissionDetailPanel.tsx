@@ -4,8 +4,9 @@ import { AlertTriangle, ChevronDown } from 'lucide-react'
 import { Switch } from '@/components/ui/switch'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-import { cn, includesNormalized } from '@/lib/utils'
+import { cn } from '@/lib/utils'
 import { PERMISSION_CATEGORIES, CRITICAL_PERMISSIONS } from '@/lib/permissions/roleHierarchy'
+import { formatPermissionLabel, permisosQueCoinciden } from '@/lib/permissions/permissionGroups'
 
 interface PermissionDetailPanelProps {
   categoryKey: string
@@ -32,24 +33,6 @@ interface PermissionGroup {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-/**
- * Descriptive label for a permission.
- * Looks up `permissionLabels.<key>` first, falls back to generic action label.
- */
-function formatPermissionLabel(permission: string, t: (key: string, options?: { defaultValue?: string }) => string) {
-  const labelKey = `rolePermissions.permissionLabels.${permission.replace(/:/g, '_')}`
-  const explicitLabel = t(labelKey, { defaultValue: '' })
-  if (explicitLabel) return explicitLabel
-
-  const parts = permission.split(':')
-  const action = parts.slice(1).join(':')
-  const actionKey = `rolePermissions.actions.${action}`
-  const actionLabel = t(actionKey, { defaultValue: '' })
-  return actionLabel || parts.slice(1).map(part =>
-    t(`rolePermissions.actions.${part}`, { defaultValue: part.charAt(0).toUpperCase() + part.slice(1) })
-  ).join(': ')
-}
 
 /**
  * Optional description for a permission (empty string if none exists).
@@ -168,7 +151,7 @@ function PermissionRow({
         </span>
         {impliedBy && (
           <span className="ml-2 text-xs text-muted-foreground italic">
-            {t('rolePermissions.impliedByInline')} {impliedBy}
+            {t('rolePermissions.impliedByInline')} {formatPermissionLabel(impliedBy, t)}
           </span>
         )}
         {description && (
@@ -348,8 +331,8 @@ export function PermissionDetailPanel({
 
   const filteredPermissions = useMemo(() => {
     if (!searchTerm) return categoryPermissions
-    return categoryPermissions.filter(p => includesNormalized(p ?? '', searchTerm))
-  }, [categoryPermissions, searchTerm])
+    return permisosQueCoinciden(categoryKey, searchTerm, t)
+  }, [categoryKey, categoryPermissions, searchTerm, t])
 
   // Build hierarchy
   const { flatPermissions, groups } = useMemo(

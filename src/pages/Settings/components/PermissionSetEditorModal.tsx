@@ -14,6 +14,7 @@ import {
   DASHBOARD_SUPER_CATEGORIES,
   TPV_SUPER_CATEGORIES,
   filterCategoriesByModules,
+  categoriaTrasBuscar,
   filterPermissionsBySearch,
 } from '@/lib/permissions/permissionGroups'
 import { useAuth } from '@/context/AuthContext'
@@ -117,11 +118,15 @@ export default function PermissionSetEditorModal({ open, onClose, permissionSet,
   // Filter super categories by search
   const filteredAllCategories = useMemo(
     () => [
-      ...filterPermissionsBySearch(visibleSuperCategories.dashboard, debouncedSearchTerm),
-      ...filterPermissionsBySearch(visibleSuperCategories.tpv, debouncedSearchTerm),
+      ...filterPermissionsBySearch(visibleSuperCategories.dashboard, debouncedSearchTerm, t),
+      ...filterPermissionsBySearch(visibleSuperCategories.tpv, debouncedSearchTerm, t),
     ],
-    [visibleSuperCategories, debouncedSearchTerm],
+    [visibleSuperCategories, debouncedSearchTerm, t],
   )
+
+  useEffect(() => {
+    setSelectedCategoryKey(actual => categoriaTrasBuscar(filteredAllCategories, actual, debouncedSearchTerm))
+  }, [filteredAllCategories, debouncedSearchTerm])
 
   const handlePermissionChange = useCallback((permission: string, enabled: boolean) => {
     setSelectedPermissions(prev => (enabled ? [...prev, permission] : prev.filter(p => p !== permission)))

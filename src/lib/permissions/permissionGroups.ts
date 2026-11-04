@@ -356,23 +356,59 @@ export function filterCategoriesByModules(
     .filter(superCat => superCat.categoryKeys.length > 0)
 }
 
+type Traductor = (key: string, options?: { defaultValue?: string }) => string
+
+/**
+ * Descriptive label for a permission.
+ * Looks up `permissionLabels.<key>` first, falls back to generic action label.
+ */
+export function formatPermissionLabel(permission: string, t: Traductor) {
+  const labelKey = `rolePermissions.permissionLabels.${permission.replace(/:/g, '_')}`
+  const explicitLabel = t(labelKey, { defaultValue: '' })
+  if (explicitLabel) return explicitLabel
+
+  const parts = permission.split(':')
+  const action = parts.slice(1).join(':')
+  const actionKey = `rolePermissions.actions.${action}`
+  const actionLabel = t(actionKey, { defaultValue: '' })
+  return actionLabel || parts.slice(1).map(part =>
+    t(`rolePermissions.actions.${part}`, { defaultValue: part.charAt(0).toUpperCase() + part.slice(1) })
+  ).join(': ')
+}
+
+/** ¿Este permiso coincide con lo que se busca? Por lo que el dueño lee en pantalla, o por su nombre interno. */
+export function permisoCoincide(permission: string, searchTerm: string, t: Traductor) {
+  return includesNormalized(permission ?? '', searchTerm) || includesNormalized(formatPermissionLabel(permission ?? '', t), searchTerm)
+}
+
+/** Los permisos de una categoría que se ven al buscar: todos si coincide su nombre, y si no, sólo los que coinciden. */
+export function permisosQueCoinciden(categoryKey: string, searchTerm: string, t: Traductor): readonly string[] {
+  const category = PERMISSION_CATEGORIES[categoryKey as keyof typeof PERMISSION_CATEGORIES]
+  if (!category) return []
+  if (!searchTerm.trim()) return category.permissions
+  const nombre = t(`rolePermissions.categories.${categoryKey.toLowerCase()}`, { defaultValue: category.label })
+  if (includesNormalized(nombre, searchTerm)) return category.permissions
+  return category.permissions.filter(p => permisoCoincide(p, searchTerm, t))
+}
+
+/** Qué categoría queda abierta al buscar: la misma si sigue en los resultados, y si no, la primera que sí coincide. */
+export function categoriaTrasBuscar(superCategories: SuperCategory[], selectedKey: string | null, searchTerm: string): string | null {
+  if (!searchTerm.trim()) return selectedKey
+  const claves = superCategories.flatMap(s => s.categoryKeys as readonly string[])
+  if (selectedKey && claves.includes(selectedKey)) return selectedKey
+  return claves[0] ?? selectedKey
+}
+
 /**
  * Filter permissions by search term
  */
-export function filterPermissionsBySearch(
-  superCategories: SuperCategory[],
-  searchTerm: string
-): SuperCategory[] {
+export function filterPermissionsBySearch(superCategories: SuperCategory[], searchTerm: string, t: Traductor): SuperCategory[] {
   if (!searchTerm.trim()) return superCategories
 
   return superCategories
     .map(superCat => ({
       ...superCat,
-      categoryKeys: superCat.categoryKeys.filter(key => {
-        const category = PERMISSION_CATEGORIES[key]
-        // Check if any permission in this category matches
-        return category.permissions.some(p => includesNormalized(p ?? '', searchTerm))
-      }),
+      categoryKeys: superCat.categoryKeys.filter(key => permisosQueCoinciden(key, searchTerm, t).length > 0),
     }))
     .filter(superCat => superCat.categoryKeys.length > 0) as SuperCategory[]
 }

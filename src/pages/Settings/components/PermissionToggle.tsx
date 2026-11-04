@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
+import { formatPermissionLabel } from '@/lib/permissions/permissionGroups'
 
 interface PermissionToggleProps {
   permission: string
@@ -25,28 +26,6 @@ interface PermissionToggleProps {
    * separado, pero se VE.
    */
   impliedBy?: string | null
-}
-
-/**
- * Format a permission string into resource and action parts
- * e.g., "orders:create" -> { resource: "Orders", action: "Create" }
- */
-function formatPermission(permission: string, t: (key: string, options?: { defaultValue?: string }) => string) {
-  const parts = permission.split(':')
-  const resource = parts[0]
-  const action = parts.slice(1).join(':')
-
-  // Try compound action key first (e.g., "command:lock"), fallback to joining individual parts
-  const actionKey = `rolePermissions.actions.${action}`
-  const actionLabel = t(actionKey, { defaultValue: '' })
-  const resolvedAction = actionLabel || parts.slice(1).map(part =>
-    t(`rolePermissions.actions.${part}`, { defaultValue: part.charAt(0).toUpperCase() + part.slice(1) })
-  ).join(': ')
-
-  return {
-    resource: resource ? t(`rolePermissions.resources.${resource}`, { defaultValue: resource.charAt(0).toUpperCase() + resource.slice(1) }) : '',
-    action: resolvedAction,
-  }
 }
 
 /**
@@ -72,7 +51,8 @@ export function PermissionToggle({
   highlighted = false,
 }: PermissionToggleProps) {
   const { t } = useTranslation('settings')
-  const { resource, action } = formatPermission(permission, t)
+  const etiqueta = formatPermissionLabel(permission, t)
+  const incluidoEn = impliedBy ? formatPermissionLabel(impliedBy, t) : null
 
   // Visual indicator for modified state
   const isModified = isEnabled !== isDefault
@@ -104,7 +84,7 @@ export function PermissionToggle({
             isCritical && 'opacity-50 cursor-not-allowed',
             !isCritical && impliedBy && 'opacity-50 cursor-not-allowed'
           )}
-          aria-label={`${resource}: ${action}`}
+          aria-label={etiqueta}
         />
         <Label
           className={cn(
@@ -114,8 +94,12 @@ export function PermissionToggle({
             disabled && 'cursor-not-allowed'
           )}
         >
-          <span className="font-medium text-foreground">{resource}</span>
-          <span className="text-muted-foreground">: {action}</span>
+          <span className="font-medium text-foreground">{etiqueta}</span>
+          {!isCritical && incluidoEn && (
+            <span className="block text-xs italic text-muted-foreground">
+              {t('rolePermissions.impliedByInline')} {incluidoEn}
+            </span>
+          )}
         </Label>
       </div>
 
@@ -150,7 +134,7 @@ export function PermissionToggle({
               <TooltipContent side="left" className="max-w-xs">
                 <p className="text-sm">
                   {t('rolePermissions.impliedByTooltip', 'This permission comes bundled with "{{permission}}". To remove it, remove that one too.', {
-                    permission: impliedBy,
+                    permission: incluidoEn,
                   })}
                 </p>
               </TooltipContent>
