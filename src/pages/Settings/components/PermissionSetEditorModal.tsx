@@ -117,10 +117,10 @@ export default function PermissionSetEditorModal({ open, onClose, permissionSet,
   // Filter super categories by search
   const filteredAllCategories = useMemo(
     () => [
-      ...filterPermissionsBySearch(visibleSuperCategories.dashboard, debouncedSearchTerm),
-      ...filterPermissionsBySearch(visibleSuperCategories.tpv, debouncedSearchTerm),
+      ...filterPermissionsBySearch(visibleSuperCategories.dashboard, debouncedSearchTerm, t),
+      ...filterPermissionsBySearch(visibleSuperCategories.tpv, debouncedSearchTerm, t),
     ],
-    [visibleSuperCategories, debouncedSearchTerm],
+    [visibleSuperCategories, debouncedSearchTerm, t],
   )
 
   const handlePermissionChange = useCallback((permission: string, enabled: boolean) => {

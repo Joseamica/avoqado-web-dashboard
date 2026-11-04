@@ -199,8 +199,8 @@ export function PermissionEditorModal({ open, onClose, role, venueId }: Permissi
   }, [filterCategoriesByFeatures])
 
   const filteredAllCategories = useMemo(
-    () => filterPermissionsBySearch(allSuperCategories, debouncedSearchTerm),
-    [allSuperCategories, debouncedSearchTerm]
+    () => filterPermissionsBySearch(allSuperCategories, debouncedSearchTerm, t),
+    [allSuperCategories, debouncedSearchTerm, t]
   )
 
   // Default permissions for this role
