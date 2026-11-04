@@ -83,6 +83,7 @@ export const SuperAdminVenueEdit = lazyWithRetry(() => import('@/pages/Admin/Sup
 
 export const Venues = lazyWithRetry(() => import('@/pages/Venue/Venues'))
 export const Notifications = lazyWithRetry(() => import('@/pages/Notifications/Notifications'))
+export const ExportRunPage = lazyWithRetry(() => import('@/pages/Exports/ExportRunPage'))
 export const NotificationPreferences = lazyWithRetry(() => import('@/pages/Notifications/NotificationPreferences'))
 export const NotificationPreferences1 = lazyWithRetry(() => import('@/pages/Notifications/NotificationPreferences1'))
 export const NotificationPreferences2 = lazyWithRetry(() => import('@/pages/Notifications/NotificationPreferences2'))

@@ -1666,6 +1666,7 @@ export default function Payments() {
         initialDateTo={dateRange.to}
         estimatedCount={filteredPayments.length || totalPayments}
         filenameStem="payments"
+        segundoPlano={venueId ? { venueId, kind: 'cobros' } : undefined}
         activeFilterSummary={exportFilterSummary}
       />
     </div>

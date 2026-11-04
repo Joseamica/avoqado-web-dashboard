@@ -300,6 +300,16 @@ export const notificationCategories: NotificationCategory[] = [
         canDisable: true,
         description: 'Nightly email with a summary of the day\'s sales',
       },
+      {
+        type: NotificationType.EXPORT_READY,
+        defaultEnabled: true,
+        defaultChannels: [NotificationChannel.IN_APP],
+        defaultPriority: NotificationPriority.NORMAL,
+        canDisable: true,
+        // Sólo la campanita se prende o apaga aquí: el correo llega siempre porque la persona lo pidió.
+        availableChannels: [NotificationChannel.IN_APP],
+        description: 'Bell notice when a file you exported is ready',
+      },
     ],
   },
   {
