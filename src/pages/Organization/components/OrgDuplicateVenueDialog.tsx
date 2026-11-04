@@ -33,6 +33,7 @@ import { Link } from 'react-router-dom'
 import { nombreChoca } from './venueDuplication.rules'
 
 const optionsKey = (orgId: string) => ['organization', 'venue-duplication-options', orgId] as const
+const CODIGOS_CONOCIDOS = new Set(['VENUE_NAME_TAKEN', 'SUPERVISOR_NOT_IN_ORG', 'TEMPLATE_NOT_ACTIVE', 'TEMPLATE_HAS_PAID_PLAN', 'module_disabled'])
 const mutationKey = (orgId: string) => ['organization', 'duplicate-venue', orgId] as const
 
 /** Botón «Duplicar tienda» + su ventana. No pinta nada si el módulo está apagado o la consulta falla. */
@@ -122,6 +123,8 @@ function DuplicateVenueForm({
     onSuccess: venue => {
       queryClient.invalidateQueries({ queryKey: ['organization', 'venues', orgId] })
       queryClient.invalidateQueries({ queryKey: optionsKey(orgId) })
+      // El conteo de tiendas de la cabecera de la organización.
+      queryClient.invalidateQueries({ queryKey: ['organization', 'stats'] })
       // La tienda nueva entra a «mis tiendas» del usuario: sin esto los enlaces de los pendientes no la conocen.
       queryClient.invalidateQueries({ queryKey: AUTH_STATUS_QUERY_KEY })
       onCreated(venue)
@@ -152,14 +155,21 @@ function DuplicateVenueForm({
         ...(place.country ? { country: place.country } : {}),
         latitude: place.latitude,
         longitude: place.longitude,
+        ...(place.timezone ? { timezone: place.timezone } : {}),
       },
       supervisorStaffId,
     })
   }
 
-  // El `message` de un 4xx tal cual (número repetido, módulo apagado…). `{ error: 'owner_required' }` es un código, no un
-  // texto: cae al genérico.
-  const serverError = mutation.isError ? mensajeDelServidor4xx(mutation.error) ?? t('venues.duplicate.errorGeneric') : null
+  // Por `code` (o `error`, que algunas rutas usan de código) con texto propio en el idioma de la pantalla; un código que no
+  // conocemos cae al `message` del 4xx tal cual; y sin nada de eso, al genérico.
+  const errorCode = (mutation.error as { response?: { data?: { code?: unknown; error?: unknown } } } | null)?.response?.data
+  const code = [errorCode?.code, errorCode?.error].find((c): c is string => typeof c === 'string' && CODIGOS_CONOCIDOS.has(c))
+  const serverError = mutation.isError
+    ? code
+      ? t(`venues.duplicate.errors.${code}`)
+      : mensajeDelServidor4xx(mutation.error) ?? t('venues.duplicate.errorGeneric')
+    : null
 
   return (
     <>
@@ -293,6 +303,7 @@ export function DuplicatedVenueNotice({
         <CheckCircle2 className="h-4 w-4 text-primary" />
         {t('venues.duplicate.success', { name: venue.name })}
       </p>
+      <p className="mt-2 text-muted-foreground">{t('venues.duplicate.supervisorPin')}</p>
       <p className="mt-2 text-muted-foreground">{t('venues.duplicate.pendingTitle')}</p>
       <ul className="mt-1 space-y-1">
         <li>

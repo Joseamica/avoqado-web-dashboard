@@ -40,6 +40,9 @@ vi.mock('@/components/address-autocomplete', () => ({
       <button type="button" onClick={() => onAddressSelect(PLACE)}>
         elegir-direccion
       </button>
+      <button type="button" onClick={() => onAddressSelect({ ...PLACE, timezone: undefined })}>
+        elegir-direccion-sin-zona
+      </button>
     </div>
   ),
 }))
@@ -113,12 +116,12 @@ function pintar(pantalla: 'org' | 'wl') {
 const botonDuplicar = () => screen.findByRole('button', { name: 'Duplicar tienda' })
 const crear = () => within(screen.getByRole('dialog')).getByRole('button', { name: 'Crear tienda' })
 
-async function abrirYLlenar(user: ReturnType<typeof userEvent.setup>, nombre = 'BAE LOMAS 4 (4120)') {
+async function abrirYLlenar(user: ReturnType<typeof userEvent.setup>, nombre = 'BAE LOMAS 4 (4120)', botonDireccion = 'elegir-direccion') {
   await user.click(await botonDuplicar())
   const dialogo = await screen.findByRole('dialog')
   await user.selectOptions(within(dialogo).getByRole('combobox', { name: 'template' }), MODELO.id)
   await user.type(within(dialogo).getByLabelText('Nombre y número de la tienda nueva'), nombre)
-  await user.click(within(dialogo).getByRole('button', { name: 'elegir-direccion' }))
+  await user.click(within(dialogo).getByRole('button', { name: botonDireccion }))
   await user.selectOptions(within(dialogo).getByRole('combobox', { name: 'supervisor' }), OPCIONES.supervisors[0].staffId)
   return dialogo
 }
@@ -187,6 +190,7 @@ describe.each([
         country: PLACE.country,
         latitude: PLACE.latitude,
         longitude: PLACE.longitude,
+        timezone: PLACE.timezone,
       },
       supervisorStaffId: OPCIONES.supervisors[0].staffId,
     })
@@ -228,9 +232,9 @@ describe('el diálogo «Duplicar tienda»', () => {
     pintar('org')
     const dialogo = await abrirYLlenar(user)
     await user.click(crear())
-    await within(dialogo).findByText('Ya hay una tienda con el número 4120')
+    await within(dialogo).findByText('Ya hay una tienda con ese nombre o número. Cámbialo e inténtalo de nuevo.')
     await user.type(within(dialogo).getByLabelText('Nombre y número de la tienda nueva'), '1')
-    expect(within(dialogo).queryByText('Ya hay una tienda con el número 4120')).toBeNull()
+    expect(within(dialogo).queryByText('Ya hay una tienda con ese nombre o número. Cámbialo e inténtalo de nuevo.')).toBeNull()
   })
 
   it('«Crear tienda» apagado hasta tener modelo, nombre, dirección elegida y supervisor', async () => {
@@ -260,9 +264,19 @@ describe('el diálogo «Duplicar tienda»', () => {
     await abrirYLlenar(user)
     expect(
       screen.getByText(
-        'Se copia igual de BAE MISION SAN PEDRO (3952): cobro con tarjeta, tarifa, inventario de SIMs, ajustes y la gente de la organización.',
+        'Se copia igual de BAE MISION SAN PEDRO (3952): cobro con tarjeta, tarifa, configuración de SIMs, ajustes, y sus dueños y administradores.',
       ),
     ).toBeInTheDocument()
+  })
+
+  it('🔴 la zona horaria del autocompletado viaja en address; sin zona, la llave no va', async () => {
+    const user = userEvent.setup()
+    duplicar.mockReturnValue(new Promise(() => {}))
+    pintar('org')
+    await abrirYLlenar(user, 'BAE LOMAS 4 (4120)', 'elegir-direccion-sin-zona')
+    await user.click(crear())
+    await waitFor(() => expect(duplicar).toHaveBeenCalledTimes(1))
+    expect(duplicar.mock.calls[0][1].address).not.toHaveProperty('timezone')
   })
 
   it('🔴 número que ya existe: botón apagado y «Ya hay una tienda con el número 3952» antes de enviar', async () => {
@@ -285,16 +299,64 @@ describe('el diálogo «Duplicar tienda»', () => {
   })
 
   it.each([
-    [403, 'module_disabled', 'Esta función no está prendida para tu organización'],
-    [400, 'VENUE_NAME_TAKEN', 'Ya hay una tienda con el número 4120'],
-  ])('🔴 un %s %s muestra el mensaje del servidor sin cerrar el diálogo', async (status, code, message) => {
+    [403, 'module_disabled', 'Esta función no está prendida para tu organización.'],
+    [400, 'VENUE_NAME_TAKEN', 'Ya hay una tienda con ese nombre o número. Cámbialo e inténtalo de nuevo.'],
+    [400, 'SUPERVISOR_NOT_IN_ORG', 'Ese supervisor ya no es de tu organización. Elige a otro.'],
+    [400, 'TEMPLATE_NOT_ACTIVE', 'La tienda modelo ya no está activa. Elige otra.'],
+    [400, 'TEMPLATE_HAS_PAID_PLAN', 'La tienda modelo tiene un plan de pago, y no se puede copiar. Elige otra.'],
+  ])('🔴 un %s %s muestra su texto propio sin cerrar el diálogo', async (status, code, texto) => {
     const user = userEvent.setup()
-    duplicar.mockRejectedValue({ response: { status, data: { message, code } } })
+    duplicar.mockRejectedValue({ response: { status, data: { message: 'texto crudo del servidor', code } } })
     pintar('org')
     await abrirYLlenar(user)
     await user.click(crear())
-    expect(await within(screen.getByRole('dialog')).findByText(message)).toBeInTheDocument()
+    expect(await within(screen.getByRole('dialog')).findByText(texto)).toBeInTheDocument()
+    expect(screen.queryByText('texto crudo del servidor')).toBeNull()
     expect(screen.getByRole('dialog')).toBeInTheDocument()
+  })
+
+  it('código desconocido: sale el message del servidor', async () => {
+    const user = userEvent.setup()
+    duplicar.mockRejectedValue({ response: { status: 400, data: { message: 'Algo nuevo del servidor', code: 'CODIGO_NUEVO' } } })
+    pintar('org')
+    await abrirYLlenar(user)
+    await user.click(crear())
+    expect(await within(screen.getByRole('dialog')).findByText('Algo nuevo del servidor')).toBeInTheDocument()
+  })
+
+  it('con la UI en inglés el error por código sale en inglés y el aviso trae lo del PIN', async () => {
+    await i18n.changeLanguage('en')
+    try {
+      const user = userEvent.setup()
+      duplicar.mockRejectedValueOnce({ response: { status: 400, data: { message: 'crudo', code: 'TEMPLATE_NOT_ACTIVE' } } })
+      pintar('org')
+      await user.click(await screen.findByRole('button', { name: 'Duplicate store' }))
+      const d = await screen.findByRole('dialog')
+      await user.selectOptions(within(d).getByRole('combobox', { name: 'template' }), MODELO.id)
+      await user.type(within(d).getByLabelText('Name and number of the new store'), 'BAE LOMAS 4 (4120)')
+      await user.click(within(d).getByRole('button', { name: 'elegir-direccion' }))
+      await user.selectOptions(within(d).getByRole('combobox', { name: 'supervisor' }), OPCIONES.supervisors[0].staffId)
+      await user.click(within(d).getByRole('button', { name: 'Create store' }))
+      expect(await within(d).findByText('The template store is no longer active. Choose another one.')).toBeInTheDocument()
+      duplicar.mockResolvedValueOnce({ venueId: NUEVA.id, slug: NUEVA.slug, name: NUEVA.name })
+      await user.click(within(d).getByRole('button', { name: 'Create store' }))
+      expect(await screen.findByText('The supervisor needs their PIN under Team.')).toBeInTheDocument()
+    } finally {
+      await i18n.changeLanguage('es')
+    }
+  })
+
+  it('al crear invalida también el conteo de la cabecera (organization/stats)', async () => {
+    const user = userEvent.setup()
+    duplicar.mockResolvedValue({ venueId: NUEVA.id, slug: NUEVA.slug, name: NUEVA.name })
+    const spy = vi.spyOn(QueryClient.prototype, 'invalidateQueries')
+    pintar('org')
+    await abrirYLlenar(user)
+    await user.click(crear())
+    await screen.findByText('BAE LOMAS 4 (4120) ya está activa')
+    expect(spy).toHaveBeenCalledWith({ queryKey: ['organization', 'stats'] })
+    expect(screen.getByText('El supervisor necesita su PIN en Equipo.')).toBeInTheDocument()
+    spy.mockRestore()
   })
 
   it('🔴 la llave se genera al abrir: el reintento manda la MISMA y otra apertura una nueva', async () => {
@@ -303,7 +365,7 @@ describe('el diálogo «Duplicar tienda»', () => {
     pintar('org')
     await abrirYLlenar(user)
     await user.click(crear())
-    await screen.findByText('Esa tienda ya no está activa; elige otra')
+    await screen.findByText('La tienda modelo ya no está activa. Elige otra.')
     await user.click(crear())
     await waitFor(() => expect(duplicar).toHaveBeenCalledTimes(2))
     const [primera, segunda] = duplicar.mock.calls.map(c => (c[1] as { idempotencyKey: string }).idempotencyKey)

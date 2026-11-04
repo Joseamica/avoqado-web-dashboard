@@ -343,7 +343,7 @@
       "supervisor": "Supervisor",
       "supervisorPlaceholder": "Choose the supervisor",
       "noSupervisors": "There are no supervisors in your organization.",
-      "copied": "Copied as-is from {{template}}: card payments, pricing, SIM inventory, settings and the organization's people.",
+      "copied": "Copied from {{template}}: card payments, pricing, SIM settings, settings, and its owners and admins.",
       "notEditable": "The payment account and pricing are not shown or changed here.",
       "cancel": "Cancel",
       "create": "Create store",
@@ -355,6 +355,14 @@
       "pendingTeam": "Register the promoters with their PIN",
       "pendingTeamLink": "Team",
       "newBadge": "New",
+      "supervisorPin": "The supervisor needs their PIN under Team.",
+      "errors": {
+        "VENUE_NAME_TAKEN": "There is already a store with that name or number. Change it and try again.",
+        "SUPERVISOR_NOT_IN_ORG": "That supervisor is no longer in your organization. Choose another one.",
+        "TEMPLATE_NOT_ACTIVE": "The template store is no longer active. Choose another one.",
+        "TEMPLATE_HAS_PAID_PLAN": "The template store has a paid plan and cannot be copied. Choose another one.",
+        "module_disabled": "This feature is not turned on for your organization."
+      },
       "dismiss": "Dismiss notice"
     }
   },
