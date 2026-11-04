@@ -146,6 +146,7 @@
     "delete": "Eliminar"
   },
   "routes": {
+    "exports": "Exportaciones",
     "exchanges": "Cambios",
     "home": "Inicio",
     "menu": "Menú",

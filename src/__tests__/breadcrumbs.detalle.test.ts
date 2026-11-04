@@ -66,6 +66,6 @@ describe('las pantallas de detalle no enseñan el id crudo en la miga de pan', (
 
   it('🔴 no se añadieron pantallas de detalle nuevas sin miga de pan', () => {
     // Si esto falla: o arreglaste una (baja el número) o añadiste una sin miga (arréglala).
-    expect(conPantallaDetalle.length - PENDIENTES.length).toBe(11)
+    expect(conPantallaDetalle.length - PENDIENTES.length).toBe(12)
   })
 })

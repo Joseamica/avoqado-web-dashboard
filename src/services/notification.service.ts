@@ -146,6 +146,7 @@ export enum NotificationType {
 
   // Report notifications
   DAILY_SALES_SUMMARY = 'DAILY_SALES_SUMMARY',
+  EXPORT_READY = 'EXPORT_READY',
 
   // Reservation notifications (D4: «Sí llegó»)
   RESERVATION_NO_SHOW_SUMMARY = 'RESERVATION_NO_SHOW_SUMMARY',

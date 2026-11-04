@@ -34,6 +34,12 @@ describe('preferencias de notificación — avisos de «No Show» (D4)', () => {
     for (const categoria of notificationCategories) {
       for (const meta of categoria.types) {
         if ((TIPOS_NUEVOS as readonly NotificationType[]).includes(meta.type)) continue
+        // Exportes en segundo plano: la única otra excepción, a propósito. Sólo la campanita se elige (el correo llega siempre).
+        if (meta.type === NotificationType.EXPORT_READY) {
+          expect(meta.availableChannels).toEqual([NotificationChannel.IN_APP])
+          expect(meta.canDisable).toBe(true)
+          continue
+        }
         expect(meta.availableChannels).toBeUndefined()
         expect(meta.canDisable).toBe(true)
       }
