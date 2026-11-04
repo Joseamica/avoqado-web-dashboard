@@ -4,7 +4,7 @@ import * as notificationService from '@/services/notification.service'
 import { Notification, NotificationFilters, PaginationOptions } from '@/services/notification.service'
 import { useSocket } from '@/context/SocketContext'
 import { useAuth } from '@/context/AuthContext'
-import { showBrowserNotification, getNotificationOptions } from '@/utils/notification.utils'
+import { showBrowserNotification, getNotificationOptions, avisoEnVivoANotificacion } from '@/utils/notification.utils'
 import type { EstadoDeCarga } from '@/lib/falloDeCarga'
 
 // ===== TYPES =====
@@ -266,18 +266,11 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
   const handleNewNotification = useCallback((notification: any) => {
     console.log('Received new notification:', notification)
 
-    // BUG #3 FIX: Normalize ID field name consistently
-    // Backend may send: { notificationId, ... } or { id, ... }
-    const notificationId = notification.notificationId || notification.id
-    if (!notificationId) {
+    // Normaliza el id (notificationId o id) y la fecha (el evento trae `timestamp`, no `createdAt`: D2).
+    const transformedNotification = avisoEnVivoANotificacion(notification)
+    if (!transformedNotification) {
       console.error('Notification received without ID:', notification)
       return
-    }
-
-    // Transform backend field names to frontend format
-    const transformedNotification: Notification = {
-      ...notification,
-      id: notificationId,
     }
 
     dispatch({ type: 'ADD_NOTIFICATION', payload: transformedNotification })

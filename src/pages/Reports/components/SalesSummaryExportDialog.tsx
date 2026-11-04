@@ -206,9 +206,10 @@ export function SalesSummaryExportDialog({
       cerrar()
     } catch (err: any) {
       // responseType:'blob' -> error body is a Blob; pull the message out.
-      let message = t('salesSummary.export.tooLargeHint') as string
       const status = err?.response?.status
-      const data = err?.response?.data
+      // Un 5xx trae el error técnico (en inglés): se muestra el genérico. Los 4xx son textos nuestros.
+      let message = (status >= 500 ? t('exportDialog.errors.generic', { ns: 'common' }) : t('salesSummary.export.tooLargeHint')) as string
+      const data = status >= 500 ? undefined : err?.response?.data
       if (data instanceof Blob) {
         try {
           const parsed = JSON.parse(await data.text())

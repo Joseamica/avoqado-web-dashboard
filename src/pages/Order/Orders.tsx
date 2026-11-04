@@ -61,6 +61,7 @@ import { useCallback, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
+import { conteoParaExportar } from '@/lib/conteoParaExportar'
 import { OrderDrawerContent } from './OrderDrawerContent'
 import { orderCardsForTab, orderRowMatchesTab, orderTabCounts } from './orderSummary'
 import { describeOrderMutationError } from './orderMutationError'
@@ -1588,8 +1589,9 @@ export default function Orders() {
         columns={exportColumns}
         initialDateFrom={dateRange.from}
         initialDateTo={dateRange.to}
-        estimatedCount={sortedData.length || totalOrders}
+        estimatedCount={conteoParaExportar(sortedData.length, totalOrders)}
         filenameStem="orders"
+        segundoPlano={venueId ? { venueId, kind: 'ordenes' } : undefined}
         activeFilterSummary={exportFilterSummary}
       />
     </div>

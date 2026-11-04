@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { falloDeCarga } from '@/lib/falloDeCarga'
+import { reintentarSalvoSinPermiso } from '@/lib/reintentoSinPermiso'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
@@ -1032,6 +1033,7 @@ export default function SalesSummary() {
     queryKey: salesSummaryKeys.summary(apiFilters),
     queryFn: () => fetchSalesSummary(apiFilters),
     staleTime: 1000 * 60 * 5, // 5 minutes
+    retry: reintentarSalvoSinPermiso, // D3: un 403 (cajero por liga directa) avisa «sin permiso» de inmediato
   })
   const { data: apiResponse } = salesQuery
 
