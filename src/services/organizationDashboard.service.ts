@@ -778,12 +778,16 @@ export interface OrgMigrateExecuteResult {
 
 export interface OrgMigrateStatus {
   commandStatus: string
+  /** El borrado todavía no le llega a la terminal: se puede cancelar. */
+  cancellable?: boolean
   commandDelivered: boolean
   reboundAfterWipe: boolean
   currentlyOnline: boolean
   onlineUnderNewVenue: boolean
   confirmed: boolean
   elapsedMs: number
+  /** El borrado es del protocolo viejo: sólo le llega con alguien dentro de sesión y no se confirma solo. Opcional: un servidor anterior no lo manda. */
+  legacyApp?: boolean
 }
 
 /**
