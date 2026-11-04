@@ -75,7 +75,7 @@ const SOLO_SALDO = () =>
 
 const pintar = () =>
   render(
-    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false, retryDelay: 0 } } })}>
       <MemoryRouter>
         <SalesSummary />
       </MemoryRouter>
@@ -245,5 +245,19 @@ describe('Reporte de Ventas si falla la carga', () => {
     expect(screen.getByText('loadFailure.empty')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'retry' })).toBeInTheDocument()
     expect(screen.queryByLabelText('Cargando resumen')).toBeNull()
+  })
+
+  it('🔴 D3 · un cajero sin `reports:read` (403) ve «sin permiso» de inmediato, sin los 3 reintentos (~7 s de esqueleto)', async () => {
+    h.response = Object.assign(new Error('403'), { response: { status: 403 } })
+    // Con los reintentos POR DEFECTO de la app (`new QueryClient()` en dashboard-main.tsx), no con `retry: false`.
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <MemoryRouter>
+          <SalesSummary />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    )
+    expect(await screen.findByText('loadFailure.forbidden', {}, { timeout: 800 })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'retry' })).toBeNull()
   })
 })
