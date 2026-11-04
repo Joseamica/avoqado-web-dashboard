@@ -343,7 +343,7 @@ export default function OrgMigrateTerminalWizard({ open, onOpenChange, orgId, te
               )}
               {preflight.warnings.map(w => (
                 <p key={w.code} className="text-xs text-amber-600 flex items-start gap-1">
-                  <AlertTriangle className="w-3.5 h-3.5 mt-0.5" /> {w.message}
+                  <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" /> {w.message}
                 </p>
               ))}
 
