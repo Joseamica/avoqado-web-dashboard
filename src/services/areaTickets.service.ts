@@ -52,6 +52,8 @@ export interface FulfillmentArea {
   name: string
   fulfillmentMode: FulfillmentMode
   printStationId: string | null
+  /** D2: apagada, la PC que emite vales de esta área saca sólo el vale. Un SERVIDOR viejo no la manda: se lee como prendida. */
+  sendsComanda?: boolean
   active: boolean
   displayOrder: number
   settlementRoute: AreaSettlementRoute
@@ -161,7 +163,7 @@ export async function createFulfillmentArea(
 export async function updateFulfillmentArea(
   venueId: string,
   areaId: string,
-  input: Partial<Pick<FulfillmentArea, 'name' | 'fulfillmentMode' | 'printStationId' | 'active' | 'displayOrder'>>,
+  input: Partial<Pick<FulfillmentArea, 'name' | 'fulfillmentMode' | 'printStationId' | 'sendsComanda' | 'active' | 'displayOrder'>>,
 ): Promise<FulfillmentArea> {
   const response = await api.put(`${base(venueId)}/areas/${areaId}`, input)
   return response.data.data
