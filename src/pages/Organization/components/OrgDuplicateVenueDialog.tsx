@@ -14,6 +14,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { useAuth } from '@/context/AuthContext'
+import { isOrganizationOwner } from '@/lib/permissions/organizationOwner'
 import { AUTH_STATUS_QUERY_KEY } from '@/services/auth.service'
 import { mensajeDelServidor4xx } from '@/utils/apiError'
 import {
@@ -23,7 +25,7 @@ import {
   type DuplicateVenueBody,
   type VenueDuplicationOptions,
 } from '@/services/organization.service'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useIsMutating, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { CheckCircle2, Copy, Loader2, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -31,6 +33,7 @@ import { Link } from 'react-router-dom'
 import { nombreChoca } from './venueDuplication.rules'
 
 const optionsKey = (orgId: string) => ['organization', 'venue-duplication-options', orgId] as const
+const mutationKey = (orgId: string) => ['organization', 'duplicate-venue', orgId] as const
 
 /** Botón «Duplicar tienda» + su ventana. No pinta nada si el módulo está apagado o la consulta falla. */
 export function OrgDuplicateVenue({
@@ -44,11 +47,15 @@ export function OrgDuplicateVenue({
   onCreated: (venue: DuplicatedVenue) => void
 }) {
   const { t } = useTranslation('organization')
+  const { user } = useAuth()
   const [open, setOpen] = useState(false)
+  // Mientras el POST va en vuelo, Esc, clic fuera y la X no cierran: reabrir daría otra llave y otra tienda.
+  const sending = useIsMutating({ mutationKey: mutationKey(orgId ?? '') }) > 0
   const { data } = useQuery({
     queryKey: optionsKey(orgId ?? ''),
     queryFn: () => getVenueDuplicationOptions(orgId!),
-    enabled: !!orgId,
+    // La misma regla que `requireOrgOwner` del SERVIDOR: dueño de la ORGANIZACIÓN o superadmin. A los demás ni se les pregunta.
+    enabled: !!orgId && isOrganizationOwner(user, orgId),
     retry: false,
     staleTime: 5 * 60 * 1000,
   })
@@ -61,7 +68,7 @@ export function OrgDuplicateVenue({
         <Copy className="h-4 w-4 mr-2" />
         {t('venues.duplicate.button')}
       </Button>
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={next => (next || !sending) && setOpen(next)}>
         <DialogContent hasTitle className="max-w-lg">
           {/* Se monta en cada apertura: estado y llave nuevos cada vez. */}
           <DuplicateVenueForm
@@ -110,6 +117,7 @@ function DuplicateVenueForm({
     !!place && !!place.address && !!place.city && !!place.state && !!place.zipCode && !(place.latitude === 0 && place.longitude === 0)
 
   const mutation = useMutation({
+    mutationKey: mutationKey(orgId),
     mutationFn: (body: DuplicateVenueBody) => duplicateVenue(orgId, body),
     onSuccess: venue => {
       queryClient.invalidateQueries({ queryKey: ['organization', 'venues', orgId] })
@@ -119,6 +127,14 @@ function DuplicateVenueForm({
       onCreated(venue)
     },
   })
+
+  // Al corregir cualquier campo, el error del servidor ya no aplica.
+  const edit =
+    <T,>(set: (value: T) => void) =>
+    (value: T) => {
+      if (mutation.isError) mutation.reset()
+      set(value)
+    }
 
   const canSubmit = !!template && trimmedName.length >= 3 && !clash.choca && placeComplete && !!supervisorStaffId && !mutation.isPending
 
@@ -155,7 +171,7 @@ function DuplicateVenueForm({
       <div className="space-y-4">
         <div className="space-y-1.5">
           <Label htmlFor="duplicate-venue-template">{t('venues.duplicate.template')}</Label>
-          <Select name="template" value={templateVenueId} onValueChange={setTemplateVenueId}>
+          <Select name="template" value={templateVenueId} onValueChange={edit(setTemplateVenueId)}>
             <SelectTrigger id="duplicate-venue-template">
               <SelectValue placeholder={t('venues.duplicate.templatePlaceholder')} />
             </SelectTrigger>
@@ -178,7 +194,7 @@ function DuplicateVenueForm({
             id="duplicate-venue-name"
             value={name}
             maxLength={120}
-            onChange={e => setName(e.target.value)}
+            onChange={e => edit(setName)(e.target.value)}
             placeholder={t('venues.duplicate.namePlaceholder')}
             aria-invalid={clash.choca}
           />
@@ -190,18 +206,19 @@ function DuplicateVenueForm({
         </div>
 
         <div className="space-y-1.5">
-          <Label>{t('venues.duplicate.address')}</Label>
+          <Label htmlFor="duplicate-venue-address">{t('venues.duplicate.address')}</Label>
           <AddressAutocomplete
+            id="duplicate-venue-address"
             value={addressText}
             placeholder={t('venues.duplicate.addressPlaceholder')}
-            onAddressSelect={p => {
+            onAddressSelect={edit((p: PlaceDetails) => {
               setPlace(p)
               setAddressText(p.address)
-            }}
-            onTextChange={texto => {
+            })}
+            onTextChange={edit((texto: string) => {
               setAddressText(texto)
               setPlace(null)
-            }}
+            })}
           />
           {place && placeComplete && (
             <p className="text-xs text-muted-foreground">{[place.city, place.state, place.zipCode].join(', ')}</p>
@@ -211,7 +228,7 @@ function DuplicateVenueForm({
 
         <div className="space-y-1.5">
           <Label htmlFor="duplicate-venue-supervisor">{t('venues.duplicate.supervisor')}</Label>
-          <Select name="supervisor" value={supervisorStaffId} onValueChange={setSupervisorStaffId}>
+          <Select name="supervisor" value={supervisorStaffId} onValueChange={edit(setSupervisorStaffId)}>
             <SelectTrigger id="duplicate-venue-supervisor">
               <SelectValue placeholder={t('venues.duplicate.supervisorPlaceholder')} />
             </SelectTrigger>
@@ -257,18 +274,19 @@ function DuplicateVenueForm({
 export function DuplicatedVenueNotice({
   venue,
   venueBasePath,
-  onDismiss,
 }: {
   venue: DuplicatedVenue
   /** '/venues' o '/wl/venues', según la lista desde la que se creó. */
   venueBasePath: string
-  onDismiss: () => void
 }) {
   const { t } = useTranslation('organization')
+  // Cerrar el aviso no quita la etiqueta «Nueva» de la lista. Quien lo pinta le pone `key={venueId}`: otra tienda, otro aviso.
+  const [dismissed, setDismissed] = useState(false)
+  if (dismissed) return null
   const base = `${venueBasePath}/${venue.slug}`
   return (
     <div role="status" className="relative rounded-xl border border-input bg-card p-4 text-sm">
-      <Button type="button" variant="ghost" size="icon" className="absolute right-2 top-2 h-7 w-7" onClick={onDismiss} aria-label={t('venues.duplicate.dismiss')}>
+      <Button type="button" variant="ghost" size="icon" className="absolute right-2 top-2 h-7 w-7" onClick={() => setDismissed(true)} aria-label={t('venues.duplicate.dismiss')}>
         <X className="h-4 w-4" />
       </Button>
       <p className="flex items-center gap-2 font-medium text-foreground">

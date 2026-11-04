@@ -26,9 +26,17 @@ const PLACE = {
   timezone: 'America/Mexico_City',
 }
 vi.mock('@/components/address-autocomplete', () => ({
-  AddressAutocomplete: ({ onAddressSelect, onTextChange }: { onAddressSelect: (p: unknown) => void; onTextChange?: (s: string) => void }) => (
+  AddressAutocomplete: ({
+    id,
+    onAddressSelect,
+    onTextChange,
+  }: {
+    id?: string
+    onAddressSelect: (p: unknown) => void
+    onTextChange?: (s: string) => void
+  }) => (
     <div>
-      <input aria-label="direccion-texto" onChange={e => onTextChange?.(e.target.value)} />
+      <input id={id} aria-label="direccion-texto" onChange={e => onTextChange?.(e.target.value)} />
       <button type="button" onClick={() => onAddressSelect(PLACE)}>
         elegir-direccion
       </button>
@@ -37,7 +45,12 @@ vi.mock('@/components/address-autocomplete', () => ({
 }))
 
 const auth = {
-  user: { id: 'isaac', role: 'OWNER', organizationId: 'org-1' },
+  user: {
+    id: 'isaac',
+    role: 'OWNER',
+    organizationId: 'org-1',
+    organizationMemberships: [{ organizationId: 'org-1', role: 'OWNER' }] as { organizationId: string; role: string }[],
+  },
   staffInfo: { role: 'OWNER' },
   isAuthenticated: true,
   isLoading: false,
@@ -116,6 +129,7 @@ beforeAll(async () => {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  auth.user.organizationMemberships = [{ organizationId: 'org-1', role: 'OWNER' }]
   listar.mockResolvedValue([MODELO])
   opciones.mockResolvedValue(OPCIONES)
 })
@@ -154,6 +168,13 @@ describe.each([
     expect(await screen.findByText(NUEVA.name)).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /Asignar o migrar una TPV/ })).toHaveAttribute('href', `${base}/${NUEVA.slug}/devices`)
     expect(screen.getByRole('link', { name: /Dar de alta a los promotores con su PIN/ })).toHaveAttribute('href', `${base}/${NUEVA.slug}/team`)
+    // «Nueva» en la fila de la tienda nueva, no en la modelo
+    expect(within(screen.getByText(NUEVA.name).parentElement!).getByText('Nueva')).toBeInTheDocument()
+    expect(within(screen.getByText(MODELO.name).parentElement!).queryByText('Nueva')).toBeNull()
+    // el aviso se cierra; la etiqueta se queda
+    await user.click(screen.getByRole('button', { name: 'Cerrar aviso' }))
+    expect(screen.queryByText('BAE LOMAS 4 (4120) ya está activa')).toBeNull()
+    expect(within(screen.getByText(NUEVA.name).parentElement!).getByText('Nueva')).toBeInTheDocument()
     expect(duplicar).toHaveBeenCalledWith('org-1', {
       idempotencyKey: expect.stringMatching(UUID),
       templateVenueId: MODELO.id,
@@ -173,6 +194,45 @@ describe.each([
 })
 
 describe('el diálogo «Duplicar tienda»', () => {
+  it('🔴 quien no es dueño de la ORGANIZACIÓN (sólo de una tienda) ni consulta las opciones ni ve el botón', async () => {
+    auth.user.organizationMemberships = [{ organizationId: 'org-1', role: 'MEMBER' }]
+    pintar('org')
+    expect(await screen.findByText(MODELO.name)).toBeInTheDocument()
+    expect(opciones).not.toHaveBeenCalled()
+    expect(screen.queryByRole('button', { name: 'Duplicar tienda' })).toBeNull()
+  })
+
+  it('la etiqueta «Dirección» queda asociada a su campo', async () => {
+    const user = userEvent.setup()
+    pintar('org')
+    await user.click(await botonDuplicar())
+    const dialogo = await screen.findByRole('dialog')
+    expect(within(dialogo).getByLabelText('Dirección')).toBe(within(dialogo).getByLabelText('direccion-texto'))
+  })
+
+  it('🔴 mientras envía, ni Esc ni la X cierran la ventana', async () => {
+    const user = userEvent.setup()
+    duplicar.mockReturnValue(new Promise(() => {}))
+    pintar('org')
+    await abrirYLlenar(user)
+    await user.click(crear())
+    await user.keyboard('{Escape}')
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Cerrar' }))
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+  })
+
+  it('🔴 al corregir un campo tras un error del servidor, el error se borra', async () => {
+    const user = userEvent.setup()
+    duplicar.mockRejectedValue({ response: { status: 400, data: { message: 'Ya hay una tienda con el número 4120', code: 'VENUE_NAME_TAKEN' } } })
+    pintar('org')
+    const dialogo = await abrirYLlenar(user)
+    await user.click(crear())
+    await within(dialogo).findByText('Ya hay una tienda con el número 4120')
+    await user.type(within(dialogo).getByLabelText('Nombre y número de la tienda nueva'), '1')
+    expect(within(dialogo).queryByText('Ya hay una tienda con el número 4120')).toBeNull()
+  })
+
   it('«Crear tienda» apagado hasta tener modelo, nombre, dirección elegida y supervisor', async () => {
     const user = userEvent.setup()
     pintar('org')

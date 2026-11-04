@@ -171,7 +171,7 @@ const OrganizationVenues: React.FC = () => {
           </div>
         </div>
 
-        {created && <DuplicatedVenueNotice venue={created} venueBasePath="/venues" onDismiss={() => setCreated(null)} />}
+        {created && <DuplicatedVenueNotice key={created.venueId} venue={created} venueBasePath="/venues" />}
 
         {/* ── Summary Metrics ── */}
         {metrics && (

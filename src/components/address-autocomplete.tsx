@@ -21,6 +21,8 @@ export interface PlaceDetails {
 }
 
 interface AddressAutocompleteProps {
+  /** id del input, para asociarle un `<Label htmlFor>`. */
+  id?: string
   value?: string
   onAddressSelect: (place: PlaceDetails) => void
   /**
@@ -46,6 +48,7 @@ function extractAddressComponent(components: google.maps.GeocoderAddressComponen
 }
 
 export function AddressAutocomplete({
+  id,
   value: externalValue,
   onAddressSelect,
   onTextChange,
@@ -149,6 +152,7 @@ export function AddressAutocomplete({
   if (!isLoaded || !ready) {
     return (
       <Input
+        id={id}
         value={externalValue ?? ''}
         onChange={e => {
           // Can't autocomplete without Google Maps, but still allow manual input
@@ -177,6 +181,7 @@ export function AddressAutocomplete({
         <div className="relative">
           <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
+            id={id}
             ref={inputRef}
             value={value}
             onChange={e => handleInputChange(e.target.value)}

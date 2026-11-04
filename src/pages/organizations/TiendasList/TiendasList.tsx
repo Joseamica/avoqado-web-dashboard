@@ -170,7 +170,7 @@ const TiendasList: React.FC = () => {
         </div>
       </div>
 
-      {created && <DuplicatedVenueNotice venue={created} venueBasePath="/wl/venues" onDismiss={() => setCreated(null)} />}
+      {created && <DuplicatedVenueNotice key={created.venueId} venue={created} venueBasePath="/wl/venues" />}
 
       {/* Stats Summary */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
