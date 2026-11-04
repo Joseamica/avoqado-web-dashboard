@@ -59,6 +59,8 @@ export function PermissionEditorModal({ open, onClose, role, venueId }: Permissi
 
   // Permission state
   const [modifiedPermissions, setModifiedPermissions] = useState<string[]>([])
+  // true sólo si el admin prendió «Acceso total» o el rol ya llegó como `*:*`; las casillas sueltas lo apagan.
+  const [wildcard, setWildcard] = useState(false)
   const [hasChanges, setHasChanges] = useState(false)
 
   // Role config state (display name, description, color)
@@ -134,8 +136,10 @@ export function PermissionEditorModal({ open, onClose, role, venueId }: Permissi
     if (open && currentRolePermission && !hasChanges) {
       if (currentRolePermission.permissions.includes('*:*')) {
         setModifiedPermissions(allPermissions)
+        setWildcard(true)
       } else {
         setModifiedPermissions(currentRolePermission.permissions)
+        setWildcard(false)
       }
     }
   }, [open, currentRolePermission, hasChanges, allPermissions])
@@ -224,20 +228,19 @@ export function PermissionEditorModal({ open, onClose, role, venueId }: Permissi
     } else {
       setModifiedPermissions([...allPermissions])
     }
+    setWildcard(!isFullAccess)
     setHasChanges(true)
   }, [isFullAccess, allPermissions, isOwnRole])
 
   // Permission toggle
   const handlePermissionChange = useCallback((permission: string, enabled: boolean) => {
     setModifiedPermissions(prev => {
-      const newPermissions = enabled ? [...prev, permission] : prev.filter(p => p !== permission)
-      if (newPermissions.length === allPermissions.length && allPermissions.every(p => newPermissions.includes(p))) {
-        return ['*:*']
-      }
-      return newPermissions
+      return enabled ? [...prev, permission] : prev.filter(p => p !== permission)
     })
+    // Marcar casillas una a una nunca produce el comodín: sólo el switch «Acceso total» (o un rol que ya llega con `*:*`).
+    setWildcard(false)
     setHasChanges(true)
-  }, [allPermissions])
+  }, [])
 
   // Category status for nav
   const getCategoryStatus = useCallback((categoryKey: keyof typeof PERMISSION_CATEGORIES) => {
@@ -356,10 +359,7 @@ export function PermissionEditorModal({ open, onClose, role, venueId }: Permissi
     //     (since allPermissions is derived from the dashboard's PERMISSION_CATEGORIES).
     if (hasChanges) {
       let permissionsToSave = modifiedPermissions
-      if (
-        modifiedPermissions.length === allPermissions.length &&
-        allPermissions.every(p => modifiedPermissions.includes(p))
-      ) {
+      if (wildcard && isFullAccess) {
         permissionsToSave = ['*:*']
       }
 
@@ -389,7 +389,7 @@ export function PermissionEditorModal({ open, onClose, role, venueId }: Permissi
       setHasConfigChanges(false)
       onClose()
     }
-  }, [permisosListos, aparienciaLista, defaultEfectivos, modifiedPermissions, allPermissions, currentRolePermission, updateMutation, hasChanges, hasConfigChanges, role, roleDisplayName, roleDescription, roleColor, roleShowAsSeller, updateConfigsAsync, toast, tCommon, t, onClose])
+  }, [permisosListos, aparienciaLista, defaultEfectivos, modifiedPermissions, allPermissions, currentRolePermission, updateMutation, wildcard, isFullAccess, hasChanges, hasConfigChanges, role, roleDisplayName, roleDescription, roleColor, roleShowAsSeller, updateConfigsAsync, toast, tCommon, t, onClose])
 
   const handleClose = useCallback(() => {
     if (hasChanges || hasConfigChanges) {

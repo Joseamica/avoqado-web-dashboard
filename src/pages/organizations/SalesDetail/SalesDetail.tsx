@@ -63,6 +63,7 @@ import { exportToExcel, exportToCSV, generateFilename } from '@/utils/export'
 import { ReviewSaleDialog, type ReviewMode } from '@/pages/playtelecom/Sales/components/ReviewSaleDialog'
 import { SummaryQueryBoundary } from '@/components/SummaryQueryBoundary'
 import { EditSaleDialog } from './components/EditSaleDialog'
+import { applyClientSaleFilters } from './clientFilters'
 import { LinkingNumberCell } from './components/LinkingNumberCell'
 import { NumberAlertBadges } from './components/NumberAlertBadges'
 import {
@@ -304,19 +305,16 @@ export default function SalesDetail() {
   const promotersQuery = useOrgPromoters(orgId)
 
   // Client-side filter pass — handles multi-select cases the backend serves broadly
-  const rows = useMemo(() => {
-    const data = listQuery.data?.data ?? []
-    return data.filter(r => {
-      if (statusFilter.length > 1 && !statusFilter.includes(r.status)) return false
-      // saleType filtered client-side for any selection: the server only knows
-      // isPortabilidad (bool), but saleType now has 3 values (eSIM overrides),
-      // so the boolean pre-narrow alone can't isolate eSIM / línea nueva.
-      if (saleTypeFilter.length >= 1 && !saleTypeFilter.includes(r.saleType)) return false
-      if (paymentFormFilter.length > 1 && !paymentFormFilter.includes(r.payment?.paymentForm ?? 'NONE')) return false
-      if (venueFilter.length > 1 && !venueFilter.includes(r.venue.id)) return false
-      return true
-    })
-  }, [listQuery.data?.data, statusFilter, saleTypeFilter, paymentFormFilter, venueFilter])
+  const rows = useMemo(
+    () =>
+      applyClientSaleFilters(listQuery.data?.data ?? [], {
+        status: statusFilter,
+        saleType: saleTypeFilter,
+        paymentForm: paymentFormFilter,
+        venue: venueFilter,
+      }),
+    [listQuery.data?.data, statusFilter, saleTypeFilter, paymentFormFilter, venueFilter],
+  )
 
   const pagination = listQuery.data?.pagination
   // Con el filtro de alertas el servidor puede negarse («acota las fechas»): se dice en vez de «No hay ventas».
@@ -412,7 +410,7 @@ export default function SalesDetail() {
         pageSize: EXPORT_PAGE_SIZE,
       }
 
-      const accumulated: OrgSaleRow[] = []
+      const fetched: OrgSaleRow[] = []
       let pageNumber = 1
       let totalPages = 1
       let totalCount = 0
@@ -420,12 +418,12 @@ export default function SalesDetail() {
       // First request seeds totalPages / totalCount
       while (pageNumber <= totalPages) {
         const resp = await listOrgSaleVerifications(orgId, { ...baseParams, pageNumber })
-        accumulated.push(...resp.data)
+        fetched.push(...resp.data)
         totalPages = resp.pagination.totalPages
         totalCount = resp.pagination.totalCount
-        setExportProgress({ fetched: accumulated.length, total: totalCount })
+        setExportProgress({ fetched: fetched.length, total: totalCount })
 
-        if (accumulated.length >= MAX_EXPORT_ROWS) {
+        if (fetched.length >= MAX_EXPORT_ROWS) {
           toast({
             title: 'Demasiados registros',
             description: `Hay ${totalCount.toLocaleString('es-MX')} ventas que cumplen los filtros (máx ${MAX_EXPORT_ROWS.toLocaleString('es-MX')}). Acorta el rango de fechas y vuelve a exportar.`,
@@ -435,6 +433,14 @@ export default function SalesDetail() {
         }
         pageNumber++
       }
+
+      // Mismos filtros de navegador que la tabla: el Excel es el mismo conjunto que se ve en pantalla.
+      const accumulated = applyClientSaleFilters(fetched, {
+        status: statusFilter,
+        saleType: saleTypeFilter,
+        paymentForm: paymentFormFilter,
+        venue: venueFilter,
+      })
 
       if (accumulated.length === 0) {
         toast({
