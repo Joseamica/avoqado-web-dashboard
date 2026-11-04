@@ -1508,14 +1508,14 @@ describe('ShopifyIntegration — estados de las listas (N4)', () => {
     expect(await screen.findByText('Camisa · M')).toBeInTheDocument()
   })
 
-  it('🔴 vacía y luego la actualización falla: dice que no está al día y deja de decir «Todo cuadra»', async () => {
+  it('🔴 vacía y luego la actualización falla: lo último leído sigue, y dice que no está al día', async () => {
     svc.getShopifyOverview.mockResolvedValue(resumen(conexion()))
     const { client } = renderPage()
     expect(await screen.findByText('review.empty')).toBeInTheDocument()
     svc.listShopifyReviews.mockRejectedValue(errorHttp(500, {}))
     await act(() => client.invalidateQueries({ queryKey: ['shopify', 'v1', 'reviews'] }))
     expect(await screen.findByText('list.staleError', {}, ESPERA_REINTENTO)).toBeInTheDocument()
-    expect(screen.queryByText('review.empty')).toBeNull()
+    expect(screen.getByText('review.empty')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'common:retry' })).toBeEnabled()
   })
 

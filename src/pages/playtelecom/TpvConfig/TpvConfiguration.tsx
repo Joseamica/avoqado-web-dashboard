@@ -281,19 +281,22 @@ export function TpvConfiguration() {
   }, [lecturaLista, saveMutation])
 
   // --- Summary data for General tab ---
-  const { data: categoriesData } = useQuery({
+  const categoriesQuery = useQuery({
     queryKey: ['venue', venueId, 'item-categories'],
     queryFn: () => getItemCategories(venueId!, { includeStats: true }),
     enabled: !!venueId,
     staleTime: 60000,
   })
 
-  const { data: messagesData } = useQuery({
+  const { data: categoriesData } = categoriesQuery
+
+  const messagesQuery = useQuery({
     queryKey: ['tpv-messages', venueId, 'all', 'all'],
     queryFn: () => getTpvMessages(venueId!, { limit: 100 }),
     enabled: !!venueId,
     staleTime: 60000,
   })
+  const { data: messagesData } = messagesQuery
 
   // Summary computed values
   const summaryStats = useMemo(() => {
@@ -570,6 +573,8 @@ export function TpvConfiguration() {
             </div>
           </GlassCard>
 
+          <AvisoDeCarga query={categoriesQuery} hayDatos={categoriesData !== undefined} />
+          <AvisoDeCarga query={messagesQuery} hayDatos={messagesData !== undefined} />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* TPV Modules Card */}
             <GlassCard className="p-5 cursor-pointer transition-all hover:border-primary/30" onClick={() => handleTabChange('tpv')}>
@@ -656,13 +661,15 @@ export function TpvConfiguration() {
               </div>
               <div className="space-y-2">
                 <div className="flex items-baseline gap-2">
-                  <span className="text-2xl font-bold">{summaryStats.activeCategories}</span>
+                  <span className="text-2xl font-bold">{categoriesData === undefined ? '—' : summaryStats.activeCategories}</span>
+                  {categoriesData !== undefined && (
                   <span className="text-sm text-muted-foreground">
                     {t('playtelecom:tpvConfig.summary.categoriesTotal', {
                       total: summaryStats.totalCategories,
                       defaultValue: `${summaryStats.totalCategories} total`,
                     })}
                   </span>
+                  )}
                 </div>
                 <div className="w-full bg-muted rounded-full h-1.5">
                   <div
@@ -688,13 +695,15 @@ export function TpvConfiguration() {
               </div>
               <div className="space-y-2">
                 <div className="flex items-baseline gap-2">
-                  <span className="text-2xl font-bold">{summaryStats.totalMessages}</span>
+                  <span className="text-2xl font-bold">{messagesData === undefined ? '—' : summaryStats.totalMessages}</span>
+                  {messagesData !== undefined && (
                   <span className="text-sm text-muted-foreground">
                     {t('playtelecom:tpvConfig.summary.messagesCount', {
                       count: summaryStats.totalMessages,
                       defaultValue: `${summaryStats.totalMessages} enviados`,
                     })}
                   </span>
+                  )}
                 </div>
               </div>
             </GlassCard>

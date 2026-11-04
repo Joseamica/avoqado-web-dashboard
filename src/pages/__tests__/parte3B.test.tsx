@@ -209,14 +209,14 @@ describe('Devolver a la tarjeta (pedidos en línea)', () => {
     expect(screen.getByRole('button', { name: 'cardRefund.reload' })).toBeInTheDocument()
   })
 
-  it('historial leído y la relectura en pausa: se trata como la relectura caída y no se manda', async () => {
+  it('historial leído y la relectura en pausa: lo leído sigue, con su aviso, y no se manda', async () => {
     abrir()
     await screen.findByText('cardRefund.empty')
     fireEvent.click(screen.getByRole('button', { name: 'refund.reasons.OTHER' }))
     await waitFor(() => expect(screen.getByRole('button', { name: 'cardRefund.submit' })).toBeEnabled())
     await recargaEnPausa()
     await screen.findByText('cardRefund.loadFailed')
-    expect(seVe('cardRefund.empty')).toBe(false)
+    expect(seVe('cardRefund.empty')).toBe(true)
     expect(screen.getByRole('button', { name: 'cardRefund.submit' })).toBeDisabled()
   })
 })
@@ -364,6 +364,14 @@ describe('Listas de Shopify (ListaPaginada)', () => {
     expect(screen.getByRole('button', { name: 'common:retry' })).toBeEnabled()
   })
 
+  it('leídas y vacías, y la recarga en pausa: el vacío sigue, con el aviso de que puede no estar al día', async () => {
+    pintar(<ShopifyIssueList venueId="v1" />, { rutas: [[PROBLEMAS, { data: { items: [], total: 0, nextOffset: null } }]] })
+    await screen.findByText('issues.empty')
+    await recargaEnPausa()
+    await screen.findByText('list.staleError')
+    expect(screen.getByText('issues.empty')).toBeInTheDocument()
+  })
+
   it('leídas y la recarga en pausa: las filas siguen, con su aviso', async () => {
     pintar(<ShopifyIssueList venueId="v1" />, { rutas: [[PROBLEMAS, { data: { items: [FILA], total: 1, nextOffset: null } }]] })
     await screen.findByText('Playera')
@@ -489,6 +497,21 @@ describe('Identificar un renglón de factura', () => {
     await reintentar()
     expect(seVe('invoices.receipt.noArticles')).toBe(false)
     expect(seVe('invoices.receipt.totalArticles')).toBe(false)
+  })
+
+  it('presentaciones de un insumo: caídas o sin internet avisan y dejan reintentar', async () => {
+    red.caida = /presentations/
+    pintar(editor, { rutas: conFila })
+    fireEvent.click(await screen.findByText(/Harina fina/))
+    await screen.findByText('invoices.receipt.loadError')
+    expect(await reintentar()).toBeInTheDocument()
+    cleanup()
+    red.caida = null
+    pintar(editor, { rutas: conFila })
+    const fila = await screen.findByText(/Harina fina/)
+    onlineManager.setOnline(false)
+    fireEvent.click(fila)
+    await screen.findByText('invoices.receipt.loadError')
   })
 
   it('caído: aviso con reintento y sin «0 artículos»', async () => {
@@ -730,6 +753,15 @@ describe('Configuración de TPV (metas por tienda)', () => {
     await recargaCaida(TIENDAS)
     await screen.findByText(CON_DATOS)
     expect(screen.getByText('Tienda Norte')).toBeInTheDocument()
+  })
+
+  it('resumen general: categorías y mensajes sin leer dicen «—», no «0 total» ni «0 enviados», y avisan', async () => {
+    red.caida = /item-categories|messages/
+    pintar(<TpvConfiguration />)
+    await waitFor(() => expect(screen.getAllByText(SIN_DATOS).length).toBeGreaterThan(0))
+    expect(seVe('0 total')).toBe(false)
+    expect(seVe('0 enviados')).toBe(false)
+    expect(screen.getAllByText('—').length).toBeGreaterThanOrEqual(2)
   })
 
   it('resumen general en camino o caído: sin «0 de 0 tiendas»', async () => {

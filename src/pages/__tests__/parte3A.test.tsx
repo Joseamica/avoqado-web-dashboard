@@ -250,6 +250,41 @@ describe('ProductWizardDialog · editar un producto', () => {
     expect(document.querySelector('form#step1-form')).toBeNull()
   })
 
+  it('sin plan o permiso de inventario (403 en progreso y receta): nombre y precio se siguen pudiendo editar', async () => {
+    red.caida = /wizard\/progress|products\/p1\/recipe/
+    red.estatus = 403
+    abrir()
+    await waitFor(() => expect(screen.getByDisplayValue('Café real')).toBeInTheDocument())
+    expect(await guardar()).toBeEnabled()
+    expect(screen.queryByText(SIN_DATOS)).toBeNull()
+  })
+
+  describe('un producto con receta', () => {
+    const CON_RECETA: Ruta[] = [[/wizard\/progress/, { data: { inventoryMethod: 'RECIPE', details: null } }], ...RUTAS.filter(([r]) => !String(r).includes('progress'))]
+    const abrirConReceta = () => pintar(<ProductWizardDialog open onOpenChange={() => {}} mode="edit" productId="p1" />, { rutas: CON_RECETA })
+    const LINEA = { rawMaterialId: 'rm1', rawMaterial: { name: 'Harina' }, quantity: 2, unit: 'KILOGRAM', isOptional: false, substituteNotes: null }
+    const RECETA = { data: { portionYield: 1, prepTime: null, cookTime: null, notes: '', lowStockThreshold: null, lines: [LINEA] } }
+
+    it('receta en camino: no dice «sin receta» ni deja agregar ingredientes (guardar reemplazaría la real)', async () => {
+      red.colgada = /products\/p1\/recipe/
+      abrirConReceta()
+      await waitFor(() => expect(screen.getByDisplayValue('Café real')).toBeInTheDocument())
+      const agregar = await screen.findByText('recipes.addIngredient')
+      expect(agregar.closest('button')).toBeDisabled()
+      expect(seVe('recipes.messages.noRecipe')).toBe(false)
+      esperando()
+    })
+
+    it('insumos caídos: los ingredientes se ven, pero el costo total es «—», no $0, y avisa', async () => {
+      red.caida = /raw-materials/
+      pintar(<ProductWizardDialog open onOpenChange={() => {}} mode="edit" productId="p1" />, { rutas: [[/products\/p1\/recipe/, RECETA], ...CON_RECETA] })
+      await screen.findByText(SIN_DATOS)
+      await screen.findByText(/Harina/)
+      expect(screen.getByText(/recipes\.totalCost|Costo total/).parentElement?.textContent).toContain('—')
+      expect(seVe('$0')).toBe(false)
+    })
+  })
+
   it('la receta en camino: el formulario ya se ve, pero «Guardar» espera a que llegue', async () => {
     red.colgada = /products\/p1\/recipe/
     abrir()

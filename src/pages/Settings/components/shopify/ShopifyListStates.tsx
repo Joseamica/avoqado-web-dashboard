@@ -78,7 +78,7 @@ export function ListaPaginada({
     <>
       {recargaCaida && <ErrorConReintento texto={t('list.staleError')} onRetry={() => q.refetch()} cargando={q.isFetching} />}
       {cuantos === 0 ? (
-        !recargaCaida && <p className="text-sm text-muted-foreground">{vacio}</p>
+        <p className="text-sm text-muted-foreground">{vacio}</p>
       ) : (
         <>
           {children}

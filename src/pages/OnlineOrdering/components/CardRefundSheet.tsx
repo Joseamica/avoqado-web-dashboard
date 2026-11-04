@@ -278,15 +278,17 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
 
         <section className="space-y-2">
           <h3 className="text-sm font-medium">{t('cardRefund.history')}</h3>
-          {falloDeCarga(list) ? (
+          {/* Lo leído sigue a la vista, marcado como posiblemente viejo; con él no se decide: enviar y resolver quedan bloqueados. */}
+          {falloDeCarga(list) && (
             <div className="flex flex-wrap items-center gap-2">
               <p className="text-sm text-destructive">{t('cardRefund.loadFailed')}</p>
               <Button type="button" size="sm" variant="outline" disabled={list.isFetching} onClick={() => void list.refetch()}>
                 {t('cardRefund.reload')}
               </Button>
             </div>
-          ) : list.data === undefined ? (
-            <Skeleton className="h-12 w-full rounded-lg" />
+          )}
+          {list.data === undefined ? (
+            !falloDeCarga(list) && <Skeleton className="h-12 w-full rounded-lg" />
           ) : !list.data.length ? (
             <p className="text-sm text-muted-foreground">{t('cardRefund.empty')}</p>
           ) : (
@@ -300,7 +302,8 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
                   <p className="text-xs text-muted-foreground">
                     {formatDateTime(r.createdAt)} · {tPay(`refund.reasons.${r.reason}`)}
                   </p>
-                  {r.status === 'REVERSED' &&
+                  {canSend &&
+                    r.status === 'REVERSED' &&
                     !r.reversal?.resolvedAt &&
                     (other?.id === r.id ? (
                       // Sale de la caja o queda anotado, y no se deshace: nunca con un solo toque (Q1).

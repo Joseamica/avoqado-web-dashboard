@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { esNoEncontrado, falloDeCarga } from '@/lib/falloDeCarga'
+import { esSinPermiso } from '@/lib/reintentoSinPermiso'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -370,7 +371,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
   })
 
   // Fetch raw materials for recipe ingredients
-  const { data: rawMaterialsData } = useQuery({
+  const insumosQuery = useQuery({
     queryKey: ['raw-materials', venueId],
     queryFn: async () => {
       const response = await rawMaterialsApi.getAll(venueId)
@@ -378,6 +379,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
     },
     enabled: !!venueId && open && selectedInventoryMethod === 'RECIPE',
   })
+  const { data: rawMaterialsData } = insumosQuery
 
   // Fetch existing product data in edit mode
   const progresoQuery = useQuery({
@@ -1305,7 +1307,12 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
   // True while edit-mode wizard is fetching the product to prefill the form.
   // During this window we render a skeleton and lock the action buttons so the
   // user can't submit empty data or close mid-fetch.
-  const lecturasDeEdicion = mode === 'edit' && open && !!productId ? [productoQuery, progresoQuery, recetaQuery] : []
+  // Sólo el producto es indispensable. Sin plan o permiso de inventario, progreso y receta contestan 403: esperar no lo arregla, y el
+  // nombre y el precio se siguen pudiendo editar.
+  const lecturasDeEdicion =
+    mode === 'edit' && open && !!productId ? [productoQuery, ...[progresoQuery, recetaQuery].filter(q => !esSinPermiso(q.error))] : []
+  // Con la receta sin leer no se arma otra: agregar un ingrediente impide que la real se cargue, y guardar reemplaza sus líneas.
+  const recetaSinLeer = mode === 'edit' && !!productId && recetaQuery.data === undefined
   // Sin internet `isLoading` es false: sin esto salía el formulario vacío con «Guardar» activo, que guarda encima de lo real.
   const lecturaSinLlegar = lecturasDeEdicion.find(q => q.data === undefined && falloDeCarga(q))
   const isInitialLoadingEdit = mode === 'edit' && open && !!productId && !lecturaSinLlegar && (isLoadingProduct || isLoadingExistingData)
@@ -2184,6 +2191,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                                       type="button"
                                       variant="ghost"
                                       size="sm"
+                                      disabled={recetaSinLeer}
                                       data-tour="product-wizard-add-ingredient"
                                       onClick={() => {
                                         setAddIngredientOpen(true)
@@ -2200,7 +2208,14 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                                     </Button>
                                   </div>
 
-                                  {step3RecipeForm.watch('ingredients').length === 0 ? (
+                                  <AvisoDeCarga query={insumosQuery} hayDatos={rawMaterialsData !== undefined} />
+                                  {recetaSinLeer ? (
+                                    falloDeCarga(recetaQuery) ? (
+                                      <AvisoDeCarga query={recetaQuery} hayDatos={false} />
+                                    ) : (
+                                      <Skeleton className="h-24 w-full" />
+                                    )
+                                  ) : step3RecipeForm.watch('ingredients').length === 0 ? (
                                     <Alert>
                                       <AlertDescription>
                                         {t('recipes.messages.noRecipe')} - {t('recipes.addIngredient').toLowerCase()}
@@ -2274,7 +2289,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                                           {t('recipes.totalCost', { defaultValue: 'Costo total de receta' })}
                                         </span>
                                         <span className="text-base font-bold text-green-600 dark:text-green-400">
-                                          {Currency(
+                                          {rawMaterialsData === undefined ? '—' : Currency(
                                             step3RecipeForm.watch('ingredients').reduce((sum, ing) => {
                                               const rm = rawMaterialsData?.find(r => r.id === ing.rawMaterialId)
                                               const cost = rm ? Number(rm.costPerUnit) * Number(ing.quantity) : 0

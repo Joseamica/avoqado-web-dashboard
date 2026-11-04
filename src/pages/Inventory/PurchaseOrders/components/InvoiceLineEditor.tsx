@@ -1,3 +1,5 @@
+import { falloDeCarga } from '@/lib/falloDeCarga'
+import { BotonReintentar } from '@/components/AvisoDeCarga'
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useId, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -83,7 +85,13 @@ export function InvoiceLineEditor({ venueId, invoiceId, line, onClose }: { venue
           {presentations.data?.filter(p => p.isPurchase).map(p => <option key={p.id} value={`presentation:${p.name}`}>{p.name} = {Number(p.factorToBase)} {getShortLabel(target.unit as Unit)}</option>)}
         </select>
         <p className="text-sm text-muted-foreground">{t(xmlUnit ? 'invoices.receipt.presentationHint' : 'invoices.receipt.explicitPresentation')}</p>
-        {presentations.isError && <p role="alert">{t('invoices.receipt.loadError')}</p>}
+        {presentations.isLoading && <Skeleton className="h-8 w-40" />}
+        {falloDeCarga(presentations) && (
+          <div role="alert" className="flex flex-wrap items-center gap-2 text-sm">
+            <p>{t('invoices.receipt.loadError')}</p>
+            <BotonReintentar query={presentations} />
+          </div>
+        )}
       </section>}
     </div>
   </FullScreenModal>
