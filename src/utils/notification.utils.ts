@@ -1,6 +1,7 @@
 /**
  * Utility functions for browser notifications
  */
+import type { Notification as AvisoDeLista } from '@/services/notification.service'
 
 /**
  * Request permission for browser notifications
@@ -97,4 +98,15 @@ export function getNotificationOptions(priority: string): NotificationOptions {
     default:
       return baseOptions
   }
+}
+
+/**
+ * Convierte el evento `notification_new` del SERVIDOR en una notificación de la lista. El evento trae `timestamp`
+ * y no `createdAt` (D2, 4-nov: la campanita mostraba «Invalid DateTime»); sin id, null.
+ */
+export function avisoEnVivoANotificacion(evento: any): AvisoDeLista | null {
+  const id = evento?.notificationId || evento?.id
+  if (!id) return null
+  const createdAt = evento.createdAt ?? (evento.timestamp ? new Date(evento.timestamp).toISOString() : new Date().toISOString())
+  return { ...evento, id, createdAt }
 }
