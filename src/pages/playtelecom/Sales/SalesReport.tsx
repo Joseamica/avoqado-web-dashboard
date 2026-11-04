@@ -62,6 +62,8 @@ import {
   MessageSquare,
 } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { cn } from '@/lib/utils'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useAccess } from '@/hooks/use-access'
@@ -326,10 +328,7 @@ export function SalesReport() {
   }, [startDate, endDate, venueTimezone])
 
   // Fetch sale verifications
-  const {
-    data: verificationsData,
-    isLoading: isLoadingVerifications,
-  } = useQuery({
+  const verificationsQuery = useQuery({
     queryKey: [
       'sale-verifications',
       venueId,
@@ -353,9 +352,10 @@ export function SalesReport() {
       }),
     enabled: !!venueId,
   })
+  const { data: verificationsData } = verificationsQuery
 
   // Fetch summary
-  const { data: summary, isLoading: isLoadingSummary } = useQuery({
+  const summaryQuery = useQuery({
     queryKey: ['sale-verifications-summary', venueId, apiDateRange.fromDate, apiDateRange.toDate],
     queryFn: () =>
       saleVerificationService.getSaleVerificationsSummary(venueId, {
@@ -364,9 +364,11 @@ export function SalesReport() {
       }),
     enabled: !!venueId,
   })
+  const { data: summary } = summaryQuery
+  const isLoadingSummary = summary === undefined
 
   // Fetch daily data for charts
-  const { data: dailyData } = useQuery({
+  const dailyQuery = useQuery({
     queryKey: ['sale-verifications-daily', venueId, apiDateRange.fromDate, apiDateRange.toDate],
     queryFn: () =>
       saleVerificationService.getDailySalesData(venueId, {
@@ -421,6 +423,8 @@ export function SalesReport() {
     setStartDate('')
     setEndDate('')
   }, [])
+
+  const { data: dailyData } = dailyQuery
 
   // Transform daily data for charts
   const chartData = useMemo(() => {
@@ -569,7 +573,9 @@ export function SalesReport() {
         </div>
       </GlassCard>
 
-      {/* Summary Metrics */}
+      {/* Summary Metrics: sin leer el resumen no hay ingresos $0 ni 0 ventas. */}
+      <AvisoDeCarga query={summaryQuery} hayDatos={summary !== undefined} />
+      {!(summary === undefined && falloDeCarga(summaryQuery)) && (
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Total Revenue */}
         <GlassCard className="p-5">
@@ -658,8 +664,12 @@ export function SalesReport() {
           </div>
         </GlassCard>
       </div>
+      )}
 
       {/* Charts Row */}
+      <AvisoDeCarga query={dailyQuery} hayDatos={dailyData !== undefined} />
+      {dailyQuery.isLoading && <Skeleton className="h-80 w-full rounded-xl" />}
+      {dailyData !== undefined && (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {/* Revenue Trend - 2/3 width */}
         <GlassCard className="md:col-span-2 p-4 sm:p-6">
@@ -746,6 +756,7 @@ export function SalesReport() {
           </div>
         </GlassCard>
       </div>
+      )}
 
       {/* Transactions Table */}
       <GlassCard className="overflow-hidden">
@@ -756,22 +767,24 @@ export function SalesReport() {
               {t('playtelecom:sales.transactionDetails', { defaultValue: 'Detalle de Transacciones' })}
             </h3>
           </div>
-          <div className="flex gap-2">
-            <span className="bg-background border border-border text-muted-foreground text-[10px] font-bold px-2 py-1 rounded flex items-center">
-              <span className="size-2 bg-green-500 rounded-full mr-1" />
-              {t('playtelecom:sales.conciliated', { defaultValue: 'Conciliadas' })}: {(summary?.conciliatedCount ?? 0).toLocaleString()}
-            </span>
-            <span className="bg-background border border-border text-muted-foreground text-[10px] font-bold px-2 py-1 rounded flex items-center">
-              <span className="size-2 bg-yellow-400 rounded-full mr-1" />
-              {t('playtelecom:sales.pending', { defaultValue: 'Pendientes' })}: {summary?.pendingCount ?? 0}
-            </span>
-            {(summary?.withoutVerificationCount ?? 0) > 0 && (
-              <span className="bg-background border border-amber-300 text-amber-600 dark:text-amber-400 text-[10px] font-bold px-2 py-1 rounded flex items-center">
-                <AlertTriangle className="size-3 mr-1" />
-                {t('playtelecom:sales.withoutEvidence', { defaultValue: 'Sin evidencia' })}: {summary?.withoutVerificationCount ?? 0}
+          {summary !== undefined && (
+            <div className="flex gap-2">
+              <span className="bg-background border border-border text-muted-foreground text-[10px] font-bold px-2 py-1 rounded flex items-center">
+                <span className="size-2 bg-green-500 rounded-full mr-1" />
+                {t('playtelecom:sales.conciliated', { defaultValue: 'Conciliadas' })}: {(summary?.conciliatedCount ?? 0).toLocaleString()}
               </span>
-            )}
-          </div>
+              <span className="bg-background border border-border text-muted-foreground text-[10px] font-bold px-2 py-1 rounded flex items-center">
+                <span className="size-2 bg-yellow-400 rounded-full mr-1" />
+                {t('playtelecom:sales.pending', { defaultValue: 'Pendientes' })}: {summary?.pendingCount ?? 0}
+              </span>
+              {(summary?.withoutVerificationCount ?? 0) > 0 && (
+                <span className="bg-background border border-amber-300 text-amber-600 dark:text-amber-400 text-[10px] font-bold px-2 py-1 rounded flex items-center">
+                  <AlertTriangle className="size-3 mr-1" />
+                  {t('playtelecom:sales.withoutEvidence', { defaultValue: 'Sin evidencia' })}: {summary?.withoutVerificationCount ?? 0}
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Search Bar */}
@@ -786,6 +799,8 @@ export function SalesReport() {
             />
           </div>
         </div>
+
+        <AvisoDeCarga query={verificationsQuery} hayDatos={verificationsData !== undefined} />
 
         {/* Table */}
         <div className="overflow-x-auto">
@@ -815,8 +830,8 @@ export function SalesReport() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border/30">
-              {isLoadingVerifications ? (
-                <tr>
+              {verificationsData === undefined ? (
+                !falloDeCarga(verificationsQuery) && <tr>
                   <td colSpan={canApprove ? 6 : 5} className="p-0">
                     <div className="space-y-0 divide-y divide-border/30">
                       {Array.from({ length: 5 }).map((_, i) => (
@@ -1025,11 +1040,12 @@ export function SalesReport() {
         {/* Pagination */}
         <div className="p-4 border-t border-border bg-muted/30 flex justify-between items-center">
           <p className="text-[10px] text-muted-foreground font-bold">
-            {t('playtelecom:sales.showingOf', {
-              defaultValue: 'Mostrando {{current}} de {{total}} ventas',
-              current: verifications.length,
-              total: pagination?.totalCount ?? 0,
-            })}
+            {verificationsData !== undefined &&
+              t('playtelecom:sales.showingOf', {
+                defaultValue: 'Mostrando {{current}} de {{total}} ventas',
+                current: verifications.length,
+                total: pagination?.totalCount ?? 0,
+              })}
           </p>
           <div className="flex gap-2">
             <Button

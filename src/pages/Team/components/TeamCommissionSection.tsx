@@ -138,7 +138,7 @@ export default function TeamCommissionSection({ staffId }: TeamCommissionSection
 	}
 
 	// Si falló la carga no es que gane $0 ni que no tenga comisiones.
-	if (falloDeCarga(listQuery) && !commissions?.summaries?.length) {
+	if (commissions === undefined && falloDeCarga(listQuery)) {
 		return (
 			<GlassCard className="p-6">
 				<AvisoDeCarga query={listQuery} hayDatos={false} />
@@ -186,6 +186,7 @@ export default function TeamCommissionSection({ staffId }: TeamCommissionSection
 			</div>
 
 			{/* Commission History Table */}
+			{!commissions?.summaries?.length && <AvisoDeCarga query={listQuery} hayDatos />}
 			{commissions?.summaries && commissions.summaries.length > 0 ? (
 				<>
 					<h4 className="text-sm font-medium mb-1">{t('staff.history')}</h4>

@@ -5,6 +5,8 @@ import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObjec
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
@@ -277,20 +279,22 @@ export default function ReservationCalendar() {
 
   // Fetch calendar data (reservations) — pass groupBy when active for day view
   const activeGroupBy = view === 'day' && groupBy !== 'none' ? groupBy : undefined
-  const { data: calendarData, isLoading } = useQuery({
+  const calendarQuery = useQuery({
     queryKey: ['reservation-calendar', venueId, dateFrom, dateTo, activeGroupBy],
     queryFn: () => reservationService.getCalendar(venueId, dateFrom, dateTo, activeGroupBy),
     enabled: !!dateFrom && !!dateTo,
   })
+  const { data: calendarData, isLoading } = calendarQuery
 
   const reservations = useMemo(() => calendarData?.reservations ?? [], [calendarData])
 
   // Fetch class sessions for the same date range
-  const { data: classSessions = [] } = useQuery({
+  const sessionsQuery = useQuery({
     queryKey: ['class-sessions', venueId, dateFrom, dateTo],
     queryFn: () => classSessionService.getClassSessions(venueId!, { dateFrom, dateTo }),
     enabled: !!dateFrom && !!dateTo && !!venueId,
   })
+  const { data: classSessions = [] } = sessionsQuery
 
   // ---------------------------------------------------------------------------
   // Google Calendar external busy blocks for the visible range. Treated as a
@@ -1304,10 +1308,12 @@ export default function ReservationCalendar() {
           </div>
         </div>
 
-        {/* Calendar Grid */}
+        {/* Calendar Grid. Sin leer las reservas no hay cuadrícula vacía que enseñar; sin leer las clases, las reservas se quedan y se avisa. */}
+        <AvisoDeCarga query={calendarQuery} hayDatos={calendarData !== undefined} />
+        <AvisoDeCarga query={sessionsQuery} hayDatos={sessionsQuery.data !== undefined} />
         {isLoading ? (
           <div className="flex items-center justify-center h-64 text-muted-foreground">{tCommon('loading')}</div>
-        ) : view === 'month' ? (
+        ) : calendarData === undefined && falloDeCarga(calendarQuery) ? null : view === 'month' ? (
           /* Month view — compact grid of day cells */
           <div className="rounded-xl border border-border overflow-auto max-h-[calc(100vh-220px)]">
             {/* Weekday headers */}

@@ -846,13 +846,13 @@ const MerchantAccounts: React.FC = () => {
       </GlassCard>
 
       {/* Accounts Grid */}
-      <AvisoDeCarga query={listQuery} hayDatos={allAccounts.length > 0} />
+      <AvisoDeCarga query={listQuery} hayDatos={listQuery.data !== undefined} />
       {isLoading ? (
         <div className="flex items-center justify-center py-16">
           <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
           <span className="ml-3 text-muted-foreground">Cargando cuentas...</span>
         </div>
-      ) : falloDeCarga(listQuery) && allAccounts.length === 0 ? null : filteredAccounts.length === 0 ? (
+      ) : listQuery.data === undefined && falloDeCarga(listQuery) ? null : filteredAccounts.length === 0 ? (
         <GlassCard className="p-12 text-center">
           <div className="p-4 rounded-full bg-muted/50 w-fit mx-auto mb-4">
             <CreditCard className="w-10 h-10 text-muted-foreground" />

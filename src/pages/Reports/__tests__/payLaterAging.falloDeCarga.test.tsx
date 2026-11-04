@@ -72,7 +72,7 @@ describe('Cuentas por cobrar si falla la carga', () => {
     expect(screen.queryByText('payLaterAging.empty.title')).not.toBeInTheDocument()
   })
 
-  it('si la lista estaba vacía y falla la recarga, avisa en vez de seguir celebrando', async () => {
+  it('si la lista estaba vacía y falla la recarga, lo leído sigue, con el aviso de que no se actualizó', async () => {
     m.get.mockResolvedValue(vacio)
     montar()
     await screen.findByText('payLaterAging.empty.title')
@@ -80,7 +80,7 @@ describe('Cuentas por cobrar si falla la carga', () => {
     m.get.mockRejectedValue({ response: { status: 500 } })
     void client.invalidateQueries()
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('loadFailure.empty')
-    expect(screen.queryByText('payLaterAging.empty.title')).not.toBeInTheDocument()
+    expect(await screen.findByRole('alert')).toHaveTextContent('loadFailure.partial')
+    expect(screen.getByText('payLaterAging.empty.title')).toBeInTheDocument()
   })
 })

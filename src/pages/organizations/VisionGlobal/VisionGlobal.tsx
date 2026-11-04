@@ -15,6 +15,8 @@ import React, { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { useCurrentOrganization } from '@/hooks/use-current-organization'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import {
   DollarSign,
   Store,
@@ -109,7 +111,11 @@ const MetricCard: React.FC<MetricCardProps> = ({
 const VisionGlobal: React.FC = () => {
   const { t } = useTranslation(['organization', 'common'])
   const navigate = useNavigate()
-  const { organization: _organization, basePath, venues, isLoading, error } = useCurrentOrganization()
+  const { organization: _organization, basePath, venues, venuesQuery, isLoading } = useCurrentOrganization()
+  const leido = venuesQuery.data !== undefined
+  const sinLeer = !leido && falloDeCarga(venuesQuery)
+  // Por las tiendas, no por las estadísticas de la organización: esas colgadas no esconden lo que sí llegó.
+  const cargando = !leido && !sinLeer && isLoading
 
   // Calculate aggregate metrics from venues
   const metrics = useMemo(() => {
@@ -140,21 +146,6 @@ const VisionGlobal: React.FC = () => {
     }).format(amount)
   }
 
-  if (error) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[400px] text-center">
-        <AlertTriangle className="w-12 h-12 text-destructive mb-4" />
-        <h2 className="text-xl font-semibold mb-2">
-          {t('organization:error.loadFailed', { defaultValue: 'Error al cargar datos' })}
-        </h2>
-        <p className="text-muted-foreground mb-4">{error.message}</p>
-        <Button onClick={() => window.location.reload()}>
-          {t('common:retry', { defaultValue: 'Reintentar' })}
-        </Button>
-      </div>
-    )
-  }
-
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -169,15 +160,17 @@ const VisionGlobal: React.FC = () => {
         </p>
       </div>
 
+      <AvisoDeCarga query={venuesQuery} hayDatos={!sinLeer} />
+
       {/* KPI Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {(leido || cargando) && <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
           title={t('organization:metrics.totalSales', { defaultValue: 'Ventas Totales' })}
           value={formatCurrency(metrics.totalSales)}
           change={12.5}
           icon={DollarSign}
           iconColor="from-green-500/80 to-green-600/80"
-          loading={isLoading}
+          loading={cargando}
         />
         <MetricCard
           title={t('organization:metrics.transactions', { defaultValue: 'Transacciones' })}
@@ -185,14 +178,14 @@ const VisionGlobal: React.FC = () => {
           change={8.2}
           icon={TrendingUp}
           iconColor="from-blue-500/80 to-blue-600/80"
-          loading={isLoading}
+          loading={cargando}
         />
         <MetricCard
           title={t('organization:metrics.activeStores', { defaultValue: 'Tiendas Activas' })}
           value={`${metrics.activeStores}/${venues.length}`}
           icon={Store}
           iconColor="from-purple-500/80 to-purple-600/80"
-          loading={isLoading}
+          loading={cargando}
         />
         <MetricCard
           title={t('organization:metrics.totalStaff', { defaultValue: 'Personal Total' })}
@@ -200,9 +193,9 @@ const VisionGlobal: React.FC = () => {
           change={-2.1}
           icon={Users}
           iconColor="from-orange-500/80 to-orange-600/80"
-          loading={isLoading}
+          loading={cargando}
         />
-      </div>
+      </div>}
 
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -268,13 +261,13 @@ const VisionGlobal: React.FC = () => {
             </Button>
           </div>
 
-          {isLoading ? (
+          {cargando ? (
             <div className="space-y-3">
               {[1, 2, 3, 4, 5].map((i) => (
                 <Skeleton key={i} className="h-12 w-full" />
               ))}
             </div>
-          ) : venues.length === 0 ? (
+          ) : !leido ? null : venues.length === 0 ? (
             <div className="h-[200px] flex items-center justify-center">
               <p className="text-muted-foreground">
                 {t('organization:storePerformance.noStores', { defaultValue: 'No hay tiendas registradas' })}

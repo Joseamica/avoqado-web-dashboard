@@ -1,3 +1,5 @@
+import { falloDeCarga } from '@/lib/falloDeCarga'
+import { AvisoDeCarga, BotonReintentar } from '@/components/AvisoDeCarga'
 import { Link, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Download, Plus, RefreshCw } from 'lucide-react'
@@ -35,14 +37,7 @@ export default function CatalogItemsPage() {
   const access = useMasterCatalogAccess({ orgId })
   const catalog = useCatalogItems(orgId)
 
-  if (catalog.isLoading) {
-    return (
-      <div className="space-y-4" aria-label={t('masterCatalog.loading', { defaultValue: 'Cargando catálogo' })}>
-        <Skeleton className="h-10 w-72" />
-        <Skeleton className="h-72 w-full" />
-      </div>
-    )
-  }
+  const leido = catalog.query.data !== undefined
 
   return (
     <div className="space-y-6">
@@ -108,10 +103,17 @@ export default function CatalogItemsPage() {
           </div>
         </CardHeader>
         <CardContent>
-          {catalog.error ? (
-            <p role="alert" className="text-sm text-destructive">
-              {t('masterCatalog.items.loadError', { defaultValue: 'No se pudieron cargar los artículos.' })}
-            </p>
+          {leido && <AvisoDeCarga query={catalog.query} hayDatos />}
+          {!leido && falloDeCarga(catalog.query) ? (
+            <div role="alert" className="space-y-3 text-sm text-destructive">
+              <p>{t('masterCatalog.items.loadError', { defaultValue: 'No se pudieron cargar los artículos.' })}</p>
+              <BotonReintentar query={catalog.query} />
+            </div>
+          ) : !leido ? (
+            <Skeleton
+              className="h-72 w-full"
+              aria-label={t('masterCatalog.loading', { defaultValue: 'Cargando catálogo' })}
+            />
           ) : (
             <Table aria-label={t('masterCatalog.items.tableLabel', { defaultValue: 'Artículos corporativos' })}>
               <TableHeader>

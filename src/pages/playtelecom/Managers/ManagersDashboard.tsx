@@ -51,7 +51,6 @@ import {
   type AttendanceEntry,
 } from './components'
 import { LocationDialog } from './components/LocationDialog'
-import { Skeleton } from '@/components/ui/skeleton'
 
 export function ManagersDashboard() {
   const { t, i18n } = useTranslation(['playtelecom', 'common'])
@@ -99,29 +98,34 @@ export function ManagersDashboard() {
   const selectedVenueId = storeFilter !== 'all' ? storeFilter : undefined
 
   // API hooks using venue-level endpoints (white-label access)
-  const { data: overview, isLoading: overviewLoading } = useStoresOverview({
+  const overviewQuery = useStoresOverview({
     startDate: startDateISO,
     endDate: endDateISO,
     filterVenueId: selectedVenueId,
   })
-  const { data: stockSummary } = useStoresStockSummary()
+  const { data: overview } = overviewQuery
+  const stockSummaryQuery = useStoresStockSummary()
+  const { data: stockSummary } = stockSummaryQuery
   const { data: anomalies } = useStoresAnomalies()
   const { data: venuesResponse } = useStoresVenues()
-  const { data: revenueData } = useStoresRevenueVsTarget({ filterVenueId: selectedVenueId })
-  const { data: storePerformanceData } = useStoresStorePerformance({ startDate: startDateISO, endDate: endDateISO })
+  const revenueQuery = useStoresRevenueVsTarget({ filterVenueId: selectedVenueId })
+  const { data: revenueData } = revenueQuery
+  const storePerformanceQuery = useStoresStorePerformance({ startDate: startDateISO, endDate: endDateISO })
+  const { data: storePerformanceData } = storePerformanceQuery
 
   // Staff attendance using venue-level hook — pass YYYY-MM-DD strings (venue local dates)
   // Se leen en la zona del negocio: con la del navegador, desde otra zona se pedía un día de más (D1).
   const startDateLocal = DateTime.fromJSDate(selectedRange.from).setZone(venueTimezone).toISODate() as string
   const endDateLocal = DateTime.fromJSDate(selectedRange.to).setZone(venueTimezone).toISODate() as string
 
-  const { data: attendanceData, isLoading: attendanceLoading } = useStoresStaffAttendance({
+  const attendanceQuery = useStoresStaffAttendance({
     startDate: startDateLocal,
     endDate: endDateLocal,
     filterVenueId: selectedVenueId,
     status: statusFilter !== 'all' ? statusFilter : undefined,
     refetchInterval: 30000,
   })
+  const { data: attendanceData } = attendanceQuery
 
   // Extract venues array from response
   const venuesData = venuesResponse?.venues
@@ -477,23 +481,6 @@ export function ManagersDashboard() {
     return storePerformanceData.stores.map(s => ({ id: s.id, name: s.name }))
   }, [storePerformanceData])
 
-  const isLoading = overviewLoading || attendanceLoading
-
-  if (isLoading) {
-    return (
-      <div className="space-y-6">
-        <Skeleton className="h-10 rounded-xl" />
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-36 rounded-xl" />)}
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-72 rounded-xl" />)}
-        </div>
-        <Skeleton className="h-80 rounded-xl" />
-      </div>
-    )
-  }
-
   return (
     <div className="space-y-6">
       {/* Header + Filters */}
@@ -561,13 +548,19 @@ export function ManagersDashboard() {
       </div>
 
       {/* KPI Cards */}
-      <ManagerKpiCards data={kpiData} formatCurrency={formatCurrency} anomalies={attendanceAnomalies} />
+      <ManagerKpiCards
+        data={kpiData}
+        formatCurrency={formatCurrency}
+        anomalies={attendanceAnomalies}
+        fuentes={{ tiendas: overviewQuery, incidencias: attendanceQuery, stock: stockSummaryQuery }}
+      />
 
       {/* Charts */}
       <ManagerCharts
         salesBySIM={salesBySIM}
         goals={goals}
         dailySales={dailySales}
+        fuentes={{ categorias: overviewQuery, metas: storePerformanceQuery, ventas: revenueQuery }}
         formatCurrency={formatCurrency}
         onCreateGoal={() => handleOpenGoalDialog()}
         onEditGoal={(storeId, goalId, goalAmount, goalType, goalPeriod) => handleOpenGoalDialog(storeId, goalId, goalAmount, goalType, goalPeriod)}
@@ -575,6 +568,7 @@ export function ManagersDashboard() {
 
       {/* Attendance Log */}
       <AttendanceLog
+        query={attendanceQuery}
         canManage={can('attendance:manage')}
         currentStaffId={user?.id}
         entries={attendanceEntries}

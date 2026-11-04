@@ -452,11 +452,14 @@ const VenuePaymentConfig: React.FC = () => {
 
   // === DATA FETCHING ===
 
-  const { data: paymentConfig, isLoading: configLoading } = useQuery({
+  const paymentConfigQuery = useQuery({
     queryKey: ['venue-payment-config', venue?.id],
     queryFn: () => paymentProviderAPI.getVenuePaymentConfigByVenueId(venue!.id),
     enabled: !!venue?.id,
   })
+  const { data: paymentConfig } = paymentConfigQuery
+  // `null` es «no tiene configuración» (lo que dice su 404). Sin leer no se sabe: no se invita a conectar lo que ya puede estar conectado.
+  const configLoading = !!venue?.id && paymentConfig === undefined && !falloDeCarga(paymentConfigQuery)
 
   const costQuery = useQuery({
     queryKey: ['venue-cost-structures', venue?.id],
@@ -614,6 +617,14 @@ const VenuePaymentConfig: React.FC = () => {
     )
   }
 
+  if (paymentConfig === undefined && falloDeCarga(paymentConfigQuery)) {
+    return (
+      <div className="p-6 max-w-4xl mx-auto">
+        <AvisoDeCarga query={paymentConfigQuery} hayDatos={false} />
+      </div>
+    )
+  }
+
   // === EMPTY STATE ===
 
   if (!paymentConfig) {
@@ -711,6 +722,7 @@ const VenuePaymentConfig: React.FC = () => {
   return (
     <TooltipProvider>
       <div className="p-6 max-w-5xl mx-auto space-y-6">
+        <AvisoDeCarga query={paymentConfigQuery} hayDatos />
         {/* === HEADER === */}
         <div className="flex items-center justify-between">
           <div>
@@ -727,7 +739,7 @@ const VenuePaymentConfig: React.FC = () => {
             <div className="flex items-center gap-2">
               <StatusPulse status={marginsHealthy ? 'success' : marginsHealthy === false ? 'error' : 'neutral'} />
               <span className="text-sm font-medium">
-                {marginsHealthy ? 'Operativo' : marginsHealthy === false ? 'Revisar márgenes' : 'Configurando'}
+                {tarifasSinLeer ? '—' : marginsHealthy ? 'Operativo' : marginsHealthy === false ? 'Revisar márgenes' : 'Configurando'}
               </span>
             </div>
           </div>
@@ -804,15 +816,15 @@ const VenuePaymentConfig: React.FC = () => {
           <div className="col-span-12 lg:col-span-4 grid grid-cols-2 gap-4">
             <MetricCard
               label="Margen Promedio"
-              value={`${averageMargin.toFixed(2)}%`}
+              value={tarifasSinLeer ? '—' : `${averageMargin.toFixed(2)}%`}
               icon={<TrendingUp className="w-4 h-4" />}
               accent={averageMargin >= 0 ? 'green' : 'orange'}
-              trend={averageMargin >= 0 ? 'up' : 'down'}
+              trend={tarifasSinLeer ? 'neutral' : averageMargin >= 0 ? 'up' : 'down'}
               tooltip="Promedio de tu margen en todos los tipos de tarjeta"
             />
             <MetricCard
               label="Tarifa Fija"
-              value={`$${Number(primaryPricing?.fixedFeePerTransaction || 0).toFixed(2)}`}
+              value={pricingQuery.data === undefined ? '—' : `$${Number(primaryPricing?.fixedFeePerTransaction || 0).toFixed(2)}`}
               subValue="por transacción"
               icon={<CircleDollarSign className="w-4 h-4" />}
               accent="blue"

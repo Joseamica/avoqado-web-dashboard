@@ -3,12 +3,14 @@ import { DateTime } from 'luxon'
 import { Lock } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { BotonReintentar } from '@/components/AvisoDeCarga'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useAuth } from '@/context/AuthContext'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import discountService from '@/services/discount.service'
 import { discountError, type DiscountFormValue } from './payment-link-discount.utils'
 import { Currency } from '@/utils/currency'
@@ -199,8 +201,13 @@ export function PaymentLinkDiscountSection({ value, onChange, base, amountType, 
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
-          {catalog.isLoading && <p className="text-sm text-muted-foreground">{t('discount.loading')}</p>}
-          {catalog.isError && <p className="text-sm text-destructive">{t('discount.loadError')}</p>}
+          {catalog.isFetching && !catalog.data && <p className="text-sm text-muted-foreground">{t('discount.loading')}</p>}
+          {falloDeCarga(catalog) && (
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-sm text-destructive">{t('discount.loadError')}</p>
+              <BotonReintentar query={catalog} />
+            </div>
+          )}
           {catalog.data && options.length === 0 && <p className="text-sm text-muted-foreground">{t('discount.emptyCatalog')}</p>}
           {pickedId && !inPage && selected && (
             <p className="text-sm">

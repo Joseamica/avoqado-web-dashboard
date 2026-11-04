@@ -9,6 +9,8 @@ import {
   type TimeRange,
 } from '@/services/organization.service'
 import { getIntlLocale } from '@/utils/i18n-locale'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { useAuth } from '@/context/AuthContext'
 import { StaffRole } from '@/types'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -45,48 +47,33 @@ const OrganizationDashboard: React.FC = () => {
   )
   const canViewOrgAnalytics = isSuperadmin || isOwnerInThisOrg
 
-  const { data: overview, isLoading: isLoadingOverview } = useQuery({
+  const overviewQuery = useQuery({
     queryKey: ['organization', 'enhanced-overview', orgId, timeRange],
     queryFn: () => getEnhancedOverview(orgId!, { timeRange }),
     enabled: !!orgId && canViewOrgAnalytics,
   })
+  const { data: overview } = overviewQuery
 
-  const { data: trends, isLoading: isLoadingTrends } = useQuery({
+  const trendsQuery = useQuery({
     queryKey: ['organization', 'revenue-trends', orgId, timeRange],
     queryFn: () => getRevenueTrends(orgId!, { timeRange }),
     enabled: !!orgId && canViewOrgAnalytics,
   })
+  const { data: trends } = trendsQuery
 
-  const { data: topItems, isLoading: isLoadingTopItems } = useQuery({
+  const topItemsQuery = useQuery({
     queryKey: ['organization', 'top-items', orgId, timeRange],
     queryFn: () => getTopItems(orgId!, { timeRange }, 10),
     enabled: !!orgId && canViewOrgAnalytics,
   })
+  const { data: topItems } = topItemsQuery
 
   const formatCurrency = (amount: number) =>
     new Intl.NumberFormat(localeCode, { style: 'currency', currency: 'MXN' }).format(amount)
 
-  // ── Loading skeleton ──
-  if (isLoadingOverview) {
-    return (
-      <div className="space-y-6">
-        <div>
-          <Skeleton className="h-8 w-56 mb-2" />
-          <Skeleton className="h-4 w-72" />
-        </div>
-        <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} className="h-[120px] rounded-2xl" />
-          ))}
-        </div>
-        <div className="grid gap-4 lg:grid-cols-3">
-          <Skeleton className="h-[380px] rounded-2xl lg:col-span-2" />
-          <Skeleton className="h-[380px] rounded-2xl" />
-        </div>
-        <Skeleton className="h-[300px] rounded-2xl" />
-      </div>
-    )
-  }
+  // Por fuente, nunca un retorno global: mientras llega el resumen siguen el selector y lo que ya llegó. Sin permiso las consultas nunca
+  // corren: ni esqueleto ni $0 eternos, sólo el encabezado.
+  const resumenEnCamino = canViewOrgAnalytics && overview === undefined && !falloDeCarga(overviewQuery)
 
   const kpiCards = [
     {
@@ -131,9 +118,11 @@ const OrganizationDashboard: React.FC = () => {
           <h1 className="text-2xl font-bold text-foreground">
             {overview?.name || t('dashboard.title')}
           </h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            {t('dashboard.subtitle', { count: overview?.venueCount || 0 })}
-          </p>
+          {overview !== undefined && (
+            <p className="text-sm text-muted-foreground mt-0.5">
+              {t('dashboard.subtitle', { count: overview.venueCount || 0 })}
+            </p>
+          )}
         </div>
         <Select value={timeRange} onValueChange={v => setTimeRange(v as TimeRange)}>
           <SelectTrigger className="w-[180px]">
@@ -149,35 +138,63 @@ const OrganizationDashboard: React.FC = () => {
         </Select>
       </div>
 
-      {/* ── KPI Cards ── */}
-      <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
-        {kpiCards.map(card => (
-          <EnhancedKPICard
-            key={card.title}
-            title={card.title}
-            value={card.value}
-            change={card.change}
-            icon={card.icon}
-            color={card.color}
-            bgColor={card.bgColor}
-          />
-        ))}
-      </div>
+      {/* ── KPI Cards ── Cada fuente por su lado: si una cae, avisa ella y lo demás sigue. */}
+      <AvisoDeCarga query={overviewQuery} hayDatos={overview !== undefined} />
+      {resumenEnCamino && (
+        <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-[120px] rounded-2xl" />
+          ))}
+        </div>
+      )}
+      {overview !== undefined && (
+        <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+          {kpiCards.map(card => (
+            <EnhancedKPICard
+              key={card.title}
+              title={card.title}
+              value={card.value}
+              change={card.change}
+              icon={card.icon}
+              color={card.color}
+              bgColor={card.bgColor}
+            />
+          ))}
+        </div>
+      )}
 
       {/* ── Charts + Ranking ── */}
-      <div className="grid gap-4 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          <OrgRevenueTrendsChart data={trends} isLoading={isLoadingTrends} formatCurrency={formatCurrency} />
+      {canViewOrgAnalytics && (
+        <div className="grid gap-4 lg:grid-cols-3">
+          <div className="lg:col-span-2">
+            <AvisoDeCarga query={trendsQuery} hayDatos={trends !== undefined} />
+            {!(trends === undefined && falloDeCarga(trendsQuery)) && (
+              <OrgRevenueTrendsChart data={trends} isLoading={trends === undefined} formatCurrency={formatCurrency} />
+            )}
+          </div>
+          <div className="lg:col-span-1">
+            {overview !== undefined ? (
+              <TopVenuesRanking venues={overview.topVenues} isLoading={false} formatCurrency={formatCurrency} />
+            ) : (
+              resumenEnCamino && <Skeleton className="h-[380px] rounded-2xl" />
+            )}
+          </div>
         </div>
-        <div className="lg:col-span-1">
-          <TopVenuesRanking venues={overview?.topVenues} isLoading={isLoadingOverview} formatCurrency={formatCurrency} />
-        </div>
-      </div>
+      )}
 
       {/* ── Top Items ── */}
-      <TopItemsTable items={topItems} isLoading={isLoadingTopItems} formatCurrency={formatCurrency} />
+      {canViewOrgAnalytics && (
+        <>
+          <AvisoDeCarga query={topItemsQuery} hayDatos={topItems !== undefined} />
+          {!(topItems === undefined && falloDeCarga(topItemsQuery)) && (
+            <TopItemsTable items={topItems} isLoading={topItems === undefined} formatCurrency={formatCurrency} />
+          )}
+        </>
+      )}
 
       {/* ── Venues Performance Grid ── */}
+      {resumenEnCamino && <Skeleton className="h-[300px] rounded-2xl" />}
+      {overview !== undefined && (
       <GlassCard className="p-5">
         <div className="flex items-center justify-between mb-4">
           <div>
@@ -259,6 +276,7 @@ const OrganizationDashboard: React.FC = () => {
           <div className="text-center py-10 text-muted-foreground text-sm">{t('dashboard.noVenues')}</div>
         )}
       </GlassCard>
+      )}
     </div>
   )
 }

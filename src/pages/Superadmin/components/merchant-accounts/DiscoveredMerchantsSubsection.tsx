@@ -33,12 +33,14 @@ import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { CheckCircle2, Info, Loader2, XCircle } from 'lucide-react'
 
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useToast } from '@/hooks/use-toast'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 
 import {
   angelpayUserAccountAPI,
@@ -67,18 +69,14 @@ export function DiscoveredMerchantsSubsection({ venueId, onPendingCountChange }:
   const queryClient = useQueryClient()
   const { toast } = useToast()
 
-  const { data: providers = [] } = useQuery({
+  const providersQuery = useQuery({
     queryKey: ['payment-providers-for-angelpay-discovery'],
     queryFn: () => paymentProviderAPI.getAllPaymentProviders({ active: true }),
   })
+  const { data: providers = [] } = providersQuery
   const angelpayProvider = providers.find((p) => p.code === 'ANGELPAY')
 
-  const {
-    data: pendingMerchants = [],
-    isLoading,
-    isError,
-    error,
-  } = useQuery<MerchantAccount[]>({
+  const pendingQuery = useQuery<MerchantAccount[]>({
     queryKey: ['merchant-accounts-discovered-angelpay', angelpayProvider?.id],
     queryFn: () =>
       paymentProviderAPI.getAllMerchantAccounts({
@@ -87,28 +85,34 @@ export function DiscoveredMerchantsSubsection({ venueId, onPendingCountChange }:
       }),
     enabled: !!angelpayProvider?.id,
   })
+  const { data: pendingMerchants = [], isLoading } = pendingQuery
+  // Con los proveedores leídos y sin AngelPay activo, el vacío sí es verdad. Sin leer no hay cuenta que dar.
+  const pendientesLeidos = pendingQuery.data !== undefined || (providersQuery.data !== undefined && !angelpayProvider)
+  const lecturaCaida = falloDeCarga(providersQuery) ? providersQuery : pendingQuery
 
   // Forward pending count to parent so it can auto-expand the manual-entry
   // fallback when there's nothing to approve. Effect avoids the infinite
   // render loop you'd get by calling the prop directly during render.
   useEffect(() => {
-    onPendingCountChange?.(pendingMerchants.length)
-  }, [pendingMerchants.length, onPendingCountChange])
+    if (pendientesLeidos) onPendingCountChange?.(pendingMerchants.length)
+  }, [pendientesLeidos, pendingMerchants.length, onPendingCountChange])
 
-  const { data: venuePaymentConfig } = useQuery<VenuePaymentConfig | null>({
+  const venueConfigQuery = useQuery<VenuePaymentConfig | null>({
     queryKey: ['venue-payment-config-for-angelpay-approval', venueId],
     queryFn: () => paymentProviderAPI.getVenuePaymentConfig(venueId),
     enabled: !!venueId,
   })
+  const venuePaymentConfig = venueConfigQuery.data
 
   // NEXGO terminals only — AngelPay merchants are brand-incompatible with PAX
   // (backend's `assertMerchantTerminalCompatible` would reject those anyway,
   // and the operator UI should match the eligible set).
-  const { data: venueTerminals = [] } = useQuery<Terminal[]>({
+  const terminalsQuery = useQuery<Terminal[]>({
     queryKey: ['superadmin-terminals-for-angelpay-scoping', venueId],
     queryFn: () => terminalAPI.getAllTerminals({ venueId }),
     enabled: !!venueId,
   })
+  const { data: venueTerminals = [] } = terminalsQuery
   const nexgoTerminals = venueTerminals.filter(
     (t) => (t.brand ?? '').toUpperCase() === 'NEXGO' && t.status === 'ACTIVE',
   )
@@ -177,22 +181,21 @@ export function DiscoveredMerchantsSubsection({ venueId, onPendingCountChange }:
 
   return (
     <div className="space-y-3">
-      <SlotOccupancyBanner config={venuePaymentConfig ?? null} />
+      {/* `null` es «sin configuración»; `undefined`, que no se leyó y no se puede afirmar. */}
+      <AvisoDeCarga query={venueConfigQuery} hayDatos={venuePaymentConfig !== undefined} />
+      {venuePaymentConfig !== undefined && <SlotOccupancyBanner config={venuePaymentConfig} />}
 
-      {isLoading && (
+      {(isLoading || providersQuery.isLoading) && (
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Loader2 className="w-4 h-4 animate-spin" />
           Cargando merchants pendientes…
         </div>
       )}
 
-      {isError && (
-        <p className="text-sm text-destructive">
-          Error al cargar: {(error as Error | undefined)?.message || 'desconocido'}
-        </p>
-      )}
+      <AvisoDeCarga query={lecturaCaida} hayDatos={pendientesLeidos} />
+      {pendingMerchants.length > 0 && <AvisoDeCarga query={terminalsQuery} hayDatos={terminalsQuery.data !== undefined} />}
 
-      {!isLoading && !isError && pendingMerchants.length === 0 && (
+      {pendientesLeidos && pendingMerchants.length === 0 && (
         <Alert>
           <Info className="h-4 w-4" />
           <AlertTitle>Sin merchants descubiertos aún</AlertTitle>

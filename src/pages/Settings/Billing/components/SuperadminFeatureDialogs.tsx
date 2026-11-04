@@ -6,6 +6,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { AlertCircle, Gift, Plus, X, Zap } from 'lucide-react'
 import api from '@/api'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import {
   AlertDialog,
@@ -81,11 +82,7 @@ export function SuperadminFeatureDialogs({
   })
 
   // Superadmin: Fetch all platform features (lazy loaded)
-  const {
-    data: allPlatformFeatures,
-    isLoading: isLoadingPlatformFeatures,
-    error: _platformFeaturesError,
-  } = useQuery({
+  const platformFeaturesQuery = useQuery({
     queryKey: ['superadmin', 'features'],
     queryFn: async () => {
       const service = await loadSuperadminService()
@@ -93,6 +90,7 @@ export function SuperadminFeatureDialogs({
     },
     enabled: true,
   })
+  const { data: allPlatformFeatures, isLoading: isLoadingPlatformFeatures } = platformFeaturesQuery
 
   // Memoized list of features available for superadmin to enable/grant trial
   // Shows ALL platform features that are NOT already active for this venue
@@ -247,6 +245,7 @@ export function SuperadminFeatureDialogs({
             {/* Feature Selection */}
             <div className="space-y-2">
               <Label htmlFor="trial-feature">{t('superadmin.grantTrial.selectFeature', { defaultValue: 'Select Feature' })}</Label>
+              <AvisoDeCarga query={platformFeaturesQuery} hayDatos={superadminFeatureOptions.length > 0} />
               <Select value={grantTrialFeatureCode} onValueChange={setGrantTrialFeatureCode}>
                 <SelectTrigger id="trial-feature">
                   <SelectValue placeholder={t('superadmin.grantTrial.selectPlaceholder', { defaultValue: 'Choose a feature...' })} />
@@ -261,7 +260,7 @@ export function SuperadminFeatureDialogs({
                         {feature.name} - {formatCurrency(Number(feature.monthlyPrice) * 100, 'MXN')}/mo
                       </SelectItem>
                     ))}
-                  {!isLoadingPlatformFeatures && superadminFeatureOptions.length === 0 && (
+                  {allPlatformFeatures !== undefined && superadminFeatureOptions.length === 0 && (
                     <div className="py-2 px-3 text-sm text-muted-foreground">{t('superadmin.noFeaturesAvailable')}</div>
                   )}
                 </SelectContent>
@@ -387,6 +386,7 @@ export function SuperadminFeatureDialogs({
             {/* Feature Selection */}
             <div className="space-y-2">
               <Label htmlFor="enable-feature">{t('superadmin.enableFeature.selectFeature', { defaultValue: 'Select Feature' })}</Label>
+              <AvisoDeCarga query={platformFeaturesQuery} hayDatos={superadminFeatureOptions.length > 0} />
               <Select value={enableFeatureCode} onValueChange={setEnableFeatureCode}>
                 <SelectTrigger id="enable-feature">
                   <SelectValue
@@ -406,7 +406,7 @@ export function SuperadminFeatureDialogs({
                         </div>
                       </SelectItem>
                     ))}
-                  {!isLoadingPlatformFeatures && superadminFeatureOptions.length === 0 && (
+                  {allPlatformFeatures !== undefined && superadminFeatureOptions.length === 0 && (
                     <div className="py-2 px-3 text-sm text-muted-foreground">{t('superadmin.noFeaturesAvailable')}</div>
                   )}
                 </SelectContent>

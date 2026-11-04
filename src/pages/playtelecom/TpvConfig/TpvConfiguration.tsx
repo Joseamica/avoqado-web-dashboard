@@ -17,6 +17,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { AUTH_STATUS_QUERY_KEY } from '@/services/auth.service'
 import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { PorFuente } from '@/components/PorFuente'
 import { Tabs, TabsContent } from '@/components/ui/tabs'
 import { ToastAction } from '@/components/ui/toast'
 import { Button } from '@/components/ui/button'
@@ -106,7 +107,8 @@ export function TpvConfiguration() {
   const [editGoalType, setEditGoalType] = useState<'AMOUNT' | 'QUANTITY' | undefined>()
   const [editGoalPeriod, setEditGoalPeriod] = useState<'DAILY' | 'WEEKLY' | 'MONTHLY' | undefined>()
 
-  const { data: storePerformanceData } = useStoresStorePerformance({})
+  const storesQuery = useStoresStorePerformance({})
+  const { data: storePerformanceData } = storesQuery
 
   const venueGoals = useMemo(() => {
     if (!storePerformanceData?.stores?.length) return []
@@ -279,19 +281,22 @@ export function TpvConfiguration() {
   }, [lecturaLista, saveMutation])
 
   // --- Summary data for General tab ---
-  const { data: categoriesData } = useQuery({
+  const categoriesQuery = useQuery({
     queryKey: ['venue', venueId, 'item-categories'],
     queryFn: () => getItemCategories(venueId!, { includeStats: true }),
     enabled: !!venueId,
     staleTime: 60000,
   })
 
-  const { data: messagesData } = useQuery({
+  const { data: categoriesData } = categoriesQuery
+
+  const messagesQuery = useQuery({
     queryKey: ['tpv-messages', venueId, 'all', 'all'],
     queryFn: () => getTpvMessages(venueId!, { limit: 100 }),
     enabled: !!venueId,
     staleTime: 60000,
   })
+  const { data: messagesData } = messagesQuery
 
   // Summary computed values
   const summaryStats = useMemo(() => {
@@ -492,6 +497,7 @@ export function TpvConfiguration() {
 
         {/* General Tab — Venue Info + Summary Dashboard */}
         <TabsContent value="general" className="space-y-6">
+          <AvisoDeCarga query={storesQuery} hayDatos={storePerformanceData !== undefined} />
           {/* Venue Info Section */}
           <GlassCard className="p-5">
             <div className="flex items-center justify-between mb-4">
@@ -619,13 +625,15 @@ export function TpvConfiguration() {
               </div>
               <div className="space-y-2">
                 <div className="flex items-baseline gap-2">
-                  <span className="text-2xl font-bold">{summaryStats.storesWithGoals}</span>
-                  <span className="text-sm text-muted-foreground">
-                    {t('playtelecom:tpvConfig.summary.goalsTotal', {
-                      total: summaryStats.totalStores,
-                      defaultValue: `de ${summaryStats.totalStores} tiendas`,
-                    })}
-                  </span>
+                  <span className="text-2xl font-bold">{storePerformanceData ? summaryStats.storesWithGoals : '—'}</span>
+                  {storePerformanceData && (
+                    <span className="text-sm text-muted-foreground">
+                      {t('playtelecom:tpvConfig.summary.goalsTotal', {
+                        total: summaryStats.totalStores,
+                        defaultValue: `de ${summaryStats.totalStores} tiendas`,
+                      })}
+                    </span>
+                  )}
                 </div>
                 <div className="w-full bg-muted rounded-full h-1.5">
                   <div
@@ -649,15 +657,21 @@ export function TpvConfiguration() {
                 </div>
                 <ArrowRight className="w-4 h-4 text-muted-foreground" />
               </div>
+              {/* La tarjeta entera es clicable: «Reintentar» no debe abrir su pestaña. */}
+              <div onClick={e => e.stopPropagation()}>
+                <AvisoDeCarga query={categoriesQuery} hayDatos={categoriesData !== undefined} />
+              </div>
               <div className="space-y-2">
                 <div className="flex items-baseline gap-2">
-                  <span className="text-2xl font-bold">{summaryStats.activeCategories}</span>
+                  <span className="text-2xl font-bold">{categoriesData === undefined ? '—' : summaryStats.activeCategories}</span>
+                  {categoriesData !== undefined && (
                   <span className="text-sm text-muted-foreground">
                     {t('playtelecom:tpvConfig.summary.categoriesTotal', {
                       total: summaryStats.totalCategories,
                       defaultValue: `${summaryStats.totalCategories} total`,
                     })}
                   </span>
+                  )}
                 </div>
                 <div className="w-full bg-muted rounded-full h-1.5">
                   <div
@@ -681,15 +695,21 @@ export function TpvConfiguration() {
                 </div>
                 <ArrowRight className="w-4 h-4 text-muted-foreground" />
               </div>
+              {/* La tarjeta entera es clicable: «Reintentar» no debe abrir su pestaña. */}
+              <div onClick={e => e.stopPropagation()}>
+                <AvisoDeCarga query={messagesQuery} hayDatos={messagesData !== undefined} />
+              </div>
               <div className="space-y-2">
                 <div className="flex items-baseline gap-2">
-                  <span className="text-2xl font-bold">{summaryStats.totalMessages}</span>
+                  <span className="text-2xl font-bold">{messagesData === undefined ? '—' : summaryStats.totalMessages}</span>
+                  {messagesData !== undefined && (
                   <span className="text-sm text-muted-foreground">
                     {t('playtelecom:tpvConfig.summary.messagesCount', {
                       count: summaryStats.totalMessages,
                       defaultValue: `${summaryStats.totalMessages} enviados`,
                     })}
                   </span>
+                  )}
                 </div>
               </div>
             </GlassCard>
@@ -725,57 +745,59 @@ export function TpvConfiguration() {
               })}
             </p>
 
-            {venueGoals.length > 0 ? (
-              <div className="space-y-2">
-                {venueGoals.map(venue => (
-                  <div
-                    key={venue.id}
-                    className="flex items-center justify-between rounded-lg bg-background/50 px-3 py-2 border border-border/50"
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="text-sm font-medium min-w-[120px]">{venue.name}</span>
-                      {venue.hasGoal ? (
-                        <>
-                          <Badge
-                            variant="outline"
-                            className={`text-[10px] ${venue.goalSource === 'venue' ? 'border-green-500/30 text-green-500' : 'border-primary/30 text-primary'}`}
-                          >
-                            {venue.goalSource === 'venue'
-                              ? t('playtelecom:supervisor.orgGoals.custom', { defaultValue: 'Personalizada' })
-                              : t('playtelecom:supervisor.orgGoals.inherited', { defaultValue: 'Heredada' })}
-                          </Badge>
-                          <span className="text-sm font-bold">{formatGoalDisplay(venue.goalAmount, venue.goalType)}</span>
-                          <span className="text-xs text-muted-foreground">{periodLabel(venue.goalPeriod)}</span>
-                        </>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">
-                          {t('playtelecom:supervisor.noGoal', { defaultValue: 'Sin meta' })}
-                        </span>
+            <PorFuente query={storesQuery} esqueleto={<Skeleton className="h-16 w-full" />}>
+              {venueGoals.length > 0 ? (
+                <div className="space-y-2">
+                  {venueGoals.map(venue => (
+                    <div
+                      key={venue.id}
+                      className="flex items-center justify-between rounded-lg bg-background/50 px-3 py-2 border border-border/50"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm font-medium min-w-[120px]">{venue.name}</span>
+                        {venue.hasGoal ? (
+                          <>
+                            <Badge
+                              variant="outline"
+                              className={`text-[10px] ${venue.goalSource === 'venue' ? 'border-green-500/30 text-green-500' : 'border-primary/30 text-primary'}`}
+                            >
+                              {venue.goalSource === 'venue'
+                                ? t('playtelecom:supervisor.orgGoals.custom', { defaultValue: 'Personalizada' })
+                                : t('playtelecom:supervisor.orgGoals.inherited', { defaultValue: 'Heredada' })}
+                            </Badge>
+                            <span className="text-sm font-bold">{formatGoalDisplay(venue.goalAmount, venue.goalType)}</span>
+                            <span className="text-xs text-muted-foreground">{periodLabel(venue.goalPeriod)}</span>
+                          </>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">
+                            {t('playtelecom:supervisor.noGoal', { defaultValue: 'Sin meta' })}
+                          </span>
+                        )}
+                      </div>
+                      {canManageGoals && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0"
+                          onClick={() =>
+                            venue.hasGoal && venue.goalSource === 'venue'
+                              ? handleOpenGoalDialog(venue.id, venue.goalId, venue.goalAmount, venue.goalType, venue.goalPeriod)
+                              : handleOpenGoalDialog(venue.id)
+                          }
+                        >
+                          {venue.hasGoal && venue.goalSource === 'venue' ? <Pencil className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
+                        </Button>
                       )}
                     </div>
-                    {canManageGoals && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 w-7 p-0"
-                        onClick={() =>
-                          venue.hasGoal && venue.goalSource === 'venue'
-                            ? handleOpenGoalDialog(venue.id, venue.goalId, venue.goalAmount, venue.goalType, venue.goalPeriod)
-                            : handleOpenGoalDialog(venue.id)
-                        }
-                      >
-                        {venue.hasGoal && venue.goalSource === 'venue' ? <Pencil className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
-                      </Button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-4 text-muted-foreground">
-                <Store className="w-8 h-8 mx-auto mb-2 opacity-40" />
-                <p className="text-sm">{t('playtelecom:tpvConfig.venueGoals.empty', { defaultValue: 'No hay tiendas registradas' })}</p>
-              </div>
-            )}
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-4 text-muted-foreground">
+                  <Store className="w-8 h-8 mx-auto mb-2 opacity-40" />
+                  <p className="text-sm">{t('playtelecom:tpvConfig.venueGoals.empty', { defaultValue: 'No hay tiendas registradas' })}</p>
+                </div>
+              )}
+            </PorFuente>
           </GlassCard>
 
           {/* Goal Dialog */}

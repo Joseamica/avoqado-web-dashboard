@@ -1,3 +1,4 @@
+import { AvisoDeCarga, BotonReintentar } from '@/components/AvisoDeCarga'
 import api from '@/api'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
@@ -30,7 +31,8 @@ export function TokenBudgetSection({ venueId }: TokenBudgetSectionProps) {
   const queryClient = useQueryClient()
 
   // Fetch token budget status
-  const { data: tokenBudget, isLoading, error } = useTokenBudget()
+  const budgetQuery = useTokenBudget()
+  const { data: tokenBudget, isLoading } = budgetQuery
 
   // Local state for dialog and settings
   const [showSettings, setShowSettings] = useState(false)
@@ -137,7 +139,7 @@ export function TokenBudgetSection({ venueId }: TokenBudgetSectionProps) {
     )
   }
 
-  if (error || !tokenBudget) {
+  if (!tokenBudget) {
     return (
       <Card>
         <CardHeader>
@@ -151,6 +153,7 @@ export function TokenBudgetSection({ venueId }: TokenBudgetSectionProps) {
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription>{t('tokenBudget.loadError')}</AlertDescription>
           </Alert>
+          <BotonReintentar query={budgetQuery} className="mt-3" />
         </CardContent>
       </Card>
     )
@@ -158,6 +161,7 @@ export function TokenBudgetSection({ venueId }: TokenBudgetSectionProps) {
 
   return (
     <>
+    <AvisoDeCarga query={budgetQuery} hayDatos />
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">

@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useParams } from 'react-router-dom'
 
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { detalleNoCargo } from '@/lib/falloDeCarga'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -53,11 +55,12 @@ export default function ReservationDetail() {
   const [rescheduleCustomMessage, setRescheduleCustomMessage] = useState('')
 
   // Fetch reservation
-  const { data: reservation, isLoading } = useQuery({
+  const reservationQuery = useQuery({
     queryKey: ['reservation', venueId, reservationId],
     queryFn: () => reservationService.getReservation(venueId, reservationId!),
     enabled: !!reservationId,
   })
+  const { data: reservation, isLoading } = reservationQuery
 
   // Sin esto la miga de pan muestra el id crudo de la reserva
   // ("Reservaciones > Cmtcc2l1q0O09c9d2mc6uy4rt"): el fallback solo sabe humanizar el slug
@@ -174,6 +177,14 @@ export default function ReservationDetail() {
     )
   }
 
+  if (detalleNoCargo(reservationQuery)) {
+    return (
+      <div className="p-4 bg-background text-foreground">
+        <AvisoDeCarga query={reservationQuery} hayDatos={false} />
+      </div>
+    )
+  }
+
   if (!reservation) {
     return (
       <div className="p-4 bg-background text-foreground">
@@ -200,6 +211,7 @@ export default function ReservationDetail() {
 
   return (
     <div className="p-4 bg-background text-foreground">
+      <AvisoDeCarga query={reservationQuery} hayDatos />
       {/* Header: stacks on mobile, side-by-side from md+ */}
       <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div className="min-w-0">

@@ -25,7 +25,6 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { GlassCard } from '@/components/ui/glass-card'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
-import { Skeleton } from '@/components/ui/skeleton'
 import DataTable from '@/components/data-table'
 import { FilterPill, FilterPillBar, CheckboxFilterContent } from '@/components/filters'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
@@ -498,24 +497,6 @@ const OrganizationTeam: React.FC = () => {
 
   // ---------- Render ----------
 
-  if (isLoading) {
-    return (
-      <div className="space-y-4">
-        <div>
-          <Skeleton className="h-9 w-48 mb-2" />
-          <Skeleton className="h-5 w-64" />
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Skeleton className="h-8 w-28 rounded-full" />
-          <Skeleton className="h-8 w-20 rounded-full" />
-          <div className="flex-1" />
-          <Skeleton className="h-10 w-28 rounded-xl" />
-        </div>
-        <Skeleton className="h-[500px] rounded-xl" />
-      </div>
-    )
-  }
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -533,7 +514,7 @@ const OrganizationTeam: React.FC = () => {
               defaultValue: 'Gestiona miembros y roles a nivel organizacion.',
             })}
           />
-          <p className="text-muted-foreground mt-1">{t('organization:team.subtitle', { count: orgTeam?.length || 0 })}</p>
+          {orgTeam !== undefined && <p className="text-muted-foreground mt-1">{t('organization:team.subtitle', { count: orgTeam.length })}</p>}
         </div>
 
         {/* Invite button — header right */}
@@ -620,6 +601,7 @@ const OrganizationTeam: React.FC = () => {
                 <CheckboxFilterContent
                   title={t('organization:team.filterByRole', { defaultValue: 'Filtrar por Rol' })}
                   options={roleOptions}
+                  fuente={listQuery}
                   selectedValues={roleFilter}
                   onApply={setRoleFilter}
                 />

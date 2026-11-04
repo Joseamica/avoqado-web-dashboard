@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
+import { BotonReintentar } from '@/components/AvisoDeCarga'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -10,6 +11,7 @@ import { Loader2, ArrowRight, Info, ChefHat, Package, Sparkles, MapPin, AlertCir
 import { cn } from '@/lib/utils'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { updateProduct } from '@/services/menu.service'
 import { pricingApi, type MarketBenchmarkResult } from '@/services/inventory.service'
 import { getIntlLocale } from '@/utils/i18n-locale'
@@ -432,30 +434,38 @@ export function QuickPriceEditDialog({ open, onOpenChange, row }: Props) {
               </div>
               <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-1 group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-all" />
             </button>
-          ) : benchmark.isLoading ? (
-            <div className="flex items-center gap-3 p-4">
-              <Loader2 className="h-4 w-4 animate-spin text-violet-600 dark:text-violet-400" />
-              <div className="text-sm text-muted-foreground">
-                Analizando lugares cercanos y comparables…
-              </div>
-            </div>
-          ) : benchmark.isError ? (
-            <div className="flex items-start gap-3 p-4">
-              <AlertCircle className="h-4 w-4 mt-0.5 text-rose-600 dark:text-rose-400 flex-none" />
-              <div className="text-sm">
-                <div className="font-medium text-rose-700 dark:text-rose-400">No se pudo generar el benchmark</div>
-                <div className="text-xs text-muted-foreground mt-0.5">
-                  {(benchmark.error as any)?.response?.data?.message || 'Intenta de nuevo en un momento.'}
+          ) : (
+            <>
+              {falloDeCarga(benchmark) && (
+                <div className="flex items-start gap-3 p-4">
+                  <AlertCircle className="h-4 w-4 mt-0.5 text-rose-600 dark:text-rose-400 flex-none" />
+                  <div className="text-sm">
+                    <div className="font-medium text-rose-700 dark:text-rose-400">No se pudo generar el benchmark</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">
+                      {(benchmark.error as any)?.response?.data?.message || 'Intenta de nuevo en un momento.'}
+                    </div>
+                    <BotonReintentar query={benchmark} className="mt-2" />
+                  </div>
                 </div>
-              </div>
-            </div>
-          ) : benchmark.data ? (
-            <BenchmarkResult
-              data={benchmark.data}
-              currency={currency}
-              onUseMedian={n => setPriceInput(n.toFixed(2))}
-            />
-          ) : null}
+              )}
+              {benchmark.data ? (
+                <BenchmarkResult
+                  data={benchmark.data}
+                  currency={currency}
+                  onUseMedian={n => setPriceInput(n.toFixed(2))}
+                />
+              ) : (
+                benchmark.isLoading && (
+                  <div className="flex items-center gap-3 p-4">
+                    <Loader2 className="h-4 w-4 animate-spin text-violet-600 dark:text-violet-400" />
+                    <div className="text-sm text-muted-foreground">
+                      Analizando lugares cercanos y comparables…
+                    </div>
+                  </div>
+                )
+              )}
+            </>
+          )}
         </div>
 
         </div>

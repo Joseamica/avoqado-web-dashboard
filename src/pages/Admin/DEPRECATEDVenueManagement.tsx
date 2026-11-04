@@ -392,7 +392,7 @@ export default function VenueManagement() {
           })()}
 
           <div className="text-xs text-muted-foreground mt-2">
-            {t('admin.venueManagement.showing', { filtered: filteredVenues.length, total: venues.length })}
+            {listQuery.data !== undefined && t('admin.venueManagement.showing', { filtered: filteredVenues.length, total: venues.length })}
           </div>
         </CardContent>
       </Card>

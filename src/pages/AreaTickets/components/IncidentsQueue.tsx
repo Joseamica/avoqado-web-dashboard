@@ -3,12 +3,15 @@ import { useInfiniteQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { AlertTriangle, Loader2 } from 'lucide-react'
 
+import { AvisoDeCarga, BotonReintentar } from '@/components/AvisoDeCarga'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { FilterPill, SingleSelectFilterContent } from '@/components/filters'
+import type { FuenteDeOpciones } from '@/components/filters/EstadoDeOpciones'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { useVenueDateTime } from '@/utils/datetime'
 import {
   getExternalIncidents,
@@ -30,7 +33,7 @@ const INCIDENT_STATUSES: ExternalIncidentStatus[] = ['OPEN', 'RESOLVED', 'DISMIS
  * si alguien los pide con el filtro (historial, no la cola del día a día). Una
  * incidencia abierta NUNCA bloquea el piso — esta pantalla sólo la hace visible.
  */
-export function IncidentsQueue({ venueId, areas }: { venueId: string; areas: FulfillmentArea[] }) {
+export function IncidentsQueue({ venueId, areas, areasQuery }: { venueId: string; areas: FulfillmentArea[]; areasQuery?: FuenteDeOpciones }) {
   const { t } = useTranslation('settings')
   const { formatDateTime } = useVenueDateTime()
   const [areaId, setAreaId] = useState<string | null>(null)
@@ -48,6 +51,7 @@ export function IncidentsQueue({ venueId, areas }: { venueId: string; areas: Ful
   })
 
   const items = useMemo(() => query.data?.pages.flatMap(page => page.items) ?? [], [query.data?.pages])
+  const sinLeer = query.data === undefined && falloDeCarga(query)
   const isDefaultView = status === 'OPEN' && !areaId && !kind && !dateRange.from && !dateRange.to
 
   const areaOptions = useMemo(() => areas.map(area => ({ value: area.id, label: area.name })), [areas])
@@ -81,6 +85,7 @@ export function IncidentsQueue({ venueId, areas }: { venueId: string; areas: Ful
             onSelect={setAreaId}
             searchable
             emptyLabel={t('areaTickets.externalSettlements.filters.noAreas')}
+            fuente={areasQuery}
           />
         </FilterPill>
         <FilterPill label={t('areaTickets.externalSettlements.filters.kind')} activeLabel={kindLabel} onClear={() => setKind(null)}>
@@ -124,15 +129,19 @@ export function IncidentsQueue({ venueId, areas }: { venueId: string; areas: Ful
         </div>
       )}
 
-      {query.isError && (
+      {sinLeer && (
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>{t('areaTickets.externalSettlements.loadError')}</AlertTitle>
-          <AlertDescription>{apiError(query.error, t('areaTickets.externalSettlements.loadErrorFallback'))}</AlertDescription>
+          <AlertDescription>
+            {apiError(query.error, t('areaTickets.externalSettlements.loadErrorFallback'))}
+            <BotonReintentar query={query} className="mt-2" />
+          </AlertDescription>
         </Alert>
       )}
 
-      {!query.isLoading && !query.isError && (
+      {!sinLeer && <AvisoDeCarga query={query} hayDatos />}
+      {!query.isLoading && !sinLeer && (
         <Card className="border-input shadow-sm">
           <CardContent className="p-0">
             <Table>

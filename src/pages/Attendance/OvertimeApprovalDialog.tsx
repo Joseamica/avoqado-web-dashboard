@@ -2,9 +2,11 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { AvisoDeCarga, BotonReintentar } from '@/components/AvisoDeCarga'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { attendanceService, type PayrollSummaryRow } from '@/services/attendance.service'
 import { useVenueDateTime } from '@/utils/datetime'
 
@@ -45,11 +47,12 @@ export function OvertimeApprovalDialog({ venueId, startDate, endDate, persona, o
   const [errorDe, setErrorDe] = useState<Record<string, string>>({})
 
   // Misma clave que usa el reporte de puntualidad: si ya se cargó, esto no pide nada.
-  const { data, isLoading, isError, refetch } = useQuery({
+  const reporte = useQuery({
     queryKey: ['attendance', 'report', venueId, startDate, endDate],
     queryFn: () => attendanceService.getReport(venueId, startDate, endDate),
     enabled: !!persona,
   })
+  const { data } = reporte
 
   // Al cambiar de persona se limpia el borrador: si no, los minutos tecleados para uno
   // aparecerían prellenados en el siguiente.
@@ -119,22 +122,22 @@ export function OvertimeApprovalDialog({ venueId, startDate, endDate, persona, o
           <DialogDescription>{t('payroll.overtime.approve.help')}</DialogDescription>
         </DialogHeader>
 
-        {isLoading && <p className="text-sm text-muted-foreground">{t('loading')}</p>}
+        {data === undefined && !falloDeCarga(reporte) && <p className="text-sm text-muted-foreground">{t('loading')}</p>}
 
-        {isError && (
+        {data === undefined && falloDeCarga(reporte) && (
           <div role="alert" className="space-y-2">
             <p className="text-sm text-destructive">{t('loadError.title')}</p>
-            <Button variant="outline" size="sm" onClick={() => refetch()}>
-              {t('loadError.retry')}
-            </Button>
+            <BotonReintentar query={reporte} />
           </div>
         )}
 
-        {!isLoading && !isError && dias.length === 0 && (
+        {data !== undefined && <AvisoDeCarga query={reporte} hayDatos />}
+
+        {data !== undefined && dias.length === 0 && (
           <p className="text-sm text-muted-foreground">{t('payroll.overtime.approve.empty')}</p>
         )}
 
-        {!isLoading && !isError && dias.length > 0 && (
+        {dias.length > 0 && (
           <div className="max-h-[55vh] space-y-2 overflow-y-auto">
             {dias.map(dia => {
               const autorizados = dia.overtimeApprovedMinutes

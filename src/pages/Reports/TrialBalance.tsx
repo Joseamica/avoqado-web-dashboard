@@ -9,6 +9,8 @@ import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { FeatureGate } from '@/components/billing/FeatureGate'
 import { AccountingErrorState } from '@/components/accounting/AccountingErrorState'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useTierFeatureAccess } from '@/hooks/use-tier-feature-access'
 import { useTrialBalance } from '@/hooks/useTrialBalance'
@@ -75,10 +77,12 @@ function TrialBalanceInner() {
         </div>
       )}
 
-      {query.isLoading && hasAccess ? (
+      {query.data !== undefined && <AvisoDeCarga query={query} hayDatos />}
+
+      {query.data === undefined && hasAccess && !falloDeCarga(query) ? (
         <Skeleton className="h-64 rounded-2xl" />
-      ) : query.isError && hasAccess ? (
-        <AccountingErrorState onRetry={() => query.refetch()} />
+      ) : query.data === undefined && hasAccess ? (
+        <AccountingErrorState error={query.error} onRetry={() => query.refetch()} />
       ) : needsFiscalSetup ? (
         <Card className="border-input">
           <CardContent className="flex flex-col items-center gap-3 py-10 text-center">

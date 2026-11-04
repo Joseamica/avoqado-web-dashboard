@@ -1,9 +1,12 @@
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Skeleton } from '@/components/ui/skeleton'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
 import { pricingApi, type CreatePricingPolicyDto, type PricingPolicy, type UpdatePricingPolicyDto } from '@/services/inventory.service'
@@ -67,7 +70,7 @@ export function PricingPolicyDialog({ open, onOpenChange, product }: PricingPoli
   const minimumPrice = watch('minimumPrice')
 
   // Fetch existing pricing policy
-  const { data: existingPolicy } = useQuery({
+  const policyQuery = useQuery({
     queryKey: ['pricing-policy', venueId, product?.id],
     queryFn: async () => {
       if (!product) return null
@@ -83,6 +86,7 @@ export function PricingPolicyDialog({ open, onOpenChange, product }: PricingPoli
     },
     enabled: !!venueId && !!product && open,
   })
+  const existingPolicy = policyQuery.data
 
   // Calculate suggested price - only when product has an existing policy
   // Note: We calculate suggestedPrice locally in this component (line ~170),
@@ -177,6 +181,26 @@ export function PricingPolicyDialog({ open, onOpenChange, product }: PricingPoli
 
   if (!product) return null
 
+  // `null` es «no tiene política» (404); `undefined`, que no se ha leído: guardar crearía una encima de la que ya tenga.
+  if (existingPolicy === undefined) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{t('pricing.fields.strategy')}</DialogTitle>
+            <DialogDescription>{product.name}</DialogDescription>
+          </DialogHeader>
+          {falloDeCarga(policyQuery) ? <AvisoDeCarga query={policyQuery} hayDatos={false} /> : <Skeleton className="h-64 w-full" />}
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              {t('cancel')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    )
+  }
+
   const recipeCost = product.recipe ? Number(product.recipe.totalCost) : 0
   const currentPrice = Number(product.price)
   const currentFoodCostPercentage = recipeCost > 0 ? (recipeCost / currentPrice) * 100 : 0
@@ -207,6 +231,7 @@ export function PricingPolicyDialog({ open, onOpenChange, product }: PricingPoli
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          <AvisoDeCarga query={policyQuery} hayDatos />
           {/* Current Metrics */}
           <div className="p-4 rounded-lg border border-border bg-muted/50">
             <h3 className="text-sm font-semibold text-foreground mb-3">{t('recipes.fields.currentPrice')}</h3>

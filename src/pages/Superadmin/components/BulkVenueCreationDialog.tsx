@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/select'
 import { useToast } from '@/hooks/use-toast'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { getOrganizationsList, type OrganizationSimple } from '@/services/superadmin-organizations.service'
 import {
   superadminAPI,
@@ -88,11 +89,12 @@ const BulkVenueCreationDialog: React.FC<Props> = ({ open, onOpenChange }) => {
   const [result, setResult] = useState<BulkCreateVenuesResponse | null>(null)
 
   // Queries
-  const { data: organizations = [] } = useQuery<OrganizationSimple[]>({
+  const organizationsQuery = useQuery<OrganizationSimple[]>({
     queryKey: ['superadmin-organizations-list'],
     queryFn: getOrganizationsList,
     enabled: open,
   })
+  const { data: organizations = [] } = organizationsQuery
 
   // Mutation
   const bulkMutation = useMutation({
@@ -264,6 +266,7 @@ const BulkVenueCreationDialog: React.FC<Props> = ({ open, onOpenChange }) => {
               <Label>
                 Organización <span className="text-destructive">*</span>
               </Label>
+              <AvisoDeCarga query={organizationsQuery} hayDatos={organizationsQuery.data !== undefined} />
               <Select value={organizationId} onValueChange={setOrganizationId}>
                 <SelectTrigger className="cursor-pointer">
                   <SelectValue placeholder="Selecciona la organización" />

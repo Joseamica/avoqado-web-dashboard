@@ -14,6 +14,8 @@ import { Separator } from '@/components/ui/separator'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useToast } from '@/hooks/use-toast'
 import { Currency } from '@/utils/currency'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { detalleNoCargo, falloDeCarga } from '@/lib/falloDeCarga'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   AlertCircle,
@@ -490,11 +492,7 @@ export default function PaymentId() {
   const canEdit = user?.role === StaffRole.SUPERADMIN
 
   const { t, i18n } = useTranslation(['payment', 'common'])
-  const {
-    data: payment,
-    isLoading,
-    refetch,
-  } = useQuery({
+  const paymentQuery = useQuery({
     queryKey: ['payment', paymentId],
     queryFn: async () => {
       const response = await api.get(`/api/v1/dashboard/venues/${venueId}/payments/${paymentId}`)
@@ -502,6 +500,7 @@ export default function PaymentId() {
     },
     enabled: !!paymentId,
   })
+  const { data: payment, refetch } = paymentQuery
 
   const { data: receipts = [], isLoading: isLoadingReceipts } = useQuery({
     queryKey: ['receipts', paymentId],
@@ -675,8 +674,21 @@ export default function PaymentId() {
     setReceiptDetailOpen(true)
   }
 
-  if (isLoading) {
-    return (
+  // Sin leer el pago no hay título «N/A» ni base $0.00: el aviso va solo.
+  if (payment === undefined) {
+    return detalleNoCargo(paymentQuery) ? (
+      <div className="max-w-[1400px] mx-auto px-6 py-6">
+        <AvisoDeCarga query={paymentQuery} hayDatos={false} />
+      </div>
+    ) : falloDeCarga(paymentQuery) ? (
+      // Un 404 no es un fallo: el pago no existe y reintentar no lo arregla.
+      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
+        <p className="text-muted-foreground">{t('detail.notFound')}</p>
+        <Button variant="outline" onClick={() => navigate(from)}>
+          {t('detail.backToList')}
+        </Button>
+      </div>
+    ) : (
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
         <p className="text-muted-foreground">{t('detail.loading')}</p>
@@ -721,6 +733,7 @@ export default function PaymentId() {
         {/* Header - Matching OrderId style */}
         <div className="border-b border-border bg-background">
           <div className="max-w-[1400px] mx-auto px-6 py-4">
+            <AvisoDeCarga query={paymentQuery} hayDatos />
             {/* Title + Actions */}
             <div className="flex items-start justify-between">
               <div>

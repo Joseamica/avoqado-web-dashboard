@@ -3,8 +3,11 @@ import { useTranslation } from 'react-i18next'
 import { ChevronLeft, ChevronRight, CircleDashed, CircleDot, Diamond } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Currency } from '@/utils/currency'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { GlassCard } from '@/components/ui/glass-card'
+import { Skeleton } from '@/components/ui/skeleton'
 import { useSettlementWeek } from '@/hooks/useSettlementWeek'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import type { SettlementWeekDay } from '@/services/availableBalance.service'
 import { addWeeks, currentWeekStart, weekDays } from './weekMath'
 
@@ -58,7 +61,8 @@ export function SettlementWeekStrip({ venueId, venueTimezone, className }: Props
   const locale = i18n.language
   const [weekStart, setWeekStart] = useState(() => currentWeekStart(venueTimezone))
   const [openDate, setOpenDate] = useState<string | null>(null)
-  const { data, isLoading } = useSettlementWeek(venueId, weekStart)
+  const weekQuery = useSettlementWeek(venueId, weekStart)
+  const { data, isLoading } = weekQuery
 
   const byDate = useMemo(() => new Map((data?.days ?? []).map(d => [d.date, d])), [data])
   const cells = useMemo(() => weekDays(weekStart), [weekStart])
@@ -105,7 +109,13 @@ export function SettlementWeekStrip({ venueId, venueTimezone, className }: Props
         </div>
       )}
 
-      {/* 7-day strip */}
+      {/* Sin leer la semana no hay siete días en $0.00: la flecha de semanas sigue a la mano. */}
+      <div className="mt-3 empty:hidden">
+        <AvisoDeCarga query={weekQuery} hayDatos={data !== undefined} />
+      </div>
+      {data === undefined ? (
+        !falloDeCarga(weekQuery) && <Skeleton className="mt-3 h-24 w-full" />
+      ) : (
       <div className="mt-3 flex snap-x gap-2 overflow-x-auto pb-2">
         {cells.map(dateKey => {
           const day = byDate.get(dateKey)
@@ -135,6 +145,7 @@ export function SettlementWeekStrip({ venueId, venueTimezone, className }: Props
           )
         })}
       </div>
+      )}
 
       {/* Per-day detail */}
       {openDay && (

@@ -17,6 +17,8 @@ import { cn } from '@/lib/utils'
 import * as marketingService from '@/services/superadmin-marketing.service'
 import type { EmailTemplate } from '@/services/superadmin-marketing.service'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { DateTime } from 'luxon'
 import { ArrowLeft, FileText, Loader2, Mail, MoreHorizontal, Pencil, Plus, RefreshCw, Trash2 } from 'lucide-react'
 import { useState } from 'react'
@@ -84,10 +86,11 @@ function TemplatesPage() {
   const [bodyHtml, setBodyHtml] = useState('')
 
   // Fetch templates
-  const { data, isLoading, refetch } = useQuery({
+  const templatesQuery = useQuery({
     queryKey: ['marketing-templates', searchQuery],
     queryFn: () => marketingService.listTemplates({ search: searchQuery || undefined }),
   })
+  const { data, isLoading, refetch } = templatesQuery
 
   // Create mutation
   const createMutation = useMutation({
@@ -214,7 +217,7 @@ function TemplatesPage() {
               </div>
               <div>
                 <h3 className="font-semibold text-sm">Templates guardados</h3>
-                <p className="text-xs text-muted-foreground">Total: {data?.total || 0} template(s)</p>
+                {data !== undefined && <p className="text-xs text-muted-foreground">Total: {data.total || 0} template(s)</p>}
               </div>
             </div>
             <Button variant="outline" size="sm" className="rounded-full cursor-pointer" onClick={() => refetch()}>
@@ -238,12 +241,13 @@ function TemplatesPage() {
             </div>
           </div>
 
+          <AvisoDeCarga query={templatesQuery} hayDatos={data !== undefined} />
           {/* Table */}
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
-          ) : !data?.templates.length ? (
+          ) : data === undefined && falloDeCarga(templatesQuery) ? null : !data?.templates.length ? (
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
               <FileText className="h-8 w-8 mb-3 opacity-40" />
               <p className="text-sm">No hay templates</p>

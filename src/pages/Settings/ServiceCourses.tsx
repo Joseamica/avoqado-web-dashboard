@@ -8,7 +8,9 @@ import { useAccess } from '@/hooks/use-access'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useCurrentOrganization } from '@/hooks/use-current-organization'
 import { useToast } from '@/hooks/use-toast'
+import { BotonReintentar } from '@/components/AvisoDeCarga'
 import { FeatureGate } from '@/components/billing/FeatureGate'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -305,13 +307,11 @@ export function ServiceCoursesContent({
           {t('loading')}
         </p>
       )}
-      {query.isError && (
+      {falloDeCarga(query) && (
         <Alert variant="destructive">
           <AlertDescription>
             <p>{t('loadError')}</p>
-            <Button variant="outline" className="mt-3" onClick={() => void query.refetch()}>
-              {t('retry')}
-            </Button>
+            <BotonReintentar query={query} className="mt-3" />
           </AlertDescription>
         </Alert>
       )}

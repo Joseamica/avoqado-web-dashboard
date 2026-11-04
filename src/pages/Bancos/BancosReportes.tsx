@@ -14,6 +14,10 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
 import { Skeleton } from '@/components/ui/skeleton'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { SummaryQueryBoundary } from '@/components/SummaryQueryBoundary'
+import { falloDeCarga } from '@/lib/falloDeCarga'
+import { esSinPermiso } from '@/lib/reintentoSinPermiso'
 import { cn } from '@/lib/utils'
 import { Currency } from '@/utils/currency'
 import { getIntlLocale } from '@/utils/i18n-locale'
@@ -96,10 +100,13 @@ function ReportsContent({ venueId, accounts }: { venueId: string; accounts: Banc
       queryFn: () => financialConnectionAPI.getMovementStats(venueId, account.id, range),
     })),
   })
-  const statsLoading = statsQueries.some(q => q.isLoading)
-  // Una cuenta que falla deja el total de LAS 4 categorías incompleto (cada categoría suma sobre
+  const statsLoading = statsQueries.some(q => q.data === undefined && !falloDeCarga(q))
+  // Una cuenta SIN LEER deja el total de LAS 4 categorías incompleto (cada categoría suma sobre
   // todas las cuentas) — nunca mostrar $0 fabricado cuando en realidad no se pudo leer todo.
-  const statsError = statsQueries.some(q => q.isError)
+  const statsSinLeer = statsQueries.filter(q => q.data === undefined && falloDeCarga(q))
+  const statsError = statsSinLeer.length > 0
+  // Con todo leído y una recarga caída, los importes siguen, con su aviso.
+  const statsRecarga = statsQueries.find(q => q.data !== undefined && falloDeCarga(q)) ?? null
 
   const totals = useMemo(
     () => ({
@@ -121,7 +128,18 @@ function ReportsContent({ venueId, accounts }: { venueId: string; accounts: Banc
 
   return (
     <div className="flex flex-col gap-5">
-      {statsError && <div className="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">{t('hub.reports.statsError')}</div>}
+      {statsError ? (
+        <SummaryQueryBoundary
+          isError
+          message={t('hub.reports.statsError')}
+          retryLabel={t('hub.error.retry')}
+          onRetry={statsSinLeer.some(q => esSinPermiso(q.error)) ? undefined : () => statsSinLeer.forEach(q => void q.refetch())}
+        >
+          {null}
+        </SummaryQueryBoundary>
+      ) : (
+        <AvisoDeCarga query={statsRecarga} hayDatos />
+      )}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <KpiCard
           label={t('movements.stats.speiIn')}
@@ -168,8 +186,9 @@ function ReportsContent({ venueId, accounts }: { venueId: string; accounts: Banc
           <CardDescription>{t('hub.reports.trend.description')}</CardDescription>
         </CardHeader>
         <CardContent>
-          {trend.isLoading ? (
-            <Skeleton className="h-[220px] w-full" />
+          <AvisoDeCarga query={trend} hayDatos={trend.data !== undefined} />
+          {trend.data === undefined ? (
+            !falloDeCarga(trend) && <Skeleton className="h-[220px] w-full" />
           ) : (
             <ChartContainer config={chartConfig} className="aspect-auto h-[220px] w-full">
               <LineChart accessibilityLayer data={trend.data?.points ?? []} margin={{ left: 12, right: 12 }}>
@@ -189,7 +208,7 @@ function ReportsContent({ venueId, accounts }: { venueId: string; accounts: Banc
 export default function BancosReportes() {
   const { t } = useTranslation('financialConnections')
   const { hasAccess } = useTierFeatureAccess('BANKING_HUB')
-  const { venueId, accounts, hasConnection, hasPendingConnection, hasProviders, isLoading, isError, refetch } = useBancosData({
+  const { venueId, accounts, hasConnection, hasPendingConnection, hasProviders, isLoading, isError, recarga, refetch } = useBancosData({
     enabled: hasAccess,
   })
 
@@ -197,6 +216,7 @@ export default function BancosReportes() {
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-5 p-4 sm:p-6">
       <BancosPageHeader title={t('hub.reports.title')} description={t('hub.reports.description')} />
       <FeatureGate feature="BANKING_HUB">
+        {!isError && <AvisoDeCarga query={recarga} hayDatos />}
         {isLoading ? (
           <Skeleton className="h-64 w-full rounded-xl" />
         ) : isError ? (

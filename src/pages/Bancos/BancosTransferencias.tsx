@@ -4,6 +4,7 @@
  * NEGOCIO (guard backend + UI).
  * Reusa BankInternalTransferDialog. Gated PRO (teaser visible).
  */
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ArrowUpRight } from 'lucide-react'
@@ -22,7 +23,7 @@ import { type FinancialAccountSummary } from '@/services/financialConnection.ser
 export default function BancosTransferencias() {
   const { t } = useTranslation('financialConnections')
   const { hasAccess } = useTierFeatureAccess('BANKING_HUB')
-  const { venueId, accounts, hasConnection, hasPendingConnection, hasProviders, isLoading, isError, refetch } = useBancosData({
+  const { venueId, accounts, hasConnection, hasPendingConnection, hasProviders, isLoading, isError, recarga, refetch } = useBancosData({
     enabled: hasAccess,
   })
   const [transferAccount, setTransferAccount] = useState<FinancialAccountSummary | null>(null)
@@ -34,6 +35,7 @@ export default function BancosTransferencias() {
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-5 p-4 sm:p-6">
       <BancosPageHeader title={t('hub.transfers.title')} description={t('hub.transfers.description')} />
       <FeatureGate feature="BANKING_HUB">
+        {!isError && <AvisoDeCarga query={recarga} hayDatos />}
         {isLoading ? (
           <Skeleton className="h-40 w-full rounded-xl" />
         ) : isError ? (

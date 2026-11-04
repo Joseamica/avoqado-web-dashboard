@@ -8,6 +8,7 @@
  * El backend agrega idempotencyKey del proveedor + dedup por contenido + auditoría + rate limit.
  * Solo cuentas PERSONALES (guard backend + UI, igual que Transferencias internas).
  */
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
@@ -310,7 +311,7 @@ function SpeiForm({ venueId, accounts }: { venueId: string; accounts: BancosData
 export default function BancosSpei() {
   const { t } = useTranslation('financialConnections')
   const { hasAccess } = useTierFeatureAccess('BANKING_HUB')
-  const { venueId, accounts, hasConnection, hasPendingConnection, hasProviders, isLoading, isError, refetch } = useBancosData({
+  const { venueId, accounts, hasConnection, hasPendingConnection, hasProviders, isLoading, isError, recarga, refetch } = useBancosData({
     enabled: hasAccess,
   })
 
@@ -318,6 +319,7 @@ export default function BancosSpei() {
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-5 p-4 sm:p-6">
       <BancosPageHeader title={t('hub.spei.title')} description={t('hub.spei.description')} />
       <FeatureGate feature="BANKING_HUB">
+        {!isError && <AvisoDeCarga query={recarga} hayDatos />}
         {isLoading ? (
           <Skeleton className="h-64 w-full rounded-xl" />
         ) : isError ? (

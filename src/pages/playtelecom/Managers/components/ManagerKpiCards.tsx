@@ -5,6 +5,8 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { GlassCard } from '@/components/ui/glass-card'
+import { PorFuente } from '@/components/PorFuente'
+import type { EstadoDeCarga } from '@/lib/falloDeCarga'
 import {
   Dialog,
   DialogContent,
@@ -34,9 +36,11 @@ interface ManagerKpiCardsProps {
   data: ManagerKpiData
   formatCurrency: (value: number) => string
   anomalies?: CrossStoreAnomaly[]
+  /** De qué consulta sale cada tarjeta: si una cae, sólo esa avisa. */
+  fuentes: Record<'tiendas' | 'incidencias' | 'stock', EstadoDeCarga & { data: unknown }>
 }
 
-export function ManagerKpiCards({ data, formatCurrency, anomalies = [] }: ManagerKpiCardsProps) {
+export function ManagerKpiCards({ data, formatCurrency, anomalies = [], fuentes }: ManagerKpiCardsProps) {
   const { t } = useTranslation('playtelecom')
   const [selectedType, setSelectedType] = useState<CrossStoreAnomaly['type'] | null>(null)
   const [expandedId, setExpandedId] = useState<string | null>(null)
@@ -73,21 +77,24 @@ export function ManagerKpiCards({ data, formatCurrency, anomalies = [] }: Manage
           <h3 className="text-xs font-bold text-muted-foreground uppercase mb-3">
             {t('managers.kpi.storeStatus', { defaultValue: 'Estatus Tiendas' })}
           </h3>
-          <div className="flex items-center justify-between">
-            <div className="text-center">
-              <span className="text-2xl font-black text-green-400 block">{data.storesOpen}</span>
-              <span className="text-[10px] text-muted-foreground uppercase font-bold">
-                {t('managers.kpi.open', { defaultValue: 'Abiertas' })}
-              </span>
+          {/* Misma fuente que «Total en Calle»: su aviso sale en esa tarjeta. */}
+          <PorFuente query={fuentes.tiendas} conAviso={false}>
+            <div className="flex items-center justify-between">
+              <div className="text-center">
+                <span className="text-2xl font-black text-green-400 block">{data.storesOpen}</span>
+                <span className="text-[10px] text-muted-foreground uppercase font-bold">
+                  {t('managers.kpi.open', { defaultValue: 'Abiertas' })}
+                </span>
+              </div>
+              <div className="h-8 w-px bg-border" />
+              <div className="text-center">
+                <span className="text-2xl font-black text-red-400 block">{data.storesClosed}</span>
+                <span className="text-[10px] text-muted-foreground uppercase font-bold">
+                  {t('managers.kpi.closed', { defaultValue: 'Cerradas' })}
+                </span>
+              </div>
             </div>
-            <div className="h-8 w-px bg-border" />
-            <div className="text-center">
-              <span className="text-2xl font-black text-red-400 block">{data.storesClosed}</span>
-              <span className="text-[10px] text-muted-foreground uppercase font-bold">
-                {t('managers.kpi.closed', { defaultValue: 'Cerradas' })}
-              </span>
-            </div>
-          </div>
+          </PorFuente>
         </GlassCard>
 
         {/* Incidents */}
@@ -96,20 +103,23 @@ export function ManagerKpiCards({ data, formatCurrency, anomalies = [] }: Manage
             <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
             {t('managers.kpi.incidents', { defaultValue: 'Incidencias' })}
           </h3>
-          <ul className="space-y-2">
-            {data.incidents.map((inc, i) => (
-              <li
-                key={i}
-                className="flex justify-between items-center text-xs cursor-pointer rounded px-1 -mx-1 py-0.5 hover:bg-muted/50 transition-colors"
-                onClick={() => setSelectedType(inc.anomalyType)}
-              >
-                <span className="underline decoration-dotted underline-offset-2">{inc.label}</span>
-                <span className={cn('px-1.5 py-0.5 rounded font-bold border text-[10px]', severityColor(inc.severity))}>
-                  {inc.count}
-                </span>
-              </li>
-            ))}
-          </ul>
+          {/* Sin leer la asistencia no hay «OK». Su aviso sale en la bitácora de asistencia, que es la misma consulta. */}
+          <PorFuente query={fuentes.incidencias} conAviso={false}>
+            <ul className="space-y-2">
+              {data.incidents.map((inc, i) => (
+                <li
+                  key={i}
+                  className="flex justify-between items-center text-xs cursor-pointer rounded px-1 -mx-1 py-0.5 hover:bg-muted/50 transition-colors"
+                  onClick={() => setSelectedType(inc.anomalyType)}
+                >
+                  <span className="underline decoration-dotted underline-offset-2">{inc.label}</span>
+                  <span className={cn('px-1.5 py-0.5 rounded font-bold border text-[10px]', severityColor(inc.severity))}>
+                    {inc.count}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </PorFuente>
         </GlassCard>
 
         {/* Stock SIMs */}
@@ -117,6 +127,7 @@ export function ManagerKpiCards({ data, formatCurrency, anomalies = [] }: Manage
           <h3 className="text-xs font-bold text-muted-foreground uppercase mb-3">
             {t('managers.kpi.stockSims', { defaultValue: 'Stock SIMs' })}
           </h3>
+          <PorFuente query={fuentes.stock}>
           <div className="space-y-3">
             {data.stockByCategory.map((cat, i) => (
               <div key={i}>
@@ -136,6 +147,7 @@ export function ManagerKpiCards({ data, formatCurrency, anomalies = [] }: Manage
               </div>
             ))}
           </div>
+          </PorFuente>
         </GlassCard>
 
         {/* Total Cash in Field */}
@@ -144,12 +156,14 @@ export function ManagerKpiCards({ data, formatCurrency, anomalies = [] }: Manage
           <p className="text-muted-foreground text-[10px] font-bold uppercase tracking-widest mb-1">
             {t('managers.kpi.totalInField', { defaultValue: 'Total en Calle' })}
           </p>
-          <h3 className="text-3xl font-black tracking-tight">{formatCurrency(data.totalCashInField)}</h3>
-          <div className="flex items-center gap-2 mt-2">
-            <span className="text-[10px] bg-green-500/10 text-green-400 px-2 rounded border border-green-500/20 font-bold">
-              {data.cashCollectedPercent}% {t('managers.kpi.collected', { defaultValue: 'Recaudado' })}
-            </span>
-          </div>
+          <PorFuente query={fuentes.tiendas}>
+            <h3 className="text-3xl font-black tracking-tight">{formatCurrency(data.totalCashInField)}</h3>
+            <div className="flex items-center gap-2 mt-2">
+              <span className="text-[10px] bg-green-500/10 text-green-400 px-2 rounded border border-green-500/20 font-bold">
+                {data.cashCollectedPercent}% {t('managers.kpi.collected', { defaultValue: 'Recaudado' })}
+              </span>
+            </div>
+          </PorFuente>
         </GlassCard>
       </div>
 

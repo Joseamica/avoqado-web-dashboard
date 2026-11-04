@@ -3,7 +3,7 @@
  * todo-o-nada con CAS por destino; y una respuesta PERDIDA se reconcilia releyendo (la lista y la vista de cada destino),
  * nunca re-copiando sola. Varias pruebas RETIENEN respuestas: así se mira el diálogo mientras espera.
  */
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { onlineManager, QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -158,6 +158,29 @@ beforeEach(() => {
 })
 
 describe('CopyDesignDialog', () => {
+  it('🔴 lectura vacía y recarga caída: el vacío sigue, con el aviso de que no se actualizó (Codex r7)', async () => {
+    vi.mocked(listCustomerDisplayDevices).mockResolvedValue({ total: 0, nextCursor: null, devices: [] })
+    const { qc } = pintar()
+    expect(await screen.findByText('copy.empty')).toBeInTheDocument()
+    vi.mocked(listCustomerDisplayDevices).mockRejectedValue(new Error('caída'))
+    await act(() => qc.refetchQueries({ queryKey: CLAVE_DE_LA_LISTA }).catch(() => undefined))
+    expect(await screen.findByText('copy.listStale')).toBeInTheDocument()
+    expect(screen.getByText('copy.empty')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'retry' })).toBeInTheDocument()
+  })
+  it('🔴 con filas y la recarga en pausa: las filas siguen, con el aviso (Codex r7)', async () => {
+    dosPaginas()
+    const { qc } = pintar()
+    await screen.findByRole('checkbox', { name: 'Barra' })
+    onlineManager.setOnline(false)
+    try {
+      void qc.refetchQueries({ queryKey: CLAVE_DE_LA_LISTA })
+      expect(await screen.findByText('copy.listStale')).toBeInTheDocument()
+      expect(screen.getByRole('checkbox', { name: 'Barra' })).toBeInTheDocument()
+    } finally {
+      onlineManager.setOnline(true)
+    }
+  })
   it('lista paginada: total sin el origen, «Cargar más» con el cursor, y el estado de cada destino', async () => {
     dosPaginas()
     const user = userEvent.setup()

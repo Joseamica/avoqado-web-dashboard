@@ -19,6 +19,8 @@ import { getOrganizationsList, type OrganizationSimple } from '@/services/supera
 import { getOrganizationVenues } from '@/services/organization.service'
 import { getAllVenues } from '@/services/superadmin.service'
 import { useQuery } from '@tanstack/react-query'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import {
@@ -151,10 +153,12 @@ export default function SuperadminActivityLog() {
   )
 
   // Data fetching
-  const { data, isLoading } = useQuery<SuperadminActivityLogResponse>({
+  const logsQuery = useQuery<SuperadminActivityLogResponse>({
     queryKey: ['superadmin-activity-log', filters],
     queryFn: () => getSuperadminActivityLogs(filters),
   })
+  const { data, isLoading } = logsQuery
+  const sinBitacora = data === undefined && falloDeCarga(logsQuery)
 
   const { data: organizations } = useQuery<OrganizationSimple[]>({
     queryKey: ['superadmin-organizations-list'],
@@ -207,24 +211,6 @@ export default function SuperadminActivityLog() {
 
   // Stats
   const totalLogs = paginationData?.total ?? 0
-
-  // Loading skeleton
-  if (isLoading) {
-    return (
-      <div className="space-y-6">
-        <div>
-          <Skeleton className="h-8 w-64 mb-2" />
-          <Skeleton className="h-4 w-96" />
-        </div>
-        <div className="flex gap-3">
-          <Skeleton className="h-10 flex-1" />
-          <Skeleton className="h-10 w-[200px]" />
-          <Skeleton className="h-10 w-[200px]" />
-        </div>
-        <Skeleton className="h-[600px] rounded-xl" />
-      </div>
-    )
-  }
 
   return (
     <TooltipProvider>
@@ -312,7 +298,11 @@ export default function SuperadminActivityLog() {
           </div>
         </div>
 
+        <AvisoDeCarga query={logsQuery} hayDatos={data !== undefined} volverAlInicio={sinBitacora && page > 1 ? () => setPage(1) : undefined} />
+
         {/* Table */}
+        {isLoading && <Skeleton className="h-[600px] rounded-xl" />}
+        {data !== undefined && (
         <Card className="border-input overflow-hidden">
           <CardContent className="p-0">
             {logs.length === 0 ? (
@@ -346,6 +336,7 @@ export default function SuperadminActivityLog() {
             )}
           </CardContent>
         </Card>
+        )}
 
         {/* Pagination */}
         {paginationData && paginationData.totalPages > 1 && (

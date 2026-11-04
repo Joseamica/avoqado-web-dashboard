@@ -12,6 +12,8 @@
 import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -111,11 +113,12 @@ export function CategoryManagement({ open, onOpenChange, onCategorySelect }: Cat
   const [formData, setFormData] = useState<CategoryFormData>(defaultFormData)
 
   // Fetch categories
-  const { data: categoriesData, isLoading } = useQuery({
+  const categoriesQuery = useQuery({
     queryKey: ['item-categories', venueId],
     queryFn: () => getItemCategories(venueId!, { includeStats: true }),
     enabled: !!venueId,
   })
+  const { data: categoriesData, isLoading } = categoriesQuery
 
   const categories = useMemo(() => categoriesData?.categories || [], [categoriesData])
 
@@ -257,7 +260,8 @@ export function CategoryManagement({ open, onOpenChange, onCategorySelect }: Cat
       </div>
 
       {/* Categories Grid */}
-      {categories.length > 0 ? (
+      <AvisoDeCarga query={categoriesQuery} hayDatos={categoriesData !== undefined} />
+      {categoriesData === undefined && falloDeCarga(categoriesQuery) ? null : categories.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {categories.map((category) => (
             <div

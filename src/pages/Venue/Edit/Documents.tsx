@@ -1,6 +1,8 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { AvisoDeCarga, BotonReintentar } from '@/components/AvisoDeCarga'
+import { esNoEncontrado } from '@/lib/falloDeCarga'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -71,7 +73,7 @@ export default function VenueDocuments() {
   const [rejectionReason, setRejectionReason] = useState('')
   const [selectedRejectedDocs, setSelectedRejectedDocs] = useState<string[]>([])
 
-  const { data: venue, isLoading } = useQuery<VenueDocuments>({
+  const venueQuery = useQuery<VenueDocuments>({
     queryKey: ['venue-documents', venueId],
     queryFn: async () => {
       const response = await api.get(`/api/v1/dashboard/venues/${venueId}`)
@@ -83,6 +85,7 @@ export default function VenueDocuments() {
       return failureCount < 2
     },
   })
+  const { data: venue, isLoading } = venueQuery
 
   // Mutation for uploading a single document
   const uploadDocumentMutation = useMutation({
@@ -341,11 +344,16 @@ export default function VenueDocuments() {
   if (!venue) {
     return (
       <div className="max-w-3xl mx-auto pt-6 pb-20 px-4 md:px-6 lg:px-8">
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>{t('edit.documents.error', { defaultValue: 'Error' })}</AlertTitle>
-          <AlertDescription>{t('edit.documents.loadError', { defaultValue: 'Could not load venue information' })}</AlertDescription>
-        </Alert>
+        {esNoEncontrado(venueQuery.error) ? (
+          <AvisoDeCarga query={venueQuery} hayDatos={false} deUnRegistro />
+        ) : (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>{t('edit.documents.error', { defaultValue: 'Error' })}</AlertTitle>
+            <AlertDescription>{t('edit.documents.loadError', { defaultValue: 'Could not load venue information' })}</AlertDescription>
+            <BotonReintentar query={venueQuery} className="mt-2" />
+          </Alert>
+        )}
       </div>
     )
   }
@@ -423,6 +431,7 @@ export default function VenueDocuments() {
 
   return (
     <div className="max-w-3xl mx-auto pt-6 pb-20 px-4 md:px-6 lg:px-8 space-y-4">
+      <AvisoDeCarga query={venueQuery} hayDatos deUnRegistro />
       <div>
         <h2 className="text-2xl font-bold text-foreground">{t('edit.documents.title', { defaultValue: 'Documentación Fiscal' })}</h2>
         <p className="text-sm text-muted-foreground mt-1">

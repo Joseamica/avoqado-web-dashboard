@@ -2,10 +2,13 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { Gift, Loader2 } from 'lucide-react'
 
+import { BotonReintentar } from '@/components/AvisoDeCarga'
 import { Button } from '@/components/ui/button'
 import { PermissionGate } from '@/components/PermissionGate'
 import { useToast } from '@/hooks/use-toast'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { falloDeCarga } from '@/lib/falloDeCarga'
+import { esSinPermiso } from '@/lib/reintentoSinPermiso'
 import { useVenueDateTime } from '@/utils/datetime'
 import { stampCardService } from '@/services/walletCard.service'
 import { Currency } from '@/utils/currency'
@@ -37,7 +40,7 @@ export function StampRewardsSection({ order }: Props) {
   // no debe prometer lo contrario.
   const cuentaAbierta = order.paymentStatus === 'PENDING'
 
-  const { data, isLoading } = useQuery({
+  const estado = useQuery({
     queryKey: ['stamp-card', venueId, customerId],
     queryFn: () => stampCardService.getStatus(venueId!, customerId!),
     enabled: Boolean(venueId && customerId && cuentaAbierta),
@@ -66,15 +69,26 @@ export function StampRewardsSection({ order }: Props) {
     },
   })
 
-  const premios = data?.rewardsToClaim ?? []
-  if (!customerId || !cuentaAbierta || isLoading || premios.length === 0) return null
+  const premios = estado.data?.rewardsToClaim ?? []
+  // Si no se pudo leer, que la sección no salga diría «no tiene premios» y el cliente se queda sin cobrarlo.
+  // Sin permiso no se afirma nada: ese rol nunca ha visto esta sección.
+  const noSeSupo = falloDeCarga(estado) && !esSinPermiso(estado.error)
+  if (!customerId || !cuentaAbierta || (!noSeSupo && premios.length === 0)) return null
 
   return (
     <section>
-      <div className="mb-3 flex items-center gap-2">
-        <Gift className="h-4 w-4 text-muted-foreground" />
-        <h2 className="text-sm font-semibold">{t('card.redeem.title', { count: premios.length })}</h2>
-      </div>
+      {noSeSupo && (
+        <div role="alert" className="mb-3 flex items-center justify-between gap-3 rounded-lg border border-input p-3">
+          <p className="text-sm text-destructive">{t('card.redeem.loadError')}</p>
+          <BotonReintentar query={estado} className="shrink-0" />
+        </div>
+      )}
+      {premios.length > 0 && (
+        <div className="mb-3 flex items-center gap-2">
+          <Gift className="h-4 w-4 text-muted-foreground" />
+          <h2 className="text-sm font-semibold">{t('card.redeem.title', { count: premios.length })}</h2>
+        </div>
+      )}
 
       <div className="space-y-2">
         {premios.map(premio => (

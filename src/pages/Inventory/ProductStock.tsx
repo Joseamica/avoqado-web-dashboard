@@ -294,21 +294,6 @@ export default function ProductStock() {
     [t, formatUnitWithQuantity],
   )
 
-  if (isLoading) {
-    return (
-      <div className="p-6 space-y-4">
-        <Skeleton className="h-8 w-48" />
-        <Skeleton className="h-4 w-96" />
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {[1, 2, 3, 4].map(i => (
-            <Skeleton key={i} className="h-24" />
-          ))}
-        </div>
-        <Skeleton className="h-96" />
-      </div>
-    )
-  }
-
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
@@ -323,7 +308,15 @@ export default function ProductStock() {
         <p className="text-muted-foreground">{t('productStock.subtitle')}</p>
       </div>
 
-      {/* Stats Cards */}
+      {/* Stats Cards: sin leer los productos no hay 0 ni $0.00; el aviso sale en la tabla. */}
+      {isLoading && (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map(i => (
+            <Skeleton key={i} className="h-24" />
+          ))}
+        </div>
+      )}
+      {listQuery.data !== undefined && (
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -365,6 +358,7 @@ export default function ProductStock() {
           </CardContent>
         </Card>
       </div>
+      )}
 
       {/* Search and Filters */}
       <div className="flex items-center gap-4">
@@ -384,7 +378,7 @@ export default function ProductStock() {
 
       {/* Data Table */}
       <div className="rounded-md border bg-card">
-        <TablaConFamilias<ProductWithStock> query={listQuery} columns={columns} data={filas} conFiltro={searchQuery !== '' || filterLowStock} />
+        <TablaConFamilias<ProductWithStock> query={listQuery} isLoading={isLoading} columns={columns} data={filas} conFiltro={searchQuery !== '' || filterLowStock} />
       </div>
 
       {/* Dialogs */}

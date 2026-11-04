@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Clock, UserCheck } from 'lucide-react'
 import { DateTime } from 'luxon'
 
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -48,11 +49,12 @@ export function CustomersAwaitingApproval({ venueId }: { venueId: string }) {
 
   // Sin el permiso no se consulta siquiera: el endpoint respondería 403 y el error saldría en
   // una pantalla donde el usuario no puede hacer nada al respecto.
-  const { data } = useQuery({
+  const approvalsQuery = useQuery({
     queryKey: ['customers-awaiting-approval', venueId],
     queryFn: () => customerService.getCustomersAwaitingApproval(venueId, { pageSize: 20 }),
     enabled: Boolean(venueId) && canApprove,
   })
+  const { data } = approvalsQuery
 
   const decideMutation = useMutation({
     mutationFn: (vars: { customer: CustomerAwaitingApproval; decision: 'APPROVED' | 'REJECTED'; reason?: string }) =>
@@ -90,14 +92,16 @@ export function CustomersAwaitingApproval({ venueId }: { venueId: string }) {
   })
 
   const pending = data?.data ?? []
-  // Nada que revisar (o el negocio no tiene la aprobación prendida) ⇒ no se pinta nada.
-  if (!canApprove || pending.length === 0) return null
+  if (!canApprove) return null
+  // Nada que revisar (o el negocio no tiene la aprobación prendida) ⇒ no se pinta nada. Si no se pudo leer, se dice: alguien puede estar esperando.
+  if (pending.length === 0) return <AvisoDeCarga query={approvalsQuery} hayDatos={data !== undefined} />
 
   const displayName = (c: CustomerAwaitingApproval) =>
     [c.firstName, c.lastName].filter(Boolean).join(' ') || c.email || c.phone || t('approval.unnamed')
 
   return (
     <>
+      <AvisoDeCarga query={approvalsQuery} hayDatos />
       <Card className="mb-6 border-input" data-tour="customers-awaiting-approval">
         <div className="flex items-center gap-2 px-4 py-3 sm:px-6">
           <UserCheck className="h-4 w-4 text-muted-foreground" />

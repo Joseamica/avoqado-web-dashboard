@@ -1,3 +1,5 @@
+import { falloDeCarga, reintentarSirve } from '@/lib/falloDeCarga'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { ChevronRight, Plus } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -50,15 +52,18 @@ export default function ProductOptions() {
               <Skeleton className="h-16 w-full rounded-xl" />
               <Skeleton className="h-16 w-full rounded-xl" />
             </div>
-          ) : q.isError && items.length === 0 ? (
+          ) : q.data === undefined && falloDeCarga(q) ? (
             <div className="flex flex-col items-start gap-3">
               <p className="text-destructive">{t('biblioteca.error')}</p>
-              <Button type="button" variant="outline" onClick={() => q.refetch()}>
-                {t('biblioteca.reintentar')}
-              </Button>
+              {reintentarSirve(q.error) && (
+                <Button type="button" variant="outline" onClick={() => q.refetch()}>
+                  {t('biblioteca.reintentar')}
+                </Button>
+              )}
             </div>
           ) : items.length === 0 ? (
             <div className="flex flex-col items-start gap-4">
+              <AvisoDeCarga query={q} hayDatos />
               <p className="max-w-xl text-muted-foreground">{t(puedeEscribir ? 'biblioteca.vacia' : 'biblioteca.vaciaSoloLectura')}</p>
               {nueva('product-options-new-empty')}
             </div>
@@ -85,7 +90,7 @@ export default function ProductOptions() {
                   </li>
                 ))}
               </ul>
-              {q.isError && (
+              {falloDeCarga(q) && (
                 <div className="flex flex-col items-start gap-2 text-sm">
                   <p className="text-destructive">{t('biblioteca.errorMas')}</p>
                   <Button
@@ -99,7 +104,7 @@ export default function ProductOptions() {
                   </Button>
                 </div>
               )}
-              {q.hasNextPage && !q.isError && (
+              {q.hasNextPage && !falloDeCarga(q) && (
                 <Button type="button" variant="outline" disabled={q.isFetchingNextPage} onClick={() => q.fetchNextPage()}>
                   {t('biblioteca.cargarMas', { count: total - items.length })}
                 </Button>

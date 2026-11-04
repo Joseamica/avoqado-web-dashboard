@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import { AlertTriangle, HandCoins, Info, Landmark, Receipt, TrendingDown } from 'lucide-react'
 
 import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -287,14 +288,17 @@ function IsrInner() {
         ))}
       </div>
 
-      {query.isLoading && hasAccess ? (
+      {query.data !== undefined && <AvisoDeCarga query={query} hayDatos />}
+
+      {query.data === undefined && hasAccess && !falloDeCarga(query) ? (
         <Skeleton className="h-72 rounded-2xl" />
-      ) : query.isError && hasAccess ? (
+      ) : query.data === undefined && hasAccess ? (
         // B4b (fallo 2 de la ronda 7; Codex r6 R6-2): pantalla de un mes, igual que el IVA. Con REPORT_TOO_LARGE / REPORT_TIMEOUT no hay
         // «rango más corto» que elegir: su propio texto. M-B: salvo una VENTA que pasa un tope, cuyo mensaje nombra el folio. Cualquier
         // otro error, el genérico.
         <AccountingErrorState
           message={mensajeDelMes(query.error, t('accountingError.mesNoCalculado'))}
+          error={query.error}
           onRetry={() => query.refetch()}
         />
       ) : needsFiscalSetup ? (

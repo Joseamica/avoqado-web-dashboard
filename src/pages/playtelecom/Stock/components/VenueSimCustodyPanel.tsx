@@ -15,6 +15,8 @@
  */
 import { useDeferredValue, useMemo, useState } from 'react'
 import { AlertTriangle, ArrowRight, Loader2, Package, Search, Users, X } from 'lucide-react'
+import { AvisoDeCarga, BotonReintentar } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -78,13 +80,14 @@ export function VenueSimCustodyPanel({ orgId, venueId, dateRange, timeZone }: Pr
   const [assignSerials, setAssignSerials] = useState<string[] | null>(null)
   const [selected, setSelected] = useState<Map<string, SimMarcada>>(new Map())
   const deferredSearch = useDeferredValue(search.trim())
-  const { data, isLoading, error, hasNextPage, isFetchingNextPage, fetchNextPage } = useOrgStockCustody(orgId, {
+  const custodyQuery = useOrgStockCustody(orgId, {
     venueId,
     ...stockParams,
     pageSize: 50,
     search: deferredSearch || undefined,
     filter,
   })
+  const { data, isLoading, hasNextPage, isFetchingNextPage, fetchNextPage } = custodyQuery
   const firstPage = data?.pages[0]
   const mySims = useMemo<OrgStockOverviewItem[]>(() => data?.pages.flatMap(page => page.items) ?? [], [data?.pages])
   const summary = firstPage?.summary ?? {
@@ -131,20 +134,57 @@ export function VenueSimCustodyPanel({ orgId, venueId, dateRange, timeZone }: Pr
   // ============================================================
   // Render
   // ============================================================
+  const buscador = (
+    <div className="flex flex-wrap items-center gap-2 mb-3">
+      <div className="relative flex-1 min-w-[200px]">
+        <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Buscar por últimos dígitos del ICCID…"
+          className="pl-8 h-9"
+        />
+      </div>
+      {(['todos', 'almacen', 'pendientes', 'aceptados', 'rechazados', 'vendidos'] as FilterKey[]).map(key => (
+        <button
+          key={key}
+          type="button"
+          onClick={() => {
+            setFilter(key)
+            clearSelection()
+          }}
+          className={`rounded-full px-3 py-1 text-xs transition-colors ${
+            filter === key ? 'bg-foreground text-background' : 'bg-muted/60 text-muted-foreground hover:bg-muted'
+          }`}
+        >
+          {filterLabel(key)}
+        </button>
+      ))}
+    </div>
+  )
+
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-24 text-muted-foreground">
-        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-        Cargando custodia…
+      <div className="space-y-4">
+        <div className="flex items-center justify-center py-24 text-muted-foreground">
+          <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+          Cargando custodia…
+        </div>
+        {buscador}
       </div>
     )
   }
 
-  if (error) {
+  // Sin leer no hay contadores en 0 ni «Aún no tienes SIMs». El buscador se queda: la lectura que falló pudo ser la de un filtro.
+  if (data === undefined && falloDeCarga(custodyQuery)) {
     return (
-      <GlassCard className="p-6">
-        <p className="text-sm text-red-600">No pudimos cargar tus SIMs. Intenta recargar.</p>
-      </GlassCard>
+      <div className="space-y-4">
+        <GlassCard className="p-6">
+          <p className="text-sm text-red-600">No pudimos cargar tus SIMs.</p>
+          <BotonReintentar query={custodyQuery} className="mt-3" />
+        </GlassCard>
+        {buscador}
+      </div>
     )
   }
 
@@ -154,6 +194,7 @@ export function VenueSimCustodyPanel({ orgId, venueId, dateRange, timeZone }: Pr
 
   return (
     <div className="space-y-6">
+      <AvisoDeCarga query={custodyQuery} hayDatos />
       {/* Active range indicator — makes it obvious why certain SIMs aren't
           appearing (they're outside the window). */}
       <p className="text-xs text-muted-foreground">
@@ -303,32 +344,7 @@ export function VenueSimCustodyPanel({ orgId, venueId, dateRange, timeZone }: Pr
             </div>
           )}
 
-          <div className="flex flex-wrap items-center gap-2 mb-3">
-            <div className="relative flex-1 min-w-[200px]">
-              <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                placeholder="Buscar por últimos dígitos del ICCID…"
-                className="pl-8 h-9"
-              />
-            </div>
-            {(['todos', 'almacen', 'pendientes', 'aceptados', 'rechazados', 'vendidos'] as FilterKey[]).map(key => (
-              <button
-                key={key}
-                type="button"
-                onClick={() => {
-                  setFilter(key)
-                  clearSelection()
-                }}
-                className={`rounded-full px-3 py-1 text-xs transition-colors ${
-                  filter === key ? 'bg-foreground text-background' : 'bg-muted/60 text-muted-foreground hover:bg-muted'
-                }`}
-              >
-                {filterLabel(key)}
-              </button>
-            ))}
-          </div>
+          {buscador}
 
           <div className="overflow-x-auto max-h-[520px]">
             <table className="w-full">

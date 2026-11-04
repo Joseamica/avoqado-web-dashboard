@@ -3,6 +3,8 @@ import { FileText, Upload } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { AvisoDeCarga, BotonReintentar } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { Input } from '@/components/ui/input'
 import { useTierFeatureAccess } from '@/hooks/use-tier-feature-access'
 import { useAccess } from '@/hooks/use-access'
@@ -36,12 +38,15 @@ export function StandaloneInvoicesSection({ venueId }: { venueId: string }) {
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const debounced = useDebounce(search, 300)
-  const { data, isLoading, isError, isFetching } = useQuery({
+  const inboxQuery = useQuery({
     queryKey: ['supplier-invoice-inbox', venueId, page, debounced],
     queryFn: () => purchaseOrderInvoiceService.inbox(venueId, page, debounced),
     placeholderData: keepPreviousData, staleTime: 30000, retry: 1, refetchOnWindowFocus: false,
     enabled: !!venueId && inventory && cfdi && can('inventory:read'),
   })
+  const { data, isLoading, isFetching } = inboxQuery
+  // Por lo que se ha leído: sin internet la consulta se pausa sin marcar error, y diría «sin facturas».
+  const isError = data === undefined && falloDeCarga(inboxQuery)
 
   const register = useMutation({
     mutationFn: (xml: string) => purchaseOrderInvoiceService.registerStandalone(venueId, xml),
@@ -100,7 +105,13 @@ export function StandaloneInvoicesSection({ venueId }: { venueId: string }) {
         <p className="text-xs text-muted-foreground">{t('invoices.standalone.hint')}</p>
 
         <Input aria-label={t('invoices.receipt.searchInvoices')} placeholder={t('invoices.receipt.searchInvoices')} value={search} onChange={e => { setSearch(e.target.value); setPage(1) }} data-tour="supplier-invoice-search" />
-        {isError ? <p role="alert">{t('invoices.receipt.loadError')}</p> : isLoading ? (
+        {data !== undefined && <AvisoDeCarga query={inboxQuery} hayDatos />}
+        {isError ? (
+          <div role="alert" className="flex flex-wrap items-center gap-3">
+            <p>{t('invoices.receipt.loadError')}</p>
+            <BotonReintentar query={inboxQuery} />
+          </div>
+        ) : isLoading ? (
           <p className="text-sm text-muted-foreground">{t('common:loading')}</p>
         ) : invoices.length === 0 ? (
           <p className="text-sm text-muted-foreground">{t('invoices.standalone.empty')}</p>
@@ -112,7 +123,7 @@ export function StandaloneInvoicesSection({ venueId }: { venueId: string }) {
           </ul>
         )}
         <div className="flex justify-between items-center gap-2 text-sm">
-          <span>{t('invoices.receipt.page', { page, pages: Math.max(1, data?.totalPages ?? 1), total: data?.total ?? 0 })}</span>
+          <span>{data && t('invoices.receipt.page', { page, pages: Math.max(1, data.totalPages), total: data.total })}</span>
           <div className="flex gap-2"><Button variant="outline" disabled={page === 1 || isFetching} onClick={() => setPage(p => p - 1)}>{t('invoices.receipt.previous')}</Button>
             <Button variant="outline" disabled={!data || page >= data.totalPages || isFetching} onClick={() => setPage(p => p + 1)}>{t('invoices.receipt.next')}</Button></div>
         </div>

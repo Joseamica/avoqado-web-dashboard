@@ -1,3 +1,4 @@
+import { AvisoDeCarga, BotonReintentar } from '@/components/AvisoDeCarga'
 import { FeatureGate } from '@/components/billing/FeatureGate'
 import { DateFilterContent, FilterPill, FilterPillBar, SingleSelectFilterContent, type DateFilter } from '@/components/filters'
 import { Button } from '@/components/ui/button'
@@ -6,6 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useDebounce } from '@/hooks/useDebounce'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { cn } from '@/lib/utils'
 import { teamService } from '@/services/team.service'
 import {
@@ -127,30 +129,27 @@ function VenueActivityLog() {
     [page, actionFilter, staffFilter, dateRange, debouncedSearch],
   )
 
-  const {
-    data,
-    isLoading,
-    isError,
-    refetch,
-    isFetching,
-  } = useQuery<VenueActivityLogResponse>({
+  const bitacora = useQuery<VenueActivityLogResponse>({
     queryKey: ['venue-activity-log', venueId, filters],
     queryFn: () => getVenueActivityLog(venueId!, filters),
     enabled: !!venueId,
     placeholderData: previous => previous,
   })
+  const { data, isFetching } = bitacora
 
-  const { data: availableActions } = useQuery<string[]>({
+  const accionesQuery = useQuery<string[]>({
     queryKey: ['venue-activity-log-actions', venueId],
     queryFn: () => getVenueActivityLogActions(venueId!),
     enabled: !!venueId,
   })
+  const { data: availableActions } = accionesQuery
 
-  const { data: teamData } = useQuery({
+  const equipoQuery = useQuery({
     queryKey: ['venue-activity-log-staff', venueId],
     queryFn: () => teamService.getTeamMembers(venueId!, 1, 100),
     enabled: !!venueId,
   })
+  const { data: teamData } = equipoQuery
 
   const staffOptions = useMemo(
     () =>
@@ -236,6 +235,7 @@ function VenueActivityLog() {
               <SingleSelectFilterContent
                 title={t('activityLog.filters.action')}
                 options={actionOptions}
+                fuente={accionesQuery}
                 selectedValue={actionFilter}
                 onSelect={resetPage(setActionFilter)}
                 searchable
@@ -251,6 +251,7 @@ function VenueActivityLog() {
               <SingleSelectFilterContent
                 title={t('activityLog.filters.staff')}
                 options={staffOptions}
+                fuente={equipoQuery}
                 selectedValue={staffFilter}
                 onSelect={resetPage(setStaffFilter)}
                 searchable
@@ -273,18 +274,11 @@ function VenueActivityLog() {
           </div>
 
           {/* Contenido */}
-          {isLoading ? (
+          {data !== undefined && <AvisoDeCarga query={bitacora} hayDatos />}
+          {data === undefined && !falloDeCarga(bitacora) ? (
             <ActivitySkeleton />
-          ) : isError ? (
-            <EmptyState
-              icon={AlertTriangle}
-              title={t('activityLog.error.title')}
-              action={
-                <Button variant="outline" size="sm" onClick={() => refetch()}>
-                  {t('activityLog.error.retry')}
-                </Button>
-              }
-            />
+          ) : data === undefined ? (
+            <EmptyState icon={AlertTriangle} title={t('activityLog.error.title')} action={<BotonReintentar query={bitacora} />} />
           ) : logs.length === 0 ? (
             <EmptyState
               icon={ScrollText}

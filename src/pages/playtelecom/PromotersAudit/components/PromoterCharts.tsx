@@ -7,8 +7,11 @@
  * - Calendario de asistencia
  */
 
+import { Skeleton } from '@/components/ui/skeleton'
 import React from 'react'
 import { TrendingUp, Calendar, PieChart } from 'lucide-react'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { cn } from '@/lib/utils'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useQuery } from '@tanstack/react-query'
@@ -27,7 +30,7 @@ export function PromoterCharts({ promoterId, promoterName: _promoterName, venueI
   const queryParams = venueId ? { venueId } : undefined
 
   // Fetch sales trend data
-  const { data: salesTrendData } = useQuery({
+  const trendQuery = useQuery({
     queryKey: ['staff-sales-trend', venue?.organizationId, promoterId, venueId],
     queryFn: async () => {
       if (!venue?.organizationId) return { salesData: [] }
@@ -40,7 +43,7 @@ export function PromoterCharts({ promoterId, promoterName: _promoterName, venueI
   })
 
   // Fetch sales mix data
-  const { data: salesMixData } = useQuery({
+  const mixQuery = useQuery({
     queryKey: ['staff-sales-mix', venue?.organizationId, promoterId, venueId],
     queryFn: async () => {
       if (!venue?.organizationId) return { salesMix: [] }
@@ -53,7 +56,7 @@ export function PromoterCharts({ promoterId, promoterName: _promoterName, venueI
   })
 
   // Fetch attendance calendar data
-  const { data: calendarData } = useQuery({
+  const calendarQuery = useQuery({
     queryKey: ['staff-attendance-calendar', venue?.organizationId, promoterId, venueId],
     queryFn: async () => {
       if (!venue?.organizationId) return { calendar: [], stats: { present: 0, absent: 0 } }
@@ -64,6 +67,13 @@ export function PromoterCharts({ promoterId, promoterName: _promoterName, venueI
     },
     enabled: !!venue?.organizationId && !!promoterId,
   })
+
+  const { data: salesTrendData } = trendQuery
+  const { data: salesMixData } = mixQuery
+  const { data: calendarData } = calendarQuery
+  const trendSinLeer = salesTrendData === undefined && falloDeCarga(trendQuery)
+  const mixSinLeer = salesMixData === undefined && falloDeCarga(mixQuery)
+  const calendarSinLeer = calendarData === undefined && falloDeCarga(calendarQuery)
 
   const salesData = salesTrendData?.salesData || []
   const salesMix = salesMixData?.salesMix || []
@@ -93,8 +103,10 @@ export function PromoterCharts({ promoterId, promoterName: _promoterName, venueI
           </div>
         </div>
 
+        <AvisoDeCarga query={trendQuery} hayDatos={!trendSinLeer} />
         {/* Simple area chart */}
-        <div className="h-40 flex items-end gap-1">
+        {trendQuery.isLoading && <Skeleton className="h-40 w-full" />}
+        {!trendSinLeer && !trendQuery.isLoading && <div className="h-40 flex items-end gap-1">
           {salesData.length > 0 ? (
             salesData.map((data: any, idx: number) => {
               const height = maxSales > 0 ? (data.sales / maxSales) * 100 : 0
@@ -122,7 +134,7 @@ export function PromoterCharts({ promoterId, promoterName: _promoterName, venueI
               <p className="text-xs text-muted-foreground">Sin datos de ventas</p>
             </div>
           )}
-        </div>
+        </div>}
 
         {salesData.length > 0 && (
           <div className="mt-4 pt-4 border-t flex items-center justify-between">
@@ -155,8 +167,10 @@ export function PromoterCharts({ promoterId, promoterName: _promoterName, venueI
           </div>
         </div>
 
+        <AvisoDeCarga query={mixQuery} hayDatos={!mixSinLeer} />
         {/* Simple donut chart representation */}
-        <div className="flex items-center justify-center h-32 mb-4">
+        {mixQuery.isLoading && <Skeleton className="h-32 w-full" />}
+        {!mixSinLeer && !mixQuery.isLoading && <div className="flex items-center justify-center h-32 mb-4">
           <div className="relative w-32 h-32">
             {/* Outer ring with segments */}
             <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
@@ -181,10 +195,10 @@ export function PromoterCharts({ promoterId, promoterName: _promoterName, venueI
               </div>
             </div>
           </div>
-        </div>
+        </div>}
 
         {/* Legend */}
-        <div className="space-y-2">
+        {!mixSinLeer && !mixQuery.isLoading && <div className="space-y-2">
           {salesMixWithColors.length > 0 ? (
             salesMixWithColors.map((item: any, idx: number) => (
               <div key={idx} className="flex items-center justify-between">
@@ -198,7 +212,7 @@ export function PromoterCharts({ promoterId, promoterName: _promoterName, venueI
           ) : (
             <p className="text-xs text-muted-foreground text-center py-4">Sin datos de ventas</p>
           )}
-        </div>
+        </div>}
       </div>
 
       {/* Asistencia Calendar */}
@@ -213,8 +227,10 @@ export function PromoterCharts({ promoterId, promoterName: _promoterName, venueI
           </div>
         </div>
 
+        <AvisoDeCarga query={calendarQuery} hayDatos={!calendarSinLeer} />
         {/* Simple calendar grid */}
-        <div className="space-y-3">
+        {calendarQuery.isLoading && <Skeleton className="h-40 w-full" />}
+        {!calendarSinLeer && !calendarQuery.isLoading && <div className="space-y-3">
           {/* Days of week */}
           <div className="grid grid-cols-7 gap-1">
             {['D', 'L', 'M', 'M', 'J', 'V', 'S'].map((day, idx) => (
@@ -262,7 +278,7 @@ export function PromoterCharts({ promoterId, promoterName: _promoterName, venueI
               <p className="text-lg font-bold text-red-600">{attendanceStats.absent}</p>
             </div>
           </div>
-        </div>
+        </div>}
       </div>
     </div>
   )

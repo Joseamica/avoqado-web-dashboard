@@ -40,6 +40,7 @@ describe('CatalogItemsPage', () => {
         },
       ],
       nextCursor: 'item-1',
+      query: { data: {}, isError: false, isFetching: false, isPaused: false, error: null, refetch: vi.fn() } as never,
       isLoading: false,
       isFetching: false,
       error: null,

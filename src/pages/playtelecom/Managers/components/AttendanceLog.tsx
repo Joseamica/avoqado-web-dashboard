@@ -8,9 +8,12 @@ import { useTranslation } from 'react-i18next'
 import { GlassCard } from '@/components/ui/glass-card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Check, X, Image, ImageOff, MapPin, MapPinOff, RotateCcw, ClipboardList, AlertTriangle, Receipt, Store, StoreIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { FilterPill, CheckboxFilterContent } from '@/components/filters'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga, type EstadoDeCarga } from '@/lib/falloDeCarga'
 
 export interface AttendanceEntry {
   id: string
@@ -44,6 +47,8 @@ export interface AttendanceEntry {
 
 interface AttendanceLogProps {
   entries: AttendanceEntry[]
+  /** La lectura de donde salen `entries`: sin ella, una lista vacía no dice que nadie checó. */
+  query: EstadoDeCarga & { data: unknown }
   // `attendance:manage` efectivo de quien mira. Sin él, el servidor rebota aprobar, rechazar y deshacer (403).
   canManage: boolean
   // Quién mira: su propia checada la valida otra persona (SELF_VALIDATION_FORBIDDEN).
@@ -57,6 +62,7 @@ interface AttendanceLogProps {
 
 export function AttendanceLog({
   entries,
+  query,
   canManage,
   currentStaffId,
   onApprove,
@@ -225,7 +231,10 @@ export function AttendanceLog({
         </div>
       </div>
 
-      {filteredEntries.length === 0 ? (
+      <AvisoDeCarga query={query} hayDatos={query.data !== undefined} />
+      {query.data === undefined ? (
+        !falloDeCarga(query) && <Skeleton className="h-40 w-full rounded-xl" />
+      ) : filteredEntries.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
           <ClipboardList className="w-10 h-10 mb-3 opacity-40" />
           <p className="text-sm font-medium">

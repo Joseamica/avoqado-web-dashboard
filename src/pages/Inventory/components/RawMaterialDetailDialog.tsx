@@ -21,6 +21,8 @@ import {
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Badge } from '@/components/ui/badge'
@@ -76,7 +78,7 @@ export function RawMaterialDetailDialog({
   const navigate = useNavigate()
 
   // Lazy-fetch the recipes that use this material (for the "Used in" section)
-  const { data: recipesData, isLoading: loadingRecipes } = useQuery({
+  const recipesQuery = useQuery({
     queryKey: ['rawMaterialDetail:recipes', venueId, rawMaterial?.id],
     queryFn: async () => {
       const response = await rawMaterialsApi.getRecipes(venueId, rawMaterial!.id)
@@ -89,6 +91,7 @@ export function RawMaterialDetailDialog({
     },
     enabled: open && !!venueId && !!rawMaterial,
   })
+  const { data: recipesData, isLoading: loadingRecipes } = recipesQuery
 
   if (!rawMaterial) return null
 
@@ -293,9 +296,10 @@ export function RawMaterialDetailDialog({
                   </Button>
                 )}
               </div>
+              <AvisoDeCarga query={recipesQuery} hayDatos={recipesData !== undefined} />
               {loadingRecipes ? (
                 <p className="text-sm text-muted-foreground">Cargando recetas…</p>
-              ) : recipes.length === 0 ? (
+              ) : recipesData === undefined && falloDeCarga(recipesQuery) ? null : recipes.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
                   Este ingrediente aún no se usa en ninguna receta.
                 </p>

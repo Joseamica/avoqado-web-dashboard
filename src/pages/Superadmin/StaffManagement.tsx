@@ -923,10 +923,11 @@ const StaffManagement: React.FC = () => {
   const [detailStaffId, setDetailStaffId] = useState<string | null>(null)
   const [isDetailOpen, setIsDetailOpen] = useState(false)
 
-  const { data: orgs = [] } = useQuery({
+  const orgsQuery = useQuery({
     queryKey: ['superadmin-organizations-list'],
     queryFn: organizationAPI.getOrganizationsList,
   })
+  const { data: orgs = [] } = orgsQuery
 
   const orgOptions = useMemo(
     () => orgs.map(o => ({ value: o.id, label: o.name })),
@@ -1076,15 +1077,13 @@ const StaffManagement: React.FC = () => {
   })
 
   // Compute stats from dedicated count queries (real totals, not page-scoped)
-  const stats = useMemo(() => {
-    if (!pagination) return { total: 0, active: 0, withOrg: 0, withVenue: 0 }
-    return {
-      total: pagination.total,
-      active: activeCountData?.pagination.total ?? 0,
-      withOrg: withOrgCountData?.pagination.total ?? 0,
-      withVenue: withVenueCountData?.pagination.total ?? 0,
-    }
-  }, [pagination, activeCountData, withOrgCountData, withVenueCountData])
+  // Cada cifra por su consulta: la que no se leyó dice «—», no 0.
+  const stats = {
+    total: pagination?.total ?? '—',
+    active: activeCountData?.pagination.total ?? '—',
+    withOrg: withOrgCountData?.pagination.total ?? '—',
+    withVenue: withVenueCountData?.pagination.total ?? '—',
+  }
 
   return (
     <div className="space-y-5">
@@ -1184,6 +1183,7 @@ const StaffManagement: React.FC = () => {
           <CheckboxFilterContent
             title="Organización"
             options={orgOptions}
+            fuente={orgsQuery}
             selectedValues={orgFilter}
             onApply={v => { setOrgFilter(v); setPage(1) }}
             searchable
@@ -1217,7 +1217,7 @@ const StaffManagement: React.FC = () => {
         )}
       </div>
 
-      <AvisoDeCarga query={listQuery} hayDatos={staffList.length > 0} volverAlInicio={page > 1 && staffList.length === 0 ? () => setPage(1) : undefined} />
+      <AvisoDeCarga query={listQuery} hayDatos={data !== undefined} volverAlInicio={page > 1 && staffList.length === 0 ? () => setPage(1) : undefined} />
 
       {/* Table */}
       <GlassCard className="overflow-hidden">
@@ -1249,7 +1249,7 @@ const StaffManagement: React.FC = () => {
                   <TableCell className="py-3" />
                 </TableRow>
               ))
-            ) : falloDeCarga(listQuery) && staffList.length === 0 ? null : staffList.length === 0 ? (
+            ) : data === undefined && falloDeCarga(listQuery) ? null : staffList.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="text-center py-16">
                   <div className="flex flex-col items-center gap-2">

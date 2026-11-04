@@ -1,3 +1,5 @@
+import { reintentarSirve } from '@/lib/falloDeCarga'
+import { Skeleton } from '@/components/ui/skeleton'
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -21,34 +23,48 @@ function actionLabel(action: string): string {
 export default function CatalogAuditPage() {
   const { orgId = '' } = useParams<{ orgId: string }>()
   const { t } = useTranslation('organization')
-  const [data, setData] = useState<CatalogAuditData>({ logs: [], pagination: { page: 1, pageSize: 25, total: 0, totalPages: 1 } })
+  const [data, setData] = useState<CatalogAuditData | null>(null)
   const [actions, setActions] = useState<string[]>([])
   const [action, setAction] = useState('')
   const [search, setSearch] = useState('')
-  const [error, setError] = useState(false)
+  const [error, setError] = useState<unknown>(null)
+
+  const [accionesCaidas, setAccionesCaidas] = useState<unknown>(null)
+  const [accionesEnCamino, setAccionesEnCamino] = useState(true)
+
+  function cargarAcciones(vigente: () => boolean = () => true) {
+    setAccionesCaidas(null)
+    setAccionesEnCamino(true)
+    void listCatalogAuditActions(orgId)
+      .then(value => {
+        if (vigente()) setActions(value)
+      })
+      .catch(fallo => {
+        if (vigente()) setAccionesCaidas(fallo)
+      })
+      .finally(() => {
+        if (vigente()) setAccionesEnCamino(false)
+      })
+  }
 
   async function load(page = 1) {
-    setError(false)
+    setError(null)
     try {
       setData(await listCatalogAudit(orgId, { page, pageSize: 25, action: action || undefined, search: search.trim() || undefined }))
-    } catch {
-      setError(true)
+    } catch (fallo) {
+      setError(fallo)
     }
   }
 
   useEffect(() => {
     let active = true
-    void listCatalogAuditActions(orgId)
-      .then(value => {
-        if (active) setActions(value)
-      })
-      .catch(() => undefined)
+    cargarAcciones(() => active)
     void listCatalogAudit(orgId, { page: 1, pageSize: 25 })
       .then(value => {
         if (active) setData(value)
       })
-      .catch(() => {
-        if (active) setError(true)
+      .catch(fallo => {
+        if (active) setError(fallo)
       })
     return () => {
       active = false
@@ -92,15 +108,34 @@ export default function CatalogAuditPage() {
             onChange={event => setSearch(event.target.value)}
             placeholder={t('masterCatalog.audit.searchPlaceholder', { defaultValue: 'Actor, entidad o identificador' })}
           />
+          {accionesEnCamino && <Skeleton className="h-9 w-28" aria-label={t('masterCatalog.audit.actionsLoading', { defaultValue: 'Cargando acciones' })} />}
           <Button onClick={() => void load(1)}>{t('masterCatalog.audit.apply', { defaultValue: 'Aplicar filtros' })}</Button>
         </CardContent>
+        {accionesCaidas != null && (
+          <CardContent role="alert" className="flex flex-wrap items-center gap-2 pt-0 text-sm text-destructive">
+            <p>{t('masterCatalog.audit.actionsError', { defaultValue: 'No se pudieron cargar las acciones del filtro.' })}</p>
+            {reintentarSirve(accionesCaidas) && (
+              <Button variant="outline" size="sm" onClick={() => cargarAcciones()}>
+                {t('common:retry', { defaultValue: 'Reintentar' })}
+              </Button>
+            )}
+          </CardContent>
+        )}
       </Card>
       <Card>
         <CardContent className="pt-6">
-          {error ? (
-            <p role="alert" className="text-destructive">
-              {t('masterCatalog.audit.loadError', { defaultValue: 'No se pudo cargar la bitácora.' })}
-            </p>
+          {error != null && (
+            <div role="alert" className="mb-4 flex flex-wrap items-center justify-between gap-2 text-destructive">
+              <p>{t('masterCatalog.audit.loadError', { defaultValue: 'No se pudo cargar la bitácora.' })}</p>
+              {reintentarSirve(error) && (
+                <Button variant="outline" size="sm" onClick={() => void load(data?.pagination.page ?? 1)}>
+                  {t('common:retry', { defaultValue: 'Reintentar' })}
+                </Button>
+              )}
+            </div>
+          )}
+          {data === null ? (
+            error == null && <Skeleton className="h-72 w-full" />
           ) : (
             <Table aria-label={t('masterCatalog.audit.tableLabel', { defaultValue: 'Bitácora del catálogo maestro' })}>
               <TableHeader>
@@ -139,34 +174,36 @@ export default function CatalogAuditPage() {
               </TableBody>
             </Table>
           )}
-          <nav
-            className="mt-4 grid gap-3 sm:grid-cols-[auto_1fr_auto] sm:items-center"
-            aria-label={t('masterCatalog.audit.pagination', { defaultValue: 'Paginación de la bitácora' })}
-          >
-            <Button
-              className="min-h-11 w-full sm:min-h-9 sm:w-auto"
-              variant="outline"
-              onClick={() => void load(data.pagination.page - 1)}
-              disabled={data.pagination.page <= 1}
+          {data && (
+            <nav
+              className="mt-4 grid gap-3 sm:grid-cols-[auto_1fr_auto] sm:items-center"
+              aria-label={t('masterCatalog.audit.pagination', { defaultValue: 'Paginación de la bitácora' })}
             >
-              {t('masterCatalog.audit.previous', { defaultValue: 'Página anterior' })}
-            </Button>
-            <span className="-order-1 text-center text-sm text-muted-foreground sm:order-none">
-              {t('masterCatalog.audit.page', {
-                defaultValue: 'Página {{page}} de {{totalPages}}',
-                page: data.pagination.page,
-                totalPages: data.pagination.totalPages,
-              })}
-            </span>
-            <Button
-              variant="outline"
-              className="min-h-11 w-full sm:min-h-9 sm:w-auto"
-              onClick={() => void load(data.pagination.page + 1)}
-              disabled={data.pagination.page >= data.pagination.totalPages}
-            >
-              {t('masterCatalog.audit.next', { defaultValue: 'Siguiente página' })}
-            </Button>
-          </nav>
+              <Button
+                className="min-h-11 w-full sm:min-h-9 sm:w-auto"
+                variant="outline"
+                onClick={() => void load(data.pagination.page - 1)}
+                disabled={data.pagination.page <= 1}
+              >
+                {t('masterCatalog.audit.previous', { defaultValue: 'Página anterior' })}
+              </Button>
+              <span className="-order-1 text-center text-sm text-muted-foreground sm:order-none">
+                {t('masterCatalog.audit.page', {
+                  defaultValue: 'Página {{page}} de {{totalPages}}',
+                  page: data.pagination.page,
+                  totalPages: data.pagination.totalPages,
+                })}
+              </span>
+              <Button
+                variant="outline"
+                className="min-h-11 w-full sm:min-h-9 sm:w-auto"
+                onClick={() => void load(data.pagination.page + 1)}
+                disabled={data.pagination.page >= data.pagination.totalPages}
+              >
+                {t('masterCatalog.audit.next', { defaultValue: 'Siguiente página' })}
+              </Button>
+            </nav>
+          )}
         </CardContent>
       </Card>
     </div>

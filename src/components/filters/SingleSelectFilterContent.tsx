@@ -1,3 +1,4 @@
+import { EstadoDeOpciones, type FuenteDeOpciones } from './EstadoDeOpciones'
 import { Input } from '@/components/ui/input'
 import { cn, includesNormalized } from '@/lib/utils'
 import { Check, Search } from 'lucide-react'
@@ -17,7 +18,10 @@ interface SingleSelectFilterContentProps {
   onClose?: () => void
   searchable?: boolean
   searchPlaceholder?: string
+  /** Lo que se dice si no hay opciones, o si la búsqueda dentro del filtro no encuentra nada. */
   emptyLabel?: string
+  /** La lectura de donde salen las opciones, si no es la de la lista. */
+  fuente?: FuenteDeOpciones
 }
 
 /**
@@ -38,7 +42,8 @@ export function SingleSelectFilterContent({
   onClose,
   searchable = false,
   searchPlaceholder = 'Buscar...',
-  emptyLabel = 'Sin resultados',
+  emptyLabel,
+  fuente,
 }: SingleSelectFilterContentProps) {
   const [searchTerm, setSearchTerm] = useState('')
 
@@ -71,8 +76,9 @@ export function SingleSelectFilterContent({
       )}
 
       <div className="max-h-[280px] overflow-y-auto p-2">
-        {filteredOptions.length === 0 ? (
-          <p className="py-4 text-center text-sm text-muted-foreground">{emptyLabel}</p>
+        <EstadoDeOpciones fuente={fuente} hayOpciones={options.length > 0} emptyLabel={emptyLabel} />
+        {options.length === 0 ? null : filteredOptions.length === 0 ? (
+          <p className="py-4 text-center text-sm text-muted-foreground">{emptyLabel ?? 'Sin resultados'}</p>
         ) : (
           <div className="space-y-1">
             {filteredOptions.map(option => {

@@ -6,6 +6,8 @@ import { InvoiceSection } from './components/InvoiceSection'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useBreadcrumb } from '@/context/BreadcrumbContext'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { detalleNoCargo } from '@/lib/falloDeCarga'
 import {
   purchaseOrderService,
   formatPrice,
@@ -77,11 +79,12 @@ export default function PurchaseOrderDetailPage() {
   }>({ open: false, item: null, quantity: 0 })
 
   // Fetch purchase order
-  const { data: response, isLoading } = useQuery({
+  const purchaseOrderQuery = useQuery({
     queryKey: ['purchase-order', venue?.id, poId],
     queryFn: () => purchaseOrderService.getPurchaseOrder(venue!.id, poId!),
     enabled: !!venue && !!poId,
   })
+  const { data: response, isLoading } = purchaseOrderQuery
 
   const purchaseOrder = response?.data
 
@@ -399,6 +402,14 @@ export default function PurchaseOrderDetailPage() {
     )
   }
 
+  if (detalleNoCargo(purchaseOrderQuery)) {
+    return (
+      <div className="p-6">
+        <AvisoDeCarga query={purchaseOrderQuery} hayDatos={false} />
+      </div>
+    )
+  }
+
   if (!purchaseOrder) {
     return (
       <div className="p-6">
@@ -419,6 +430,7 @@ export default function PurchaseOrderDetailPage() {
 
   return (
     <div className="p-6 space-y-8">
+      <AvisoDeCarga query={purchaseOrderQuery} hayDatos />
       {/* Header & Actions */}
       <div className="flex flex-col gap-6">
         <div className="flex items-start justify-between">

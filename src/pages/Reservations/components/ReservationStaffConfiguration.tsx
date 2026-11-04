@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Loader2, Plus, Trash2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
+import { AvisoDeCarga, BotonReintentar } from '@/components/AvisoDeCarga'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -13,6 +14,7 @@ import { Switch } from '@/components/ui/switch'
 import { TimePicker } from '@/components/ui/time-picker'
 import { useAccess } from '@/hooks/use-access'
 import { useToast } from '@/hooks/use-toast'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { getProducts } from '@/services/menu.service'
 import reservationService from '@/services/reservation.service'
 import teamService, { type TeamMember } from '@/services/team.service'
@@ -141,7 +143,12 @@ function ProductStaffEditor({
             </div>
           ) : null}
 
-          {productId && mappingQuery.isError ? <p className="text-sm text-destructive">{t('settings.staffing.mappingLoadError')}</p> : null}
+          {productId && falloDeCarga(mappingQuery) ? (
+            <div className="space-y-2">
+              <p className="text-sm text-destructive">{t('settings.staffing.mappingLoadError')}</p>
+              <BotonReintentar query={mappingQuery} />
+            </div>
+          ) : null}
 
           {productId && mappingQuery.data ? (
             <>
@@ -316,8 +323,11 @@ function StaffScheduleEditor({
             </div>
           ) : null}
 
-          {staffVenueId && scheduleQuery.isError ? (
-            <p className="text-sm text-destructive">{t('settings.staffing.scheduleLoadError')}</p>
+          {staffVenueId && falloDeCarga(scheduleQuery) ? (
+            <div className="space-y-2">
+              <p className="text-sm text-destructive">{t('settings.staffing.scheduleLoadError')}</p>
+              <BotonReintentar query={scheduleQuery} />
+            </div>
           ) : null}
 
           {staffVenueId && scheduleQuery.data ? (
@@ -475,6 +485,9 @@ export function ReservationStaffConfiguration({ venueId, venueHours }: Reservati
         .map(product => ({ id: product.id, name: product.name })),
     [productsQuery.data],
   )
+  // Sin leer al equipo o los servicios, un select vacío diría que no hay ninguno: se quita lo que depende de ellos y queda el aviso.
+  const sinEquipo = canReadTeam && teamQuery.data === undefined
+  const sinServicios = canReadMenu && productsQuery.data === undefined
 
   return (
     <section className="space-y-3" data-tour="reservation-settings-staffing">
@@ -483,26 +496,32 @@ export function ReservationStaffConfiguration({ venueId, venueHours }: Reservati
         <p className="text-sm text-muted-foreground">{t('settings.staffing.sectionHelp')}</p>
       </div>
 
+      <AvisoDeCarga query={teamQuery} hayDatos={teamQuery.data !== undefined} />
+      <AvisoDeCarga query={productsQuery} hayDatos={productsQuery.data !== undefined} />
       {accessLoading || teamQuery.isLoading || productsQuery.isLoading ? (
         <Card className="flex min-h-28 items-center justify-center border-input">
           <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
         </Card>
       ) : (
         <div className="grid gap-4 xl:grid-cols-2">
-          <ProductStaffEditor
-            venueId={venueId}
-            members={members}
-            products={appointmentProducts}
-            canRead={canReadTeam && canReadMenu}
-            canUpdate={can('menu:update')}
-          />
-          <StaffScheduleEditor
-            venueId={venueId}
-            venueHours={venueHours}
-            members={members}
-            canRead={canReadTeam}
-            canUpdate={can('teams:update')}
-          />
+          {!sinEquipo && !sinServicios && (
+            <ProductStaffEditor
+              venueId={venueId}
+              members={members}
+              products={appointmentProducts}
+              canRead={canReadTeam && canReadMenu}
+              canUpdate={can('menu:update')}
+            />
+          )}
+          {!sinEquipo && (
+            <StaffScheduleEditor
+              venueId={venueId}
+              venueHours={venueHours}
+              members={members}
+              canRead={canReadTeam}
+              canUpdate={can('teams:update')}
+            />
+          )}
         </div>
       )}
     </section>

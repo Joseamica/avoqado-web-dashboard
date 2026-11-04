@@ -18,6 +18,8 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ArrowLeft, Download, Table2 } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { useAuth } from '@/context/AuthContext'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { getClosingReportData, downloadClosingReportXlsx } from '@/services/storesAnalysis.service'
@@ -29,12 +31,13 @@ export function ReportePage() {
   const { activeVenue } = useAuth()
   const { fullBasePath, venueId } = useCurrentVenue()
 
-  const { data: reportData, isLoading } = useQuery({
+  const reportQuery = useQuery({
     queryKey: ['stores-analysis', venueId, 'closing-report'],
     queryFn: () => getClosingReportData(venueId!),
     enabled: !!venueId,
     staleTime: 60000,
   })
+  const { data: reportData } = reportQuery
 
   const rows = useMemo(() => reportData?.rows ?? [], [reportData])
   const total = useMemo(() => reportData?.totalAmount ?? rows.reduce((acc, r) => acc + r.amount, 0), [reportData, rows])
@@ -114,6 +117,7 @@ export function ReportePage() {
 
       {/* Table */}
       <div className="flex-1 overflow-auto p-4 bg-muted/20">
+        <AvisoDeCarga query={reportQuery} hayDatos={reportData !== undefined} />
         <div className="inline-block min-w-full shadow-md rounded-sm overflow-hidden bg-card">
           <table className="min-w-full border-collapse">
             <thead>
@@ -137,8 +141,8 @@ export function ReportePage() {
               </tr>
             </thead>
             <tbody>
-              {isLoading ? (
-                <tr>
+              {reportData === undefined ? (
+                !falloDeCarga(reportQuery) && <tr>
                   <td colSpan={10} className="p-0">
                     <div className="space-y-0">
                       {Array.from({ length: 8 }).map((_, i) => (
@@ -197,16 +201,18 @@ export function ReportePage() {
                 </tr>
               ))}
             </tbody>
-            <tfoot>
-              <tr className="bg-muted/50 font-bold">
-                <td colSpan={9} className="border border-border/30 px-3 py-3 text-right text-sm uppercase">
-                  {t('playtelecom:reporte.total', { defaultValue: 'Total' })}
-                </td>
-                <td className="border border-border/30 px-3 py-3 text-right font-mono text-lg text-green-400">
-                  {formatCurrency(total)}
-                </td>
-              </tr>
-            </tfoot>
+            {reportData !== undefined && (
+              <tfoot>
+                <tr className="bg-muted/50 font-bold">
+                  <td colSpan={9} className="border border-border/30 px-3 py-3 text-right text-sm uppercase">
+                    {t('playtelecom:reporte.total', { defaultValue: 'Total' })}
+                  </td>
+                  <td className="border border-border/30 px-3 py-3 text-right font-mono text-lg text-green-400">
+                    {formatCurrency(total)}
+                  </td>
+                </tr>
+              </tfoot>
+            )}
           </table>
         </div>
       </div>

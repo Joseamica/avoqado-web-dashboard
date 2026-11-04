@@ -1,9 +1,12 @@
+import { Skeleton } from '@/components/ui/skeleton'
 import { useEffect, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { AlertTriangle, ArrowRight, Loader2, Plus, Scale, ScanBarcode, TicketCheck } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 
+import { AvisoDeCarga, BotonReintentar } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -120,7 +123,10 @@ export default function AreaTickets() {
       <Alert variant="destructive" className="m-6">
         <AlertTriangle className="h-4 w-4" />
         <AlertTitle>No se pudo cargar la configuración</AlertTitle>
-        <AlertDescription>{apiError(overviewQuery.error, 'Intenta de nuevo.')}</AlertDescription>
+        <AlertDescription>
+          {apiError(overviewQuery.error, 'Intenta de nuevo.')}
+          <BotonReintentar query={overviewQuery} className="mt-2" />
+        </AlertDescription>
       </Alert>
     )
   }
@@ -128,6 +134,7 @@ export default function AreaTickets() {
   const data = overviewQuery.data
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-6 p-4 md:p-6">
+      <AvisoDeCarga query={overviewQuery} hayDatos />
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="flex items-center gap-2 text-2xl font-semibold">
@@ -860,7 +867,7 @@ function ScaleSettings({
   )
 }
 
-function Operations({
+export function Operations({
   venueId,
   counters,
 }: {
@@ -872,6 +879,7 @@ function Operations({
     queryFn: () => getAreaTicketOperations(venueId),
     refetchInterval: 30_000,
   })
+  const sinVales = query.data === undefined && falloDeCarga(query)
   return (
     <div className="space-y-4">
       <div className="grid gap-3 md:grid-cols-3">
@@ -907,7 +915,10 @@ function Operations({
             <ScanBarcode className="h-5 w-5" /> Vales por entregar
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-0">
+        <CardContent className={sinVales ? 'p-4' : 'p-0'}>
+          <AvisoDeCarga query={query} hayDatos={query.data !== undefined} />
+          {query.data === undefined && !sinVales && <Skeleton className="m-4 h-24" />}
+          {query.data !== undefined && (
           <Table>
             <TableHeader>
               <TableRow>
@@ -935,6 +946,7 @@ function Operations({
               )}
             </TableBody>
           </Table>
+          )}
         </CardContent>
       </Card>
     </div>

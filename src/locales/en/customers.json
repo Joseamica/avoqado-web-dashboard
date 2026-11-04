@@ -126,7 +126,8 @@
     "consentNeedsNoticeLink": "Create privacy notice",
     "consentNeedsNoticeNoPermission": "Ask an administrator to create the privacy notice.",
     "consentNoticeChecking": "Checking whether your business already has a privacy notice…",
-    "consentNoticeUnknown": "We couldn't check whether your business has a privacy notice. Ask an administrator to review your permissions."
+    "consentNoticeUnknown": "We couldn't check whether your business has a privacy notice. Ask an administrator to review your permissions.",
+    "consentNoticeFailed": "We couldn't check whether your business has a privacy notice."
   },
   "delete": {
     "title": "Delete Customer",

@@ -34,6 +34,8 @@ import { SelectionSummaryBar } from '@/components/selection-summary-bar'
 import { StatusFilterTabs, type StatusTab } from '@/components/StatusFilterTabs'
 import { SummaryCards, type SummaryCardItem } from '@/components/SummaryCards'
 import { SummaryQueryBoundary } from '@/components/SummaryQueryBoundary'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { useAuth } from '@/context/AuthContext'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useSocketEvents } from '@/hooks/use-socket-events'
@@ -339,25 +341,21 @@ export default function Payments() {
 
   // Opciones de las píldoras de filtro: valores DISTINTOS del venue, calculados en el servidor
   // (antes: las 500 filas más recientes del listado, con las que se deducían aquí).
-  const { data: filterOptionsData } = useQuery({
+  const filterOptionsQuery = useQuery({
     queryKey: ['payments-filter-options', venueId],
     queryFn: () => getPaymentFilterOptions(venueId),
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
     retry: 1,
     refetchOnWindowFocus: false,
   })
+  const { data: filterOptionsData } = filterOptionsQuery
 
   // Resumen para las pestañas y las tarjetas (2026-09-01): el servidor agrega por estado×tipo
   // con TODOS los filtros — los del listado (fechas, cuentas, métodos, orígenes, personal,
   // búsqueda) y los que antes se aplicaban aquí sobre 10,000 filas (subtotal, propina, total,
   // internacional, marca). `groups` trae sólo los del listado (pestañas); `filteredGroups`
   // también los del navegador (tarjetas). La pestaña activa se aplica sobre los grupos.
-  const {
-    data: paymentsSummary,
-    isLoading: isSummaryLoading,
-    isError: isSummaryError,
-    refetch: refetchSummary,
-  } = useQuery({
+  const summaryQuery = useQuery({
     queryKey: [
       'payments-summary',
       venueId,
@@ -392,6 +390,10 @@ export default function Payments() {
     retry: 1,
     refetchOnWindowFocus: false,
   })
+  const { data: paymentsSummary, refetch: refetchSummary } = summaryQuery
+  // Sin leer no hay tarjetas en $0: sin internet la consulta se pausa sin marcar error, y al reintentar ya no «carga» aunque siga sin datos.
+  const isSummaryLoading = paymentsSummary === undefined && !falloDeCarga(summaryQuery)
+  const isSummaryError = paymentsSummary === undefined && falloDeCarga(summaryQuery)
 
   const { merchantAccounts, methods, sources, waiters, cardBrands } = useMemo(
     () => ({
@@ -1122,7 +1124,7 @@ export default function Payments() {
             })}
           />
           <p className="text-sm text-muted-foreground">
-            {t('filters.showing')} {filteredPayments.length} {t('filters.of')} {totalPayments} {t('filters.payments')}
+            {data !== undefined && `${t('filters.showing')} ${filteredPayments.length} ${t('filters.of')} ${totalPayments} ${t('filters.payments')}`}
           </p>
         </div>
         {canCreateManualPayment && (
@@ -1133,6 +1135,7 @@ export default function Payments() {
         )}
       </div>
 
+      {paymentsSummary !== undefined && <AvisoDeCarga query={summaryQuery} hayDatos />}
       <SummaryQueryBoundary
         isLoading={isSummaryLoading}
         isError={isSummaryError}
@@ -1247,6 +1250,7 @@ export default function Payments() {
                   onClear={() => setMerchantAccountFilter([])}
                 >
                   <CheckboxFilterContent
+                    fuente={filterOptionsQuery}
                     title={`Filtrar por: ${t('columns.merchantAccount').toLowerCase()}`}
                     options={merchantAccounts.map(account => ({
                       value: account.id,
@@ -1270,6 +1274,7 @@ export default function Payments() {
                   onClear={() => setMethodFilter([])}
                 >
                   <CheckboxFilterContent
+                    fuente={filterOptionsQuery}
                     title={`Filtrar por: ${t('columns.method').toLowerCase()}`}
                     options={methods.map((method: string) => ({ value: method, label: etiquetaDeMetodo(method, t) }))}
                     selectedValues={methodFilter}
@@ -1288,6 +1293,7 @@ export default function Payments() {
                   onClear={() => setCardBrandFilter([])}
                 >
                   <CheckboxFilterContent
+                    fuente={filterOptionsQuery}
                     title={`Filtrar por: ${t('columns.cardBrand', { defaultValue: 'Marca' }).toLowerCase()}`}
                     options={cardBrands.map((brand: string) => ({ value: brand, label: formatCardBrandLabel(brand) }))}
                     selectedValues={cardBrandFilter}
@@ -1311,6 +1317,7 @@ export default function Payments() {
                   onClear={() => setSourceFilter([])}
                 >
                   <CheckboxFilterContent
+                    fuente={filterOptionsQuery}
                     title={`Filtrar por: ${t('columns.source').toLowerCase()}`}
                     options={sources.map((source: string) => ({
                       value: source,
@@ -1332,6 +1339,7 @@ export default function Payments() {
                   onClear={() => setInternationalFilter([])}
                 >
                   <CheckboxFilterContent
+                    fuente={filterOptionsQuery}
                     title={`Filtrar por: ${t('columns.international', { defaultValue: 'Internacional' }).toLowerCase()}`}
                     options={[
                       { value: 'yes', label: t('international.yes', { defaultValue: 'Sí' }) },
@@ -1356,6 +1364,7 @@ export default function Payments() {
                   onClear={() => setWaiterFilter([])}
                 >
                   <CheckboxFilterContent
+                    fuente={filterOptionsQuery}
                     title={`Filtrar por: ${t('columns.waiter').toLowerCase()}`}
                     options={waiters.map((waiter: any) => ({
                       value: waiter.id,

@@ -2,6 +2,8 @@ import { useMemo } from 'react'
 import { Info } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga, type EstadoDeCarga } from '@/lib/falloDeCarga'
 import { cn } from '@/lib/utils'
 import type { InventoryByResponsible, ResponsibleCounts } from '@/services/stockDashboard.service'
 
@@ -81,9 +83,11 @@ function flatten(data: InventoryByResponsible, totalLabel: string): RowModel[] {
 interface Props {
   data?: InventoryByResponsible
   isLoading: boolean
+  /** Sin esta lectura la tabla no dice «no hay inventario»: el supervisor iría a contar contra nada. */
+  query: EstadoDeCarga
 }
 
-export function InventoryByResponsibleTable({ data, isLoading }: Props) {
+export function InventoryByResponsibleTable({ data, isLoading, query }: Props) {
   const rows = useMemo(() => (data ? flatten(data, 'Total País') : []), [data])
   const unassignedPromoters = data?.unassigned.promoters ?? []
 
@@ -98,16 +102,22 @@ export function InventoryByResponsibleTable({ data, isLoading }: Props) {
     )
   }
 
+  if (data === undefined && falloDeCarga(query)) return <AvisoDeCarga query={query} hayDatos={false} />
+
   if (!data || (data.cities.length === 0 && unassignedPromoters.length === 0)) {
     return (
-      <div className="rounded-xl border border-input bg-card p-10 text-center">
-        <p className="text-sm text-muted-foreground">No hay inventario en manos de promotores con estos filtros.</p>
+      <div className="space-y-4">
+        <AvisoDeCarga query={query} hayDatos />
+        <div className="rounded-xl border border-input bg-card p-10 text-center">
+          <p className="text-sm text-muted-foreground">No hay inventario en manos de promotores con estos filtros.</p>
+        </div>
       </div>
     )
   }
 
   return (
     <div className="space-y-4">
+      <AvisoDeCarga query={query} hayDatos />
       <div>
         <h3 className="text-lg font-semibold">Inventario por responsable</h3>
         <p className="text-sm text-muted-foreground">Lo que cada promotor debe traer físicamente</p>

@@ -255,6 +255,7 @@ export default function History() {
   // La tabla junta facturas y tokens: si falta uno, la lista está incompleta. Un rol sin permiso de tokens no tiene un fallo: ve lo suyo.
   const tokensFailed = falloDeCarga(tokensQuery) && !esSinPermiso(tokensQuery.error)
   // Primero el fallo que se puede reintentar: un 403 de facturas no puede dejar sin salida a los tokens.
+  const todoLeido = invoicesQuery.data !== undefined && tokensQuery.data !== undefined
   const failedQuery = isLoading
     ? null
     : tokensFailed && esSinPermiso(invoicesQuery.error)
@@ -304,10 +305,10 @@ export default function History() {
           </div>
         </CardHeader>
         <CardContent>
-          <AvisoDeCarga query={failedQuery} hayDatos={allBillingItems.length > 0} />
+          <AvisoDeCarga query={failedQuery} hayDatos={todoLeido || allBillingItems.length > 0} />
           {isLoading ? (
             <p className="text-muted-foreground">{t('loading')}</p>
-          ) : failedQuery && allBillingItems.length === 0 ? null : allBillingItems.length === 0 ? (
+          ) : failedQuery && !todoLeido && allBillingItems.length === 0 ? null : allBillingItems.length === 0 ? (
             <Alert>
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>

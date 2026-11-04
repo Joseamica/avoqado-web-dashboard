@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -31,14 +33,7 @@ export function ModifierInventoryAnalytics() {
     }
   }
 
-  const {
-    data: summary,
-    isLoading,
-    refetch,
-    isRefetching,
-    isError,
-    error,
-  } = useQuery({
+  const summaryQuery = useQuery({
     queryKey: ['modifier-inventory-summary', venueId, dateRange],
     queryFn: async () => {
       const { startDate, endDate } = getDateRange(dateRange)
@@ -47,41 +42,12 @@ export function ModifierInventoryAnalytics() {
     },
     enabled: !!venueId,
   })
+  const { data: summary, refetch, isRefetching } = summaryQuery
+  const isLoading = summary === undefined && !falloDeCarga(summaryQuery)
+  const isError = summary === undefined && falloDeCarga(summaryQuery)
 
-  if (isLoading) {
-    return (
-      <Card>
-        <CardContent className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        </CardContent>
-      </Card>
-    )
-  }
-
-  if (isError) {
-    return (
-      <Card>
-        <CardContent className="flex flex-col items-center justify-center py-12">
-          <AlertTriangle className="h-12 w-12 text-destructive mb-4" />
-          <h3 className="text-lg font-medium mb-2">{tCommon('error', 'Error Loading Data')}</h3>
-          <p className="text-sm text-muted-foreground text-center max-w-md mb-4">
-            {error instanceof Error ? error.message : tCommon('errorGeneric', 'An error occurred while loading modifier analytics.')}
-          </p>
-          <Button variant="outline" onClick={() => refetch()}>
-            <RefreshCw className="h-4 w-4 mr-2" />
-            {tCommon('retry', 'Retry')}
-          </Button>
-        </CardContent>
-      </Card>
-    )
-  }
-
-  if (!summary) {
-    return null
-  }
-
-  return (
-    <div className="space-y-6">
+  const encabezado = (
+    <>
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -104,6 +70,35 @@ export function ModifierInventoryAnalytics() {
           </Button>
         </div>
       </div>
+    </>
+  )
+
+  // Sin leer: el selector de periodo se queda, sin red es la salida a uno ya leído.
+  if (isLoading || isError) {
+    return (
+      <div className="space-y-6">
+        {encabezado}
+        {isLoading ? (
+          <Card>
+            <CardContent className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </CardContent>
+          </Card>
+        ) : (
+          <AvisoDeCarga query={summaryQuery} hayDatos={false} />
+        )}
+      </div>
+    )
+  }
+
+  if (!summary) {
+    return null
+  }
+
+  return (
+    <div className="space-y-6">
+      {encabezado}
+      <AvisoDeCarga query={summaryQuery} hayDatos />
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
