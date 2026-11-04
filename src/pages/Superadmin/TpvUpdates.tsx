@@ -7,6 +7,8 @@
 
 import { useState, useRef, useEffect, useMemo } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga, type EstadoDeCarga } from '@/lib/falloDeCarga'
 import {
   Upload,
   Smartphone,
@@ -105,7 +107,7 @@ function formatDate(dateString: string): string {
 // TARGETING SECTION (Aplica a: Todas / Sucursales / TPVs por serie)
 // ============================================================================
 
-function TargetingSection({
+export function TargetingSection({
   targetType,
   onTargetTypeChange,
   selectedVenueIds,
@@ -118,11 +120,12 @@ function TargetingSection({
 }) {
   const [venueSearch, setVenueSearch] = useState('')
 
-  const { data: venues = [], isLoading: venuesLoading } = useQuery({
+  const venuesQuery = useQuery({
     queryKey: ['superadmin', 'venues', 'tpv-update-targeting'],
     queryFn: () => superadminAPI.getAllVenues(),
     enabled: targetType === 'VENUES',
   })
+  const { data: venues = [], isLoading: venuesLoading } = venuesQuery
 
   const filteredVenues = useMemo(() => {
     const q = venueSearch.trim().toLowerCase()
@@ -182,6 +185,7 @@ function TargetingSection({
             {selectedVenueIds.length} sucursal{selectedVenueIds.length === 1 ? '' : 'es'} seleccionada
             {selectedVenueIds.length === 1 ? '' : 's'}
           </div>
+          {venuesQuery.data !== undefined && <AvisoDeCarga query={venuesQuery} hayDatos />}
           <div className="max-h-56 overflow-y-auto space-y-1">
             {venuesLoading ? (
               <div className="space-y-2 py-1">
@@ -189,6 +193,8 @@ function TargetingSection({
                   <Skeleton key={i} className="h-9 w-full rounded-lg" />
                 ))}
               </div>
+            ) : venuesQuery.data === undefined ? (
+              <AvisoDeCarga query={venuesQuery} hayDatos={false} />
             ) : filteredVenues.length === 0 ? (
               <p className="text-xs text-muted-foreground py-3 text-center">Sin sucursales que coincidan</p>
             ) : (
@@ -897,11 +903,13 @@ function DeleteDialog({ update, isOpen, onClose, onSuccess }: DeleteDialogProps)
 function UpdatesTable({
   updates,
   isLoading,
+  query,
   onEdit,
   onDelete,
 }: {
   updates: AppUpdate[]
   isLoading: boolean
+  query: EstadoDeCarga & { data: unknown }
   onEdit: (update: AppUpdate) => void
   onDelete: (update: AppUpdate) => void
 }) {
@@ -914,6 +922,8 @@ function UpdatesTable({
       </div>
     )
   }
+
+  if (query.data === undefined && falloDeCarga(query)) return null
 
   if (updates.length === 0) {
     return (
@@ -1058,24 +1068,23 @@ export default function TpvUpdates() {
   const [editingUpdate, setEditingUpdate] = useState<AppUpdate | null>(null)
   const [deletingUpdate, setDeletingUpdate] = useState<AppUpdate | null>(null)
 
-  const {
-    data: updates = [],
-    isLoading,
-    isFetching,
-  } = useQuery({
+  const updatesQuery = useQuery({
     queryKey: ['superadmin', 'app-updates', activeTab],
     queryFn: () => superadminAPI.getAppUpdates({ environment: activeTab }),
   })
+  const { data: updates = [], isLoading, isFetching } = updatesQuery
 
-  const { data: latestSandbox } = useQuery({
+  const latestSandboxQuery = useQuery({
     queryKey: ['superadmin', 'app-updates', 'latest', 'SANDBOX'],
     queryFn: () => superadminAPI.getLatestAppUpdate('SANDBOX'),
   })
+  const { data: latestSandbox } = latestSandboxQuery
 
-  const { data: latestProduction } = useQuery({
+  const latestProductionQuery = useQuery({
     queryKey: ['superadmin', 'app-updates', 'latest', 'PRODUCTION'],
     queryFn: () => superadminAPI.getLatestAppUpdate('PRODUCTION'),
   })
+  const { data: latestProduction } = latestProductionQuery
 
   const handleRefresh = () => {
     queryClient.invalidateQueries({ queryKey: ['superadmin', 'app-updates'] })
@@ -1145,6 +1154,7 @@ export default function TpvUpdates() {
               <p className="text-xs text-muted-foreground">Ultima version</p>
             </div>
           </div>
+          <AvisoDeCarga query={latestProductionQuery} hayDatos={latestProduction !== undefined} />
           {latestProduction ? (
             <div className="flex items-center justify-between">
               <div>
@@ -1157,7 +1167,7 @@ export default function TpvUpdates() {
               </div>
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground">Sin versiones disponibles</p>
+            latestProduction !== undefined && <p className="text-sm text-muted-foreground">Sin versiones disponibles</p>
           )}
         </GlassCard>
 
@@ -1176,6 +1186,7 @@ export default function TpvUpdates() {
               <p className="text-xs text-muted-foreground">Ultima version</p>
             </div>
           </div>
+          <AvisoDeCarga query={latestSandboxQuery} hayDatos={latestSandbox !== undefined} />
           {latestSandbox ? (
             <div className="flex items-center justify-between">
               <div>
@@ -1188,7 +1199,7 @@ export default function TpvUpdates() {
               </div>
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground">Sin versiones disponibles</p>
+            latestSandbox !== undefined && <p className="text-sm text-muted-foreground">Sin versiones disponibles</p>
           )}
         </GlassCard>
       </div>
@@ -1225,11 +1236,17 @@ export default function TpvUpdates() {
             </TabsList>
 
             <TabsContent value="PRODUCTION">
-              <UpdatesTable updates={updates} isLoading={isLoading} onEdit={setEditingUpdate} onDelete={setDeletingUpdate} />
+              <>
+                <AvisoDeCarga query={updatesQuery} hayDatos={updatesQuery.data !== undefined} />
+                <UpdatesTable updates={updates} isLoading={isLoading} query={updatesQuery} onEdit={setEditingUpdate} onDelete={setDeletingUpdate} />
+              </>
             </TabsContent>
 
             <TabsContent value="SANDBOX">
-              <UpdatesTable updates={updates} isLoading={isLoading} onEdit={setEditingUpdate} onDelete={setDeletingUpdate} />
+              <>
+                <AvisoDeCarga query={updatesQuery} hayDatos={updatesQuery.data !== undefined} />
+                <UpdatesTable updates={updates} isLoading={isLoading} query={updatesQuery} onEdit={setEditingUpdate} onDelete={setDeletingUpdate} />
+              </>
             </TabsContent>
           </Tabs>
         </div>

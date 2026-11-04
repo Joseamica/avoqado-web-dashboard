@@ -1,6 +1,8 @@
 import { useState, useMemo, Fragment } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
@@ -48,15 +50,10 @@ const GlassCard: React.FC<{ children: React.ReactNode; className?: string }> = (
 // Loading Skeleton
 // ============================================
 const PaymentMethodsSkeleton = () => (
-  <div className="p-4 md:p-6 space-y-6">
-    <div className="flex items-center justify-between">
-      <Skeleton className="h-8 w-48" />
-      <Skeleton className="h-10 w-32" />
-    </div>
-    <Skeleton className="h-10 w-64 rounded-lg" />
+  <>
     <Skeleton className="h-48 w-full rounded-2xl" />
     <Skeleton className="h-96 w-full rounded-2xl" />
-  </div>
+  </>
 )
 
 // ============================================
@@ -96,11 +93,13 @@ export default function PaymentMethods() {
     [venueId, dateRange.from, dateRange.to],
   )
 
-  const { data: apiResponse, isLoading, isError, error } = useQuery({
+  const reportQuery = useQuery({
     queryKey: paymentMethodsKeys.report(apiFilters),
     queryFn: () => fetchPaymentMethods(apiFilters),
     staleTime: 1000 * 60 * 5,
   })
+  const { data: apiResponse } = reportQuery
+  const isLoading = apiResponse === undefined && !falloDeCarga(reportQuery)
 
   const handleDateRangeUpdate = (values: { range: { from: Date; to: Date | undefined } }) => {
     if (values.range.from && values.range.to) {
@@ -168,29 +167,6 @@ export default function PaymentMethods() {
     URL.revokeObjectURL(link.href)
   }
 
-  if (isLoading) {
-    return <PaymentMethodsSkeleton />
-  }
-
-  if (isError) {
-    return (
-      <div className="p-4 md:p-6 space-y-6">
-        <div className="flex items-center gap-3">
-          <PageTitleWithInfo
-            title={t('paymentMethods.title')}
-            className="text-2xl font-bold"
-            tooltip={t('info.paymentMethods', {
-              defaultValue: 'Desglose de cuánto cobraste por cada método de pago, incluyendo propinas, reembolsos y comisiones.',
-            })}
-          />
-        </div>
-        <GlassCard className="p-6">
-          <p className="text-destructive">{error instanceof Error ? error.message : 'Error loading payment methods data'}</p>
-        </GlassCard>
-      </div>
-    )
-  }
-
   return (
     <div className="p-4 md:p-6 space-y-6">
       {/* Header */}
@@ -225,6 +201,10 @@ export default function PaymentMethods() {
           showCompare={false}
         />
       </div>
+
+      {/* Debajo del filtro: sin red es la salida a un periodo ya leído. */}
+      <AvisoDeCarga query={reportQuery} hayDatos={apiResponse !== undefined} />
+      {isLoading && <PaymentMethodsSkeleton />}
 
       {/* Summary Stats */}
       {apiResponse && (

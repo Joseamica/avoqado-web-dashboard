@@ -4,6 +4,8 @@ import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { AlertTriangle } from 'lucide-react'
 
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -120,9 +122,10 @@ export function CashDrawerSection() {
           <CardTitle className="text-base">{t('drawer.now')}</CardTitle>
         </CardHeader>
         <CardContent>
-          {status.isLoading ? (
+          {status.data !== undefined && <AvisoDeCarga query={status} hayDatos />}
+          {status.data === undefined && !falloDeCarga(status) ? (
             <p className="text-sm text-muted-foreground">{t('drawer.loading')}</p>
-          ) : status.isError ? (
+          ) : status.data === undefined ? (
             <div className="flex items-center gap-3">
               <p className="text-sm text-destructive">{t('drawer.error')}</p>
               <Button size="sm" variant="outline" onClick={() => status.refetch()}>
@@ -151,9 +154,10 @@ export function CashDrawerSection() {
           <CardTitle className="text-base">{t('drawer.history')}</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
-          {history.isLoading ? (
+          {history.data !== undefined && <AvisoDeCarga query={history} hayDatos />}
+          {history.data === undefined && !falloDeCarga(history) ? (
             <p className="p-4 text-sm text-muted-foreground">{t('drawer.loading')}</p>
-          ) : history.isError ? (
+          ) : history.data === undefined ? (
             <div className="flex items-center gap-3 p-4">
               <p className="text-sm text-destructive">{t('drawer.error')}</p>
               <Button size="sm" variant="outline" onClick={() => history.refetch()}>

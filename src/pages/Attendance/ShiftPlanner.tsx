@@ -3,6 +3,8 @@ import { ChevronLeft, ChevronRight, Loader2, Plus, PowerOff } from 'lucide-react
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -210,9 +212,10 @@ export function ShiftPlanner({ venueId, todayIso, enabled, canManage, settingsPa
               </Button>
             )}
           </div>
+          {templatesQ.data !== undefined && <AvisoDeCarga query={templatesQ} hayDatos />}
           {templatesQ.isLoading ? (
             <p className="text-sm text-muted-foreground">{t('loading')}</p>
-          ) : templatesQ.isError ? (
+          ) : templatesQ.data === undefined && falloDeCarga(templatesQ) ? (
             <LoadError t={t} onRetry={() => templatesQ.refetch()} />
           ) : templates.length === 0 ? (
             <p className="text-sm text-muted-foreground">{t('shifts.templates.empty')}</p>
@@ -274,9 +277,11 @@ export function ShiftPlanner({ venueId, todayIso, enabled, canManage, settingsPa
         )}
       </div>
 
+      {teamQ.data !== undefined && <AvisoDeCarga query={teamQ} hayDatos />}
+      {assignmentsQ.data !== undefined && <AvisoDeCarga query={assignmentsQ} hayDatos />}
       {teamQ.isLoading || assignmentsQ.isLoading ? (
         <p className="text-sm text-muted-foreground">{t('loading')}</p>
-      ) : teamQ.isError || assignmentsQ.isError ? (
+      ) : (teamQ.data === undefined && falloDeCarga(teamQ)) || (assignmentsQ.data === undefined && falloDeCarga(assignmentsQ)) ? (
         <LoadError t={t} onRetry={() => { teamQ.refetch(); assignmentsQ.refetch() }} />
       ) : members.length === 0 ? (
         <p className="text-sm text-muted-foreground">{t('shifts.week.noTeam')}</p>

@@ -7,7 +7,9 @@ import { ArrowLeft, ArrowRight, Check, CircleAlert, Loader2, PackageCheck, Send,
 import { useTranslation } from 'react-i18next'
 import { z } from 'zod'
 
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { FeatureGate } from '@/components/billing/FeatureGate'
+import { detalleNoCargo } from '@/lib/falloDeCarga'
 import { PermissionGate } from '@/components/PermissionGate'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
@@ -347,6 +349,7 @@ export default function InterVenueTransferDetailPage() {
   )
 
   if (transferQuery.isLoading) return <div className="flex min-h-64 items-center justify-center"><Loader2 className="h-6 w-6 animate-spin" /></div>
+  if (detalleNoCargo(transferQuery)) return <AvisoDeCarga query={transferQuery} hayDatos={false} />
   if (!transfer) return <Alert variant="destructive"><AlertDescription>{t('interVenueTransfers.messages.notFound')}</AlertDescription></Alert>
 
   const isSource = transfer.sourceVenueId === venueId
@@ -367,6 +370,7 @@ export default function InterVenueTransferDetailPage() {
   return (
     <FeatureGate feature="INVENTORY_TRACKING">
       <div className="space-y-6" data-tour="inter-venue-transfer-detail">
+        <AvisoDeCarga query={transferQuery} hayDatos />
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="flex items-start gap-3">
             <Button variant="ghost" size="icon" className="cursor-pointer" onClick={() => navigate(`${fullBasePath}/inventory/inter-venue-transfers`)} aria-label={t('interVenueTransfers.actions.back')}>

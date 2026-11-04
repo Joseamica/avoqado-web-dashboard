@@ -16,6 +16,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { AvisoDeCarga, BotonReintentar } from '@/components/AvisoDeCarga'
+import { detalleNoCargo, falloDeCarga } from '@/lib/falloDeCarga'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -57,11 +59,12 @@ export default function StockCountDetailPage() {
   const queryClient = useQueryClient()
   const [cancelOpen, setCancelOpen] = useState(false)
 
-  const { data, isLoading, isError } = useQuery({
+  const countQuery = useQuery({
     queryKey: ['stock-count', venueId, countId],
     queryFn: () => stockCountService.get(venueId!, countId!),
     enabled: !!venueId && !!countId,
   })
+  const { data, isLoading } = countQuery
 
   const count = data?.data
 
@@ -133,16 +136,18 @@ export default function StockCountDetailPage() {
         </div>
       )}
 
-      {isError && (
+      {data === undefined && falloDeCarga(countQuery) && (
         <Card>
           <CardContent className="pt-6">
-            <p className="text-sm text-destructive">No se pudo cargar el conteo. Verifica el enlace o inténtalo de nuevo.</p>
+            <p className="text-sm text-destructive">{detalleNoCargo(countQuery) ? 'No se pudo cargar el conteo. Verifica el enlace o inténtalo de nuevo.' : 'Este conteo no existe o ya no está disponible.'}</p>
+            <BotonReintentar query={countQuery} className="mt-3" />
           </CardContent>
         </Card>
       )}
 
       {count && (
         <>
+          <AvisoDeCarga query={countQuery} hayDatos />
           {/* Header card */}
           <Card>
             <CardContent className="pt-6">

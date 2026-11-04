@@ -1,5 +1,4 @@
 import { AvisoDeCarga } from '@/components/AvisoDeCarga'
-import { falloDeCarga } from '@/lib/falloDeCarga'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -145,11 +144,12 @@ export default function OrganizationTerminals() {
   })
   const { data, isLoading, isFetching, refetch } = listQuery
 
-  const { data: venues } = useQuery({
+  const venuesQuery = useQuery({
     queryKey: ['organization', 'venues', orgId],
     queryFn: () => getOrganizationVenues(orgId!),
     enabled: !!orgId,
   })
+  const { data: venues } = venuesQuery
 
   const invalidateTerminals = () => queryClient.invalidateQueries({ queryKey: ['org-terminals'] })
 
@@ -489,30 +489,10 @@ export default function OrganizationTerminals() {
     }
   }
 
-  // Loading skeleton (first paint)
-  if (isLoading) {
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <Skeleton className="h-8 w-64 mb-2" />
-            <Skeleton className="h-4 w-96" />
-          </div>
-          <Skeleton className="h-9 w-36" />
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} className="h-24 rounded-xl" />
-          ))}
-        </div>
-        <Skeleton className="h-10 rounded-xl" />
-        <Skeleton className="h-96 rounded-xl" />
-      </div>
-    )
-  }
-
-  const isOrgEmpty = (summary?.total ?? 0) === 0
+  const leido = data !== undefined
+  const isOrgEmpty = leido && (summary?.total ?? 0) === 0
   const isFilterEmpty =
+    leido &&
     !isOrgEmpty &&
     terminals.length === 0 &&
     (debouncedSearch.length > 0 || statusFilter.length > 0 || typeFilter.length > 0 || venueFilter.length > 0 || versionFilter.length > 0)
@@ -536,14 +516,22 @@ export default function OrganizationTerminals() {
 
         <AvisoDeCarga
           query={listQuery}
-          hayDatos={!isOrgEmpty}
-          volverAlInicio={isOrgEmpty && searchParams.toString() ? () => setSearchParams(new URLSearchParams()) : undefined}
+          hayDatos={leido}
+          volverAlInicio={!leido && searchParams.toString() ? () => setSearchParams(new URLSearchParams()) : undefined}
         />
-        {falloDeCarga(listQuery) && isOrgEmpty ? null : isOrgEmpty ? (
+        {isOrgEmpty ? (
           <EmptyOrgState onCreate={openCreateDialog} />
         ) : (
           <>
-            {/* Metric cards */}
+            {/* Metric cards: sin leerlas no hay 0 terminales. Los filtros de abajo se quedan: la consulta depende de ellos. */}
+            {isLoading && (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <Skeleton key={i} className="h-24 rounded-xl" />
+                ))}
+              </div>
+            )}
+            {leido && (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <MetricCard label={t('terminals.stats.total')} value={metrics.total} icon={<Terminal className="w-4 h-4" />} accent="blue" />
               <MetricCard
@@ -566,6 +554,7 @@ export default function OrganizationTerminals() {
                 accent={metrics.lowHealth > 0 ? 'yellow' : 'blue'}
               />
             </div>
+            )}
 
             {/* Status pivot tabs (rounded-full pill style) */}
             <Tabs value={activeTab} onValueChange={handleTabChange}>
@@ -596,6 +585,7 @@ export default function OrganizationTerminals() {
               typeFilter={typeFilter}
               onTypeChange={setTypeValues}
               venueOptions={(venues ?? []).map(v => ({ value: v.id, label: v.name }))}
+              venuesQuery={venuesQuery}
               venueFilter={venueFilter}
               onVenueChange={setVenueValues}
               versionOptions={VERSION_OPTIONS.map(v => ({
@@ -610,6 +600,8 @@ export default function OrganizationTerminals() {
             />
 
             {/* Table or empty-results */}
+            {isLoading && <Skeleton className="h-96 rounded-xl" />}
+            {leido && (
             <GlassCard className="p-0 overflow-hidden">
               {isFilterEmpty ? (
                 <EmptyResultsState query={debouncedSearch} onClear={handleClearAll} />
@@ -629,6 +621,7 @@ export default function OrganizationTerminals() {
                 />
               )}
             </GlassCard>
+            )}
           </>
         )}
 

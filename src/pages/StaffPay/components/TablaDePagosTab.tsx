@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { ArrowDown, CheckCircle2, Circle } from 'lucide-react'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -139,32 +141,14 @@ export function TablaDePagosTab() {
     }
   }
 
-  const cargando = qNiveles.isLoading || qAsignaciones.isLoading || qTablas.isLoading
-  const fallo = qNiveles.isError || qAsignaciones.isError || qTablas.isError
-  if (cargando) {
-    return (
-      <div className="space-y-4" aria-busy="true" aria-live="polite">
-        <span className="sr-only">{t('states.loading')}</span>
-        <Skeleton className="h-16 w-full" />
-        <Skeleton className="h-32 w-full" />
-        <Skeleton className="h-64 w-full" />
-      </div>
-    )
-  }
-  if (fallo) {
-    return (
-      <div role="alert" className="rounded-lg border border-destructive/40 p-4 space-y-3">
-        <p className="text-sm">{t('states.loadError')}</p>
-        <Button
-          variant="outline"
-          className="cursor-pointer"
-          onClick={() => { void qNiveles.refetch(); void qAsignaciones.refetch(); void qTablas.refetch() }}
-        >
-          {t('states.retry')}
-        </Button>
-      </div>
-    )
-  }
+  const lecturas = [qNiveles, qAsignaciones, qTablas]
+  // Una sola línea de aviso aunque caigan las tres, y su «Reintentar» las vuelve a leer todas (sin internet se pausan: `falloDeCarga` lo ve).
+  const caidas = lecturas.filter(q => falloDeCarga(q))
+  // Sin leer no se afirma nada: ni «sin nivel», ni «crea tu tabla», ni «sin niveles». Cada sección espera a lo que necesita, y lo que sí llegó se ve.
+  const fuentesDeQuien = [qEquipo, qNiveles, qAsignaciones]
+  const faltaParaQuien = fuentesDeQuien.filter(q => q.data === undefined)
+  // La cuadrícula necesita la tabla y, si hay tabla, los niveles (son sus columnas).
+  const faltaParaCuadricula = qTablas.data === undefined ? qTablas : tabla && qNiveles.data === undefined ? qNiveles : null
 
   const pasos = [
     { key: 'levels', hecho: activos.length > 0 },
@@ -176,23 +160,33 @@ export function TablaDePagosTab() {
   return (
     <div className="space-y-6">
       {/* Guía de tres pasos: cada uno marca palomita al terminarlo */}
-      <ol className="flex flex-wrap gap-x-6 gap-y-2 text-sm" aria-label={t('steps.title')}>
-        {pasos.map((p, i) => (
-          <li key={p.key} className={`flex items-center gap-2 ${p.hecho ? 'text-foreground' : 'text-muted-foreground'}`}>
-            {p.hecho ? <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" /> : <Circle className="h-4 w-4" />}
-            <span>{i + 1}. {t(`steps.${p.key}`)}</span>
-          </li>
-        ))}
-      </ol>
+      {lecturas.every(q => q.data !== undefined) && (
+        <ol className="flex flex-wrap gap-x-6 gap-y-2 text-sm" aria-label={t('steps.title')}>
+          {pasos.map((p, i) => (
+            <li key={p.key} className={`flex items-center gap-2 ${p.hecho ? 'text-foreground' : 'text-muted-foreground'}`}>
+              {p.hecho ? <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" /> : <Circle className="h-4 w-4" />}
+              <span>{i + 1}. {t(`steps.${p.key}`)}</span>
+            </li>
+          ))}
+        </ol>
+      )}
+
+      {caidas.length > 0 && (
+        <AvisoDeCarga
+          query={{ ...caidas[0], refetch: () => caidas.forEach(q => void q.refetch()) }}
+          hayDatos={caidas.every(q => q.data !== undefined)}
+        />
+      )}
 
       {/* 1. Niveles */}
-      <NivelesSection activos={activos} />
+      {qNiveles.data !== undefined ? <NivelesSection activos={activos} /> : !falloDeCarga(qNiveles) && <Skeleton className="h-32 w-full" />}
 
       {/* 2. Quién es qué */}
       <section className="rounded-lg border border-input p-4 space-y-3">
         <h3 className="font-semibold">{t('who.title')}</h3>
-        {qEquipo.isLoading ? (
-          <Skeleton className="h-10 w-full" />
+        <AvisoDeCarga query={qEquipo} hayDatos={qEquipo.data !== undefined} />
+        {faltaParaQuien.length > 0 ? (
+          faltaParaQuien.some(q => falloDeCarga(q)) ? null : <Skeleton className="h-10 w-full" />
         ) : miembros.length === 0 ? (
           <p className="text-sm text-muted-foreground">{t('who.empty')}</p>
         ) : (
@@ -239,7 +233,9 @@ export function TablaDePagosTab() {
       <section className="rounded-lg border border-input p-4 space-y-4">
         <h3 className="font-semibold">{t('grid.title')}</h3>
 
-        {!tabla && (
+        {faltaParaCuadricula && !falloDeCarga(faltaParaCuadricula) && <Skeleton className="h-64 w-full" />}
+
+        {!faltaParaCuadricula && !tabla && (
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">{t('grid.empty')}</p>
             {/* Sin red el envío queda EN PAUSA (C5): se dice, y «Cancelar envío» lo quita de la cola (no sale al volver la red). */}
@@ -254,9 +250,9 @@ export function TablaDePagosTab() {
           </div>
         )}
 
-        {tabla && activos.length === 0 && <p className="text-sm text-muted-foreground">{t('grid.needLevels')}</p>}
+        {!faltaParaCuadricula && tabla && activos.length === 0 && <p className="text-sm text-muted-foreground">{t('grid.needLevels')}</p>}
 
-        {tabla && activos.length > 0 && (
+        {!faltaParaCuadricula && tabla && activos.length > 0 && (
           <>
             {/* Simulador fijo arriba: «Una clase con [8] lugares, dada por [Head Coach] = $570» */}
             <div className="rounded-lg bg-muted/50 p-3 flex flex-wrap items-center gap-2 text-sm" data-tour="staffpay-simulator">

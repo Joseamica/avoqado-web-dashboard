@@ -1,3 +1,5 @@
+import { falloDeCarga, reintentarSirve } from '@/lib/falloDeCarga'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { useId, useMemo, useState } from 'react'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
@@ -30,7 +32,7 @@ export function FeatureCatalogBrowser({ selection }: { selection?: CatalogSelect
     [search, category, page],
   )
   const params = useDebounce(query, 300)
-  const { data, isPending, isError, isFetching, refetch } = useQuery({
+  const catalogoQuery = useQuery({
     queryKey: ['publicFeatureCatalog', params],
     queryFn: ({ signal }) => getFeatureCatalog(params, signal),
     enabled: open,
@@ -39,6 +41,7 @@ export function FeatureCatalogBrowser({ selection }: { selection?: CatalogSelect
     refetchOnWindowFocus: false,
     placeholderData: keepPreviousData,
   })
+  const { data, isFetching, refetch } = catalogoQuery
   const language = i18n.language?.split('-')[0]
   const locale = language === 'en' || language === 'fr' ? language : 'es'
   const changing =
@@ -129,20 +132,23 @@ export function FeatureCatalogBrowser({ selection }: { selection?: CatalogSelect
               ))}
             </select>
           </div>
-          {isError ? (
+          {data === undefined && falloDeCarga(catalogoQuery) ? (
             <div role="alert" className="mt-6 text-sm">
               <p>{t('catalog.error')}</p>
-              <Button variant="outline" className="mt-3 rounded-full" onClick={() => void refetch()}>
-                {t('catalog.retry')}
-              </Button>
+              {reintentarSirve(catalogoQuery.error) && (
+                <Button variant="outline" className="mt-3 rounded-full" onClick={() => void refetch()}>
+                  {t('catalog.retry')}
+                </Button>
+              )}
             </div>
-          ) : isPending ? (
+          ) : data === undefined ? (
             <p role="status" className="py-8 text-sm text-muted-foreground">
               {t('catalog.loading')}
             </p>
           ) : (
             data && (
               <>
+                <div className="mt-4 empty:hidden"><AvisoDeCarga query={catalogoQuery} hayDatos /></div>
                 <p role="status" className="my-4 text-sm text-muted-foreground">
                   {t('catalog.total', { count: data.total })}
                 </p>

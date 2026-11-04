@@ -37,6 +37,7 @@ export function useCatalogItems(organizationId: string | null | undefined) {
   }, [query])
 
   return {
+    query,
     items: query.data?.items ?? [],
     nextCursor: query.data?.nextCursor ?? null,
     isLoading: query.isPending,

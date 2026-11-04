@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { DateTime } from 'luxon'
 import { useAuth } from '@/context/AuthContext'
 import api from '@/api'
@@ -75,7 +77,7 @@ export default function TestingPayments() {
   const [lastCreatedPayment, setLastCreatedPayment] = useState<TestPayment | null>(null)
 
   // Fetch recent test payments
-  const { data: testPayments, isLoading: isLoadingPayments } = useQuery({
+  const testPaymentsQuery = useQuery({
     queryKey: ['testPayments', selectedVenue],
     queryFn: async () => {
       const params = new URLSearchParams()
@@ -87,6 +89,7 @@ export default function TestingPayments() {
     },
     enabled: true,
   })
+  const { data: testPayments, isLoading: isLoadingPayments } = testPaymentsQuery
 
   // Create test payment mutation
   const createPaymentMutation = useMutation({
@@ -370,11 +373,12 @@ export default function TestingPayments() {
               </CardDescription>
             </CardHeader>
             <CardContent>
+              <AvisoDeCarga query={testPaymentsQuery} hayDatos={testPayments !== undefined} />
               {isLoadingPayments ? (
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                 </div>
-              ) : testPayments && testPayments.length > 0 ? (
+              ) : testPayments === undefined && falloDeCarga(testPaymentsQuery) ? null : testPayments && testPayments.length > 0 ? (
                 <div className="rounded-md border border-border">
                   <Table>
                     <TableHeader>

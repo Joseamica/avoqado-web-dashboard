@@ -5,6 +5,8 @@
  * aunque la periodicidad del emisor haya cambiado. Antes de timbrar enseña lo que entraría; si el servidor dice que no se puede
  * (`motivo`, p. ej. un año que ya no se admite: C1-33), lo dice y no ofrece «Emitir». La emite sólo una persona: el job nunca.
  */
+import { falloDeCarga } from '@/lib/falloDeCarga'
+import { AvisoDeCarga, BotonReintentar } from '@/components/AvisoDeCarga'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Loader2 } from 'lucide-react'
@@ -85,10 +87,11 @@ export function GlobalComplementariaDialog({ emisorId, principalId, onOpenChange
             </p>
           )}
 
-          {preview.isError && (
-            <p role="alert" className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
-              {textoDelServidor(preview.error) ?? t('globalInvoice.complementaryDialog.loadError')}
-            </p>
+          {falloDeCarga(preview) && (
+            <div role="alert" className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+              <span>{textoDelServidor(preview.error) ?? t('globalInvoice.complementaryDialog.loadError')}</span>
+              <BotonReintentar query={preview} />
+            </div>
           )}
 
           {vista && (

@@ -48,6 +48,7 @@ import { Input } from '@/components/ui/input'
 import { useAccess } from '@/hooks/use-access'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useVenueDateTime } from '@/utils/datetime'
 import { ecommerceMerchantAPI } from '@/services/ecommerceMerchant.service'
@@ -524,8 +525,8 @@ export default function PaymentLinks() {
         className="mb-4"
       />
 
-      {/* Summary Cards */}
-      <SummaryCards cards={plSummaryCards} isLoading={isLoading} className="mb-4" />
+      {/* Summary Cards: sin leer la página no hay 0 ligas ni cobrado $0; el aviso sale en la tabla. */}
+      {!(page === undefined && falloDeCarga(listQuery)) && <SummaryCards cards={plSummaryCards} isLoading={page === undefined} className="mb-4" />}
 
       {isEcommerceExplicitlyMissing && (
         <Alert className="mb-4 border-amber-500/40 bg-amber-500/10 text-amber-900 dark:text-amber-100">

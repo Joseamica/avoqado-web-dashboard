@@ -2,7 +2,6 @@ import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { falloDeCarga, type EstadoDeCarga } from '@/lib/falloDeCarga'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, ClickableTableRow } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
-import { Skeleton } from '@/components/ui/skeleton'
 import { Checkbox } from '@/components/ui/checkbox'
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Settings2 } from 'lucide-react'
@@ -341,33 +340,13 @@ function DataTable<TData>({
     }
   }, [tableId, enableColumnResizing, columnSizing])
 
-  if (isLoading) {
-    const skeletonRows = currentPagination.pageSize
-    return (
-      <>
-        {/* Toolbar Skeleton */}
-        <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          {/* Search Bar Skeleton */}
-          {enableSearch && (
-            <div className="flex-1">
-              <Skeleton className="h-10 w-full max-w-md" />
-            </div>
-          )}
-
-          {/* Column Customizer Skeleton */}
-          {showColumnCustomizer && <Skeleton className="h-10 w-48" />}
-        </div>
-
-        {/* Table Skeleton */}
-        <TableSkeleton columns={columns.length} rows={skeletonRows} />
-      </>
-    )
-  }
-
   // Handle case where there's no data yet
   const hasRows = table.getRowModel() && table.getRowModel().rows && table.getRowModel().rows.length > 0
+  // Lo leído sigue valiendo aunque falle la recarga: una lista vacía de verdad sigue diciendo «sin resultados», con su aviso.
+  const yaLeida = (query as { data?: unknown } | null | undefined)?.data !== undefined || data.length > 0
 
-  return (
+  // Cargar o reintentar sólo pone a esperar el cuerpo: el buscador, los filtros y las pestañas siguen donde estaban.
+  const controles = (
     <>
       {/* Toolbar - Only render if has content */}
       {(enableSearch || showColumnCustomizer || toolbarLeft || toolbarRight) && (
@@ -409,7 +388,7 @@ function DataTable<TData>({
           </div>
         </div>
       )}
-      <AvisoDeCarga query={query} hayDatos={data.length > 0} />
+      <AvisoDeCarga query={query} hayDatos={yaLeida} />
       {(tableTab || tableTabLeft) && (
         <div className="flex items-end justify-between gap-2">
           {tableTabLeft ? (
@@ -426,6 +405,21 @@ function DataTable<TData>({
           )}
         </div>
       )}
+    </>
+  )
+
+  if (isLoading) {
+    return (
+      <>
+        {controles}
+        <TableSkeleton columns={columns.length} rows={currentPagination.pageSize} />
+      </>
+    )
+  }
+
+  return (
+    <>
+      {controles}
       <Table
         containerClassName="mb-4 rounded-xl border border-border bg-background overflow-hidden"
         className="table-sticky"
@@ -545,7 +539,7 @@ function DataTable<TData>({
               </TableBody>
             )
           })
-        ) : falloDeCarga(query) ? null : (
+        ) : falloDeCarga(query) && !yaLeida ? null : (
           <TableBody>
             <TableRow>
               <TableCell colSpan={allColumns.length} className={`h-10 text-center text-muted-foreground`}>
@@ -556,7 +550,7 @@ function DataTable<TData>({
         )}
       </Table>
       {footer}
-      {!hidePagination && <DataTablePagination table={table} ocultarConteo={falloDeCarga(query) && !hasRows} />}
+      {!hidePagination && <DataTablePagination table={table} ocultarConteo={falloDeCarga(query) && !yaLeida} />}
     </>
   )
 }

@@ -3,6 +3,8 @@ import { useInfiniteQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { AlertTriangle, Loader2 } from 'lucide-react'
 
+import { AvisoDeCarga, BotonReintentar } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -46,6 +48,7 @@ export function SettlementsQueue({ venueId, areas }: { venueId: string; areas: F
   })
 
   const items = useMemo(() => query.data?.pages.flatMap(page => page.items) ?? [], [query.data?.pages])
+  const sinLeer = query.data === undefined && falloDeCarga(query)
   const isDefaultView = status === 'PENDING' && !areaId && !dateRange.from && !dateRange.to
 
   const areaOptions = useMemo(() => areas.map(area => ({ value: area.id, label: area.name })), [areas])
@@ -109,15 +112,19 @@ export function SettlementsQueue({ venueId, areas }: { venueId: string; areas: F
         </div>
       )}
 
-      {query.isError && (
+      {sinLeer && (
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>{t('areaTickets.externalSettlements.loadError')}</AlertTitle>
-          <AlertDescription>{apiError(query.error, t('areaTickets.externalSettlements.loadErrorFallback'))}</AlertDescription>
+          <AlertDescription>
+            {apiError(query.error, t('areaTickets.externalSettlements.loadErrorFallback'))}
+            <BotonReintentar query={query} className="mt-2" />
+          </AlertDescription>
         </Alert>
       )}
 
-      {!query.isLoading && !query.isError && (
+      {!sinLeer && <AvisoDeCarga query={query} hayDatos />}
+      {!query.isLoading && !sinLeer && (
         <Card className="border-input shadow-sm">
           <CardContent className="p-0">
             <Table>

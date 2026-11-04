@@ -18,6 +18,8 @@ import { SelectionSummaryBar } from '@/components/selection-summary-bar'
 import { StatusFilterTabs, type StatusTab } from '@/components/StatusFilterTabs'
 import { SummaryCards, type SummaryCardItem } from '@/components/SummaryCards'
 import { SummaryQueryBoundary } from '@/components/SummaryQueryBoundary'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -291,24 +293,20 @@ export default function Orders() {
 
   // Opciones de las píldoras de filtro: valores DISTINTOS del venue, calculados en el servidor
   // (antes: las 500 órdenes más recientes del listado, con las que se deducían aquí).
-  const { data: filterOptionsData } = useQuery({
+  const filterOptionsQuery = useQuery({
     queryKey: ['orders-filter-options', venueId],
     queryFn: () => orderService.getOrderFilterOptions(venueId),
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
     retry: 1,
     refetchOnWindowFocus: false,
   })
+  const { data: filterOptionsData } = filterOptionsQuery
 
   // Resumen para las pestañas y las tarjetas (2026-09-01): el servidor agrega por estado con
   // TODOS los filtros — los del listado y los de monto (total/propina) que antes se aplicaban
   // aquí sobre 10,000 filas. `groups` = sólo los del listado (pestañas); `filteredGroups` =
   // también los de monto (tarjetas). La pestaña activa se aplica sobre los grupos.
-  const {
-    data: ordersSummary,
-    isLoading: isSummaryLoading,
-    isError: isSummaryError,
-    refetch: refetchSummary,
-  } = useQuery({
+  const summaryQuery = useQuery({
     queryKey: [
       'orders-summary',
       venueId,
@@ -339,6 +337,10 @@ export default function Orders() {
     retry: 1,
     refetchOnWindowFocus: false,
   })
+  const { data: ordersSummary, refetch: refetchSummary } = summaryQuery
+  // Sin leer no hay tarjetas en $0: sin internet la consulta se pausa sin marcar error, y al reintentar ya no «carga» aunque siga sin datos.
+  const isSummaryLoading = ordersSummary === undefined && !falloDeCarga(summaryQuery)
+  const isSummaryError = ordersSummary === undefined && falloDeCarga(summaryQuery)
 
   const {
     statuses,
@@ -1033,6 +1035,7 @@ export default function Orders() {
         </div>
       </div>
 
+      {ordersSummary !== undefined && <AvisoDeCarga query={summaryQuery} hayDatos />}
       <SummaryQueryBoundary
         isLoading={isSummaryLoading}
         isError={isSummaryError}
@@ -1169,6 +1172,7 @@ export default function Orders() {
                 onClear={() => setTypeFilter([])}
               >
                 <CheckboxFilterContent
+                  fuente={filterOptionsQuery}
                   title={`Filtrar por: ${t('columns.type').toLowerCase()}`}
                   options={typeOptions.map(type => ({
                     value: type,
@@ -1193,6 +1197,7 @@ export default function Orders() {
                 onClear={() => setTableFilter([])}
               >
                 <CheckboxFilterContent
+                  fuente={filterOptionsQuery}
                   title={`Filtrar por: ${t('columns.table').toLowerCase()}`}
                   options={tables.map((tb: any) => ({
                     value: tb.id,
@@ -1219,6 +1224,7 @@ export default function Orders() {
                 onClear={() => setWaiterFilter([])}
               >
                 <CheckboxFilterContent
+                  fuente={filterOptionsQuery}
                   title={`Filtrar por: ${t('columns.waiter').toLowerCase()}`}
                   options={waiterOptions.map((w: any) => ({
                     value: w.id,
@@ -1242,6 +1248,7 @@ export default function Orders() {
                 onClear={() => setStatusFilter([])}
               >
                 <CheckboxFilterContent
+                  fuente={filterOptionsQuery}
                   title={`Filtrar por: ${t('columns.status').toLowerCase()}`}
                   options={statuses.map(s => ({ value: s, label: t(`statuses.${s}`, { defaultValue: s }) }))}
                   selectedValues={statusFilter}

@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { DateTime } from 'luxon'
 import { AlertTriangle, CheckCircle2, Download, Loader2 } from 'lucide-react'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -201,7 +203,7 @@ export function DesglosePersona({
                 <Skeleton key={i} className="h-8" />
               ))}
             </div>
-          ) : recibo.isError && !recibo.data ? (
+          ) : !recibo.data && falloDeCarga(recibo) ? (
             // Un error NUNCA se pinta como un recibo de $0 (Codex R1-20).
             <div role="alert" className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-input p-3 text-sm">
               <div className="flex items-start gap-2">
@@ -214,6 +216,7 @@ export function DesglosePersona({
             </div>
           ) : (
             <>
+              <AvisoDeCarga query={recibo} hayDatos />
               <table className={`mt-4 ${TABLA_PERIODO}`}>
                 <thead>
                   <tr className="border-b border-border text-left text-xs text-muted-foreground">
@@ -257,9 +260,10 @@ export function DesglosePersona({
           )
         ) : (
           <>
+            {q.data !== undefined && <AvisoDeCarga query={q} hayDatos />}
             <EstadoLista
               isLoading={q.isLoading}
-              isError={q.isError && filas.length === 0}
+              isError={falloDeCarga(q) && q.data === undefined}
               vacio={filas.length === 0}
               textoVacio={otroPago ? null : t('period.detailEmpty')}
               onRetry={() => q.refetch()}
@@ -351,7 +355,8 @@ export function DesglosePersona({
                 </ul>
               </div>
             )}
-            {recibo.isError && !recibo.data && (
+            {recibo.data && <AvisoDeCarga query={recibo} hayDatos />}
+            {!recibo.data && falloDeCarga(recibo) && (
               <div role="alert" className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-input p-3 text-sm">
                 <span>{t('period.adjustmentsError')}</span>
                 <Button variant="outline" size="sm" className="cursor-pointer" onClick={() => recibo.refetch()}>

@@ -15,102 +15,16 @@ import { Active, closestCenter, DndContext, DragOverlay, KeyboardSensor, Over, P
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { AlertCircle, GripVertical, Image as ImageIcon, Search, Info, Upload } from 'lucide-react'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { Skeleton } from '@/components/ui/skeleton'
+import { falloDeCarga, type EstadoDeCarga } from '@/lib/falloDeCarga'
+import { GripVertical, Image as ImageIcon, Search, Info, Upload } from 'lucide-react'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { useMenuMakerHeader } from './MenuMakerLayout'
 import { includesNormalized } from '@/lib/utils'
 
-// Skeleton Components
-function SkeletonProduct() {
-  return (
-    <div className="flex items-center p-2 my-1 rounded-md animate-pulse">
-      <div className="p-1 mr-2">
-        <div className="w-4 h-4 bg-muted rounded"></div>
-      </div>
-      <div className="w-12 h-12 bg-muted rounded-md mr-4"></div>
-      <div className="font-medium flex-grow">
-        <div className="h-4 bg-muted rounded w-3/4 mb-1"></div>
-      </div>
-      <div className="ml-auto">
-        <div className="w-24 h-8 bg-muted rounded"></div>
-      </div>
-    </div>
-  )
-}
-
-function SkeletonCategory() {
-  return (
-    <div className="p-2 rounded-lg bg-muted/50 animate-pulse">
-      <div className="flex items-center mb-2">
-        <div className="p-1 mr-2">
-          <div className="w-5 h-5 bg-muted rounded"></div>
-        </div>
-        <div className="h-5 bg-muted rounded w-1/3"></div>
-      </div>
-      <div className="pl-8 space-y-2">
-        <SkeletonProduct />
-        <SkeletonProduct />
-        <SkeletonProduct />
-      </div>
-    </div>
-  )
-}
-
-function SkeletonMenu() {
-  return (
-    <div className="mb-8 rounded-xl border-border bg-card animate-pulse">
-      <header className="flex items-center p-4 rounded-t-xl bg-card">
-        <div className="p-1 mr-2">
-          <div className="w-6 h-6 bg-muted rounded"></div>
-        </div>
-        <div className="h-6 bg-muted rounded w-1/4 flex-grow"></div>
-        <div className="flex items-center space-x-4">
-          <div className="w-10 h-5 bg-muted rounded-full"></div>
-          <div className="w-8 h-8 bg-muted rounded"></div>
-        </div>
-      </header>
-      <div className="p-4 border-t-2 border-dashed">
-        <SkeletonCategory />
-        <SkeletonCategory />
-      </div>
-    </div>
-  )
-}
-
-function OverviewSkeleton() {
-  return (
-    <div className="p-6">
-      {/* Header skeleton */}
-      <div className="flex justify-between items-center mb-6 animate-pulse">
-        <div className="h-8 bg-muted rounded w-1/4"></div>
-        <div className="flex items-center space-x-2">
-          <div className="w-24 h-10 bg-muted rounded"></div>
-          <div className="w-24 h-10 bg-muted rounded"></div>
-        </div>
-      </div>
-
-      {/* Search and controls skeleton */}
-      <div className="flex items-center space-x-4 mb-6 animate-pulse">
-        <div className="relative flex-grow">
-          <div className="w-full h-10 bg-muted rounded pl-10"></div>
-          <div className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 bg-muted rounded"></div>
-        </div>
-        <div className="w-24 h-10 bg-muted rounded"></div>
-        <div className="w-24 h-10 bg-muted rounded"></div>
-        <div className="w-8 h-10 bg-muted rounded"></div>
-      </div>
-
-      {/* Content skeleton */}
-      <div className="space-y-4">
-        <SkeletonMenu />
-        <SkeletonMenu />
-        <SkeletonMenu />
-      </div>
-    </div>
-  )
-}
 function SortableProduct({
   product,
   editedPrices,
@@ -264,25 +178,19 @@ export default function Overview() {
     }),
   )
 
-  const {
-    data: menusData,
-    isLoading: menusLoading,
-    error: menusError,
-  } = useQuery<Menu[], Error, Menu[]>({
+  const menusQuery = useQuery<Menu[], Error, Menu[]>({
     queryKey: ['menus', venueId],
     queryFn: () => menuService.getMenus(venueId!),
     enabled: !!venueId,
   })
+  const { data: menusData } = menusQuery
 
-  const {
-    data: productsData,
-    isLoading: productsLoading,
-    error: productsError,
-  } = useQuery<Product[], Error, Product[]>({
+  const productsQuery = useQuery<Product[], Error, Product[]>({
     queryKey: ['products', venueId],
     queryFn: () => menuService.getProducts(venueId!),
     enabled: !!venueId,
   })
+  const { data: productsData } = productsQuery
 
   // ✅ REAL-TIME: Listen to menu/inventory socket events for automatic badge updates
   useMenuSocketEvents(venueId, {
@@ -524,16 +432,10 @@ export default function Overview() {
     return centerItems.filter((item: any) => includesNormalized(item?.name ?? '', searchTerm))
   }, [centerItems, searchTerm])
 
-  if (menusLoading || productsLoading) return <OverviewSkeleton />
-
-  if (menusError || productsError) {
-    return (
-      <div className="text-red-500 p-4">
-        <AlertCircle className="inline-block mr-2" />
-        {t('overview.errorLoading', { message: menusError?.message || productsError?.message })}
-      </div>
-    )
-  }
+  // Lo que se ve en el centro sale de una sola lectura: los productos en la vista de categoría, los menús en las demás.
+  const fuenteDelCentro: { data: unknown } & EstadoDeCarga = viewLevel === 'category' ? productsQuery : menusQuery
+  const centroLeido = fuenteDelCentro.data !== undefined
+  const espera = <Skeleton className="m-2 h-24" />
 
   const activeItem = activeId
     ? menusData?.find(m => m.id === activeId) ||
@@ -574,11 +476,15 @@ export default function Overview() {
         </Button>
       </div>
 
+      <AvisoDeCarga query={menusQuery} hayDatos={menusData !== undefined} />
+      {viewLevel === 'category' && <AvisoDeCarga query={productsQuery} hayDatos={productsData !== undefined} />}
+
       {/* Three-column layout */}
       <div className="grid grid-cols-12 gap-4">
         {/* Left: Tree */}
         <aside className="col-span-3 rounded-lg border p-3 bg-card">
           <div className="text-xs font-medium text-muted-foreground mb-2">{t('overview.tree')}</div>
+          {menusData === undefined && !falloDeCarga(menusQuery) && espera}
           <ul className="space-y-1">
             {/* All menus root to enable menu-level reordering */}
             <li>
@@ -631,11 +537,12 @@ export default function Overview() {
               {viewLevel === 'menu' && t('overview.categories')}
               {viewLevel === 'category' && t('overview.products')}
             </div>
-            <div className="text-xs text-muted-foreground">{t('overview.itemsCount', { count: filteredCenterItems.length })}</div>
+            {centroLeido && <div className="text-xs text-muted-foreground">{t('overview.itemsCount', { count: filteredCenterItems.length })}</div>}
           </div>
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
             <SortableContext items={centerItemIds} strategy={verticalListSortingStrategy}>
               <div className="p-2">
+                {!centroLeido && !falloDeCarga(fuenteDelCentro) && espera}
                 {filteredCenterItems.map((item: any) => {
                   if (viewLevel === 'menus') {
                     return (

@@ -1,6 +1,8 @@
 import { AlertTriangle, Loader2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
@@ -8,7 +10,7 @@ import { FeatureGate } from '@/components/billing/FeatureGate'
 import { useAccess } from '@/hooks/use-access'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { usePassIntegrationsOverview, usePassesAccess } from '@/hooks/use-passes'
-import { apiErrorDescription } from '@/utils/apiError'
+import { textoDelServidor } from '@/utils/apiError'
 import { PassCapacitySection } from './components/passes/PassCapacitySection'
 import { PassesTeaser } from './components/passes/PassesTeaser'
 import { passConnectionIsLive } from './components/passes/passConnection'
@@ -39,7 +41,7 @@ export default function PassIntegrations() {
   const totalpass = overview.data?.connections.find(c => c.provider === 'TOTALPASS')
   const planPaused = overview.data?.planActive === false && !!totalpass && passConnectionIsLive(totalpass)
   // D4 (P2-13): sin datos de la vista general (cargando, o fallida) no se sabe si hay una conexión viva: no se decide el paywall.
-  const connectionUnknown = !overview.data && (overview.isLoading || overview.isError)
+  const connectionUnknown = !overview.data && (overview.isLoading || falloDeCarga(overview))
 
   const page = (
     <div className="space-y-6 p-6" data-tour="pass-integrations-page">
@@ -63,13 +65,13 @@ export default function PassIntegrations() {
         <div className="flex items-center justify-center py-16" role="status" aria-label={t('common:loading')}>
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
-      ) : overview.isError && !overview.data ? (
+      ) : !overview.data && falloDeCarga(overview) ? (
         // Sólo si nunca llegaron datos: una recarga fallida (p. ej. tras un conectar sin red) no le quita al dueño la tarjeta,
         // la llave que tecleó ni el mensaje del intento. Antes que el paywall: sin plan puede haber una conexión viva (D4).
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>{t('page.loadError')}</AlertTitle>
-          <AlertDescription>{apiErrorDescription(overview.error) || t('errors.generic')}</AlertDescription>
+          <AlertDescription>{textoDelServidor(overview.error) ?? t('errors.generic')}</AlertDescription>
           {/* La vista general no se refresca sola: sin esto el dueño se queda en el error hasta recargar la página. */}
           <Button
             variant="outline"
@@ -89,6 +91,7 @@ export default function PassIntegrations() {
         <PassesTeaser />
       ) : (
         <>
+          <AvisoDeCarga query={overview} hayDatos />
           {/* key (también aquí y en la sección de lugares): la llave tecleada, su error o un diálogo abierto no cruzan a
               otra sucursal (switchVenue conserva la ruta y no desmonta). */}
           <div className="grid gap-4 md:grid-cols-2">

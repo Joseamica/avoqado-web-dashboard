@@ -11,10 +11,12 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { FeatureGate } from '@/components/billing/FeatureGate'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { AccountingErrorState } from '@/components/accounting/AccountingErrorState'
 import { useAccess } from '@/hooks/use-access'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useTierFeatureAccess } from '@/hooks/use-tier-feature-access'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { useEmployees, useCreateEmployee, usePayrollPreview, useRunPayroll, useStampPayroll } from '@/hooks/useNomina'
 import type { PayrollPeriodicity } from '@/services/fiscal/nomina.service'
 import { Currency } from '@/utils/currency'
@@ -70,10 +72,11 @@ function NominaInner() {
         <p className="text-xs font-medium">{t('nomina.preliminarBanner')}</p>
       </div>
 
-      {empQuery.isLoading && hasAccess ? (
+      {empQuery.data !== undefined && <AvisoDeCarga query={empQuery} hayDatos />}
+      {empQuery.data === undefined && hasAccess && !falloDeCarga(empQuery) ? (
         <Skeleton className="h-64 rounded-2xl" />
-      ) : empQuery.isError && hasAccess ? (
-        <AccountingErrorState onRetry={() => empQuery.refetch()} />
+      ) : empQuery.data === undefined && falloDeCarga(empQuery) && hasAccess ? (
+        <AccountingErrorState error={empQuery.error} onRetry={() => empQuery.refetch()} />
       ) : needsFiscalSetup ? (
         <Card className="border-input">
           <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
@@ -102,6 +105,9 @@ function NominaInner() {
       ) : (
         <>
           {/* Preview de la corrida */}
+          <AvisoDeCarga query={preview} hayDatos={preview.data !== undefined} />
+          {preview.isLoading && <Skeleton className="h-40 w-full rounded-xl" />}
+          {preview.data !== undefined && (
           <Card className="border-input">
             <CardContent className="overflow-x-auto p-0">
               <table className="w-full text-sm">
@@ -142,6 +148,7 @@ function NominaInner() {
               </table>
             </CardContent>
           </Card>
+          )}
 
           {canManage && (
             <div className="flex justify-end gap-2">

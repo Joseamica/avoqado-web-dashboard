@@ -18,6 +18,8 @@ import { Tabs, TabsContent } from '@/components/ui/tabs'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
 import { useAuth } from '@/context/AuthContext'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { detalleNoCargo } from '@/lib/falloDeCarga'
 import { useBreadcrumb } from '@/context/BreadcrumbContext'
 import { useRoleConfig } from '@/hooks/use-role-config'
 import { StaffRole } from '@/types'
@@ -80,21 +82,23 @@ export default function TeamId() {
   const isSuperadmin = staffInfo?.role === StaffRole.SUPERADMIN
   const locale = getIntlLocale(i18n.language)
 
-  const { data: memberDetails, isLoading } = useQuery({
+  const memberQuery = useQuery({
     queryKey: ['team-member', venueId, memberId],
     queryFn: () => teamService.getTeamMember(venueId, memberId!),
     enabled: !!memberId,
   })
+  const { data: memberDetails, isLoading } = memberQuery
 
   // Deactivation impact: only fetched while the remove dialog is open — it's a
   // one-shot warning, not something the screen needs on every load. A failure here
-  // must never block the confirm button, so no error state is surfaced.
-  const { data: deactivationImpact } = useQuery({
+  // must never block the confirm button, but it does say it could not check: «sin avisos» sería afirmar que no hay impacto.
+  const impactQuery = useQuery({
     queryKey: ['team-member-deactivation-impact', venueId, memberId],
     queryFn: () => teamService.getDeactivationImpact(venueId, memberId!),
     enabled: showRemoveDialog && !!memberId,
     retry: false,
   })
+  const { data: deactivationImpact } = impactQuery
   const impactItemsInCustody = deactivationImpact?.serializedItemsInCustody ?? 0
   const impactPendingVerifications = deactivationImpact?.pendingSaleVerifications ?? 0
   const hasDeactivationImpact = impactItemsInCustody > 0 || impactPendingVerifications > 0
@@ -206,6 +210,14 @@ export default function TeamId() {
     )
   }
 
+  if (detalleNoCargo(memberQuery)) {
+    return (
+      <div className="p-6">
+        <AvisoDeCarga query={memberQuery} hayDatos={false} />
+      </div>
+    )
+  }
+
   if (!memberDetails) {
     return (
       <div className="p-6 text-center py-24">
@@ -272,6 +284,7 @@ export default function TeamId() {
 
   return (
     <div className="p-6">
+      <AvisoDeCarga query={memberQuery} hayDatos />
       {/* ─── Header ─────────────────────────────────────── */}
       <div className="flex items-start justify-between mb-8">
         <div className="flex items-center gap-4">
@@ -641,6 +654,7 @@ export default function TeamId() {
                 {t('dialogs.removeDesc', { firstName: memberDetails.firstName, lastName: memberDetails.lastName })}
               </AlertDialogDescription>
             </AlertDialogHeader>
+            <AvisoDeCarga query={impactQuery} hayDatos={deactivationImpact !== undefined} />
             {hasDeactivationImpact && (
               <div className="flex items-start gap-3 rounded-lg border border-warning-border bg-warning-muted p-3 text-sm">
                 <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-warning-foreground" />

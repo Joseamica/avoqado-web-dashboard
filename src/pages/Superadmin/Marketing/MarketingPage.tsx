@@ -23,6 +23,8 @@ import { useToast } from '@/hooks/use-toast'
 import * as marketingService from '@/services/superadmin-marketing.service'
 import type { CampaignStatus, MarketingCampaign } from '@/services/superadmin-marketing.service'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { DateTime } from 'luxon'
 import {
   CheckCircle2,
@@ -80,7 +82,7 @@ function MarketingPage() {
   const [campaignToDelete, setCampaignToDelete] = useState<string | null>(null)
 
   // Fetch campaigns
-  const { data, isLoading, refetch } = useQuery({
+  const campaignsQuery = useQuery({
     queryKey: ['marketing-campaigns', statusFilter, searchQuery],
     queryFn: () =>
       marketingService.listCampaigns({
@@ -88,6 +90,7 @@ function MarketingPage() {
         search: searchQuery || undefined,
       }),
   })
+  const { data, isLoading, refetch } = campaignsQuery
 
   // Delete mutation
   const deleteMutation = useMutation({
@@ -195,7 +198,7 @@ function MarketingPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      {data !== undefined && <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Campañas</CardTitle>
@@ -235,7 +238,7 @@ function MarketingPage() {
             <div className="text-2xl font-bold">{stats.draft}</div>
           </CardContent>
         </Card>
-      </div>
+      </div>}
 
       {/* Campaigns Table */}
       <Card>
@@ -309,12 +312,13 @@ function MarketingPage() {
             </div>
           )}
 
+          <AvisoDeCarga query={campaignsQuery} hayDatos={data !== undefined} />
           {/* Table */}
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
-          ) : !data?.campaigns.length ? (
+          ) : data === undefined && falloDeCarga(campaignsQuery) ? null : !data?.campaigns.length ? (
             <div className="text-center py-12">
               <Mail className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
               <p className="text-muted-foreground">No hay campañas</p>

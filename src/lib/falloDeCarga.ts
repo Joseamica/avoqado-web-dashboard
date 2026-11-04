@@ -1,3 +1,5 @@
+import { esSinPermiso } from '@/lib/reintentoSinPermiso'
+
 /** Lo que hace falta saber de una consulta de TanStack (`useQuery` o `useInfiniteQuery`) para decir si su lista es de fiar. */
 export type EstadoDeCarga = {
   isError: boolean
@@ -15,6 +17,21 @@ export type EstadoDeCarga = {
  */
 export function falloDeCarga(query: EstadoDeCarga | null): boolean {
   return !!query && ((query.isError && !query.isFetching) || query.isPaused)
+}
+
+/** El servidor dijo que ese registro no existe: reintentar no lo arregla. */
+export function esNoEncontrado(error: unknown): boolean {
+  return (error as { response?: { status?: number } } | null)?.response?.status === 404
+}
+
+/** Reintentar no arregla un 403 ni un 404. */
+export function reintentarSirve(error: unknown): boolean {
+  return !esSinPermiso(error) && !esNoEncontrado(error)
+}
+
+/** Página de detalle: el registro no llegó, y no porque no exista. Un 404 de verdad sigue siendo su «no encontrado». */
+export function detalleNoCargo(query: EstadoDeCarga & { data: unknown }): boolean {
+  return query.data === undefined && falloDeCarga(query) && !esNoEncontrado(query.error)
 }
 
 /** `refetch` vuelve a leer las páginas guardadas, no la que nunca llegó: esa se pide con `fetchNextPage`. */

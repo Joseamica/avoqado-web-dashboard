@@ -5,6 +5,8 @@
 import React, { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { GlassCard } from '@/components/ui/glass-card'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
@@ -63,11 +65,12 @@ export const StockVsSalesChart: React.FC<StockVsSalesChartProps> = ({
   const { venueId } = useCurrentVenue()
 
   // Fetch stock chart data
-  const { data: chartData, isLoading } = useQuery({
+  const chartQuery = useQuery({
     queryKey: ['stock', 'chart', venueId],
     queryFn: () => getStockChart(venueId!, { days: 7 }),
     enabled: !!venueId,
   })
+  const { data: chartData, isLoading } = chartQuery
 
   // Map API data to chart format
   const data: DataPoint[] = useMemo(() => {
@@ -111,8 +114,20 @@ export const StockVsSalesChart: React.FC<StockVsSalesChartProps> = ({
     )
   }
 
+  if (chartData === undefined && falloDeCarga(chartQuery)) {
+    return (
+      <GlassCard className={cn('p-6', className)}>
+        <h3 className="text-lg font-semibold mb-4">
+          {t('playtelecom:stock.stockVsSales', { defaultValue: 'Stock vs Ventas' })}
+        </h3>
+        <AvisoDeCarga query={chartQuery} hayDatos={false} />
+      </GlassCard>
+    )
+  }
+
   return (
     <GlassCard className={cn('p-6', className)}>
+      <AvisoDeCarga query={chartQuery} hayDatos />
       <div className="flex items-start justify-between mb-6">
         <div>
           <h3 className="text-lg font-semibold">

@@ -37,6 +37,8 @@ import {
 import { Currency } from '@/utils/currency'
 import { getIntlLocale } from '@/utils/i18n-locale'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { detalleNoCargo } from '@/lib/falloDeCarga'
 import {
   Banknote,
   CheckCircle2,
@@ -573,13 +575,14 @@ export default function ShiftId() {
   const canDelete = can('shifts:delete')
 
   // Fetch the shift data
-  const { data: shift, isLoading } = useQuery({
+  const shiftQuery = useQuery({
     queryKey: ['shift', venueId, shiftId],
     queryFn: async () => {
       const response = await api.get(`/api/v1/dashboard/venues/${venueId}/shifts/${shiftId}`)
       return response.data
     },
   })
+  const { data: shift, isLoading } = shiftQuery
 
   // Memoized data
   const paymentMethodBreakdown: PaymentMethodBreakdown[] = useMemo(
@@ -738,6 +741,14 @@ export default function ShiftId() {
     )
   }
 
+  if (detalleNoCargo(shiftQuery)) {
+    return (
+      <div className="p-6">
+        <AvisoDeCarga query={shiftQuery} hayDatos={false} />
+      </div>
+    )
+  }
+
   // Not found state
   if (!shift) {
     return (
@@ -763,6 +774,7 @@ export default function ShiftId() {
   return (
     <TooltipProvider>
       <div className="min-h-screen bg-background">
+        <AvisoDeCarga query={shiftQuery} hayDatos />
         {/* Header */}
         <div className="border-b border-border bg-background">
           <div className="max-w-[1400px] mx-auto px-4 py-3">

@@ -5,7 +5,7 @@
  * - Gratis: el padre bloqueado con aviso; precios y códigos de cada variante siguen editables. Archivada: todo en sólo lectura.
  * Arnés de `productId.type.test.tsx` (vi.hoisted + vi.mock; respuestas en beforeEach: vitest corre con mockReset). `t` devuelve la clave.
  */
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { onlineManager, QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -97,6 +97,17 @@ beforeEach(() => {
 })
 
 describe('ProductGroupDialog', () => {
+  it('sin internet: su aviso con «Reintentar», no el diálogo en blanco', async () => {
+    onlineManager.setOnline(false)
+    try {
+      pintar()
+      expect(await screen.findByText('variants:errors.network')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'familia.reintentar' })).toBeInTheDocument()
+    } finally {
+      onlineManager.setOnline(true)
+    }
+  })
+
   it('cambiar el nombre del padre manda SOLO el nombre', async () => {
     pintar()
     const nombre = await screen.findByLabelText('padre.nombre')

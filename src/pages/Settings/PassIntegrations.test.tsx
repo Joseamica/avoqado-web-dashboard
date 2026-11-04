@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { onlineManager, QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
 import type { PassConnectionView, PassIntegrationsOverview, PassProvider } from '@/types/passes'
 
@@ -231,6 +231,32 @@ describe('PassIntegrations (Pantalla A)', () => {
     await waitFor(() => expect(screen.getByText('TotalPass no respondió. Intenta de nuevo en unos minutos.')).toBeInTheDocument(), {
       timeout: 5_000,
     })
+  })
+
+  // D4, última barrida: el texto crudo de axios no se le enseña al dueño.
+  it('el servidor caído sin mensaje propio ⇒ el texto de la pantalla, nunca el de axios', async () => {
+    svc.getPassIntegrationsOverview.mockRejectedValue(Object.assign(new Error('Request failed with status code 500'), { response: { status: 500, data: {} } }))
+    renderPage()
+    expect(await screen.findByText('errors.generic', undefined, { timeout: 5_000 })).toBeInTheDocument()
+    expect(screen.queryByText(/Request failed/)).not.toBeInTheDocument()
+  })
+
+  // D4, última barrida: sin internet la consulta se pausa sin error, y caía en el teaser de venta o el paywall.
+  it.each([
+    ['con el plan', true],
+    ['sin el plan', false],
+  ])('sin internet y sin datos, %s ⇒ su aviso con «Reintentar», ni teaser ni paywall', async (_nombre, conPlan) => {
+    tier.current = { hasFeatureAccess: () => conPlan, isLoading: false, isResolved: true }
+    onlineManager.setOnline(false)
+    try {
+      renderPage()
+      expect(await screen.findByText('page.loadError')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'common:retry' })).toBeInTheDocument()
+      expect(screen.queryByText('teaser.title')).not.toBeInTheDocument()
+      expect(screen.queryByTestId('feature-gate')).not.toBeInTheDocument()
+    } finally {
+      onlineManager.setOnline(true)
+    }
   })
 
   // Revisión final, Minor 4: la vista general no se refresca sola; sin «Reintentar» el dueño se quedaba en el error hasta F5.

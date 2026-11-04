@@ -17,6 +17,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { useAccess } from '@/hooks/use-access'
 import { useToast } from '@/hooks/use-toast'
 import { useSetPeriodicity, useStaffPayAccess, useStaffPayPeriods } from '@/hooks/useStaffPay'
@@ -49,9 +50,12 @@ export function PeriodosTab({ activa }: { activa: boolean }) {
   const { toast } = useToast()
   const { data: acceso } = useStaffPayAccess()
   // Sin activar no hay periodos que ver: la pestaña explica y ofrece activar (spec §11), sin pedir la lista (daría 403).
-  const { data, isLoading, isError, error, isFetching, refetch, hasNextPage, fetchNextPage, isFetchingNextPage } = useStaffPayPeriods(
+  const periodsQuery = useStaffPayPeriods(
     activa && acceso?.activado === true,
   )
+  const { data, isLoading, error, isFetching, refetch, hasNextPage, fetchNextPage, isFetchingNextPage } = periodsQuery
+  // Sin internet la consulta se pausa sin marcar error: sin esto, esqueleto para siempre.
+  const isError = falloDeCarga(periodsQuery)
   const setPeriodicity = useSetPeriodicity()
   const location = useLocation()
   const navigate = useNavigate()

@@ -8,6 +8,8 @@
 
 import api from '@/api'
 import { ExchangeLinksCard } from './components/ExchangeLinksCard'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { detalleNoCargo, falloDeCarga } from '@/lib/falloDeCarga'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
@@ -54,11 +56,12 @@ export function PaymentDrawerContent({ paymentId, onClose, venueTimezone }: Paym
   // Refund flow state
   const [refundOpen, setRefundOpen] = useState(false)
 
-  const { data: payment, isLoading } = useQuery({
+  const paymentQuery = useQuery({
     queryKey: ['payment', paymentId],
     queryFn: async () => (await api.get(`/api/v1/dashboard/venues/${venueId}/payments/${paymentId}`)).data,
     enabled: !!paymentId && !!venueId,
   })
+  const { data: payment, isLoading } = paymentQuery
 
   const { data: receipts = [] } = useQuery<any[]>({
     queryKey: ['receipts', paymentId],
@@ -74,7 +77,7 @@ export function PaymentDrawerContent({ paymentId, onClose, venueTimezone }: Paym
     enabled: !!paymentId && !!venueId,
   })
 
-  const { data: refunds = [] } = useQuery<any[]>({
+  const refundsQuery = useQuery<any[]>({
     queryKey: ['refunds', paymentId],
     queryFn: async () => {
       const res = await api.get(`/api/v1/dashboard/venues/${venueId}/payments/${paymentId}/refunds`)
@@ -82,6 +85,9 @@ export function PaymentDrawerContent({ paymentId, onClose, venueTimezone }: Paym
     },
     enabled: !!paymentId && !!venueId,
   })
+  const { data: refunds = [] } = refundsQuery
+  // Sin leer los reembolsos, «lo que queda» saldría igual al total: no se ofrece reembolsar.
+  const reembolsosSinLeer = refundsQuery.data === undefined
 
   const orderIdForCustomer: string | undefined = payment?.order?.id
 
@@ -125,6 +131,18 @@ export function PaymentDrawerContent({ paymentId, onClose, venueTimezone }: Paym
       })
     },
   })
+
+  if (!payment && !isLoading && falloDeCarga(paymentQuery)) {
+    return (
+      <div className="p-6">
+        {detalleNoCargo(paymentQuery) ? (
+          <AvisoDeCarga query={paymentQuery} hayDatos={false} />
+        ) : (
+          <p className="text-sm text-muted-foreground">{t('detail.notFound')}</p>
+        )}
+      </div>
+    )
+  }
 
   if (isLoading || !payment) {
     return (
@@ -267,7 +285,7 @@ export function PaymentDrawerContent({ paymentId, onClose, venueTimezone }: Paym
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem
-              disabled={isFullyRefunded || remainingRefundable <= 0}
+              disabled={reembolsosSinLeer || isFullyRefunded || remainingRefundable <= 0}
               onClick={() => {
                 if (remainingRefundable <= 0) {
                   toast({ title: t('refund.nothingLeft', { defaultValue: 'Este pago ya fue reembolsado por completo' }) })
@@ -313,6 +331,8 @@ export function PaymentDrawerContent({ paymentId, onClose, venueTimezone }: Paym
 
       {/* Scrollable body */}
       <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
+        <AvisoDeCarga query={paymentQuery} hayDatos />
+        <AvisoDeCarga query={refundsQuery} hayDatos={!reembolsosSinLeer} />
         {/* Refund cards (one per refund) — stacked above original payment */}
         {refunds.map(r => (
           <RefundCard

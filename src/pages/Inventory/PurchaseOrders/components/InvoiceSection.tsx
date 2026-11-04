@@ -3,6 +3,8 @@ import { AlertTriangle, CheckCircle2, FileText, HelpCircle, Upload } from 'lucid
 import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -48,11 +50,12 @@ export function InvoiceSection({ venueId, purchaseOrderId }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [isReading, setIsReading] = useState(false)
 
-  const { data: invoices = [], isLoading } = useQuery({
+  const invoicesQuery = useQuery({
     queryKey: ['purchase-order-invoices', venueId, purchaseOrderId],
     queryFn: () => purchaseOrderInvoiceService.list(venueId, purchaseOrderId),
     enabled: !!venueId && !!purchaseOrderId,
   })
+  const { data: invoices = [], isLoading } = invoicesQuery
 
   const attachMutation = useMutation({
     mutationFn: (xml: string) => purchaseOrderInvoiceService.attach(venueId, purchaseOrderId, xml),
@@ -118,9 +121,10 @@ export function InvoiceSection({ venueId, purchaseOrderId }: Props) {
 
         <p className="text-xs text-muted-foreground">{t('invoices.hint')}</p>
 
+        <AvisoDeCarga query={invoicesQuery} hayDatos={invoicesQuery.data !== undefined} />
         {isLoading ? (
           <p className="text-sm text-muted-foreground">{t('common:loading')}</p>
-        ) : invoices.length === 0 ? (
+        ) : invoicesQuery.data === undefined && falloDeCarga(invoicesQuery) ? null : invoices.length === 0 ? (
           <p className="text-sm text-muted-foreground">{t('invoices.empty')}</p>
         ) : (
           <ul className="space-y-3">

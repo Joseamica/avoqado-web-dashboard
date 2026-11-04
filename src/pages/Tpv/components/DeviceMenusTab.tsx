@@ -3,6 +3,8 @@ import { Monitor, Plus, Search, Tablet } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { FeatureGate } from '@/components/billing/FeatureGate'
 import { MultiSelectCombobox } from '@/components/multi-select-combobox'
 import { Button } from '@/components/ui/button'
@@ -153,7 +155,7 @@ function DeviceMenusContent() {
         </div>
       )}
 
-      {menuOptions.isError && (
+      {falloDeCarga(menuOptions) && (
         <div className="flex items-center gap-3 text-sm text-muted-foreground">
           <span>{t('deviceMenus.errorMenus')}</span>
           <Button size="sm" variant="outline" onClick={() => menuOptions.refetch()}>
@@ -186,13 +188,14 @@ function DeviceMenusContent() {
         </div>
       )}
 
+      {devices.data !== undefined && <AvisoDeCarga query={devices} hayDatos />}
       {devices.isLoading ? (
         <div data-testid="device-menus-cargando" className="space-y-2">
           {[0, 1, 2].map(i => (
             <Skeleton key={i} className="h-14 w-full rounded-lg" />
           ))}
         </div>
-      ) : devices.isError ? (
+      ) : devices.data === undefined && falloDeCarga(devices) ? (
         <div className="flex flex-col items-center gap-3 rounded-xl border border-input p-8 text-center">
           <p className="text-sm">{t('deviceMenus.error')}</p>
           <Button size="sm" variant="outline" onClick={() => devices.refetch()}>

@@ -1,3 +1,6 @@
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { SummaryQueryBoundary } from '@/components/SummaryQueryBoundary'
+import { esSinPermiso } from '@/lib/reintentoSinPermiso'
 import { CashCloseoutDialog } from '@/components/CashCloseout/CashCloseoutDialog'
 import { CashCloseoutHistory } from '@/components/CashCloseout/CashCloseoutHistory'
 import { CreditOfferBanner } from '@/components/CreditOffer/CreditOfferBanner'
@@ -56,18 +59,23 @@ type TabValue = 'all' | 'cards' | 'cash'
 function AvailableBalanceContent() {
   const { t } = useTranslation('availableBalance')
   const { t: tCashCloseout } = useTranslation('cashCloseout')
+  const { t: tCommon } = useTranslation('common')
   const { venueId } = useCurrentVenue()
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const { formatDate, venueTimezone } = useVenueDateTime()
 
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<{ mensaje: string; conReintento: boolean } | null>(null)
+  const [reintento, setReintento] = useState(0)
 
   const [summary, setSummary] = useState<AvailableBalanceSummary | null>(null)
   const [cardBreakdown, setCardBreakdown] = useState<CardTypeBreakdown[]>([])
   const [timeline, setTimeline] = useState<TimelineEntry[]>([])
   const [settlementCalendar, setSettlementCalendar] = useState<SettlementCalendarEntry[]>([])
+  // Sin el desglose no se sabe cuánto hay por tarjeta o en efectivo: esas pestañas dirían $0.
+  const [desgloseLeido, setDesgloseLeido] = useState(false)
+  const [fuenteCaida, setFuenteCaida] = useState<{ error: unknown } | null>(null)
 
   // Simulation dialog state
   const [showSimulationDialog, setShowSimulationDialog] = useState(false)
@@ -82,11 +90,12 @@ function AvailableBalanceContent() {
   const [timelineOpen, setTimelineOpen] = useState(false)
 
   // Query for expected cash info (for alert banner and metadata)
-  const { data: expectedCashData } = useQuery({
+  const expectedCashQuery = useQuery({
     queryKey: ['cash-closeout', 'expected', venueId],
     queryFn: () => getExpectedCash(venueId!),
     enabled: !!venueId,
   })
+  const { data: expectedCashData } = expectedCashQuery
 
   // Simulation form
   const simulationForm = useForm<SimulationParams>({
@@ -171,7 +180,7 @@ function AvailableBalanceContent() {
 
     if (!venueId) {
       setLoading(false)
-      setError(t('error.noVenue'))
+      setError({ mensaje: t('error.noVenue'), conReintento: false })
       return
     }
 
@@ -180,23 +189,31 @@ function AvailableBalanceContent() {
         setLoading(true)
         setError(null)
 
-        // Fetch all data in parallel
-        const [summaryRes, cardRes, timelineRes, calendarRes] = await Promise.all([
+        // Fetch all data in parallel. Sin el resumen no hay saldo que enseñar; lo demás cae por su lado y no se lleva lo que sí llegó.
+        const [summaryRes, cardRes, timelineRes, calendarRes] = await Promise.allSettled([
           getAvailableBalance(venueId),
           getBalanceByCardType(venueId),
           getSettlementTimeline(venueId, { includePast: true, includeFuture: true }),
           getSettlementCalendar(venueId), // Next 30 days by default
         ])
+        if (summaryRes.status === 'rejected') throw summaryRes.reason
 
         if (mounted) {
-          setSummary(summaryRes.data)
-          setCardBreakdown(cardRes.data)
-          setTimeline(timelineRes.data)
-          setSettlementCalendar(calendarRes.data)
+          setSummary(summaryRes.value.data)
+          if (cardRes.status === 'fulfilled') {
+            setCardBreakdown(cardRes.value.data)
+            setDesgloseLeido(true)
+          }
+          if (timelineRes.status === 'fulfilled') setTimeline(timelineRes.value.data)
+          if (calendarRes.status === 'fulfilled') setSettlementCalendar(calendarRes.value.data)
+          const caida = [cardRes, timelineRes, calendarRes].find(res => res.status === 'rejected')
+          setFuenteCaida(caida?.status === 'rejected' ? { error: caida.reason } : null)
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         if (mounted) {
-          setError(err.message || err.response?.data?.message || t('error.unexpected'))
+          // El mismo aviso que las consultas de TanStack: el `message` de axios es jerga en inglés.
+          const sinPermiso = esSinPermiso(err)
+          setError({ mensaje: tCommon(sinPermiso ? 'loadFailure.forbidden' : 'loadFailure.empty'), conReintento: !sinPermiso })
         }
       } finally {
         if (mounted) {
@@ -210,7 +227,7 @@ function AvailableBalanceContent() {
     return () => {
       mounted = false
     }
-  }, [venueId, t])
+  }, [venueId, t, tCommon, reintento])
 
   // Handle simulation submission
   const handleSimulation = async (data: SimulationParams) => {
@@ -317,7 +334,7 @@ function AvailableBalanceContent() {
     }
   }
 
-  if (loading) {
+  if (loading && !summary) {
     return (
       <div className="space-y-6 p-6">
         <div className="flex items-center justify-between">
@@ -353,13 +370,14 @@ function AvailableBalanceContent() {
   if (error) {
     return (
       <div className="p-6">
-        <Card className="border-destructive">
-          <CardContent className="pt-6">
-            <p className="text-destructive">
-              {t('error.prefix')}: {error}
-            </p>
-          </CardContent>
-        </Card>
+        <SummaryQueryBoundary
+          isError
+          message={error.mensaje}
+          retryLabel={tCommon('retry')}
+          onRetry={error.conReintento ? () => setReintento(n => n + 1) : undefined}
+        >
+          {null}
+        </SummaryQueryBoundary>
       </div>
     )
   }
@@ -403,12 +421,13 @@ function AvailableBalanceContent() {
           >
             <span>{t('tabs.all')}</span>
             <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1 text-xs bg-muted text-muted-foreground">
-              {tabCounts.total}
+              {desgloseLeido ? tabCounts.total : '—'}
             </span>
             {activeTab === 'all' && <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />}
           </button>
           <button
             onClick={() => setActiveTab('cards')}
+            disabled={!desgloseLeido}
             className={`relative flex items-center gap-1.5 pb-3 text-sm font-medium transition-colors ${
               activeTab === 'cards' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
             }`}
@@ -416,12 +435,13 @@ function AvailableBalanceContent() {
             <CreditCard className="w-4 h-4" />
             <span>{t('tabs.cards')}</span>
             <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1 text-xs bg-muted text-muted-foreground">
-              {tabCounts.cardsCount}
+              {desgloseLeido ? tabCounts.cardsCount : '—'}
             </span>
             {activeTab === 'cards' && <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />}
           </button>
           <button
             onClick={() => setActiveTab('cash')}
+            disabled={!desgloseLeido}
             className={`relative flex items-center gap-1.5 pb-3 text-sm font-medium transition-colors ${
               activeTab === 'cash' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
             }`}
@@ -429,12 +449,23 @@ function AvailableBalanceContent() {
             <Banknote className="w-4 h-4" />
             <span>{t('tabs.cash')}</span>
             <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1 text-xs bg-muted text-muted-foreground">
-              {tabCounts.cashCount}
+              {desgloseLeido ? tabCounts.cashCount : '—'}
             </span>
             {activeTab === 'cash' && <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />}
           </button>
         </nav>
       </div>
+
+      {fuenteCaida && (
+        <SummaryQueryBoundary
+          isError
+          message={tCommon(esSinPermiso(fuenteCaida.error) ? 'loadFailure.forbidden' : 'loadFailure.partial')}
+          retryLabel={tCommon('retry')}
+          onRetry={esSinPermiso(fuenteCaida.error) ? undefined : () => setReintento(n => n + 1)}
+        >
+          {null}
+        </SummaryQueryBoundary>
+      )}
 
       {/* Pending Incidents Alert — DISABLED: manual "Confirmar liquidación" flow.
           All settlement state here is an automatic estimate by date (no bank
@@ -448,6 +479,7 @@ function AvailableBalanceContent() {
       {/* Cash Closeout Reminder Alert - Shows when > 7 days since last closeout
           AND there is actually cash to cut. A card-only venue (no efectivo) was
           getting this reminder forever even with nothing to close out. */}
+      <AvisoDeCarga query={expectedCashQuery} hayDatos={expectedCashData !== undefined} />
       {expectedCashData && expectedCashData.needsCloseout && expectedCashData.daysSinceLastCloseout > 7 && (
         <div className="flex items-center gap-3 p-4 bg-amber-500/10 border border-amber-500/30 rounded-lg">
           <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0" />

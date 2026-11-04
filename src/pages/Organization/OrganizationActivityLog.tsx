@@ -1,5 +1,4 @@
 import { AvisoDeCarga } from '@/components/AvisoDeCarga'
-import { falloDeCarga } from '@/lib/falloDeCarga'
 import { Button } from '@/components/ui/button'
 import { GlassCard } from '@/components/ui/glass-card'
 import { Input } from '@/components/ui/input'
@@ -151,20 +150,6 @@ function OrganizationActivityLog() {
     setPage(1)
   }
 
-  // Loading skeleton
-  if (isLoading) {
-    return (
-      <div className="space-y-6">
-        <div>
-          <Skeleton className="h-8 w-64 mb-2" />
-          <Skeleton className="h-4 w-96" />
-        </div>
-        <Skeleton className="h-10 rounded-xl" />
-        <Skeleton className="h-96 rounded-xl" />
-      </div>
-    )
-  }
-
   return (
     <TooltipProvider>
       <div className="space-y-6">
@@ -213,10 +198,11 @@ function OrganizationActivityLog() {
           </Select>
         </div>
 
-        <AvisoDeCarga query={listQuery} hayDatos={logs.length > 0} volverAlInicio={page > 1 && logs.length === 0 ? () => setPage(1) : undefined} />
+        <AvisoDeCarga query={listQuery} hayDatos={data !== undefined} volverAlInicio={page > 1 && logs.length === 0 ? () => setPage(1) : undefined} />
 
         {/* Table */}
-        {!(falloDeCarga(listQuery) && logs.length === 0) && (
+        {isLoading && <Skeleton className="h-96 rounded-xl" />}
+        {data !== undefined && (
         <GlassCard className="overflow-hidden">
           {logs.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">

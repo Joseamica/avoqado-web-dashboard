@@ -2,6 +2,8 @@ import { useMemo, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { AlertTriangle } from 'lucide-react'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -105,9 +107,10 @@ export function ExcepcionesSheet({ sede, fecha, onClose }: { sede?: string; fech
           <SheetTitle>{t('period.exceptionsTitle')}</SheetTitle>
           <SheetDescription>{t('period.exceptionsHelp')}</SheetDescription>
         </SheetHeader>
+        {q.data !== undefined && !q.isFetchNextPageError && <AvisoDeCarga query={q} hayDatos />}
         <EstadoLista
           isLoading={q.isLoading}
-          isError={q.isError && filas.length === 0}
+          isError={falloDeCarga(q) && q.data === undefined}
           vacio={filas.length === 0}
           textoVacio={t('period.listEmpty')}
           onRetry={() => q.refetch()}
@@ -186,9 +189,10 @@ export function HuerfanasSheet({ sede, fecha, onClose }: { sede?: string; fecha?
           <SheetTitle>{t('period.orphansTitle')}</SheetTitle>
           <SheetDescription>{t('period.orphansHelp')}</SheetDescription>
         </SheetHeader>
+        {q.data !== undefined && !q.isFetchNextPageError && <AvisoDeCarga query={q} hayDatos />}
         <EstadoLista
           isLoading={q.isLoading}
-          isError={q.isError && filas.length === 0}
+          isError={falloDeCarga(q) && q.data === undefined}
           vacio={filas.length === 0}
           textoVacio={t('period.listEmpty')}
           onRetry={() => q.refetch()}

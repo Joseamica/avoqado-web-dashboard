@@ -2,7 +2,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { onlineManager, QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { DeliveryChannelLink, DeliverySummary } from '@/types/delivery'
 
 const mockToast = vi.fn()
@@ -80,6 +80,17 @@ beforeEach(() => {
 })
 
 describe('DeliveryLivePanel', () => {
+  it('sin internet: las cifras del día dicen su error, no «sin pedidos»', async () => {
+    onlineManager.setOnline(false)
+    try {
+      renderPanel([])
+      expect(await screen.findByText('live.statsError')).toBeInTheDocument()
+      expect(screen.queryByText('live.statsEmpty')).not.toBeInTheDocument()
+    } finally {
+      onlineManager.setOnline(true)
+    }
+  })
+
   // -------------------------------------------------------------------------------------------
   // Pause/resume toggle — the highest-risk surface (money-adjacent: pausing a live channel stops
   // incoming orders). Assert the EXACT pauseChannel args + the exact cache key invalidated.

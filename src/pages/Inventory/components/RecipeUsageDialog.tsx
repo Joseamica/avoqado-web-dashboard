@@ -1,6 +1,8 @@
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Button } from '@/components/ui/button'
@@ -37,7 +39,7 @@ export function RecipeUsageDialog({ open, onOpenChange, rawMaterial, onRecipeCli
   const { venueId, fullBasePath } = useCurrentVenue()
   const navigate = useNavigate()
 
-  const { data: recipesData, isLoading } = useQuery({
+  const recipesQuery = useQuery({
     queryKey: ['rawMaterialRecipes', venueId, rawMaterial?.id],
     queryFn: async () => {
       const response = await rawMaterialsApi.getRecipes(venueId, rawMaterial!.id)
@@ -46,7 +48,10 @@ export function RecipeUsageDialog({ open, onOpenChange, rawMaterial, onRecipeCli
     enabled: !!venueId && !!rawMaterial && open,
   })
 
+  const { data: recipesData, isLoading } = recipesQuery
   const recipes = recipesData || []
+  // Sin leer no se sabe si se usa: «no se usa en ninguna receta» invitaría a borrarlo.
+  const sinLeer = recipesData === undefined && falloDeCarga(recipesQuery)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -54,15 +59,17 @@ export function RecipeUsageDialog({ open, onOpenChange, rawMaterial, onRecipeCli
         <DialogHeader>
           <DialogTitle>{t('rawMaterials.usage.title')}</DialogTitle>
           <DialogDescription>
-            {rawMaterial?.name} - {recipes.length > 0 ? t('rawMaterials.usage.usedIn', { count: recipes.length }) : t('rawMaterials.usage.notUsed')}
+            {rawMaterial?.name}
+            {recipesData !== undefined && <> - {recipes.length > 0 ? t('rawMaterials.usage.usedIn', { count: recipes.length }) : t('rawMaterials.usage.notUsed')}</>}
           </DialogDescription>
         </DialogHeader>
 
+        <AvisoDeCarga query={recipesQuery} hayDatos={!sinLeer} />
         {isLoading ? (
           <div className="flex items-center justify-center py-8">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
-        ) : recipes.length === 0 ? (
+        ) : sinLeer ? null : recipes.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-8 text-center">
             <div className="flex items-center justify-center w-16 h-16 rounded-full bg-muted mb-4">
               <ChefHat className="h-8 w-8 text-muted-foreground" />

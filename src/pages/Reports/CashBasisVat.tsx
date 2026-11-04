@@ -8,12 +8,14 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { AccountingErrorState } from '@/components/accounting/AccountingErrorState'
 import { mensajeDelMes } from '@/components/accounting/errorDelReporte'
 import { AvisoIvaPorTasa, IvaPorTasa } from '@/components/accounting/IvaPorTasa'
 import { FeatureGate } from '@/components/billing/FeatureGate'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useTierFeatureAccess } from '@/hooks/use-tier-feature-access'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { useIvaCashflow } from '@/hooks/useIvaCashflow'
 import { useDiot } from '@/hooks/useExpenses'
 import type { IvaCashflowResponse } from '@/services/fiscal/ivaFlujo.service'
@@ -86,14 +88,16 @@ function CashBasisVatInner() {
         </div>
       </header>
 
-      {query.isLoading && hasAccess ? (
+      {query.data !== undefined && <AvisoDeCarga query={query} hayDatos />}
+      {query.data === undefined && hasAccess && !falloDeCarga(query) ? (
         <Skeleton className="h-80 rounded-2xl" />
-      ) : query.isError && hasAccess ? (
+      ) : query.data === undefined && falloDeCarga(query) && hasAccess ? (
         // B4b (Codex r5 R5-8): en un mes no hay «rango más corto» que elegir; con REPORT_TOO_LARGE / REPORT_TIMEOUT la pantalla usa su
         // propio texto, aunque el servidor mande el del reporte. M-B: salvo una VENTA que pasa un tope, cuyo mensaje nombra el folio.
         // Cualquier otro error, el genérico.
         <AccountingErrorState
           message={mensajeDelMes(query.error, t('accountingError.mesNoCalculado'))}
+          error={query.error}
           onRetry={() => query.refetch()}
         />
       ) : needsFiscalSetup ? (
@@ -179,13 +183,21 @@ function CashBasisVatInner() {
                     <span className="text-xs text-muted-foreground">{t('cashBasisVat.diotProviders', { count: diot.totals.proveedores })}</span>
                   )}
                 </div>
-                {!diot || diot.rows.length === 0 ? (
-                  <div className="flex flex-col items-center gap-2 py-6 text-center">
-                    <Landmark className="h-7 w-7 text-muted-foreground" />
-                    <p className="max-w-xs text-sm text-muted-foreground">{t('cashBasisVat.diotEmpty')}</p>
-                  </div>
+                {hasAccess && diotQuery.data === undefined && falloDeCarga(diotQuery) ? (
+                  <AvisoDeCarga query={diotQuery} hayDatos={false} />
+                ) : hasAccess && diotQuery.isLoading ? (
+                  <Skeleton className="h-24 rounded-lg" />
+                ) : !diot || diot.rows.length === 0 ? (
+                  <>
+                    {hasAccess && <AvisoDeCarga query={diotQuery} hayDatos />}
+                    <div className="flex flex-col items-center gap-2 py-6 text-center">
+                      <Landmark className="h-7 w-7 text-muted-foreground" />
+                      <p className="max-w-xs text-sm text-muted-foreground">{t('cashBasisVat.diotEmpty')}</p>
+                    </div>
+                  </>
                 ) : (
                   <>
+                    {hasAccess && <AvisoDeCarga query={diotQuery} hayDatos />}
                     <div className="overflow-x-auto">
                       <table className="w-full text-xs">
                         <thead>

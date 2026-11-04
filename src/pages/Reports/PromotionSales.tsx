@@ -16,6 +16,8 @@ import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -46,15 +48,10 @@ const GlassCard: React.FC<{ children: React.ReactNode; className?: string }> = (
 )
 
 const PromotionSalesSkeleton = () => (
-  <div className="p-4 md:p-6 space-y-6">
-    <div className="flex items-center justify-between">
-      <Skeleton className="h-8 w-56" />
-      <Skeleton className="h-10 w-32" />
-    </div>
-    <Skeleton className="h-10 w-64 rounded-lg" />
+  <>
     <Skeleton className="h-40 w-full rounded-2xl" />
     <Skeleton className="h-96 w-full rounded-2xl" />
-  </div>
+  </>
 )
 
 const PERIOD_OPTIONS: PromotionReportType[] = ['summary', 'days', 'weeks', 'months']
@@ -85,16 +82,13 @@ export default function PromotionSales() {
     [venueId, dateRange.from, dateRange.to, reportType],
   )
 
-  const {
-    data: apiResponse,
-    isLoading,
-    isError,
-    error,
-  } = useQuery({
+  const reportQuery = useQuery({
     queryKey: promotionSalesKeys.report(apiFilters),
     queryFn: () => fetchPromotionSales(apiFilters),
     staleTime: 1000 * 60 * 5,
   })
+  const { data: apiResponse } = reportQuery
+  const isLoading = apiResponse === undefined && !falloDeCarga(reportQuery)
 
   const handleDateRangeUpdate = (values: { range: { from: Date; to: Date | undefined } }) => {
     if (values.range.from && values.range.to) {
@@ -148,10 +142,6 @@ export default function PromotionSales() {
     URL.revokeObjectURL(link.href)
   }
 
-  if (isLoading) {
-    return <PromotionSalesSkeleton />
-  }
-
   const header = (
     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
       <div className="flex items-center gap-3">
@@ -183,17 +173,6 @@ export default function PromotionSales() {
     </div>
   )
 
-  if (isError) {
-    return (
-      <div className="p-4 md:p-6 space-y-6">
-        {header}
-        <GlassCard className="p-6">
-          <p className="text-destructive">{error instanceof Error ? error.message : t('promotionSales.loadError', { defaultValue: 'No se pudo cargar el reporte' })}</p>
-        </GlassCard>
-      </div>
-    )
-  }
-
   return (
     <FeatureGate feature="PROMOTIONS">
       <div className="p-4 md:p-6 space-y-6">
@@ -223,6 +202,10 @@ export default function PromotionSales() {
             </TabsList>
           </Tabs>
         </div>
+
+        {/* Debajo de los filtros: sin red son la salida a un periodo ya leído. */}
+        <AvisoDeCarga query={reportQuery} hayDatos={apiResponse !== undefined} />
+        {isLoading && <PromotionSalesSkeleton />}
 
         {/* Resumen */}
         {apiResponse && (

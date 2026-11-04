@@ -6,7 +6,9 @@ import { AlertCircle, CheckCircle2, FileText, Loader2, Upload } from 'lucide-rea
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { FeatureGate } from '@/components/billing/FeatureGate'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { Currency } from '@/utils/currency'
 import { cn } from '@/lib/utils'
@@ -128,9 +130,10 @@ function BankReconciliationInner() {
       {/* Statements list */}
       <div>
         <h2 className="text-sm font-medium text-muted-foreground mb-2">{t('bankReconciliation.statements')}</h2>
+        <AvisoDeCarga query={statementsQuery} hayDatos={statementsQuery.data !== undefined} />
         {statementsQuery.isLoading ? (
           <Skeleton className="h-16 rounded-lg" />
-        ) : (statementsQuery.data?.length ?? 0) === 0 ? (
+        ) : statementsQuery.data === undefined && falloDeCarga(statementsQuery) ? null : (statementsQuery.data?.length ?? 0) === 0 ? (
           <p className="text-sm text-muted-foreground">{t('bankReconciliation.empty')}</p>
         ) : (
           <div className="space-y-2">
@@ -162,9 +165,10 @@ function BankReconciliationInner() {
       {selectedId && (
         <Card className="border-input">
           <CardContent className="py-3">
+            <AvisoDeCarga query={detailQuery} hayDatos={detailQuery.data !== undefined} />
             {detailQuery.isLoading ? (
               <Skeleton className="h-40" />
-            ) : (
+            ) : detailQuery.data === undefined && falloDeCarga(detailQuery) ? null : (
               <>
                 <div className="flex items-center justify-between mb-3">
                   <h2 className="text-sm font-medium">{t('bankReconciliation.movements')}</h2>

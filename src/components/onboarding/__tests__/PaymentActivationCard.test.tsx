@@ -96,8 +96,8 @@ describe('cuándo aparece', () => {
 
   it('se puede CONTRAER, que es distinto de descartar', async () => {
     pintar()
-    await screen.findByText(/Activa tus cobros/i)
-    expect(screen.getByText(/Dirección de tu local/i)).toBeInTheDocument()
+    // Los pasos salen al leer: mientras llega la lectura, uno ya hecho se vería pendiente.
+    await screen.findByText(/Dirección de tu local/i)
     await userEvent.setup().click(screen.getByRole('button', { expanded: true }))
     expect(screen.queryByText(/Dirección de tu local/i)).not.toBeInTheDocument()
   })
@@ -132,8 +132,7 @@ describe('cada ítem se marca con lo que dice el servidor', () => {
 describe('la compra de terminal conserva su candado (D5)', () => {
   it('sin KYC enviado el botón está DESHABILITADO y explicado', async () => {
     pintar()
-    await screen.findByText(/Activa tus cobros/i)
-    expect(screen.getByText(/Disponible cuando envíes tus documentos/i)).toBeInTheDocument()
+    await screen.findByText(/Disponible cuando envíes tus documentos/i)
     const botones = screen.getAllByRole('button', { name: /Empezar/i })
     expect(botones.some(b => (b as HTMLButtonElement).disabled)).toBe(true)
   })
@@ -149,8 +148,7 @@ describe('la compra de terminal conserva su candado (D5)', () => {
 
   it('el primer ítem lleva a «activar-cobros», la pantalla que captura todo', async () => {
     pintar()
-    await screen.findByText(/Activa tus cobros/i)
-    const fila = screen.getByText(/Dirección de tu local/i).closest('li')!
+    const fila = (await screen.findByText(/Dirección de tu local/i)).closest('li')!
     await userEvent.setup().click(fila.querySelector('button')!)
     expect(navigate).toHaveBeenCalledWith('/venues/mi-negocio/activar-cobros')
   })

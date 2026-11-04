@@ -6,6 +6,7 @@
  * directo — nunca hay un envío que finja éxito. La lectura del CSV es solo una vista previa
  * local (no se sube a ningún lado).
  */
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { FileSpreadsheet, Send } from 'lucide-react'
@@ -133,7 +134,7 @@ function DispersionForm({ accounts }: { accounts: BancosData['accounts'] }) {
 export default function BancosDispersiones() {
   const { t } = useTranslation('financialConnections')
   const { hasAccess } = useTierFeatureAccess('BANKING_HUB')
-  const { venueId, accounts, hasConnection, hasPendingConnection, hasProviders, isLoading, isError, refetch } = useBancosData({
+  const { venueId, accounts, hasConnection, hasPendingConnection, hasProviders, isLoading, isError, recarga, refetch } = useBancosData({
     enabled: hasAccess,
   })
 
@@ -151,6 +152,7 @@ export default function BancosDispersiones() {
         description={t('hub.dispersions.description')}
       />
       <FeatureGate feature="BANKING_HUB">
+        {!isError && <AvisoDeCarga query={recarga} hayDatos />}
         {isLoading ? (
           <Skeleton className="h-64 w-full rounded-xl" />
         ) : isError ? (

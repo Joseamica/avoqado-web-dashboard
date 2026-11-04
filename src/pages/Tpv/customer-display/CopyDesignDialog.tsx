@@ -1,3 +1,4 @@
+import { AvisoDeCarga, BotonReintentar } from '@/components/AvisoDeCarga'
 import * as CheckboxPrimitive from '@radix-ui/react-checkbox'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { AlertCircle, AlertTriangle, Check, Loader2 } from 'lucide-react'
@@ -18,6 +19,7 @@ import { Button } from '@/components/ui/button'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useToast } from '@/hooks/use-toast'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { cn } from '@/lib/utils'
 import { lista } from '@/pages/StaffPay/cuenta'
 import {
@@ -325,7 +327,7 @@ export function CopyDesignDialog({ onClose, venueId, source, tokenVigente, entit
                 <Skeleton className="h-14 w-full" />
                 <Skeleton className="h-14 w-full" />
               </div>
-            ) : destinos.isError && filas.length === 0 ? (
+            ) : falloDeCarga(destinos) && paginas === undefined ? (
               <div role="alert" className="flex flex-wrap items-center justify-between gap-2 p-3 text-sm">
                 <span>{t('copy.loadError')}</span>
                 <Button
@@ -401,10 +403,11 @@ export function CopyDesignDialog({ onClose, venueId, source, tokenVigente, entit
             </div>
           )}
           {/* Una relectura o «Cargar más» que falla con filas ya cargadas no borra la lista (Codex #3): se dice aparte. */}
-          {destinos.isError && filas.length > 0 && !destinos.isFetching && (
-            <p role="alert" className="text-xs text-destructive">
-              {t('copy.listStale')}
-            </p>
+          {falloDeCarga(destinos) && paginas !== undefined && (
+            <div role="alert" className="flex flex-wrap items-center gap-2 text-xs text-destructive">
+              <span>{t('copy.listStale')}</span>
+              <BotonReintentar query={destinos} />
+            </div>
           )}
           {lleno && <p className="text-xs text-muted-foreground">{t('copy.limit', { max: MAX_DESTINOS })}</p>}
         </div>

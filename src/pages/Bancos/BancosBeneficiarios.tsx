@@ -200,10 +200,11 @@ function BeneficiariesList({ venueId }: { venueId: string }) {
   // recién guardado).
   const [formSession, setFormSession] = useState(0)
 
-  const { data, isLoading } = useQuery({
+  const beneficiariesQuery = useQuery({
     queryKey: ['banking-hub-beneficiaries', venueId],
     queryFn: () => beneficiariesService.list(venueId),
   })
+  const { data, isLoading } = beneficiariesQuery
   const beneficiaries = useMemo(() => data ?? [], [data])
 
   const deleteMutation = useMutation({
@@ -284,7 +285,7 @@ function BeneficiariesList({ venueId }: { venueId: string }) {
       </div>
 
       <DataTable
-        query={null}
+        query={beneficiariesQuery}
         data={beneficiaries}
         columns={columns}
         rowCount={beneficiaries.length}
@@ -308,7 +309,7 @@ function BeneficiariesList({ venueId }: { venueId: string }) {
         }
       />
 
-      {!isLoading && beneficiaries.length === 0 && (
+      {data !== undefined && beneficiaries.length === 0 && (
         <div className="mt-3 flex flex-col items-center gap-2 rounded-xl border border-input bg-muted/30 px-4 py-10 text-center">
           <Users className="h-6 w-6 text-muted-foreground" aria-hidden />
           <p className="text-sm text-muted-foreground">{t('hub.beneficiaries.empty')}</p>

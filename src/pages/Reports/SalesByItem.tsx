@@ -1,6 +1,8 @@
 import { Fragment, useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
@@ -301,19 +303,10 @@ const ItemRow: React.FC<{
 // Loading Skeleton
 // ============================================
 const SalesByItemSkeleton = () => (
-  <div className="p-4 md:p-6 space-y-6">
-    <div className="flex items-center justify-between">
-      <Skeleton className="h-8 w-48" />
-      <Skeleton className="h-10 w-32" />
-    </div>
-    <div className="flex gap-2">
-      {[1, 2].map((i) => (
-        <Skeleton key={i} className="h-8 w-32 rounded-full" />
-      ))}
-    </div>
+  <>
     <Skeleton className="h-48 w-full rounded-2xl" />
     <Skeleton className="h-96 w-full rounded-2xl" />
-  </div>
+  </>
 )
 
 // ============================================
@@ -464,16 +457,13 @@ export default function SalesByItem() {
   }), [venueId, dateRange.from, dateRange.to, reportType, groupBy, hoursFilter, customStartHour, customEndHour])
 
   // Fetch data
-  const {
-    data: apiResponse,
-    isLoading,
-    isError,
-    error,
-  } = useQuery({
+  const reportQuery = useQuery({
     queryKey: salesByItemKeys.report(apiFilters),
     queryFn: () => fetchSalesByItem(apiFilters),
     staleTime: 1000 * 60 * 5, // 5 minutes
   })
+  const { data: apiResponse } = reportQuery
+  const isLoading = apiResponse === undefined && !falloDeCarga(reportQuery)
 
   // Ordena y junta las variantes de una familia en una fila (sin familias, es la misma tabla de siempre)
   const filas = useMemo(
@@ -523,31 +513,6 @@ export default function SalesByItem() {
     link.download = `sales-by-item-${dateRange.from.toISOString().split('T')[0]}-${dateRange.to.toISOString().split('T')[0]}.csv`
     link.click()
     URL.revokeObjectURL(link.href)
-  }
-
-  if (isLoading) {
-    return <SalesByItemSkeleton />
-  }
-
-  if (isError) {
-    return (
-      <div className="p-4 md:p-6 space-y-6">
-        <div className="flex items-center gap-3">
-          <PageTitleWithInfo
-            title={t('salesByItem.title')}
-            className="text-2xl font-bold"
-            tooltip={t('info.salesByItem', {
-              defaultValue: 'Reporte de ventas por producto para identificar volumen y rentabilidad.',
-            })}
-          />
-        </div>
-        <GlassCard className="p-6">
-          <p className="text-destructive">
-            {error instanceof Error ? error.message : 'Error loading sales by item data'}
-          </p>
-        </GlassCard>
-      </div>
-    )
   }
 
   return (
@@ -873,6 +838,10 @@ export default function SalesByItem() {
           onClick={() => openControlPanel('groupBy')}
         />
       </div>
+
+      {/* Debajo de los filtros: sin red son la salida a un periodo ya leído. */}
+      <AvisoDeCarga query={reportQuery} hayDatos={apiResponse !== undefined} />
+      {isLoading && <SalesByItemSkeleton />}
 
       {/* Chart - Only show for time-based reports */}
       {apiResponse && reportType !== 'summary' && apiResponse.byPeriod && apiResponse.byPeriod.length > 0 && (

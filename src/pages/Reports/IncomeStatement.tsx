@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { AccountingErrorState } from '@/components/accounting/AccountingErrorState'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { mensajeDelReporte } from '@/components/accounting/errorDelReporte'
 import { AvisoIvaPorTasa, IvaPorTasa, tasasPresentes } from '@/components/accounting/IvaPorTasa'
 import { DateRangePicker } from '@/components/date-range-picker'
@@ -35,7 +37,11 @@ export default function IncomeStatement() {
   const from = toYmd(range.from, tz)
   const to = toYmd(range.to, tz)
 
-  const { data, isLoading, isError, error, refetch } = useIncomeStatement({ from, to })
+  const query = useIncomeStatement({ from, to })
+  const { data, error, refetch } = query
+  // Sin leer no hay tarjetas en $0: sin internet la consulta se pausa sin marcar error, y al reintentar ya no «carga» aunque siga sin datos.
+  const isLoading = data === undefined && !falloDeCarga(query)
+  const isError = data === undefined && falloDeCarga(query)
 
   const rev = data?.revenue
 
@@ -79,6 +85,8 @@ export default function IncomeStatement() {
         </div>
       </header>
 
+      {data !== undefined && <AvisoDeCarga query={query} hayDatos />}
+
       {/* KPI grid */}
       {isLoading ? (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -88,7 +96,7 @@ export default function IncomeStatement() {
         </div>
       ) : isError ? (
         // B4b (Codex r5 R5-8): con REPORT_TOO_LARGE / REPORT_TIMEOUT, el mensaje del servidor (el rango o la venta); si no, el genérico.
-        <AccountingErrorState message={mensajeDelReporte(error)} onRetry={() => refetch()} />
+        <AccountingErrorState message={mensajeDelReporte(error)} error={error} onRetry={() => refetch()} />
       ) : data?.metrics && data.metrics.salesCount === 0 && data.metrics.refundCount === 0 ? (
         // «Sin ventas» no es «sin movimientos» (Codex r5 R5-10): un mes sólo con devoluciones muestra su reporte, con su flujo negativo.
         <Card className="border-input">

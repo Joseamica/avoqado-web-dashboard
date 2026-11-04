@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next'
 import { useNavigate, useParams } from 'react-router-dom'
 
 import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { detalleNoCargo } from '@/lib/falloDeCarga'
 import { LoadingButton } from '@/components/loading-button'
 import { LoadingScreen } from '@/components/spinner'
 import { Button } from '@/components/ui/button'
@@ -206,7 +207,7 @@ export default function DiscountForm() {
   if (isEditing && existingDiscount === undefined) {
     return (
       <div className="p-6">
-        <AvisoDeCarga query={discountQuery} hayDatos={false} />
+        {detalleNoCargo(discountQuery) ? <AvisoDeCarga query={discountQuery} hayDatos={false} /> : <p className="text-sm text-muted-foreground">{t('discounts.detail.notFound')}</p>}
       </div>
     )
   }

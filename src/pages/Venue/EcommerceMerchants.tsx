@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import {
   Card,
   CardContent,
@@ -87,15 +89,12 @@ const EcommerceMerchants: React.FC = () => {
   const venue = getVenueBySlug(slug!)
 
   // Fetch e-commerce merchants for this venue
-  const {
-    data: merchants = [],
-    isLoading,
-    error,
-  } = useQuery({
+  const merchantsQuery = useQuery({
     queryKey: ['ecommerce-merchants', venue?.id],
     queryFn: () => ecommerceMerchantAPI.listByVenue(venue!.id),
     enabled: !!venue?.id,
   })
+  const { data: merchants = [], isLoading } = merchantsQuery
 
   // After Stripe redirects back with status=success, actively poll the status
   // endpoint until Stripe confirms COMPLETED (or until the user navigates away).
@@ -412,17 +411,13 @@ const EcommerceMerchants: React.FC = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {merchantsQuery.data !== undefined && <AvisoDeCarga query={merchantsQuery} hayDatos />}
           {isLoading ? (
             <div className="flex justify-center p-8">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
-          ) : error ? (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                Error al cargar los canales: {(error as any).message}
-              </AlertDescription>
-            </Alert>
+          ) : merchantsQuery.data === undefined && falloDeCarga(merchantsQuery) ? (
+            <AvisoDeCarga query={merchantsQuery} hayDatos={false} />
           ) : merchants.length === 0 ? (
             <div className="text-center py-12">
               <Globe className="mx-auto h-12 w-12 text-muted-foreground" />

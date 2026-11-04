@@ -4,6 +4,8 @@ import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -41,28 +43,25 @@ export default function Attendance() {
   const todayIso = useMemo(() => new Intl.DateTimeFormat('en-CA', { timeZone: venueTimezone }).format(new Date()), [venueTimezone])
   const { startDate, endDate } = useMemo(() => rangeToDates(range, todayIso), [range, todayIso])
 
-  const {
-    data: activeStaff = [],
-    isLoading: loadingActive,
-    isError: errorActive,
-    refetch: refetchActive,
-  } = useQuery({
+  const activeQuery = useQuery({
     queryKey: ['attendance', 'active', venueId],
     queryFn: () => attendanceService.getActiveStaff(venueId!),
     enabled: !!venueId,
     refetchInterval: 60_000,
   })
+  const { data: activeStaff = [], refetch: refetchActive } = activeQuery
+  // Sin leer no hay «nadie en turno»: sin internet la consulta se pausa sin marcar error.
+  const loadingActive = activeQuery.data === undefined && !falloDeCarga(activeQuery)
+  const errorActive = activeQuery.data === undefined && falloDeCarga(activeQuery)
 
-  const {
-    data: page,
-    isLoading: loadingEntries,
-    isError: errorEntries,
-    refetch: refetchEntries,
-  } = useQuery({
+  const entriesQuery = useQuery({
     queryKey: ['attendance', 'entries', venueId, startDate, endDate],
     queryFn: () => attendanceService.getTimeEntries(venueId!, { startDate, endDate, limit: 200 }),
     enabled: !!venueId,
   })
+  const { data: page, refetch: refetchEntries } = entriesQuery
+  const loadingEntries = page === undefined && !falloDeCarga(entriesQuery)
+  const errorEntries = page === undefined && falloDeCarga(entriesQuery)
   const entries = useMemo(() => page?.entries ?? [], [page])
   // Se piden 200; si hay más, se dice — una lista recortada en silencio miente.
   const truncated = (page?.total ?? 0) > entries.length
@@ -108,11 +107,14 @@ export default function Attendance() {
           <div className="flex items-center gap-2">
             <UserCheck className="h-4 w-4 text-muted-foreground" />
             <h2 className="text-sm font-medium">{t('onShift.title')}</h2>
-            <Badge variant="secondary" className="rounded-full">
-              {activeStaff.length}
-            </Badge>
+            {activeQuery.data !== undefined && (
+              <Badge variant="secondary" className="rounded-full">
+                {activeStaff.length}
+              </Badge>
+            )}
           </div>
 
+          {activeQuery.data !== undefined && <AvisoDeCarga query={activeQuery} hayDatos />}
           {loadingActive ? (
             <p className="text-sm text-muted-foreground">{t('loading')}</p>
           ) : errorActive ? (
@@ -204,14 +206,18 @@ export default function Attendance() {
       ) : errorEntries ? (
         <LoadError t={t} onRetry={() => refetchEntries()} />
       ) : entries.length === 0 ? (
-        <Card className="border-input">
-          <CardContent className="p-8 text-center space-y-1">
-            <p className="text-sm font-medium">{t('empty.title')}</p>
-            <p className="text-sm text-muted-foreground">{t('empty.description')}</p>
-          </CardContent>
-        </Card>
+        <>
+          <AvisoDeCarga query={entriesQuery} hayDatos />
+          <Card className="border-input">
+            <CardContent className="p-8 text-center space-y-1">
+              <p className="text-sm font-medium">{t('empty.title')}</p>
+              <p className="text-sm text-muted-foreground">{t('empty.description')}</p>
+            </CardContent>
+          </Card>
+        </>
       ) : (
         <div className="space-y-3">
+          <AvisoDeCarga query={entriesQuery} hayDatos />
           {entries.map(entry => (
             <Card key={entry.id} className="border-input">
               <CardContent className="flex flex-col gap-4 p-4 md:flex-row md:items-center md:justify-between">

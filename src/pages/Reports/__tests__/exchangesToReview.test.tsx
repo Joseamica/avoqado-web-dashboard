@@ -284,7 +284,7 @@ describe('ExchangesToReviewSection', () => {
     else m.refunds.mockRejectedValue(new Error('Refund report failed'))
     mount(<Refunds />)
     expect(await screen.findByRole('link', { name: 'ORD-x1' })).toBeVisible()
-    if (state === 'failed') expect(await screen.findByText('Refund report failed')).toBeVisible()
+    if (state === 'failed') expect(await screen.findByText('loadFailure.empty')).toBeVisible()
   })
   it.each(['loading', 'failed'])('keeps the refund report visible when exchanges are %s', async state => {
     if (state === 'loading') m.get.mockImplementation(() => new Promise(() => {}))

@@ -660,6 +660,7 @@
     }
   },
   "menuId": {
+    "notFound": "Menu not found",
     "loading": "Loading menu...",
     "buttons": {
       "save": "Save changes",

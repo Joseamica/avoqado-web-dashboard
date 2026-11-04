@@ -367,6 +367,7 @@
   },
   "detail": {
     "title": "Detalles del Pago",
+    "notFound": "Pago no encontrado",
     "idLabel": "ID",
     "backToList": "Volver a pagos",
     "loading": "Cargando detalles del pago...",

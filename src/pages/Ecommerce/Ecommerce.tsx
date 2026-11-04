@@ -2,6 +2,8 @@ import React, { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -42,11 +44,13 @@ const Ecommerce: React.FC = () => {
   const [amount, setAmount] = useState('100')
   const [mode, setMode] = useState<'inline' | 'modal'>('inline')
 
-  const { data: merchants = [], isLoading } = useQuery({
+  const merchantsQuery = useQuery({
     queryKey: ['ecommerce-merchants', venueId, 'ecommerce-page'],
     queryFn: () => ecommerceMerchantAPI.listByVenue(venueId!),
     enabled: !!venueId,
   })
+  const { data: merchants = [], isLoading } = merchantsQuery
+  const sinLeer = merchantsQuery.data === undefined && falloDeCarga(merchantsQuery)
 
   const canTransact = useMemo(() => merchants.some(isUsable), [merchants])
   const integrationsHref = `${fullBasePath}/settings/integrations`
@@ -106,8 +110,11 @@ const Ecommerce: React.FC = () => {
           <CardDescription>{t('paymentWidget.processorsHint')}</CardDescription>
         </CardHeader>
         <CardContent>
+          {!sinLeer && <AvisoDeCarga query={merchantsQuery} hayDatos />}
           {isLoading ? (
             <p className="text-sm text-muted-foreground">{t('paymentWidget.loading')}</p>
+          ) : sinLeer ? (
+            <AvisoDeCarga query={merchantsQuery} hayDatos={false} />
           ) : merchants.length === 0 ? (
             <div className="flex flex-col items-start gap-3 rounded-lg bg-muted/50 p-6">
               <p className="text-sm text-muted-foreground">{t('paymentWidget.noProcessors')}</p>
@@ -150,7 +157,7 @@ const Ecommerce: React.FC = () => {
         </CardHeader>
 
         <CardContent className="space-y-4">
-          {!canTransact && (
+          {!canTransact && merchantsQuery.data !== undefined && (
             <Alert>
               <AlertCircle className="h-4 w-4" />
               <AlertDescription className="flex flex-wrap items-center gap-x-2 gap-y-1">
