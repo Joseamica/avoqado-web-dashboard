@@ -87,10 +87,10 @@ export default function ExternalSettlements() {
         </TabsList>
 
         <TabsContent value="settlements" className="mt-6">
-          <SettlementsQueue venueId={venueId} areas={overviewQuery.data?.areas ?? []} />
+          <SettlementsQueue venueId={venueId} areas={overviewQuery.data?.areas ?? []} areasQuery={overviewQuery} />
         </TabsContent>
         <TabsContent value="incidents" className="mt-6">
-          <IncidentsQueue venueId={venueId} areas={overviewQuery.data?.areas ?? []} />
+          <IncidentsQueue venueId={venueId} areas={overviewQuery.data?.areas ?? []} areasQuery={overviewQuery} />
         </TabsContent>
       </Tabs>
     </div>

@@ -92,6 +92,8 @@ vi.mock('react-i18next', async original => ({
   Trans: () => null,
 }))
 
+import { IncidentsQueue } from '@/pages/AreaTickets/components/IncidentsQueue'
+import { SettlementsQueue } from '@/pages/AreaTickets/components/SettlementsQueue'
 import ExternalSettlements from '@/pages/AreaTickets/ExternalSettlements'
 import { SendCampaignDialog } from '@/pages/Customers/components/SendCampaignDialog'
 import { CreateTransferDialog } from '@/pages/Inventory/InterVenueTransfers/CreateTransferDialog'
@@ -881,5 +883,25 @@ describe('Crear transferencia entre sucursales', () => {
     abrir()
     await recargaCaida(INSUMOS)
     await screen.findByText(CON_DATOS)
+  })
+})
+
+describe('Cobros externos: el filtro «Área» conoce su lectura', () => {
+  const fuente = (estado: object) => ({ isError: false, isFetching: false, isPaused: false, error: null, refetch: vi.fn(), ...estado })
+  const abrir = async () => fireEvent.click(await screen.findByRole('button', { name: /filters\.area/ }))
+
+  it.each([
+    ['Incidencias', IncidentsQueue],
+    ['Cobros por confirmar', SettlementsQueue],
+  ])('%s: sin leer las áreas no dice «No hay áreas»; leídas y vacías, sí', async (_n, Cola) => {
+    red.colgada = /external-/
+    pintar(<Cola venueId="v1" areas={[]} areasQuery={fuente({ isError: true, error: new Error('caída') })} />)
+    await abrir()
+    await screen.findByText('loadFailure.empty')
+    expect(document.body.textContent).not.toContain('filters.noAreas')
+    cleanup()
+    pintar(<Cola venueId="v1" areas={[]} areasQuery={fuente({ data: { areas: [] } })} />)
+    await abrir()
+    await screen.findByText(/filters\.noAreas/)
   })
 })

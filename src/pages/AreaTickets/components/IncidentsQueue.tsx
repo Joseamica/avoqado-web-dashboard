@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { FilterPill, SingleSelectFilterContent } from '@/components/filters'
+import type { FuenteDeOpciones } from '@/components/filters/EstadoDeOpciones'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { falloDeCarga } from '@/lib/falloDeCarga'
 import { useVenueDateTime } from '@/utils/datetime'
@@ -32,7 +33,7 @@ const INCIDENT_STATUSES: ExternalIncidentStatus[] = ['OPEN', 'RESOLVED', 'DISMIS
  * si alguien los pide con el filtro (historial, no la cola del día a día). Una
  * incidencia abierta NUNCA bloquea el piso — esta pantalla sólo la hace visible.
  */
-export function IncidentsQueue({ venueId, areas }: { venueId: string; areas: FulfillmentArea[] }) {
+export function IncidentsQueue({ venueId, areas, areasQuery }: { venueId: string; areas: FulfillmentArea[]; areasQuery?: FuenteDeOpciones }) {
   const { t } = useTranslation('settings')
   const { formatDateTime } = useVenueDateTime()
   const [areaId, setAreaId] = useState<string | null>(null)
@@ -84,6 +85,7 @@ export function IncidentsQueue({ venueId, areas }: { venueId: string; areas: Ful
             onSelect={setAreaId}
             searchable
             emptyLabel={t('areaTickets.externalSettlements.filters.noAreas')}
+            fuente={areasQuery}
           />
         </FilterPill>
         <FilterPill label={t('areaTickets.externalSettlements.filters.kind')} activeLabel={kindLabel} onClear={() => setKind(null)}>
