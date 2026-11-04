@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { CalendarClock, CheckCircle2, Loader2 } from 'lucide-react'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -138,11 +139,14 @@ function SettlementDialogBody({
   // In edit mode we need the existing settlement rows so we know which row id
   // to PUT per card type. Same query key as useMerchantBundle so the cache is
   // shared with the panel's hydration round-trip.
-  const { data: existingConfigs = [] } = useQuery<SettlementConfiguration[]>({
+  const configsQuery = useQuery<SettlementConfiguration[]>({
     queryKey: ['settlement-configs-by-merchant', merchantAccountId],
     queryFn: () => getSettlementConfigurations({ merchantAccountId: merchantAccountId! }),
     enabled: mode === 'edit' && !!merchantAccountId,
   })
+  const { data: existingConfigs = [] } = configsQuery
+  // Se guarda por id de fila: sin leerlas no se mandaría nada y el aviso diría «actualizada» igual.
+  const filasSinLeer = mode === 'edit' && configsQuery.data === undefined
   // Local form buffer — only commit to reducer when user clicks "Guardar".
   // Opening the dialog should not flip the panel's progress indicator.
   const [draft, setDraft] = useState<SettlementSlice>(state.settlement)
@@ -150,7 +154,7 @@ function SettlementDialogBody({
   const setField = (patch: Partial<SettlementSlice>) =>
     setDraft(prev => ({ ...prev, ...patch }))
 
-  const canSave = isSettlementValid(draft)
+  const canSave = isSettlementValid(draft) && !filasSinLeer
 
   const handleApplyAll = () => {
     // Take DÉBITO as reference (falls back to CRÉDITO, then 1) and copy to the
@@ -187,6 +191,7 @@ function SettlementDialogBody({
       ]
 
       const updates: Array<Promise<unknown>> = []
+      const sinFila: TransactionCardType[] = []
       for (const { cardType, days } of desired) {
         if (days === undefined) continue
         const existing = byCard(cardType)
@@ -198,6 +203,7 @@ function SettlementDialogBody({
           console.warn(
             `[SettlementCard] No active settlement row for cardType=${cardType} on merchant ${merchantAccountId} — skipping update`,
           )
+          sinFila.push(cardType)
           continue
         }
         updates.push(
@@ -213,20 +219,26 @@ function SettlementDialogBody({
         )
       }
 
+      // Sin filas activas no se manda nada: decir «actualizada» sería falso.
+      if (updates.length === 0) throw new Error('Este comercio no tiene reglas de liquidación activas que actualizar.')
       await Promise.all(updates)
+      return sinFila
     },
-    onSuccess: () => {
+    onSuccess: sinFila => {
       queryClient.invalidateQueries({
         queryKey: ['settlement-configs-by-merchant', merchantAccountId],
       })
       dispatch({ type: 'SET_SETTLEMENT', settlement: draft })
-      toast({ title: 'Liquidación actualizada' })
+      toast({
+        title: 'Liquidación actualizada',
+        description: sinFila.length ? `Sin regla activa, no se cambió: ${sinFila.join(', ')}` : undefined,
+      })
       onClose()
     },
     onError: (err: any) => {
       toast({
         title: 'No se pudo actualizar la liquidación',
-        description: err?.response?.data?.message || 'Error en el servidor',
+        description: err?.response?.data?.message || (err?.response ? 'Error en el servidor' : err?.message),
         variant: 'destructive',
       })
     },
@@ -244,6 +256,7 @@ function SettlementDialogBody({
 
   return (
     <div className="space-y-4">
+      {mode === 'edit' && <AvisoDeCarga query={configsQuery} hayDatos={!filasSinLeer} />}
       <p className="text-xs text-muted-foreground">
         Cuándo se deposita al venue. T+N significa <strong>N días</strong> después
         del corte.

@@ -11,6 +11,8 @@ import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { Check, ChevronDown, ChevronUp, Lock } from 'lucide-react'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/context/AuthContext'
@@ -41,7 +43,7 @@ export function PaymentActivationCard() {
   const rol = (venue as { role?: string } | null)?.role ?? user?.role
   const esDueño = rol === StaffRole.OWNER || rol === StaffRole.ADMIN || rol === StaffRole.SUPERADMIN
 
-  const { data } = useQuery<PaymentActivationStatus | null>({
+  const activationQuery = useQuery<PaymentActivationStatus | null>({
     queryKey: ['payment-activation', venueId],
     queryFn: async () => {
       const res = await paymentActivationService.get(venueId!)
@@ -50,6 +52,9 @@ export function PaymentActivationCard() {
     enabled: !!venueId && esDueño,
     retry: false,
   })
+  const { data } = activationQuery
+  // Sin leer, un paso ya hecho (terminal comprada, documentos) saldría como pendiente: no se pintan «0 de 4» ni los pasos.
+  const sinLeer = data === undefined && falloDeCarga(activationQuery)
 
   const kycStatus = data?.kycStatus ?? (venue as { kycStatus?: string } | null)?.kycStatus ?? null
   const kycEnviado = kycStatus === 'PENDING_REVIEW' || kycStatus === 'IN_REVIEW' || kycStatus === 'VERIFIED'
@@ -115,9 +120,11 @@ export function PaymentActivationCard() {
               defaultValue: 'Para cobrar con tarjeta y recibir tu dinero necesitamos estos datos. Tardas menos de 10 minutos.',
             })}
           </p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            {t('paymentActivation.progress', { defaultValue: '{{done}} de {{total}} listos', done: hechos, total: items.length })}
-          </p>
+          {data !== undefined && (
+            <p className="mt-1 text-xs text-muted-foreground">
+              {t('paymentActivation.progress', { defaultValue: '{{done}} de {{total}} listos', done: hechos, total: items.length })}
+            </p>
+          )}
         </div>
         <Button variant="ghost" size="sm" onClick={alternar} aria-expanded={!contraido}>
           {contraido ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
@@ -125,7 +132,13 @@ export function PaymentActivationCard() {
         </Button>
       </div>
 
-      {!contraido && (
+      {falloDeCarga(activationQuery) && (
+        <div className="mt-4">
+          <AvisoDeCarga query={activationQuery} hayDatos={!sinLeer} />
+        </div>
+      )}
+
+      {!contraido && data !== undefined && (
         <ul className="mt-4 flex flex-col gap-2">
           {items.map(item => (
             <li key={item.id} className="flex items-center justify-between gap-4 rounded-xl border border-input p-3">

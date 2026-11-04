@@ -3,8 +3,11 @@
  */
 
 import { useTranslation } from 'react-i18next'
+import { PorFuente } from '@/components/PorFuente'
 import { GlassCard } from '@/components/ui/glass-card'
 import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
+import type { EstadoDeCarga } from '@/lib/falloDeCarga'
 import { Store, Plus, Pencil } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -39,17 +42,20 @@ interface ManagerChartsProps {
   salesBySIM: SalesBySIMType[]
   goals: GoalProgress[]
   dailySales: DailySales[]
+  /** De dónde sale cada gráfica: sin leerla no hay «Sin metas» ni «Sin ventas». */
+  fuentes: Record<'categorias' | 'metas' | 'ventas', EstadoDeCarga & { data: unknown }>
   formatCurrency?: (value: number) => string
   onCreateGoal?: () => void
   onEditGoal?: (storeId: string, goalId?: string | null, goalAmount?: number, goalType?: 'AMOUNT' | 'QUANTITY', goalPeriod?: 'DAILY' | 'WEEKLY' | 'MONTHLY') => void
 }
 
-export function ManagerCharts({ salesBySIM, goals, dailySales, formatCurrency, onCreateGoal, onEditGoal }: ManagerChartsProps) {
+export function ManagerCharts({ salesBySIM, goals, dailySales, fuentes, formatCurrency, onCreateGoal, onEditGoal }: ManagerChartsProps) {
   const { t } = useTranslation('playtelecom')
 
   const maxSIM = Math.max(...salesBySIM.map(s => s.value), 1)
   const maxDaily = Math.max(...dailySales.map(d => d.value), 1)
   const fmt = formatCurrency ?? ((v: number) => `$${v.toLocaleString()}`)
+  const esqueleto = <Skeleton className="h-[140px] w-full rounded-xl" />
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -58,6 +64,8 @@ export function ManagerCharts({ salesBySIM, goals, dailySales, formatCurrency, o
         <h4 className="text-xs font-bold text-muted-foreground uppercase mb-4">
           {t('managers.charts.salesByCategory', { defaultValue: 'Ventas por Categoría' })}
         </h4>
+        {/* Sale de la misma lectura que las tarjetas de arriba: su aviso ya está ahí. */}
+        <PorFuente query={fuentes.categorias} esqueleto={esqueleto} conAviso={false}>
         {salesBySIM.length > 0 ? (
           <div className="flex-1 flex items-end justify-around gap-4 min-h-[140px]">
             {salesBySIM.map((item, i) => (
@@ -89,6 +97,7 @@ export function ManagerCharts({ salesBySIM, goals, dailySales, formatCurrency, o
             <p className="text-xs">{t('managers.charts.noSIMData', { defaultValue: 'Sin datos de stock' })}</p>
           </div>
         )}
+        </PorFuente>
       </GlassCard>
 
       {/* Goal progress */}
@@ -109,6 +118,7 @@ export function ManagerCharts({ salesBySIM, goals, dailySales, formatCurrency, o
             </Button>
           )}
         </div>
+        <PorFuente query={fuentes.metas} esqueleto={esqueleto}>
         {goals.length > 0 ? (
           <div className="space-y-6">
             {goals.map((goal, i) => (
@@ -163,6 +173,7 @@ export function ManagerCharts({ salesBySIM, goals, dailySales, formatCurrency, o
             <p className="text-xs">{t('managers.charts.noGoalData', { defaultValue: 'Sin metas configuradas' })}</p>
           </div>
         )}
+        </PorFuente>
       </GlassCard>
 
       {/* 7-day sales */}
@@ -170,6 +181,7 @@ export function ManagerCharts({ salesBySIM, goals, dailySales, formatCurrency, o
         <h4 className="text-xs font-bold text-muted-foreground uppercase mb-4">
           {t('managers.charts.last7Days', { defaultValue: 'Ventas: Ultimos 7 Dias' })}
         </h4>
+        <PorFuente query={fuentes.ventas} esqueleto={esqueleto}>
         {dailySales.length > 0 ? (
           <>
             <div className="flex-1 flex items-end justify-between gap-2 min-h-[140px]">
@@ -204,6 +216,7 @@ export function ManagerCharts({ salesBySIM, goals, dailySales, formatCurrency, o
             <p className="text-xs">{t('managers.charts.noSalesData', { defaultValue: 'Sin ventas registradas' })}</p>
           </div>
         )}
+        </PorFuente>
       </GlassCard>
     </div>
   )

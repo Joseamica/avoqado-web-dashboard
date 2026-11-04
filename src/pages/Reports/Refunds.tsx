@@ -1,6 +1,8 @@
 import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
@@ -35,11 +37,6 @@ const GlassCard: React.FC<{ children: React.ReactNode; className?: string }> = (
 // ============================================
 const RefundsSkeleton = () => (
   <div className="space-y-6">
-    <div className="flex items-center justify-between">
-      <Skeleton className="h-8 w-48" />
-      <Skeleton className="h-10 w-32" />
-    </div>
-    <Skeleton className="h-10 w-64 rounded-lg" />
     <Skeleton className="h-48 w-full rounded-2xl" />
     <Skeleton className="h-96 w-full rounded-2xl" />
   </div>
@@ -71,16 +68,14 @@ export default function Refunds() {
     [venueId, dateRange.from, dateRange.to],
   )
 
-  const {
-    data: apiResponse,
-    isLoading,
-    isError,
-    error,
-  } = useQuery({
+  const reportQuery = useQuery({
     queryKey: refundsKeys.report(apiFilters),
     queryFn: () => fetchRefunds(apiFilters),
     staleTime: 1000 * 60 * 5,
   })
+  const { data: apiResponse } = reportQuery
+  const isLoading = apiResponse === undefined && !falloDeCarga(reportQuery)
+  const isError = apiResponse === undefined && falloDeCarga(reportQuery)
 
   const handleDateRangeUpdate = (values: { range: { from: Date; to: Date | undefined } }) => {
     if (values.range.from && values.range.to) {
@@ -144,23 +139,6 @@ export default function Refunds() {
     URL.revokeObjectURL(link.href)
   }
 
-  const reportError = isError ? (
-    <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <PageTitleWithInfo
-          title={t('refunds.title')}
-          className="text-2xl font-bold"
-          tooltip={t('info.refunds', {
-            defaultValue: 'Todos los reembolsos emitidos en el período, con monto, método, motivo y quién los procesó.',
-          })}
-        />
-      </div>
-      <GlassCard className="p-6">
-        <p className="text-destructive">{error instanceof Error ? error.message : 'Error loading refunds data'}</p>
-      </GlassCard>
-    </div>
-  ) : null
-
   const reportHeader = (
     <>
       {/* Header */}
@@ -195,6 +173,9 @@ export default function Refunds() {
           showCompare={false}
         />
       </div>
+
+      {/* Debajo del filtro: sin red es la salida a un periodo ya leído. */}
+      <AvisoDeCarga query={reportQuery} hayDatos={apiResponse !== undefined} />
 
       {/* Summary Stats */}
       {apiResponse && (
@@ -338,7 +319,8 @@ export default function Refunds() {
 
   return (
     <div className="p-4 md:p-6 space-y-6">
-      {isLoading ? <RefundsSkeleton /> : isError ? reportError : reportHeader}
+      {reportHeader}
+      {isLoading && <RefundsSkeleton />}
       <ExchangesToReviewSection />
       {!isLoading && !isError && reportBody}
     </div>

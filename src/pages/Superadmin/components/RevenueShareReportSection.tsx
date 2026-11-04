@@ -8,6 +8,8 @@
  */
 import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { Loader2, Wallet, Building2, BarChart3, Pencil } from 'lucide-react'
 import { GlassCard } from '@/components/ui/glass-card'
 import { Input } from '@/components/ui/input'
@@ -43,7 +45,7 @@ export default function RevenueShareReportSection() {
     null,
   )
 
-  const { data, isLoading, isError, error, refetch, isFetching } = useQuery({
+  const reportQuery = useQuery({
     queryKey: ['revenue-share-report', fromISO, toISO],
     queryFn: () =>
       merchantRevenueShareAPI.getReport({
@@ -54,6 +56,7 @@ export default function RevenueShareReportSection() {
     enabled: Boolean(fromISO && toISO),
     staleTime: 60_000,
   })
+  const { data, isLoading, isFetching } = reportQuery
 
   const rows = data?.data ?? []
   const totals = data?.meta.totals
@@ -119,20 +122,14 @@ export default function RevenueShareReportSection() {
       )}
 
       {/* Tabla */}
+      {data !== undefined && <AvisoDeCarga query={reportQuery} hayDatos />}
       {isLoading ? (
         <div className="flex items-center justify-center py-10">
           <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
           <span className="ml-2 text-muted-foreground text-sm">Calculando reparto…</span>
         </div>
-      ) : isError ? (
-        <GlassCard className="p-6 text-center">
-          <p className="text-sm text-destructive">
-            Error al cargar el reporte: {(error as Error)?.message || 'desconocido'}
-          </p>
-          <button onClick={() => refetch()} className="mt-2 text-xs underline text-muted-foreground">
-            Reintentar
-          </button>
-        </GlassCard>
+      ) : data === undefined && falloDeCarga(reportQuery) ? (
+        <AvisoDeCarga query={reportQuery} hayDatos={false} />
       ) : rows.length === 0 ? (
         <GlassCard className="p-10 text-center">
           <Building2 className="w-10 h-10 mx-auto mb-3 text-muted-foreground opacity-40" />

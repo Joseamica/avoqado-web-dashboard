@@ -1,5 +1,6 @@
 import AlertDialogWrapper from '@/components/alert-dialog'
 import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { detalleNoCargo } from '@/lib/falloDeCarga'
 import { DondeSeUsaField } from './components/DondeSeUsaField'
 import { MultiSelectCombobox } from '@/components/multi-select-combobox'
 import { Button } from '@/components/ui/button'
@@ -254,7 +255,7 @@ export default function MenuId() {
   if (menuData === undefined) {
     return (
       <div className="p-4">
-        <AvisoDeCarga query={menuQuery} hayDatos={false} />
+        {detalleNoCargo(menuQuery) ? <AvisoDeCarga query={menuQuery} hayDatos={false} /> : <p className="text-sm text-muted-foreground">{t('menuId.notFound')}</p>}
       </div>
     )
   }

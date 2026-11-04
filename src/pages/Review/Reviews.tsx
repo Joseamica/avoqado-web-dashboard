@@ -1,4 +1,6 @@
 import api from '@/api'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { DateRangePicker } from '@/components/date-range-picker'
 import { BadReviewSettingsDialog } from '@/components/Review/BadReviewSettingsCard'
 import { ReviewCard } from '@/components/Review/ReviewCard'
@@ -96,11 +98,7 @@ export default function ReviewSummary() {
   }
 
   // Fetch reviews from API
-  const {
-    data: reviewsData,
-    isLoading,
-    error,
-  } = useQuery({
+  const reviewsQuery = useQuery({
     queryKey: ['reviews', venueId],
     queryFn: async () => {
       const response = await api.get(`/api/v1/dashboard/venues/${venueId}/reviews`)
@@ -108,6 +106,9 @@ export default function ReviewSummary() {
     },
     enabled: !!venueId,
   })
+  const { data: reviewsData } = reviewsQuery
+  const leidas = reviewsData !== undefined
+  const fallo = falloDeCarga(reviewsQuery)
 
   // Memoize reviews to prevent dependency issues in subsequent useMemo
   const reviews: Review[] = useMemo(() => reviewsData?.reviews || [], [reviewsData])
@@ -208,44 +209,6 @@ export default function ReviewSummary() {
     setResponseDialogOpen(true)
   }
 
-  // Show loading state
-  if (isLoading) {
-    return (
-      <div className="p-6 space-y-6">
-        <PageTitleWithInfo
-          title={t('title')}
-          className="text-xl font-bold text-foreground"
-          tooltip={t('info.page', {
-            defaultValue: 'Monitorea y responde resenas de clientes con filtros por fuente y calificacion.',
-          })}
-        />
-        <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-          <span className="ml-2 text-foreground">{t('loading')}</span>
-        </div>
-      </div>
-    )
-  }
-
-  // Show error state
-  if (error) {
-    return (
-      <div className="p-6 space-y-6">
-        <PageTitleWithInfo
-          title={t('title')}
-          className="text-xl font-bold text-foreground"
-          tooltip={t('info.page', {
-            defaultValue: 'Monitorea y responde resenas de clientes con filtros por fuente y calificacion.',
-          })}
-        />
-        <div className="text-center py-12 text-destructive">
-          <p className="text-lg font-semibold">{t('error')}</p>
-          <p className="text-sm text-muted-foreground mt-2">{error instanceof Error ? error.message : t('unknownError')}</p>
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
@@ -278,13 +241,15 @@ export default function ReviewSummary() {
         </div>
       </div>
 
+      <AvisoDeCarga query={reviewsQuery} hayDatos={leidas} />
+
       {/* Stats */}
-      <ReviewStats reviews={filteredAndSortedReviews} />
+      {leidas && <ReviewStats reviews={filteredAndSortedReviews} />}
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Filters Sidebar */}
         <div className="lg:col-span-1">
-          <ReviewFilters filters={filters} onFiltersChange={handleFiltersChange} totalCount={reviews.length} filteredCount={totalCount} />
+          <ReviewFilters filters={filters} onFiltersChange={handleFiltersChange} totalCount={leidas ? reviews.length : undefined} filteredCount={leidas ? totalCount : undefined} />
         </div>
 
         {/* Reviews List */}
@@ -292,7 +257,7 @@ export default function ReviewSummary() {
           {/* Sort Controls */}
           <div className="flex items-center justify-between">
             <p className="text-sm text-muted-foreground">
-              {t('averageDescription', { count: totalCount })}
+              {leidas && t('averageDescription', { count: totalCount })}
             </p>
             <div className="flex items-center gap-2">
               <span className="text-sm text-muted-foreground">{t('sorting.label')}</span>
@@ -312,7 +277,14 @@ export default function ReviewSummary() {
           </div>
 
           {/* Reviews Grid */}
-          {paginatedReviews.length === 0 ? (
+          {!leidas ? (
+            !fallo && (
+              <div className="flex items-center justify-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                <span className="ml-2 text-foreground">{t('loading')}</span>
+              </div>
+            )
+          ) : paginatedReviews.length === 0 ? (
             <div className="text-center py-12 px-4 bg-muted/30 rounded-lg border border-dashed">
               <p className="text-lg font-semibold text-muted-foreground">{reviews.length === 0 ? t('emptyState.title') : t('emptyState.noResults')}</p>
               <p className="text-sm text-muted-foreground mt-2">

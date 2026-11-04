@@ -639,21 +639,21 @@ export default function Home() {
               <BusinessCard
                 icon={CreditCard}
                 title={t('newHome.businessCenter.payments')}
-                subtitle={falloDeCarga(dashboardData.basicQuery) ? '—' : t('newHome.businessCenter.paymentsSubCount', { count: dashboardData.totalTransactions })}
+                subtitle={dashboardData.basicData === undefined && falloDeCarga(dashboardData.basicQuery) ? '—' : t('newHome.businessCenter.paymentsSubCount', { count: dashboardData.totalTransactions })}
                 isLoading={dashboardData.isBasicLoading}
                 onClick={() => navigate(`${fullBasePath}/payments`)}
               />
               <BusinessCard
                 icon={Boxes}
                 title={t('newHome.businessCenter.items')}
-                subtitle={falloDeCarga(productsQuery) ? '—' : t('newHome.businessCenter.itemsSubCount', { count: productsCount })}
+                subtitle={productsData === undefined && falloDeCarga(productsQuery) ? '—' : t('newHome.businessCenter.itemsSubCount', { count: productsCount })}
                 isLoading={isProductsLoading}
                 onClick={() => navigate(`${fullBasePath}/menumaker/products`)}
               />
               <BusinessCard
                 icon={Smartphone}
                 title={t('newHome.businessCenter.devices')}
-                subtitle={falloDeCarga(tpvsQuery) ? '—' : t('newHome.businessCenter.devicesSubCount', { count: tpvCount })}
+                subtitle={tpvsData === undefined && falloDeCarga(tpvsQuery) ? '—' : t('newHome.businessCenter.devicesSubCount', { count: tpvCount })}
                 isLoading={isTpvsLoading}
                 onClick={() => navigate(`${fullBasePath}/devices`)}
               />

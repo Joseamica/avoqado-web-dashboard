@@ -1,3 +1,5 @@
+import { falloDeCarga } from '@/lib/falloDeCarga'
+import { AvisoDeCarga, BotonReintentar } from '@/components/AvisoDeCarga'
 import { useState, type MouseEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
@@ -37,7 +39,8 @@ export function PagoDeClaseCard({ sessionId, conSeparador = false }: { sessionId
   const { data: acceso } = useStaffPayAccess(puedeVer)
   // Decisión 9 del plan (fase 3): cuánto se le paga a alguien es dinero; sólo con el plan Y la activación.
   const habilitado = puedeVer && !!acceso?.enabled && !!acceso?.activado
-  const { data: p, isLoading, isError } = useClassPay(sessionId, habilitado)
+  const pagoQuery = useClassPay(sessionId, habilitado)
+  const { data: p, isLoading } = pagoQuery
   // Bloque B: la diferencia pendiente sólo existe si la clase está en un cierre o llegó tarde a uno. Se pide bajo la sede
   // de la clase, que en el calendario es la del URL.
   const debeRevisar = !!p && (p.periodoOrigen?.estado === 'CLOSED' || !!p.llegoTarde)
@@ -56,13 +59,14 @@ export function PagoDeClaseCard({ sessionId, conSeparador = false }: { sessionId
         <Skeleton className="h-24 w-full" aria-busy="true" />
       </>
     )
-  if (isError)
+  if (p === undefined && falloDeCarga(pagoQuery))
     return (
       <>
         {sep}
         <p className="text-sm text-muted-foreground" role="alert">
           {t('classCard.loadError')}
         </p>
+        <BotonReintentar query={pagoQuery} />
       </>
     )
   if (!p) return null
@@ -100,6 +104,7 @@ export function PagoDeClaseCard({ sessionId, conSeparador = false }: { sessionId
   return (
     <>
       {sep}
+      <AvisoDeCarga query={pagoQuery} hayDatos />
       <div className="rounded-lg border border-input p-3 space-y-2" data-tour="class-pay-card">
         {/* Ancla del foco: a donde vuelve al cerrar «Liquidar» cuando su botón ya no existe (se liquidó). */}
         <p className={`text-sm font-semibold ${ANCLA_FOCO}`} tabIndex={-1} data-staffpay-ancla>

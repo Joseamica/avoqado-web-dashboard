@@ -2,7 +2,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { onlineManager, QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import i18n from '@/i18n'
 import type { PrintStation } from '@/services/printStations.service'
 import { ProbarRuteoModal } from '../RoutingSimulator'
@@ -10,11 +10,12 @@ import { ProbarRuteoModal } from '../RoutingSimulator'
 const h = vi.hoisted(() => ({
   products: [] as { id: string; name: string; categoryId: string | null; printStationId: string | null }[],
   preview: vi.fn(),
+  caido: false,
 }))
 
 vi.mock('@/services/printStations.service', async importOriginal => ({
   ...(await importOriginal<typeof import('@/services/printStations.service')>()),
-  getRouting: () => Promise.resolve({ categories: [], products: h.products, unroutedCategories: 0, hasDefault: true }),
+  getRouting: () => (h.caido ? Promise.reject(new Error('500')) : Promise.resolve({ categories: [], products: h.products, unroutedCategories: 0, hasDefault: true })),
   previewRouting: h.preview,
 }))
 vi.mock('@/hooks/use-tier-feature-access', () => ({
@@ -29,6 +30,7 @@ beforeAll(async () => {
 })
 beforeEach(() => {
   h.products = [{ id: 'pr1', name: 'Taco', categoryId: 'c1', printStationId: null }]
+  h.caido = false
   h.preview.mockResolvedValue({ plans: [], unrouted: false })
 })
 
@@ -52,6 +54,35 @@ describe('ProbarRuteoModal', () => {
     // FullScreenModal repite el título en un <h2> y en su descripción sr-only (mismo gotcha de la Task 3):
     // se apunta al heading para no ambigüar entre los dos nodos con el mismo texto.
     expect(screen.getByRole('heading', { name: '¿A dónde va cada comanda?' })).toBeInTheDocument()
+  })
+
+  describe('el catálogo no se pudo leer', () => {
+    const buscar = async () => {
+      const user = userEvent.setup()
+      pintar()
+      await user.click(screen.getByRole('button', { name: 'Agregar producto' }))
+      await user.click(screen.getByRole('combobox', { name: 'Producto 1' }))
+      await user.type(screen.getByRole('combobox', { name: 'Producto 1' }), 'taco')
+    }
+
+    it('caído: su aviso, y no «Sin resultados»', async () => {
+      h.caido = true
+      await buscar()
+      // El selector reintenta una vez antes de dar el error.
+      expect(await screen.findByText('No se pudo cargar el ruteo', undefined, { timeout: 4_000 })).toBeInTheDocument()
+      expect(screen.queryByText('Sin resultados')).not.toBeInTheDocument()
+    })
+
+    it('sin internet: su aviso, y no «Sin resultados»', async () => {
+      onlineManager.setOnline(false)
+      try {
+        await buscar()
+        expect(await screen.findByText('No se pudo cargar el ruteo')).toBeInTheDocument()
+        expect(screen.queryByText('Sin resultados')).not.toBeInTheDocument()
+      } finally {
+        onlineManager.setOnline(true)
+      }
+    })
   })
 
   it('sin productos lo dice al abrir el selector, sin cargar catálogo al montar', async () => {

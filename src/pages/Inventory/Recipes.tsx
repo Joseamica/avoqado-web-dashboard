@@ -248,7 +248,7 @@ export default function Recipes() {
   }, [highlightProductId, recipesProducts, isLoading])
 
   // Fetch categories for filter
-  const { data: categories } = useQuery({
+  const categoriesQuery = useQuery({
     queryKey: ['categories', venueId],
     queryFn: async () => {
       const response = await api.get(`/api/v1/dashboard/venues/${venueId}/menucategories`)
@@ -256,6 +256,7 @@ export default function Recipes() {
     },
     enabled: !!venueId,
   })
+  const { data: categories } = categoriesQuery
 
   // ─── Shared filter options ───
   const categoryOptions = useMemo(
@@ -997,6 +998,7 @@ export default function Recipes() {
             <CheckboxFilterContent
               title={t('rawMaterials.fields.category')}
               options={categoryOptions}
+              fuente={categoriesQuery}
               selectedValues={categoryFilter}
               onApply={setCategoryFilter}
             />

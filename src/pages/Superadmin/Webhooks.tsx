@@ -16,6 +16,8 @@ import {
   type WebhookMetrics,
 } from '@/services/webhook.service'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { DateTime } from 'luxon'
 import { Activity, AlertTriangle, CheckCircle2, Clock, Eye, Filter, RefreshCw, TrendingUp, X, XCircle, Zap } from 'lucide-react'
 import { useState } from 'react'
@@ -46,10 +48,11 @@ function Webhooks() {
   const [retryingEventId, setRetryingEventId] = useState<string | null>(null)
 
   // Fetch metrics (last 7 days)
-  const { data: metrics } = useQuery<WebhookMetrics>({
+  const metricsQuery = useQuery<WebhookMetrics>({
     queryKey: ['webhookMetrics'],
     queryFn: () => getWebhookMetrics(),
   })
+  const { data: metrics } = metricsQuery
 
   // Fetch event types for filter dropdown
   const { data: eventTypes } = useQuery({
@@ -58,7 +61,7 @@ function Webhooks() {
   })
 
   // Fetch webhook events
-  const { data: webhookData, isLoading } = useQuery({
+  const eventsQuery = useQuery({
     queryKey: ['webhookEvents', eventTypeFilter, statusFilter, startDate, endDate, page],
     queryFn: () =>
       listWebhookEvents({
@@ -70,6 +73,8 @@ function Webhooks() {
         offset: page * limit,
       }),
   })
+  const { data: webhookData, isLoading } = eventsQuery
+  const sinEventos = webhookData === undefined && falloDeCarga(eventsQuery)
 
   // Retry mutation
   const retryMutation = useMutation({
@@ -143,6 +148,7 @@ function Webhooks() {
       </div>
 
       {/* Metrics Cards */}
+      <AvisoDeCarga query={metricsQuery} hayDatos={metrics !== undefined} />
       {metrics && (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {/* Success Rate */}
@@ -211,7 +217,7 @@ function Webhooks() {
             <Button variant="outline" size="sm" onClick={() => setShowFilters(!showFilters)} className="gap-2">
               <Filter className="h-4 w-4" />
               {showFilters ? t('events.hideFilters') : t('events.showFilters')}
-              {hasActiveFilters && (
+              {hasActiveFilters && webhookData !== undefined && (
                 <span className="ml-1 px-1.5 py-0.5 text-xs bg-primary text-primary-foreground rounded-full">
                   {webhookData?.events.length || 0}
                 </span>
@@ -276,7 +282,7 @@ function Webhooks() {
               {/* Filter Actions */}
               <div className="flex items-center justify-between pt-2">
                 <p className="text-sm text-muted-foreground">
-                  {t('events.showing', { count: webhookData?.events.length || 0, total: webhookData?.total || 0 })}
+                  {webhookData !== undefined && t('events.showing', { count: webhookData.events.length || 0, total: webhookData.total || 0 })}
                 </p>
                 {hasActiveFilters && (
                   <Button variant="ghost" size="sm" onClick={clearFilters} className="gap-2">
@@ -288,10 +294,11 @@ function Webhooks() {
             </div>
           )}
 
+          <AvisoDeCarga query={eventsQuery} hayDatos={webhookData !== undefined} volverAlInicio={sinEventos && page > 0 ? () => setPage(0) : undefined} />
           {/* Table */}
           {isLoading ? (
             <p className="text-center py-8 text-muted-foreground">{t('events.loading')}</p>
-          ) : !webhookData?.events.length ? (
+          ) : sinEventos ? null : !webhookData?.events.length ? (
             <p className="text-center py-8 text-muted-foreground">{t('events.noEvents')}</p>
           ) : (
             <>

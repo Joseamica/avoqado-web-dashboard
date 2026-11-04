@@ -27,6 +27,7 @@ import { useToast } from '@/hooks/use-toast'
 import { useAccess } from '@/hooks/use-access'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { PorFuente } from '@/components/PorFuente'
 import { FeatureGate } from '@/components/billing/FeatureGate'
 import referralsService from '@/services/referrals.service'
 import { getIntlLocale } from '@/utils/i18n-locale'
@@ -179,11 +180,12 @@ export default function ReferralsSettings() {
 
   const isActive = config?.active === true
 
-  const { data: summary } = useQuery({
+  const summaryQuery = useQuery({
     queryKey: ['referrals-summary', venueId],
     queryFn: () => referralsService.getSummary(venueId!),
     enabled: !!venueId && isActive,
   })
+  const { data: summary } = summaryQuery
 
   // ── Form ─────────────────────────────────────────────────────────────────
   const {
@@ -454,6 +456,8 @@ export default function ReferralsSettings() {
                 <TrendingUp className="h-4 w-4 text-amber-500" />
                 <h3 className="font-semibold text-sm">{t('active.summaryHeading')}</h3>
               </div>
+              {/* Sólo se llega con el programa activo, que es lo que enciende esta lectura: sin leerla no hay «0 referidos». */}
+              <PorFuente query={summaryQuery}>
               <div className="space-y-3">
                 <MetricCell
                   icon={Users}
@@ -480,6 +484,7 @@ export default function ReferralsSettings() {
                   accent="from-amber-500/20 to-amber-500/5 text-amber-600 dark:text-amber-400"
                 />
               </div>
+              </PorFuente>
             </GlassCard>
           </div>
         </div>

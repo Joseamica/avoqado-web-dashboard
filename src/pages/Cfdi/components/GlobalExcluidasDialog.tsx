@@ -9,6 +9,8 @@
  * Cada venta muestra el `detalle` que manda el servidor tal cual (nombra productos o montos), y debajo el texto general del motivo
  * cuando dice algo más.
  */
+import { falloDeCarga } from '@/lib/falloDeCarga'
+import { AvisoDeCarga, BotonReintentar } from '@/components/AvisoDeCarga'
 import { useTranslation } from 'react-i18next'
 import { Loader2 } from 'lucide-react'
 
@@ -64,7 +66,7 @@ export function GlobalExcluidasDialog({
               ? t('globalInvoice.excluded.description', {
                   period: rangoFiscal(primera.periodo.desde, primera.periodo.hasta, i18n.language),
                 })
-              : t('globalInvoice.excluded.loading')}
+              : !falloDeCarga(q) && t('globalInvoice.excluded.loading')}
           </DialogDescription>
         </DialogHeader>
 
@@ -74,10 +76,11 @@ export function GlobalExcluidasDialog({
           </div>
         )}
 
-        {q.isError && (
-          <p role="alert" className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
-            {textoDelServidor(q.error) ?? t('globalInvoice.excluded.loadError')}
-          </p>
+        {falloDeCarga(q) && (
+          <div role="alert" className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+            <span>{textoDelServidor(q.error) ?? t('globalInvoice.excluded.loadError')}</span>
+            <BotonReintentar query={q} />
+          </div>
         )}
 
         {totales && (

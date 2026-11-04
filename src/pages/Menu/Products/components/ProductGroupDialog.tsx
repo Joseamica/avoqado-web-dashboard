@@ -1,5 +1,7 @@
 import { useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { Button } from '@/components/ui/button'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -88,7 +90,7 @@ export function ProductGroupDialog({ open, onClose, venueId, groupId }: Props) {
             <Skeleton className="h-48 w-full rounded-2xl" />
             <Skeleton className="h-64 w-full rounded-2xl" />
           </div>
-        ) : q.isError && !familia ? (
+        ) : !familia && falloDeCarga(q) ? (
           <div className="space-y-3 rounded-2xl border border-border/50 bg-card p-6">
             {noExiste ? (
               <>
@@ -108,7 +110,8 @@ export function ProductGroupDialog({ open, onClose, venueId, groupId }: Props) {
           </div>
         ) : familia ? (
           <>
-            {/* Codex C1: si falla una recarga (p. ej. tras guardar otra sección) los editores siguen montados con lo tecleado. */}
+            <AvisoDeCarga query={q} hayDatos />
+{/* Codex C1: si falla una recarga (p. ej. tras guardar otra sección) los editores siguen montados con lo tecleado. */}
             {q.isError && (
               <div role="alert" className="flex flex-wrap items-center gap-3 rounded-xl border border-input bg-card p-4 text-sm">
                 <p className="flex-1">

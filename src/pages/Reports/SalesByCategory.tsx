@@ -1,6 +1,8 @@
 import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
@@ -179,19 +181,10 @@ const SortableHeader: React.FC<{
 // Loading Skeleton
 // ============================================
 const SalesByCategorySkeleton = () => (
-  <div className="p-4 md:p-6 space-y-6">
-    <div className="flex items-center justify-between">
-      <Skeleton className="h-8 w-48" />
-      <Skeleton className="h-10 w-32" />
-    </div>
-    <div className="flex gap-2">
-      {[1, 2].map(i => (
-        <Skeleton key={i} className="h-8 w-32 rounded-full" />
-      ))}
-    </div>
+  <>
     <Skeleton className="h-48 w-full rounded-2xl" />
     <Skeleton className="h-96 w-full rounded-2xl" />
-  </div>
+  </>
 )
 
 // ============================================
@@ -294,11 +287,13 @@ export default function SalesByCategory() {
     [venueId, dateRange.from, dateRange.to, reportType, hoursFilter, customStartHour, customEndHour],
   )
 
-  const { data: apiResponse, isLoading, isError, error } = useQuery({
+  const reportQuery = useQuery({
     queryKey: salesByCategoryKeys.report(apiFilters),
     queryFn: () => fetchSalesByCategory(apiFilters),
     staleTime: 1000 * 60 * 5,
   })
+  const { data: apiResponse } = reportQuery
+  const isLoading = apiResponse === undefined && !falloDeCarga(reportQuery)
 
   // Sort categories
   const sortedCategories = useMemo(() => {
@@ -364,29 +359,6 @@ export default function SalesByCategory() {
     link.download = `sales-by-category-${dateRange.from.toISOString().split('T')[0]}-${dateRange.to.toISOString().split('T')[0]}.csv`
     link.click()
     URL.revokeObjectURL(link.href)
-  }
-
-  if (isLoading) {
-    return <SalesByCategorySkeleton />
-  }
-
-  if (isError) {
-    return (
-      <div className="p-4 md:p-6 space-y-6">
-        <div className="flex items-center gap-3">
-          <PageTitleWithInfo
-            title={t('salesByCategory.title')}
-            className="text-2xl font-bold"
-            tooltip={t('info.salesByCategory', {
-              defaultValue: 'Reporte de ventas agrupadas por categoría para ver qué familias de productos generan más ingresos.',
-            })}
-          />
-        </div>
-        <GlassCard className="p-6">
-          <p className="text-destructive">{error instanceof Error ? error.message : 'Error loading sales by category data'}</p>
-        </GlassCard>
-      </div>
-    )
   }
 
   const totalGross = apiResponse?.totals.grossSales || 0
@@ -604,6 +576,10 @@ export default function SalesByCategory() {
           onClick={() => openControlPanel('reportType')}
         />
       </div>
+
+      {/* Debajo de los filtros: sin red son la salida a un periodo ya leído. */}
+      <AvisoDeCarga query={reportQuery} hayDatos={apiResponse !== undefined} />
+      {isLoading && <SalesByCategorySkeleton />}
 
       {/* Chart - Only show for time-based reports */}
       {apiResponse && reportType !== 'summary' && apiResponse.byPeriod && apiResponse.byPeriod.length > 0 && (

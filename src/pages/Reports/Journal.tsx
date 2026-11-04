@@ -12,6 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { FeatureGate } from '@/components/billing/FeatureGate'
 import { AccountingErrorState } from '@/components/accounting/AccountingErrorState'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { useAccess } from '@/hooks/use-access'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useTierFeatureAccess } from '@/hooks/use-tier-feature-access'
@@ -94,10 +96,12 @@ function JournalInner() {
 
       {hasAccess && !needsFiscalSetup && <PeriodLockCard enabled />}
 
-      {journalQuery.isLoading && hasAccess ? (
+      {journalQuery.data !== undefined && <AvisoDeCarga query={journalQuery} hayDatos />}
+
+      {journalQuery.data === undefined && hasAccess && !falloDeCarga(journalQuery) ? (
         <Skeleton className="h-64 rounded-2xl" />
-      ) : journalQuery.isError && hasAccess ? (
-        <AccountingErrorState onRetry={() => journalQuery.refetch()} />
+      ) : journalQuery.data === undefined && hasAccess ? (
+        <AccountingErrorState error={journalQuery.error} onRetry={() => journalQuery.refetch()} />
       ) : needsFiscalSetup ? (
         <Card className="border-input">
           <CardContent className="flex flex-col items-center gap-3 py-10 text-center">

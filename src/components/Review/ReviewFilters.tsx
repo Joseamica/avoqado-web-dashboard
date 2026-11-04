@@ -19,8 +19,9 @@ export interface ReviewFiltersState {
 interface ReviewFiltersProps {
   filters: ReviewFiltersState
   onFiltersChange: (filters: ReviewFiltersState) => void
-  totalCount: number
-  filteredCount: number
+  /** Sin leer las reseñas no se dice «0 / 0». */
+  totalCount?: number
+  filteredCount?: number
 }
 
 // TODO: Habilitar fuentes externas cuando tengamos verificado el negocio (Google, TripAdvisor, Facebook, Yelp)
@@ -77,7 +78,7 @@ export function ReviewFilters({ filters, onFiltersChange, totalCount, filteredCo
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <CardTitle className="text-base">{t('filters.title')}</CardTitle>
-            {hasActiveFilters && (
+            {hasActiveFilters && totalCount !== undefined && (
               <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
                 {filteredCount} / {totalCount}
               </span>

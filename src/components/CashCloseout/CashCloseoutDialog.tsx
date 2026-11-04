@@ -21,7 +21,9 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { AlertCircle, Loader2, Banknote, Building2, Vault, ArrowRight } from 'lucide-react'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { useToast } from '@/hooks/use-toast'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { cn } from '@/lib/utils'
 import { getExpectedCash, createCashCloseout, DepositMethod } from '@/services/cashCloseout.service'
 import { useVenueDateTime } from '@/utils/datetime'
@@ -55,15 +57,15 @@ export function CashCloseoutDialog({ open, onOpenChange, venueId, onSuccess }: C
   const [notes, setNotes] = useState('')
 
   // Fetch expected cash amount
-  const {
-    data: expectedData,
-    isLoading: isLoadingExpected,
-    refetch,
-  } = useQuery({
+  const expectedQuery = useQuery({
     queryKey: ['cash-closeout', 'expected', venueId],
     queryFn: () => getExpectedCash(venueId),
     enabled: open && !!venueId,
   })
+  const { data: expectedData, refetch } = expectedQuery
+  const isLoadingExpected = expectedData === undefined && !falloDeCarga(expectedQuery)
+  // Sin leer lo esperado (o con la lectura vieja tras un fallo) no se sabe la diferencia: la alerta no saldría y el corte se iría sin ella.
+  const esperadoSinLeer = expectedData === undefined || falloDeCarga(expectedQuery)
 
   // Reset form when dialog opens
   useEffect(() => {
@@ -131,6 +133,8 @@ export function CashCloseoutDialog({ open, onOpenChange, venueId, onSuccess }: C
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
+    if (esperadoSinLeer) return
+
     if (!actualAmount || parseFloat(actualAmount) < 0) {
       toast({
         title: tCommon('error.prefix'),
@@ -143,7 +147,7 @@ export function CashCloseoutDialog({ open, onOpenChange, venueId, onSuccess }: C
     await createMutation.mutateAsync()
   }
 
-  const isSubmitDisabled = createMutation.isPending || !actualAmount || isLoadingExpected
+  const isSubmitDisabled = createMutation.isPending || !actualAmount || esperadoSinLeer
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -158,7 +162,9 @@ export function CashCloseoutDialog({ open, onOpenChange, venueId, onSuccess }: C
           </DialogHeader>
 
           <div className="space-y-6 py-4">
+            <AvisoDeCarga query={expectedQuery} hayDatos={expectedData !== undefined} />
             {/* Summary card showing expected vs actual */}
+            {!(expectedData === undefined && falloDeCarga(expectedQuery)) && (
             <div className="p-4 bg-muted/50 rounded-lg space-y-3">
               {/* Period info */}
               {expectedData?.periodStart && (
@@ -193,8 +199,12 @@ export function CashCloseoutDialog({ open, onOpenChange, venueId, onSuccess }: C
                     variance > 0 ? 'text-green-600' : variance < 0 ? 'text-red-600' : 'text-foreground'
                   )}
                 >
-                  {variance > 0 ? '+' : ''}
-                  {formatCurrency(variance)} ({variancePercent.toFixed(1)}%)
+                  {isLoadingExpected ? '...' : (
+                    <>
+                      {variance > 0 ? '+' : ''}
+                      {formatCurrency(variance)} ({variancePercent.toFixed(1)}%)
+                    </>
+                  )}
                 </span>
               </div>
 
@@ -206,6 +216,7 @@ export function CashCloseoutDialog({ open, onOpenChange, venueId, onSuccess }: C
                 </div>
               )}
             </div>
+            )}
 
             {/* Actual amount input */}
             <div className="space-y-2">

@@ -3,6 +3,8 @@ import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Search, X } from 'lucide-react'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -78,11 +80,12 @@ export function TerminalOrdersTab() {
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const debouncedSearch = useDebounce(searchTerm, 300)
 
-  const { data: orders = [], isLoading } = useQuery({
+  const ordersQuery = useQuery({
     queryKey: ['tpv-orders', venueId],
     queryFn: () => tpvOrderService.listForVenue(venueId!),
     enabled: !!venueId,
   })
+  const { data: orders = [], isLoading } = ordersQuery
 
   const filtered = useMemo(() => {
     const q = debouncedSearch.trim().toLowerCase()
@@ -217,7 +220,10 @@ export function TerminalOrdersTab() {
         </FilterPillBar>
       </div>
 
+      <AvisoDeCarga query={ordersQuery} hayDatos={ordersQuery.data !== undefined} />
+
       {/* Table */}
+      {!(ordersQuery.data === undefined && falloDeCarga(ordersQuery)) && (
       <div className="rounded-lg border border-input overflow-hidden">
         <table className="w-full text-sm">
           <thead className="bg-muted/60 text-muted-foreground">
@@ -303,6 +309,7 @@ export function TerminalOrdersTab() {
           </tbody>
         </table>
       </div>
+      )}
     </div>
   )
 }

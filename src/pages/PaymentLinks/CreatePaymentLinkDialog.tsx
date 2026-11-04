@@ -615,13 +615,13 @@ function PaymentLinkForm({ open, onClose, editingLinkId }: CreatePaymentLinkDial
           {linkQuery.isLoading ? (
             <Loader2 className="mx-auto h-8 w-8 animate-spin text-muted-foreground" />
           ) : (
-            <AvisoDeCarga query={linkQuery} hayDatos={false} />
+            <AvisoDeCarga query={linkQuery} hayDatos={false} deUnRegistro />
           )}
         </div>
       ) : (
         /* ─── Step 2: Details Form ──────────────────────────── */
         <div className="mx-auto max-w-6xl p-6">
-          <AvisoDeCarga query={linkQuery} hayDatos />
+          <AvisoDeCarga query={linkQuery} hayDatos deUnRegistro />
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
             {/* Left: Form (2 cols) */}
             <fieldset disabled={isSaving || !!createdLink} className="lg:col-span-2 min-w-0 space-y-6">

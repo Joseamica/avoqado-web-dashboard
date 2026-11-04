@@ -35,7 +35,7 @@ import { useSocket } from '@/context/SocketContext'
 import { useAccess } from '@/hooks/use-access'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
-import { falloDeCarga } from '@/lib/falloDeCarga'
+import { falloDeCarga, reintentarSirve } from '@/lib/falloDeCarga'
 import { cn } from '@/lib/utils'
 import { TpvSettingsForm } from '@/pages/Settings/components/TpvSettingsForm'
 import { paymentProviderAPI, type MerchantAccount } from '@/services/paymentProvider.service'
@@ -299,12 +299,7 @@ function TpvIdContent() {
   const navigate = useNavigate()
 
   // Fetch the device data. A pending durable display request polls until its canonical resolution.
-  const {
-    data: tpv,
-    isLoading,
-    error,
-    isError,
-  } = useQuery<TpvData>({
+  const tpvQuery = useQuery<TpvData>({
     queryKey: ['tpv', venueId, tpvId],
     queryFn: async () => {
       const response = await api.get(`/api/v1/dashboard/venues/${venueId}/tpv/${tpvId}`)
@@ -321,6 +316,9 @@ function TpvIdContent() {
       return failureCount < 3
     },
   })
+  const { data: tpv, isLoading, error } = tpvQuery
+  // Sin internet la consulta se pausa sin marcar error: sin esto diría «sin datos del aparato».
+  const isError = falloDeCarga(tpvQuery)
 
   const actionPolicy = getDeviceActionPolicy(tpv?.capabilities, tpv?.activatedAt, tpv?.type)
 
@@ -756,7 +754,7 @@ function TpvIdContent() {
             <ArrowLeft className="h-4 w-4 mr-2" />
             {t('common:goBack')}
           </Button>
-          <Button onClick={() => window.location.reload()}>{t('common:tryAgain')}</Button>
+          {reintentarSirve(tpvQuery.error) && <Button onClick={() => void tpvQuery.refetch()}>{t('common:tryAgain')}</Button>}
         </div>
       </div>
     )

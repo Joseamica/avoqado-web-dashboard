@@ -1,5 +1,4 @@
 import { AvisoDeCarga } from '@/components/AvisoDeCarga'
-import { falloDeCarga } from '@/lib/falloDeCarga'
 import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
@@ -169,7 +168,7 @@ export function RecentReferralsTable({
         </Select>
       </div>
 
-      <AvisoDeCarga query={listQuery} hayDatos={items.length > 0} volverAlInicio={page > 1 && items.length === 0 ? () => setPage(1) : undefined} />
+      <AvisoDeCarga query={listQuery} hayDatos={data !== undefined} volverAlInicio={page > 1 && items.length === 0 ? () => setPage(1) : undefined} />
 
       <GlassCard className="border-input overflow-hidden">
         <Table data-testid="recent-referrals-table">
@@ -190,7 +189,7 @@ export function RecentReferralsTable({
                 </TableCell>
               </TableRow>
             )}
-            {!isLoading && !falloDeCarga(listQuery) && items.length === 0 && (
+            {data !== undefined && items.length === 0 && (
               <TableRow>
                 <TableCell
                   colSpan={5}

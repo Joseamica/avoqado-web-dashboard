@@ -1,5 +1,4 @@
 import { AvisoDeCarga } from '@/components/AvisoDeCarga'
-import { falloDeCarga } from '@/lib/falloDeCarga'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { GlassCard } from '@/components/ui/glass-card'
@@ -114,29 +113,6 @@ const OrganizationVenues: React.FC = () => {
   const formatCompact = (amount: number) =>
     new Intl.NumberFormat(localeCode, { notation: 'compact', maximumFractionDigits: 1 }).format(amount)
 
-  // ── Loading ──
-  if (isLoading) {
-    return (
-      <div className="space-y-6">
-        <div>
-          <Skeleton className="h-8 w-48 mb-2" />
-          <Skeleton className="h-4 w-72" />
-        </div>
-        <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} className="h-24 rounded-2xl" />
-          ))}
-        </div>
-        <Skeleton className="h-10 rounded-xl" />
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} className="h-56 rounded-2xl" />
-          ))}
-        </div>
-      </div>
-    )
-  }
-
   return (
     <TooltipProvider>
       <div className="space-y-6">
@@ -223,10 +199,18 @@ const OrganizationVenues: React.FC = () => {
           </div>
         </div>
 
-        <AvisoDeCarga query={listQuery} hayDatos={filteredVenues.length > 0} />
+        <AvisoDeCarga query={listQuery} hayDatos={venues !== undefined} />
 
         {/* ── Content ── */}
-        {falloDeCarga(listQuery) && filteredVenues.length === 0 ? null : filteredVenues.length === 0 ? (
+        {venues === undefined ? (
+          isLoading && (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <Skeleton key={i} className="h-56 rounded-2xl" />
+              ))}
+            </div>
+          )
+        ) : filteredVenues.length === 0 ? (
           <GlassCard className="flex flex-col items-center justify-center py-16 text-muted-foreground">
             <Store className="h-12 w-12 mb-4 opacity-40" />
             <p className="text-lg font-medium">

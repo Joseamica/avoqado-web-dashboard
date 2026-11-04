@@ -2,6 +2,7 @@
  * Bancos → Movimientos. Estado de cuenta a página completa: selector de cuenta conectada
  * + MovementsPanel (totales por categoría + tabla paginada). Gated PRO (teaser visible).
  */
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -18,7 +19,7 @@ export default function BancosMovimientos() {
   const { t } = useTranslation('financialConnections')
   // Gatea las queries: un venue sin PRO no golpea el backend ni filtra datos tras el blur.
   const { hasAccess } = useTierFeatureAccess('BANKING_HUB')
-  const { venueId, accounts, hasConnection, hasPendingConnection, hasProviders, isLoading, isError, refetch } = useBancosData({
+  const { venueId, accounts, hasConnection, hasPendingConnection, hasProviders, isLoading, isError, recarga, refetch } = useBancosData({
     enabled: hasAccess,
   })
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -40,6 +41,7 @@ export default function BancosMovimientos() {
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-5 p-4 sm:p-6">
       <BancosPageHeader title={t('hub.movements.title')} description={t('hub.movements.description')} />
       <FeatureGate feature="BANKING_HUB">
+        {!isError && <AvisoDeCarga query={recarga} hayDatos />}
         {isLoading ? (
           <Skeleton className="h-64 w-full rounded-xl" />
         ) : isError ? (

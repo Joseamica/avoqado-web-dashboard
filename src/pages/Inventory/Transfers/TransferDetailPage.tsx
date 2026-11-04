@@ -5,6 +5,8 @@ import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { ArrowLeft, ArrowRight, Search, X } from 'lucide-react'
 
+import { AvisoDeCarga, BotonReintentar } from '@/components/AvisoDeCarga'
+import { detalleNoCargo, falloDeCarga } from '@/lib/falloDeCarga'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -35,11 +37,12 @@ export default function TransferDetailPage() {
 
   const [search, setSearch] = useState('')
 
-  const { data, isLoading, isError } = useQuery({
+  const transferQuery = useQuery({
     queryKey: ['inventory-transfer', venueId, transferId],
     queryFn: () => inventoryTransferService.get(venueId!, transferId!),
     enabled: !!venueId && !!transferId,
   })
+  const { data, isLoading } = transferQuery
 
   const transfer = data?.data
 
@@ -80,18 +83,22 @@ export default function TransferDetailPage() {
         </div>
       )}
 
-      {isError && (
+      {data === undefined && falloDeCarga(transferQuery) && (
         <Card>
           <CardContent className="pt-6">
             <p className="text-sm text-destructive">
-              No se pudo cargar la transferencia. Verifica el enlace o inténtalo de nuevo.
+              {detalleNoCargo(transferQuery)
+                ? 'No se pudo cargar la transferencia. Verifica el enlace o inténtalo de nuevo.'
+                : 'Esta transferencia no existe o ya no está disponible.'}
             </p>
+            <BotonReintentar query={transferQuery} className="mt-3" />
           </CardContent>
         </Card>
       )}
 
       {transfer && (
         <>
+          <AvisoDeCarga query={transferQuery} hayDatos />
           <Card>
             <CardContent className="pt-6">
               {/* Route */}

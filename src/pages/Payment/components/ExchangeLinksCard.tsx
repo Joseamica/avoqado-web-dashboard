@@ -1,3 +1,5 @@
+import { falloDeCarga, reintentarSirve } from '@/lib/falloDeCarga'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import api from '@/api'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -63,7 +65,7 @@ export function ExchangeDetailContent({ exchangeId }: { exchangeId: string }) {
   const { t } = useTranslation('payment')
   const { venueId, fullBasePath } = useCurrentVenue()
   const { formatDateTime } = useVenueDateTime()
-  const { data, isPending, isError, refetch } = useQuery({
+  const detalleQuery = useQuery({
     queryKey: ['exchange', venueId, exchangeId],
     queryFn: async () => (await api.get<{ data: ExchangeDetail }>(`/api/v1/dashboard/venues/${venueId}/exchanges/${exchangeId}`)).data.data,
     enabled: !!venueId && !!exchangeId,
@@ -72,16 +74,20 @@ export function ExchangeDetailContent({ exchangeId }: { exchangeId: string }) {
     refetchOnWindowFocus: false,
   })
 
-  if (isPending) return <p role="status">{t('exchange.loading')}</p>
-  if (isError)
+  const { data } = detalleQuery
+  // Con lo leído se sigue viendo; un 404 dice que ya no existe, sin «Reintentar».
+  if (data === undefined) {
+    if (!falloDeCarga(detalleQuery)) return <p role="status">{t('exchange.loading')}</p>
+    if (!reintentarSirve(detalleQuery.error)) return <AvisoDeCarga query={detalleQuery} hayDatos={false} deUnRegistro />
     return (
       <div role="alert">
         <p>{t('exchange.loadError')}</p>
-        <Button variant="outline" onClick={() => refetch()}>
+        <Button variant="outline" onClick={() => detalleQuery.refetch()}>
           {t('exchange.retry')}
         </Button>
       </div>
     )
+  }
 
   const money = (cents: number | null) => (cents == null ? '—' : Currency(cents, true))
   const reasonKeys: Record<string, string> = {
@@ -106,6 +112,7 @@ export function ExchangeDetailContent({ exchangeId }: { exchangeId: string }) {
 
   return (
     <div className="space-y-4 text-sm" data-tour="exchange-detail">
+      <AvisoDeCarga query={detalleQuery} hayDatos deUnRegistro />
       <p className="font-medium">{exchangeStatusLabel(data.status, t)}</p>
       <section aria-label={t(data.applied ? 'exchange.returned' : 'exchange.requestedReturned')} className="space-y-2">
         <h4 className="font-semibold">{t(data.applied ? 'exchange.returned' : 'exchange.requestedReturned')}</h4>

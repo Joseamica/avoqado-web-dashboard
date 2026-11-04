@@ -8,6 +8,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/hooks/use-toast'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { DateTime } from 'luxon'
 import { Bell, CheckCircle2, RefreshCw, Search, Send, Smartphone, Users } from 'lucide-react'
 import { useState } from 'react'
@@ -86,10 +88,11 @@ function PushNotifications() {
   })
 
   // Fetch staff with devices
-  const { data: staffData, isLoading: staffLoading } = useQuery({
+  const staffQuery = useQuery({
     queryKey: ['staffWithDevices', venueFilter, searchQuery],
     queryFn: () => getStaffWithDevices(venueFilter, searchQuery),
   })
+  const { data: staffData, isLoading: staffLoading } = staffQuery
 
   // Send notification mutation
   const sendMutation = useMutation({
@@ -276,10 +279,11 @@ function PushNotifications() {
             </Select>
           </div>
 
+          <AvisoDeCarga query={staffQuery} hayDatos={staffData !== undefined} />
           {/* Table */}
           {staffLoading ? (
             <p className="text-center py-8 text-muted-foreground">Cargando...</p>
-          ) : !staffData?.staff.length ? (
+          ) : staffData === undefined && falloDeCarga(staffQuery) ? null : !staffData?.staff.length ? (
             <p className="text-center py-8 text-muted-foreground">No hay staff con dispositivos registrados</p>
           ) : (
             <Table>

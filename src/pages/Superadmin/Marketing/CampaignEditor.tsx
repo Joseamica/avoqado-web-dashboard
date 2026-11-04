@@ -11,6 +11,7 @@
  */
 
 import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { detalleNoCargo } from '@/lib/falloDeCarga'
 import { Button } from '@/components/ui/button'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { Input } from '@/components/ui/input'
@@ -217,7 +218,7 @@ function CampaignEditor() {
   if (isEditing && campaignData === undefined) {
     return (
       <div className="p-6">
-        <AvisoDeCarga query={campaignQuery} hayDatos={false} />
+        {detalleNoCargo(campaignQuery) ? <AvisoDeCarga query={campaignQuery} hayDatos={false} /> : <p className="text-sm text-muted-foreground">Campaña no encontrada</p>}
       </div>
     )
   }

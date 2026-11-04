@@ -249,11 +249,11 @@ export default function CreditPackFormModal({ open, onClose, packId, onSuccess }
         <LoadingScreen message="Cargando paquete..." />
       ) : lecturaPendiente ? (
         <div className="max-w-2xl mx-auto px-6 py-8">
-          <AvisoDeCarga query={packQuery} hayDatos={false} />
+          <AvisoDeCarga query={packQuery} hayDatos={false} deUnRegistro />
         </div>
       ) : (
         <div className="max-w-2xl mx-auto px-6 py-8">
-          <AvisoDeCarga query={packQuery} hayDatos />
+          <AvisoDeCarga query={packQuery} hayDatos deUnRegistro />
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               {/* Basic Info Card */}

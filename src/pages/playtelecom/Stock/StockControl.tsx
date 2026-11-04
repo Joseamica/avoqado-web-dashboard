@@ -189,18 +189,19 @@ export function StockControl() {
   )
 
   // ─── Queries ───
-  const { data: metricsData, isLoading: isLoadingMetrics } = useQuery({
+  const metricsQuery = useQuery({
     queryKey: ['stock', 'metrics', venueId],
     queryFn: () => getStockMetrics(venueId!),
     enabled: !!venueId,
   })
+  const { data: metricsData } = metricsQuery
 
   const categoriesQuery = useQuery({
     queryKey: ['stock', 'categories', venueId],
     queryFn: () => getCategoryStock(venueId!),
     enabled: !!venueId,
   })
-  const { data: categoryData, isLoading: isLoadingCategories } = categoriesQuery
+  const { data: categoryData } = categoriesQuery
 
   const movementsQuery = useInfiniteQuery({
     queryKey: ['stock', 'movements', venueId, dateRangeIsoParams.dateFrom, dateRangeIsoParams.dateTo, responsibleStaffId],
@@ -215,7 +216,6 @@ export function StockControl() {
   })
   const {
     data: movementsData,
-    isLoading: isLoadingMovements,
     hasNextPage: hasMoreMovements,
     isFetchingNextPage: isFetchingMoreMovements,
     fetchNextPage: fetchMoreMovements,
@@ -227,7 +227,6 @@ export function StockControl() {
     enabled: !!venueId,
   })
 
-  const isLoading = isLoadingMetrics || isLoadingCategories || isLoadingMovements
   const categories = categoryData?.categories || []
   const movements = useMemo(() => movementsData?.pages.flatMap(page => page.movements) ?? [], [movementsData?.pages])
 
@@ -351,25 +350,6 @@ ${dataRows}
     console.log('Requesting stock for product:', productId)
   }
 
-  // ─── Loading ───
-  if (isLoading) {
-    return (
-      <div className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {[...Array(4)].map((_, i) => (
-            <Skeleton key={i} className="h-32 rounded-xl" />
-          ))}
-        </div>
-        <Skeleton className="h-20 rounded-xl" />
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Skeleton className="h-80 rounded-xl" />
-          <Skeleton className="h-80 rounded-xl" />
-        </div>
-        <Skeleton className="h-64 rounded-xl" />
-      </div>
-    )
-  }
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -428,7 +408,15 @@ ${dataRows}
         <TabsContent value="inventario" className="mt-4 space-y-6">
           {/* Category Summary Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {categories.length > 0 ? (
+            {categoryData === undefined ? (
+              falloDeCarga(categoriesQuery) ? (
+                <div className="col-span-full">
+                  <AvisoDeCarga query={categoriesQuery} hayDatos={false} />
+                </div>
+              ) : (
+                [...Array(4)].map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)
+              )
+            ) : categories.length > 0 ? (
               categories.slice(0, 4).map(category => (
                 <GlassCard key={category.id} className="p-4" hover>
                   <div className="flex items-center justify-between mb-3">
@@ -458,10 +446,6 @@ ${dataRows}
                   </div>
                 </GlassCard>
               ))
-            ) : falloDeCarga(categoriesQuery) ? (
-              <div className="col-span-full">
-                <AvisoDeCarga query={categoriesQuery} hayDatos={false} />
-              </div>
             ) : (
               <GlassCard className="col-span-full p-8 text-center">
                 <Package className="w-10 h-10 mx-auto mb-2 text-muted-foreground opacity-50" />
@@ -476,7 +460,12 @@ ${dataRows}
             )}
           </div>
 
-          {/* Summary Bar */}
+          {categoryData !== undefined && <AvisoDeCarga query={categoriesQuery} hayDatos />}
+
+          {/* Summary Bar: sin leer las métricas no hay «0 disponibles». */}
+          <AvisoDeCarga query={metricsQuery} hayDatos={metricsData !== undefined} />
+          {metricsData === undefined && !falloDeCarga(metricsQuery) && <Skeleton className="h-20 rounded-xl" />}
+          {metricsData !== undefined && (
           <GlassCard className="p-4">
             <div className="flex flex-wrap items-center gap-6">
               <div className="flex items-center gap-2">
@@ -512,6 +501,7 @@ ${dataRows}
               </div>
             </div>
           </GlassCard>
+          )}
 
           {/* Stock vs Sales Chart & Low Stock Alerts */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -533,7 +523,7 @@ ${dataRows}
               </div>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="sm" disabled={movementsData === undefined}>
                     <Download className="w-4 h-4 mr-2" />
                     {t('playtelecom:stock.export', { defaultValue: 'Exportar' })}
                   </Button>
@@ -604,7 +594,7 @@ ${dataRows}
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos</SelectItem>
-                  <SelectItem value="__admin_held__">En almacén (ADMIN) · {responsibles?.adminHeld.simsCount ?? 0}</SelectItem>
+                  <SelectItem value="__admin_held__">En almacén (ADMIN){responsibles ? ` · ${responsibles.adminHeld.simsCount}` : ''}</SelectItem>
                   {responsibles?.supervisors.map(supervisor => (
                     <SelectItem key={supervisor.staffId} value={supervisor.staffId}>
                       {supervisor.firstName} {supervisor.lastName} · {supervisor.ownSimsCount} (+ {supervisor.teamSimsCount} de su equipo)
@@ -619,10 +609,10 @@ ${dataRows}
               </Select>
             </div>
 
-            <AvisoDeCarga query={movementsQuery} hayDatos={filteredMovements.length > 0} />
+            <AvisoDeCarga query={movementsQuery} hayDatos={movementsData !== undefined} />
 
             {/* Results count */}
-            {(movementSearch || movementTypeFilter !== 'all' || movementCategoryFilter !== 'all' || responsibleStaffId) && (
+            {movementsData !== undefined && (movementSearch || movementTypeFilter !== 'all' || movementCategoryFilter !== 'all' || responsibleStaffId) && (
               <p className="text-xs text-muted-foreground mb-3">
                 {filteredMovements.length} {filteredMovements.length === 1 ? 'resultado' : 'resultados'}
               </p>
@@ -694,7 +684,15 @@ ${dataRows}
                         </tr>
                       )
                     })
-                  ) : falloDeCarga(movementsQuery) ? null : (
+                  ) : movementsData === undefined ? (
+                    !falloDeCarga(movementsQuery) && (
+                      <tr>
+                        <td colSpan={9} className="py-4">
+                          <Skeleton className="h-32 w-full rounded-xl" />
+                        </td>
+                      </tr>
+                    )
+                  ) : (
                     <tr>
                       <td colSpan={9} className="py-8 text-center text-muted-foreground">
                         {movementSearch || movementTypeFilter !== 'all' || movementCategoryFilter !== 'all' || responsibleStaffId
@@ -763,7 +761,9 @@ ${dataRows}
                     </div>
                   )
                 })
-              ) : falloDeCarga(movementsQuery) ? null : (
+              ) : movementsData === undefined ? (
+                !falloDeCarga(movementsQuery) && <Skeleton className="h-32 w-full rounded-xl" />
+              ) : (
                 <p className="py-8 text-center text-sm text-muted-foreground">
                   {movementSearch || movementTypeFilter !== 'all' || movementCategoryFilter !== 'all' || responsibleStaffId
                     ? t('playtelecom:stock.noResults', { defaultValue: 'No se encontraron movimientos con esos filtros' })

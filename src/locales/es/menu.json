@@ -655,6 +655,7 @@
     }
   },
   "menuId": {
+    "notFound": "Menú no encontrado",
     "loading": "Cargando menú...",
     "buttons": {
       "save": "Guardar cambios",

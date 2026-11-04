@@ -12,13 +12,13 @@
  * Access: ADMIN+ only
  */
 
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import DataTable from '@/components/data-table'
 import { CheckboxFilterContent, FilterPill, FilterPillBar } from '@/components/filters'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
-import { Skeleton } from '@/components/ui/skeleton'
 import { Switch } from '@/components/ui/switch'
 import { useAuth } from '@/context/AuthContext'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
@@ -122,11 +122,12 @@ export function UsersManagement() {
   const canViewAllOrgStaff = teamData?.meta?.canViewAllOrgStaff ?? false
 
   // Fetch zones via venue-level endpoint
-  const { data: orgZones = [] } = useQuery({
+  const zonesQuery = useQuery({
     queryKey: ['stores-analysis', venueId, 'zones'],
     queryFn: () => getZones(venueId!),
     enabled: !!venueId,
   })
+  const { data: orgZones = [] } = zonesQuery
 
   // Fetch activity log for selected user
   const selectedMember = teamMembers.find(m => m.id === selectedUserId)
@@ -525,21 +526,6 @@ export function UsersManagement() {
 
   // ---------- Render ----------
 
-  if (isLoading) {
-    return (
-      <div className="space-y-4">
-        <div className="flex flex-wrap items-center gap-2">
-          <Skeleton className="h-8 w-20 rounded-full" />
-          <Skeleton className="h-8 w-24 rounded-full" />
-          <Skeleton className="h-8 w-24 rounded-full" />
-          <div className="flex-1" />
-          <Skeleton className="h-10 w-28 rounded-xl" />
-        </div>
-        <Skeleton className="h-[500px] rounded-xl" />
-      </div>
-    )
-  }
-
   return (
     <>
       {/* Top row: toggle + invite */}
@@ -643,6 +629,7 @@ export function UsersManagement() {
                 <CheckboxFilterContent
                   title="Filtrar por Tienda"
                   options={storesOptions}
+                  fuente={zonesQuery.data === undefined || falloDeCarga(zonesQuery) ? zonesQuery : listQuery}
                   selectedValues={storesFilter}
                   searchable={storesOptions.length > 5}
                   onApply={setStoresFilter}

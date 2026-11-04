@@ -5,7 +5,7 @@ import { ArrowRight, CircleAlert, Loader2, Plus, Search, Warehouse } from 'lucid
 import { useTranslation } from 'react-i18next'
 
 import { FeatureGate } from '@/components/billing/FeatureGate'
-import { Alert, AlertDescription } from '@/components/ui/alert'
+import { SummaryQueryBoundary } from '@/components/SummaryQueryBoundary'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -17,6 +17,7 @@ import { PermissionGate } from '@/components/PermissionGate'
 import { useAccess } from '@/hooks/use-access'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useDebounce } from '@/hooks/useDebounce'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { useVenueDateTime } from '@/utils/datetime'
 import {
   interVenueTransferService,
@@ -113,8 +114,10 @@ export default function InterVenueTransfersPage() {
   )
 
   const number = useMemo(() => new Intl.NumberFormat(i18n.language, { maximumFractionDigits: 3 }), [i18n.language])
-  const loading = tab === 'transfers' ? transfersQuery.isLoading : consolidatedQuery.isLoading
-  const error = tab === 'transfers' ? transfersQuery.isError : consolidatedQuery.isError
+  const activeQuery = tab === 'transfers' ? transfersQuery : consolidatedQuery
+  const loading = activeQuery.isLoading
+  const error = falloDeCarga(activeQuery)
+  const sinLista = error && activeQuery.data === undefined
 
   return (
     <FeatureGate feature="INVENTORY_TRACKING">
@@ -178,11 +181,17 @@ export default function InterVenueTransfersPage() {
             )}
           </div>
 
-          {error && <Alert variant="destructive" className="mt-4"><AlertDescription>{t('interVenueTransfers.messages.loadError')}</AlertDescription></Alert>}
+          {error && (
+            <div className="mt-4">
+              <SummaryQueryBoundary isError message={t('interVenueTransfers.messages.loadError')} retryLabel={t('common:retry')} onRetry={() => void activeQuery.refetch()}>
+                {null}
+              </SummaryQueryBoundary>
+            </div>
+          )}
           {loading && <div className="flex min-h-56 items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>}
 
           <TabsContent value="transfers" className="mt-4">
-            {!loading && (
+            {!loading && !sinLista && (
               <Card>
                 <CardContent className="p-0">
                   <Table>
@@ -224,7 +233,7 @@ export default function InterVenueTransfersPage() {
           </TabsContent>
 
           <TabsContent value="consolidated" className="mt-4">
-            {!loading && (
+            {!loading && !sinLista && (
               <Card>
                 <CardContent className="p-0">
                   <Table>

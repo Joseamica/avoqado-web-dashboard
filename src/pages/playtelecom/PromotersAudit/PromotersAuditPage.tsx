@@ -27,7 +27,6 @@ import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { useDebounce } from '@/hooks/useDebounce'
 import { Search, X, Download, CheckCircle2, XCircle, Clock } from 'lucide-react'
-import { Skeleton } from '@/components/ui/skeleton'
 import { cn, includesNormalized } from '@/lib/utils'
 import type { ColumnDef } from '@tanstack/react-table'
 import { PromoterLocationModal } from './components/PromoterLocationModal'
@@ -593,141 +592,117 @@ export default function PromotersAuditPage() {
         </Button>
       </div>
 
-      {/* Loading State */}
-      {isLoading && (
-        <div className="bg-card rounded-xl border overflow-hidden">
-          <div className="px-6 py-3 border-b bg-muted/30">
-            <Skeleton className="h-4 w-40" />
-          </div>
-          <div className="divide-y divide-border/30">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="flex items-center gap-4 px-6 py-4">
-                <Skeleton className="h-8 w-8 rounded-full" />
-                <div className="flex-1 space-y-1.5">
-                  <Skeleton className="h-4 w-32" />
-                  <Skeleton className="h-3 w-24" />
-                </div>
-                <Skeleton className="h-4 w-16" />
-                <Skeleton className="h-4 w-20" />
-                <Skeleton className="h-5 w-16 rounded-full" />
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* Table */}
-      {!isLoading && (
-        <DataTable
-          query={listQuery}
-          columns={columns}
-          data={filteredData}
-          rowCount={filteredData.length}
-          showColumnCustomizer={false}
-          onRowClick={row => {
-            setSelectedPromoter(row)
-            setPromoterModalOpen(true)
-          }}
-          tableTabLeft={
-            <>
-              {/* Search */}
-              <div className="relative flex items-center">
-                {isSearchOpen ? (
-                  <div className="flex items-center gap-1 animate-in fade-in slide-in-from-left-2 duration-200">
-                    <div className="relative">
-                      <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-                      <input
-                        placeholder="Buscar promotor..."
-                        value={searchTerm}
-                        onChange={e => setSearchTerm(e.target.value)}
-                        onKeyDown={e => {
-                          if (e.key === 'Escape') {
-                            if (!searchTerm) setIsSearchOpen(false)
-                          }
-                        }}
-                        className="h-7 w-[180px] pl-8 pr-7 text-xs rounded-full border border-input bg-background focus:ring-2 focus:ring-ring"
-                        autoFocus
-                      />
-                      {searchTerm && (
-                        <button
-                          onClick={() => setSearchTerm('')}
-                          className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      )}
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 rounded-full"
-                      onClick={() => {
-                        setSearchTerm('')
-                        setIsSearchOpen(false)
+      <DataTable
+        query={listQuery}
+      isLoading={isLoading}
+        columns={columns}
+        data={filteredData}
+        rowCount={filteredData.length}
+        showColumnCustomizer={false}
+        onRowClick={row => {
+          setSelectedPromoter(row)
+          setPromoterModalOpen(true)
+        }}
+        tableTabLeft={
+          <>
+            {/* Search */}
+            <div className="relative flex items-center">
+              {isSearchOpen ? (
+                <div className="flex items-center gap-1 animate-in fade-in slide-in-from-left-2 duration-200">
+                  <div className="relative">
+                    <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                    <input
+                      placeholder="Buscar promotor..."
+                      value={searchTerm}
+                      onChange={e => setSearchTerm(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === 'Escape') {
+                          if (!searchTerm) setIsSearchOpen(false)
+                        }
                       }}
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </Button>
+                      className="h-7 w-[180px] pl-8 pr-7 text-xs rounded-full border border-input bg-background focus:ring-2 focus:ring-ring"
+                      autoFocus
+                    />
+                    {searchTerm && (
+                      <button
+                        onClick={() => setSearchTerm('')}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    )}
                   </div>
-                ) : (
                   <Button
-                    variant={searchTerm ? 'secondary' : 'ghost'}
+                    variant="ghost"
                     size="icon"
                     className="h-7 w-7 rounded-full"
-                    onClick={() => setIsSearchOpen(true)}
+                    onClick={() => {
+                      setSearchTerm('')
+                      setIsSearchOpen(false)
+                    }}
                   >
-                    <Search className="h-3.5 w-3.5" />
+                    <X className="h-3.5 w-3.5" />
                   </Button>
-                )}
-                {searchTerm && !isSearchOpen && <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-primary" />}
-              </div>
+                </div>
+              ) : (
+                <Button
+                  variant={searchTerm ? 'secondary' : 'ghost'}
+                  size="icon"
+                  className="h-7 w-7 rounded-full"
+                  onClick={() => setIsSearchOpen(true)}
+                >
+                  <Search className="h-3.5 w-3.5" />
+                </Button>
+              )}
+              {searchTerm && !isSearchOpen && <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-primary" />}
+            </div>
 
-              <FilterPillBar
-                onReset={() => {
-                  setDateFilter(null)
-                  setStoreFilter([])
-                  setStatusFilter([])
-                  setSalesFilter(null)
-                  setShiftFilter([])
-                  setSearchTerm('')
-                  setIsSearchOpen(false)
-                }}
-              >
-                <FilterPill label="Fecha de Auditoría" isActive={!!dateFilter} onClear={() => setDateFilter(null)}>
-                  <DateFilterContent title="Fecha de Auditoría" value={dateFilter} onApply={setDateFilter} />
-                </FilterPill>
-                <FilterPill label="Tienda" isActive={storeFilter.length > 0} onClear={() => setStoreFilter([])}>
-                  <CheckboxFilterContent
-                    title="Seleccionar Tiendas"
-                    options={storeOptions}
-                    selectedValues={storeFilter}
-                    onApply={setStoreFilter}
-                  />
-                </FilterPill>
-                <FilterPill label="Estado" isActive={statusFilter.length > 0} onClear={() => setStatusFilter([])}>
-                  <CheckboxFilterContent
-                    title="Seleccionar Estado"
-                    options={statusOptions}
-                    selectedValues={statusFilter}
-                    onApply={setStatusFilter}
-                  />
-                </FilterPill>
-                <FilterPill label="Venta" isActive={!!salesFilter} onClear={() => setSalesFilter(null)}>
-                  <AmountFilterContent title="Filtrar por Venta" value={salesFilter} onApply={setSalesFilter} />
-                </FilterPill>
-                <FilterPill label="Turno" isActive={shiftFilter.length > 0} onClear={() => setShiftFilter([])}>
-                  <CheckboxFilterContent
-                    title="Estado del Turno"
-                    options={shiftOptions}
-                    selectedValues={shiftFilter}
-                    onApply={setShiftFilter}
-                  />
-                </FilterPill>
-              </FilterPillBar>
-            </>
-          }
-        />
-      )}
+            <FilterPillBar
+              onReset={() => {
+                setDateFilter(null)
+                setStoreFilter([])
+                setStatusFilter([])
+                setSalesFilter(null)
+                setShiftFilter([])
+                setSearchTerm('')
+                setIsSearchOpen(false)
+              }}
+            >
+              <FilterPill label="Fecha de Auditoría" isActive={!!dateFilter} onClear={() => setDateFilter(null)}>
+                <DateFilterContent title="Fecha de Auditoría" value={dateFilter} onApply={setDateFilter} />
+              </FilterPill>
+              <FilterPill label="Tienda" isActive={storeFilter.length > 0} onClear={() => setStoreFilter([])}>
+                <CheckboxFilterContent
+                  title="Seleccionar Tiendas"
+                  options={storeOptions}
+                  selectedValues={storeFilter}
+                  onApply={setStoreFilter}
+                />
+              </FilterPill>
+              <FilterPill label="Estado" isActive={statusFilter.length > 0} onClear={() => setStatusFilter([])}>
+                <CheckboxFilterContent
+                  title="Seleccionar Estado"
+                  options={statusOptions}
+                  selectedValues={statusFilter}
+                  onApply={setStatusFilter}
+                />
+              </FilterPill>
+              <FilterPill label="Venta" isActive={!!salesFilter} onClear={() => setSalesFilter(null)}>
+                <AmountFilterContent title="Filtrar por Venta" value={salesFilter} onApply={setSalesFilter} />
+              </FilterPill>
+              <FilterPill label="Turno" isActive={shiftFilter.length > 0} onClear={() => setShiftFilter([])}>
+                <CheckboxFilterContent
+                  title="Estado del Turno"
+                  options={shiftOptions}
+                  selectedValues={shiftFilter}
+                  onApply={setShiftFilter}
+                />
+              </FilterPill>
+            </FilterPillBar>
+          </>
+        }
+      />
 
       {/* Full Screen Modal for Promoter Details */}
       {selectedPromoter && (

@@ -9,6 +9,8 @@
  * Access: Organization level (/wl/organizations/:orgSlug/managers)
  */
 
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
@@ -28,18 +30,20 @@ export function ManagersDashboard() {
   const [selectedManagerId, setSelectedManagerId] = useState<string | null>(null)
 
   // Fetch managers list
-  const { data: managersData, isLoading: isLoadingManagers } = useQuery({
+  const managersQuery = useQuery({
     queryKey: ['organization', 'managers', orgId],
     queryFn: () => getOrgManagers(orgId!),
     enabled: !!orgId,
   })
+  const { data: managersData } = managersQuery
 
   // Fetch selected manager's dashboard
-  const { data: managerDashboard, isLoading: isLoadingDashboard } = useQuery({
+  const managerDashboardQuery = useQuery({
     queryKey: ['organization', 'manager', orgId, selectedManagerId],
     queryFn: () => getManagerDashboard(orgId!, selectedManagerId!),
     enabled: !!orgId && !!selectedManagerId,
   })
+  const { data: managerDashboard, isLoading: isLoadingDashboard } = managerDashboardQuery
 
   const managers = useMemo(() => managersData?.managers ?? [], [managersData?.managers])
 
@@ -59,7 +63,7 @@ export function ManagersDashboard() {
   }, [managers])
 
   // Loading state
-  if (isLoadingManagers) {
+  if (managersData === undefined && !falloDeCarga(managersQuery)) {
     return (
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -134,7 +138,9 @@ export function ManagersDashboard() {
         </DropdownMenu>
       </div>
 
-      {/* Summary Metrics */}
+      {/* Summary Metrics: sin leer la lista no hay «0/0 gerentes» ni ventas $0. */}
+      <AvisoDeCarga query={managersQuery} hayDatos={managersData !== undefined} />
+      {managersData !== undefined && (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <GlassCard className="p-4">
           <div className="flex items-center gap-3">
@@ -196,6 +202,9 @@ export function ManagersDashboard() {
           </div>
         </GlassCard>
       </div>
+      )}
+
+      {selectedManagerId && <AvisoDeCarga query={managerDashboardQuery} hayDatos={managerDashboard !== undefined} />}
 
       {/* Selected Manager Profile Card */}
       {selectedManager && managerDashboard && (
@@ -278,7 +287,10 @@ export function ManagersDashboard() {
       )}
 
       {/* Store Assignment Table */}
-      <StoreAssignmentTable managerId={selectedManagerId} stores={managerDashboard?.stores} managers={managers} />
+      {/* Sin el detalle no hay «No hay tiendas asignadas», tampoco mientras se reintenta: arriba está su esqueleto o su aviso. */}
+      {!(selectedManagerId && managerDashboard === undefined) && (
+        <StoreAssignmentTable managerId={selectedManagerId} stores={managerDashboard?.stores} managers={managers} />
+      )}
     </div>
   )
 }

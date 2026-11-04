@@ -135,7 +135,7 @@ export default function TeamCommissionTable({ staffPayActive = false, puedeVerRe
   }
 
   // Si falló la carga no es que no haya resúmenes.
-  if (falloDeCarga(listQuery) && !summaries?.length) {
+  if (page === undefined && falloDeCarga(listQuery)) {
     return (
       <div className="relative rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm shadow-sm">
         {encabezado}
@@ -151,6 +151,9 @@ export default function TeamCommissionTable({ staffPayActive = false, puedeVerRe
     return (
       <div className="relative rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm shadow-sm">
         {encabezado}
+        <div className="px-4 pt-4 empty:hidden">
+          <AvisoDeCarga query={listQuery} hayDatos />
+        </div>
         <div className="flex flex-col items-center justify-center py-12 text-center px-4">
           <div className="p-4 rounded-full bg-muted mb-4">
             <FileText className="h-8 w-8 text-muted-foreground" />

@@ -7,6 +7,7 @@
  * Design: FullScreenModal Pattern (Rule 15) + Modern Dashboard Design System
  */
 
+import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
@@ -18,6 +19,8 @@ import { cn } from '@/lib/utils'
 import * as marketingService from '@/services/superadmin-marketing.service'
 import type { CampaignStatus, DeliveryStatus } from '@/services/superadmin-marketing.service'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { detalleNoCargo, falloDeCarga } from '@/lib/falloDeCarga'
 import { DateTime } from 'luxon'
 import {
   AlertTriangle,
@@ -177,24 +180,22 @@ function CampaignDetail() {
   }
 
   // Fetch campaign
-  const {
-    data: campaign,
-    isLoading,
-    refetch,
-  } = useQuery({
+  const campaignQuery = useQuery({
     queryKey: ['marketing-campaign', campaignId],
     queryFn: () => marketingService.getCampaign(campaignId!),
     enabled: !!campaignId,
     refetchInterval: query => (query.state.data?.status === 'SENDING' ? 10000 : false),
   })
+  const { data: campaign, isLoading, refetch } = campaignQuery
 
   // Fetch deliveries
-  const { data: deliveriesData } = useQuery({
+  const deliveriesQuery = useQuery({
     queryKey: ['campaign-deliveries', campaignId],
     queryFn: () => marketingService.getCampaignDeliveries(campaignId!, { limit: 100 }),
     enabled: !!campaignId,
     refetchInterval: campaign?.status === 'SENDING' ? 10000 : false,
   })
+  const { data: deliveriesData } = deliveriesQuery
 
   // Cancel campaign mutation
   const cancelMutation = useMutation({
@@ -304,12 +305,17 @@ function CampaignDetail() {
           <div className="flex items-center justify-center h-96">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
+        ) : detalleNoCargo(campaignQuery) ? (
+          <div className="max-w-7xl mx-auto px-6 py-8">
+            <AvisoDeCarga query={campaignQuery} hayDatos={false} />
+          </div>
         ) : !campaign ? (
           <div className="flex flex-col items-center justify-center h-96 gap-4">
             <p className="text-muted-foreground">Campaña no encontrada</p>
           </div>
         ) : (
           <div className="max-w-7xl mx-auto px-6 py-8 space-y-6">
+            <AvisoDeCarga query={campaignQuery} hayDatos />
             {/* Status + Subject header */}
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-card border border-border/50">
@@ -393,9 +399,11 @@ function CampaignDetail() {
                   className="group rounded-full px-4 py-2 text-sm font-medium transition-colors border border-transparent hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground cursor-pointer"
                 >
                   <span>Entregas</span>
-                  <span className="ml-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1 text-xs text-foreground bg-foreground/10 group-hover:bg-foreground/20 group-data-[state=active]:bg-background/20 group-data-[state=active]:text-background">
-                    {deliveriesData?.total || 0}
-                  </span>
+                  {deliveriesData !== undefined && (
+                    <span className="ml-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1 text-xs text-foreground bg-foreground/10 group-hover:bg-foreground/20 group-data-[state=active]:bg-background/20 group-data-[state=active]:text-background">
+                      {deliveriesData.total || 0}
+                    </span>
+                  )}
                 </TabsTrigger>
                 <TabsTrigger
                   value="preview"
@@ -484,8 +492,13 @@ function CampaignDetail() {
                     </div>
                   </div>
 
-                  {!deliveriesData?.deliveries.length ? (
+                  {deliveriesData === undefined ? (
                     <div className="px-6 pb-6">
+                      {falloDeCarga(deliveriesQuery) ? <AvisoDeCarga query={deliveriesQuery} hayDatos={false} /> : <Skeleton className="h-32 w-full" />}
+                    </div>
+                  ) : !deliveriesData.deliveries.length ? (
+                    <div className="px-6 pb-6">
+                      <AvisoDeCarga query={deliveriesQuery} hayDatos />
                       <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
                         <Mail className="h-8 w-8 mb-3 opacity-40" />
                         <p className="text-sm">No hay entregas registradas</p>
@@ -493,6 +506,7 @@ function CampaignDetail() {
                     </div>
                   ) : (
                     <div className="px-6 pb-6">
+                      <AvisoDeCarga query={deliveriesQuery} hayDatos />
                       <div className="rounded-xl border border-border/50 overflow-hidden">
                         <Table>
                           <TableHeader>

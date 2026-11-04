@@ -10,6 +10,8 @@ import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { useCommissionStats, useEffectiveCommissionConfigs } from '@/hooks/useCommissions'
 import { useAccess } from '@/hooks/use-access'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import CommissionKPICards from './components/CommissionKPICards'
 import TeamCommissionTable from './components/TeamCommissionTable'
 import CommissionConfigList from './components/CommissionConfigList'
@@ -51,8 +53,10 @@ export default function CommissionsPage() {
 	}
 
 	// Data fetching
-	const { data: stats, isLoading: isLoadingStats } = useCommissionStats()
-	const { data: effectiveConfigs, isLoading: isLoadingConfigs } = useEffectiveCommissionConfigs()
+	const statsQuery = useCommissionStats()
+	const configsQuery = useEffectiveCommissionConfigs()
+	const { data: stats, isLoading: isLoadingStats } = statsQuery
+	const { data: effectiveConfigs, isLoading: isLoadingConfigs } = configsQuery
 	const configCount = effectiveConfigs?.length || 0
 	const sinPagoAlPersonal = !isLoadingStats && !!stats && stats.staffPayActive !== true
 
@@ -128,7 +132,21 @@ export default function CommissionsPage() {
 
 				{/* Overview Tab */}
 				<TabsContent value="overview" className="space-y-6">
-					<CommissionKPICards stats={stats} isLoading={isLoadingStats} hasConfigs={configCount > 0} isLoadingConfigs={isLoadingConfigs} onGoToConfig={() => handleTabChange('config')} />
+					{/* Cada fuente con su aviso: sin leer la configuración no se pide configurar; sin leer las estadísticas no hay «Calculado $0». */}
+					{/* Un solo aviso: si se cae el servidor, dos iguales sólo estorban. Al resolver uno, sale el otro si sigue caído. */}
+					{falloDeCarga(configsQuery) ? (
+						<AvisoDeCarga query={configsQuery} hayDatos={effectiveConfigs !== undefined} />
+					) : (
+						<AvisoDeCarga query={statsQuery} hayDatos={stats !== undefined} />
+					)}
+					<CommissionKPICards
+						stats={stats}
+						isLoading={stats === undefined}
+						statsCaidas={stats === undefined && falloDeCarga(statsQuery)}
+						hasConfigs={configCount > 0}
+						isLoadingConfigs={effectiveConfigs === undefined}
+						onGoToConfig={() => handleTabChange('config')}
+					/>
 					<TeamCommissionTable staffPayActive={stats?.staffPayActive === true} puedeVerRecibos={can('staffpay:read')} />
 				</TabsContent>
 

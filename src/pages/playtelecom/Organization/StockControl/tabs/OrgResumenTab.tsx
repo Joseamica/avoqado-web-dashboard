@@ -5,12 +5,14 @@ import type { OrgStockSummaryData } from '@/services/stockDashboard.service'
 import { CategoryChip } from '../components/CategoryChip'
 import { InventoryByResponsibleTable } from '../components/InventoryByResponsibleTable'
 import type { InventoryByResponsible } from '@/services/stockDashboard.service'
+import type { EstadoDeCarga } from '@/lib/falloDeCarga'
 
 interface OrgResumenTabProps {
   data: OrgStockSummaryData
   /** Tabla Ciudad › Supervisor › Promotor — el propósito de esta pantalla. */
   byResponsible?: InventoryByResponsible
   isLoadingByResponsible: boolean
+  byResponsibleQuery: EstadoDeCarga
 }
 
 const PIE_HEX_PALETTE = ['#3b82f6', '#22c55e', '#a855f7', '#f59e0b', '#ec4899'] // matches CATEGORY_COLOR_PALETTE order
@@ -21,7 +23,7 @@ function hashIndex(str: string, mod: number): number {
   return Math.abs(h) % mod
 }
 
-export function OrgResumenTab({ data, byResponsible, isLoadingByResponsible }: OrgResumenTabProps) {
+export function OrgResumenTab({ data, byResponsible, isLoadingByResponsible, byResponsibleQuery }: OrgResumenTabProps) {
   const { aggregatesByCategoria, aggregatesBySucursal } = data
 
   const donutData = aggregatesByCategoria.map(c => ({
@@ -50,7 +52,7 @@ export function OrgResumenTab({ data, byResponsible, isLoadingByResponsible }: O
       {/* La tabla va primero: es el número con el que el supervisor cuenta en la
           tienda. Las gráficas quedan debajo como contexto. */}
       <div className="mb-6">
-        <InventoryByResponsibleTable data={byResponsible} isLoading={isLoadingByResponsible} />
+        <InventoryByResponsibleTable data={byResponsible} isLoading={isLoadingByResponsible} query={byResponsibleQuery} />
       </div>
 
       {/* Charts row */}

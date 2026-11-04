@@ -12,6 +12,8 @@ import { cn } from '@/lib/utils'
 import { GlassCard } from '@/components/ui/glass-card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import {
   Tooltip,
   TooltipContent,
@@ -84,7 +86,8 @@ function formatCurrency(amount: number, currency = 'MXN'): string {
 export function SalesHeatmap({ startDate, endDate, filterVenueId, currency = 'MXN' }: SalesHeatmapProps) {
   const { t } = useTranslation('playtelecom')
   const [viewMode, setViewMode] = useState<ViewMode>('count')
-  const { data, isLoading } = useStoresSalesHeatmap({ startDate, endDate, filterVenueId })
+  const query = useStoresSalesHeatmap({ startDate, endDate, filterVenueId })
+  const { data, isLoading } = query
 
   const dayColumns = useMemo(() => {
     if (!data?.summary?.byDay?.length) return []
@@ -146,9 +149,18 @@ export function SalesHeatmap({ startDate, endDate, filterVenueId, currency = 'MX
     )
   }
 
+  if (data === undefined && falloDeCarga(query)) {
+    return (
+      <GlassCard className="p-6">
+        <AvisoDeCarga query={query} hayDatos={false} />
+      </GlassCard>
+    )
+  }
+
   if (!data?.staff?.length) {
     return (
       <GlassCard className="p-6">
+        <AvisoDeCarga query={query} hayDatos />
         <p className="text-muted-foreground text-sm text-center py-8">
           {t('supervisor.salesHeatmap.noData')}
         </p>
@@ -158,6 +170,7 @@ export function SalesHeatmap({ startDate, endDate, filterVenueId, currency = 'MX
 
   return (
     <GlassCard className="p-6">
+      <AvisoDeCarga query={query} hayDatos />
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-4">

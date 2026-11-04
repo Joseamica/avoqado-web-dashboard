@@ -5,6 +5,8 @@
 // choice opens is decided by plan/planActions.ts; this file only composes and orchestrates the dialogs.
 import { useEffect, useRef, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { AvisoDeCarga, BotonReintentar } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
@@ -298,12 +300,14 @@ export default function Subscriptions() {
   return (
     <>
       <div className="space-y-6 p-4 pb-28 sm:p-8 sm:pb-28 xl:pb-8" data-tour="plan-page">
-        {plan.isError ? (
-          <p role="alert" className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
-            {t('plan.page.planError')}
-          </p>
+        {plan.data === undefined && falloDeCarga(plan) ? (
+          <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+            <p>{t('plan.page.planError')}</p>
+            <BotonReintentar query={plan} />
+          </div>
         ) : (
           <>
+            <AvisoDeCarga query={plan} hayDatos />
             <PlanRow
               origin={origin}
               planState={plan.data}
@@ -338,13 +342,14 @@ export default function Subscriptions() {
                   preferList={preferList}
                 />
               ) : (
-                grid.isError && (
-                  <p
+                falloDeCarga(grid) && (
+                  <div
                     role="alert"
-                    className="self-start rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive"
+                    className="flex flex-wrap items-center justify-between gap-3 self-start rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive"
                   >
-                    {t('plan.page.gridError')}
-                  </p>
+                    <p>{t('plan.page.gridError')}</p>
+                    <BotonReintentar query={grid} />
+                  </div>
                 )
               )}
               {/* Outside the grid guard: the classic checkout and the drop need no grid (spec §4.1 falls back to ASSISTED). */}
