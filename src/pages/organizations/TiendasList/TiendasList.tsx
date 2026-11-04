@@ -42,6 +42,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import type { DuplicatedVenue } from '@/services/organization.service'
+import { DuplicatedVenueNotice, OrgDuplicateVenue } from '@/pages/Organization/components/OrgDuplicateVenueDialog'
 
 // GlassCard component
 const GlassCard: React.FC<{
@@ -70,7 +72,9 @@ type ViewMode = 'grid' | 'list'
 const TiendasList: React.FC = () => {
   const { t } = useTranslation(['organization', 'common'])
   const navigate = useNavigate()
-  const { organization: _organization, basePath: _basePath, venues, isLoading, error } = useCurrentOrganization()
+  const { organization: _organization, basePath: _basePath, orgId, venues, isLoading, error } = useCurrentOrganization()
+  const [created, setCreated] = useState<DuplicatedVenue | null>(null)
+  const venueNames = useMemo(() => venues.map(v => v.name), [venues])
 
   // State
   const [searchTerm, setSearchTerm] = useState('')
@@ -143,6 +147,7 @@ const TiendasList: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2">
+          <OrgDuplicateVenue orgId={orgId} existingNames={venueNames} onCreated={setCreated} />
           {/* View Mode Toggle */}
           <div className="flex items-center border border-border rounded-lg p-1">
             <Button
@@ -164,6 +169,8 @@ const TiendasList: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {created && <DuplicatedVenueNotice venue={created} venueBasePath="/wl/venues" onDismiss={() => setCreated(null)} />}
 
       {/* Stats Summary */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -286,7 +293,12 @@ const TiendasList: React.FC = () => {
                     </AvatarFallback>
                   </Avatar>
                   <div>
-                    <h3 className="font-semibold">{venue.name}</h3>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-semibold">{venue.name}</h3>
+                      {venue.id === created?.venueId && (
+                        <Badge variant="secondary">{t('organization:venues.duplicate.newBadge')}</Badge>
+                      )}
+                    </div>
                     <div className="flex items-center gap-1 text-sm text-muted-foreground">
                       <MapPin className="h-3 w-3" />
                       <span>{venue.city || t('organization:tiendas.noLocation', { defaultValue: 'Sin ubicación' })}</span>
@@ -387,6 +399,9 @@ const TiendasList: React.FC = () => {
                         </AvatarFallback>
                       </Avatar>
                       <span className="font-medium">{venue.name}</span>
+                      {venue.id === created?.venueId && (
+                        <Badge variant="secondary">{t('organization:venues.duplicate.newBadge')}</Badge>
+                      )}
                     </div>
                   </TableCell>
                   <TableCell className="text-muted-foreground">
