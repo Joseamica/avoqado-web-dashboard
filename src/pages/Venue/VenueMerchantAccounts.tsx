@@ -208,9 +208,10 @@ const VenueMerchantAccounts: React.FC = () => {
   const isLoading = loadingConfig || loadingTerminals || loadingAccounts
 
   // Cada número se tapa por su fuente. Las cuentas salen de la configuración y de las terminales: sin alguna de las dos la lista está incompleta.
-  const configSinLeer = venuePaymentConfig === undefined && falloDeCarga(configQuery)
-  const terminalsSinLeer = terminalsQuery.data === undefined && falloDeCarga(terminalsQuery)
-  const cuentasSinLeer = configSinLeer || terminalsSinLeer || (accountsQuery.data === undefined && falloDeCarga(accountsQuery))
+  const configSinLeer = venuePaymentConfig === undefined
+  const terminalsSinLeer = terminalsQuery.data === undefined
+  // Sin cuentas asociadas su consulta ni corre: ahí sí son cero. Mientras corre o si cayó, no se sabe.
+  const cuentasSinLeer = configSinLeer || terminalsSinLeer || (accountsQuery.data === undefined && (accountsQuery.isFetching || falloDeCarga(accountsQuery)))
   const consultaCaida = [configQuery, terminalsQuery, accountsQuery].find(falloDeCarga) ?? null
 
   // Categorize accounts
@@ -259,7 +260,7 @@ const VenueMerchantAccounts: React.FC = () => {
         </AlertDescription>
       </Alert>
 
-      <AvisoDeCarga query={consultaCaida} hayDatos={!cuentasSinLeer} />
+      <AvisoDeCarga query={consultaCaida} hayDatos={consultaCaida?.data !== undefined} />
 
       {/* Statistics */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

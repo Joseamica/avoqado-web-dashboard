@@ -93,12 +93,14 @@ export default function VenueRosterPanel({ venueId, venueName }: Props) {
             Préndelo SOLO después de que la compuerta de recálculo salga sin STOPs para este venue.
           </p>
         </div>
-        <Switch
-          checked={enabled}
-          disabled={isLoading || rolloutMutation.isPending || !data?.hasConfig}
-          onCheckedChange={() => setConfirmOpen(true)}
-          data-tour="venue-roster-rollout-toggle"
-        />
+        {data !== undefined && (
+          <Switch
+            checked={enabled}
+            disabled={isLoading || rolloutMutation.isPending || !data.hasConfig}
+            onCheckedChange={() => setConfirmOpen(true)}
+            data-tour="venue-roster-rollout-toggle"
+          />
+        )}
       </div>
 
       {data && !data.hasConfig && (

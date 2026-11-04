@@ -7,6 +7,7 @@
  * - Calendario de asistencia
  */
 
+import { Skeleton } from '@/components/ui/skeleton'
 import React from 'react'
 import { TrendingUp, Calendar, PieChart } from 'lucide-react'
 import { AvisoDeCarga } from '@/components/AvisoDeCarga'
@@ -104,7 +105,8 @@ export function PromoterCharts({ promoterId, promoterName: _promoterName, venueI
 
         <AvisoDeCarga query={trendQuery} hayDatos={!trendSinLeer} />
         {/* Simple area chart */}
-        {!trendSinLeer && <div className="h-40 flex items-end gap-1">
+        {trendQuery.isLoading && <Skeleton className="h-40 w-full" />}
+        {!trendSinLeer && !trendQuery.isLoading && <div className="h-40 flex items-end gap-1">
           {salesData.length > 0 ? (
             salesData.map((data: any, idx: number) => {
               const height = maxSales > 0 ? (data.sales / maxSales) * 100 : 0
@@ -167,7 +169,8 @@ export function PromoterCharts({ promoterId, promoterName: _promoterName, venueI
 
         <AvisoDeCarga query={mixQuery} hayDatos={!mixSinLeer} />
         {/* Simple donut chart representation */}
-        {!mixSinLeer && <div className="flex items-center justify-center h-32 mb-4">
+        {mixQuery.isLoading && <Skeleton className="h-32 w-full" />}
+        {!mixSinLeer && !mixQuery.isLoading && <div className="flex items-center justify-center h-32 mb-4">
           <div className="relative w-32 h-32">
             {/* Outer ring with segments */}
             <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
@@ -195,7 +198,7 @@ export function PromoterCharts({ promoterId, promoterName: _promoterName, venueI
         </div>}
 
         {/* Legend */}
-        {!mixSinLeer && <div className="space-y-2">
+        {!mixSinLeer && !mixQuery.isLoading && <div className="space-y-2">
           {salesMixWithColors.length > 0 ? (
             salesMixWithColors.map((item: any, idx: number) => (
               <div key={idx} className="flex items-center justify-between">
@@ -226,7 +229,8 @@ export function PromoterCharts({ promoterId, promoterName: _promoterName, venueI
 
         <AvisoDeCarga query={calendarQuery} hayDatos={!calendarSinLeer} />
         {/* Simple calendar grid */}
-        {!calendarSinLeer && <div className="space-y-3">
+        {calendarQuery.isLoading && <Skeleton className="h-40 w-full" />}
+        {!calendarSinLeer && !calendarQuery.isLoading && <div className="space-y-3">
           {/* Days of week */}
           <div className="grid grid-cols-7 gap-1">
             {['D', 'L', 'M', 'M', 'J', 'V', 'S'].map((day, idx) => (

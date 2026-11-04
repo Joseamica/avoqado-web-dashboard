@@ -94,7 +94,7 @@ export function OrgCargasTab({ orgId, params, categories, venues }: OrgCargasTab
         )}
       </div>
 
-      {(isFiltered || total > 0) && (
+      {query.data !== undefined && (isFiltered || total > 0) && (
         <p className="mb-3 text-xs text-muted-foreground">
           {total.toLocaleString('es-MX')} {total === 1 ? 'resultado' : 'resultados'}
         </p>

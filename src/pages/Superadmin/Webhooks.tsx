@@ -215,7 +215,7 @@ function Webhooks() {
             <Button variant="outline" size="sm" onClick={() => setShowFilters(!showFilters)} className="gap-2">
               <Filter className="h-4 w-4" />
               {showFilters ? t('events.hideFilters') : t('events.showFilters')}
-              {hasActiveFilters && (
+              {hasActiveFilters && webhookData !== undefined && (
                 <span className="ml-1 px-1.5 py-0.5 text-xs bg-primary text-primary-foreground rounded-full">
                   {webhookData?.events.length || 0}
                 </span>
@@ -280,7 +280,7 @@ function Webhooks() {
               {/* Filter Actions */}
               <div className="flex items-center justify-between pt-2">
                 <p className="text-sm text-muted-foreground">
-                  {t('events.showing', { count: webhookData?.events.length || 0, total: webhookData?.total || 0 })}
+                  {webhookData !== undefined && t('events.showing', { count: webhookData.events.length || 0, total: webhookData.total || 0 })}
                 </p>
                 {hasActiveFilters && (
                   <Button variant="ghost" size="sm" onClick={clearFilters} className="gap-2">

@@ -764,22 +764,24 @@ export function SalesReport() {
               {t('playtelecom:sales.transactionDetails', { defaultValue: 'Detalle de Transacciones' })}
             </h3>
           </div>
-          <div className="flex gap-2">
-            <span className="bg-background border border-border text-muted-foreground text-[10px] font-bold px-2 py-1 rounded flex items-center">
-              <span className="size-2 bg-green-500 rounded-full mr-1" />
-              {t('playtelecom:sales.conciliated', { defaultValue: 'Conciliadas' })}: {(summary?.conciliatedCount ?? 0).toLocaleString()}
-            </span>
-            <span className="bg-background border border-border text-muted-foreground text-[10px] font-bold px-2 py-1 rounded flex items-center">
-              <span className="size-2 bg-yellow-400 rounded-full mr-1" />
-              {t('playtelecom:sales.pending', { defaultValue: 'Pendientes' })}: {summary?.pendingCount ?? 0}
-            </span>
-            {(summary?.withoutVerificationCount ?? 0) > 0 && (
-              <span className="bg-background border border-amber-300 text-amber-600 dark:text-amber-400 text-[10px] font-bold px-2 py-1 rounded flex items-center">
-                <AlertTriangle className="size-3 mr-1" />
-                {t('playtelecom:sales.withoutEvidence', { defaultValue: 'Sin evidencia' })}: {summary?.withoutVerificationCount ?? 0}
+          {summary !== undefined && (
+            <div className="flex gap-2">
+              <span className="bg-background border border-border text-muted-foreground text-[10px] font-bold px-2 py-1 rounded flex items-center">
+                <span className="size-2 bg-green-500 rounded-full mr-1" />
+                {t('playtelecom:sales.conciliated', { defaultValue: 'Conciliadas' })}: {(summary?.conciliatedCount ?? 0).toLocaleString()}
               </span>
-            )}
-          </div>
+              <span className="bg-background border border-border text-muted-foreground text-[10px] font-bold px-2 py-1 rounded flex items-center">
+                <span className="size-2 bg-yellow-400 rounded-full mr-1" />
+                {t('playtelecom:sales.pending', { defaultValue: 'Pendientes' })}: {summary?.pendingCount ?? 0}
+              </span>
+              {(summary?.withoutVerificationCount ?? 0) > 0 && (
+                <span className="bg-background border border-amber-300 text-amber-600 dark:text-amber-400 text-[10px] font-bold px-2 py-1 rounded flex items-center">
+                  <AlertTriangle className="size-3 mr-1" />
+                  {t('playtelecom:sales.withoutEvidence', { defaultValue: 'Sin evidencia' })}: {summary?.withoutVerificationCount ?? 0}
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Search Bar */}

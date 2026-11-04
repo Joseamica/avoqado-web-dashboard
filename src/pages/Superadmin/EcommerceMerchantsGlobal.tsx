@@ -532,9 +532,11 @@ export default function EcommerceMerchantsGlobal() {
               </Button>
             )}
 
-            <div className="ml-auto text-xs text-muted-foreground">
-              {filteredMerchants.length} de {merchants.length}
-            </div>
+            {merchantsQuery.data !== undefined && (
+              <div className="ml-auto text-xs text-muted-foreground">
+                {filteredMerchants.length} de {merchants.length}
+              </div>
+            )}
           </div>
 
           {isLoading ? (

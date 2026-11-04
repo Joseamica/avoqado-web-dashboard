@@ -7,6 +7,7 @@
  * Design: FullScreenModal Pattern (Rule 15) + Modern Dashboard Design System
  */
 
+import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
@@ -491,12 +492,13 @@ function CampaignDetail() {
                     </div>
                   </div>
 
-                  {deliveriesData === undefined && falloDeCarga(deliveriesQuery) ? (
+                  {deliveriesData === undefined ? (
                     <div className="px-6 pb-6">
-                      <AvisoDeCarga query={deliveriesQuery} hayDatos={false} />
+                      {falloDeCarga(deliveriesQuery) ? <AvisoDeCarga query={deliveriesQuery} hayDatos={false} /> : <Skeleton className="h-32 w-full" />}
                     </div>
-                  ) : !deliveriesData?.deliveries.length ? (
+                  ) : !deliveriesData.deliveries.length ? (
                     <div className="px-6 pb-6">
+                      <AvisoDeCarga query={deliveriesQuery} hayDatos />
                       <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
                         <Mail className="h-8 w-8 mb-3 opacity-40" />
                         <p className="text-sm">No hay entregas registradas</p>
