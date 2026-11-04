@@ -391,6 +391,14 @@ export function permisosQueCoinciden(categoryKey: string, searchTerm: string, t:
   return category.permissions.filter(p => permisoCoincide(p, searchTerm, t))
 }
 
+/** Qué categoría queda abierta al buscar: la misma si sigue en los resultados, y si no, la primera que sí coincide. */
+export function categoriaTrasBuscar(superCategories: SuperCategory[], selectedKey: string | null, searchTerm: string): string | null {
+  if (!searchTerm.trim()) return selectedKey
+  const claves = superCategories.flatMap(s => s.categoryKeys as readonly string[])
+  if (selectedKey && claves.includes(selectedKey)) return selectedKey
+  return claves[0] ?? selectedKey
+}
+
 /**
  * Filter permissions by search term
  */

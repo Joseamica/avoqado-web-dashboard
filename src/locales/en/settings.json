@@ -729,7 +729,7 @@
     },
     "impliedByInline": "included in",
     "includedInBadge": "Included",
-    "impliedByTooltip": "This permission comes bundled with another one the role keeps. To remove it, remove that one too."
+    "impliedByTooltip": "This permission comes bundled with \"{{permission}}\", which the role keeps. To remove it, remove that one too."
   },
   "roleDisplayNames": {
     "appearanceDesc": "Name, description and label color",

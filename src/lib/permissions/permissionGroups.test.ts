@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import es from '@/locales/es/settings.json'
-import { DASHBOARD_SUPER_CATEGORIES, filterPermissionsBySearch, formatPermissionLabel, permisosQueCoinciden } from './permissionGroups'
+import { categoriaTrasBuscar, DASHBOARD_SUPER_CATEGORIES, filterPermissionsBySearch, formatPermissionLabel, permisosQueCoinciden } from './permissionGroups'
 
 /** El traductor del panel, con los textos reales en español. */
 function t(key: string, options?: { defaultValue?: string } | string) {
@@ -46,6 +46,23 @@ describe('permisosQueCoinciden', () => {
 
   it('sin término se ven todos', () => {
     expect(permisosQueCoinciden('GIFT_CARDS', '', t)).toHaveLength(5)
+  })
+})
+
+describe('categoriaTrasBuscar', () => {
+  const resultados = (termino: string) => filterPermissionsBySearch(DASHBOARD_SUPER_CATEGORIES, termino, t)
+
+  it('si la categoría abierta ya no coincide, abre la primera que sí', () => {
+    expect(categoriaTrasBuscar(resultados('prender y apagar'), 'HOME', 'prender y apagar')).toBe('GIFT_CARDS')
+  })
+
+  it('si la categoría abierta sigue en los resultados, se queda', () => {
+    expect(categoriaTrasBuscar(resultados('tarjetas'), 'GIFT_CARDS', 'tarjetas')).toBe('GIFT_CARDS')
+  })
+
+  it('sin término o sin resultados no mueve nada', () => {
+    expect(categoriaTrasBuscar(DASHBOARD_SUPER_CATEGORIES, 'HOME', '')).toBe('HOME')
+    expect(categoriaTrasBuscar([], 'HOME', 'zzz')).toBe('HOME')
   })
 })
 
