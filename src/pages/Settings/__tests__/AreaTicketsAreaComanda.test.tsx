@@ -14,7 +14,9 @@ vi.mock('@/services/areaTickets.service', async importOriginal => ({
   ...svc,
 }))
 vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: vi.fn() }) }))
-vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (k: string, o?: Record<string, string>) => (o?.area ? `${k}:${o.area}` : k) }) }))
+vi.mock('react-i18next', () => ({
+  useTranslation: () => ({ t: (k: string, o?: Record<string, string>) => (o?.area ? `${k}:${o.area}` : k) }),
+}))
 vi.mock('@/pages/Settings/components/ExternalRouteAreaCard', () => ({ ExternalRouteAreaCard: () => null }))
 
 import { AreasSettings } from '../AreaTickets'
@@ -51,8 +53,14 @@ describe('AreasSettings · Comanda (D2)', () => {
     svc.updateFulfillmentArea.mockClear()
   })
 
-  it('un área sin el campo (servidor viejo) se ve mandando comanda', () => {
+  it('con un SERVIDOR que no trae el campo, la columna no sale (no se podría guardar)', () => {
     pintar(AREA())
+    expect(screen.queryByRole('switch', { name: 'areaTickets.areas.comandaFor:Cremería' })).not.toBeInTheDocument()
+    expect(screen.queryByText('areaTickets.areas.comandaHeader')).not.toBeInTheDocument()
+  })
+
+  it('prendida dice que manda comanda', () => {
+    pintar(AREA(true))
     expect(screen.getByRole('switch', { name: 'areaTickets.areas.comandaFor:Cremería' })).toBeChecked()
     expect(screen.getByText('areaTickets.areas.comandaOn')).toBeInTheDocument()
   })

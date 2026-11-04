@@ -375,6 +375,8 @@ export function AreasSettings({
       guardandoComanda.current = false
     },
   })
+  // Un SERVIDOR sin el campo no deja guardarlo (su Zod es estricto): la columna sólo sale si alguna área ya lo trae.
+  const conComanda = areas.some(area => area.sendsComanda !== undefined)
   // Un doble clic llega antes de que `isPending` deshabilite el interruptor: el segundo saldría con el valor viejo.
   const cambiarComanda = (area: FulfillmentArea, sendsComanda: boolean) => {
     if (guardandoComanda.current) return
@@ -414,10 +416,12 @@ export function AreasSettings({
               <TableRow>
                 <TableHead>Área</TableHead>
                 <TableHead>Proceso</TableHead>
-                <TableHead>
-                  <span>{t('areaTickets.areas.comandaHeader')}</span>
-                  <span className="block text-xs font-normal text-muted-foreground">{t('areaTickets.areas.comandaHint')}</span>
-                </TableHead>
+                {conComanda && (
+                  <TableHead>
+                    <span>{t('areaTickets.areas.comandaHeader')}</span>
+                    <span className="block text-xs font-normal text-muted-foreground">{t('areaTickets.areas.comandaHint')}</span>
+                  </TableHead>
+                )}
                 <TableHead>Terminales</TableHead>
                 <TableHead>Estado</TableHead>
               </TableRow>
@@ -443,20 +447,21 @@ export function AreasSettings({
                       </SelectContent>
                     </Select>
                   </TableCell>
-                  <TableCell>
-                    {/* D2: sin el campo (SERVIDOR viejo) manda comanda, como hoy. */}
-                    <label className="flex items-center gap-3">
-                      <Switch
-                        aria-label={t('areaTickets.areas.comandaFor', { area: area.name })}
-                        checked={area.sendsComanda !== false}
-                        disabled={comandaMutation.isPending}
-                        onCheckedChange={checked => cambiarComanda(area, checked)}
-                      />
-                      <span className="text-sm text-muted-foreground">
-                        {t(area.sendsComanda !== false ? 'areaTickets.areas.comandaOn' : 'areaTickets.areas.comandaOff')}
-                      </span>
-                    </label>
-                  </TableCell>
+                  {conComanda && (
+                    <TableCell>
+                      <label className="flex items-center gap-3">
+                        <Switch
+                          aria-label={t('areaTickets.areas.comandaFor', { area: area.name })}
+                          checked={area.sendsComanda !== false}
+                          disabled={comandaMutation.isPending}
+                          onCheckedChange={checked => cambiarComanda(area, checked)}
+                        />
+                        <span className="text-sm text-muted-foreground">
+                          {t(area.sendsComanda !== false ? 'areaTickets.areas.comandaOn' : 'areaTickets.areas.comandaOff')}
+                        </span>
+                      </label>
+                    </TableCell>
+                  )}
                   <TableCell>{area._count?.terminals ?? 0}</TableCell>
                   <TableCell>
                     <Switch checked={area.active} onCheckedChange={active => updateMutation.mutate({ id: area.id, input: { active } })} />
@@ -465,7 +470,7 @@ export function AreasSettings({
               ))}
               {areas.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={5} className="py-10 text-center text-muted-foreground">
+                  <TableCell colSpan={conComanda ? 5 : 4} className="py-10 text-center text-muted-foreground">
                     Aún no hay áreas.
                   </TableCell>
                 </TableRow>
@@ -570,9 +575,7 @@ export function TerminalSettings({
               <Select
                 value={terminal.fulfillmentAreaId ?? NONE}
                 disabled={mutation.isPending}
-                onValueChange={value =>
-                  guardar({ terminalId: terminal.id, input: { fulfillmentAreaId: value === NONE ? null : value } })
-                }
+                onValueChange={value => guardar({ terminalId: terminal.id, input: { fulfillmentAreaId: value === NONE ? null : value } })}
               >
                 <SelectTrigger className="w-56">
                   <SelectValue placeholder="Sin área" />
@@ -619,9 +622,7 @@ export function TerminalSettings({
               <Select
                 value={terminal.scaleProfileId ?? NONE}
                 disabled={mutation.isPending}
-                onValueChange={value =>
-                  guardar({ terminalId: terminal.id, input: { scaleProfileId: value === NONE ? null : value } })
-                }
+                onValueChange={value => guardar({ terminalId: terminal.id, input: { scaleProfileId: value === NONE ? null : value } })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Sin báscula" />
