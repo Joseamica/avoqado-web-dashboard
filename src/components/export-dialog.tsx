@@ -178,7 +178,8 @@ export function ExportDialog({
       // Axios + responseType:'blob' means the error body is a Blob — pull the message out.
       let message = t('exportDialog.errors.generic', { defaultValue: 'No se pudo generar el archivo' }) as string
       const status = err?.response?.status
-      const data = err?.response?.data
+      // Un 5xx trae el error técnico (p. ej. de Prisma, en inglés): se queda el genérico. Los 4xx son textos nuestros.
+      const data = status >= 500 ? undefined : err?.response?.data
       if (data instanceof Blob) {
         try {
           const text = await data.text()
