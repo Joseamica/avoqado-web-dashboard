@@ -629,7 +629,7 @@ export function UsersManagement() {
                 <CheckboxFilterContent
                   title="Filtrar por Tienda"
                   options={storesOptions}
-                  fuente={falloDeCarga(zonesQuery) ? zonesQuery : listQuery}
+                  fuente={zonesQuery.data === undefined || falloDeCarga(zonesQuery) ? zonesQuery : listQuery}
                   selectedValues={storesFilter}
                   searchable={storesOptions.length > 5}
                   onApply={setStoresFilter}

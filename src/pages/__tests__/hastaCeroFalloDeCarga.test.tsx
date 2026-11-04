@@ -170,7 +170,8 @@ import SalesByCategory from '@/pages/Reports/SalesByCategory'
 import SalesByItem from '@/pages/Reports/SalesByItem'
 import SalesSummary from '@/pages/Reports/SalesSummary'
 import SerializedSalesDemo from '@/pages/SerializedSalesDemo/SerializedSalesDemo'
-import AreaTickets from '@/pages/Settings/AreaTickets'
+import AreaTickets, { Operations } from '@/pages/Settings/AreaTickets'
+import AccountsPayable from '@/pages/Reports/AccountsPayable'
 import { RoutingTab } from '@/pages/Settings/components/printStations/RoutingTab'
 import OrganizationActivityLog from '@/pages/Organization/OrganizationActivityLog'
 import OrganizationTerminals from '@/pages/Organization/OrganizationTerminals'
@@ -1501,12 +1502,22 @@ describe('r8 · Filtros: lo que dicen de sus opciones depende de su lectura', ()
     })
 
     it('caída con opciones anteriores: las opciones siguen, con su aviso', async () => {
-      const f = caida()
+      const f = { ...caida(), data: opciones }
       pintar(filtro({ fuente: f, options: opciones }))
       expect(screen.getByText(CON_DATOS)).toBeInTheDocument()
       expect(screen.getByText('Azul')).toBeInTheDocument()
       fireEvent.click(await reintentar())
       expect(f.refetch).toHaveBeenCalledOnce()
+    })
+
+    it.each([
+      ['caída', { isError: true, error: new Error('caída') }],
+      ['en pausa', { isPaused: true }],
+    ])('leída y vacía, y su recarga %s: el vacío sigue, con el aviso de datos viejos', async (_e, estado) => {
+      pintar(filtro({ fuente: fuente({ data: [], ...estado }), emptyLabel: 'No hay áreas' }))
+      expect(screen.getByText(CON_DATOS)).toBeInTheDocument()
+      expect(screen.getByText('No hay áreas')).toBeInTheDocument()
+      expect(seVe(SIN_DATOS)).toBe(false)
     })
 
     it('un 403 no ofrece reintentar', async () => {
@@ -1709,7 +1720,7 @@ describe('r8 · Catálogo maestro', () => {
     expect(screen.getByText(VACIO)).toBeInTheDocument()
   })
 
-  const BITACORA = /audit/
+  const BITACORA = /audit(?!\/actions)/
   const SIN_EVENTOS = 'No hay eventos para estos filtros.'
 
   it('Bitácora en camino: los filtros siguen, sin «sin eventos» ni «página 1 de 1»', async () => {
@@ -1862,5 +1873,105 @@ describe('r9 · Un 403 no ofrece reintentar', () => {
     fireEvent.click(await screen.findByRole('button', { name: /catalog\.title/ }))
     await screen.findByText('catalog.error')
     expect(seVe('catalog.retry')).toBe(false)
+  })
+})
+
+describe('r10 · Usuarios de la tienda: las tiendas salen de las zonas', () => {
+  const ZONAS = /stores-analysis\/zones/
+  const abrirTiendas = () => fireEvent.click(screen.getByRole('button', { name: /Tiendas/ }))
+
+  it('zonas caídas: el filtro avisa; al reintentar sigue mirando las zonas, y al llegar se ven', async () => {
+    const rutas: Ruta[] = [
+      [/stores-analysis\/team/, { data: [], team: [], meta: { scope: 'venue', canViewAllOrgStaff: false } }],
+      [ZONAS, { data: [{ id: 'z1', name: 'Norte', venues: [{ id: 'v9', name: 'Tienda Nueve' }] }] }],
+    ]
+    red.caida = ZONAS
+    pintar(<UsersManagement />, { rutas })
+    await sinConsultasEnCamino()
+    abrirTiendas()
+    await screen.findByText(SIN_DATOS)
+    red.caida = null
+    red.colgada = ZONAS
+    fireEvent.click(await reintentar())
+    await unaVueltaAlLazo()
+    expect(seVe('loadFailure.noOptions')).toBe(false)
+    expect(seVe(SIN_DATOS)).toBe(false)
+    esperando()
+  })
+})
+
+describe('r10 · Reintentar no arregla un 403', () => {
+  it('Reportes contables: con 403 no se ofrece, con 500 sí', async () => {
+    const pagar = /payable/
+    red.caida = pagar
+    pintar(<AccountsPayable />)
+    await screen.findByRole('button', { name: /accountingError\.retry/ })
+    cleanup()
+    red.estatus = 403
+    pintar(<AccountsPayable />)
+    await screen.findByText('accountingError.body')
+    await sinConsultasEnCamino()
+    expect(screen.queryByRole('button', { name: /accountingError\.retry/ })).toBeNull()
+  })
+
+  it('Detalle del aparato: con 403 no se ofrece', async () => {
+    red.caida = /tpv\/t1$/
+    red.estatus = 403
+    pintar(<TpvId />, { params: { tpvId: 't1' } })
+    await screen.findByText('detail.errors.loadError')
+    expect(screen.queryByRole('button', { name: 'common:tryAgain' })).toBeNull()
+  })
+})
+
+describe('r10 · Bitácora del catálogo: las acciones del filtro', () => {
+  const ACCIONES = /audit\/actions/
+  const LEIDA = { success: true, data: { logs: [], pagination: { page: 1, pageSize: 25, total: 0, totalPages: 1 } } }
+  const rutas: Ruta[] = [[ACCIONES, { success: true, data: ['CATALOG_ITEM_CREATED'] }], [/audit/, LEIDA]]
+
+  it('caídas: lo dice, y al reintentar llegan al filtro', async () => {
+    red.caida = ACCIONES
+    pintar(<CatalogAuditPage />, { params: { orgId: 'o1' }, rutas })
+    await screen.findByText('No se pudieron cargar las acciones del filtro.')
+    red.caida = null
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
+    await waitFor(() => expect(seVe('item created')).toBe(true))
+    expect(seVe('No se pudieron cargar las acciones del filtro.')).toBe(false)
+  })
+})
+
+describe('r10 · Vales por área', () => {
+  it('Configuración: si cae su recarga, los ajustes siguen, con el aviso', async () => {
+    const VISTA = /area-tickets?(\/overview)?$/
+    pintar(<AreaTickets />, {
+      rutas: [
+        [
+          VISTA,
+          {
+            data: {
+              entitlements: { areaTickets: true, scaleIntegration: true },
+              effective: { areaTickets: true, scales: false, variableWeight: false },
+              settings: {},
+              scaleSettings: {},
+              areas: [],
+              terminals: [],
+              scaleProfiles: [],
+              operations: { tickets: {}, checkouts: {}, paymentReconciliationCount: 0 },
+            },
+          },
+        ],
+      ],
+    })
+    await screen.findByText('Vales activos')
+    await recargaCaida(VISTA)
+    await screen.findByText(CON_DATOS)
+    expect(screen.getByText('Vales activos')).toBeInTheDocument()
+  })
+
+  it('Vales por entregar: la primera lectura espera, no deja la tabla en blanco', async () => {
+    red.colgada = /operations/
+    pintar(<Operations venueId="v1" counters={{ tickets: {}, checkouts: {}, paymentReconciliationCount: 0 } as never} />)
+    await unaVueltaAlLazo()
+    esperando()
+    expect(screen.queryByRole('table')).toBeNull()
   })
 })

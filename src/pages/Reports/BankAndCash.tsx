@@ -95,7 +95,7 @@ export default function BankAndCash() {
           ))}
         </div>
       ) : isError ? (
-        <AccountingErrorState onRetry={() => refetch()} />
+        <AccountingErrorState error={query.error} onRetry={() => refetch()} />
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <MetricCard

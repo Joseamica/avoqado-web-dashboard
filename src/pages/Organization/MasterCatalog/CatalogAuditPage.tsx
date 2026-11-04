@@ -29,6 +29,19 @@ export default function CatalogAuditPage() {
   const [search, setSearch] = useState('')
   const [error, setError] = useState<unknown>(null)
 
+  const [accionesCaidas, setAccionesCaidas] = useState<unknown>(null)
+
+  function cargarAcciones(vigente: () => boolean = () => true) {
+    setAccionesCaidas(null)
+    void listCatalogAuditActions(orgId)
+      .then(value => {
+        if (vigente()) setActions(value)
+      })
+      .catch(fallo => {
+        if (vigente()) setAccionesCaidas(fallo)
+      })
+  }
+
   async function load(page = 1) {
     setError(null)
     try {
@@ -40,11 +53,7 @@ export default function CatalogAuditPage() {
 
   useEffect(() => {
     let active = true
-    void listCatalogAuditActions(orgId)
-      .then(value => {
-        if (active) setActions(value)
-      })
-      .catch(() => undefined)
+    cargarAcciones(() => active)
     void listCatalogAudit(orgId, { page: 1, pageSize: 25 })
       .then(value => {
         if (active) setData(value)
@@ -96,6 +105,16 @@ export default function CatalogAuditPage() {
           />
           <Button onClick={() => void load(1)}>{t('masterCatalog.audit.apply', { defaultValue: 'Aplicar filtros' })}</Button>
         </CardContent>
+        {accionesCaidas != null && (
+          <CardContent role="alert" className="flex flex-wrap items-center gap-2 pt-0 text-sm text-destructive">
+            <p>{t('masterCatalog.audit.actionsError', { defaultValue: 'No se pudieron cargar las acciones del filtro.' })}</p>
+            {reintentarSirve(accionesCaidas) && (
+              <Button variant="outline" size="sm" onClick={() => cargarAcciones()}>
+                {t('common:retry', { defaultValue: 'Reintentar' })}
+              </Button>
+            )}
+          </CardContent>
+        )}
       </Card>
       <Card>
         <CardContent className="pt-6">

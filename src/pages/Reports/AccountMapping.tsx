@@ -91,7 +91,7 @@ function AccountMappingInner() {
       {mappingQuery.data === undefined && hasAccess && !falloDeCarga(mappingQuery) ? (
         <Skeleton className="h-64 rounded-2xl" />
       ) : mappingQuery.data === undefined && hasAccess ? (
-        <AccountingErrorState onRetry={() => mappingQuery.refetch()} />
+        <AccountingErrorState error={mappingQuery.error} onRetry={() => mappingQuery.refetch()} />
       ) : needsFiscalSetup ? (
         <Card className="border-input">
           <CardContent className="flex flex-col items-center gap-3 py-10 text-center">

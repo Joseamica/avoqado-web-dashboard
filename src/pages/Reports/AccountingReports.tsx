@@ -155,7 +155,7 @@ function AccountingReportsInner() {
       {query.data === undefined && hasAccess && !falloDeCarga(query) ? (
         <Skeleton className="h-80 rounded-2xl" />
       ) : query.data === undefined && hasAccess ? (
-        <AccountingErrorState onRetry={() => query.refetch()} />
+        <AccountingErrorState error={query.error} onRetry={() => query.refetch()} />
       ) : needsFiscalSetup ? (
         <Card className="border-input">
           <CardContent className="flex flex-col items-center gap-3 py-10 text-center">

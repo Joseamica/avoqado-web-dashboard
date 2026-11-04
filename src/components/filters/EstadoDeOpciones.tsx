@@ -13,15 +13,21 @@ export type FuenteDeOpciones = EstadoDeCarga & { data?: unknown }
  */
 export function EstadoDeOpciones({ fuente, hayOpciones, emptyLabel }: { fuente?: FuenteDeOpciones; hayOpciones: boolean; emptyLabel?: string }) {
   const { t } = useTranslation('common')
+  const vacio = <p className="py-4 text-center text-sm text-muted-foreground">{emptyLabel ?? t('loadFailure.noOptions')}</p>
   if (fuente && falloDeCarga(fuente)) {
+    // Una lectura anterior vacía también es lo leído: su vacío sigue, con el aviso de que no se actualizó.
+    const leida = hayOpciones || fuente.data !== undefined
     return (
-      <div role="alert" className="mb-2 p-2 text-center text-sm text-muted-foreground">
-        <p>{t(esSinPermiso(fuente.error) ? 'loadFailure.forbidden' : hayOpciones ? 'loadFailure.partial' : 'loadFailure.empty')}</p>
-        <BotonReintentar query={fuente} className="mt-2" />
-      </div>
+      <>
+        <div role="alert" className="mb-2 p-2 text-center text-sm text-muted-foreground">
+          <p>{t(esSinPermiso(fuente.error) ? 'loadFailure.forbidden' : leida ? 'loadFailure.partial' : 'loadFailure.empty')}</p>
+          <BotonReintentar query={fuente} className="mt-2" />
+        </div>
+        {!hayOpciones && leida && vacio}
+      </>
     )
   }
   if (hayOpciones) return null
   if (fuente && fuente.data === undefined && fuente.isFetching) return <Skeleton className="m-2 h-16" aria-busy="true" />
-  return <p className="py-4 text-center text-sm text-muted-foreground">{emptyLabel ?? t('loadFailure.noOptions')}</p>
+  return vacio
 }
