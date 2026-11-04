@@ -1583,6 +1583,7 @@ export default function Orders() {
         initialDateTo={dateRange.to}
         estimatedCount={sortedData.length || totalOrders}
         filenameStem="orders"
+        segundoPlano={venueId ? { venueId, kind: 'ordenes' } : undefined}
         activeFilterSummary={exportFilterSummary}
       />
     </div>
