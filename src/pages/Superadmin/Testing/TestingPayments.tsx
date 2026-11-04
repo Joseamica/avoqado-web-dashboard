@@ -368,9 +368,9 @@ export default function TestingPayments() {
           <Card>
             <CardHeader>
               <CardTitle>{t('recentTests')}</CardTitle>
-              <CardDescription>
-                {t('showingTests', { count: testPayments?.length || 0 })}
-              </CardDescription>
+              {testPayments !== undefined && (
+                <CardDescription>{t('showingTests', { count: testPayments.length })}</CardDescription>
+              )}
             </CardHeader>
             <CardContent>
               <AvisoDeCarga query={testPaymentsQuery} hayDatos={testPayments !== undefined} />

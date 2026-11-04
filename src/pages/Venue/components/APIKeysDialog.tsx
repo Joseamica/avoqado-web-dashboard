@@ -25,6 +25,8 @@ import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Copy, RefreshCw, Loader2, AlertCircle, CheckCircle2, Key } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { ecommerceMerchantAPI, type EcommerceMerchant } from '@/services/ecommerceMerchant.service'
 
 interface APIKeysDialogProps {
@@ -47,15 +49,12 @@ export const APIKeysDialog: React.FC<APIKeysDialogProps> = ({
   const [newSecretKey, setNewSecretKey] = useState<string | null>(null)
 
   // Fetch API keys
-  const {
-    data: keys,
-    isLoading,
-    error,
-  } = useQuery({
+  const keysQuery = useQuery({
     queryKey: ['ecommerce-merchant-keys', merchant?.id],
     queryFn: () => ecommerceMerchantAPI.getAPIKeys(venueId, merchant!.id),
     enabled: !!merchant && open,
   })
+  const { data: keys } = keysQuery
 
   // Regenerate keys mutation
   const regenerateMutation = useMutation({
@@ -116,19 +115,17 @@ export const APIKeysDialog: React.FC<APIKeysDialogProps> = ({
           </DialogHeader>
 
           <div className="space-y-6 py-4">
-            {isLoading ? (
-              <div className="flex justify-center p-8">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-              </div>
-            ) : error ? (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>
-                  Error al cargar las claves: {(error as any).message}
-                </AlertDescription>
-              </Alert>
+            {keys === undefined ? (
+              falloDeCarga(keysQuery) ? (
+                <AvisoDeCarga query={keysQuery} hayDatos={false} deUnRegistro />
+              ) : (
+                <div className="flex justify-center p-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                </div>
+              )
             ) : (
               <>
+                <AvisoDeCarga query={keysQuery} hayDatos deUnRegistro />
                 {/* Mode Badge */}
                 <div>
                   <Badge variant={keys?.sandboxMode ? 'secondary' : 'default'} className="text-sm">
@@ -240,7 +237,7 @@ export const APIKeysDialog: React.FC<APIKeysDialogProps> = ({
               type="button"
               variant="destructive"
               onClick={handleRegenerate}
-              disabled={isLoading || regenerateMutation.isPending}
+              disabled={keys === undefined || regenerateMutation.isPending}
             >
               {regenerateMutation.isPending ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

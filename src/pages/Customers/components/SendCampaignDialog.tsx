@@ -2,10 +2,12 @@ import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { AlertTriangle, Loader2, Send } from 'lucide-react'
 
+import { BotonReintentar } from '@/components/AvisoDeCarga'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useToast } from '@/hooks/use-toast'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import marketingService from '@/services/marketing.service'
 
 interface Props {
@@ -66,7 +68,9 @@ export function SendCampaignDialog({ venueId, campaignId, onClose, onSent }: Pro
 	})
 
 	const total = preview.data?.totalDestinatarios ?? 0
-	const sinDestinatarios = preview.isSuccess && total === 0
+	const leido = preview.data !== undefined
+	const sinDestinatarios = leido && total === 0
+	const fallo = falloDeCarga(preview)
 
 	return (
 		<Dialog open onOpenChange={abierto => !abierto && onClose()}>
@@ -84,16 +88,17 @@ export function SendCampaignDialog({ venueId, campaignId, onClose, onSent }: Pro
 						</div>
 					)}
 
-					{preview.isError && (
+					{fallo && (
 						<Alert variant="destructive">
 							<AlertTriangle className="h-4 w-4" aria-hidden="true" />
 							<AlertDescription>
 								{(preview.error as any)?.response?.data?.message ?? t('campaigns.sendDialog.countError')}
+								<BotonReintentar query={preview} className="mt-2 block" />
 							</AlertDescription>
 						</Alert>
 					)}
 
-					{preview.isSuccess && !sinDestinatarios && (
+					{leido && !sinDestinatarios && (
 						<div className="rounded-2xl border border-border/50 bg-card p-4 text-center">
 							<div className="text-3xl font-bold" data-testid="send-recipient-count">
 								{total.toLocaleString('es-MX')}
@@ -118,7 +123,8 @@ export function SendCampaignDialog({ venueId, campaignId, onClose, onSent }: Pro
 					</Button>
 					<Button
 						onClick={() => enviar.mutate()}
-						disabled={!preview.isSuccess || sinDestinatarios || enviar.isPending}
+						// Un conteo que no se pudo refrescar se ve, pero no se confirma: lo que se confirma debe ser lo que se manda.
+						disabled={!preview.isSuccess || fallo || sinDestinatarios || enviar.isPending}
 						data-testid="send-confirm"
 					>
 						{enviar.isPending ? (
@@ -129,7 +135,7 @@ export function SendCampaignDialog({ venueId, campaignId, onClose, onSent }: Pro
 						) : (
 							<>
 								<Send className="h-4 w-4 mr-2" aria-hidden="true" />
-								{t('campaigns.sendDialog.confirm', { count: total })}
+								{leido ? t('campaigns.sendDialog.confirm', { count: total }) : t('campaigns.sendDialog.title')}
 							</>
 						)}
 					</Button>

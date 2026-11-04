@@ -126,7 +126,8 @@
     "consentNeedsNoticeLink": "Crear aviso de privacidad",
     "consentNeedsNoticeNoPermission": "Pídele a un administrador que cree el aviso de privacidad.",
     "consentNoticeChecking": "Comprobando si tu negocio ya tiene un aviso de privacidad…",
-    "consentNoticeUnknown": "No pudimos comprobar si tu negocio tiene un aviso de privacidad. Pídele a un administrador que revise tus permisos."
+    "consentNoticeUnknown": "No pudimos comprobar si tu negocio tiene un aviso de privacidad. Pídele a un administrador que revise tus permisos.",
+    "consentNoticeFailed": "No pudimos comprobar si tu negocio tiene un aviso de privacidad."
   },
   "delete": {
     "title": "Eliminar Cliente",

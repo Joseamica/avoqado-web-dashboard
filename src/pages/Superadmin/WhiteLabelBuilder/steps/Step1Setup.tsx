@@ -10,6 +10,7 @@
 import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
@@ -93,11 +94,12 @@ export default function Step1Setup({
   const presets = useMemo(() => getAllPresets(), [])
 
   // Fetch venues for selection using superadmin service
-  const { data: allVenues = [], isLoading: isLoadingVenues } = useQuery<SuperadminVenue[]>({
+  const venuesQuery = useQuery<SuperadminVenue[]>({
     queryKey: ['superadmin-venues'],
     queryFn: () => getAllVenues(true), // includeDemos = true to see all venues
     staleTime: 5 * 60 * 1000, // 5 minutes
   })
+  const { data: allVenues = [], isLoading: isLoadingVenues } = venuesQuery
 
   // Map to simple venue options
   const venues: VenueOption[] = useMemo(
@@ -149,6 +151,7 @@ export default function Step1Setup({
           {!isEditMode && (
             <div className="space-y-2">
               <Label htmlFor="venue-select">{t('whiteLabelWizard.setup.selectVenue')}</Label>
+              <AvisoDeCarga query={venuesQuery} hayDatos={venuesQuery.data !== undefined} />
               <Select value={venueId || '__none__'} onValueChange={(val) => val !== '__none__' && handleVenueSelect(val)}>
                 <SelectTrigger id="venue-select">
                   <SelectValue placeholder={t('whiteLabelWizard.setup.venuePlaceholder')} />
@@ -161,7 +164,7 @@ export default function Step1Setup({
                     <SelectItem value="loading" disabled>
                       {t('common.loading')}
                     </SelectItem>
-                  ) : venues.length === 0 ? (
+                  ) : venuesQuery.data === undefined ? null : venues.length === 0 ? (
                     <SelectItem value="empty" disabled>
                       {t('whiteLabelWizard.setup.noVenues')}
                     </SelectItem>

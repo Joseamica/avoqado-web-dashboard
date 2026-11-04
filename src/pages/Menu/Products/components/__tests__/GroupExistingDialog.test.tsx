@@ -233,7 +233,7 @@ describe('GroupExistingDialog', () => {
   it('la categoría se busca como en el editor de familia: si la lista falla se reintenta, y «La del primer producto» la quita', async () => {
     menu.getMenuCategories.mockRejectedValueOnce(new Error('sin red')).mockResolvedValue([{ id: 'c1', name: 'Calzado' }, { id: 'c2', name: 'Ropa' }])
     pintar()
-    fireEvent.click(await screen.findByRole('button', { name: 'familia.reintentar' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'retry' }))
     const categoria = await screen.findByLabelText('agrupar.categoria')
     expect(screen.queryByText('agrupar.errorCategorias')).not.toBeInTheDocument()
     expect(categoria).toHaveAttribute('placeholder', 'agrupar.categoriaPrimera')

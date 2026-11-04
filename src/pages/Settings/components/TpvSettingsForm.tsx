@@ -4,8 +4,10 @@ import { Monitor, Info } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { AvisoDeCarga, BotonReintentar } from '@/components/AvisoDeCarga'
 import { useToast } from '@/hooks/use-toast'
 import { useAccess } from '@/hooks/use-access'
+import { esNoEncontrado, falloDeCarga } from '@/lib/falloDeCarga'
 import { tpvSettingsService, TpvSettings, TpvSettingsUpdate } from '@/services/tpv-settings.service'
 import { textoDelServidor } from '@/utils/apiError'
 import { TpvSettingsFields } from '@/components/tpv/TpvSettingsFields'
@@ -37,15 +39,12 @@ export function TpvSettingsForm({
   const canUpdate = can('tpv-settings:update')
 
   // Fetch current settings
-  const {
-    data: settings,
-    isLoading,
-    error,
-  } = useQuery({
+  const settingsQuery = useQuery({
     queryKey: ['tpvSettings', tpvId],
     queryFn: () => tpvSettingsService.getSettings(tpvId),
     enabled: !!tpvId,
   })
+  const { data: settings, isLoading } = settingsQuery
 
   // Fetch merchants assigned to this terminal for kiosk dropdown (only when kiosk enabled)
   const { data: terminalMerchants = [] } = useQuery({
@@ -106,10 +105,14 @@ export function TpvSettingsForm({
     )
   }
 
-  if (error) {
-    return (
+  // Sin leer no hay ajustes que ofrecer: un cambio se mandaría sobre lo que no se vio. Con lo leído sigue, con su aviso abajo.
+  if (settings === undefined && falloDeCarga(settingsQuery)) {
+    return esNoEncontrado(settingsQuery.error) ? (
+      <AvisoDeCarga query={settingsQuery} hayDatos={false} deUnRegistro />
+    ) : (
       <Alert variant="destructive">
         <AlertDescription>{t('tpvSettings.loadError')}</AlertDescription>
+        <BotonReintentar query={settingsQuery} className="mt-2" />
       </Alert>
     )
   }
@@ -120,6 +123,7 @@ export function TpvSettingsForm({
 
   const content = (
     <>
+      <AvisoDeCarga query={settingsQuery} hayDatos deUnRegistro />
       <TpvSettingsFields
         settings={settings}
         onUpdate={updates => updateMutation.mutate(updates)}

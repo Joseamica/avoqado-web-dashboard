@@ -9,6 +9,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { FilterPill, SingleSelectFilterContent } from '@/components/filters'
+import type { FuenteDeOpciones } from '@/components/filters/EstadoDeOpciones'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { useVenueDateTime } from '@/utils/datetime'
 import {
@@ -31,7 +32,7 @@ const SETTLEMENT_STATUSES: ExternalSettlementStatus[] = ['PENDING', 'ASSUMED', '
  * eligió PARA no exigir confirmación — el filtro de estado deja verlo si alguien
  * lo pide, nunca lo mete solo.
  */
-export function SettlementsQueue({ venueId, areas }: { venueId: string; areas: FulfillmentArea[] }) {
+export function SettlementsQueue({ venueId, areas, areasQuery }: { venueId: string; areas: FulfillmentArea[]; areasQuery?: FuenteDeOpciones }) {
   const { t } = useTranslation('settings')
   const { formatDateTime } = useVenueDateTime()
   const [areaId, setAreaId] = useState<string | null>(null)
@@ -77,6 +78,7 @@ export function SettlementsQueue({ venueId, areas }: { venueId: string; areas: F
             onSelect={setAreaId}
             searchable
             emptyLabel={t('areaTickets.externalSettlements.filters.noAreas')}
+            fuente={areasQuery}
           />
         </FilterPill>
         <FilterPill

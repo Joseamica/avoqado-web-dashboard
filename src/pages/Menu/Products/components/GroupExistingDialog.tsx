@@ -2,6 +2,7 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 import { Plus, X } from 'lucide-react'
 import { useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { AvisoDeCarga, BotonReintentar } from '@/components/AvisoDeCarga'
 import { SearchCombobox } from '@/components/search-combobox'
 import {
   AlertDialog,
@@ -25,6 +26,7 @@ import { useInvalidarCatalogo } from '@/features/product-variants/hooks'
 import { useErrorDeEscritura } from '@/features/product-variants/useErrorDeEscritura'
 import { usePrintStations } from '@/hooks/use-print-stations'
 import { useToast } from '@/hooks/use-toast'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { includesNormalized } from '@/lib/utils'
 import { getMenuCategories, getModifierGroups } from '@/services/menu.service'
 import { applyGroupExisting, applyShopifyProposal, previewGroupExisting, previewShopifyProposal } from '@/services/productGroups.service'
@@ -82,17 +84,16 @@ function SelectorDeCategoria(p: { venueId: string; value?: string; onChange: (id
     [categorias.data, busca, t],
   )
   const nombre = (p.value && categorias.data?.find(c => c.id === p.value)?.name) || ''
-  if (categorias.isError && !categorias.data)
+  if (categorias.data === undefined && falloDeCarga(categorias))
     return (
       <div className="flex flex-wrap items-center gap-2 rounded-lg border border-input p-3">
         <p className="text-sm text-destructive">{t('agrupar.errorCategorias')}</p>
-        <Button type="button" variant="outline" size="sm" onClick={() => void categorias.refetch()}>
-          {t('familia.reintentar')}
-        </Button>
+        <BotonReintentar query={categorias} />
       </div>
     )
   return (
     <div data-tour="group-existing-category">
+      <AvisoDeCarga query={categorias} hayDatos />
       <SearchCombobox
         inputId="agrupar-categoria"
         items={opciones}
@@ -553,7 +554,7 @@ function DialogoShopify({ onClose, venueId, inicial, shopify, onDone }: Props & 
     },
   })
   // Tras un 409 de vista vencida se vuelve a pedir: si ESE reintento falla, `data` sigue siendo la vieja y no se debe confirmar.
-  const lista = !!vista.data && !vista.isFetching && !vista.isError
+  const lista = !!vista.data && !vista.isFetching && !falloDeCarga(vista)
   const confirmar = () => {
     if (enviando.current || !lista || !vista.data) return
     enviando.current = true
@@ -620,12 +621,12 @@ function DialogoShopify({ onClose, venueId, inicial, shopify, onDone }: Props & 
             {t('shopify.cargandoVista')}
           </p>
         )}
-        {vista.isError && !vista.isFetching && (
+        {falloDeCarga(vista) && (
           <div role="alert" className="space-y-2 rounded-xl border border-input bg-card p-4 text-sm">
             <p className="text-destructive">{mensajeDeVariantes(vista.error, t)}</p>
-            <Button variant="outline" size="sm" onClick={() => void vista.refetch()} data-tour="group-existing-retry">
-              {t('fuentes.reintentar')}
-            </Button>
+            <div data-tour="group-existing-retry">
+              <BotonReintentar query={vista} />
+            </div>
           </div>
         )}
         {vencida && (

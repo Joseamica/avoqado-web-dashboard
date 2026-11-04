@@ -37,6 +37,7 @@ import {
 } from '@/services/superadmin.service'
 import { useVenueDateTime } from '@/utils/datetime'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import {
   Activity,
   AlertTriangle,
@@ -733,12 +734,13 @@ const CreditAssessment: React.FC = () => {
   const [page, setPage] = useState(1)
 
   // Queries
-  const { data: summary, isLoading: summaryLoading } = useQuery({
+  const summaryQuery = useQuery({
     queryKey: ['credit-assessment-summary'],
     queryFn: getCreditAssessmentSummary,
   })
+  const { data: summary, isLoading: summaryLoading } = summaryQuery
 
-  const { data: assessmentsData, isLoading: assessmentsLoading } = useQuery({
+  const assessmentsQuery = useQuery({
     queryKey: ['credit-assessments', page, gradeFilter, eligibilityFilter],
     queryFn: () =>
       getCreditAssessments({
@@ -750,6 +752,7 @@ const CreditAssessment: React.FC = () => {
         sortOrder: 'desc',
       }),
   })
+  const { data: assessmentsData, isLoading: assessmentsLoading } = assessmentsQuery
 
   // Mutations
   const refreshMutation = useMutation({
@@ -845,6 +848,7 @@ const CreditAssessment: React.FC = () => {
       </div>
 
       {/* Summary Cards */}
+      <AvisoDeCarga query={summaryQuery} hayDatos={summary !== undefined} />
       <SummaryCards summary={summary} isLoading={summaryLoading} />
 
       {/* Grade Distribution */}
@@ -886,6 +890,11 @@ const CreditAssessment: React.FC = () => {
 
       {/* Assessment List */}
       <div>
+        <AvisoDeCarga
+          query={assessmentsQuery}
+          hayDatos={assessmentsData !== undefined}
+          volverAlInicio={assessmentsData === undefined && page > 1 ? () => setPage(1) : undefined}
+        />
         {assessmentsLoading ? (
           <div className="space-y-3">
             {[1, 2, 3].map(i => (
@@ -900,7 +909,7 @@ const CreditAssessment: React.FC = () => {
               </GlassCard>
             ))}
           </div>
-        ) : filteredAssessments.length === 0 ? (
+        ) : assessmentsData === undefined ? null : filteredAssessments.length === 0 ? (
           <GlassCard className="p-8 text-center">
             <Building2 className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
             <p className="text-muted-foreground">No se encontraron evaluaciones</p>

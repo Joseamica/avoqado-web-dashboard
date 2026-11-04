@@ -3,6 +3,7 @@ import { Loader2, Search, X } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { BotonReintentar } from '@/components/AvisoDeCarga'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,6 +20,7 @@ import { Switch } from '@/components/ui/switch'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
 import { useDebounce } from '@/hooks/useDebounce'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { cn } from '@/lib/utils'
 import {
   getMenuCategories,
@@ -74,8 +76,13 @@ export function MenuTab() {
 
   return (
     <div className="space-y-4" data-tour="online-ordering-menu">
-      {categories.isLoading && <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />}
-      {categories.isError && <p className="text-sm text-destructive">{serverMessage(categories.error, t('menu.loadFailed'))}</p>}
+      {categories.isFetching && !data && <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />}
+      {falloDeCarga(categories) && (
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="text-sm text-destructive">{serverMessage(categories.error, t('menu.loadFailed'))}</p>
+          <BotonReintentar query={categories} />
+        </div>
+      )}
 
       {data && (
         <>
@@ -158,7 +165,7 @@ export function MenuTab() {
       {categoryId && (
         <div className="space-y-3">
           <div className="flex items-center justify-between gap-3">
-            <p className="text-sm text-muted-foreground">{t('menu.product.total', { count: total })}</p>
+            <p className="text-sm text-muted-foreground">{products.data ? t('menu.product.total', { count: total }) : '—'}</p>
             {searchOpen ? (
               <div className="relative animate-in fade-in slide-in-from-left-2 duration-200">
                 <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -201,9 +208,14 @@ export function MenuTab() {
             )}
           </div>
 
-          {products.isLoading && <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />}
-          {products.isError && <p className="text-sm text-destructive">{serverMessage(products.error, t('menu.loadFailed'))}</p>}
-          {products.isSuccess && items.length === 0 && (
+          {products.isFetching && !products.data && <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />}
+          {falloDeCarga(products) && (
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-sm text-destructive">{serverMessage(products.error, t('menu.loadFailed'))}</p>
+              <BotonReintentar query={products} />
+            </div>
+          )}
+          {products.data && items.length === 0 && (
             <p className="rounded-xl border border-input p-4 text-sm text-muted-foreground">
               {search ? t('menu.product.noResults') : t('menu.product.empty')}
             </p>

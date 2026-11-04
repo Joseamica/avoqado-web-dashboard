@@ -13,6 +13,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
+import { AvisoDeCarga, BotonReintentar } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -234,15 +236,12 @@ export function BankAccountsSection({ enabled = true, hideHeader = false }: { en
   const [wizardOpen, setWizardOpen] = useState(false)
   const [resume, setResume] = useState<WizardResume | null>(null)
 
-  const {
-    data: connections,
-    isLoading,
-    isError,
-  } = useQuery({
+  const connectionsQuery = useQuery({
     queryKey: ['financial-connections', venueId],
     queryFn: () => financialConnectionAPI.listConnections(venueId!),
     enabled: enabled && !!venueId,
   })
+  const { data: connections, isLoading } = connectionsQuery
 
   // Filas REVOKED/ERROR son residuos operativos (intentos fallidos, cuentas
   // desconectadas): no se listan — el dueño solo ve conexiones vivas o accionables.
@@ -266,8 +265,17 @@ export function BankAccountsSection({ enabled = true, hideHeader = false }: { en
       )}
       <CardContent className={hideHeader ? 'flex flex-col gap-3 pt-6' : 'flex flex-col gap-3'}>
         {isLoading && <Skeleton className="h-24 w-full" />}
-        {isError && <p className="text-sm text-destructive">{t('section.loadError')}</p>}
-        {!isLoading && !isError && visible.length === 0 && <p className="text-sm text-muted-foreground">{t('section.empty')}</p>}
+        {connections !== undefined ? (
+          <AvisoDeCarga query={connectionsQuery} hayDatos />
+        ) : (
+          falloDeCarga(connectionsQuery) && (
+            <div className="space-y-2">
+              <p className="text-sm text-destructive">{t('section.loadError')}</p>
+              <BotonReintentar query={connectionsQuery} />
+            </div>
+          )
+        )}
+        {connections !== undefined && visible.length === 0 && <p className="text-sm text-muted-foreground">{t('section.empty')}</p>}
         {visible.map(c => (
           <ConnectionCard
             key={c.id}

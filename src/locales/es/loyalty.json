@@ -193,6 +193,7 @@
     "redeem": {
       "title_one": "Premio por cobrar",
       "title_other": "Premios por cobrar",
+      "loadError": "No pudimos revisar si este cliente tiene premios por cobrar.",
       "action": "Aplicar",
       "done": "Premio aplicado",
       "applied": "{{reward}} — la cuenta bajó {{amount}}",

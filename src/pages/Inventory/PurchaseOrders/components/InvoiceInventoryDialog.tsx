@@ -1,10 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { BotonReintentar } from '@/components/AvisoDeCarga'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
 import { useUnitTranslation } from '@/hooks/use-unit-translation'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { purchaseOrderInvoiceService, type PurchaseOrderInvoice } from '@/services/purchaseOrderInvoice.service'
 import { getIntlLocale } from '@/utils/i18n-locale'
 import { Currency } from '@/utils/currency'
@@ -61,6 +63,7 @@ export function InvoiceInventoryDialog({
   })
   const data = review.data
   const error = review.error as { response?: { data?: { message?: string } } } | null
+  const fallo = falloDeCarga(review)
   return (
     <FullScreenModal
       open
@@ -72,7 +75,7 @@ export function InvoiceInventoryDialog({
       actions={
         <Button
           data-tour="invoice-receipt-confirm"
-          disabled={!data || review.isFetching || confirmation.isPending || !!review.error}
+          disabled={!data || review.isFetching || confirmation.isPending || fallo}
           onClick={() => confirmation.mutate()}
         >
           {confirmation.isPending
@@ -82,9 +85,11 @@ export function InvoiceInventoryDialog({
       }
     >
       <div className="mx-auto w-full max-w-4xl p-6 space-y-5">
-        <p className="text-sm text-muted-foreground">
-          {t(data?.action === 'RECEIVE' ? 'invoices.receipt.receiveHint' : 'invoices.receipt.prepareHint')}
-        </p>
+        {data && (
+          <p className="text-sm text-muted-foreground">
+            {t(data.action === 'RECEIVE' ? 'invoices.receipt.receiveHint' : 'invoices.receipt.prepareHint')}
+          </p>
+        )}
         {!!invoice.iepsCents && (
           <label className="flex items-center gap-3 rounded-xl border border-input bg-card p-4" data-tour="invoice-include-ieps">
             <input
@@ -97,10 +102,11 @@ export function InvoiceInventoryDialog({
           </label>
         )}
         {review.isLoading && <p>{t('common:loading')}</p>}
-        {error && (
-          <p role="alert" className="text-destructive">
-            {error.response?.data?.message || t('invoices.receipt.loadError')}
-          </p>
+        {fallo && (
+          <div role="alert" className="space-y-2">
+            <p className="text-destructive">{error?.response?.data?.message || t('invoices.receipt.loadError')}</p>
+            <BotonReintentar query={review} />
+          </div>
         )}
         {data && (
           <>

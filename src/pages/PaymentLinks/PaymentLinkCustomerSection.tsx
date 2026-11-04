@@ -2,11 +2,13 @@ import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-quer
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { z } from 'zod'
+import { AvisoDeCarga, BotonReintentar } from '@/components/AvisoDeCarga'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useAccess } from '@/hooks/use-access'
 import { useDebounce } from '@/hooks/useDebounce'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import customerService from '@/services/customer.service'
 import type { PaymentLinkCustomer } from '@/services/paymentLink.service'
 import { CountryCodePicker, DEFAULT_COUNTRY, type Country } from './CountryCodePicker'
@@ -164,17 +166,16 @@ export function PaymentLinkCustomerSection({ venueId, selected, onChange, readOn
                 />
               </div>
               <div aria-live="polite" aria-busy={customers.isFetching} className="space-y-2">
-                {customers.isError ? (
+                {customers.data === undefined && falloDeCarga(customers) ? (
                   <div role="alert">
                     <p>{t('customer.loadFailed')}</p>
-                    <Button type="button" variant="outline" onClick={() => customers.refetch()}>
-                      {t('customer.retry')}
-                    </Button>
+                    <BotonReintentar query={customers} />
                   </div>
-                ) : customers.isPending ? (
+                ) : customers.data === undefined ? (
                   <p>{t('customer.loading')}</p>
                 ) : (
                   <>
+                    <AvisoDeCarga query={customers} hayDatos />
                     {customers.data?.data.length === 0 && (
                       <p className="text-sm text-muted-foreground">{t(debouncedSearch ? 'customer.noResults' : 'customer.empty')}</p>
                     )}
