@@ -61,10 +61,11 @@
     "card": {
       "off": "Apagado: tus clientes sólo pueden pagar al recoger.",
       "ready": "Tus clientes pueden pagar con tarjeta.",
-      "notConnected": "Para cobrar con tarjeta, conecta tu cuenta de Stripe.",
+      "notConnected": "Para cobrar con tarjeta en línea, date de alta en Stripe.",
       "notChargeable": "Tu cuenta de Stripe todavía no puede cobrar.",
       "connect": "Conectar Stripe",
-      "review": "Revisar Stripe"
+      "review": "Revisar Stripe",
+      "mercadoPagoSoon": "Próximamente: Mercado Pago."
     },
     "minOrder": "Pedido mínimo (MXN)",
     "minOrderHelp": "El precio ya incluye IVA. Déjalo en blanco para no cambiarlo.",
