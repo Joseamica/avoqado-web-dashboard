@@ -30,15 +30,20 @@ export default function CatalogAuditPage() {
   const [error, setError] = useState<unknown>(null)
 
   const [accionesCaidas, setAccionesCaidas] = useState<unknown>(null)
+  const [accionesEnCamino, setAccionesEnCamino] = useState(true)
 
   function cargarAcciones(vigente: () => boolean = () => true) {
     setAccionesCaidas(null)
+    setAccionesEnCamino(true)
     void listCatalogAuditActions(orgId)
       .then(value => {
         if (vigente()) setActions(value)
       })
       .catch(fallo => {
         if (vigente()) setAccionesCaidas(fallo)
+      })
+      .finally(() => {
+        if (vigente()) setAccionesEnCamino(false)
       })
   }
 
@@ -103,6 +108,7 @@ export default function CatalogAuditPage() {
             onChange={event => setSearch(event.target.value)}
             placeholder={t('masterCatalog.audit.searchPlaceholder', { defaultValue: 'Actor, entidad o identificador' })}
           />
+          {accionesEnCamino && <Skeleton className="h-9 w-28" aria-label={t('masterCatalog.audit.actionsLoading', { defaultValue: 'Cargando acciones' })} />}
           <Button onClick={() => void load(1)}>{t('masterCatalog.audit.apply', { defaultValue: 'Aplicar filtros' })}</Button>
         </CardContent>
         {accionesCaidas != null && (

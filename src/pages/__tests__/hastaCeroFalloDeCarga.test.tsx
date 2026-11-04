@@ -1880,11 +1880,24 @@ describe('r10 · Usuarios de la tienda: las tiendas salen de las zonas', () => {
   const ZONAS = /stores-analysis\/zones/
   const abrirTiendas = () => fireEvent.click(screen.getByRole('button', { name: /Tiendas/ }))
 
-  it('zonas caídas: el filtro avisa; al reintentar sigue mirando las zonas, y al llegar se ven', async () => {
-    const rutas: Ruta[] = [
-      [/stores-analysis\/team/, { data: [], team: [], meta: { scope: 'venue', canViewAllOrgStaff: false } }],
-      [ZONAS, { data: [{ id: 'z1', name: 'Norte', venues: [{ id: 'v9', name: 'Tienda Nueve' }] }] }],
-    ]
+  const rutas: Ruta[] = [
+    [/stores-analysis\/team/, { data: [], team: [], meta: { scope: 'venue', canViewAllOrgStaff: false } }],
+    [ZONAS, { data: [{ id: 'z1', name: 'Norte', venues: [{ id: 'v9', name: 'Tienda Nueve' }] }] }],
+  ]
+
+  it('zonas caídas: al reintentar llegan las tiendas, y el aviso se va', async () => {
+    red.caida = ZONAS
+    pintar(<UsersManagement />, { rutas })
+    await sinConsultasEnCamino()
+    abrirTiendas()
+    await screen.findByText(SIN_DATOS)
+    red.caida = null
+    fireEvent.click(await reintentar())
+    await screen.findByText('Tienda Nueve')
+    expect(seVe(SIN_DATOS)).toBe(false)
+  })
+
+  it('zonas caídas: mientras reintenta sigue mirando las zonas: espera, sin afirmar nada', async () => {
     red.caida = ZONAS
     pintar(<UsersManagement />, { rutas })
     await sinConsultasEnCamino()
@@ -1936,6 +1949,26 @@ describe('r10 · Bitácora del catálogo: las acciones del filtro', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
     await waitFor(() => expect(seVe('item created')).toBe(true))
     expect(seVe('No se pudieron cargar las acciones del filtro.')).toBe(false)
+    expect(document.querySelector('.animate-pulse')).toBeNull()
+  })
+
+  it('en camino, aunque las filas ya llegaron: el filtro dice que espera', async () => {
+    red.colgada = ACCIONES
+    pintar(<CatalogAuditPage />, { params: { orgId: 'o1' }, rutas })
+    await screen.findByText('No hay eventos para estos filtros.')
+    esperando()
+  })
+
+  it('caídas y reintentando: el filtro dice que espera', async () => {
+    red.caida = ACCIONES
+    pintar(<CatalogAuditPage />, { params: { orgId: 'o1' }, rutas })
+    await screen.findByText('No se pudieron cargar las acciones del filtro.')
+    expect(document.querySelector('.animate-pulse')).toBeNull()
+    red.caida = null
+    red.colgada = ACCIONES
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
+    await unaVueltaAlLazo()
+    esperando()
   })
 })
 
