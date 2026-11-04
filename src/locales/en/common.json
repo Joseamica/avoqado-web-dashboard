@@ -140,6 +140,24 @@
     "warnings": {
       "pdfLarge": "PDF is limited to 1,000 rows. For larger ranges use CSV or Excel."
     },
+    "run": {
+      "pageTitle": "Your exported file",
+      "queued": "Queued: starting in a moment…",
+      "building": "Building {{done}} of {{total}} rows…",
+      "waitingForPayments": "Waiting for some payments to finish so we don't slow them down…",
+      "progressLabel": "Export progress",
+      "ready": "Your file is ready",
+      "download": "Download",
+      "downloading": "Your download started. If you don't see the file, tap Download.",
+      "canClose": "You can close this window: we'll let you know in the bell and by email when it's ready.",
+      "failed": "We couldn't build your file.",
+      "expired": "This file has expired; export it again.",
+      "retry": "Try again",
+      "reexport": "Export again",
+      "changedToCsv": "It's too large for Excel: we built it as CSV, which opens in Excel just the same.",
+      "notFound": "We couldn't find this file, or you don't have access to it. Export it again from its screen.",
+      "loadError": "We couldn't check your file. Check your connection and reload the page."
+    },
     "errors": {
       "generic": "Could not generate the file",
       "tooLarge": "Too many results",
