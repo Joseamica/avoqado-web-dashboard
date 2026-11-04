@@ -1124,7 +1124,7 @@ export default function Payments() {
             })}
           />
           <p className="text-sm text-muted-foreground">
-            {t('filters.showing')} {filteredPayments.length} {t('filters.of')} {totalPayments} {t('filters.payments')}
+            {data !== undefined && `${t('filters.showing')} ${filteredPayments.length} ${t('filters.of')} ${totalPayments} ${t('filters.payments')}`}
           </p>
         </div>
         {canCreateManualPayment && (

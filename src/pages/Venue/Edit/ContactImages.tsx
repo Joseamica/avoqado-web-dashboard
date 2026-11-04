@@ -13,6 +13,8 @@ import { useAuth } from '@/context/AuthContext'
 import { StaffRole } from '@/types'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { detalleNoCargo } from '@/lib/falloDeCarga'
 import { ArrowLeft, ZoomIn, ZoomOut, RotateCcw, RotateCw } from 'lucide-react'
 import { useCallback, useEffect, useState, useRef } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
@@ -72,7 +74,7 @@ export default function ContactImages() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
 
-  const { data: venue, isLoading } = useQuery({
+  const venueQuery = useQuery({
     queryKey: ['get-venue-data', venueId],
     queryFn: async () => {
       const response = await api.get(`/api/v1/dashboard/venues/${venueId}`)
@@ -84,6 +86,7 @@ export default function ContactImages() {
       return failureCount < 2
     },
   })
+  const { data: venue, isLoading } = venueQuery
 
   const form = useForm<ContactImagesFormValues>({
     resolver: zodResolver(contactImagesFormSchema),
@@ -354,6 +357,15 @@ export default function ContactImages() {
 
   if (isLoading) return <ContactImagesSkeleton />
 
+  // Sólo un 404 dice que no existe. Si la lectura no llegó, el formulario no se ofrece: guardaría sobre datos que no se leyeron.
+  if (detalleNoCargo(venueQuery)) {
+    return (
+      <div className="container mx-auto max-w-3xl pt-6 pb-20 px-4 md:px-6 lg:px-8">
+        <AvisoDeCarga query={venueQuery} hayDatos={false} />
+      </div>
+    )
+  }
+
   if (!venue) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -372,6 +384,7 @@ export default function ContactImages() {
   return (
     <div className="container mx-auto pt-6 pb-20 px-4 md:px-6 lg:px-8 grow overflow-auto">
       <div className="max-w-3xl mx-auto">
+        <AvisoDeCarga query={venueQuery} hayDatos deUnRegistro />
         <Form {...form}>
           {!canEdit && (
             <div className="mb-6 rounded-md border border-border bg-muted/40 text-muted-foreground text-sm px-4 py-3">

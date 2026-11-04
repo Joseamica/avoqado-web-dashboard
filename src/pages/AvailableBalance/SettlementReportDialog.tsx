@@ -1,9 +1,11 @@
+import { BotonReintentar } from '@/components/AvisoDeCarga'
 import { Button } from '@/components/ui/button'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useToast } from '@/hooks/use-toast'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { cn } from '@/lib/utils'
 import {
   countSettlementReport,
@@ -177,8 +179,10 @@ export function SettlementReportDialog({ open, onClose, venueId, venueTimezone }
     placeholderData: keepPreviousData,
   })
   // Un dato viejo (keepPreviousData) o de otros parámetros NO es un conteo confirmado.
-  const pendiente = JSON.stringify(debounced) !== JSON.stringify(params) || conteo.isFetching || conteo.isPlaceholderData
-  const confirmado = !pendiente && !conteo.isError ? conteo.data : undefined
+  // Sin internet o caído no hay conteo que esperar: lo que queda en pantalla es de otros parámetros y se dice, no «Contando…» para siempre.
+  const conteoCaido = falloDeCarga(conteo)
+  const pendiente = JSON.stringify(debounced) !== JSON.stringify(params) || (!conteoCaido && (conteo.isFetching || conteo.isPlaceholderData))
+  const confirmado = !pendiente && !conteo.isError && !conteo.isPaused ? conteo.data : undefined
 
   const debouncedSearch = useDebounce(terminalSearch, 300)
   const terminales = useInfiniteQuery({
@@ -198,7 +202,7 @@ export function SettlementReportDialog({ open, onClose, venueId, venueTimezone }
   if (!rango.startDate || !rango.endDate) mensaje = t('settlementReport.block.fechasVacias')
   else if (dias < 1) mensaje = t('settlementReport.block.rangoInvertido')
   else if (!rangoValido) mensaje = t('settlementReport.block.rangoLargo')
-  else if (conteo.isError && !conteo.isFetching) mensaje = t('settlementReport.block.errorConteo')
+  else if (conteoCaido) mensaje = t('settlementReport.block.errorConteo')
   else if (pendiente) mensaje = t('settlementReport.block.contando')
   else if (bloqueoDatos) mensaje = t(`settlementReport.block.${bloqueoDatos.key}`, { count: bloqueoDatos.count ?? 0, formatted: nf(bloqueoDatos.count ?? 0) })
   const bloqueado = mensaje !== null || descargando || columnas.size === 0
@@ -344,16 +348,13 @@ export function SettlementReportDialog({ open, onClose, venueId, venueTimezone }
                   checked={terminalIds.includes(NONE)}
                   onChange={() => setTerminalIds(l => toggle(l, NONE))}
                 />
-                {terminales.isLoading && <p className="text-xs text-muted-foreground">{t('settlementReport.filters.loadingTerminals')}</p>}
-                {terminales.isError && (
+                {terminales.isFetching && !terminales.data && <p className="text-xs text-muted-foreground">{t('settlementReport.filters.loadingTerminals')}</p>}
+                {falloDeCarga(terminales) && (
                   <p className="text-xs text-destructive">
-                    {t('settlementReport.filters.terminalsError')}{' '}
-                    <button type="button" className="underline" onClick={() => terminales.refetch()}>
-                      {t('settlementReport.retry')}
-                    </button>
+                    {t('settlementReport.filters.terminalsError')} <BotonReintentar query={terminales} className="h-6 px-2 text-xs" />
                   </p>
                 )}
-                {!terminales.isLoading && !terminales.isError && terminalItems.length === 0 && (
+                {terminales.data && terminalItems.length === 0 && (
                   <p className="text-xs text-muted-foreground">{t('settlementReport.filters.noTerminals')}</p>
                 )}
                 {terminalItems.map(it => (
@@ -474,7 +475,7 @@ export function SettlementReportDialog({ open, onClose, venueId, venueTimezone }
         <div className="space-y-2 rounded-b-2xl bg-muted px-5 py-3">
           {mensaje && (
             <p
-              className={cn('text-sm', pendiente && rangoValido && !conteo.isError ? 'text-muted-foreground' : 'text-destructive')}
+              className={cn('text-sm', pendiente && rangoValido && !conteoCaido ? 'text-muted-foreground' : 'text-destructive')}
               role="status"
             >
               {mensaje}{' '}
@@ -483,11 +484,7 @@ export function SettlementReportDialog({ open, onClose, venueId, venueTimezone }
                   {t('settlementReport.block.cambiarCsv')}
                 </button>
               )}
-              {conteo.isError && rangoValido && !conteo.isFetching && (
-                <button type="button" className="underline" onClick={() => conteo.refetch()}>
-                  {t('settlementReport.retry')}
-                </button>
-              )}
+              {conteoCaido && rangoValido && <BotonReintentar query={conteo} className="h-6 px-2 text-xs" />}
             </p>
           )}
           <div className="flex items-center justify-between gap-3">

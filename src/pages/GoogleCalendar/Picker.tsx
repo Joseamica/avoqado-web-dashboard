@@ -4,12 +4,14 @@ import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 
+import { AvisoDeCarga, BotonReintentar } from '@/components/AvisoDeCarga'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import googleCalendarService, { type CalendarPickerItem } from '@/services/googleCalendar.service'
 
 // -----------------------------------------------------------------------------
@@ -50,12 +52,13 @@ export default function GoogleCalendarPicker() {
   // `retry: false` keeps us from looping when the session is missing/expired:
   // a single 4xx surfaces the empty state below.
   // ---------------------------------------------------------------------------
-  const { data, isLoading, isError, error } = useQuery({
+  const calendariosQuery = useQuery({
     queryKey: ['google-calendar', 'picker', sessionToken],
     queryFn: () => googleCalendarService.listCalendars(sessionToken),
     enabled: !!sessionToken,
     retry: false,
   })
+  const { data, error } = calendariosQuery
 
   const calendars: CalendarPickerItem[] = useMemo(() => data?.calendars ?? [], [data])
 
@@ -126,7 +129,7 @@ export default function GoogleCalendarPicker() {
     )
   }
 
-  if (isLoading) {
+  if (data === undefined && !falloDeCarga(calendariosQuery)) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center p-6">
         <div className="flex items-center gap-3 text-muted-foreground">
@@ -137,7 +140,10 @@ export default function GoogleCalendarPicker() {
     )
   }
 
-  if (isError) {
+  if (data === undefined) {
+    // Sólo un 4xx dice que la sesión no sirve; sin red o con un 5xx la sesión sigue viva y reintentar sí puede salir bien.
+    const estatus = (error as any)?.response?.status
+    const sesionInvalida = typeof estatus === 'number' && estatus < 500
     return (
       <div className="min-h-[60vh] flex items-center justify-center p-6">
         <Card className="max-w-md w-full">
@@ -146,9 +152,12 @@ export default function GoogleCalendarPicker() {
               <AlertCircle className="h-5 w-5 text-destructive" />
               {tCommon('error')}
             </CardTitle>
-            <CardDescription>{(error as any)?.response?.data?.message ?? t('picker.invalidSession')}</CardDescription>
+            <CardDescription>
+              {(error as any)?.response?.data?.message ?? (sesionInvalida ? t('picker.invalidSession') : tCommon('loadFailure.empty'))}
+            </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex flex-wrap gap-2">
+            {!sesionInvalida && <BotonReintentar query={calendariosQuery} className="h-10" />}
             <Button asChild variant="outline">
               <Link to={returnPath}>
                 <ArrowLeft className="h-4 w-4 mr-2" />
@@ -172,6 +181,7 @@ export default function GoogleCalendarPicker() {
         <p className="text-muted-foreground mt-1">{t('picker.description')}</p>
       </div>
 
+      <AvisoDeCarga query={calendariosQuery} hayDatos />
       {calendars.length === 0 ? (
         <Card>
           <CardContent className="pt-6">

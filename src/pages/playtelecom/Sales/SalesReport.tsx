@@ -1040,11 +1040,12 @@ export function SalesReport() {
         {/* Pagination */}
         <div className="p-4 border-t border-border bg-muted/30 flex justify-between items-center">
           <p className="text-[10px] text-muted-foreground font-bold">
-            {t('playtelecom:sales.showingOf', {
-              defaultValue: 'Mostrando {{current}} de {{total}} ventas',
-              current: verifications.length,
-              total: pagination?.totalCount ?? 0,
-            })}
+            {verificationsData !== undefined &&
+              t('playtelecom:sales.showingOf', {
+                defaultValue: 'Mostrando {{current}} de {{total}} ventas',
+                current: verifications.length,
+                total: pagination?.totalCount ?? 0,
+              })}
           </p>
           <div className="flex gap-2">
             <Button

@@ -230,9 +230,11 @@ export default function Profitability() {
           </button>
         )}
 
-        <div className="ml-auto text-xs text-muted-foreground tabular-nums">
-          {filteredRows.length} de {allRows.length}
-        </div>
+        {data !== undefined && (
+          <div className="ml-auto text-xs text-muted-foreground tabular-nums">
+            {filteredRows.length} de {allRows.length}
+          </div>
+        )}
       </div>
 
       {/* Table */}

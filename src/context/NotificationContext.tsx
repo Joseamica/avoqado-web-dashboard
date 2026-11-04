@@ -5,6 +5,7 @@ import { Notification, NotificationFilters, PaginationOptions } from '@/services
 import { useSocket } from '@/context/SocketContext'
 import { useAuth } from '@/context/AuthContext'
 import { showBrowserNotification, getNotificationOptions } from '@/utils/notification.utils'
+import type { EstadoDeCarga } from '@/lib/falloDeCarga'
 
 // ===== TYPES =====
 
@@ -18,6 +19,8 @@ interface NotificationState {
 }
 
 interface NotificationContextType extends NotificationState {
+  /** La lectura de la lista. `error` no sirve para saber si llegó: también lo escriben las mutaciones, y sin internet no se llena. */
+  lecturaDeNotificaciones: EstadoDeCarga & { data: unknown }
   // Actions
   markAsRead: (id: string) => Promise<void>
   markAllAsRead: () => Promise<void>
@@ -249,6 +252,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
   // Context value
   const contextValue: NotificationContextType = {
     ...state,
+    lecturaDeNotificaciones: notificationsQuery,
     markAsRead,
     markAllAsRead,
     deleteNotification,

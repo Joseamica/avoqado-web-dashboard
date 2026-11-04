@@ -193,6 +193,7 @@
     "redeem": {
       "title_one": "Reward to claim",
       "title_other": "Rewards to claim",
+      "loadError": "We couldn't check whether this customer has rewards to claim.",
       "action": "Apply",
       "done": "Reward applied",
       "applied": "{{reward}} — the bill went down {{amount}}",

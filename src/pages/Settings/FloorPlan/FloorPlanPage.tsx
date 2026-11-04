@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { AlertCircle, ArrowRight, Inbox, LayoutGrid, Pencil, RotateCcw } from 'lucide-react'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { FeatureGate } from '@/components/billing/FeatureGate'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
@@ -61,7 +62,7 @@ export default function FloorPlanSettings() {
   const canConfigure = can('tables:configure')
   const canEdit = canConfigure && hasFeatureAccess('TABLE_SERVICE') && wide && !!query.data && !query.data.overLimit
   const isEmpty = !!doc && doc.areas.length === 0 && doc.tables.length === 0
-  // Un refresco fallido con el plano ya en pantalla no lo tapa: el error sólo se enseña si no hay nada que mostrar.
+  // Un refresco fallido con el plano ya en pantalla no lo tapa: se avisa encima y el error de página sólo sale si no hay nada que mostrar.
   const failed = query.isError && !query.data
 
   return (
@@ -97,6 +98,7 @@ export default function FloorPlanSettings() {
       )}
 
       <FeatureGate feature="TABLE_SERVICE" requiredTier="PRO">
+        {query.data && <AvisoDeCarga query={query} hayDatos />}
         {query.isPending ? (
           <div className="grid gap-4 sm:grid-cols-2" data-testid="floor-plan-loading">
             <Skeleton className="h-56 rounded-2xl" />

@@ -3,12 +3,14 @@ import { Copy, Pencil, Receipt } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 
+import { AvisoDeCarga, BotonReintentar } from '@/components/AvisoDeCarga'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useAccess } from '@/hooks/use-access'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { esNoEncontrado, falloDeCarga } from '@/lib/falloDeCarga'
 import paymentLinkService, { type PaymentLink } from '@/services/paymentLink.service'
 import { useVenueDateTime } from '@/utils/datetime'
 import { getIntlLocale } from '@/utils/i18n-locale'
@@ -78,18 +80,21 @@ export function PaymentLinkDetailSheet({ link, open, onOpenChange, onEdit, onCop
 
           <section className="space-y-3">
             <h3 className="text-sm font-medium">{t('detail.paymentsTitle')}</h3>
-            {detalle.isLoading ? (
+            {detalle.data !== undefined && <AvisoDeCarga query={detalle} hayDatos deUnRegistro />}
+            {detalle.data === undefined && !falloDeCarga(detalle) ? (
               <div className="space-y-2">
                 <Skeleton className="h-12 w-full" />
                 <Skeleton className="h-12 w-full" />
               </div>
-            ) : detalle.isError ? (
-              <div className="space-y-2 rounded-lg border border-border p-4 text-sm">
-                <p className="text-muted-foreground">{t('detail.loadError')}</p>
-                <Button size="sm" variant="outline" onClick={() => detalle.refetch()}>
-                  {t('detail.retry')}
-                </Button>
-              </div>
+            ) : detalle.data === undefined ? (
+              esNoEncontrado(detalle.error) ? (
+                <AvisoDeCarga query={detalle} hayDatos={false} deUnRegistro />
+              ) : (
+                <div className="space-y-2 rounded-lg border border-border p-4 text-sm">
+                  <p className="text-muted-foreground">{t('detail.loadError')}</p>
+                  <BotonReintentar query={detalle} />
+                </div>
+              )
             ) : pagos.length === 0 ? (
               <p className="text-sm text-muted-foreground">{t('detail.noPayments')}</p>
             ) : (

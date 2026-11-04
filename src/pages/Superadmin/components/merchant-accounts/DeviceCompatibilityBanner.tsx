@@ -23,6 +23,7 @@
  * cross-cutting signal we emit.
  */
 
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { getCompatibleBrandsFor } from '@/lib/providerDeviceCompatibility'
@@ -62,15 +63,13 @@ export const DeviceCompatibilityBanner: React.FC<DeviceCompatibilityBannerProps>
 
   // Only fetch when both a constrained provider AND a venue are selected.
   // Re-fetches whenever the operator switches venue or provider.
-  const {
-    data: terminals = [],
-    isLoading,
-    isError,
-  } = useQuery({
+  const terminalsQuery = useQuery({
     queryKey: ['superadmin-terminals', 'by-venue', venueId, providerCode],
     queryFn: () => terminalAPI.getAllTerminals({ venueId }),
     enabled: constrained && !!venueId,
   })
+  const { data: terminals = [] } = terminalsQuery
+  const leidas = terminalsQuery.data !== undefined
 
   const compatibleCount = useMemo(() => {
     if (!constrained || !compatibleBrands) return 0
@@ -79,15 +78,15 @@ export const DeviceCompatibilityBanner: React.FC<DeviceCompatibilityBannerProps>
     ).length
   }, [constrained, compatibleBrands, terminals])
 
-  // Compute the boolean we report up. While loading we report `true`
-  // (don't pre-disable submit on a not-yet-known answer); the destructive
-  // state only fires after the fetch resolves with 0 matches.
+  // Compute the boolean we report up. Unread (loading, failed or paused offline)
+  // we report `true` (don't pre-disable submit on a not-yet-known answer); the
+  // destructive state only fires after the fetch resolves with 0 matches.
   const compatible = useMemo(() => {
     if (!constrained) return true
     if (!venueId) return true
-    if (isLoading || isError) return true
+    if (!leidas) return true
     return compatibleCount > 0
-  }, [constrained, venueId, isLoading, isError, compatibleCount])
+  }, [constrained, venueId, leidas, compatibleCount])
 
   useEffect(() => {
     onCompatibilityChange?.(compatible)
@@ -97,47 +96,53 @@ export const DeviceCompatibilityBanner: React.FC<DeviceCompatibilityBannerProps>
   // parent's `compatible` signal stays stable independent of what we paint.
   if (!constrained) return null
   if (!venueId) return null
-  if (isLoading) return null
+  if (!leidas) return <AvisoDeCarga query={terminalsQuery} hayDatos={false} />
 
   const brandLabel = compatibleBrands!.join(' o ')
 
   if (compatibleCount === 0) {
     return (
-      <Alert variant="destructive">
-        <AlertTriangle className="h-4 w-4" />
-        <AlertTitle>Sin terminales compatibles</AlertTitle>
-        <AlertDescription>
-          <p>
-            {providerCode} solo opera en terminales <strong>{brandLabel}</strong>. Este venue no tiene ninguna terminal{' '}
-            <strong>{brandLabel}</strong> activa.
-          </p>
-          <p className="text-xs">
-            Registra primero una terminal {brandLabel} para este venue antes de crear la cuenta de comercio.
-          </p>
-          {onRegisterTerminal && (
-            <div className="mt-2">
-              <Button type="button" size="sm" variant="outline" onClick={onRegisterTerminal}>
-                Registrar terminal {brandLabel}
-              </Button>
-            </div>
-          )}
-        </AlertDescription>
-      </Alert>
+      <>
+        <AvisoDeCarga query={terminalsQuery} hayDatos />
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Sin terminales compatibles</AlertTitle>
+          <AlertDescription>
+            <p>
+              {providerCode} solo opera en terminales <strong>{brandLabel}</strong>. Este venue no tiene ninguna terminal{' '}
+              <strong>{brandLabel}</strong> activa.
+            </p>
+            <p className="text-xs">
+              Registra primero una terminal {brandLabel} para este venue antes de crear la cuenta de comercio.
+            </p>
+            {onRegisterTerminal && (
+              <div className="mt-2">
+                <Button type="button" size="sm" variant="outline" onClick={onRegisterTerminal}>
+                  Registrar terminal {brandLabel}
+                </Button>
+              </div>
+            )}
+          </AlertDescription>
+        </Alert>
+      </>
     )
   }
 
   return (
-    <Alert variant="default">
-      <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-      <AlertTitle>Hardware compatible</AlertTitle>
-      <AlertDescription>
-        {providerCode} solo opera en terminales <strong>{brandLabel}</strong>. Este venue tiene{' '}
-        <strong>
-          {compatibleCount} {compatibleCount === 1 ? `terminal ${brandLabel} activa` : `terminales ${brandLabel} activas`}
-        </strong>
-        .
-      </AlertDescription>
-    </Alert>
+    <>
+      <AvisoDeCarga query={terminalsQuery} hayDatos />
+      <Alert variant="default">
+        <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+        <AlertTitle>Hardware compatible</AlertTitle>
+        <AlertDescription>
+          {providerCode} solo opera en terminales <strong>{brandLabel}</strong>. Este venue tiene{' '}
+          <strong>
+            {compatibleCount} {compatibleCount === 1 ? `terminal ${brandLabel} activa` : `terminales ${brandLabel} activas`}
+          </strong>
+          .
+        </AlertDescription>
+      </Alert>
+    </>
   )
 }
 

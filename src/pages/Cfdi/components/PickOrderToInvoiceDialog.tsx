@@ -3,12 +3,14 @@ import { useTranslation } from 'react-i18next'
 import { keepPreviousData, useInfiniteQuery } from '@tanstack/react-query'
 import { AlertTriangle, Loader2, Search, X } from 'lucide-react'
 
+import { AvisoDeCarga, BotonReintentar } from '@/components/AvisoDeCarga'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { Input } from '@/components/ui/input'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useDebounce } from '@/hooks/useDebounce'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { getOrders } from '@/services/order.service'
 import type { Order } from '@/types'
 import { Currency } from '@/utils/currency'
@@ -64,7 +66,7 @@ export function PickOrderToInvoiceDialog({ open, onOpenChange, onSelect }: PickO
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const search = useDebounce(searchTerm, 300).trim()
 
-  const { data, isLoading, isError, refetch, isRefetching, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
+  const ventasQuery = useInfiniteQuery({
     queryKey: ['cfdis', venueId, 'ventas-por-facturar', search],
     initialPageParam: 1,
     queryFn: async ({ pageParam }) =>
@@ -86,6 +88,7 @@ export function PickOrderToInvoiceDialog({ open, onOpenChange, onSelect }: PickO
     retry: 1,
     refetchOnWindowFocus: false,
   })
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage } = ventasQuery
 
   // Sin repetidos al juntar páginas: una venta que cambió entre una página y otra puede salir dos veces.
   const ventas = useMemo(() => {
@@ -97,7 +100,7 @@ export function PickOrderToInvoiceDialog({ open, onOpenChange, onSelect }: PickO
   const cerrar = () => onOpenChange(false)
 
   const contenido = () => {
-    if (isLoading) {
+    if (data === undefined && !falloDeCarga(ventasQuery)) {
       return (
         <div className="flex items-center justify-center gap-2 py-16 text-muted-foreground" role="status">
           <Loader2 className="h-4 w-4 animate-spin" />
@@ -105,28 +108,31 @@ export function PickOrderToInvoiceDialog({ open, onOpenChange, onSelect }: PickO
         </div>
       )
     }
-    if (isError) {
+    if (data === undefined) {
       return (
         <div className="rounded-2xl border border-destructive/40 bg-destructive/10 p-6 text-center text-destructive" role="alert">
           <div className="flex items-center justify-center gap-2 font-medium">
             <AlertTriangle className="h-4 w-4" />
             {t('pickOrder.error')}
           </div>
-          <Button variant="outline" size="sm" className="mt-4" onClick={() => refetch()} disabled={isRefetching}>
-            {t('pickOrder.retry')}
-          </Button>
+          <BotonReintentar query={ventasQuery} className="mt-4" />
         </div>
       )
     }
+    const aviso = <AvisoDeCarga query={ventasQuery} hayDatos />
     if (ventas.length === 0) {
       return (
-        <div className="rounded-2xl border border-input bg-card p-10 text-center text-muted-foreground" data-testid="pick-order-empty">
-          {search ? t('pickOrder.noMatches', { search }) : t('pickOrder.empty')}
-        </div>
+        <>
+          {aviso}
+          <div className="rounded-2xl border border-input bg-card p-10 text-center text-muted-foreground" data-testid="pick-order-empty">
+            {search ? t('pickOrder.noMatches', { search }) : t('pickOrder.empty')}
+          </div>
+        </>
       )
     }
     return (
       <>
+        {aviso}
         <p className="text-sm text-muted-foreground">{t('pickOrder.count', { count: total })}</p>
         <ul className="divide-y divide-border/60 overflow-hidden rounded-2xl border border-input bg-card">
           {ventas.map(venta => {

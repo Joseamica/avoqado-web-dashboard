@@ -10,7 +10,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { AvisoDeCarga, BotonReintentar } from '@/components/AvisoDeCarga'
 import { useAuth } from '@/context/AuthContext'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { useNavigate } from 'react-router-dom'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useSuperadminDashboard } from '@/hooks/use-superadmin-queries'
@@ -63,15 +65,14 @@ const SuperadminHeader: React.FC = () => {
   const {
     notifications: allNotifications,
     unreadCount,
-    loading: isLoadingNotifications,
-    error: notificationError,
+    lecturaDeNotificaciones,
     markAsRead,
-    refreshNotifications: refetch,
   } = useNotifications()
 
   // Limitar a 5 notificaciones para el dropdown del header
   const notifications = allNotifications.slice(0, 5)
-  const isError = !!notificationError
+  // Lo que ya está en la lista se queda (también lo que llegó por socket): sólo sin lista se habla de la lectura.
+  const notificacionesSinLeer = lecturaDeNotificaciones.data === undefined && notifications.length === 0
 
   // Fetch all venues for search
   const { data: allVenuesData = [] } = useQuery({
@@ -338,11 +339,16 @@ const SuperadminHeader: React.FC = () => {
               <div className="p-4 border-b border-border">
                 <h3 className="font-semibold text-foreground">{t('header.notifications')}</h3>
                 <p className="text-sm text-muted-foreground">
-                  {unreadCount > 0 ? t('header.notificationsSummary', { count: unreadCount }) : t('header.noNotifications')}
+                  {unreadCount > 0
+                    ? t('header.notificationsSummary', { count: unreadCount })
+                    : notificacionesSinLeer
+                      ? '—'
+                      : t('header.noNotifications')}
                 </p>
               </div>
               <div className="max-h-96 overflow-y-auto">
-                {isLoadingNotifications ? (
+                {!notificacionesSinLeer && <AvisoDeCarga query={lecturaDeNotificaciones} hayDatos />}
+                {notificacionesSinLeer && !falloDeCarga(lecturaDeNotificaciones) ? (
                   <div className="p-3 space-y-3">
                     {Array.from({ length: 3 }).map((_, i) => (
                       <div key={i} className="flex items-start space-x-3">
@@ -355,12 +361,10 @@ const SuperadminHeader: React.FC = () => {
                       </div>
                     ))}
                   </div>
-                ) : isError ? (
+                ) : notificacionesSinLeer ? (
                   <div className="text-center py-8">
                     <p className="text-muted-foreground mb-2">{t('header.notificationsError')}</p>
-                    <Button variant="ghost" size="sm" onClick={() => refetch()} className="text-xs">
-                      {t('header.retry')}
-                    </Button>
+                    <BotonReintentar query={lecturaDeNotificaciones} />
                   </div>
                 ) : notifications.length > 0 ? (
                   notifications.map((notification, index) => (

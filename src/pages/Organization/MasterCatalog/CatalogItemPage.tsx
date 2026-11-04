@@ -2,12 +2,14 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
+import { AvisoDeCarga, BotonReintentar } from '@/components/AvisoDeCarga'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { createCatalogItem, getCatalogItem, listCatalogReferences, updateCatalogItem } from '@/features/master-catalog/api'
 import { catalogLeafFamilies, prepareCatalogItemUpdate } from '@/features/master-catalog/catalog-item-command'
 import type { CatalogItemCommand } from '@/features/master-catalog/types'
+import { esNoEncontrado, falloDeCarga } from '@/lib/falloDeCarga'
 import { useMasterCatalogAccess } from '@/features/master-catalog/use-master-catalog-access'
 import CatalogItemForm from './components/CatalogItemForm'
 
@@ -50,18 +52,25 @@ export default function CatalogItemPage() {
     },
   })
 
-  if (references.isPending || (!isCreate && item.isPending))
+  // Sólo lo que nunca llegó detiene la página: con lo ya leído el formulario sigue, con su aviso abajo.
+  if (!isCreate && item.data === undefined && falloDeCarga(item) && esNoEncontrado(item.error))
+    return <AvisoDeCarga query={item} hayDatos={false} deUnRegistro />
+  const sinLeer = [references, ...(isCreate ? [] : [item])].find(query => query.data === undefined && falloDeCarga(query))
+  if (sinLeer)
+    return (
+      <div role="alert" className="space-y-3">
+        <p className="text-destructive">
+          {t('masterCatalog.item.loadError', { defaultValue: 'No se pudo cargar el artículo o sus catálogos de referencia.' })}
+        </p>
+        <BotonReintentar query={sinLeer} />
+      </div>
+    )
+  if (references.data === undefined || (!isCreate && item.data === undefined))
     return (
       <div className="space-y-4">
         <Skeleton className="h-10 w-72" />
         <Skeleton className="h-96 w-full" />
       </div>
-    )
-  if (references.isError || item.isError || !references.data)
-    return (
-      <p role="alert" className="text-destructive">
-        {t('masterCatalog.item.loadError', { defaultValue: 'No se pudo cargar el artículo o sus catálogos de referencia.' })}
-      </p>
     )
 
   return (
@@ -85,6 +94,8 @@ export default function CatalogItemPage() {
           </Link>
         </Button>
       </header>
+      <AvisoDeCarga query={references} hayDatos />
+      {!isCreate && <AvisoDeCarga query={item} hayDatos deUnRegistro />}
       {!canMutateContent && (
         <Card>
           <CardHeader>

@@ -1368,10 +1368,12 @@ const OrganizationManagement: React.FC = () => {
   const queryClient = useQueryClient()
 
   // Fetch all organizations
-  const { data: organizations = [], isLoading } = useQuery({
+  const organizacionesQuery = useQuery({
     queryKey: ['superadmin-organizations'],
     queryFn: organizationAPI.getAllOrganizations,
   })
+  const { data: organizations = [], isLoading } = organizacionesQuery
+  const leidas = organizacionesQuery.data !== undefined
 
   // State
   const [searchTerm, setSearchTerm] = useState('')
@@ -1554,22 +1556,22 @@ const OrganizationManagement: React.FC = () => {
       <div className="flex flex-wrap items-center gap-6 px-1">
         <div className="flex items-center gap-2">
           <Building2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-          <span className="text-lg font-bold">{stats.total}</span>
+          <span className="text-lg font-bold">{leidas ? stats.total : '—'}</span>
           <span className="text-xs text-muted-foreground">orgs</span>
         </div>
         <div className="flex items-center gap-2">
           <Store className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-          <span className="text-lg font-bold">{stats.totalVenues}</span>
+          <span className="text-lg font-bold">{leidas ? stats.totalVenues : '—'}</span>
           <span className="text-xs text-muted-foreground">sucursales</span>
         </div>
         <div className="flex items-center gap-2">
           <Users className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-          <span className="text-lg font-bold">{stats.totalStaff}</span>
+          <span className="text-lg font-bold">{leidas ? stats.totalStaff : '—'}</span>
           <span className="text-xs text-muted-foreground">usuarios</span>
         </div>
         <div className="flex items-center gap-2">
           <Package className="w-4 h-4 text-orange-600 dark:text-orange-400" />
-          <span className="text-lg font-bold">{stats.withModules}</span>
+          <span className="text-lg font-bold">{leidas ? stats.withModules : '—'}</span>
           <span className="text-xs text-muted-foreground">con módulos</span>
         </div>
       </div>
@@ -1612,12 +1614,13 @@ const OrganizationManagement: React.FC = () => {
       </div>
 
       {/* Organizations Grid */}
+      <AvisoDeCarga query={organizacionesQuery} hayDatos={leidas} />
       {isLoading ? (
         <div className="flex items-center justify-center py-16">
           <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
           <span className="ml-3 text-muted-foreground">Cargando organizaciones...</span>
         </div>
-      ) : filteredOrganizations.length === 0 ? (
+      ) : !leidas ? null : filteredOrganizations.length === 0 ? (
         <GlassCard className="p-12 text-center">
           <div className="p-4 rounded-full bg-muted/50 w-fit mx-auto mb-4">
             <Building2 className="w-10 h-10 text-muted-foreground" />

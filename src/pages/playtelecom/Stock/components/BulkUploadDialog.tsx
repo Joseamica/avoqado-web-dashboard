@@ -11,6 +11,7 @@
 import { useState, useCallback, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
@@ -89,11 +90,12 @@ export function BulkUploadDialog({ open, onOpenChange, preselectedCategoryId }: 
   }, [invalidCharFlash])
 
   // Fetch categories
-  const { data: categoriesData } = useQuery({
+  const categoriesQuery = useQuery({
     queryKey: ['item-categories', venueId],
     queryFn: () => getItemCategories(venueId!, { includeStats: false }),
     enabled: !!venueId && open,
   })
+  const { data: categoriesData } = categoriesQuery
 
   const categories = useMemo(() => categoriesData?.categories || [], [categoriesData])
 
@@ -302,7 +304,8 @@ export function BulkUploadDialog({ open, onOpenChange, preselectedCategoryId }: 
                 ))}
               </SelectContent>
             </Select>
-            {categories.length === 0 && (
+            <AvisoDeCarga query={categoriesQuery} hayDatos={categoriesData !== undefined} />
+            {categoriesData !== undefined && categories.length === 0 && (
               <p className="text-xs text-muted-foreground">
                 {t('playtelecom:bulkUpload.noCategoriesHint', {
                   defaultValue: 'Primero debes crear una categoría',

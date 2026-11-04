@@ -8,7 +8,9 @@ import { useEffect, useMemo, useState, type MutableRefObject } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { cn, includesNormalized } from '@/lib/utils'
+import { AvisoDeCarga, BotonReintentar } from '@/components/AvisoDeCarga'
 import { Button } from '@/components/ui/button'
 import {
   AlertDialog,
@@ -237,14 +239,14 @@ export function CreateReservationForm({
   }, [watchStartTime, watchDuration, setValue])
 
   // Fetch staff members
-  const { data: staffData } = useQuery({
+  const staffQuery = useQuery({
     queryKey: ['team', venueId, 'active'],
     queryFn: () => teamService.getTeamMembers(venueId!, 1, 100),
     enabled: !!venueId,
     staleTime: 60_000,
   })
 
-  const staffMembers = useMemo(() => staffData?.data ?? [], [staffData])
+  const staffMembers = useMemo(() => staffQuery.data?.data ?? [], [staffQuery.data])
 
   const productStaffQuery = useQuery({
     queryKey: ['reservation-product-staff', venueId, watchProductId],
@@ -772,15 +774,19 @@ export function CreateReservationForm({
               }}
               placeholder={t('form.selectStaff', { defaultValue: 'Buscar personal…' })}
               noneLabel={t('noStaff', { defaultValue: 'Sin asignar' })}
-              isLoading={isAppointmentProduct && staffAware && productStaffQuery.isLoading}
+              isLoading={staffQuery.isLoading || (requiresProductStaffMapping && productStaffQuery.isLoading)}
               reasonLabels={{
                 NOT_ELIGIBLE: t('form.staffNotEligible'),
                 UNAVAILABLE: t('form.staffUnavailable'),
               }}
             />
-            {requiresProductStaffMapping && productStaffQuery.isError ? (
-              <p className="text-xs text-destructive">{t('form.staffMappingLoadError')}</p>
+            {requiresProductStaffMapping && falloDeCarga(productStaffQuery) ? (
+              <div className="space-y-2">
+                <p className="text-xs text-destructive">{t('form.staffMappingLoadError')}</p>
+                <BotonReintentar query={productStaffQuery} />
+              </div>
             ) : null}
+            <AvisoDeCarga query={staffQuery} hayDatos={staffQuery.data !== undefined} />
             {requiresProductStaffMapping && productStaffQuery.data && productStaffQuery.data.staff.length === 0 ? (
               <p className="text-xs text-destructive">{t('form.staffMappingRequired')}</p>
             ) : null}
