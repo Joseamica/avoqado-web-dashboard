@@ -1,6 +1,6 @@
 import i18n from '@/i18n'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -295,6 +295,21 @@ describe('el diálogo «Duplicar tienda»', () => {
     await abrirYLlenar(user)
     await user.dblClick(crear())
     expect(crear()).toBeDisabled()
+    expect(duplicar).toHaveBeenCalledTimes(1)
+  })
+
+  it('🔴 dos clics en el mismo instante (antes de que se pinte el botón apagado) mandan un solo POST', async () => {
+    const user = userEvent.setup()
+    duplicar.mockReturnValue(new Promise(() => {}))
+    pintar('org')
+    await abrirYLlenar(user)
+    const boton = crear()
+    act(() => {
+      boton.click()
+      boton.click()
+    })
+    await waitFor(() => expect(duplicar).toHaveBeenCalled())
+    await new Promise(r => setTimeout(r, 50))
     expect(duplicar).toHaveBeenCalledTimes(1)
   })
 

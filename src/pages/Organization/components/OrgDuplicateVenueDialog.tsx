@@ -27,7 +27,7 @@ import {
 } from '@/services/organization.service'
 import { useIsMutating, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { CheckCircle2, Copy, Loader2, X } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { nombreChoca } from './venueDuplication.rules'
@@ -141,9 +141,13 @@ function DuplicateVenueForm({
 
   const canSubmit = !!template && trimmedName.length >= 3 && !clash.choca && placeComplete && !!supervisorStaffId && !mutation.isPending
 
+  // Dos clics en el mismo instante salen antes de que React pinte el botón apagado (full-testing 4-nov): un seguro propio.
+  const enviando = useRef(false)
   const submit = () => {
-    if (!canSubmit || !place) return
-    mutation.mutate({
+    if (!canSubmit || !place || enviando.current) return
+    enviando.current = true
+    mutation.mutate(
+      {
       idempotencyKey,
       templateVenueId,
       name: trimmedName,
@@ -158,7 +162,9 @@ function DuplicateVenueForm({
         ...(place.timezone ? { timezone: place.timezone } : {}),
       },
       supervisorStaffId,
-    })
+      },
+      { onSettled: () => (enviando.current = false) },
+    )
   }
 
   // Por `code` (o `error`, que algunas rutas usan de código) con texto propio en el idioma de la pantalla; un código que no
