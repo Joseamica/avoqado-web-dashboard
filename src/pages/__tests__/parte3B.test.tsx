@@ -9,7 +9,7 @@
  * La pantalla y TanStack son de verdad: sólo se finge la red (`@/api`) y quién mira. Arnés copiado de hastaCeroFalloDeCarga.test.tsx.
  */
 import { onlineManager, QueryClient, QueryClientProvider, useInfiniteQuery } from '@tanstack/react-query'
-import { act, cleanup, configure, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, configure, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import type { ReactElement, ReactNode } from 'react'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -755,13 +755,28 @@ describe('Configuración de TPV (metas por tienda)', () => {
     expect(screen.getByText('Tienda Norte')).toBeInTheDocument()
   })
 
-  it('resumen general: categorías y mensajes sin leer dicen «—», no «0 total» ni «0 enviados», y avisan', async () => {
+  const tarjeta = (nombre: string) => screen.getAllByText(new RegExp(nombre)).find(n => n.tagName === 'H3')?.closest('.cursor-pointer') as HTMLElement
+
+  it('resumen general: categorías y mensajes sin leer dicen «—», no «0 total» ni «0 enviados»', async () => {
     red.caida = /item-categories|messages/
     pintar(<TpvConfiguration />)
-    await waitFor(() => expect(screen.getAllByText(SIN_DATOS).length).toBeGreaterThan(0))
+    await waitFor(() => expect(screen.getAllByText(SIN_DATOS).length).toBe(2))
     expect(seVe('0 total')).toBe(false)
     expect(seVe('0 enviados')).toBe(false)
-    expect(screen.getAllByText('—').length).toBeGreaterThanOrEqual(2)
+  })
+
+  it('resumen general: el aviso va en la tarjeta de ESA lectura, y reintentar no abre su pestaña', async () => {
+    red.caida = /item-categories/
+    pintar(<TpvConfiguration />)
+    await screen.findByText(SIN_DATOS)
+    const categorias = tarjeta('Categorias|summary\\.categories')
+    expect(within(categorias).getByText(SIN_DATOS)).toBeInTheDocument()
+    expect(within(categorias).getByText('—')).toBeInTheDocument()
+    expect(within(tarjeta('Mensajes|summary\\.messages')).queryByText(SIN_DATOS)).toBeNull()
+    red.caida = null
+    fireEvent.click(within(categorias).getByRole('button', { name: 'retry' }))
+    await waitFor(() => expect(screen.queryByText(SIN_DATOS)).toBeNull())
+    expect(screen.getAllByText(/Categorias|summary\.categories/).length).toBeGreaterThan(0)
   })
 
   it('resumen general en camino o caído: sin «0 de 0 tiendas»', async () => {

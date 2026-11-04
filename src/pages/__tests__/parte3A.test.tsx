@@ -29,6 +29,7 @@ const red = vi.hoisted(() => {
     features: [],
   }
   return {
+    envios: [] as Array<{ url: string; cuerpo: unknown }>,
     rutas: [] as Array<[RegExp, unknown]>,
     caida: null as RegExp | null,
     colgada: null as RegExp | null,
@@ -49,7 +50,7 @@ vi.mock('@/api', () => {
     const ruta = red.rutas.find(([patron]) => patron.test(clave))
     return { data: ruta ? ruta[1] : red.cuerpoVacio }
   }
-  const cliente = { get: responder, post: responder, put: responder, patch: responder, delete: responder, interceptors: { request: { use() {} }, response: { use() {} } } }
+  const cliente = { get: responder, post: responder, put: (url: string, cuerpo?: unknown) => { red.envios.push({ url, cuerpo }); return responder(url) }, patch: responder, delete: responder, interceptors: { request: { use() {} }, response: { use() {} } } }
   return { default: cliente, publicApi: cliente, getConnectionStatus: () => ({ isOnline: true, isServerReachable: true }), subscribeToConnection: () => () => {} }
 })
 vi.mock('@/context/AuthContext', () => ({
@@ -257,6 +258,27 @@ describe('ProductWizardDialog · editar un producto', () => {
     await waitFor(() => expect(screen.getByDisplayValue('Café real')).toBeInTheDocument())
     expect(await guardar()).toBeEnabled()
     expect(screen.queryByText(SIN_DATOS)).toBeNull()
+  })
+
+  const guardarYVerCuerpo = async () => {
+    await waitFor(() => expect(screen.getByDisplayValue('Café real')).toBeInTheDocument())
+    await waitFor(async () => expect(await guardar()).toBeEnabled())
+    red.envios = []
+    fireEvent.submit(document.querySelector('form#step1-form') as HTMLFormElement)
+    await waitFor(() => expect(red.envios.some(e => /products\/p1$/.test(e.url))).toBe(true))
+    return red.envios.find(e => /products\/p1$/.test(e.url))?.cuerpo as Record<string, unknown>
+  }
+
+  it('sin poder leer su inventario: guardar el nombre NO apaga el inventario', async () => {
+    red.caida = /wizard\/progress|products\/p1\/recipe/
+    red.estatus = 403
+    abrir()
+    expect(await guardarYVerCuerpo()).not.toHaveProperty('trackInventory')
+  })
+
+  it('con el inventario leído y sin llevarlo: guardar sigue mandando que no lo lleva', async () => {
+    abrir()
+    expect((await guardarYVerCuerpo()).trackInventory).toBe(false)
   })
 
   describe('un producto con receta', () => {

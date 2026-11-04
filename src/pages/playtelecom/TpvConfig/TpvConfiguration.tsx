@@ -573,8 +573,6 @@ export function TpvConfiguration() {
             </div>
           </GlassCard>
 
-          <AvisoDeCarga query={categoriesQuery} hayDatos={categoriesData !== undefined} />
-          <AvisoDeCarga query={messagesQuery} hayDatos={messagesData !== undefined} />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* TPV Modules Card */}
             <GlassCard className="p-5 cursor-pointer transition-all hover:border-primary/30" onClick={() => handleTabChange('tpv')}>
@@ -659,6 +657,10 @@ export function TpvConfiguration() {
                 </div>
                 <ArrowRight className="w-4 h-4 text-muted-foreground" />
               </div>
+              {/* La tarjeta entera es clicable: «Reintentar» no debe abrir su pestaña. */}
+              <div onClick={e => e.stopPropagation()}>
+                <AvisoDeCarga query={categoriesQuery} hayDatos={categoriesData !== undefined} />
+              </div>
               <div className="space-y-2">
                 <div className="flex items-baseline gap-2">
                   <span className="text-2xl font-bold">{categoriesData === undefined ? '—' : summaryStats.activeCategories}</span>
@@ -692,6 +694,10 @@ export function TpvConfiguration() {
                   <h3 className="text-sm font-semibold">{t('playtelecom:tpvConfig.summary.messages', { defaultValue: 'Mensajes' })}</h3>
                 </div>
                 <ArrowRight className="w-4 h-4 text-muted-foreground" />
+              </div>
+              {/* La tarjeta entera es clicable: «Reintentar» no debe abrir su pestaña. */}
+              <div onClick={e => e.stopPropagation()}>
+                <AvisoDeCarga query={messagesQuery} hayDatos={messagesData !== undefined} />
               </div>
               <div className="space-y-2">
                 <div className="flex items-baseline gap-2">

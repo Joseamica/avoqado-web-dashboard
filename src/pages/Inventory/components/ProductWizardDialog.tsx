@@ -1077,7 +1077,8 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
         api
           .put(`/api/v1/dashboard/venues/${venueId}/products/${productId}`, {
             ...productData,
-            trackInventory: false,
+            // Sin poder leer su inventario no se sabe si lo lleva: mandar `false` lo apagaría sin haberlo visto.
+            ...(esSinPermiso(progresoQuery.error) || esSinPermiso(recetaQuery.error) ? {} : { trackInventory: false }),
           })
           .then(() => {
             queryClient.invalidateQueries({ queryKey: ['products', venueId] })
