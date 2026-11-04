@@ -6,6 +6,7 @@ import { Loader2, Plus, Trash2 } from 'lucide-react'
 import { z } from 'zod'
 import { useTranslation } from 'react-i18next'
 
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -261,6 +262,8 @@ export function CreateTransferDialog({ open, onClose, onCreated }: Props) {
             </Button>
           </CardHeader>
           <CardContent className="space-y-4">
+            <AvisoDeCarga query={sourceMaterialsQuery} hayDatos={sourceMaterialsQuery.data !== undefined} />
+            <AvisoDeCarga query={destinationMaterialsQuery} hayDatos={destinationMaterialsQuery.data !== undefined} />
             {fields.map((field, index) => {
               const selectedSource = sourceMaterialsQuery.data?.find(material => material.id === watchedItems[index]?.sourceRawMaterialId)
               const destinationOptions = selectedSource

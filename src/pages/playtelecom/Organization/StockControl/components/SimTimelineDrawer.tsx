@@ -7,6 +7,8 @@
  * ownership disputes in ~5 seconds.
  */
 import { useQuery } from '@tanstack/react-query'
+import { BotonReintentar } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet'
 import { Loader2, PackageCheck, ArrowRight, CheckCircle2, XCircle, RotateCcw, DollarSign } from 'lucide-react'
 import {
@@ -93,12 +95,14 @@ export function SimTimelineDrawer({ open, onOpenChange, orgId, serialNumber }: P
   const { formatDateTime } = useVenueDateTime()
   const enabled = open && Boolean(serialNumber)
 
-  const { data, isLoading, error } = useQuery({
+  const query = useQuery({
     queryKey: ['sim-custody-events', orgId, serialNumber],
     queryFn: () => getSimCustodyEvents(orgId, serialNumber!),
     enabled,
     staleTime: 30_000,
   })
+  const { data } = query
+  const fallo = falloDeCarga(query)
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -109,13 +113,18 @@ export function SimTimelineDrawer({ open, onOpenChange, orgId, serialNumber }: P
         </SheetHeader>
 
         <div className="mt-6 space-y-4">
-          {isLoading && (
+          {query.isLoading && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
               Cargando historial…
             </div>
           )}
-          {error && <p className="text-sm text-red-600">No se pudo cargar el historial. Intenta de nuevo.</p>}
+          {fallo && (
+            <div className="space-y-2">
+              <p className="text-sm text-red-600">No se pudo cargar el historial. Intenta de nuevo.</p>
+              <BotonReintentar query={query} />
+            </div>
+          )}
           {data && data.events.length === 0 && (
             <p className="text-sm text-muted-foreground">Este SIM no tiene eventos registrados todavía.</p>
           )}

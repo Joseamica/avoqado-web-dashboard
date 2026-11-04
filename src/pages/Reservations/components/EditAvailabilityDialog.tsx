@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { AlertTriangle, ChevronLeft, ChevronRight, Loader2, Plus, X } from 'lucide-react'
 
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
@@ -16,6 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { TimePicker } from '@/components/ui/time-picker'
 import { useToast } from '@/hooks/use-toast'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import reservationService from '@/services/reservation.service'
 import type { OperatingHours } from '@/types/reservation'
 
@@ -77,11 +79,12 @@ export function EditAvailabilityDialog({ open, onOpenChange }: EditAvailabilityD
 	const [weekBase, setWeekBase] = useState(new Date())
 	const [hours, setHours] = useState<OperatingHours | null>(null)
 
-	const { data: settings, isLoading } = useQuery({
+	const settingsQuery = useQuery({
 		queryKey: ['reservation-settings', venueId],
 		queryFn: () => reservationService.getSettings(venueId),
 		enabled: open && !!venueId,
 	})
+	const settings = settingsQuery.data
 
 	// Seed local state from fetched settings when dialog opens
 	useEffect(() => {
@@ -284,11 +287,14 @@ export function EditAvailabilityDialog({ open, onOpenChange }: EditAvailabilityD
 					</div>
 				)}
 
-				{isLoading || !hours ? (
-					<div className="flex items-center justify-center gap-2 py-12 text-muted-foreground">
-						<Loader2 className="h-5 w-5 animate-spin" />
-						<span>{tCommon('loading')}</span>
-					</div>
+				<AvisoDeCarga query={settingsQuery} hayDatos={!!hours} />
+				{!hours ? (
+					!falloDeCarga(settingsQuery) && (
+						<div className="flex items-center justify-center gap-2 py-12 text-muted-foreground">
+							<Loader2 className="h-5 w-5 animate-spin" />
+							<span>{tCommon('loading')}</span>
+						</div>
+					)
 				) : (
 					<Tabs value={tab} onValueChange={v => setTab(v as 'single' | 'recurring')}>
 						<TabsList className="w-full justify-start bg-transparent border-b border-border rounded-none p-0 h-auto">
