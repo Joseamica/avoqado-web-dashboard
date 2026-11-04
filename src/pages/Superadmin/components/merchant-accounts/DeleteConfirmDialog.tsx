@@ -67,6 +67,8 @@ export const DeleteConfirmDialog: React.FC<DeleteConfirmDialogProps> = ({
   const sinLeer = fuentes.filter(q => q.data === undefined)
   const dependenciasSinLeer = sinLeer.length > 0
   const caida = sinLeer.find(q => falloDeCarga(q))
+  // Con dependencias ya leídas una relectura caída no las borra: siguen a la vista, con su aviso.
+  const relecturaCaida = fuentes.find(q => q.data !== undefined && falloDeCarga(q))
   const isLoadingDependencies = dependenciasSinLeer && !caida
 
   const handleDeleteCost = async (costId: string) => {
@@ -145,6 +147,7 @@ export const DeleteConfirmDialog: React.FC<DeleteConfirmDialogProps> = ({
 
         <div className="py-4 space-y-4">
           {caida && <AvisoDeCarga query={caida} hayDatos={false} />}
+          {!caida && relecturaCaida && <AvisoDeCarga query={relecturaCaida} hayDatos />}
           {isLoadingDependencies ? (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />

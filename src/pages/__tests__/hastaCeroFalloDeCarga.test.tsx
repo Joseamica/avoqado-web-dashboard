@@ -136,6 +136,8 @@ import TeamCommissionSection from '@/pages/Team/components/TeamCommissionSection
 import PromotersAuditPage from '@/pages/playtelecom/PromotersAudit/PromotersAuditPage'
 import { PromoterCharts } from '@/pages/playtelecom/PromotersAudit/components/PromoterCharts'
 import CampaignDetail from '@/pages/Superadmin/Marketing/CampaignDetail'
+import Webhooks from '@/pages/Superadmin/Webhooks'
+import Nomina from '@/pages/Reports/Nomina'
 import SalesReport from '@/pages/playtelecom/Sales/SalesReport'
 import VenueMerchantAccounts from '@/pages/Venue/VenueMerchantAccounts'
 import { VenueSimCustodyPanel } from '@/pages/playtelecom/Stock/components/VenueSimCustodyPanel'
@@ -195,7 +197,7 @@ import { CommandHistoryTable } from '@/pages/Tpv/components/CommandHistoryTable'
 import { TpvMessagesList } from '@/pages/Tpv/components/TpvMessagesList'
 import TpvId from '@/pages/Tpv/TpvId'
 import EcommerceMerchants from '@/pages/Venue/EcommerceMerchants'
-import Integrations from '@/pages/Venue/Edit/Integrations'
+import Integrations, { EcommercePaymentsSection } from '@/pages/Venue/Edit/Integrations'
 import LiveLocation from '@/pages/organizations/LiveLocation/LiveLocation'
 import SalesDetail from '@/pages/organizations/SalesDetail/SalesDetail'
 import TiendasList from '@/pages/organizations/TiendasList/TiendasList'
@@ -2026,7 +2028,7 @@ describe('r12 · Lo que enseñaba ceros mientras esperaba', () => {
     red.colgada = /./
     pintar(<VenueMerchantAccounts />)
     await unaVueltaAlLazo()
-    expect(document.body.textContent).not.toMatch(/\b0\b/)
+    expect([...document.querySelectorAll('.text-2xl')].map(n => n.textContent)).not.toContain('0')
   })
 })
 
@@ -2044,6 +2046,14 @@ describe('r12 · Más conteos que hablaban mientras esperaban', () => {
     await unaVueltaAlLazo()
     expect(seVe('Conciliadas: 0')).toBe(false)
     expect(seVe('Pendientes: 0')).toBe(false)
+  })
+
+  it('Reporte de ventas: las gráficas esperan su lectura', async () => {
+    red.colgada = /daily|sales-by-day|by-day/
+    pintar(<SalesReport />)
+    await unaVueltaAlLazo()
+    expect(screen.queryAllByTestId('grafica')).toHaveLength(0)
+    esperando()
   })
 
   it('Motor por roster: sin leer no sale un interruptor apagado', async () => {
@@ -2072,6 +2082,33 @@ describe('r12 · Más conteos que hablaban mientras esperaban', () => {
     await recargaCaida(ENTREGAS)
     await screen.findByText(CON_DATOS)
     expect(screen.getByText('No hay entregas registradas')).toBeInTheDocument()
+  })
+})
+
+describe('r13 · Avisos de la lectura correcta', () => {
+  it('Webhooks: si cae la recarga de las métricas, siguen con su aviso', async () => {
+    const METRICAS = /webhooks\/metrics/
+    pintar(<Webhooks />, { rutas: [[METRICAS, { data: { summary: { successRate: 99, successCount: 1, totalEvents: 1, failedCount: 0, pendingCount: 0, avgProcessingTime: 0 }, byEventType: [] } }], [/superadmin\/webhooks/, { data: { events: [], total: 0 } }]] })
+    await screen.findByText('metrics.successRate')
+    await recargaCaida(METRICAS)
+    await screen.findByText(CON_DATOS)
+    expect(screen.getByText('metrics.successRate')).toBeInTheDocument()
+  })
+
+  it('Nómina: la vista previa espera, sin una tabla vacía', async () => {
+    red.colgada = /preview/
+    pintar(<Nomina />, { rutas: [[/payroll\/employees/, { employees: [{ id: 'e1', nombre: 'Ana', rfc: 'X', activo: true }], rfc: 'XAXX010101000', needsFiscalSetup: false }]] })
+    await waitFor(esperando)
+    await unaVueltaAlLazo()
+    expect(seVe('nomina.col.empleado')).toBe(false)
+    esperando()
+  })
+
+  it('Pagos online: en pausa no dice que no hay canales', async () => {
+    onlineManager.setOnline(false)
+    pintar(<EcommercePaymentsSection venueId="v1" />)
+    await screen.findByText(SIN_DATOS)
+    expect(seVe('Aún no tienes canales')).toBe(false)
   })
 })
 

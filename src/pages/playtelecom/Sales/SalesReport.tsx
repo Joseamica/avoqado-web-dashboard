@@ -668,6 +668,8 @@ export function SalesReport() {
 
       {/* Charts Row */}
       <AvisoDeCarga query={dailyQuery} hayDatos={dailyData !== undefined} />
+      {dailyQuery.isLoading && <Skeleton className="h-80 w-full rounded-xl" />}
+      {dailyData !== undefined && (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {/* Revenue Trend - 2/3 width */}
         <GlassCard className="md:col-span-2 p-4 sm:p-6">
@@ -754,6 +756,7 @@ export function SalesReport() {
           </div>
         </GlassCard>
       </div>
+      )}
 
       {/* Transactions Table */}
       <GlassCard className="overflow-hidden">

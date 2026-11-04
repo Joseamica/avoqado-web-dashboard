@@ -401,7 +401,7 @@ export default function VenueIntegrations() {
 // flow is identical to the one from the SUPERADMIN list page.
 // ─────────────────────────────────────────────────────────────────────────
 
-function EcommercePaymentsSection({ venueId }: { venueId: string }) {
+export function EcommercePaymentsSection({ venueId }: { venueId: string }) {
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const { user } = useAuth()
@@ -412,11 +412,12 @@ function EcommercePaymentsSection({ venueId }: { venueId: string }) {
   const [feeEditingId, setFeeEditingId] = useState<string | null>(null)
   const [feeDraft, setFeeDraft] = useState<string>('')
 
-  const { data: merchants = [], isLoading } = useQuery({
+  const canalesQuery = useQuery({
     queryKey: ['ecommerce-merchants', venueId],
     queryFn: () => ecommerceMerchantAPI.listByVenue(venueId),
     enabled: !!venueId,
   })
+  const { data: merchants = [], isLoading } = canalesQuery
 
   // Mercado Pago OAuth return handling. The backend `/callback` endpoint
   // redirects here with `?mp_status=connected&ecommerceMerchantId=…` on success
@@ -637,9 +638,10 @@ function EcommercePaymentsSection({ venueId }: { venueId: string }) {
           </div>
         </CardHeader>
         <CardContent>
+          <AvisoDeCarga query={canalesQuery} hayDatos={canalesQuery.data !== undefined} />
           {isLoading ? (
             <Skeleton className="h-20 w-full" />
-          ) : merchants.length === 0 ? (
+          ) : canalesQuery.data === undefined ? null : merchants.length === 0 ? (
             <div className="rounded-xl border border-dashed border-input p-6 text-center">
               <p className="text-sm text-muted-foreground">
                 Aún no tienes canales de pago online. Conecta Stripe en ~5 minutos para empezar a recibir pagos en tu sitio web,
