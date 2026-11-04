@@ -36,7 +36,7 @@ export function useExportRun(venueId: string, runId: string | null) {
 }
 
 /** El pedido de ese exporte que sigue armándose (o quedó listo hace menos de 1 h): reabrir el diálogo vuelve a su barra. */
-export function useExporteVivo(venueId: string | null | undefined, kind: string, enabled: boolean): string | null {
+export function useExporteVivo(venueId: string | null | undefined, kind: string, enabled: boolean): { id: string; fileName: string | null } | null {
   const { data } = useQuery({
     queryKey: ['export-runs', venueId, kind],
     queryFn: () => exportRunsService.recientes(venueId!, kind),
@@ -47,5 +47,5 @@ export function useExporteVivo(venueId: string | null | undefined, kind: string,
   const vivo = data?.find(
     r => r.status === 'QUEUED' || r.status === 'RUNNING' || (r.status === 'READY' && Date.now() - +new Date(r.createdAt) < 60 * 60_000),
   )
-  return vivo?.id ?? null
+  return vivo ? { id: vivo.id, fileName: vivo.fileName ?? null } : null
 }

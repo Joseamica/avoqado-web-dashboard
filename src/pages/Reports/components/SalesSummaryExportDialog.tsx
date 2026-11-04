@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { DateTime } from 'luxon'
@@ -66,7 +66,8 @@ export function SalesSummaryExportDialog({
   const [isExporting, setIsExporting] = useState(false)
   const [runId, setRunId] = useState<string | null>(null)
   const vivo = useExporteVivo(venueId, 'ventas-detalladas', open && mode === 'detailed')
-  const runVisible = mode === 'detailed' ? (runId ?? vivo) : null
+  const runVisible = mode === 'detailed' ? (runId ?? vivo?.id ?? null) : null
+  const enCurso = useRef(false) // doble clic: el estado `disabled` llega tarde, esto es síncrono
   const pedidoActual = useExportRun(venueId ?? '', runVisible)
   const armando = pedidoActual.status === 'QUEUED' || pedidoActual.status === 'RUNNING'
   const cerrar = () => {
@@ -142,6 +143,8 @@ export function SalesSummaryExportDialog({
 
   const handleExport = async () => {
     if (mode === 'detailed' && !canDetailedExport) return // gated; UI shows upsell
+    if (enCurso.current) return
+    enCurso.current = true
     setIsExporting(true)
     try {
       if (mode === 'detailed' && format !== 'pdf' && venueId) {
@@ -220,6 +223,7 @@ export function SalesSummaryExportDialog({
         variant: 'destructive',
       })
     } finally {
+      enCurso.current = false
       setIsExporting(false)
     }
   }
@@ -245,7 +249,7 @@ export function SalesSummaryExportDialog({
       }
     >
       <div className="mx-auto max-w-2xl space-y-4 p-6">
-        {venueId && runVisible && <ExportRunProgress key={runVisible} venueId={venueId} runId={runVisible} onNuevoPedido={setRunId} />}
+        {venueId && runVisible && <ExportRunProgress key={runVisible} venueId={venueId} runId={runVisible} onNuevoPedido={setRunId} fileName={runId ? null : vivo?.fileName} />}
         {/* Mode toggle */}
         <section className="rounded-2xl border border-input bg-card p-6">
           <h3 className="mb-4 text-base font-semibold">{t('salesSummary.export.mode.label')}</h3>

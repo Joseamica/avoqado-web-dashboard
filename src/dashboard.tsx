@@ -40,6 +40,9 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import api from './api'
 import { LoadingScreen } from './components/spinner'
 
+// Segmentos que son sólo carpeta (no hay pantalla en esa ruta): la miga los pinta como texto, sin liga (evita el 404).
+const SEGMENTOS_SIN_PAGINA = new Set(['exports'])
+
 // Route segment -> i18n key mapping
 const routeKeyMap: Record<string, string> = {
   payments: 'sidebar:routes.payments',
@@ -434,9 +437,13 @@ function DashboardContent() {
                         <BreadcrumbPage>{displayName}</BreadcrumbPage>
                       ) : (
                         <>
-                          <BreadcrumbLink as={Link} to={linkPath}>
-                            {displayName}
-                          </BreadcrumbLink>
+                          {SEGMENTOS_SIN_PAGINA.has(segment.toLowerCase()) ? (
+                            <span>{displayName}</span>
+                          ) : (
+                            <BreadcrumbLink as={Link} to={linkPath}>
+                              {displayName}
+                            </BreadcrumbLink>
+                          )}
                           <BreadcrumbSeparator />
                         </>
                       )}

@@ -147,6 +147,7 @@
       "waitingForPayments": "Esperando a que terminen unos cobros para no hacerlos esperar…",
       "progressLabel": "Avance del exporte",
       "ready": "Tu archivo está listo",
+      "archivo": "Archivo: {{name}}",
       "download": "Descargar",
       "downloading": "Tu descarga empezó. Si no ves el archivo, toca Descargar.",
       "canClose": "Puedes cerrar esta ventana: te avisamos en la campanita y por correo cuando esté listo.",

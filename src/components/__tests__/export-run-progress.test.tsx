@@ -64,4 +64,9 @@ describe('ExportRunProgress', () => {
     expect(await screen.findByText('exportDialog.run.notFound')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'exportDialog.run.download' })).toBeNull()
   })
+  it('listo + fileName ⇒ dice qué archivo es', async () => {
+    estado.mockResolvedValue({ status: 'READY', processedRows: 10, totalRows: 10, format: 'csv', waitingForPayments: false })
+    montar({ fileName: 'payments-2026-11-03.csv' })
+    expect(await screen.findByText('exportDialog.run.archivo')).toBeTruthy()
+  })
 })

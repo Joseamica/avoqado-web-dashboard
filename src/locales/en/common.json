@@ -147,6 +147,7 @@
       "waitingForPayments": "Waiting for some payments to finish so we don't slow them down…",
       "progressLabel": "Export progress",
       "ready": "Your file is ready",
+      "archivo": "File: {{name}}",
       "download": "Download",
       "downloading": "Your download started. If you don't see the file, tap Download.",
       "canClose": "You can close this window: we'll let you know in the bell and by email when it's ready.",

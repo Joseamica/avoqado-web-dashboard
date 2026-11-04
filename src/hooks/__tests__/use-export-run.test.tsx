@@ -56,7 +56,7 @@ describe('useExporteVivo', () => {
       { id: 'vivo', status: 'RUNNING', createdAt: new Date().toISOString() },
     ])
     const { result } = renderHook(() => useExporteVivo('v1', 'cobros', true), { wrapper: envoltura() })
-    await waitFor(() => expect(result.current).toBe('vivo'))
+    await waitFor(() => expect(result.current?.id).toBe('vivo'))
   })
   it('apagado no consulta', () => {
     renderHook(() => useExporteVivo('v1', 'cobros', false), { wrapper: envoltura() })

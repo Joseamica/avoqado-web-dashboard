@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { DateTime } from 'luxon'
 import { Download, FileText, FileSpreadsheet, FileType2, Loader2 } from 'lucide-react'
@@ -89,7 +89,8 @@ export function ExportDialog({
   const [isExporting, setIsExporting] = useState(false)
   const [runId, setRunId] = useState<string | null>(null)
   const vivo = useExporteVivo(segundoPlano?.venueId, segundoPlano?.kind ?? '', open && !!segundoPlano)
-  const runVisible = segundoPlano ? (runId ?? vivo) : null
+  const runVisible = segundoPlano ? (runId ?? vivo?.id ?? null) : null
+  const enCurso = useRef(false) // doble clic: el estado `disabled` llega tarde, esto es síncrono
   const pedidoActual = useExportRun(segundoPlano?.venueId ?? '', runVisible)
   const armando = pedidoActual.status === 'QUEUED' || pedidoActual.status === 'RUNNING'
   // Cerrar no cancela: el pedido sigue en el servidor y avisa en la campanita y por correo.
@@ -122,6 +123,8 @@ export function ExportDialog({
       return
     }
 
+    if (enCurso.current) return
+    enCurso.current = true
     setIsExporting(true)
     try {
       if (segundoPlano && format !== 'pdf') {
@@ -197,6 +200,7 @@ export function ExportDialog({
         toast({ title: message, variant: 'destructive' })
       }
     } finally {
+      enCurso.current = false
       setIsExporting(false)
     }
   }
@@ -221,7 +225,7 @@ export function ExportDialog({
     >
       <div className="mx-auto w-full max-w-3xl space-y-6 p-6">
         {segundoPlano && runVisible && (
-          <ExportRunProgress key={runVisible} venueId={segundoPlano.venueId} runId={runVisible} onNuevoPedido={setRunId} />
+          <ExportRunProgress key={runVisible} venueId={segundoPlano.venueId} runId={runVisible} onNuevoPedido={setRunId} fileName={runId ? null : vivo?.fileName} />
         )}
         {/* Section: Date range */}
         <section className="rounded-2xl border border-input bg-card p-6">

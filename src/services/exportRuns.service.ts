@@ -30,7 +30,7 @@ export const exportRunsService = {
   async urlDescarga(venueId: string, runId: string): Promise<{ url: string; fileName: string }> {
     return (await api.get(`${base(venueId)}/${runId}/download`)).data.data
   },
-  async recientes(venueId: string, kind: string): Promise<(ExportRunState & { id: string; createdAt: string })[]> {
+  async recientes(venueId: string, kind: string): Promise<(ExportRunState & { id: string; createdAt: string; fileName?: string | null })[]> {
     return (await api.get(base(venueId), { params: { kind } })).data.data
   },
   /** Siempre 202: el servidor reintenta en segundo plano con lo guardado. */

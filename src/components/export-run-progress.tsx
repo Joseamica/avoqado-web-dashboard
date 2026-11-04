@@ -13,13 +13,20 @@ interface Props {
   autoDescargar?: boolean
   /** Tras «Intentar otra vez», el pedido nuevo (el diálogo cambia su runId; la página navega). */
   onNuevoPedido?: (runId: string) => void
+  /** Al reabrir el diálogo con un archivo ya listo: cuál es (el de la lista reciente). */
+  fileName?: string | null
 }
 
-export function ExportRunProgress({ venueId, runId, autoDescargar = false, onNuevoPedido }: Props) {
+export function ExportRunProgress({ venueId, runId, autoDescargar = false, onNuevoPedido, fileName }: Props) {
   const { t } = useTranslation()
   const { toast } = useToast()
   const run = useExportRun(venueId, runId)
   const yaDescargo = useRef(false)
+  const raiz = useRef<HTMLDivElement>(null)
+  // El diálogo puede estar scrolleado: al aparecer la barra (el componente nace con cada runId), se trae a la vista.
+  useEffect(() => {
+    raiz.current?.scrollIntoView?.({ block: 'nearest' })
+  }, [])
   const [reintentando, setReintentando] = useState(false)
 
   const { refetch } = run
@@ -71,7 +78,7 @@ export function ExportRunProgress({ venueId, runId, autoDescargar = false, onNue
         : t('exportDialog.run.building', { done: run.processedRows.toLocaleString(), total: run.totalRows.toLocaleString() })
 
   return (
-    <div className="space-y-3 rounded-xl border border-input p-4" aria-live="polite" data-tour="export-run-progress">
+    <div ref={raiz} className="space-y-3 rounded-xl border border-input p-4" aria-live="polite" data-tour="export-run-progress">
       {run.isFailed ? (
         <>
           <p className="text-sm text-destructive">{t(run.status === 'EXPIRED' ? 'exportDialog.run.expired' : 'exportDialog.run.failed')}</p>
@@ -83,6 +90,7 @@ export function ExportRunProgress({ venueId, runId, autoDescargar = false, onNue
         <>
           <p className="text-sm">{texto}</p>
           <Progress value={run.percent} aria-label={t('exportDialog.run.progressLabel')} />
+          {run.isDone && fileName && <p className="text-xs text-muted-foreground">{t('exportDialog.run.archivo', { name: fileName })}</p>}
           {run.changedToFormat === 'csv' && <p className="text-xs text-muted-foreground">{t('exportDialog.run.changedToCsv')}</p>}
           {!run.isDone && <p className="text-xs text-muted-foreground">{t('exportDialog.run.canClose')}</p>}
           {run.isDone && autoDescargar && <p className="text-xs text-muted-foreground">{t('exportDialog.run.downloading')}</p>}
