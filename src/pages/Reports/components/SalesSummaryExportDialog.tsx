@@ -18,6 +18,9 @@ import { teamService } from '@/services/team.service'
 import type { MerchantAccount } from '@/services/paymentProvider.service'
 import type { PaymentMethodFilter, CardTypeFilter } from '@/services/reports/salesSummary.service'
 import api from '@/api'
+import { ExportRunProgress } from '@/components/export-run-progress'
+import { useExportRun, useExporteVivo } from '@/hooks/use-export-run'
+import { descargarBlob, exportRunsService } from '@/services/exportRuns.service'
 
 export type SalesExportFormat = 'csv' | 'xlsx' | 'pdf'
 export type SalesExportMode = 'summary' | 'detailed'
@@ -61,6 +64,15 @@ export function SalesSummaryExportDialog({
   const [sections, setSections] = useState<Set<string>>(() => new Set(['totals', 'paymentMethods']))
   const [columns, setColumns] = useState<Set<string>>(() => new Set(DETAIL_COLUMNS))
   const [isExporting, setIsExporting] = useState(false)
+  const [runId, setRunId] = useState<string | null>(null)
+  const vivo = useExporteVivo(venueId, 'ventas-detalladas', open && mode === 'detailed')
+  const runVisible = mode === 'detailed' ? (runId ?? vivo) : null
+  const pedidoActual = useExportRun(venueId ?? '', runVisible)
+  const armando = pedidoActual.status === 'QUEUED' || pedidoActual.status === 'RUNNING'
+  const cerrar = () => {
+    setRunId(null)
+    onClose()
+  }
 
   // ── EDITABLE FILTER STATE (seeded from the page, changeable in the dialog) ──
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethodFilter | null>(initialPaymentMethod ?? null)
@@ -132,6 +144,30 @@ export function SalesSummaryExportDialog({
     if (mode === 'detailed' && !canDetailedExport) return // gated; UI shows upsell
     setIsExporting(true)
     try {
+      if (mode === 'detailed' && format !== 'pdf') {
+        // Detallado en CSV/Excel: carril nuevo. El PDF detallado sigue por el GET de siempre (tope 1,000).
+        const r = await exportRunsService.pedir(venueId!, 'ventas-detalladas', {
+          format,
+          columns: Array.from(columns),
+          filters: {
+            startDate: dateRange.from.toISOString(),
+            endDate: dateRange.to.toISOString(),
+            ...(paymentMethod ? { paymentMethod } : {}),
+            ...(paymentMethod === 'CARD' && cardType ? { cardType } : {}),
+            ...(merchantAccountId ? { merchantAccountId } : {}),
+            ...(staffIds.length > 0 ? { staffIds } : {}),
+            ...(shiftId ? { shiftId } : {}),
+          },
+        })
+        if (r.kind === 'run') {
+          setRunId(r.runId)
+          return
+        }
+        descargarBlob(r.blob, `ventas-detalladas-${DateTime.now().toFormat('yyyy-LL-dd')}.${format}`)
+        toast({ title: t('salesSummary.export.button') })
+        cerrar()
+        return
+      }
       // Drop the card-type detail section if a payment filter is active (see FIX 7).
       const effectiveSections = cardTypesSectionDisabled
         ? Array.from(sections).filter(s => s !== 'cardTypes')
@@ -164,7 +200,7 @@ export function SalesSummaryExportDialog({
       link.remove()
       window.URL.revokeObjectURL(url)
       toast({ title: t('salesSummary.export.button') })
-      onClose()
+      cerrar()
     } catch (err: any) {
       // responseType:'blob' -> error body is a Blob; pull the message out.
       let message = t('salesSummary.export.tooLargeHint') as string
@@ -193,13 +229,13 @@ export function SalesSummaryExportDialog({
   return (
     <FullScreenModal
       open={open}
-      onClose={onClose}
+      onClose={cerrar}
       title={t('salesSummary.export.title')}
       contentClassName="bg-muted/30"
       actions={
         <Button
           onClick={handleExport}
-          disabled={isExporting || (mode === 'detailed' && detailedDisabled)}
+          disabled={isExporting || (mode === 'detailed' && detailedDisabled) || armando}
           className="cursor-pointer"
           data-tour="export-dialog-submit"
         >
@@ -209,6 +245,7 @@ export function SalesSummaryExportDialog({
       }
     >
       <div className="mx-auto max-w-2xl space-y-4 p-6">
+        {venueId && runVisible && <ExportRunProgress key={runVisible} venueId={venueId} runId={runVisible} onNuevoPedido={setRunId} />}
         {/* Mode toggle */}
         <section className="rounded-2xl border border-input bg-card p-6">
           <h3 className="mb-4 text-base font-semibold">{t('salesSummary.export.mode.label')}</h3>

@@ -11,6 +11,9 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { DateRangePicker } from '@/components/date-range-picker'
 import { useToast } from '@/hooks/use-toast'
 import api from '@/api'
+import { ExportRunProgress } from '@/components/export-run-progress'
+import { useExportRun, useExporteVivo } from '@/hooks/use-export-run'
+import { descargarBlob, exportRunsService } from '@/services/exportRuns.service'
 
 export type ExportFormat = 'csv' | 'xlsx' | 'pdf'
 
@@ -45,6 +48,11 @@ export interface ExportDialogProps {
   filenameStem: string
   /** Filter chips to show the user which filters are currently inherited (read-only summary; user edits filters back in the page). */
   activeFilterSummary?: Array<{ label: string; value: string }>
+  /**
+   * Carril en segundo plano (`POST /exports/:kind`): lo chico baja igual que hoy (200); lo grande se arma por partes (202) con
+   * barra, campanita y correo. Sin esta prop (Órdenes) el diálogo hace el GET de siempre. El PDF siempre va por el GET.
+   */
+  segundoPlano?: { venueId: string; kind: string }
 }
 
 /**
@@ -68,6 +76,7 @@ export function ExportDialog({
   estimatedCount,
   filenameStem,
   activeFilterSummary,
+  segundoPlano,
 }: ExportDialogProps) {
   const { t } = useTranslation()
   const { toast } = useToast()
@@ -78,6 +87,16 @@ export function ExportDialog({
   )
   const [format, setFormat] = useState<ExportFormat>('csv')
   const [isExporting, setIsExporting] = useState(false)
+  const [runId, setRunId] = useState<string | null>(null)
+  const vivo = useExporteVivo(segundoPlano?.venueId, segundoPlano?.kind ?? '', open && !!segundoPlano)
+  const runVisible = segundoPlano ? (runId ?? vivo) : null
+  const pedidoActual = useExportRun(segundoPlano?.venueId ?? '', runVisible)
+  const armando = pedidoActual.status === 'QUEUED' || pedidoActual.status === 'RUNNING'
+  // Cerrar no cancela: el pedido sigue en el servidor y avisa en la campanita y por correo.
+  const cerrar = () => {
+    setRunId(null)
+    onClose()
+  }
 
   const requiredIds = useMemo(() => new Set(columns.filter(c => c.required).map(c => c.id)), [columns])
 
@@ -105,6 +124,22 @@ export function ExportDialog({
 
     setIsExporting(true)
     try {
+      if (segundoPlano && format !== 'pdf') {
+        const filters = {
+          ...Object.fromEntries(Object.entries(baseParams).filter(([, v]) => v !== undefined)),
+          startDate: dateRange.from.toISOString(),
+          endDate: dateRange.to.toISOString(),
+        }
+        const r = await exportRunsService.pedir(segundoPlano.venueId, segundoPlano.kind, { format, columns: Array.from(selectedColumns), filters })
+        if (r.kind === 'run') {
+          setRunId(r.runId)
+          return
+        }
+        descargarBlob(r.blob, `${filenameStem}-${DateTime.now().toFormat('yyyy-LL-dd')}.${format}`)
+        toast({ title: t('exportDialog.success', { defaultValue: 'Exportación completada' }) })
+        cerrar()
+        return
+      }
       const params: Record<string, string | number> = {
         ...Object.fromEntries(Object.entries(baseParams).filter(([, v]) => v !== undefined) as [string, string | number][]),
         format,
@@ -135,7 +170,7 @@ export function ExportDialog({
       window.URL.revokeObjectURL(url)
 
       toast({ title: t('exportDialog.success', { defaultValue: 'Exportación completada' }) })
-      onClose()
+      cerrar()
     } catch (err: any) {
       // Axios + responseType:'blob' means the error body is a Blob — pull the message out.
       let message = t('exportDialog.errors.generic', { defaultValue: 'No se pudo generar el archivo' }) as string
@@ -169,13 +204,13 @@ export function ExportDialog({
   return (
     <FullScreenModal
       open={open}
-      onClose={onClose}
+      onClose={cerrar}
       title={title}
       contentClassName="bg-muted/30"
       actions={
         <Button
           onClick={handleExport}
-          disabled={isExporting || selectedColumns.size === 0}
+          disabled={isExporting || selectedColumns.size === 0 || armando}
           className="gap-2"
           data-tour="export-dialog-submit"
         >
@@ -185,6 +220,9 @@ export function ExportDialog({
       }
     >
       <div className="mx-auto w-full max-w-3xl space-y-6 p-6">
+        {segundoPlano && runVisible && (
+          <ExportRunProgress key={runVisible} venueId={segundoPlano.venueId} runId={runVisible} onNuevoPedido={setRunId} />
+        )}
         {/* Section: Date range */}
         <section className="rounded-2xl border border-input bg-card p-6">
           <header className="mb-4 flex items-center gap-3">
