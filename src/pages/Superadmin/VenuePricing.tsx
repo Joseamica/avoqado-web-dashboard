@@ -1,3 +1,4 @@
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import React, { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { paymentProviderAPI, type VenuePricingStructure } from '@/services/paymentProvider.service'
@@ -33,19 +34,21 @@ const VenuePricing: React.FC = () => {
   const [editingStructure, setEditingStructure] = useState<VenuePricingStructure | null>(null)
 
   // Fetch all venues
-  const { data: venues = [], isLoading: loadingVenues } = useQuery({
+  const venuesQuery = useQuery({
     queryKey: ['venues-list'],
     queryFn: async () => {
       const response = await api.get('/api/v1/dashboard/superadmin/venues')
       return response.data.data as Venue[]
     },
   })
+  const { data: venues = [], isLoading: loadingVenues } = venuesQuery
 
   // Fetch all pricing structures
-  const { data: pricingStructures = [], isLoading: loadingStructures } = useQuery({
+  const estructurasQuery = useQuery({
     queryKey: ['venue-pricing-structures'],
     queryFn: () => paymentProviderAPI.getVenuePricingStructures(),
   })
+  const { data: pricingStructures = [], isLoading: loadingStructures } = estructurasQuery
 
   // Create mutation
   const createMutation = useMutation({
@@ -274,9 +277,15 @@ const VenuePricing: React.FC = () => {
           </div>
 
           {/* Rows */}
+          {venuesQuery.data !== undefined && <AvisoDeCarga query={venuesQuery} hayDatos />}
+          {estructurasQuery.data !== undefined && <AvisoDeCarga query={estructurasQuery} hayDatos />}
           {loadingVenues || loadingStructures ? (
             <div className="px-6 py-12 text-center text-muted-foreground">
               Cargando venues...
+            </div>
+          ) : venuesQuery.data === undefined || estructurasQuery.data === undefined ? (
+            <div className="px-6 py-6">
+              <AvisoDeCarga query={venuesQuery.data === undefined ? venuesQuery : estructurasQuery} hayDatos={false} />
             </div>
           ) : filteredVenues.length === 0 ? (
             <div className="px-6 py-12 text-center text-muted-foreground">

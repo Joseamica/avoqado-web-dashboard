@@ -92,6 +92,12 @@ vi.mock('react-i18next', async original => ({
   Trans: () => null,
 }))
 
+import SalesReport from '@/pages/playtelecom/Sales/SalesReport'
+import OrganizationManagement from '@/pages/Superadmin/OrganizationManagement'
+import VenuePricing from '@/pages/Superadmin/VenuePricing'
+import Profitability from '@/pages/Inventory/Profitability'
+import Payments from '@/pages/Payment/Payments'
+import GiftCardsPage from '@/pages/GiftCards/GiftCardsPage'
 import { IncidentsQueue } from '@/pages/AreaTickets/components/IncidentsQueue'
 import { SettlementsQueue } from '@/pages/AreaTickets/components/SettlementsQueue'
 import ExternalSettlements from '@/pages/AreaTickets/ExternalSettlements'
@@ -903,5 +909,53 @@ describe('Cobros externos: el filtro «Área» conoce su lectura', () => {
     pintar(<Cola venueId="v1" areas={[]} areasQuery={fuente({ data: { areas: [] } })} />)
     await abrir()
     await screen.findByText(/filters\.noAreas/)
+  })
+})
+
+describe('Tarjetas de regalo: con las lecturas caídas no truena', () => {
+  it.each([[500], [403]])('estatus %i', async estatus => {
+    red.caida = /gift-cards|giftcards|gift_cards/
+    red.estatus = estatus
+    pintar(<GiftCardsPage />)
+    await screen.findByText('page.settingsError')
+    await sinConsultasEnCamino()
+  })
+})
+
+describe('Lo que encontró el robot en navegador real', () => {
+  it('Tarifas de venues: sin leer, aviso y no «No se encontraron venues»', async () => {
+    red.caida = /venues/
+    pintar(<VenuePricing />)
+    await screen.findByText(SIN_DATOS)
+    expect(seVe('No se encontraron venues')).toBe(false)
+  })
+
+  it('Organizaciones: sin leer, aviso, «—» y no «Sin organizaciones»', async () => {
+    red.caida = /organizations/
+    pintar(<OrganizationManagement />)
+    await screen.findByText(SIN_DATOS)
+    expect(seVe('Sin organizaciones')).toBe(false)
+    expect(screen.getAllByText('—').length).toBeGreaterThanOrEqual(4)
+  })
+
+  it('Rentabilidad: sin leer no dice «0 de 0»', async () => {
+    red.colgada = /profitab|margin/
+    pintar(<Profitability />)
+    await unaVueltaAlLazo()
+    expect(seVe('0 de 0')).toBe(false)
+  })
+
+  it('Reporte de ventas: sin leer el pie no dice «Mostrando 0 de 0»', async () => {
+    red.colgada = /sale-verifications/
+    pintar(<SalesReport />)
+    await unaVueltaAlLazo()
+    expect(seVe('Mostrando 0 de 0')).toBe(false)
+  })
+
+  it('Pagos: sin leer no dice «0 de 0 pagos»', async () => {
+    red.colgada = /payments/
+    pintar(<Payments />)
+    await unaVueltaAlLazo()
+    expect(seVe('filters.of')).toBe(false)
   })
 })

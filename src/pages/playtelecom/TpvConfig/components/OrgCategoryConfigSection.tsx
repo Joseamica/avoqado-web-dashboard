@@ -6,6 +6,7 @@
  * Follows the same pattern as OrgGoalConfigSection.
  */
 
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { useState, useMemo, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { GlassCard } from '@/components/ui/glass-card'
@@ -88,12 +89,13 @@ export default function OrgCategoryConfigSection() {
   const [deletingCategory, setDeletingCategory] = useState<ItemCategory | null>(null)
   const [formData, setFormData] = useState<CategoryFormData>(defaultFormData)
 
-  const { data: orgCategories, isLoading } = useQuery({
+  const categoriasQuery = useQuery({
     queryKey: ['org-config', orgId, 'categories'],
     queryFn: () => getOrgCategories(orgId!),
     enabled: !!orgId && hasPermission,
     staleTime: 60000,
   })
+  const { data: orgCategories, isLoading } = categoriasQuery
 
   const invalidateAll = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ['org-config', orgId, 'categories'] })
@@ -225,6 +227,7 @@ export default function OrgCategoryConfigSection() {
           Categorías compartidas en todas las tiendas de la organización. Los venues pueden crear categorías locales con el mismo nombre para sobreescribirlas.
         </p>
 
+        <AvisoDeCarga query={categoriasQuery} hayDatos={orgCategories !== undefined} />
         {isLoading ? (
           <div className="space-y-2">
             {[1, 2].map(i => (
@@ -286,7 +289,7 @@ export default function OrgCategoryConfigSection() {
               </div>
             ))}
           </div>
-        ) : (
+        ) : orgCategories === undefined ? null : (
           <div className="text-center py-4 text-muted-foreground">
             <Tag className="w-8 h-8 mx-auto mb-2 opacity-50" />
             <p className="text-sm">No hay categorías a nivel organización</p>
