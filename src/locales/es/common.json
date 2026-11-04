@@ -142,6 +142,25 @@
     "warnings": {
       "pdfLarge": "PDF está limitado a 1,000 filas. Si tu rango supera ese límite, usa CSV o Excel."
     },
+    "run": {
+      "pageTitle": "Tu archivo exportado",
+      "queued": "En cola: empieza en un momento…",
+      "building": "Armando {{done}} de {{total}} filas…",
+      "waitingForPayments": "Esperando a que terminen unos cobros para no hacerlos esperar…",
+      "progressLabel": "Avance del exporte",
+      "ready": "Tu archivo está listo",
+      "archivo": "Archivo: {{name}}",
+      "download": "Descargar",
+      "downloading": "Tu descarga empezó. Si no ves el archivo, toca Descargar.",
+      "canClose": "Puedes cerrar esta ventana: te avisamos en la campanita y por correo cuando esté listo.",
+      "failed": "No pudimos armar tu archivo.",
+      "expired": "Este archivo ya expiró; vuelve a exportarlo.",
+      "retry": "Intentar otra vez",
+      "reexport": "Volver a exportar",
+      "changedToCsv": "Es muy grande para Excel: te lo armamos en CSV, que abre en Excel igual.",
+      "notFound": "No encontramos este archivo, o no tienes acceso a él. Vuelve a exportarlo desde su pantalla.",
+      "loadError": "No pudimos consultar tu archivo. Revisa tu conexión y recarga la página."
+    },
     "errors": {
       "generic": "No se pudo generar el archivo",
       "tooLarge": "Demasiados resultados",

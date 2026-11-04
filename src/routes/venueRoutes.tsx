@@ -77,6 +77,7 @@ import {
   NotificationPreferences4,
   NotificationPreferences5,
   Notifications,
+  ExportRunPage,
   Orders,
   PayLaterAging,
   PaymentActivation,
@@ -790,6 +791,7 @@ export function createVenueRoutes(): RouteObject[] {
 
     // Notifications
     { path: 'notifications', element: <Notifications /> },
+    { path: 'exports/:runId', element: <ExportRunPage /> },
     { path: 'notifications/preferences', element: <NotificationPreferences /> },
     { path: 'notifications/preferences/1', element: <NotificationPreferences1 /> },
     { path: 'notifications/preferences/2', element: <NotificationPreferences2 /> },

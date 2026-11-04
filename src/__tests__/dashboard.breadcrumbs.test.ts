@@ -89,6 +89,11 @@ describe('miga de pan · traduccion de las rutas', () => {
     expect(src).toMatch(/^ {2}devices:\s*'sidebar:routes\.tpv',/m)
   })
 
+  it('🔴 «Exportaciones» no es liga: /exports no existe (sólo /exports/:runId) y daba 404', () => {
+    expect(leer('src/dashboard.tsx')).toMatch(/SEGMENTOS_SIN_PAGINA = new Set\(\[[^\]]*'exports'/)
+    expect(leer('src/routes/venueRoutes.tsx')).not.toMatch(/path:\s*'exports'/)
+  })
+
   it('no hay rutas nuevas sin traducir', () => {
     const mapeados = segmentosMapeados()
     const nuevos = [...segmentosDeRutas()].filter(s => !mapeados.has(s) && !DEUDA_CONOCIDA.has(s)).sort()
