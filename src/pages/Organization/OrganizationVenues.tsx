@@ -34,6 +34,9 @@ import React, { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useParams } from 'react-router-dom'
 import { includesNormalized } from '@/lib/utils'
+import { Badge } from '@/components/ui/badge'
+import type { DuplicatedVenue } from '@/services/organization.service'
+import { DuplicatedVenueNotice, OrgDuplicateVenue } from './components/OrgDuplicateVenueDialog'
 
 // ── Status Helpers ──
 
@@ -68,6 +71,7 @@ const OrganizationVenues: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid')
   const debouncedSearch = useDebounce(searchTerm, 300)
+  const [created, setCreated] = useState<DuplicatedVenue | null>(null)
 
   const canViewOrgVenues =
     staffInfo?.role &&
@@ -90,6 +94,8 @@ const OrganizationVenues: React.FC = () => {
         includesNormalized(venue.slug ?? '', debouncedSearch),
     )
   }, [venues, debouncedSearch])
+
+  const venueNames = useMemo(() => (venues ?? []).map(v => v.name), [venues])
 
   // ── Aggregate metrics ──
   const metrics = useMemo(() => {
@@ -124,19 +130,24 @@ const OrganizationVenues: React.FC = () => {
               {t('venues.subtitle', { count: venues?.length || 0 })}
             </p>
           </div>
-          <Select value={timeRange} onValueChange={v => setTimeRange(v as TimeRange)}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder={t('dashboard.selectPeriod')} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="7d">{t('dashboard.last7Days')}</SelectItem>
-              <SelectItem value="30d">{t('dashboard.last30Days')}</SelectItem>
-              <SelectItem value="90d">{t('dashboard.last90Days')}</SelectItem>
-              <SelectItem value="ytd">{t('dashboard.yearToDate')}</SelectItem>
-              <SelectItem value="all">{t('dashboard.allTime')}</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex items-center gap-2">
+            <OrgDuplicateVenue orgId={orgId} existingNames={venueNames} onCreated={setCreated} />
+            <Select value={timeRange} onValueChange={v => setTimeRange(v as TimeRange)}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder={t('dashboard.selectPeriod')} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="7d">{t('dashboard.last7Days')}</SelectItem>
+                <SelectItem value="30d">{t('dashboard.last30Days')}</SelectItem>
+                <SelectItem value="90d">{t('dashboard.last90Days')}</SelectItem>
+                <SelectItem value="ytd">{t('dashboard.yearToDate')}</SelectItem>
+                <SelectItem value="all">{t('dashboard.allTime')}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
+
+        {created && <DuplicatedVenueNotice key={created.venueId} venue={created} venueBasePath="/venues" />}
 
         {/* ── Summary Metrics ── */}
         {metrics && (
@@ -223,6 +234,7 @@ const OrganizationVenues: React.FC = () => {
               <VenueCard
                 key={venue.id}
                 venue={venue}
+                isNew={venue.id === created?.venueId}
                 formatCurrency={formatCurrency}
                 onClick={() => navigate(`/venues/${venue.slug}/home`)}
               />
@@ -231,6 +243,7 @@ const OrganizationVenues: React.FC = () => {
         ) : (
           <VenueTable
             venues={filteredVenues}
+            newVenueId={created?.venueId}
             formatCurrency={formatCurrency}
             onNavigate={slug => navigate(`/venues/${slug}/home`)}
           />
@@ -244,10 +257,12 @@ const OrganizationVenues: React.FC = () => {
 
 function VenueCard({
   venue,
+  isNew,
   formatCurrency,
   onClick,
 }: {
   venue: OrganizationVenue
+  isNew?: boolean
   formatCurrency: (n: number) => string
   onClick: () => void
 }) {
@@ -269,6 +284,7 @@ function VenueCard({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <h3 className="font-semibold text-sm leading-tight truncate">{venue.name}</h3>
+            {isNew && <Badge variant="secondary">{t('venues.duplicate.newBadge')}</Badge>}
             <div className="flex items-center gap-1.5 shrink-0">
               <StatusPulse status={statusInfo.pulse} size="sm" />
               <span className="text-xs text-muted-foreground">{statusInfo.label}</span>
@@ -339,10 +355,12 @@ function MiniMetric({ icon, label, value }: { icon: React.ReactNode; label: stri
 
 function VenueTable({
   venues,
+  newVenueId,
   formatCurrency,
   onNavigate,
 }: {
   venues: OrganizationVenue[]
+  newVenueId?: string
   formatCurrency: (n: number) => string
   onNavigate: (slug: string) => void
 }) {
@@ -384,6 +402,7 @@ function VenueTable({
                       </AvatarFallback>
                     </Avatar>
                     <span className="font-medium text-sm">{venue.name}</span>
+                    {venue.id === newVenueId && <Badge variant="secondary">{t('venues.duplicate.newBadge')}</Badge>}
                   </div>
                 </TableCell>
                 <TableCell>

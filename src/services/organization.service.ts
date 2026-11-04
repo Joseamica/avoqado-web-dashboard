@@ -594,3 +594,36 @@ export async function getWorstAttendance(orgId: string): Promise<WorstAttendance
   const response = await api.get(`/api/v1/dashboard/organizations/${orgId}/insights/worst-attendance`)
   return response.data.data
 }
+
+/**
+ * «Duplicar tienda» (sólo el dueño de la organización). `enabled:false` = el módulo está apagado para la organización.
+ */
+export interface VenueDuplicationOptions {
+  enabled: boolean
+  templates: { id: string; name: string; city: string | null }[]
+  supervisors: { staffId: string; name: string }[]
+}
+
+export interface DuplicateVenueBody {
+  idempotencyKey: string
+  templateVenueId: string
+  name: string
+  address: { address: string; city: string; state: string; zipCode: string; country?: string; latitude: number; longitude: number }
+  supervisorStaffId: string
+}
+
+export interface DuplicatedVenue {
+  venueId: string
+  slug: string
+  name: string
+}
+
+export async function getVenueDuplicationOptions(orgId: string): Promise<VenueDuplicationOptions> {
+  const response = await api.get(`/api/v1/dashboard/organizations/${orgId}/venue-duplication/options`)
+  return response.data.data
+}
+
+export async function duplicateVenue(orgId: string, body: DuplicateVenueBody): Promise<DuplicatedVenue> {
+  const response = await api.post(`/api/v1/dashboard/organizations/${orgId}/venue-duplication`, body)
+  return response.data.data
+}
