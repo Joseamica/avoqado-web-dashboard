@@ -949,7 +949,7 @@ describe('Lo que encontró el robot en navegador real', () => {
     red.colgada = /sale-verifications/
     pintar(<SalesReport />)
     await unaVueltaAlLazo()
-    expect(seVe('Mostrando 0 de 0')).toBe(false)
+    expect(seVe('Mostrando')).toBe(false)
   })
 
   it('Pagos: sin leer no dice «0 de 0 pagos»', async () => {
