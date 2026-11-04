@@ -2,9 +2,9 @@ import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { AlertTriangle, Loader2, TicketCheck } from 'lucide-react'
+import { TicketCheck } from 'lucide-react'
 
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { getAreaTicketOverview } from '@/services/areaTickets.service'
@@ -16,8 +16,6 @@ type TabValue = (typeof VALID_TABS)[number]
 
 const tabTriggerClass =
   'group rounded-full border border-transparent px-4 py-2 text-sm font-medium transition-colors hover:bg-muted/80 hover:text-foreground data-[state=active]:border-foreground data-[state=active]:bg-foreground data-[state=active]:text-background'
-
-const apiError = (error: any, fallback: string): string => error?.response?.data?.message ?? error?.response?.data?.error ?? fallback
 
 /**
  * "Cobros por confirmar" + "Incidencias" (§caja externa fase 1, Task 15) — las dos
@@ -56,7 +54,8 @@ export default function ExternalSettlements() {
   }
 
   // Áreas compartidas entre las dos colas (filtro "Área") — mismo endpoint que ya
-  // usa la pestaña de configuración, no hace falta uno nuevo.
+  // usa la pestaña de configuración, no hace falta uno nuevo. Sólo alimenta ese filtro:
+  // si no llega se avisa, pero las colas tienen sus propias lecturas y siguen a la vista.
   const overviewQuery = useQuery({
     queryKey: ['area-ticket-overview', venueId],
     queryFn: () => getAreaTicketOverview(venueId!),
@@ -75,39 +74,25 @@ export default function ExternalSettlements() {
         <p className="mt-1 max-w-3xl text-sm text-muted-foreground">{t('areaTickets.externalSettlements.subtitle')}</p>
       </div>
 
-      {overviewQuery.isLoading && (
-        <div className="flex min-h-40 items-center justify-center gap-2 text-muted-foreground">
-          <Loader2 className="h-5 w-5 animate-spin" /> {t('areaTickets.externalSettlements.loading')}
-        </div>
-      )}
+      <AvisoDeCarga query={overviewQuery} hayDatos={overviewQuery.data !== undefined} />
 
-      {overviewQuery.isError && (
-        <Alert variant="destructive">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>{t('areaTickets.externalSettlements.loadError')}</AlertTitle>
-          <AlertDescription>{apiError(overviewQuery.error, t('areaTickets.externalSettlements.loadErrorFallback'))}</AlertDescription>
-        </Alert>
-      )}
+      <Tabs value={activeTab} onValueChange={handleTabChange}>
+        <TabsList className="inline-flex h-auto flex-wrap items-center justify-start rounded-full border border-border bg-muted/60 p-1 text-muted-foreground">
+          <TabsTrigger value="settlements" className={tabTriggerClass} data-tour="area-external-settlements-tab-settlements">
+            {t('areaTickets.externalSettlements.tabs.settlements')}
+          </TabsTrigger>
+          <TabsTrigger value="incidents" className={tabTriggerClass} data-tour="area-external-settlements-tab-incidents">
+            {t('areaTickets.externalSettlements.tabs.incidents')}
+          </TabsTrigger>
+        </TabsList>
 
-      {!overviewQuery.isLoading && !overviewQuery.isError && (
-        <Tabs value={activeTab} onValueChange={handleTabChange}>
-          <TabsList className="inline-flex h-auto flex-wrap items-center justify-start rounded-full border border-border bg-muted/60 p-1 text-muted-foreground">
-            <TabsTrigger value="settlements" className={tabTriggerClass} data-tour="area-external-settlements-tab-settlements">
-              {t('areaTickets.externalSettlements.tabs.settlements')}
-            </TabsTrigger>
-            <TabsTrigger value="incidents" className={tabTriggerClass} data-tour="area-external-settlements-tab-incidents">
-              {t('areaTickets.externalSettlements.tabs.incidents')}
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="settlements" className="mt-6">
-            <SettlementsQueue venueId={venueId} areas={overviewQuery.data?.areas ?? []} />
-          </TabsContent>
-          <TabsContent value="incidents" className="mt-6">
-            <IncidentsQueue venueId={venueId} areas={overviewQuery.data?.areas ?? []} />
-          </TabsContent>
-        </Tabs>
-      )}
+        <TabsContent value="settlements" className="mt-6">
+          <SettlementsQueue venueId={venueId} areas={overviewQuery.data?.areas ?? []} />
+        </TabsContent>
+        <TabsContent value="incidents" className="mt-6">
+          <IncidentsQueue venueId={venueId} areas={overviewQuery.data?.areas ?? []} />
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }
