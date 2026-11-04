@@ -95,6 +95,7 @@ vi.mock('react-i18next', async original => ({
 import SalesReport from '@/pages/playtelecom/Sales/SalesReport'
 import OrganizationManagement from '@/pages/Superadmin/OrganizationManagement'
 import VenuePricing from '@/pages/Superadmin/VenuePricing'
+import TestingPayments from '@/pages/Superadmin/Testing/TestingPayments'
 import Profitability from '@/pages/Inventory/Profitability'
 import Payments from '@/pages/Payment/Payments'
 import GiftCardsPage from '@/pages/GiftCards/GiftCardsPage'
@@ -936,6 +937,24 @@ describe('Lo que encontró el robot en navegador real', () => {
     pintar(<VenuePricing />)
     await unaVueltaAlLazo()
     expect(seVe('0 venues')).toBe(false)
+  })
+
+  it('Pagos de prueba: sin leer, el encabezado no dice «Mostrando 0 pruebas»; leído y vacío, sí', async () => {
+    red.caida = /testing\/payments/
+    pintar(<TestingPayments />)
+    await screen.findByText(SIN_DATOS)
+    expect(seVe('showingTests')).toBe(false)
+    cleanup()
+    red.caida = null
+    red.colgada = /testing\/payments/
+    pintar(<TestingPayments />)
+    await unaVueltaAlLazo()
+    expect(seVe('showingTests')).toBe(false)
+    cleanup()
+    red.colgada = null
+    pintar(<TestingPayments />)
+    await screen.findByText('noTests')
+    expect(seVe('showingTests')).toBe(true)
   })
 
   it('Organizaciones: sin leer, aviso, «—» y no «Sin organizaciones»', async () => {
