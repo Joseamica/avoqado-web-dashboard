@@ -928,6 +928,14 @@ describe('Lo que encontró el robot en navegador real', () => {
     pintar(<VenuePricing />)
     await screen.findByText(SIN_DATOS)
     expect(seVe('No se encontraron venues')).toBe(false)
+    expect(seVe('0 venues')).toBe(false)
+  })
+
+  it('Tarifas de venues: esperando la lista, el contador no dice «0 venues» (Codex p3-r4)', async () => {
+    red.colgada = /venues/
+    pintar(<VenuePricing />)
+    await unaVueltaAlLazo()
+    expect(seVe('0 venues')).toBe(false)
   })
 
   it('Organizaciones: sin leer, aviso, «—» y no «Sin organizaciones»', async () => {

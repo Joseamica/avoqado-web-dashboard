@@ -263,7 +263,7 @@ const VenuePricing: React.FC = () => {
           />
         </div>
         <div className="text-sm text-muted-foreground">
-          {filteredVenues.length} venues
+          {venuesQuery.data === undefined ? '—' : filteredVenues.length} venues
         </div>
       </div>
 
