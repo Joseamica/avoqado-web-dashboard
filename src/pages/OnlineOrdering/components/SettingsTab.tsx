@@ -7,6 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { CheckCircle2, Circle } from 'lucide-react'
 import { z } from 'zod'
 
+import { AvisoDeCarga, BotonReintentar } from '@/components/AvisoDeCarga'
 import { PermissionGate } from '@/components/PermissionGate'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -19,6 +20,7 @@ import { Switch } from '@/components/ui/switch'
 import { useAccess } from '@/hooks/use-access'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { PrivacyNoticeModal } from '@/pages/Customers/components/PrivacyNoticeModal'
 import { OperatingHoursEditor } from '@/pages/Reservations/components/OperatingHoursEditor'
 import { getSettings, onlineOrderingKeys, serverMessage, updateSettings } from '@/services/onlineOrdering.service'
@@ -179,11 +181,12 @@ export function SettingsTab() {
   const stepsRef = useRef<HTMLDivElement>(null)
   const noticeButtonRef = useRef<HTMLButtonElement>(null)
 
-  const { data: settings, isLoading } = useQuery({
+  const settingsQuery = useQuery({
     queryKey: onlineOrderingKeys.settings(venueId ?? ''),
     queryFn: () => getSettings(venueId!),
     enabled: !!venueId,
   })
+  const { data: settings } = settingsQuery
 
   const saved = useMemo(() => (settings ? toForm(settings) : undefined), [settings])
   const form = useForm<FormValues>({ resolver: zodResolver(schema), values: saved })
@@ -232,9 +235,16 @@ export function SettingsTab() {
     },
   })
 
-  if (isLoading || !venueId) return <Skeleton className="h-64 w-full rounded-xl" />
-  // Un refetch fallido deja `isError` en true CON los datos de antes: la pestaña sigue en pie; el error sólo si nunca hubo datos.
-  if (!settings || !saved) return <p className="text-sm text-destructive">{t('settings.loadFailed')}</p>
+  if (!venueId || (settings === undefined && !falloDeCarga(settingsQuery))) return <Skeleton className="h-64 w-full rounded-xl" />
+  // Un refetch fallido deja `isError` en true CON los datos de antes: la pestaña sigue en pie, con su aviso; el error sólo si nunca hubo datos.
+  if (!settings || !saved) {
+    return (
+      <div className="flex flex-wrap items-center gap-2">
+        <p className="text-sm text-destructive">{t('settings.loadFailed')}</p>
+        <BotonReintentar query={settingsQuery} />
+      </div>
+    )
+  }
 
   const onSubmit = handleSubmit(values => {
     if (hourErrors.length) return
@@ -278,6 +288,7 @@ export function SettingsTab() {
 
   return (
     <form noValidate onSubmit={onSubmit} className="space-y-6">
+      <AvisoDeCarga query={settingsQuery} hayDatos />
       <div className="sticky top-0 z-10 flex items-center justify-between gap-3 rounded-xl border border-border bg-background/95 p-3 backdrop-blur">
         <div className="text-sm" data-tour="online-ordering-store-status">
           <span className="text-muted-foreground">{t('settings.status.label')}: </span>

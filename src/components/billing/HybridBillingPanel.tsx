@@ -1,11 +1,13 @@
 import { lazy, Suspense, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
+import { AvisoDeCarga, BotonReintentar } from '@/components/AvisoDeCarga'
 import { Button } from '@/components/ui/button'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { CancelPlanDialog } from './CancelPlanDialog'
 import { FeatureCatalogBrowser } from './FeatureCatalogBrowser'
 import { HybridTermsSummary } from './HybridCheckout'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { hybridBilling, type HybridContract } from '@/services/hybridBilling.service'
 import { getIntlLocale } from '@/utils/i18n-locale'
 const Checkout = lazy(() => import('./HybridCheckout').then(module => ({ default: module.HybridCheckout })))
@@ -89,17 +91,16 @@ export function HybridBillingPanel({
       {canRead && (
         <>
           <h3 className="font-medium">{t('hybrid.contracts')}</h3>
-          {contracts.isPending ? (
+          {contracts.data === undefined && !falloDeCarga(contracts) ? (
             <p>{t('catalog.loading')}</p>
-          ) : contracts.isError ? (
+          ) : contracts.data === undefined ? (
             <div role="alert">
               <p>{t('hybrid.error')}</p>
-              <Button variant="outline" onClick={() => void contracts.refetch()}>
-                {t('catalog.retry')}
-              </Button>
+              <BotonReintentar query={contracts} />
             </div>
           ) : (
             <>
+              <AvisoDeCarga query={contracts} hayDatos />
               <p className="text-sm text-muted-foreground">{t('hybrid.contractsCount', { count: contracts.data.total })}</p>
               {contracts.data.total === 0 && <p className="text-sm text-muted-foreground">{t('hybrid.noContracts')}</p>}
               {contracts.data.items.map(contract => (

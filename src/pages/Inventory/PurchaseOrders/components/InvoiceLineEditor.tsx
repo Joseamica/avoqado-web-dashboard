@@ -2,7 +2,9 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import { useId, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
+import { PorFuente } from '@/components/PorFuente'
 import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { getRawMaterialPresentations } from '@/services/inventory.service'
@@ -55,15 +57,15 @@ export function InvoiceLineEditor({ venueId, invoiceId, line, onClose }: { venue
         }}><option value="RAW">{t('invoices.lines.raw')}</option><option value="PRODUCT">{t('invoices.lines.product')}</option></select>
         <Label htmlFor={`${fieldId}-search`}>{t('invoices.lines.target')}</Label>
         <Input id={`${fieldId}-search`} value={search} onChange={e => { setSearch(e.target.value); setPage(1) }} placeholder={t('invoices.lines.targetPlaceholder')} data-tour="invoice-line-search" className="h-12" />
-        {catalog.isError ? <p role="alert">{t('invoices.receipt.loadError')}</p> : <div className="space-y-1">
+        <PorFuente query={catalog} esqueleto={<Skeleton className="h-12 w-full" />}><div className="space-y-1">
           {catalog.data?.rows.map(item => <Button key={item.id} variant={target?.id === item.id ? 'secondary' : 'ghost'} className="w-full justify-start" onClick={() => {
             setTarget(item); setPresentation('');
             setUnit(xmlUnit ?? '')
           }}>{item.name} · {getShortLabel(item.unit as Unit)}</Button>)}
-          {!catalog.isLoading && !catalog.data?.rows.length && <p className="text-sm">{t('invoices.receipt.noArticles')}</p>}
-        </div>}
+          {!catalog.data?.rows.length && <p className="text-sm">{t('invoices.receipt.noArticles')}</p>}
+        </div></PorFuente>
         <div className="flex items-center justify-between gap-2 text-sm">
-          <span>{t('invoices.receipt.totalArticles', { count: catalog.data?.total ?? 0 })}</span>
+          <span>{catalog.data ? t('invoices.receipt.totalArticles', { count: catalog.data.total }) : '—'}</span>
           <div className="flex gap-2"><Button variant="outline" disabled={page === 1 || catalog.isFetching} onClick={() => setPage(p => p - 1)}>{t('invoices.receipt.previous')}</Button>
             <Button variant="outline" disabled={!catalog.data || page >= catalog.data.totalPages || catalog.isFetching} onClick={() => setPage(p => p + 1)}>{t('invoices.receipt.next')}</Button></div>
         </div>

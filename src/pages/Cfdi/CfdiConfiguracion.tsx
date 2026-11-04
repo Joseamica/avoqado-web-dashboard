@@ -13,6 +13,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { BotonReintentar } from '@/components/AvisoDeCarga'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
@@ -20,6 +21,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useVenueDateTime } from '@/utils/datetime'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useTierFeatureAccess } from '@/hooks/use-tier-feature-access'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import {
   useFiscalConfig,
   useGlobalPeriodos,
@@ -444,7 +446,10 @@ export default function CfdiConfiguracion() {
   // the API guard and the visual gate stay in lockstep.
   const { hasAccess: hasCfdi } = useTierFeatureAccess('CFDI')
 
-  const { data, isLoading, isError } = useFiscalConfig({ enabled: hasCfdi })
+  const fiscal = useFiscalConfig({ enabled: hasCfdi })
+  const { data } = fiscal
+  // Sin leer la configuración no se sabe si hay emisores o comercios: nada de lo de abajo puede decir que no los hay.
+  const sinLeer = hasCfdi && data === undefined
   const provisionMutation = useProvisionEmisor()
   const logoMutation = useSyncEmisorLogo()
   const upsertMerchant = useUpsertMerchantConfig()
@@ -499,7 +504,7 @@ export default function CfdiConfiguracion() {
     })
   }
 
-  if (hasCfdi && isLoading) {
+  if (sinLeer && fiscal.isFetching) {
     return (
       <div className="flex items-center gap-2 p-8 text-muted-foreground">
         <Loader2 className="h-4 w-4 animate-spin" />
@@ -515,9 +520,10 @@ export default function CfdiConfiguracion() {
           <p className="text-muted-foreground mt-1">{t('config.description')}</p>
         </div>
 
-        {hasCfdi && isError && (
-          <div className="mb-6 rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+        {hasCfdi && falloDeCarga(fiscal) && (
+          <div className="mb-6 flex items-center justify-between gap-3 rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
             {t('config.loadError')}
+            <BotonReintentar query={fiscal} />
           </div>
         )}
 
@@ -536,9 +542,11 @@ export default function CfdiConfiguracion() {
             </div>
 
             {emisores.length === 0 ? (
-              <div className="rounded-lg border border-input bg-card p-8 text-center text-sm text-muted-foreground">
-                {t('emisores.empty')}
-              </div>
+              !sinLeer && (
+                <div className="rounded-lg border border-input bg-card p-8 text-center text-sm text-muted-foreground">
+                  {t('emisores.empty')}
+                </div>
+              )
             ) : (
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 {emisores.map(emisor => (
@@ -624,9 +632,11 @@ export default function CfdiConfiguracion() {
             </div>
 
             {merchantConfigs.length === 0 ? (
-              <div className="rounded-lg border border-input bg-card p-8 text-center text-sm text-muted-foreground">
-                {t('merchants.empty')}
-              </div>
+              !sinLeer && (
+                <div className="rounded-lg border border-input bg-card p-8 text-center text-sm text-muted-foreground">
+                  {t('merchants.empty')}
+                </div>
+              )
             ) : (
               <div className="space-y-3">
                 {merchantConfigs.map(config => (
@@ -695,7 +705,7 @@ export default function CfdiConfiguracion() {
 
             {/* Add a config to a merchant that has none yet. Skipped behind the
               teaser blur (no venueId / no feature) so we never hit the API. */}
-            {hasCfdi && venueId && (
+            {hasCfdi && venueId && !sinLeer && (
               <AddMerchantConfig
                 venueId={venueId}
                 emisores={emisores}
@@ -709,7 +719,7 @@ export default function CfdiConfiguracion() {
           <hr className="border-border" />
 
           {/* ── Factura global (Flow C) ──────────────────────── */}
-          <GlobalInvoiceSection emisores={emisores} live={hasCfdi} />
+          {!sinLeer && <GlobalInvoiceSection emisores={emisores} live={hasCfdi} />}
         </div>
 
         {hasCfdi && (

@@ -63,6 +63,8 @@ interface ModernReceiptDesignProps {
    * coupling this presentational component to that feature.
    */
   reviewSlot?: React.ReactNode
+  /** «Reintentar» junto al aviso de que el recibo no cargó; quien hace la lectura sabe cómo repetirla. */
+  retrySlot?: React.ReactNode
   className?: string
 }
 
@@ -93,7 +95,7 @@ const ReceiptLoader = () => {
 }
 
 // Error Component
-const ReceiptError = ({ error }: { error: string }) => (
+const ReceiptError = ({ error, retrySlot }: { error: string; retrySlot?: React.ReactNode }) => (
   <div className="min-h-screen bg-linear-to-br from-background via-muted/30 to-background flex items-center justify-center p-4">
     <Card className="w-full max-w-md">
       <CardContent className="p-8">
@@ -101,6 +103,7 @@ const ReceiptError = ({ error }: { error: string }) => (
           <AlertCircle className="h-4 w-4" />
           <AlertDescription className="text-sm">{error}</AlertDescription>
         </Alert>
+        {retrySlot && <div className="mt-4 flex justify-center">{retrySlot}</div>}
       </CardContent>
     </Card>
   </div>
@@ -167,6 +170,7 @@ export const ModernReceiptDesign: React.FC<ModernReceiptDesignProps> = ({
   onEmail: _onEmail,
   autofacturaSlot,
   reviewSlot,
+  retrySlot,
   className = '',
 }) => {
   const [copied, setCopied] = useState(false)
@@ -186,7 +190,7 @@ export const ModernReceiptDesign: React.FC<ModernReceiptDesignProps> = ({
   if (isLoading) return <ReceiptLoader />
 
   // Error state
-  if (error || !data) return <ReceiptError error={error || t('receipt.errors.load')} />
+  if (error || !data) return <ReceiptError error={error || t('receipt.errors.load')} retrySlot={retrySlot} />
 
   const { payment, venue, processedBy, customer } = data
   // IVA por producto, plan 7 (D3; r1 #2, #8, #9; A7-R6): el visor NO calcula IVA. Los totales los congela el servidor; sin ellos
