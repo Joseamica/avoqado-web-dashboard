@@ -12,12 +12,12 @@
  * "viene incluido" es exactamente lo que el backend va a reponer.
  *
  * 🔴 POR QUÉ NO SE ESCRIBE A MANO: la copia anterior había derivado a 68 entradas contra
- * 213 del servidor. Entre las 112 que faltaban estaban `tpv-payments:pay-later`,
+ * 214 del servidor. Entre las 112 que faltaban estaban `tpv-payments:pay-later`,
  * `discounts:apply` y `coupons:redeem` — justo las que el editor de roles necesita para
  * avisar "este permiso viene incluido en aquél". Sin ellas la pantalla dejaba desmarcar algo
  * que el backend repone en silencio: mentía.
  *
- * 201 entradas · derivado de avoqado-server · huella 6fe425570f31d04e.
+ * 202 entradas · derivado de avoqado-server · huella 137000f0bd575d24.
  * (12 excluidas: vertical white-label de PlayTelecom.)
  */
 
@@ -82,6 +82,7 @@ export const PERMISSION_DEPENDENCIES: Record<string, string[]> = {
   'features:read': ['features:read'],
   'features:update': ['features:update', 'features:write', 'features:read'],
   'features:write': ['features:write', 'features:update', 'features:read'],
+  'giftCards:enable': ['giftCards:enable', 'giftCards:read'],
   'giftCards:manage': ['giftCards:manage', 'giftCards:read'],
   'giftCards:read': ['giftCards:read'],
   'giftCards:redeem': ['giftCards:redeem', 'giftCards:read'],
@@ -225,4 +226,4 @@ export const PERMISSION_DEPENDENCIES: Record<string, string[]> = {
   'venues:update': ['venues:read', 'venues:update'],
 }
 
-export const PERMISSION_DEPENDENCIES_DIGEST = '6fe425570f31d04e'
+export const PERMISSION_DEPENDENCIES_DIGEST = '137000f0bd575d24'

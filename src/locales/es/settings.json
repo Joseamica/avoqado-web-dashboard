@@ -503,6 +503,7 @@
       "giftCards_sell": "Vender tarjetas de regalo en el mostrador",
       "giftCards_redeem": "Cobrar con saldo de tarjeta de regalo",
       "giftCards_manage": "Ajustar, bloquear, reponer y cancelar tarjetas de regalo",
+      "giftCards_enable": "Prender y apagar las tarjetas de regalo",
       "tpv-settings_read": "Ver configuración del TPV",
       "tpv-settings_update": "Editar configuración del TPV",
       "billing_read": "Ver facturación",

@@ -193,6 +193,8 @@ export function SettingsTab() {
   const payAtPickup = !!watch('acceptsPayAtPickup')
   const cardOn = !!watch('acceptsCardOnline')
   const merchantStatus = settings?.card?.merchantStatus ?? 'NOT_CONNECTED'
+  // Sólo con un Stripe que cobra se puede usar el switch; sin él va apagado y en gris (founder, 3-nov).
+  const cardAvailable = merchantStatus === 'READY'
   const hasPayment = payAtPickup || (cardOn && merchantStatus === 'READY')
 
   const watched = watch()
@@ -353,23 +355,31 @@ export function SettingsTab() {
                   control={control}
                   name="acceptsCardOnline"
                   render={({ field }) => (
-                    <Switch id="oo-card" aria-label={t('settings.cardOnline')} checked={!!field.value} onCheckedChange={field.onChange} />
+                    // El valor guardado no se toca: nace prendido de fábrica (paso 5) y, al conectar Stripe, la tarjeta queda lista sola.
+                    <Switch
+                      id="oo-card"
+                      aria-label={t('settings.cardOnline')}
+                      checked={cardAvailable && !!field.value}
+                      disabled={!cardAvailable}
+                      onCheckedChange={field.onChange}
+                    />
                   )}
                 />
               </div>
-              {/* Encenderla no exige Stripe (el servidor lo deja); cobrar sí: la línea dice qué falta, con el valor VIVO del switch. */}
+              {/* Sin Stripe que cobre: la línea dice qué falta y que Mercado Pago viene después. Con Stripe: el valor VIVO del switch. */}
               <p className="text-xs text-muted-foreground">
-                {!cardOn
-                  ? t('settings.card.off')
-                  : merchantStatus === 'READY'
+                {!cardAvailable
+                  ? t(merchantStatus === 'NOT_CHARGEABLE' ? 'settings.card.notChargeable' : 'settings.card.notConnected')
+                  : cardOn
                     ? t('settings.card.ready')
-                    : t(merchantStatus === 'NOT_CHARGEABLE' ? 'settings.card.notChargeable' : 'settings.card.notConnected')}{' '}
-                {cardOn && merchantStatus !== 'READY' && canOpenBusinessSettings && (
+                    : t('settings.card.off')}{' '}
+                {!cardAvailable && canOpenBusinessSettings && (
                   // Integraciones es de ADMIN o más (la misma guardia que la configuración del negocio): sin ella, ni liga.
                   <Link to={`${fullBasePath}/settings/integrations`} className="text-primary underline underline-offset-2">
                     {t(merchantStatus === 'NOT_CHARGEABLE' ? 'settings.card.review' : 'settings.card.connect')}
                   </Link>
                 )}
+                {!cardAvailable && <span className="block">{t('settings.card.mercadoPagoSoon')}</span>}
               </p>
             </div>
           </div>

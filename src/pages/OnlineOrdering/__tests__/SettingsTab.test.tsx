@@ -4,8 +4,12 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
-vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string, o?: Record<string, string>) => (o ? `${key}|${Object.values(o).join(',')}` : key) }) }))
-vi.mock('@/hooks/use-current-venue', () => ({ useCurrentVenue: () => ({ venueId: 'venue-1', venueSlug: 'taqueria', fullBasePath: '/venues/taqueria' }) }))
+vi.mock('react-i18next', () => ({
+  useTranslation: () => ({ t: (key: string, o?: Record<string, string>) => (o ? `${key}|${Object.values(o).join(',')}` : key) }),
+}))
+vi.mock('@/hooks/use-current-venue', () => ({
+  useCurrentVenue: () => ({ venueId: 'venue-1', venueSlug: 'taqueria', fullBasePath: '/venues/taqueria' }),
+}))
 vi.mock('@/utils/datetime', () => ({ useVenueDateTime: () => ({ formatTime: (d: string) => `T(${d})` }) }))
 const toast = vi.fn()
 vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast }) }))
@@ -108,7 +112,9 @@ describe('SettingsTab', () => {
   })
 
   it('pausada por muchos pedidos (TOO_BUSY) no dice «Pausada desde Configuración»', async () => {
-    getSettings.mockResolvedValue(base({ enabled: true, store: { status: 'PAUSED', reason: 'TOO_BUSY', pausedUntil: null, manualPause: false } }))
+    getSettings.mockResolvedValue(
+      base({ enabled: true, store: { status: 'PAUSED', reason: 'TOO_BUSY', pausedUntil: null, manualPause: false } }),
+    )
     renderTab()
     await formularioCargado()
     expect(await screen.findByText('settings.status.pausedBusy')).toBeInTheDocument()
@@ -403,7 +409,9 @@ describe('SettingsTab', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'settings.requirements.privacyNotice.action' }))
     await userEvent.click(screen.getByRole('button', { name: 'cerrar-editor' }))
     await waitFor(() => expect(getSettings).toHaveBeenCalledTimes(2))
-    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole('button', { name: 'settings.requirements.privacyNotice.action' })))
+    await waitFor(() =>
+      expect(document.activeElement).toBe(screen.getByRole('button', { name: 'settings.requirements.privacyNotice.action' })),
+    )
   })
 
   it('N-4: si el foco está en el botón que abrió el editor y la recarga dice publicado, pasa a la lista (el botón se va)', async () => {
@@ -464,7 +472,9 @@ describe('SettingsTab', () => {
 
   it('STORE_REQUIREMENTS_MISSING pinta la lista que manda el servidor', async () => {
     getSettings.mockResolvedValue(base())
-    updateSettings.mockRejectedValue({ response: { data: { code: 'STORE_REQUIREMENTS_MISSING', details: { missing: ['privacyNotice'] } } } })
+    updateSettings.mockRejectedValue({
+      response: { data: { code: 'STORE_REQUIREMENTS_MISSING', details: { missing: ['privacyNotice'] } } },
+    })
     renderTab()
     await formularioCargado()
     await userEvent.click(await screen.findByRole('switch', { name: 'settings.enable' }))
@@ -505,14 +515,25 @@ describe('SettingsTab', () => {
   // ── Fase 2: la tarjeta en línea (el switch es real; cobrar depende del Stripe del negocio) ──
   const tarjeta = () => screen.getByRole('switch', { name: 'settings.cardOnline' })
 
-  it('tarjeta apagada: el switch se puede usar y dice «Apagado: tus clientes sólo pueden pagar al recoger.»', async () => {
+  it('sin Stripe: el switch sale apagado y en gris, con el alta en Stripe y «Próximamente: Mercado Pago»', async () => {
     getSettings.mockResolvedValue(base())
+    renderTab()
+    await formularioCargado()
+    expect(tarjeta()).toBeDisabled()
+    expect(tarjeta()).not.toBeChecked()
+    expect(screen.getByText('settings.card.notConnected')).toBeInTheDocument()
+    expect(screen.getByText('settings.card.mercadoPagoSoon')).toBeInTheDocument()
+    expect(screen.queryByText('settings.card.off')).toBeNull()
+  })
+
+  it('con Stripe listo y la tarjeta apagada: el switch se puede usar, dice «Apagado…» y no promete Mercado Pago', async () => {
+    getSettings.mockResolvedValue(base({ card: { enabled: true, merchantStatus: 'READY' } }))
     renderTab()
     await formularioCargado()
     expect(tarjeta()).toBeEnabled()
     expect(tarjeta()).not.toBeChecked()
     expect(screen.getByText('settings.card.off')).toBeInTheDocument()
-    expect(screen.queryByText('settings.soon')).toBeNull()
+    expect(screen.queryByText('settings.card.mercadoPagoSoon')).toBeNull()
   })
 
   it('tarjeta prendida con Stripe listo: «Tus clientes pueden pagar con tarjeta.» y sin liga', async () => {
@@ -520,15 +541,19 @@ describe('SettingsTab', () => {
     renderTab()
     await formularioCargado()
     expect(tarjeta()).toBeChecked()
+    expect(tarjeta()).toBeEnabled()
     expect(screen.getByText('settings.card.ready')).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: /settings\.card\./ })).toBeNull()
   })
 
-  it('tarjeta prendida sin Stripe: «conecta tu cuenta de Stripe» con la liga «Conectar Stripe» a Integraciones', async () => {
+  it('guardada prendida (de fábrica) pero sin Stripe: se ve apagada y en gris, con la liga «Conectar Stripe» a Integraciones', async () => {
     getSettings.mockResolvedValue(base({ acceptsCardOnline: true, card: { enabled: true, merchantStatus: 'NOT_CONNECTED' } }))
     renderTab()
     await formularioCargado()
+    expect(tarjeta()).not.toBeChecked()
+    expect(tarjeta()).toBeDisabled()
     expect(screen.getByText('settings.card.notConnected')).toBeInTheDocument()
+    expect(screen.getByText('settings.card.mercadoPagoSoon')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'settings.card.connect' })).toHaveAttribute('href', '/venues/taqueria/settings/integrations')
   })
 
@@ -536,6 +561,8 @@ describe('SettingsTab', () => {
     getSettings.mockResolvedValue(base({ acceptsCardOnline: true, card: { enabled: true, merchantStatus: 'NOT_CHARGEABLE' } }))
     renderTab()
     await formularioCargado()
+    expect(tarjeta()).not.toBeChecked()
+    expect(tarjeta()).toBeDisabled()
     expect(screen.getByText('settings.card.notChargeable')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'settings.card.review' })).toHaveAttribute('href', '/venues/taqueria/settings/integrations')
   })
@@ -549,15 +576,25 @@ describe('SettingsTab', () => {
     expect(screen.queryByRole('link', { name: 'settings.card.connect' })).toBeNull()
   })
 
-  it('prender la tarjeta y guardar manda acceptsCardOnline: true', async () => {
-    getSettings.mockResolvedValue(base())
-    updateSettings.mockResolvedValue(putToday({ acceptsCardOnline: true }))
+  it('con Stripe listo, prender la tarjeta y guardar manda acceptsCardOnline: true', async () => {
+    getSettings.mockResolvedValue(base({ card: { enabled: true, merchantStatus: 'READY' } }))
+    updateSettings.mockResolvedValue(putToday({ acceptsCardOnline: true, card: { enabled: true, merchantStatus: 'READY' } }))
     renderTab()
     await formularioCargado()
     await userEvent.click(tarjeta())
-    expect(screen.getByText('settings.card.notConnected')).toBeInTheDocument()
+    expect(screen.getByText('settings.card.ready')).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'settings.save' }))
     await waitFor(() => expect(updateSettings).toHaveBeenCalledWith('venue-1', { acceptsCardOnline: true }))
+  })
+
+  it('sin Stripe, guardar otro cambio no apaga la tarjeta guardada prendida: queda lista para cuando conecte Stripe', async () => {
+    getSettings.mockResolvedValue(base({ acceptsCardOnline: true, card: { enabled: true, merchantStatus: 'NOT_CONNECTED' } }))
+    updateSettings.mockResolvedValue(putToday({ acceptsCardOnline: true, acceptsPayAtPickup: false }))
+    renderTab()
+    await formularioCargado()
+    await userEvent.click(screen.getByRole('switch', { name: 'settings.payAtPickup' }))
+    await userEvent.click(screen.getByRole('button', { name: 'settings.save' }))
+    await waitFor(() => expect(updateSettings).toHaveBeenCalledWith('venue-1', { acceptsPayAtPickup: false }))
   })
 
   it('con la tarjeta prendida y Stripe listo, quitar «Pagar al recoger» sigue dejando encender (la tarjeta es forma de cobro)', async () => {
@@ -575,19 +612,25 @@ describe('SettingsTab', () => {
     await waitFor(() => expect(updateSettings).toHaveBeenCalledWith('venue-1', { enabled: true, acceptsPayAtPickup: false }))
   })
 
-  it.each(['NOT_CONNECTED', 'NOT_CHARGEABLE'])('con la tarjeta prendida pero Stripe %s, quitar «Pagar al recoger» NO deja encender', async st => {
-    getSettings.mockResolvedValue(base({ acceptsCardOnline: true, card: { enabled: true, merchantStatus: st } }))
-    renderTab()
-    await formularioCargado()
-    await userEvent.click(screen.getByRole('switch', { name: 'settings.payAtPickup' }))
-    expect(within(paso('payment')).getByText('settings.requirements.pending')).toBeInTheDocument()
-    expect(screen.getByRole('switch', { name: 'settings.enable' })).toBeDisabled()
-    expect(screen.getByText('settings.enableBlocked')).toBeInTheDocument()
-  })
+  it.each(['NOT_CONNECTED', 'NOT_CHARGEABLE'])(
+    'con la tarjeta prendida pero Stripe %s, quitar «Pagar al recoger» NO deja encender',
+    async st => {
+      getSettings.mockResolvedValue(base({ acceptsCardOnline: true, card: { enabled: true, merchantStatus: st } }))
+      renderTab()
+      await formularioCargado()
+      await userEvent.click(screen.getByRole('switch', { name: 'settings.payAtPickup' }))
+      expect(within(paso('payment')).getByText('settings.requirements.pending')).toBeInTheDocument()
+      expect(screen.getByRole('switch', { name: 'settings.enable' })).toBeDisabled()
+      expect(screen.getByText('settings.enableBlocked')).toBeInTheDocument()
+    },
+  )
 
   it('«Usar horario» muestra el editor y un 09:00–09:00 bloquea guardar; apagar manda hours:null', async () => {
     const week = Object.fromEntries(
-      ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map(d => [d, { enabled: true, ranges: [{ open: '09:00', close: '09:00' }] }]),
+      ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map(d => [
+        d,
+        { enabled: true, ranges: [{ open: '09:00', close: '09:00' }] },
+      ]),
     )
     getSettings.mockResolvedValue(base({ enabled: true, hours: week }))
     updateSettings.mockResolvedValue(base({ enabled: true, hours: null }))
