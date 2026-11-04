@@ -97,6 +97,8 @@ interface PromoterData {
 interface PromoterDetailPanelProps {
   promoter: PromoterData
   deposits?: DepositData[]
+  /** Sin leer los depósitos no se afirma «Sin depósitos». */
+  depositsListos?: boolean
   isLoading?: boolean
   currency?: string
   onApproveDeposit?: (depositId: string, notes?: string) => void
@@ -123,6 +125,7 @@ const mapAttendanceStatus = (status: 'PRESENT' | 'ABSENT' | 'LATE' | 'HALF_DAY')
 export const PromoterDetailPanel: React.FC<PromoterDetailPanelProps> = ({
   promoter,
   deposits = [],
+  depositsListos = true,
   isLoading: _isLoading = false,
   currency = 'MXN',
   onApproveDeposit,
@@ -171,7 +174,7 @@ export const PromoterDetailPanel: React.FC<PromoterDetailPanelProps> = ({
       {/* Row 3: Calendar + Deposits */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <AttendanceCalendar data={attendanceData} />
-        <DepositValidation deposits={deposits} currency={currency} onApprove={onApproveDeposit} onReject={onRejectDeposit} />
+        {depositsListos && <DepositValidation deposits={deposits} currency={currency} onApprove={onApproveDeposit} onReject={onRejectDeposit} />}
       </div>
     </div>
   )

@@ -402,7 +402,7 @@ export function CopyDesignDialog({ onClose, venueId, source, tokenVigente, entit
             </div>
           )}
           {/* Una relectura o «Cargar más» que falla con filas ya cargadas no borra la lista (Codex #3): se dice aparte. */}
-          {destinos.isError && filas.length > 0 && !destinos.isFetching && (
+          {falloDeCarga(destinos) && paginas !== undefined && (
             <p role="alert" className="text-xs text-destructive">
               {t('copy.listStale')}
             </p>

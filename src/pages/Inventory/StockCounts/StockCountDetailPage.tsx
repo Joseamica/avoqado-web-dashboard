@@ -17,7 +17,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { AvisoDeCarga, BotonReintentar } from '@/components/AvisoDeCarga'
-import { falloDeCarga } from '@/lib/falloDeCarga'
+import { detalleNoCargo, falloDeCarga } from '@/lib/falloDeCarga'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -139,7 +139,7 @@ export default function StockCountDetailPage() {
       {data === undefined && falloDeCarga(countQuery) && (
         <Card>
           <CardContent className="pt-6">
-            <p className="text-sm text-destructive">No se pudo cargar el conteo. Verifica el enlace o inténtalo de nuevo.</p>
+            <p className="text-sm text-destructive">{detalleNoCargo(countQuery) ? 'No se pudo cargar el conteo. Verifica el enlace o inténtalo de nuevo.' : 'Este conteo no existe o ya no está disponible.'}</p>
             <BotonReintentar query={countQuery} className="mt-3" />
           </CardContent>
         </Card>

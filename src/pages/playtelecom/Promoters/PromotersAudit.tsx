@@ -91,11 +91,12 @@ export function PromotersAudit() {
   })
 
   // Fetch selected promoter deposits
-  const { data: depositsData } = useQuery({
+  const depositsQuery = useQuery({
     queryKey: ['promoter-deposits', venueId, selectedPromoterId],
     queryFn: () => getPromoterDeposits(venueId!, selectedPromoterId!),
     enabled: !!venueId && !!selectedPromoterId,
   })
+  const { data: depositsData } = depositsQuery
 
   // Auto-select first promoter when list loads
   useMemo(() => {
@@ -415,10 +416,12 @@ export function PromotersAudit() {
 
         {/* Right Panel - Detail View */}
         <div className="lg:col-span-8">
+          <AvisoDeCarga query={depositsQuery} hayDatos={depositsData !== undefined} />
           {selectedPromoterData ? (
             <PromoterDetailPanel
               promoter={selectedPromoterData}
               deposits={selectedPromoterDeposits}
+              depositsListos={depositsData !== undefined}
               isLoading={isLoadingDetail}
               currency={venue?.currency || 'MXN'}
               onApproveDeposit={handleApproveDeposit}

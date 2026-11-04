@@ -510,6 +510,7 @@ const ProfitAnalyticsDashboard: React.FC = () => {
             </CardHeader>
             <CardContent>
               <AvisoDeCarga query={costQuery} hayDatos={costAnalysis !== undefined} />
+              {costQuery.isLoading && <p className="text-sm text-muted-foreground">—</p>}
               <div className="space-y-6">
                 {costAnalysis?.map(provider => (
                   <div key={provider.providerId} className="border rounded-lg p-4">

@@ -185,6 +185,7 @@ function TargetingSection({
             {selectedVenueIds.length} sucursal{selectedVenueIds.length === 1 ? '' : 'es'} seleccionada
             {selectedVenueIds.length === 1 ? '' : 's'}
           </div>
+          {venuesQuery.data !== undefined && <AvisoDeCarga query={venuesQuery} hayDatos />}
           <div className="max-h-56 overflow-y-auto space-y-1">
             {venuesLoading ? (
               <div className="space-y-2 py-1">

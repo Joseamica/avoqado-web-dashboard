@@ -723,6 +723,7 @@ function FeeHistoryDialog({ merchant, onClose }: { merchant: MerchantRow | null;
           </DialogDescription>
         </DialogHeader>
 
+        {historyQuery.data !== undefined && <AvisoDeCarga query={historyQuery} hayDatos />}
         {isLoading ? (
           <div className="flex items-center justify-center py-8">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
