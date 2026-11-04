@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next'
 import { GlassCard } from '@/components/ui/glass-card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Check, X, Image, ImageOff, MapPin, MapPinOff, RotateCcw, ClipboardList, AlertTriangle, Receipt, Store, StoreIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { FilterPill, CheckboxFilterContent } from '@/components/filters'
@@ -231,7 +232,9 @@ export function AttendanceLog({
       </div>
 
       <AvisoDeCarga query={query} hayDatos={query.data !== undefined} />
-      {query.data === undefined && falloDeCarga(query) ? null : filteredEntries.length === 0 ? (
+      {query.data === undefined ? (
+        !falloDeCarga(query) && <Skeleton className="h-40 w-full rounded-xl" />
+      ) : filteredEntries.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
           <ClipboardList className="w-10 h-10 mb-3 opacity-40" />
           <p className="text-sm font-medium">

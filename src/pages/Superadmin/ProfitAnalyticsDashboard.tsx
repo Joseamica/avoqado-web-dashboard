@@ -43,7 +43,7 @@ const ProfitAnalyticsDashboard: React.FC = () => {
         providerId: selectedProvider !== 'all' ? selectedProvider : undefined,
       }),
   })
-  const { data: profitMetrics, isLoading: metricsLoading } = metricsQuery
+  const { data: profitMetrics } = metricsQuery
 
   // Fetch monthly profit data
   const monthlyQuery = useQuery({
@@ -54,13 +54,14 @@ const ProfitAnalyticsDashboard: React.FC = () => {
         endDate: dateRange.endDate,
       }),
   })
-  const { data: monthlyData, isLoading: monthlyLoading } = monthlyQuery
+  const { data: monthlyData } = monthlyQuery
 
   // Fetch cost structure analysis
-  const { data: costAnalysis } = useQuery({
+  const costQuery = useQuery({
     queryKey: ['cost-analysis'],
     queryFn: () => costManagementAPI.getCostStructureAnalysis(),
   })
+  const { data: costAnalysis } = costQuery
 
   // Fetch venue list for filter
   const { data: venues, isLoading: venuesLoading, error: venuesError } = useQuery({
@@ -123,16 +124,14 @@ const ProfitAnalyticsDashboard: React.FC = () => {
     }
   }
 
-  if (metricsLoading || monthlyLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-foreground mx-auto"></div>
-          <p className="mt-2 text-muted-foreground">{t('profitAnalytics.loadingAnalytics', 'Loading profit analytics...')}</p>
-        </div>
+  const esperando = (
+    <div className="flex items-center justify-center min-h-[200px]">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-foreground mx-auto"></div>
+        <p className="mt-2 text-muted-foreground">{t('profitAnalytics.loadingAnalytics', 'Loading profit analytics...')}</p>
       </div>
-    )
-  }
+    </div>
+  )
 
   return (
     <div className="space-y-6 bg-background">
@@ -261,8 +260,9 @@ const ProfitAnalyticsDashboard: React.FC = () => {
       </Card>
 
       <AvisoDeCarga query={metricsQuery} hayDatos={profitMetrics !== undefined} />
+      {profitMetrics === undefined && !falloDeCarga(metricsQuery) && esperando}
       {/* Key Metrics: sin leerlas no hay ganancia en $0. */}
-      {!(profitMetrics === undefined && falloDeCarga(metricsQuery)) && (
+      {profitMetrics !== undefined && (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -455,7 +455,8 @@ const ProfitAnalyticsDashboard: React.FC = () => {
             </CardHeader>
             <CardContent>
               <AvisoDeCarga query={monthlyQuery} hayDatos={monthlyData !== undefined} />
-              {!(monthlyData === undefined && falloDeCarga(monthlyQuery)) && (
+              {monthlyData === undefined && !falloDeCarga(monthlyQuery) && esperando}
+              {monthlyData !== undefined && (
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -508,6 +509,7 @@ const ProfitAnalyticsDashboard: React.FC = () => {
               <CardDescription>{t('profitAnalytics.costStructures.description', 'Active cost structures by provider and merchant account')}</CardDescription>
             </CardHeader>
             <CardContent>
+              <AvisoDeCarga query={costQuery} hayDatos={costAnalysis !== undefined} />
               <div className="space-y-6">
                 {costAnalysis?.map(provider => (
                   <div key={provider.providerId} className="border rounded-lg p-4">

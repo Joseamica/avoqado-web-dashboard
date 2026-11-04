@@ -157,7 +157,7 @@ const Ecommerce: React.FC = () => {
         </CardHeader>
 
         <CardContent className="space-y-4">
-          {!canTransact && !sinLeer && (
+          {!canTransact && merchantsQuery.data !== undefined && (
             <Alert>
               <AlertCircle className="h-4 w-4" />
               <AlertDescription className="flex flex-wrap items-center gap-x-2 gap-y-1">

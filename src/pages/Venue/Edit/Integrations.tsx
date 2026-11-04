@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
-import { detalleNoCargo } from '@/lib/falloDeCarga'
+import { BotonReintentar } from '@/components/AvisoDeCarga'
+import { detalleNoCargo, type EstadoDeCarga } from '@/lib/falloDeCarga'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -98,7 +99,7 @@ export default function VenueIntegrations() {
   })
   const { data: chatStatus } = chatQuery
 
-  const { data: venue, isLoading } = useQuery<VenueIntegrations>({
+  const venueQuery = useQuery<VenueIntegrations>({
     queryKey: ['venue-integrations', venueId],
     queryFn: async () => {
       const response = await api.get(`/api/v1/dashboard/venues/${venueId}`)
@@ -110,6 +111,7 @@ export default function VenueIntegrations() {
       return failureCount < 2
     },
   })
+  const { data: venue, isLoading } = venueQuery
 
   // Fetch Google Integration status
   const googleQuery = useQuery({
@@ -128,7 +130,8 @@ export default function VenueIntegrations() {
 
   // Pases (TotalPass · Wellhub): el hook consulta con reservations:read y el plan comprobado, tenga o no el plan (R62: sin
   // él la subpágina explica la pausa); sin dato no se inventa el punto de estado.
-  const { data: passesOverview } = usePassIntegrationsOverview(venueId ?? undefined)
+  const passesQuery = usePassIntegrationsOverview(venueId ?? undefined)
+  const { data: passesOverview } = passesQuery
 
   // Shopify: el resumen pide inventory:read y no lleva candado de plan (apagado se ve); sin dato no se inventa el punto de estado.
   const { data: shopifyOverview, isError: shopifyError } = useShopifyOverview(venueId ?? undefined)
@@ -148,7 +151,10 @@ export default function VenueIntegrations() {
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>{t('edit.integrations.error', { defaultValue: 'Error' })}</AlertTitle>
-          <AlertDescription>{t('edit.integrations.errorLoading')}</AlertDescription>
+          <AlertDescription>
+            {t('edit.integrations.errorLoading')}
+            <BotonReintentar query={venueQuery} className="mt-2" />
+          </AlertDescription>
         </Alert>
       </div>
     )
@@ -161,13 +167,21 @@ export default function VenueIntegrations() {
   const ctaLabel = (connected: boolean) =>
     connected ? t('edit.integrations.catalog.manage') : t('edit.integrations.catalog.connect')
 
-  // Lectura caída o en pausa: no se sabe si hay conexión, igual que Shopify abajo. Ni «Disponible» ni «Conectar»; un 404 sí es «no conectada».
-  const statusDe = (sinLeer: boolean, connected: boolean) =>
-    sinLeer ? { connected: false, label: t('edit.integrations.catalog.status.loadError') } : statusLabel(connected)
-  const googleSinLeer = detalleNoCargo(googleQuery)
-  const whatsappSinLeer = detalleNoCargo(chatQuery)
-  const ecommerceSinLeer = detalleNoCargo(merchantsQuery)
-  const banksSinLeer = detalleNoCargo(banksQuery)
+  // Mientras llega la primera lectura, o con ella caída o en pausa, no se sabe si hay conexión, igual que Shopify abajo. Ni «Disponible» ni
+  // «Conectar»; un 404 sí es «no conectada».
+  type Fuente = EstadoDeCarga & { data: unknown }
+  const statusDe = (fuente: Fuente, connected: boolean) =>
+    fuente.data === undefined && fuente.isFetching
+      ? undefined
+      : detalleNoCargo(fuente)
+        ? { connected: false, label: t('edit.integrations.catalog.status.loadError') }
+        : statusLabel(connected)
+  const sinSaber = (fuente: Fuente) => fuente.data === undefined && (fuente.isFetching || detalleNoCargo(fuente))
+  const googleSinLeer = sinSaber(googleQuery)
+  const whatsappSinLeer = sinSaber(chatQuery)
+  const ecommerceSinLeer = sinSaber(merchantsQuery)
+  const banksSinLeer = sinSaber(banksQuery)
+  const passesSinLeer = sinSaber(passesQuery)
 
   const googleConnected = !!googleStatus?.connected
   const whatsappConnected = !!chatStatus?.mode && chatStatus.mode !== 'DISABLED'
@@ -226,7 +240,7 @@ export default function VenueIntegrations() {
           icon={Globe}
           title={t('edit.integrations.google.title', { defaultValue: 'Google Business Profile' })}
           description={t('edit.integrations.google.description')}
-          status={statusDe(googleSinLeer, googleConnected)}
+          status={statusDe(googleQuery, googleConnected)}
           actionLabel={ctaLabel(googleConnected || googleSinLeer)}
           actionVariant={googleConnected || googleSinLeer ? 'outline' : 'default'}
           onAction={() => navigate('google')}
@@ -238,9 +252,9 @@ export default function VenueIntegrations() {
           icon={Ticket}
           title={t('edit.integrations.catalog.passes.title')}
           description={t('edit.integrations.catalog.passes.description')}
-          status={passesOverview ? statusLabel(passesConnected) : undefined}
-          actionLabel={ctaLabel(passesConnected)}
-          actionVariant={passesConnected ? 'outline' : 'default'}
+          status={passesOverview || passesSinLeer ? statusDe(passesQuery, passesConnected) : undefined}
+          actionLabel={ctaLabel(passesConnected || passesSinLeer)}
+          actionVariant={passesConnected || passesSinLeer ? 'outline' : 'default'}
           onAction={() => navigate('pases')}
           dataTour="integration-card-passes"
         />
@@ -264,7 +278,7 @@ export default function VenueIntegrations() {
           icon={MessageCircle}
           title={t('edit.integrations.catalog.whatsapp.title')}
           description={t('edit.integrations.catalog.whatsapp.description')}
-          status={statusDe(whatsappSinLeer, whatsappConnected)}
+          status={statusDe(chatQuery, whatsappConnected)}
           actionLabel={ctaLabel(whatsappConnected || whatsappSinLeer)}
           actionVariant={whatsappConnected || whatsappSinLeer ? 'outline' : 'default'}
           onAction={() => setWhatsappOpen(true)}
@@ -276,7 +290,7 @@ export default function VenueIntegrations() {
           icon={ShoppingCart}
           title={t('edit.integrations.catalog.ecommerce.title')}
           description={t('edit.integrations.catalog.ecommerce.description')}
-          status={statusDe(ecommerceSinLeer, ecommerceConnected)}
+          status={statusDe(merchantsQuery, ecommerceConnected)}
           actionLabel={ctaLabel(ecommerceConnected || ecommerceSinLeer)}
           actionVariant={ecommerceConnected || ecommerceSinLeer ? 'outline' : 'default'}
           onAction={() => setEcommerceOpen(true)}
@@ -304,7 +318,7 @@ export default function VenueIntegrations() {
             icon={Landmark}
             title={t('edit.integrations.catalog.banks.title')}
             description={t('edit.integrations.catalog.banks.description')}
-            status={statusDe(banksSinLeer, banksConnected)}
+            status={statusDe(banksQuery, banksConnected)}
             actionLabel={ctaLabel(banksConnected || banksSinLeer)}
             actionVariant={banksConnected || banksSinLeer ? 'outline' : 'default'}
             onAction={() => navigate(`${fullBasePath}/bancos`)}

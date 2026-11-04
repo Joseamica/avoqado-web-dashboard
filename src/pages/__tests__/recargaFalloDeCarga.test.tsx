@@ -239,7 +239,9 @@ describe('Bancos: la recarga caída de las conexiones avisa en las cinco página
   it('sin leer: sólo el error de siempre, sin el aviso parcial', async () => {
     red.caida = CONEXIONES
     pintar(<BancosMovimientos />, { rutas })
+    await screen.findByText('hub.error.title')
     await sinConsultasEnCamino()
+    expect(screen.getByRole('button', { name: 'hub.error.retry' })).toBeInTheDocument()
     expect(screen.queryByText(CON_DATOS)).toBeNull()
   })
 })
@@ -268,12 +270,19 @@ describe('Asistencia: el historial avisa de SU recarga caída', () => {
     expect(screen.getByText('Ana Ruiz')).toBeInTheDocument()
   })
 
-  it('sin internet, con la lectura ya hecha', async () => {
+  it('sin internet, con la lectura ya hecha: el aviso es del historial, no de «quién está dentro»', async () => {
     pintar(<Attendance />, { rutas })
     await screen.findByText('empty.title')
+    await sinConsultasEnCamino()
     onlineManager.setOnline(false)
-    void client.refetchQueries()
-    await screen.findAllByText(CON_DATOS)
+    // Sólo el historial: la otra consulta del tablero no puede satisfacer esta prueba.
+    void client.refetchQueries({ predicate: q => !JSON.stringify(q.queryKey).includes('active') })
+    await waitFor(() => expect(client.getQueryCache().findAll().some(q => q.state.fetchStatus === 'paused')).toBe(true))
+    const avisos = await screen.findAllByText(CON_DATOS)
+    expect(avisos).toHaveLength(1)
+    // Va delante del vacío del historial, no en la sección de arriba.
+    const vacio = screen.getByText('empty.title')
+    expect(avisos[0].compareDocumentPosition(vacio) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(screen.getByText('empty.title')).toBeInTheDocument()
   })
 

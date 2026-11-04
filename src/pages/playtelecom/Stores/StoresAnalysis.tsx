@@ -56,11 +56,12 @@ export function StoresAnalysis() {
   const venueId = venue?.id
 
   // Fetch venues from white-label stores analysis endpoint (uses venue-level access control)
-  const { data: storesAnalysisVenues, isLoading: storesVenuesLoading } = useQuery({
+  const storesVenuesQuery = useQuery({
     queryKey: ['stores-analysis', 'venues', venueId],
     queryFn: () => getStoresAnalysisVenues(venueId!),
     enabled: !!venueId,
   })
+  const { data: storesAnalysisVenues, isLoading: storesVenuesLoading } = storesVenuesQuery
 
   // Determine which venues to show based on dataScope
   const venuesData = useMemo(() => {
@@ -111,7 +112,7 @@ export function StoresAnalysis() {
     queryFn: () => getStoreSummary(venueId!, currentStoreId!),
     enabled: !!venueId && !!currentStoreId,
   })
-  const { data: summaryData, isLoading: summaryLoading } = summaryQuery
+  const { data: summaryData } = summaryQuery
 
   // Fetch sales trend data (centralized under STORES_ANALYSIS)
   const salesTrendQuery = useQuery({
@@ -119,7 +120,7 @@ export function StoresAnalysis() {
     queryFn: () => getStoreSalesTrend(venueId!, currentStoreId!, { days: 7 }),
     enabled: !!venueId && !!currentStoreId,
   })
-  const { data: salesTrendData, isLoading: salesTrendLoading } = salesTrendQuery
+  const { data: salesTrendData } = salesTrendQuery
 
   // Fetch inventory summary data (centralized under STORES_ANALYSIS)
   const inventoryQuery = useQuery({
@@ -230,28 +231,6 @@ export function StoresAnalysis() {
     },
   ], [activePromoters, totalPromoters, promoterRatio, stockAvailable, stockTotal, stockRatio, summaryData, serializedSummary, formatCurrency])
 
-  const isLoading = storesVenuesLoading || summaryLoading || salesTrendLoading
-
-  if (isLoading) {
-    return (
-      <div className="space-y-6">
-        <Skeleton className="h-10 rounded-xl" />
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-          {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-52 rounded-xl" />)}
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-          <Skeleton className="lg:col-span-2 h-80 rounded-xl" />
-          <Skeleton className="h-80 rounded-xl" />
-        </div>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}
-        </div>
-        <Skeleton className="h-48 rounded-xl" />
-        <Skeleton className="h-40 rounded-xl" />
-      </div>
-    )
-  }
-
   return (
     <div className="space-y-6">
       {/* Header: Store Selector + Status */}
@@ -292,6 +271,7 @@ export function StoresAnalysis() {
       </div>
 
       {/* Cada fuente con su aviso; lo que sale de ella no se pinta sin haberla leído. */}
+      <AvisoDeCarga query={storesVenuesQuery} hayDatos={storesAnalysisVenues !== undefined} />
       <AvisoDeCarga query={summaryQuery} hayDatos={summaryData !== undefined} />
       <AvisoDeCarga query={salesTrendQuery} hayDatos={salesTrendData !== undefined} />
       <AvisoDeCarga query={inventoryQuery} hayDatos={serializedSummary !== undefined} />
@@ -301,6 +281,7 @@ export function StoresAnalysis() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
         {/* Health Score Gauge */}
         <GlassCard className="p-6 flex items-center justify-center">
+          {(summaryQuery.isLoading || inventoryQuery.isLoading) && <Skeleton className="h-40 w-full rounded-xl" />}
           {summaryData !== undefined && serializedSummary !== undefined && (
             <GaugeChart
               value={healthScore}
@@ -330,7 +311,9 @@ export function StoresAnalysis() {
               )}
             </div>
 
-            {revenueVsTarget === undefined ? null : weeklyTarget > 0 ? (
+            {revenueVsTarget === undefined ? (
+              revenueQuery.isLoading && <Skeleton className="h-16 w-full rounded-xl" />
+            ) : weeklyTarget > 0 ? (
               <>
                 <Progress value={progressPercent} className="h-3" />
                 <div className="flex items-center gap-2">
@@ -368,7 +351,9 @@ export function StoresAnalysis() {
           <h3 className="text-sm font-bold text-foreground uppercase tracking-wider mb-4">
             Evolución de Ventas
           </h3>
-          {salesTrendData === undefined ? null : salesData.length === 0 ? (
+          {salesTrendData === undefined ? (
+            salesTrendQuery.isLoading && <Skeleton className="h-[250px] w-full rounded-xl" />
+          ) : salesData.length === 0 ? (
             <p className="text-sm text-muted-foreground">Sin datos de ventas</p>
           ) : (
             <ResponsiveContainer width="100%" height={250}>
@@ -415,7 +400,9 @@ export function StoresAnalysis() {
           <h3 className="text-sm font-bold text-foreground uppercase tracking-wider mb-4">
             Mix de Productos
           </h3>
-          {summaryData === undefined ? null : productMix.length === 0 ? (
+          {summaryData === undefined ? (
+            summaryQuery.isLoading && <Skeleton className="h-[250px] w-full rounded-xl" />
+          ) : productMix.length === 0 ? (
             <p className="text-sm text-muted-foreground">Sin datos de productos</p>
           ) : (
             <ResponsiveContainer width="100%" height={250}>
@@ -480,7 +467,9 @@ export function StoresAnalysis() {
         <h3 className="text-sm font-bold text-foreground uppercase tracking-wider mb-4">
           Estado de Inventario
         </h3>
-        {serializedSummary === undefined ? null : inventoryItems.length === 0 ? (
+        {serializedSummary === undefined ? (
+          inventoryQuery.isLoading && <Skeleton className="h-40 w-full rounded-xl" />
+        ) : inventoryItems.length === 0 ? (
           <p className="text-sm text-muted-foreground">Sin datos de inventario</p>
         ) : (
           <Table>

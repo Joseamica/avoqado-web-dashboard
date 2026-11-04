@@ -45,7 +45,7 @@ const RevenueDashboard: React.FC = () => {
         endDate: dateRange.endDate,
       }),
   })
-  const { data: metrics, isLoading: metricsLoading } = metricsQuery
+  const { data: metrics } = metricsQuery
 
   // Fetch revenue breakdown
   const breakdownQuery = useQuery({
@@ -56,7 +56,7 @@ const RevenueDashboard: React.FC = () => {
         endDate: dateRange.endDate,
       }),
   })
-  const { data: breakdown, isLoading: breakdownLoading } = breakdownQuery
+  const { data: breakdown } = breakdownQuery
   const metricsSinLeer = metrics === undefined && falloDeCarga(metricsQuery)
   const breakdownSinLeer = breakdown === undefined && falloDeCarga(breakdownQuery)
 
@@ -84,16 +84,14 @@ const RevenueDashboard: React.FC = () => {
     })
   }
 
-  if (metricsLoading || breakdownLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-foreground mx-auto"></div>
-          <p className="mt-2 text-muted-foreground">Cargando métricas de ingresos...</p>
-        </div>
+  const esperando = (
+    <div className="flex items-center justify-center min-h-[200px]">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-foreground mx-auto"></div>
+        <p className="mt-2 text-muted-foreground">Cargando métricas de ingresos...</p>
       </div>
-    )
-  }
+    </div>
+  )
 
   return (
     <div className="space-y-6 p-6">
@@ -157,9 +155,10 @@ const RevenueDashboard: React.FC = () => {
       </GlassCard>
 
       <AvisoDeCarga query={metricsQuery} hayDatos={!metricsSinLeer} />
+      {metrics === undefined && !metricsSinLeer && esperando}
 
       {/* Revenue Metrics Overview - MetricCard Pattern */}
-      {!metricsSinLeer && <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {metrics !== undefined && <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total Revenue */}
         <GlassCard>
           <div className="p-4 space-y-3">
@@ -231,7 +230,7 @@ const RevenueDashboard: React.FC = () => {
       </div>}
 
       {/* Transaction Metrics */}
-      {!metricsSinLeer && <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {metrics !== undefined && <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <GlassCard>
           <div className="p-4 space-y-3">
             <div className="p-2 rounded-xl bg-gradient-to-br from-indigo-500/20 to-indigo-500/5 w-fit">
@@ -258,9 +257,10 @@ const RevenueDashboard: React.FC = () => {
       </div>}
 
       <AvisoDeCarga query={breakdownQuery} hayDatos={!breakdownSinLeer} />
+      {breakdown === undefined && !breakdownSinLeer && esperando}
 
       {/* Detailed Breakdown */}
-      {!breakdownSinLeer && <Tabs defaultValue="venues" className="space-y-4">
+      {breakdown !== undefined && <Tabs defaultValue="venues" className="space-y-4">
         <TabsList className="inline-flex h-10 items-center justify-start rounded-full bg-muted/60 px-1 py-1 text-muted-foreground border border-border">
           <TabsTrigger
             value="venues"

@@ -107,10 +107,10 @@ export function ExcepcionesSheet({ sede, fecha, onClose }: { sede?: string; fech
           <SheetTitle>{t('period.exceptionsTitle')}</SheetTitle>
           <SheetDescription>{t('period.exceptionsHelp')}</SheetDescription>
         </SheetHeader>
-        {filas.length > 0 && !q.isFetchNextPageError && <AvisoDeCarga query={q} hayDatos />}
+        {q.data !== undefined && !q.isFetchNextPageError && <AvisoDeCarga query={q} hayDatos />}
         <EstadoLista
           isLoading={q.isLoading}
-          isError={falloDeCarga(q) && filas.length === 0}
+          isError={falloDeCarga(q) && q.data === undefined}
           vacio={filas.length === 0}
           textoVacio={t('period.listEmpty')}
           onRetry={() => q.refetch()}
@@ -189,10 +189,10 @@ export function HuerfanasSheet({ sede, fecha, onClose }: { sede?: string; fecha?
           <SheetTitle>{t('period.orphansTitle')}</SheetTitle>
           <SheetDescription>{t('period.orphansHelp')}</SheetDescription>
         </SheetHeader>
-        {filas.length > 0 && !q.isFetchNextPageError && <AvisoDeCarga query={q} hayDatos />}
+        {q.data !== undefined && !q.isFetchNextPageError && <AvisoDeCarga query={q} hayDatos />}
         <EstadoLista
           isLoading={q.isLoading}
-          isError={falloDeCarga(q) && filas.length === 0}
+          isError={falloDeCarga(q) && q.data === undefined}
           vacio={filas.length === 0}
           textoVacio={t('period.listEmpty')}
           onRetry={() => q.refetch()}

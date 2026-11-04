@@ -5,7 +5,7 @@ import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { ArrowLeft, ArrowRight, Search, X } from 'lucide-react'
 
-import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { AvisoDeCarga, BotonReintentar } from '@/components/AvisoDeCarga'
 import { falloDeCarga } from '@/lib/falloDeCarga'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -89,6 +89,7 @@ export default function TransferDetailPage() {
             <p className="text-sm text-destructive">
               No se pudo cargar la transferencia. Verifica el enlace o inténtalo de nuevo.
             </p>
+            <BotonReintentar query={transferQuery} className="mt-3" />
           </CardContent>
         </Card>
       )}

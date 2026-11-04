@@ -112,7 +112,10 @@ const VisionGlobal: React.FC = () => {
   const { t } = useTranslation(['organization', 'common'])
   const navigate = useNavigate()
   const { organization: _organization, basePath, venues, venuesQuery, isLoading } = useCurrentOrganization()
-  const sinLeer = venuesQuery.data === undefined && falloDeCarga(venuesQuery)
+  const leido = venuesQuery.data !== undefined
+  const sinLeer = !leido && falloDeCarga(venuesQuery)
+  // Por las tiendas, no por las estadísticas de la organización: esas colgadas no esconden lo que sí llegó.
+  const cargando = !leido && !sinLeer && isLoading
 
   // Calculate aggregate metrics from venues
   const metrics = useMemo(() => {
@@ -160,14 +163,14 @@ const VisionGlobal: React.FC = () => {
       <AvisoDeCarga query={venuesQuery} hayDatos={!sinLeer} />
 
       {/* KPI Grid */}
-      {!sinLeer && <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {(leido || cargando) && <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
           title={t('organization:metrics.totalSales', { defaultValue: 'Ventas Totales' })}
           value={formatCurrency(metrics.totalSales)}
           change={12.5}
           icon={DollarSign}
           iconColor="from-green-500/80 to-green-600/80"
-          loading={isLoading}
+          loading={cargando}
         />
         <MetricCard
           title={t('organization:metrics.transactions', { defaultValue: 'Transacciones' })}
@@ -175,14 +178,14 @@ const VisionGlobal: React.FC = () => {
           change={8.2}
           icon={TrendingUp}
           iconColor="from-blue-500/80 to-blue-600/80"
-          loading={isLoading}
+          loading={cargando}
         />
         <MetricCard
           title={t('organization:metrics.activeStores', { defaultValue: 'Tiendas Activas' })}
           value={`${metrics.activeStores}/${venues.length}`}
           icon={Store}
           iconColor="from-purple-500/80 to-purple-600/80"
-          loading={isLoading}
+          loading={cargando}
         />
         <MetricCard
           title={t('organization:metrics.totalStaff', { defaultValue: 'Personal Total' })}
@@ -190,7 +193,7 @@ const VisionGlobal: React.FC = () => {
           change={-2.1}
           icon={Users}
           iconColor="from-orange-500/80 to-orange-600/80"
-          loading={isLoading}
+          loading={cargando}
         />
       </div>}
 
@@ -258,13 +261,13 @@ const VisionGlobal: React.FC = () => {
             </Button>
           </div>
 
-          {isLoading ? (
+          {cargando ? (
             <div className="space-y-3">
               {[1, 2, 3, 4, 5].map((i) => (
                 <Skeleton key={i} className="h-12 w-full" />
               ))}
             </div>
-          ) : sinLeer ? null : venues.length === 0 ? (
+          ) : !leido ? null : venues.length === 0 ? (
             <div className="h-[200px] flex items-center justify-center">
               <p className="text-muted-foreground">
                 {t('organization:storePerformance.noStores', { defaultValue: 'No hay tiendas registradas' })}

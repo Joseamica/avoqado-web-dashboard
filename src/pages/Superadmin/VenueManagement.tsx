@@ -498,7 +498,7 @@ const VenueManagement: React.FC = () => {
       <AvisoDeCarga query={venuesQuery} hayDatos={!sinLeer} />
 
       {/* Metrics Grid */}
-      {!sinLeer && <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {venuesQuery.data !== undefined && <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
           icon={<DollarSign className="w-4 h-4 text-green-600 dark:text-green-400" />}
           label="Ingresos Totales"
@@ -575,7 +575,7 @@ const VenueManagement: React.FC = () => {
                   ))}
                 </SelectContent>
               </Select>
-              {!sinLeer && (
+              {venuesQuery.data !== undefined && (
                 <p className="text-xs text-muted-foreground">
                   {filteredVenues.length} de {venues.length} venues
                 </p>

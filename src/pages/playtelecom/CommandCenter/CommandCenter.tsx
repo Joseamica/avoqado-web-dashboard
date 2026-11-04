@@ -827,7 +827,8 @@ export default function CommandCenter() {
         {/* Live Activity Feed */}
         <GlassCard className="flex flex-col overflow-hidden p-4">
           <AvisoDeCarga query={activityFeedQuery} hayDatos={activityFeed !== undefined} />
-          {!(activityFeed === undefined && falloDeCarga(activityFeedQuery)) && (
+          {activityFeed === undefined && !falloDeCarga(activityFeedQuery) && <Skeleton className="h-64 w-full rounded-xl" />}
+          {activityFeed !== undefined && (
             <LiveActivityFeed
               activities={liveActivities}
               maxHeight="h-64"
@@ -934,7 +935,8 @@ export default function CommandCenter() {
         </div>
 
         <AvisoDeCarga query={anomaliesQuery} hayDatos={anomaliesData !== undefined} />
-        {!(anomaliesData === undefined && falloDeCarga(anomaliesQuery)) && (
+        {anomaliesData === undefined && !falloDeCarga(anomaliesQuery) && <Skeleton className="h-32 w-full rounded-xl" />}
+        {anomaliesData !== undefined && (
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
@@ -1131,7 +1133,17 @@ export default function CommandCenter() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredActivityEvents.length === 0 ? (
+                      {activityFeed === undefined ? (
+                        <TableRow>
+                          <TableCell colSpan={5} className="py-6">
+                            {falloDeCarga(activityFeedQuery) ? (
+                              <AvisoDeCarga query={activityFeedQuery} hayDatos={false} />
+                            ) : (
+                              <Skeleton className="h-32 w-full rounded-xl" />
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ) : filteredActivityEvents.length === 0 ? (
                         <TableRow>
                           <TableCell colSpan={5} className="py-10 text-center text-muted-foreground">
                             {t('commandCenter.activity.table.empty', {

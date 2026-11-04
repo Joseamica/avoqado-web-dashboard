@@ -62,7 +62,7 @@ export default function VenueRosterPanel({ venueId, venueName }: Props) {
           <Layers className="w-4 h-4 text-muted-foreground" />
           <h3 className="font-semibold text-sm">Roster de cuentas{venueName ? ` · ${venueName}` : ''}</h3>
         </div>
-        {!sinLeer && (
+        {data !== undefined && (
           <Badge variant="outline" className="text-[10px] shrink-0">
             {data?.count ?? 0} cuentas
           </Badge>
@@ -82,7 +82,7 @@ export default function VenueRosterPanel({ venueId, venueName }: Props) {
             {enabled ? (
               <Badge className="text-[10px] bg-green-600 hover:bg-green-600">Activo</Badge>
             ) : (
-              !sinLeer && (
+              data !== undefined && (
                 <Badge variant="outline" className="text-[10px]">
                   Slots (legacy)
                 </Badge>

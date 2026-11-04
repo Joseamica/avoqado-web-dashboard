@@ -15,7 +15,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
 import { Skeleton } from '@/components/ui/skeleton'
 import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { SummaryQueryBoundary } from '@/components/SummaryQueryBoundary'
 import { falloDeCarga } from '@/lib/falloDeCarga'
+import { esSinPermiso } from '@/lib/reintentoSinPermiso'
 import { cn } from '@/lib/utils'
 import { Currency } from '@/utils/currency'
 import { getIntlLocale } from '@/utils/i18n-locale'
@@ -99,9 +101,12 @@ function ReportsContent({ venueId, accounts }: { venueId: string; accounts: Banc
     })),
   })
   const statsLoading = statsQueries.some(q => q.data === undefined && !falloDeCarga(q))
-  // Una cuenta que falla deja el total de LAS 4 categorías incompleto (cada categoría suma sobre
+  // Una cuenta SIN LEER deja el total de LAS 4 categorías incompleto (cada categoría suma sobre
   // todas las cuentas) — nunca mostrar $0 fabricado cuando en realidad no se pudo leer todo.
-  const statsError = statsQueries.some(q => falloDeCarga(q))
+  const statsSinLeer = statsQueries.filter(q => q.data === undefined && falloDeCarga(q))
+  const statsError = statsSinLeer.length > 0
+  // Con todo leído y una recarga caída, los importes siguen, con su aviso.
+  const statsRecarga = statsQueries.find(q => q.data !== undefined && falloDeCarga(q)) ?? null
 
   const totals = useMemo(
     () => ({
@@ -123,7 +128,18 @@ function ReportsContent({ venueId, accounts }: { venueId: string; accounts: Banc
 
   return (
     <div className="flex flex-col gap-5">
-      {statsError && <div className="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">{t('hub.reports.statsError')}</div>}
+      {statsError ? (
+        <SummaryQueryBoundary
+          isError
+          message={t('hub.reports.statsError')}
+          retryLabel={t('hub.error.retry')}
+          onRetry={statsSinLeer.some(q => esSinPermiso(q.error)) ? undefined : () => statsSinLeer.forEach(q => void q.refetch())}
+        >
+          {null}
+        </SummaryQueryBoundary>
+      ) : (
+        <AvisoDeCarga query={statsRecarga} hayDatos />
+      )}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <KpiCard
           label={t('movements.stats.speiIn')}

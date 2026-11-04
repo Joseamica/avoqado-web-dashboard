@@ -4,6 +4,7 @@ import { AlertTriangle, ChevronLeft, ChevronRight, Info, Loader2, Lock, Plus } f
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useVenueDateTime } from '@/utils/datetime'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
@@ -53,7 +54,10 @@ export function PeriodoAbiertoTab({
   const [ajusteAbierto, setAjusteAbierto] = useState(false)
   // Las sedes del filtro salen del reporte SIN filtro: con `sede` puesto, `venueIds` ya viene recortado a esa sola.
   const [sedesConocidas, setSedesConocidas] = useState<string[]>([])
-  const { data, isLoading, isError, error, refetch } = useStaffPayReport({ offset, limit: LIMITE, sede, fecha }, activa)
+  const reportQuery = useStaffPayReport({ offset, limit: LIMITE, sede, fecha }, activa)
+  const { data, isLoading, error, refetch } = reportQuery
+  // Sin internet la consulta se pausa sin marcar error: sin esto, esqueleto para siempre.
+  const isError = falloDeCarga(reportQuery)
 
   useEffect(() => {
     if (data && sede === undefined) setSedesConocidas(data.venueIds)

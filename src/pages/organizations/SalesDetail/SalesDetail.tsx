@@ -171,7 +171,7 @@ function isVirtualOrigin(row: OrgSaleRow): boolean {
 }
 
 export default function SalesDetail() {
-  const { orgId, orgSlug, isLoading: orgLoading, organization } = useCurrentOrganization()
+  const { orgId, orgSlug, organization } = useCurrentOrganization()
   const { formatDate, formatTime } = useVenueDateTime()
   const { activeVenue, user } = useAuth()
   const { toast } = useToast()
@@ -512,15 +512,6 @@ export default function SalesDetail() {
       setExporting(false)
       setExportProgress(null)
     }
-  }
-
-  if (orgLoading) {
-    return (
-      <div className="p-6 space-y-4">
-        <Skeleton className="h-10 w-64" />
-        <Skeleton className="h-32 w-full" />
-      </div>
-    )
   }
 
   if (!orgId) {

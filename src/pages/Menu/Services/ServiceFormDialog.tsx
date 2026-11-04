@@ -334,11 +334,11 @@ export function ServiceFormDialog({ open, onOpenChange, onSuccess, mode, product
         </div>
       ) : lecturaPendiente ? (
         <div className="max-w-5xl mx-auto p-6">
-          <AvisoDeCarga query={productQuery} hayDatos={false} />
+          <AvisoDeCarga query={productQuery} hayDatos={false} deUnRegistro />
         </div>
       ) : (
         <form onSubmit={onSubmit} className="max-w-5xl mx-auto p-6">
-          <AvisoDeCarga query={productQuery} hayDatos />
+          <AvisoDeCarga query={productQuery} hayDatos deUnRegistro />
           <div className="grid grid-cols-12 gap-6">
             {/* ─── Main Column (col-span-8) ─── */}
             <div className="col-span-12 lg:col-span-8 space-y-6">

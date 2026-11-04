@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useToast } from '@/hooks/use-toast'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { cn } from '@/lib/utils'
 import { lista } from '@/pages/StaffPay/cuenta'
 import {
@@ -325,7 +326,7 @@ export function CopyDesignDialog({ onClose, venueId, source, tokenVigente, entit
                 <Skeleton className="h-14 w-full" />
                 <Skeleton className="h-14 w-full" />
               </div>
-            ) : destinos.isError && filas.length === 0 ? (
+            ) : falloDeCarga(destinos) && paginas === undefined ? (
               <div role="alert" className="flex flex-wrap items-center justify-between gap-2 p-3 text-sm">
                 <span>{t('copy.loadError')}</span>
                 <Button

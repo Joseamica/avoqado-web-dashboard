@@ -16,7 +16,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { AvisoDeCarga, BotonReintentar } from '@/components/AvisoDeCarga'
 import { falloDeCarga } from '@/lib/falloDeCarga'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -140,6 +140,7 @@ export default function StockCountDetailPage() {
         <Card>
           <CardContent className="pt-6">
             <p className="text-sm text-destructive">No se pudo cargar el conteo. Verifica el enlace o inténtalo de nuevo.</p>
+            <BotonReintentar query={countQuery} className="mt-3" />
           </CardContent>
         </Card>
       )}

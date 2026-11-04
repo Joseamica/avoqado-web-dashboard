@@ -366,6 +366,8 @@ function DataTable<TData>({
 
   // Handle case where there's no data yet
   const hasRows = table.getRowModel() && table.getRowModel().rows && table.getRowModel().rows.length > 0
+  // Lo leído sigue valiendo aunque falle la recarga: una lista vacía de verdad sigue diciendo «sin resultados», con su aviso.
+  const yaLeida = (query as { data?: unknown } | null | undefined)?.data !== undefined || data.length > 0
 
   return (
     <>
@@ -409,7 +411,7 @@ function DataTable<TData>({
           </div>
         </div>
       )}
-      <AvisoDeCarga query={query} hayDatos={data.length > 0} />
+      <AvisoDeCarga query={query} hayDatos={yaLeida} />
       {(tableTab || tableTabLeft) && (
         <div className="flex items-end justify-between gap-2">
           {tableTabLeft ? (
@@ -545,7 +547,7 @@ function DataTable<TData>({
               </TableBody>
             )
           })
-        ) : falloDeCarga(query) ? null : (
+        ) : falloDeCarga(query) && !yaLeida ? null : (
           <TableBody>
             <TableRow>
               <TableCell colSpan={allColumns.length} className={`h-10 text-center text-muted-foreground`}>
@@ -556,7 +558,7 @@ function DataTable<TData>({
         )}
       </Table>
       {footer}
-      {!hidePagination && <DataTablePagination table={table} ocultarConteo={falloDeCarga(query) && !hasRows} />}
+      {!hidePagination && <DataTablePagination table={table} ocultarConteo={falloDeCarga(query) && !yaLeida} />}
     </>
   )
 }

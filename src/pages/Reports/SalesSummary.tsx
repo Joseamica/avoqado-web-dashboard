@@ -710,20 +710,11 @@ const DetailedBreakdownRow: React.FC<{
 // Loading Skeleton
 // ============================================
 const SalesSummarySkeleton = () => (
-  <div className="p-4 md:p-6 space-y-6">
-    <div className="flex items-center justify-between">
-      <Skeleton className="h-8 w-48" />
-      <Skeleton className="h-10 w-32" />
-    </div>
-    <div className="flex gap-2">
-      {[1, 2, 3].map((i) => (
-        <Skeleton key={i} className="h-8 w-32 rounded-full" />
-      ))}
-    </div>
+  <>
     <Skeleton className="h-24 w-full rounded-2xl" />
     <Skeleton className="h-64 w-full rounded-2xl" />
     <Skeleton className="h-48 w-full rounded-2xl" />
-  </div>
+  </>
 )
 
 // ============================================
@@ -1042,7 +1033,7 @@ export default function SalesSummary() {
     queryFn: () => fetchSalesSummary(apiFilters),
     staleTime: 1000 * 60 * 5, // 5 minutes
   })
-  const { data: apiResponse, isLoading } = salesQuery
+  const { data: apiResponse } = salesQuery
 
   // Period statement inputs — the additive API fields powering the Mercury-style
   // "estado de cuenta" (StatementSection derives all money math from these).
@@ -1948,19 +1939,14 @@ export default function SalesSummary() {
     </>
   )
 
-  // Antes de preguntar si hay datos: sin ellos, el esqueleto de abajo se quedaría para siempre. Los filtros se quedan: sin red son la
-  // salida a un periodo ya leído.
-  if (!data && falloDeCarga(salesQuery)) {
+  // Los filtros se quedan mientras carga o se reintenta, y si falla: sin red son la salida a un periodo ya leído.
+  if (!data) {
     return (
       <div className="p-4 md:p-6 space-y-6">
         {filtros}
-        <AvisoDeCarga query={salesQuery} hayDatos={false} />
+        {falloDeCarga(salesQuery) ? <AvisoDeCarga query={salesQuery} hayDatos={false} /> : <SalesSummarySkeleton />}
       </div>
     )
-  }
-
-  if (isLoading || !data) {
-    return <SalesSummarySkeleton />
   }
 
   // Tarjetas de regalo (D5 r1). Con alguna cifra ≠ 0, «Total cobrado» explica que no trae lo cargado y sí lo pagado con saldo

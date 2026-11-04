@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react'
 import { useServerMetrics } from '@/hooks/use-superadmin-queries'
 import type { ServerMetricsAlert } from '@/services/superadmin.service'
 import { GaugeChart } from '@/components/playtelecom/GaugeChart'
-import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { AvisoDeCarga, BotonReintentar } from '@/components/AvisoDeCarga'
 import { falloDeCarga } from '@/lib/falloDeCarga'
 import { StatusBadge } from '@/components/ui/status-badge'
 import { Card, CardHeader, CardContent, CardTitle } from '@/components/ui/card'
@@ -144,6 +144,7 @@ export default function ServerHealth() {
         <AlertTriangle className="h-12 w-12 text-destructive" />
         <p className="text-lg font-medium">Error al cargar métricas del servidor</p>
         <p className="text-sm text-muted-foreground">{(error as Error)?.message}</p>
+        <BotonReintentar query={metricsQuery} />
       </div>
     )
   }

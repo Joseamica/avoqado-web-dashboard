@@ -73,7 +73,10 @@ const TiendasList: React.FC = () => {
   const { t } = useTranslation(['organization', 'common'])
   const navigate = useNavigate()
   const { organization: _organization, basePath: _basePath, venues, venuesQuery, isLoading } = useCurrentOrganization()
-  const sinLeer = venuesQuery.data === undefined && falloDeCarga(venuesQuery)
+  const leido = venuesQuery.data !== undefined
+  const sinLeer = !leido && falloDeCarga(venuesQuery)
+  // Por las tiendas, no por las estadísticas de la organización: esas colgadas no esconden lo que sí llegó.
+  const cargando = !leido && !sinLeer && isLoading
 
   // State
   const [searchTerm, setSearchTerm] = useState('')
@@ -154,7 +157,14 @@ const TiendasList: React.FC = () => {
       </div>
 
       {/* Stats Summary */}
-      {!sinLeer && <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {cargando && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <Skeleton key={i} className="h-[74px] rounded-2xl" />
+          ))}
+        </div>
+      )}
+      {leido && <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <GlassCard className="p-4">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-purple-500/10">
@@ -226,7 +236,7 @@ const TiendasList: React.FC = () => {
       <AvisoDeCarga query={venuesQuery} hayDatos={!sinLeer} />
 
       {/* Loading State */}
-      {isLoading && (
+      {cargando && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {[1, 2, 3, 4, 5, 6].map((i) => (
             <Skeleton key={i} className="h-[180px] rounded-2xl" />
@@ -235,7 +245,7 @@ const TiendasList: React.FC = () => {
       )}
 
       {/* Empty State */}
-      {!isLoading && filteredVenues.length === 0 && !sinLeer && (
+      {leido && filteredVenues.length === 0 && (
         <GlassCard className="p-12">
           <div className="flex flex-col items-center justify-center text-center">
             <Store className="w-12 h-12 text-muted-foreground mb-4" />
@@ -258,7 +268,7 @@ const TiendasList: React.FC = () => {
       )}
 
       {/* Grid View */}
-      {!isLoading && filteredVenues.length > 0 && viewMode === 'grid' && (
+      {filteredVenues.length > 0 && viewMode === 'grid' && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredVenues.map((venue) => (
             <GlassCard
@@ -341,7 +351,7 @@ const TiendasList: React.FC = () => {
       )}
 
       {/* List View */}
-      {!isLoading && filteredVenues.length > 0 && viewMode === 'list' && (
+      {filteredVenues.length > 0 && viewMode === 'list' && (
         <GlassCard className="overflow-hidden">
           <Table>
             <TableHeader>

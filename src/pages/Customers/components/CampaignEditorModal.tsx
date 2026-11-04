@@ -109,7 +109,7 @@ export function CampaignEditorModal({ venueId, campaignId, open, onClose }: Prop
 					{isLoading ? (
 						<Loader2 className="mx-auto h-8 w-8 animate-spin text-muted-foreground" />
 					) : (
-						<AvisoDeCarga query={campanaQuery} hayDatos={false} />
+						<AvisoDeCarga query={campanaQuery} hayDatos={false} deUnRegistro />
 					)}
 				</div>
 			</FullScreenModal>
@@ -141,7 +141,7 @@ export function CampaignEditorModal({ venueId, campaignId, open, onClose }: Prop
 			contentClassName="bg-muted/30"
 		>
 			<div className="mx-auto max-w-2xl space-y-6 p-6">
-				<AvisoDeCarga query={campanaQuery} hayDatos />
+				<AvisoDeCarga query={campanaQuery} hayDatos deUnRegistro />
 				<div className="space-y-2">
 					<Label htmlFor="campaign-name">{t('campaigns.fields.name')}</Label>
 					<Input

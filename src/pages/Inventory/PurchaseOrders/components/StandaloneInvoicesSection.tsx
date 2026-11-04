@@ -3,7 +3,7 @@ import { FileText, Upload } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { AvisoDeCarga, BotonReintentar } from '@/components/AvisoDeCarga'
 import { falloDeCarga } from '@/lib/falloDeCarga'
 import { Input } from '@/components/ui/input'
 import { useTierFeatureAccess } from '@/hooks/use-tier-feature-access'
@@ -106,7 +106,12 @@ export function StandaloneInvoicesSection({ venueId }: { venueId: string }) {
 
         <Input aria-label={t('invoices.receipt.searchInvoices')} placeholder={t('invoices.receipt.searchInvoices')} value={search} onChange={e => { setSearch(e.target.value); setPage(1) }} data-tour="supplier-invoice-search" />
         {data !== undefined && <AvisoDeCarga query={inboxQuery} hayDatos />}
-        {isError ? <p role="alert">{t('invoices.receipt.loadError')}</p> : isLoading ? (
+        {isError ? (
+          <div role="alert" className="flex flex-wrap items-center gap-3">
+            <p>{t('invoices.receipt.loadError')}</p>
+            <BotonReintentar query={inboxQuery} />
+          </div>
+        ) : isLoading ? (
           <p className="text-sm text-muted-foreground">{t('common:loading')}</p>
         ) : invoices.length === 0 ? (
           <p className="text-sm text-muted-foreground">{t('invoices.standalone.empty')}</p>

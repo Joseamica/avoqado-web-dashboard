@@ -73,6 +73,9 @@ function AvailableBalanceContent() {
   const [cardBreakdown, setCardBreakdown] = useState<CardTypeBreakdown[]>([])
   const [timeline, setTimeline] = useState<TimelineEntry[]>([])
   const [settlementCalendar, setSettlementCalendar] = useState<SettlementCalendarEntry[]>([])
+  // Sin el desglose no se sabe cuánto hay por tarjeta o en efectivo: esas pestañas dirían $0.
+  const [desgloseLeido, setDesgloseLeido] = useState(false)
+  const [fuenteCaida, setFuenteCaida] = useState<{ error: unknown } | null>(null)
 
   // Simulation dialog state
   const [showSimulationDialog, setShowSimulationDialog] = useState(false)
@@ -186,19 +189,25 @@ function AvailableBalanceContent() {
         setLoading(true)
         setError(null)
 
-        // Fetch all data in parallel
-        const [summaryRes, cardRes, timelineRes, calendarRes] = await Promise.all([
+        // Fetch all data in parallel. Sin el resumen no hay saldo que enseñar; lo demás cae por su lado y no se lleva lo que sí llegó.
+        const [summaryRes, cardRes, timelineRes, calendarRes] = await Promise.allSettled([
           getAvailableBalance(venueId),
           getBalanceByCardType(venueId),
           getSettlementTimeline(venueId, { includePast: true, includeFuture: true }),
           getSettlementCalendar(venueId), // Next 30 days by default
         ])
+        if (summaryRes.status === 'rejected') throw summaryRes.reason
 
         if (mounted) {
-          setSummary(summaryRes.data)
-          setCardBreakdown(cardRes.data)
-          setTimeline(timelineRes.data)
-          setSettlementCalendar(calendarRes.data)
+          setSummary(summaryRes.value.data)
+          if (cardRes.status === 'fulfilled') {
+            setCardBreakdown(cardRes.value.data)
+            setDesgloseLeido(true)
+          }
+          if (timelineRes.status === 'fulfilled') setTimeline(timelineRes.value.data)
+          if (calendarRes.status === 'fulfilled') setSettlementCalendar(calendarRes.value.data)
+          const caida = [cardRes, timelineRes, calendarRes].find(res => res.status === 'rejected')
+          setFuenteCaida(caida?.status === 'rejected' ? { error: caida.reason } : null)
         }
       } catch (err: unknown) {
         if (mounted) {
@@ -325,7 +334,7 @@ function AvailableBalanceContent() {
     }
   }
 
-  if (loading) {
+  if (loading && !summary) {
     return (
       <div className="space-y-6 p-6">
         <div className="flex items-center justify-between">
@@ -412,12 +421,13 @@ function AvailableBalanceContent() {
           >
             <span>{t('tabs.all')}</span>
             <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1 text-xs bg-muted text-muted-foreground">
-              {tabCounts.total}
+              {desgloseLeido ? tabCounts.total : '—'}
             </span>
             {activeTab === 'all' && <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />}
           </button>
           <button
             onClick={() => setActiveTab('cards')}
+            disabled={!desgloseLeido}
             className={`relative flex items-center gap-1.5 pb-3 text-sm font-medium transition-colors ${
               activeTab === 'cards' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
             }`}
@@ -425,12 +435,13 @@ function AvailableBalanceContent() {
             <CreditCard className="w-4 h-4" />
             <span>{t('tabs.cards')}</span>
             <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1 text-xs bg-muted text-muted-foreground">
-              {tabCounts.cardsCount}
+              {desgloseLeido ? tabCounts.cardsCount : '—'}
             </span>
             {activeTab === 'cards' && <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />}
           </button>
           <button
             onClick={() => setActiveTab('cash')}
+            disabled={!desgloseLeido}
             className={`relative flex items-center gap-1.5 pb-3 text-sm font-medium transition-colors ${
               activeTab === 'cash' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
             }`}
@@ -438,12 +449,23 @@ function AvailableBalanceContent() {
             <Banknote className="w-4 h-4" />
             <span>{t('tabs.cash')}</span>
             <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1 text-xs bg-muted text-muted-foreground">
-              {tabCounts.cashCount}
+              {desgloseLeido ? tabCounts.cashCount : '—'}
             </span>
             {activeTab === 'cash' && <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />}
           </button>
         </nav>
       </div>
+
+      {fuenteCaida && (
+        <SummaryQueryBoundary
+          isError
+          message={tCommon(esSinPermiso(fuenteCaida.error) ? 'loadFailure.forbidden' : 'loadFailure.partial')}
+          retryLabel={tCommon('retry')}
+          onRetry={esSinPermiso(fuenteCaida.error) ? undefined : () => setReintento(n => n + 1)}
+        >
+          {null}
+        </SummaryQueryBoundary>
+      )}
 
       {/* Pending Incidents Alert — DISABLED: manual "Confirmar liquidación" flow.
           All settlement state here is an automatic estimate by date (no bank

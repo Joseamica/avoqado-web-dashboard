@@ -3,7 +3,7 @@ import { useInfiniteQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { AlertTriangle, Loader2 } from 'lucide-react'
 
-import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { AvisoDeCarga, BotonReintentar } from '@/components/AvisoDeCarga'
 import { falloDeCarga } from '@/lib/falloDeCarga'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -116,7 +116,10 @@ export function SettlementsQueue({ venueId, areas }: { venueId: string; areas: F
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>{t('areaTickets.externalSettlements.loadError')}</AlertTitle>
-          <AlertDescription>{apiError(query.error, t('areaTickets.externalSettlements.loadErrorFallback'))}</AlertDescription>
+          <AlertDescription>
+            {apiError(query.error, t('areaTickets.externalSettlements.loadErrorFallback'))}
+            <BotonReintentar query={query} className="mt-2" />
+          </AlertDescription>
         </Alert>
       )}
 

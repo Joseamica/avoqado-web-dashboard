@@ -120,11 +120,12 @@ function TargetingSection({
 }) {
   const [venueSearch, setVenueSearch] = useState('')
 
-  const { data: venues = [], isLoading: venuesLoading } = useQuery({
+  const venuesQuery = useQuery({
     queryKey: ['superadmin', 'venues', 'tpv-update-targeting'],
     queryFn: () => superadminAPI.getAllVenues(),
     enabled: targetType === 'VENUES',
   })
+  const { data: venues = [], isLoading: venuesLoading } = venuesQuery
 
   const filteredVenues = useMemo(() => {
     const q = venueSearch.trim().toLowerCase()
@@ -191,6 +192,8 @@ function TargetingSection({
                   <Skeleton key={i} className="h-9 w-full rounded-lg" />
                 ))}
               </div>
+            ) : venuesQuery.data === undefined ? (
+              <AvisoDeCarga query={venuesQuery} hayDatos={false} />
             ) : filteredVenues.length === 0 ? (
               <p className="text-xs text-muted-foreground py-3 text-center">Sin sucursales que coincidan</p>
             ) : (

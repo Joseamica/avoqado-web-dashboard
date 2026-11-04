@@ -1215,7 +1215,7 @@ const StaffManagement: React.FC = () => {
         )}
       </div>
 
-      <AvisoDeCarga query={listQuery} hayDatos={staffList.length > 0} volverAlInicio={page > 1 && staffList.length === 0 ? () => setPage(1) : undefined} />
+      <AvisoDeCarga query={listQuery} hayDatos={data !== undefined} volverAlInicio={page > 1 && staffList.length === 0 ? () => setPage(1) : undefined} />
 
       {/* Table */}
       <GlassCard className="overflow-hidden">
@@ -1247,7 +1247,7 @@ const StaffManagement: React.FC = () => {
                   <TableCell className="py-3" />
                 </TableRow>
               ))
-            ) : falloDeCarga(listQuery) && staffList.length === 0 ? null : staffList.length === 0 ? (
+            ) : data === undefined && falloDeCarga(listQuery) ? null : staffList.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="text-center py-16">
                   <div className="flex flex-col items-center gap-2">

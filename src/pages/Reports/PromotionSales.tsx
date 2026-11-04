@@ -48,15 +48,10 @@ const GlassCard: React.FC<{ children: React.ReactNode; className?: string }> = (
 )
 
 const PromotionSalesSkeleton = () => (
-  <div className="p-4 md:p-6 space-y-6">
-    <div className="flex items-center justify-between">
-      <Skeleton className="h-8 w-56" />
-      <Skeleton className="h-10 w-32" />
-    </div>
-    <Skeleton className="h-10 w-64 rounded-lg" />
+  <>
     <Skeleton className="h-40 w-full rounded-2xl" />
     <Skeleton className="h-96 w-full rounded-2xl" />
-  </div>
+  </>
 )
 
 const PERIOD_OPTIONS: PromotionReportType[] = ['summary', 'days', 'weeks', 'months']
@@ -147,10 +142,6 @@ export default function PromotionSales() {
     URL.revokeObjectURL(link.href)
   }
 
-  if (isLoading) {
-    return <PromotionSalesSkeleton />
-  }
-
   const header = (
     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
       <div className="flex items-center gap-3">
@@ -214,6 +205,7 @@ export default function PromotionSales() {
 
         {/* Debajo de los filtros: sin red son la salida a un periodo ya leído. */}
         <AvisoDeCarga query={reportQuery} hayDatos={apiResponse !== undefined} />
+        {isLoading && <PromotionSalesSkeleton />}
 
         {/* Resumen */}
         {apiResponse && (

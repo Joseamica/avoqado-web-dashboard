@@ -37,11 +37,6 @@ const GlassCard: React.FC<{ children: React.ReactNode; className?: string }> = (
 // ============================================
 const RefundsSkeleton = () => (
   <div className="space-y-6">
-    <div className="flex items-center justify-between">
-      <Skeleton className="h-8 w-48" />
-      <Skeleton className="h-10 w-32" />
-    </div>
-    <Skeleton className="h-10 w-64 rounded-lg" />
     <Skeleton className="h-48 w-full rounded-2xl" />
     <Skeleton className="h-96 w-full rounded-2xl" />
   </div>
@@ -324,7 +319,8 @@ export default function Refunds() {
 
   return (
     <div className="p-4 md:p-6 space-y-6">
-      {isLoading ? <RefundsSkeleton /> : reportHeader}
+      {reportHeader}
+      {isLoading && <RefundsSkeleton />}
       <ExchangesToReviewSection />
       {!isLoading && !isError && reportBody}
     </div>

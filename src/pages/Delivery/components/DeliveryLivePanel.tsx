@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { AlertTriangle, ArrowRight, Loader2, Settings2 } from 'lucide-react'
 
-import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { AvisoDeCarga, BotonReintentar } from '@/components/AvisoDeCarga'
 import { falloDeCarga } from '@/lib/falloDeCarga'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -120,7 +120,10 @@ export function DeliveryLivePanel({ venueId, channels }: DeliveryLivePanelProps)
           ) : summary === undefined && falloDeCarga(summaryQuery) ? (
             // Distinguish a failed fetch from a genuine "no orders yet" — otherwise a transient
             // summary error would masquerade as zero delivery activity (Minor #1, task-6 review).
-            <p className="text-sm text-destructive">{t('live.statsError')}</p>
+            <div className="flex flex-wrap items-center gap-3">
+              <p className="text-sm text-destructive">{t('live.statsError')}</p>
+              <BotonReintentar query={summaryQuery} />
+            </div>
           ) : !summary?.channels.length ? (
             <p className="text-sm text-muted-foreground">{t('live.statsEmpty')}</p>
           ) : (

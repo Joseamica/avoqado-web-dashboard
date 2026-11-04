@@ -197,10 +197,11 @@ function SurfacesPanel({ venueId }: { venueId: string }) {
 	const queryClient = useQueryClient()
 	const { toast } = useToast()
 
-	const { data: surfaces, isLoading } = useQuery({
+	const surfacesQuery = useQuery({
 		queryKey: ['upsell-surfaces', venueId],
 		queryFn: () => upsellService.getSurfaces(venueId),
 	})
+	const { data: surfaces, isLoading } = surfacesQuery
 
 	const mutation = useMutation({
 		mutationFn: (next: UpsellSurfaces) => upsellService.setSurfaces(venueId, next),
@@ -211,7 +212,9 @@ function SurfacesPanel({ venueId }: { venueId: string }) {
 		onError: () => toast({ title: 'No se pudo guardar', variant: 'destructive' }),
 	})
 
-	if (isLoading || !surfaces) return <Skeleton className="h-48 w-full" />
+	if (isLoading) return <Skeleton className="h-48 w-full" />
+	// Sin leerlas no se ofrecen los interruptores: guardar pisaría las superficies reales. Sin esto, esqueleto para siempre.
+	if (!surfaces) return <AvisoDeCarga query={surfacesQuery} hayDatos={false} />
 
 	return (
 		<Card>
@@ -219,6 +222,7 @@ function SurfacesPanel({ venueId }: { venueId: string }) {
 				<CardTitle className="text-base">¿Dónde aparece?</CardTitle>
 			</CardHeader>
 			<CardContent className="space-y-1">
+				<AvisoDeCarga query={surfacesQuery} hayDatos />
 				{SURFACE_DEFS.map((def, i) => {
 					const Icon = def.icon
 					return (
@@ -812,10 +816,11 @@ function GenerateWithAiButton({ venueId }: { venueId: string }) {
 
 function RulesPanel({ venueId }: { venueId: string }) {
 	const [creating, setCreating] = useState(false)
-	const { data: rules, isLoading } = useQuery({
+	const rulesQuery = useQuery({
 		queryKey: ['upsell-rules', venueId],
 		queryFn: () => upsellService.getRules(venueId),
 	})
+	const { data: rules, isLoading } = rulesQuery
 
 	const { proposed, active } = useMemo(() => {
 		const all = rules ?? []
@@ -826,9 +831,11 @@ function RulesPanel({ venueId }: { venueId: string }) {
 	}, [rules])
 
 	if (isLoading) return <Skeleton className="h-64 w-full" />
+	if (rules === undefined) return <AvisoDeCarga query={rulesQuery} hayDatos={false} />
 
 	return (
 		<div className="space-y-4">
+			<AvisoDeCarga query={rulesQuery} hayDatos />
 			{/* Las propuestas van PRIMERO: son las que esperan una decisión. */}
 			{proposed.length > 0 && (
 				<Card className="border-primary/40">

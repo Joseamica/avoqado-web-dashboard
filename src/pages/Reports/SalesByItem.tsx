@@ -303,19 +303,10 @@ const ItemRow: React.FC<{
 // Loading Skeleton
 // ============================================
 const SalesByItemSkeleton = () => (
-  <div className="p-4 md:p-6 space-y-6">
-    <div className="flex items-center justify-between">
-      <Skeleton className="h-8 w-48" />
-      <Skeleton className="h-10 w-32" />
-    </div>
-    <div className="flex gap-2">
-      {[1, 2].map((i) => (
-        <Skeleton key={i} className="h-8 w-32 rounded-full" />
-      ))}
-    </div>
+  <>
     <Skeleton className="h-48 w-full rounded-2xl" />
     <Skeleton className="h-96 w-full rounded-2xl" />
-  </div>
+  </>
 )
 
 // ============================================
@@ -522,10 +513,6 @@ export default function SalesByItem() {
     link.download = `sales-by-item-${dateRange.from.toISOString().split('T')[0]}-${dateRange.to.toISOString().split('T')[0]}.csv`
     link.click()
     URL.revokeObjectURL(link.href)
-  }
-
-  if (isLoading) {
-    return <SalesByItemSkeleton />
   }
 
   return (
@@ -854,6 +841,7 @@ export default function SalesByItem() {
 
       {/* Debajo de los filtros: sin red son la salida a un periodo ya leído. */}
       <AvisoDeCarga query={reportQuery} hayDatos={apiResponse !== undefined} />
+      {isLoading && <SalesByItemSkeleton />}
 
       {/* Chart - Only show for time-based reports */}
       {apiResponse && reportType !== 'summary' && apiResponse.byPeriod && apiResponse.byPeriod.length > 0 && (

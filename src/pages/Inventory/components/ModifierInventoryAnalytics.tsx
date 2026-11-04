@@ -46,16 +46,6 @@ export function ModifierInventoryAnalytics() {
   const isLoading = summary === undefined && !falloDeCarga(summaryQuery)
   const isError = summary === undefined && falloDeCarga(summaryQuery)
 
-  if (isLoading) {
-    return (
-      <Card>
-        <CardContent className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        </CardContent>
-      </Card>
-    )
-  }
-
   const encabezado = (
     <>
       {/* Header */}
@@ -84,11 +74,19 @@ export function ModifierInventoryAnalytics() {
   )
 
   // Sin leer: el selector de periodo se queda, sin red es la salida a uno ya leído.
-  if (isError) {
+  if (isLoading || isError) {
     return (
       <div className="space-y-6">
         {encabezado}
-        <AvisoDeCarga query={summaryQuery} hayDatos={false} />
+        {isLoading ? (
+          <Card>
+            <CardContent className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </CardContent>
+          </Card>
+        ) : (
+          <AvisoDeCarga query={summaryQuery} hayDatos={false} />
+        )}
       </div>
     )
   }

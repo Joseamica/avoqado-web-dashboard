@@ -108,7 +108,7 @@ function StatusPulse({ status }: { status: 'success' | 'warning' | 'error' | 'ne
 // Loading skeleton
 function LoadingSkeleton() {
   return (
-    <div className="animate-pulse space-y-6 p-6">
+    <div className="animate-pulse space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {[1, 2, 3, 4].map(i => (
           <div key={i} className="h-32 bg-muted rounded-2xl" />
@@ -146,8 +146,6 @@ export default function SerializedSalesDemo() {
   const { data: recentSalesData, isLoading: isLoadingSales, refetch: refetchSales } = salesQuery
 
   const isLoading = isLoadingSummary || isLoadingSales
-  // Sin leer alguna de las dos no hay totales ni «Aún no hay ventas» que enseñar.
-  const sinLeer = [summaryQuery, salesQuery].find(q => q.data === undefined && falloDeCarga(q)) ?? null
 
   // Calculate totals from real data
   const totals = useMemo(() => {
@@ -211,42 +209,8 @@ export default function SerializedSalesDemo() {
     refetchSales()
   }
 
-  if (isLoading && !summaryData) {
-    return (
-      <div className="min-h-screen bg-muted/30">
-        <div className="border-b border-border bg-background/95 backdrop-blur sticky top-0 z-10">
-          <div className="px-6 py-4">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
-              <span>Inventario</span>
-              <ChevronRight className="w-3 h-3" />
-              <span className="text-primary font-medium">Ventas SIM (Demo)</span>
-            </div>
-            <h1 className="text-2xl font-bold tracking-tight">Control de Inventario Serializado</h1>
-          </div>
-        </div>
-        <LoadingSkeleton />
-      </div>
-    )
-  }
-
-  if (sinLeer) {
-    return (
-      <div className="min-h-screen bg-muted/30">
-        <div className="border-b border-border bg-background/95 backdrop-blur sticky top-0 z-10">
-          <div className="px-6 py-4">
-            <h1 className="text-2xl font-bold tracking-tight">Control de Inventario Serializado</h1>
-          </div>
-        </div>
-        <div className="p-6">
-          <AvisoDeCarga query={sinLeer} hayDatos={false} />
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className="min-h-screen bg-muted/30">
-      <AvisoDeCarga query={[summaryQuery, salesQuery].find(falloDeCarga) ?? null} hayDatos />
       {/* Header */}
       <div className="border-b border-border bg-background/95 backdrop-blur sticky top-0 z-10">
         <div className="px-6 py-4">
@@ -279,6 +243,11 @@ export default function SerializedSalesDemo() {
       </div>
 
       <div className="p-6 space-y-6">
+        {/* Cada fuente por su lado: sin el resumen no hay existencias en 0, y las ventas recientes no dependen de él. */}
+        <AvisoDeCarga query={summaryQuery} hayDatos={summaryData !== undefined} />
+        {isLoadingSummary && <LoadingSkeleton />}
+        {summaryData !== undefined && (
+        <>
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Total Stock */}
@@ -327,10 +296,13 @@ export default function SerializedSalesDemo() {
               </div>
             </div>
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Ingresos (Estimado)</p>
-            <p className="text-3xl font-bold mt-1">{Currency(totals.totalRevenue)}</p>
-            <p className="text-[10px] text-muted-foreground mt-3">
-              Ticket promedio: {Currency(totals.totalRevenue / totals.totalSold || 0)}
-            </p>
+            {/* Se estima con las ventas recientes: sin leerlas no hay cifra que dar. */}
+            <p className="text-3xl font-bold mt-1">{recentSalesData === undefined ? '—' : Currency(totals.totalRevenue)}</p>
+            {recentSalesData !== undefined && (
+              <p className="text-[10px] text-muted-foreground mt-3">
+                Ticket promedio: {Currency(totals.totalRevenue / totals.totalSold || 0)}
+              </p>
+            )}
           </GlassCard>
 
           {/* Stock Value */}
@@ -460,6 +432,8 @@ export default function SerializedSalesDemo() {
             </table>
           </div>
         </GlassCard>
+        </>
+        )}
 
         {/* Recent Sales */}
         <GlassCard>
@@ -478,6 +452,17 @@ export default function SerializedSalesDemo() {
               />
             </div>
           </div>
+
+          {falloDeCarga(salesQuery) && (
+            <div className="px-5 pt-4">
+              <AvisoDeCarga query={salesQuery} hayDatos={recentSalesData !== undefined} />
+            </div>
+          )}
+          {isLoadingSales && (
+            <div className="p-5">
+              <div className="h-32 animate-pulse rounded-2xl bg-muted" />
+            </div>
+          )}
 
           <div className="divide-y divide-border/50">
             {filteredSales.map(sale => (
@@ -516,7 +501,7 @@ export default function SerializedSalesDemo() {
             ))}
           </div>
 
-          {filteredSales.length === 0 && (
+          {recentSalesData !== undefined && filteredSales.length === 0 && (
             <div className="px-5 py-12 text-center text-muted-foreground">
               <Search className="w-8 h-8 mx-auto mb-2 opacity-50" />
               <p className="font-medium">No se encontraron ventas</p>

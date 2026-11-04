@@ -20,7 +20,7 @@ import { DateRangePicker } from '@/components/date-range-picker'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { useCurrentOrganization } from '@/hooks/use-current-organization'
 import { useOrgStockSummary } from './StockControl/hooks/useOrgStockSummary'
-import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { AvisoDeCarga, BotonReintentar } from '@/components/AvisoDeCarga'
 import { useInventoryByResponsible } from './StockControl/hooks/useInventoryByResponsible'
 import { InventoryResponsibleFilters } from './StockControl/components/InventoryResponsibleFilters'
 import { ExportDashboardButton } from './StockControl/components/ExportDashboardButton'
@@ -126,7 +126,7 @@ export default function OrgStockControlPage() {
   )
 
   const summaryQuery = useOrgStockSummary(orgId, queryParams)
-  const { data, isLoading, error, refetch } = summaryQuery
+  const { data, isLoading, error } = summaryQuery
   const byResponsibleQuery = useInventoryByResponsible(orgId, byResponsibleParams)
   const { data: byResponsible, isLoading: isLoadingByResponsible } = byResponsibleQuery
   const categoryOptions = useMemo(
@@ -152,34 +152,38 @@ export default function OrgStockControlPage() {
   const { data: stockApprovalCount = 0 } = useStockApprovalsCount(orgId)
   const pendingCount = simRegCount + stockApprovalCount
 
-  // ─── Loading ─── (matches existing StockControl.tsx skeleton structure)
-  if (isLoading) {
-    return (
-      <div className="space-y-6">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <Skeleton className="h-7 w-72" />
-          <Skeleton className="h-9 w-64" />
-        </div>
-        <Skeleton className="h-20 rounded-xl" />
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {[...Array(4)].map((_, i) => (
-            <Skeleton key={i} className="h-32 rounded-xl" />
-          ))}
-        </div>
-        <Skeleton className="h-64 rounded-xl" />
-      </div>
-    )
-  }
-
-  // ─── Error ───
+  // ─── Sin leer ─── El filtro se queda mientras carga, se reintenta o falla: sin red es la salida a un periodo ya leído.
   if (!data) {
     const message = (error as any)?.response?.data?.message || 'Error al cargar los datos'
     return (
-      <GlassCard className="p-8 text-center">
-        <h3 className="text-lg font-semibold mb-2">No se pudo cargar Control de Stock</h3>
-        <p className="text-sm text-muted-foreground mb-4">{message}</p>
-        <Button onClick={() => refetch()}>Reintentar</Button>
-      </GlassCard>
+      <div className="space-y-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <PageTitleWithInfo title="Control de Stock" className="text-xl font-bold tracking-tight" />
+          <DateRangePicker
+            showCompare={false}
+            initialDateFrom={selectedRange.from}
+            initialDateTo={selectedRange.to}
+            onUpdate={handleDateRangeUpdate}
+          />
+        </div>
+        {isLoading ? (
+          <>
+            <Skeleton className="h-20 rounded-xl" />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {[...Array(4)].map((_, i) => (
+                <Skeleton key={i} className="h-32 rounded-xl" />
+              ))}
+            </div>
+            <Skeleton className="h-64 rounded-xl" />
+          </>
+        ) : (
+          <GlassCard className="p-8 text-center">
+            <h3 className="text-lg font-semibold mb-2">No se pudo cargar Control de Stock</h3>
+            <p className="text-sm text-muted-foreground mb-4">{message}</p>
+            <BotonReintentar query={summaryQuery} />
+          </GlassCard>
+        )}
+      </div>
     )
   }
 
@@ -196,6 +200,7 @@ export default function OrgStockControlPage() {
             onUpdate={handleDateRangeUpdate}
           />
         </div>
+        <AvisoDeCarga query={summaryQuery} hayDatos />
         <GlassCard className="p-12 text-center">
           <Package className="w-10 h-10 mx-auto mb-3 text-muted-foreground opacity-50" />
           <h3 className="text-lg font-semibold mb-2">Aún no hay SIMs cargadas</h3>

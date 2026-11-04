@@ -120,7 +120,7 @@ export function PaymentActivationCard() {
               defaultValue: 'Para cobrar con tarjeta y recibir tu dinero necesitamos estos datos. Tardas menos de 10 minutos.',
             })}
           </p>
-          {!sinLeer && (
+          {data !== undefined && (
             <p className="mt-1 text-xs text-muted-foreground">
               {t('paymentActivation.progress', { defaultValue: '{{done}} de {{total}} listos', done: hechos, total: items.length })}
             </p>
@@ -138,7 +138,7 @@ export function PaymentActivationCard() {
         </div>
       )}
 
-      {!contraido && !sinLeer && (
+      {!contraido && data !== undefined && (
         <ul className="mt-4 flex flex-col gap-2">
           {items.map(item => (
             <li key={item.id} className="flex items-center justify-between gap-4 rounded-xl border border-input p-3">

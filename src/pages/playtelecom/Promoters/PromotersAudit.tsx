@@ -15,7 +15,7 @@
 
 import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { AvisoDeCarga, BotonReintentar } from '@/components/AvisoDeCarga'
 import { falloDeCarga } from '@/lib/falloDeCarga'
 import { GlassCard } from '@/components/ui/glass-card'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -236,47 +236,20 @@ export function PromotersAudit() {
     </div>
   )
 
-  // Loading state
-  if (isLoading) {
-    return (
-      <div className="space-y-6">
+  const sinLeer = promotersData === undefined && falloDeCarga(promotersQuery)
+
+  return (
+    <div className="space-y-6">
+      {promotersData !== undefined && <AvisoDeCarga query={promotersQuery} hayDatos />}
+      {isLoading && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {[...Array(4)].map((_, i) => (
             <Skeleton key={i} className="h-20 rounded-xl" />
           ))}
         </div>
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          <Skeleton className="lg:col-span-4 h-96 rounded-xl" />
-          <Skeleton className="lg:col-span-8 h-96 rounded-xl" />
-        </div>
-      </div>
-    )
-  }
-
-  // Error state. Sin internet la consulta se pausa sin error: sin esto salían los 4 números en 0 y «No se encontraron promotores».
-  if (promotersData === undefined && falloDeCarga(promotersQuery)) {
-    return (
-      <div className="flex flex-col items-center justify-center py-12">
-        <AlertCircle className="w-12 h-12 text-destructive mb-4" />
-        <h3 className="text-lg font-semibold mb-2">
-          {t('common:error.loadingFailed', { defaultValue: 'Error al cargar datos' })}
-        </h3>
-        <p className="text-muted-foreground text-center max-w-md">
-          {t('playtelecom:promoters.errorDescription', {
-            defaultValue: 'No se pudieron cargar los promotores. Por favor intenta de nuevo.',
-          })}
-        </p>
-        {/* La lectura que falló pudo ser la de una búsqueda: sin el campo no habría cómo cambiarla. */}
-        {searchTerm && <div className="mt-4 w-full max-w-sm">{buscador}</div>}
-      </div>
-    )
-  }
-
-  return (
-    <div className="space-y-6">
-      <AvisoDeCarga query={promotersQuery} hayDatos />
-      {/* Summary Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      )}
+      {/* Summary Stats. Sin internet la consulta se pausa sin error: sin leerla no hay 4 números en 0 ni «No se encontraron promotores». */}
+      {promotersData !== undefined && <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <GlassCard className="p-4">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-500/5">
@@ -332,7 +305,7 @@ export function PromotersAudit() {
             </div>
           </div>
         </GlassCard>
-      </div>
+      </div>}
 
       {/* Main Content - Split Panel */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -342,6 +315,22 @@ export function PromotersAudit() {
           {buscador}
 
           {/* Promoter List */}
+          {isLoading && <Skeleton className="h-80 w-full rounded-xl" />}
+          {sinLeer && (
+            <div className="flex flex-col items-center justify-center py-12">
+              <AlertCircle className="w-12 h-12 text-destructive mb-4" />
+              <h3 className="text-lg font-semibold mb-2">
+                {t('common:error.loadingFailed', { defaultValue: 'Error al cargar datos' })}
+              </h3>
+              <p className="text-muted-foreground text-center max-w-md">
+                {t('playtelecom:promoters.errorDescription', {
+                  defaultValue: 'No se pudieron cargar los promotores. Por favor intenta de nuevo.',
+                })}
+              </p>
+              <BotonReintentar query={promotersQuery} className="mt-4" />
+            </div>
+          )}
+          {promotersData !== undefined && (
           <div className="space-y-2 max-h-[600px] overflow-y-auto">
             {promoters.map(promoter => {
               const uiStatus = mapStatus(promoter.status)
@@ -421,6 +410,7 @@ export function PromotersAudit() {
               </div>
             )}
           </div>
+          )}
         </GlassCard>
 
         {/* Right Panel - Detail View */}
@@ -435,12 +425,14 @@ export function PromotersAudit() {
               onRejectDeposit={handleRejectDeposit}
             />
           ) : (
+            promotersData !== undefined && (
             <GlassCard className="p-8 text-center">
               <User className="w-12 h-12 mx-auto mb-3 text-muted-foreground opacity-50" />
               <p className="text-muted-foreground">
                 {t('playtelecom:promoters.selectPromoter', { defaultValue: 'Selecciona un promotor para ver detalles' })}
               </p>
             </GlassCard>
+            )
           )}
         </div>
       </div>

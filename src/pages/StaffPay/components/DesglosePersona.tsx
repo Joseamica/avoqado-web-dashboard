@@ -260,10 +260,10 @@ export function DesglosePersona({
           )
         ) : (
           <>
-            {filas.length > 0 && <AvisoDeCarga query={q} hayDatos />}
+            {q.data !== undefined && <AvisoDeCarga query={q} hayDatos />}
             <EstadoLista
               isLoading={q.isLoading}
-              isError={falloDeCarga(q) && filas.length === 0}
+              isError={falloDeCarga(q) && q.data === undefined}
               vacio={filas.length === 0}
               textoVacio={otroPago ? null : t('period.detailEmpty')}
               onRetry={() => q.refetch()}

@@ -4,7 +4,7 @@ import { AlertTriangle, ArrowRight, Loader2, Plus, Scale, ScanBarcode, TicketChe
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 
-import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { AvisoDeCarga, BotonReintentar } from '@/components/AvisoDeCarga'
 import { falloDeCarga } from '@/lib/falloDeCarga'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
@@ -122,7 +122,10 @@ export default function AreaTickets() {
       <Alert variant="destructive" className="m-6">
         <AlertTriangle className="h-4 w-4" />
         <AlertTitle>No se pudo cargar la configuración</AlertTitle>
-        <AlertDescription>{apiError(overviewQuery.error, 'Intenta de nuevo.')}</AlertDescription>
+        <AlertDescription>
+          {apiError(overviewQuery.error, 'Intenta de nuevo.')}
+          <BotonReintentar query={overviewQuery} className="mt-2" />
+        </AlertDescription>
       </Alert>
     )
   }

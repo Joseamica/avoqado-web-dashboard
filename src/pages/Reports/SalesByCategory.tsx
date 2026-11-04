@@ -181,19 +181,10 @@ const SortableHeader: React.FC<{
 // Loading Skeleton
 // ============================================
 const SalesByCategorySkeleton = () => (
-  <div className="p-4 md:p-6 space-y-6">
-    <div className="flex items-center justify-between">
-      <Skeleton className="h-8 w-48" />
-      <Skeleton className="h-10 w-32" />
-    </div>
-    <div className="flex gap-2">
-      {[1, 2].map(i => (
-        <Skeleton key={i} className="h-8 w-32 rounded-full" />
-      ))}
-    </div>
+  <>
     <Skeleton className="h-48 w-full rounded-2xl" />
     <Skeleton className="h-96 w-full rounded-2xl" />
-  </div>
+  </>
 )
 
 // ============================================
@@ -368,10 +359,6 @@ export default function SalesByCategory() {
     link.download = `sales-by-category-${dateRange.from.toISOString().split('T')[0]}-${dateRange.to.toISOString().split('T')[0]}.csv`
     link.click()
     URL.revokeObjectURL(link.href)
-  }
-
-  if (isLoading) {
-    return <SalesByCategorySkeleton />
   }
 
   const totalGross = apiResponse?.totals.grossSales || 0
@@ -592,6 +579,7 @@ export default function SalesByCategory() {
 
       {/* Debajo de los filtros: sin red son la salida a un periodo ya leído. */}
       <AvisoDeCarga query={reportQuery} hayDatos={apiResponse !== undefined} />
+      {isLoading && <SalesByCategorySkeleton />}
 
       {/* Chart - Only show for time-based reports */}
       {apiResponse && reportType !== 'summary' && apiResponse.byPeriod && apiResponse.byPeriod.length > 0 && (

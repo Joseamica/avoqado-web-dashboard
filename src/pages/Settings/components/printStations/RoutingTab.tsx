@@ -259,7 +259,7 @@ function RoutingEditor({ venueId }: { venueId: string }) {
           </Button>
         </div>
       )}
-      {stationQuery.data === undefined && falloDeCarga(stationQuery) && (
+      {falloDeCarga(stationQuery) && (
         <div role="alert">
           {t('stations.loadError')}{' '}
           <Button variant="outline" onClick={() => stationQuery.refetch()}>

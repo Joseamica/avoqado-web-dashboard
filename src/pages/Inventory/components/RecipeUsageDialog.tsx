@@ -60,7 +60,7 @@ export function RecipeUsageDialog({ open, onOpenChange, rawMaterial, onRecipeCli
           <DialogTitle>{t('rawMaterials.usage.title')}</DialogTitle>
           <DialogDescription>
             {rawMaterial?.name}
-            {!sinLeer && <> - {recipes.length > 0 ? t('rawMaterials.usage.usedIn', { count: recipes.length }) : t('rawMaterials.usage.notUsed')}</>}
+            {recipesData !== undefined && <> - {recipes.length > 0 ? t('rawMaterials.usage.usedIn', { count: recipes.length }) : t('rawMaterials.usage.notUsed')}</>}
           </DialogDescription>
         </DialogHeader>
 

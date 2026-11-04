@@ -50,15 +50,10 @@ const GlassCard: React.FC<{ children: React.ReactNode; className?: string }> = (
 // Loading Skeleton
 // ============================================
 const PaymentMethodsSkeleton = () => (
-  <div className="p-4 md:p-6 space-y-6">
-    <div className="flex items-center justify-between">
-      <Skeleton className="h-8 w-48" />
-      <Skeleton className="h-10 w-32" />
-    </div>
-    <Skeleton className="h-10 w-64 rounded-lg" />
+  <>
     <Skeleton className="h-48 w-full rounded-2xl" />
     <Skeleton className="h-96 w-full rounded-2xl" />
-  </div>
+  </>
 )
 
 // ============================================
@@ -172,10 +167,6 @@ export default function PaymentMethods() {
     URL.revokeObjectURL(link.href)
   }
 
-  if (isLoading) {
-    return <PaymentMethodsSkeleton />
-  }
-
   return (
     <div className="p-4 md:p-6 space-y-6">
       {/* Header */}
@@ -213,6 +204,7 @@ export default function PaymentMethods() {
 
       {/* Debajo del filtro: sin red es la salida a un periodo ya leído. */}
       <AvisoDeCarga query={reportQuery} hayDatos={apiResponse !== undefined} />
+      {isLoading && <PaymentMethodsSkeleton />}
 
       {/* Summary Stats */}
       {apiResponse && (

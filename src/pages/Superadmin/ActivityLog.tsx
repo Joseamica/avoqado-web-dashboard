@@ -212,24 +212,6 @@ export default function SuperadminActivityLog() {
   // Stats
   const totalLogs = paginationData?.total ?? 0
 
-  // Loading skeleton
-  if (isLoading) {
-    return (
-      <div className="space-y-6">
-        <div>
-          <Skeleton className="h-8 w-64 mb-2" />
-          <Skeleton className="h-4 w-96" />
-        </div>
-        <div className="flex gap-3">
-          <Skeleton className="h-10 flex-1" />
-          <Skeleton className="h-10 w-[200px]" />
-          <Skeleton className="h-10 w-[200px]" />
-        </div>
-        <Skeleton className="h-[600px] rounded-xl" />
-      </div>
-    )
-  }
-
   return (
     <TooltipProvider>
       <div className="space-y-6">
@@ -319,7 +301,8 @@ export default function SuperadminActivityLog() {
         <AvisoDeCarga query={logsQuery} hayDatos={data !== undefined} volverAlInicio={sinBitacora && page > 1 ? () => setPage(1) : undefined} />
 
         {/* Table */}
-        {!sinBitacora && (
+        {isLoading && <Skeleton className="h-[600px] rounded-xl" />}
+        {data !== undefined && (
         <Card className="border-input overflow-hidden">
           <CardContent className="p-0">
             {logs.length === 0 ? (

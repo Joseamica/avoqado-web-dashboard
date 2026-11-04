@@ -106,7 +106,7 @@ function monthBucketsAsc(keys: string[]): { key: string; label: string }[] {
 }
 
 export default function SalesExecutive() {
-  const { orgId, basePath, isLoading: orgLoading, organization } = useCurrentOrganization()
+  const { orgId, basePath, organization } = useCurrentOrganization()
   const isMobile = useIsMobile()
   const chartHeight = isMobile ? 200 : 260
   const weekChartHeight = isMobile ? 180 : 200
@@ -227,19 +227,6 @@ export default function SalesExecutive() {
     const oldest = months[months.length - 1].month
     return oldest === newest ? fmt(oldest) : `${fmt(oldest)} a ${fmt(newest)}`
   }, [byMonth.data])
-
-  if (orgLoading) {
-    return (
-      <div className="p-6 space-y-4">
-        <Skeleton className="h-10 w-64" />
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Skeleton className="h-64 w-full" />
-          <Skeleton className="h-64 w-full" />
-          <Skeleton className="h-64 w-full" />
-        </div>
-      </div>
-    )
-  }
 
   if (!orgId) {
     return (

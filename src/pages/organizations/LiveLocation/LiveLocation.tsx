@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { Skeleton } from '@/components/ui/skeleton'
 import { useCurrentOrganization } from '@/hooks/use-current-organization'
 import { falloDeCarga } from '@/lib/falloDeCarga'
 import { getOrgTerminalLocations } from '@/services/terminalLocation.service'
@@ -25,7 +26,9 @@ export default function LiveLocation() {
         <p className="text-xs text-muted-foreground">{t('playtelecom:location.hint')}</p>
       </div>
       <AvisoDeCarga query={locationsQuery} hayDatos={data !== undefined} />
-      {data === undefined && falloDeCarga(locationsQuery) ? null : terminals.length === 0 ? (
+      {data === undefined ? (
+        !falloDeCarga(locationsQuery) && <Skeleton className="h-24 w-full rounded-xl" />
+      ) : terminals.length === 0 ? (
         <p className="text-sm text-muted-foreground">{t('playtelecom:location.empty')}</p>
       ) : (
         <div className="rounded-lg border border-input divide-y divide-input">

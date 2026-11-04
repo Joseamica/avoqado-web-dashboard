@@ -6,7 +6,7 @@ import { DateTime } from 'luxon'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { AvisoDeCarga, BotonReintentar } from '@/components/AvisoDeCarga'
 import { falloDeCarga } from '@/lib/falloDeCarga'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -219,16 +219,6 @@ export function CommandHistoryTable({ terminalId, venueId }: CommandHistoryTable
     </TableRow>
   )
 
-  if (isLoading) {
-    return (
-      <Card>
-        <CardContent className="flex items-center justify-center py-8">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-        </CardContent>
-      </Card>
-    )
-  }
-
   return (
     <Card>
       <CardHeader>
@@ -238,7 +228,7 @@ export function CommandHistoryTable({ terminalId, venueId }: CommandHistoryTable
               <History className="h-5 w-5 text-primary" />
               {t('commands.history')}
             </CardTitle>
-            {!sinLeer && <CardDescription>{t('commands.historyDesc', { total })}</CardDescription>}
+            {data !== undefined && <CardDescription>{t('commands.historyDesc', { total })}</CardDescription>}
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-[180px]">
@@ -256,8 +246,15 @@ export function CommandHistoryTable({ terminalId, venueId }: CommandHistoryTable
       </CardHeader>
       <CardContent>
         {data !== undefined && <AvisoDeCarga query={historyQuery} hayDatos />}
-        {sinLeer ? (
-          <p className="py-8 text-center text-muted-foreground">{t('commands.historyError')}</p>
+        {isLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : sinLeer ? (
+          <div className="flex flex-col items-center gap-3 py-8">
+            <p className="text-center text-muted-foreground">{t('commands.historyError')}</p>
+            <BotonReintentar query={historyQuery} />
+          </div>
         ) : commands.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
             <History className="h-12 w-12 mb-4 opacity-50" />

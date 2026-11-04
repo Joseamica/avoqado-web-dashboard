@@ -99,14 +99,6 @@ const PartnerKeys: React.FC = () => {
   }, [keys])
 
   // ─── Render ────────────────────────────────────────────────
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    )
-  }
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -124,7 +116,7 @@ const PartnerKeys: React.FC = () => {
       <AvisoDeCarga query={keysQuery} hayDatos={!sinLeer} />
 
       {/* Stats */}
-      {!sinLeer && <div className="grid grid-cols-3 gap-4">
+      {keysQuery.data !== undefined && <div className="grid grid-cols-3 gap-4">
         <Card className="border-input">
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
@@ -190,7 +182,11 @@ const PartnerKeys: React.FC = () => {
       </div>
 
       {/* Keys List */}
-      {sinLeer ? null : filtered.length === 0 ? (
+      {isLoading ? (
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      ) : sinLeer ? null : filtered.length === 0 ? (
         <Card className="border-input">
           <CardContent className="py-12 text-center text-muted-foreground">
             <KeyRound className="h-12 w-12 mx-auto mb-3 opacity-30" />

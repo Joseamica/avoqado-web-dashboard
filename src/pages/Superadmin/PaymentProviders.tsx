@@ -426,7 +426,7 @@ const PaymentProviders: React.FC = () => {
       <AvisoDeCarga query={providersQuery} hayDatos={!sinLeer} />
 
       {/* Statistics */}
-      {!sinLeer && <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {providersQuery.data !== undefined && <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
           icon={<CreditCard className="w-5 h-5 text-blue-600 dark:text-blue-400" />}
           value={providers.length}

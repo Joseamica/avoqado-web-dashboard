@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 
 import { useBreadcrumb } from '@/context/BreadcrumbContext'
 import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { Skeleton } from '@/components/ui/skeleton'
 import { detalleNoCargo } from '@/lib/falloDeCarga'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
@@ -102,7 +103,7 @@ export default function CustomerDetail() {
 	})
 
 	// Fetch loyalty transactions
-	const { data: loyaltyData } = useQuery({
+	const loyaltyQuery = useQuery({
 		queryKey: ['customer-loyalty', venueId, customerId, loyaltyTypeFilter],
 		queryFn: () =>
 			loyaltyService.getCustomerTransactions(venueId, customerId!, {
@@ -111,6 +112,7 @@ export default function CustomerDetail() {
 			}),
 		enabled: !!customerId,
 	})
+	const { data: loyaltyData } = loyaltyQuery
 
 	// Fetch loyalty config for point value calculation
 	const { data: loyaltyConfig } = useQuery({
@@ -119,11 +121,12 @@ export default function CustomerDetail() {
 	})
 
 	// Fetch customer's credit pack purchases
-	const { data: creditPurchases } = useQuery<CreditPackPurchase[]>({
+	const creditsQuery = useQuery<CreditPackPurchase[]>({
 		queryKey: ['customer-credits', venueId, customerId],
 		queryFn: () => creditPackService.getCustomerPurchases(venueId, customerId!),
 		enabled: !!customerId,
 	})
+	const { data: creditPurchases } = creditsQuery
 
 	// Delete mutation
 	const deleteMutation = useMutation({
@@ -502,7 +505,7 @@ export default function CustomerDetail() {
 							>
 								<span>{t('detail.tabs.loyalty')}</span>
 								<span className="ml-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1 text-xs text-foreground bg-foreground/10 group-hover:bg-foreground/20 group-data-[state=active]:bg-background/20 group-data-[state=active]:text-background">
-									{loyaltyData?.data?.length || 0}
+									{loyaltyData?.data?.length ?? '—'}
 								</span>
 							</TabsTrigger>
 							<TabsTrigger
@@ -511,7 +514,7 @@ export default function CustomerDetail() {
 							>
 								<span>{t('detail.tabs.credits')}</span>
 								<span className="ml-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1 text-xs text-foreground bg-foreground/10 group-hover:bg-foreground/20 group-data-[state=active]:bg-background/20 group-data-[state=active]:text-background">
-									{creditPurchases?.length || 0}
+									{creditPurchases?.length ?? '—'}
 								</span>
 							</TabsTrigger>
 						</TabsList>
@@ -580,7 +583,10 @@ export default function CustomerDetail() {
 									</div>
 								</CardHeader>
 								<CardContent>
-									{loyaltyData?.data && loyaltyData.data.length > 0 ? (
+									<AvisoDeCarga query={loyaltyQuery} hayDatos={loyaltyData !== undefined} />
+									{loyaltyData === undefined ? (
+										loyaltyQuery.isLoading && <Skeleton className="h-32 w-full" />
+									) : loyaltyData.data && loyaltyData.data.length > 0 ? (
 										<div className="space-y-3">
 											{loyaltyData.data.map((transaction) => (
 												<div key={transaction.id} className="flex items-center justify-between p-3 border rounded-lg">
@@ -623,7 +629,10 @@ export default function CustomerDetail() {
 									<CardDescription>{t('detail.credits.description')}</CardDescription>
 								</CardHeader>
 								<CardContent>
-									{creditPurchases && creditPurchases.length > 0 ? (
+									<AvisoDeCarga query={creditsQuery} hayDatos={creditPurchases !== undefined} />
+									{creditPurchases === undefined ? (
+										creditsQuery.isLoading && <Skeleton className="h-32 w-full" />
+									) : creditPurchases.length > 0 ? (
 										<div className="space-y-4">
 											{creditPurchases.map((purchase) => {
 												const statusKey = `detail.credits.status.${purchase.status}`

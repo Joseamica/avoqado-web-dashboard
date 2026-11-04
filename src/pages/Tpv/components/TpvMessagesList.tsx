@@ -246,27 +246,6 @@ export function TpvMessagesList({ venueId }: TpvMessagesListProps) {
     return { total: allMessages.length, active, totalDeliveries, totalAcknowledged, readRate, confirmRate }
   }, [allMessages])
 
-  if (isLoading) {
-    return (
-      <div className="space-y-3">
-        {[1, 2, 3].map((i) => (
-          <Card key={i}>
-            <CardContent className="p-4">
-              <div className="flex items-start gap-3 animate-pulse">
-                <div className="w-10 h-10 rounded-lg bg-muted" />
-                <div className="flex-1 space-y-2">
-                  <div className="h-4 w-48 rounded bg-muted" />
-                  <div className="h-3 w-72 rounded bg-muted" />
-                  <div className="h-3 w-32 rounded bg-muted" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-    )
-  }
-
   return (
     <TooltipProvider>
       <div className="space-y-4">
@@ -351,7 +330,26 @@ export function TpvMessagesList({ venueId }: TpvMessagesListProps) {
 
         {/* Messages List */}
         <AvisoDeCarga query={messagesQuery} hayDatos={messagesData !== undefined} />
-        {messagesData === undefined && falloDeCarga(messagesQuery) ? null : allMessages.length === 0 ? (
+        {messagesData === undefined ? (
+          isLoading && (
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <Card key={i}>
+                  <CardContent className="p-4">
+                    <div className="flex items-start gap-3 animate-pulse">
+                      <div className="w-10 h-10 rounded-lg bg-muted" />
+                      <div className="flex-1 space-y-2">
+                        <div className="h-4 w-48 rounded bg-muted" />
+                        <div className="h-3 w-72 rounded bg-muted" />
+                        <div className="h-3 w-32 rounded bg-muted" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )
+        ) : allMessages.length === 0 ? (
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-16 text-center">
               <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mb-4">

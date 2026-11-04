@@ -1,4 +1,4 @@
-import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { AvisoDeCarga, BotonReintentar } from '@/components/AvisoDeCarga'
 import { falloDeCarga } from '@/lib/falloDeCarga'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { TpvSettingsFields } from '@/components/tpv/TpvSettingsFields'
@@ -453,7 +453,10 @@ export function OrgTpvConfigSection({ orgId }: { orgId: string }) {
 
       {/* Settings fields */}
       {sinLeer ? (
-        <p className="text-sm text-destructive">{t('settings.tpvLoadError')}</p>
+        <div className="flex flex-wrap items-center gap-3">
+          <p className="text-sm text-destructive">{t('settings.tpvLoadError')}</p>
+          {falloDeCarga(orgDefaultsQuery) && <BotonReintentar query={orgDefaultsQuery} />}
+        </div>
       ) : orgDefaults === undefined ? (
         <div className="space-y-3">
           <div className="h-14 bg-muted/40 animate-pulse rounded-2xl" />
