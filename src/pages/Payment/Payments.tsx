@@ -64,6 +64,7 @@ import { PaymentSourceBadge } from '@/components/PaymentSourceBadge'
 import { ChannelBadge } from '@/components/delivery/ChannelBadge'
 import { useAccess } from '@/hooks/use-access'
 import { getPaymentFilterOptions, getPayments, getPaymentsSummary } from '@/services/payment.service'
+import { conteoParaExportar } from '@/lib/conteoParaExportar'
 import { paymentCardsForTab, paymentRowMatchesTab, paymentTabCounts } from './paymentSummary'
 import { etiquetaDeMetodo } from './etiquetaDeMetodo'
 
@@ -1664,7 +1665,7 @@ export default function Payments() {
         columns={exportColumns}
         initialDateFrom={dateRange.from}
         initialDateTo={dateRange.to}
-        estimatedCount={filteredPayments.length || totalPayments}
+        estimatedCount={conteoParaExportar(filteredPayments.length, totalPayments)}
         filenameStem="payments"
         segundoPlano={venueId ? { venueId, kind: 'cobros' } : undefined}
         activeFilterSummary={exportFilterSummary}
