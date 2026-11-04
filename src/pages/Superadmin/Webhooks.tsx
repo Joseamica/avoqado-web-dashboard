@@ -48,10 +48,11 @@ function Webhooks() {
   const [retryingEventId, setRetryingEventId] = useState<string | null>(null)
 
   // Fetch metrics (last 7 days)
-  const { data: metrics } = useQuery<WebhookMetrics>({
+  const metricsQuery = useQuery<WebhookMetrics>({
     queryKey: ['webhookMetrics'],
     queryFn: () => getWebhookMetrics(),
   })
+  const { data: metrics } = metricsQuery
 
   // Fetch event types for filter dropdown
   const { data: eventTypes } = useQuery({
@@ -147,6 +148,7 @@ function Webhooks() {
       </div>
 
       {/* Metrics Cards */}
+      <AvisoDeCarga query={metricsQuery} hayDatos={metrics !== undefined} />
       {metrics && (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {/* Success Rate */}

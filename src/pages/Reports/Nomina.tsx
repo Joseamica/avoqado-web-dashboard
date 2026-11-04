@@ -106,7 +106,8 @@ function NominaInner() {
         <>
           {/* Preview de la corrida */}
           <AvisoDeCarga query={preview} hayDatos={preview.data !== undefined} />
-          {!(preview.data === undefined && falloDeCarga(preview)) && (
+          {preview.isLoading && <Skeleton className="h-40 w-full rounded-xl" />}
+          {preview.data !== undefined && (
           <Card className="border-input">
             <CardContent className="overflow-x-auto p-0">
               <table className="w-full text-sm">
