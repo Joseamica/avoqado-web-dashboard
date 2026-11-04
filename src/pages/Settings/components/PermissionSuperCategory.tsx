@@ -16,9 +16,9 @@ import { useTranslation } from 'react-i18next'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { cn, includesNormalized } from '@/lib/utils'
+import { cn } from '@/lib/utils'
 import { PERMISSION_CATEGORIES, CRITICAL_PERMISSIONS } from '@/lib/permissions/roleHierarchy'
-import type { SuperCategory, AccentColor } from '@/lib/permissions/permissionGroups'
+import { permisoCoincide, permisosQueCoinciden, type SuperCategory, type AccentColor } from '@/lib/permissions/permissionGroups'
 import PermissionToggle from './PermissionToggle'
 
 // Icon mapping for super-categories
@@ -116,8 +116,8 @@ function PermissionCategoryGroup({
   // Filter permissions by search term
   const filteredPermissions = useMemo(() => {
     if (!searchTerm) return category.permissions
-    return category.permissions.filter(p => includesNormalized(p ?? '', searchTerm))
-  }, [category.permissions, searchTerm])
+    return permisosQueCoinciden(categoryKey, searchTerm, t)
+  }, [category.permissions, categoryKey, searchTerm, t])
 
   // Check selection state for this category
   const { allSelected, noneSelected: _noneSelected } = useMemo(() => {
@@ -185,7 +185,7 @@ function PermissionCategoryGroup({
             impliedBy={impliedMap?.get(permission) ?? null}
             onChange={enabled => onChange(permission, enabled)}
             disabled={disabled}
-            highlighted={!!searchTerm && includesNormalized(permission ?? '', searchTerm)}
+            highlighted={!!searchTerm && permisoCoincide(permission, searchTerm, t)}
           />
         ))}
       </div>
@@ -249,8 +249,8 @@ export function PermissionSuperCategory({
   // Filter categories based on search
   const filteredCategories = useMemo(() => {
     if (!searchTerm) return categories
-    return categories.filter(cat => cat.permissions.some(p => includesNormalized(p ?? '', searchTerm)))
-  }, [categories, searchTerm])
+    return categories.filter(cat => permisosQueCoinciden(cat.key, searchTerm, t).length > 0)
+  }, [categories, searchTerm, t])
 
   // Auto-expand if search matches
   const shouldAutoExpand = searchTerm && filteredCategories.length > 0
