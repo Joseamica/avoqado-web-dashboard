@@ -148,6 +148,7 @@
     "delete": "Delete"
   },
   "routes": {
+    "exports": "Exports",
     "exchanges": "Exchanges",
     "home": "Home",
     "menu": "Products",

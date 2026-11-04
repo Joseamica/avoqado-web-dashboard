@@ -44,6 +44,7 @@ import { LoadingScreen } from './components/spinner'
 const routeKeyMap: Record<string, string> = {
   payments: 'sidebar:routes.payments',
   exchanges: 'sidebar:routes.exchanges',
+  exports: 'sidebar:routes.exports',
   orders: 'sidebar:routes.orders',
   home: 'sidebar:routes.home',
   menu: 'sidebar:routes.menu',
