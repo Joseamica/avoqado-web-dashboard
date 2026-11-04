@@ -35,7 +35,7 @@ import { useSocket } from '@/context/SocketContext'
 import { useAccess } from '@/hooks/use-access'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
-import { falloDeCarga } from '@/lib/falloDeCarga'
+import { falloDeCarga, reintentarSirve } from '@/lib/falloDeCarga'
 import { cn } from '@/lib/utils'
 import { TpvSettingsForm } from '@/pages/Settings/components/TpvSettingsForm'
 import { paymentProviderAPI, type MerchantAccount } from '@/services/paymentProvider.service'
@@ -754,7 +754,7 @@ function TpvIdContent() {
             <ArrowLeft className="h-4 w-4 mr-2" />
             {t('common:goBack')}
           </Button>
-          <Button onClick={() => void tpvQuery.refetch()}>{t('common:tryAgain')}</Button>
+          {reintentarSirve(tpvQuery.error) && <Button onClick={() => void tpvQuery.refetch()}>{t('common:tryAgain')}</Button>}
         </div>
       </div>
     )

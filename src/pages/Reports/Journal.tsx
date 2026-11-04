@@ -101,7 +101,7 @@ function JournalInner() {
       {journalQuery.data === undefined && hasAccess && !falloDeCarga(journalQuery) ? (
         <Skeleton className="h-64 rounded-2xl" />
       ) : journalQuery.data === undefined && hasAccess ? (
-        <AccountingErrorState onRetry={() => journalQuery.refetch()} />
+        <AccountingErrorState error={journalQuery.error} onRetry={() => journalQuery.refetch()} />
       ) : needsFiscalSetup ? (
         <Card className="border-input">
           <CardContent className="flex flex-col items-center gap-3 py-10 text-center">

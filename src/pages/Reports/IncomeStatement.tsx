@@ -96,7 +96,7 @@ export default function IncomeStatement() {
         </div>
       ) : isError ? (
         // B4b (Codex r5 R5-8): con REPORT_TOO_LARGE / REPORT_TIMEOUT, el mensaje del servidor (el rango o la venta); si no, el genérico.
-        <AccountingErrorState message={mensajeDelReporte(error)} onRetry={() => refetch()} />
+        <AccountingErrorState message={mensajeDelReporte(error)} error={error} onRetry={() => refetch()} />
       ) : data?.metrics && data.metrics.salesCount === 0 && data.metrics.refundCount === 0 ? (
         // «Sin ventas» no es «sin movimientos» (Codex r5 R5-10): un mes sólo con devoluciones muestra su reporte, con su flujo negativo.
         <Card className="border-input">

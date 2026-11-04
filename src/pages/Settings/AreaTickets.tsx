@@ -1,3 +1,4 @@
+import { Skeleton } from '@/components/ui/skeleton'
 import { useEffect, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { AlertTriangle, ArrowRight, Loader2, Plus, Scale, ScanBarcode, TicketCheck } from 'lucide-react'
@@ -133,6 +134,7 @@ export default function AreaTickets() {
   const data = overviewQuery.data
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-6 p-4 md:p-6">
+      <AvisoDeCarga query={overviewQuery} hayDatos />
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="flex items-center gap-2 text-2xl font-semibold">
@@ -333,7 +335,7 @@ function FlowSettings({
   )
 }
 
-function AreasSettings({
+export function AreasSettings({
   venueId,
   fullBasePath,
   areas,
@@ -364,6 +366,28 @@ function AreasSettings({
     onSuccess: onSaved,
     onError: error => toast({ title: 'No se pudo actualizar', description: apiError(error, 'Intenta de nuevo.'), variant: 'destructive' }),
   })
+  // D2: la comanda con su PROPIA mutación (Codex r2 #1): compartir la de «Proceso» y «Estado» dejaba el candado de abajo
+  // pegado cuando otro guardado le ganaba el callback de la llamada.
+  const guardandoComanda = useRef(false)
+  const comandaMutation = useMutation({
+    mutationFn: ({ area, sendsComanda }: { area: FulfillmentArea; sendsComanda: boolean }) =>
+      updateFulfillmentArea(venueId, area.id, { sendsComanda }),
+    onSuccess: (_data, { area, sendsComanda }) => {
+      // Pega en todos los aparatos del área; se dice en qué quedó.
+      toast({ title: t(sendsComanda ? 'areaTickets.areas.comandaTurnedOn' : 'areaTickets.areas.comandaTurnedOff', { area: area.name }) })
+      onSaved()
+    },
+    onError: error => toast({ title: 'No se pudo actualizar', description: apiError(error, 'Intenta de nuevo.'), variant: 'destructive' }),
+    onSettled: () => {
+      guardandoComanda.current = false
+    },
+  })
+  // Un doble clic llega antes de que `isPending` deshabilite el interruptor: el segundo saldría con el valor viejo.
+  const cambiarComanda = (area: FulfillmentArea, sendsComanda: boolean) => {
+    if (guardandoComanda.current) return
+    guardandoComanda.current = true
+    comandaMutation.mutate({ area, sendsComanda })
+  }
 
   return (
     <div className="space-y-4">
@@ -397,6 +421,10 @@ function AreasSettings({
               <TableRow>
                 <TableHead>Área</TableHead>
                 <TableHead>Proceso</TableHead>
+                <TableHead>
+                  <span>{t('areaTickets.areas.comandaHeader')}</span>
+                  <span className="block text-xs font-normal text-muted-foreground">{t('areaTickets.areas.comandaHint')}</span>
+                </TableHead>
                 <TableHead>Terminales</TableHead>
                 <TableHead>Estado</TableHead>
               </TableRow>
@@ -422,6 +450,20 @@ function AreasSettings({
                       </SelectContent>
                     </Select>
                   </TableCell>
+                  <TableCell>
+                    {/* D2: sin el campo (SERVIDOR viejo) manda comanda, como hoy. */}
+                    <label className="flex items-center gap-3">
+                      <Switch
+                        aria-label={t('areaTickets.areas.comandaFor', { area: area.name })}
+                        checked={area.sendsComanda !== false}
+                        disabled={comandaMutation.isPending}
+                        onCheckedChange={checked => cambiarComanda(area, checked)}
+                      />
+                      <span className="text-sm text-muted-foreground">
+                        {t(area.sendsComanda !== false ? 'areaTickets.areas.comandaOn' : 'areaTickets.areas.comandaOff')}
+                      </span>
+                    </label>
+                  </TableCell>
                   <TableCell>{area._count?.terminals ?? 0}</TableCell>
                   <TableCell>
                     <Switch checked={area.active} onCheckedChange={active => updateMutation.mutate({ id: area.id, input: { active } })} />
@@ -430,7 +472,7 @@ function AreasSettings({
               ))}
               {areas.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={4} className="py-10 text-center text-muted-foreground">
+                  <TableCell colSpan={5} className="py-10 text-center text-muted-foreground">
                     Aún no hay áreas.
                   </TableCell>
                 </TableRow>
@@ -874,7 +916,8 @@ export function Operations({
         </CardHeader>
         <CardContent className={sinVales ? 'p-4' : 'p-0'}>
           <AvisoDeCarga query={query} hayDatos={query.data !== undefined} />
-          {!sinVales && (
+          {query.data === undefined && !sinVales && <Skeleton className="m-4 h-24" />}
+          {query.data !== undefined && (
           <Table>
             <TableHeader>
               <TableRow>

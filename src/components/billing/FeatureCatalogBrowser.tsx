@@ -1,4 +1,4 @@
-import { falloDeCarga } from '@/lib/falloDeCarga'
+import { falloDeCarga, reintentarSirve } from '@/lib/falloDeCarga'
 import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { useId, useMemo, useState } from 'react'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
@@ -135,9 +135,11 @@ export function FeatureCatalogBrowser({ selection }: { selection?: CatalogSelect
           {data === undefined && falloDeCarga(catalogoQuery) ? (
             <div role="alert" className="mt-6 text-sm">
               <p>{t('catalog.error')}</p>
-              <Button variant="outline" className="mt-3 rounded-full" onClick={() => void refetch()}>
-                {t('catalog.retry')}
-              </Button>
+              {reintentarSirve(catalogoQuery.error) && (
+                <Button variant="outline" className="mt-3 rounded-full" onClick={() => void refetch()}>
+                  {t('catalog.retry')}
+                </Button>
+              )}
             </div>
           ) : data === undefined ? (
             <p role="status" className="py-8 text-sm text-muted-foreground">

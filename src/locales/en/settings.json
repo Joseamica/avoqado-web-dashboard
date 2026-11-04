@@ -729,7 +729,7 @@
     },
     "impliedByInline": "included in",
     "includedInBadge": "Included",
-    "impliedByTooltip": "This permission comes bundled with another one the role keeps. To remove it, remove that one too."
+    "impliedByTooltip": "This permission comes bundled with \"{{permission}}\", which the role keeps. To remove it, remove that one too."
   },
   "roleDisplayNames": {
     "appearanceDesc": "Name, description and label color",
@@ -884,6 +884,15 @@
       "turnedOffCheckout": "«Charge tickets» was turned off: a device either issues tickets or charges them, not both. Use the register to charge tickets.",
       "turnedOffIssue": "«Issue tickets» was turned off: a device either issues tickets or charges them, not both.",
       "bothOnWarning": "This device has both «Issue tickets» and «Charge tickets». It only issues: turn one of them off. Use the register to charge tickets."
+    },
+    "areas": {
+      "comandaHeader": "Kitchen ticket",
+      "comandaHint": "Off: only the voucher prints.",
+      "comandaFor": "Kitchen ticket for {{area}}",
+      "comandaOn": "Sends kitchen ticket",
+      "comandaOff": "Voucher only",
+      "comandaTurnedOn": "{{area}} sends kitchen tickets again",
+      "comandaTurnedOff": "{{area}} no longer sends kitchen tickets: only the voucher prints"
     }
   }
 }

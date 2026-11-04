@@ -1,11 +1,9 @@
-import { BotonReintentar } from '@/components/AvisoDeCarga'
+import { EstadoDeOpciones, type FuenteDeOpciones } from './EstadoDeOpciones'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
-import { falloDeCarga, type EstadoDeCarga } from '@/lib/falloDeCarga'
 import { cn, includesNormalized } from '@/lib/utils'
 import { Search } from 'lucide-react'
 import { useState, useMemo } from 'react'
-import { useTranslation } from 'react-i18next'
 import { FilterPopoverHeader, FilterPopoverFooter } from './FilterPill'
 
 interface CheckboxOption {
@@ -23,10 +21,10 @@ interface CheckboxFilterContentProps {
   searchPlaceholder?: string
   applyLabel?: string
   clearLabel?: string
-  /** Lo que se dice cuando la búsqueda dentro del filtro no encuentra nada. */
+  /** Lo que se dice si no hay opciones, o si la búsqueda dentro del filtro no encuentra nada. */
   emptyLabel?: string
   /** La lectura de donde salen las opciones, si no es la de la lista. */
-  fuente?: EstadoDeCarga
+  fuente?: FuenteDeOpciones
 }
 
 /**
@@ -43,10 +41,9 @@ export function CheckboxFilterContent({
   searchPlaceholder = 'Buscar...',
   applyLabel = 'Aplicar',
   clearLabel = 'Limpiar',
-  emptyLabel = 'Sin resultados',
+  emptyLabel,
   fuente,
 }: CheckboxFilterContentProps) {
-  const { t } = useTranslation('common')
   const [localSelected, setLocalSelected] = useState<string[]>(selectedValues)
   const [searchTerm, setSearchTerm] = useState('')
 
@@ -87,14 +84,9 @@ export function CheckboxFilterContent({
       )}
 
       <div className="max-h-[280px] overflow-y-auto p-2">
-        {options.length === 0 ? (
-          // Sin opciones no se sabe si no hay o si aún no llegan: no se afirma «Sin resultados».
-          <div className="py-4 text-center text-sm text-muted-foreground">
-            <p>{t(fuente && falloDeCarga(fuente) ? 'loadFailure.empty' : 'loadFailure.noOptions')}</p>
-            {fuente && falloDeCarga(fuente) && <BotonReintentar query={fuente} className="mt-2" />}
-          </div>
-        ) : filteredOptions.length === 0 ? (
-          <p className="py-4 text-center text-sm text-muted-foreground">{emptyLabel}</p>
+        <EstadoDeOpciones fuente={fuente} hayOpciones={options.length > 0} emptyLabel={emptyLabel} />
+        {options.length === 0 ? null : filteredOptions.length === 0 ? (
+          <p className="py-4 text-center text-sm text-muted-foreground">{emptyLabel ?? 'Sin resultados'}</p>
         ) : (
           <div className="space-y-1">
             {/* Seleccionar todos master toggle — matches Shopify/Carbon pattern */}

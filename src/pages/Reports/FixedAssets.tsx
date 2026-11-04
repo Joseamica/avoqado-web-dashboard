@@ -221,7 +221,7 @@ function FixedAssetsInner() {
       {assetsQuery.data === undefined && hasAccess && !falloDeCarga(assetsQuery) ? (
         <Skeleton className="h-64 rounded-2xl" />
       ) : assetsQuery.data === undefined && hasAccess ? (
-        <AccountingErrorState onRetry={() => assetsQuery.refetch()} />
+        <AccountingErrorState error={assetsQuery.error} onRetry={() => assetsQuery.refetch()} />
       ) : needsFiscalSetup ? (
         <Card className="border-input">
           <CardContent className="flex flex-col items-center gap-3 py-10 text-center">

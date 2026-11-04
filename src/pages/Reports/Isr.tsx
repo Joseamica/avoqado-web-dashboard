@@ -298,6 +298,7 @@ function IsrInner() {
         // otro error, el genérico.
         <AccountingErrorState
           message={mensajeDelMes(query.error, t('accountingError.mesNoCalculado'))}
+          error={query.error}
           onRetry={() => query.refetch()}
         />
       ) : needsFiscalSetup ? (

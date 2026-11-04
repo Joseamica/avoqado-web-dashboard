@@ -11,7 +11,7 @@
  * Hallazgos: docs/audit/2026-11-03-d4-numeros-y-tablas/codex-r6.md.
  */
 import { onlineManager, QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { act, cleanup, configure, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, configure, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import type { ReactElement, ReactNode } from 'react'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -170,7 +170,8 @@ import SalesByCategory from '@/pages/Reports/SalesByCategory'
 import SalesByItem from '@/pages/Reports/SalesByItem'
 import SalesSummary from '@/pages/Reports/SalesSummary'
 import SerializedSalesDemo from '@/pages/SerializedSalesDemo/SerializedSalesDemo'
-import AreaTickets from '@/pages/Settings/AreaTickets'
+import AreaTickets, { Operations } from '@/pages/Settings/AreaTickets'
+import AccountsPayable from '@/pages/Reports/AccountsPayable'
 import { RoutingTab } from '@/pages/Settings/components/printStations/RoutingTab'
 import OrganizationActivityLog from '@/pages/Organization/OrganizationActivityLog'
 import OrganizationTerminals from '@/pages/Organization/OrganizationTerminals'
@@ -1393,7 +1394,8 @@ describe('r7 · Ganancias: la pestaña de costos', () => {
     red.colgada = /cost-structures\/analysis/
     pintar(<ProfitAnalyticsDashboard />)
     await abrirCostos()
-    expect(screen.getAllByText('—').length).toBeGreaterThan(0)
+    const region = screen.getByText('Current Cost Structures').closest('.rounded-lg, .rounded-xl, [class*="card"]')?.parentElement as HTMLElement
+    expect(within(region).getAllByText('—').length).toBeGreaterThan(0)
   })
 })
 
@@ -1439,7 +1441,8 @@ describe('r7 · Planes: reintentar sí vuelve a leer', () => {
     await screen.findByText('plan.page.planError')
     red.caida = null
     fireEvent.click(await reintentar())
-    await waitFor(() => expect(seVe('plan.page.planError')).toBe(false))
+    await sinConsultasEnCamino()
+    expect(seVe('plan.page.planError')).toBe(false)
   })
 })
 
@@ -1450,31 +1453,82 @@ describe('r7 · Terminales de la organización: reintentar sí vuelve a leer', (
     await screen.findByText('settings.tpvLoadError')
     red.caida = null
     fireEvent.click(await reintentar())
-    await waitFor(() => expect(seVe('settings.tpvLoadError')).toBe(false))
+    await sinConsultasEnCamino()
+    expect(seVe('settings.tpvLoadError')).toBe(false)
   })
 })
 
 // ─── Codex r8 ───
-describe('r8 · Filtro sin opciones: no afirma «Sin resultados»', () => {
-  const caida = { isError: true, isFetching: false, isPaused: false, error: new Error('caída'), refetch: () => {} }
+describe('r8 · Filtros: lo que dicen de sus opciones depende de su lectura', () => {
+  const opciones = [{ value: 'a', label: 'Azul' }]
+  const fuente = (estado: object) => ({ isError: false, isFetching: false, isPaused: false, error: null, refetch: vi.fn(), ...estado })
+  const caida = () => fuente({ isError: true, error: new Error('caída') })
   const casilla = { title: 'x', selectedValues: [], onApply: () => {} }
-  const unaSola = { title: 'x', selectedValue: '', onApply: () => {} }
+  const unaSola = { title: 'x', selectedValue: '', onSelect: () => {} }
 
-  it.each([
+  describe.each([
     ['Casillas', (o: object) => <CheckboxFilterContent {...casilla} options={[]} {...o} />],
     ['Una opción', (o: object) => <SingleSelectFilterContent {...unaSola} options={[]} {...o} />],
-  ])('%s: sin opciones lo dice sin afirmar nada; con su lectura caída, avisa y deja reintentar', async (_n, filtro) => {
-    pintar(filtro({}))
-    expect(screen.getByText('loadFailure.noOptions')).toBeInTheDocument()
-    expect(seVe('Sin resultados')).toBe(false)
-    cleanup()
-    pintar(filtro({ fuente: caida }))
-    expect(screen.getByText(SIN_DATOS)).toBeInTheDocument()
-    expect(await reintentar()).toBeInTheDocument()
+  ])('%s', (_n, filtro) => {
+    it('sin saber de dónde salen: no afirma «Sin resultados»', async () => {
+      pintar(filtro({}))
+      expect(screen.getByText('loadFailure.noOptions')).toBeInTheDocument()
+      expect(seVe('Sin resultados')).toBe(false)
+    })
+
+    it('el texto de la pantalla manda en un vacío de verdad', async () => {
+      pintar(filtro({ emptyLabel: 'No hay áreas' }))
+      expect(screen.getByText('No hay áreas')).toBeInTheDocument()
+    })
+
+    it('su lectura en camino: espera, sin decir nada', async () => {
+      pintar(filtro({ fuente: fuente({ isFetching: true }) }))
+      esperando()
+      expect(seVe('loadFailure')).toBe(false)
+    })
+
+    it('su lectura apagada (permiso o plan): sin espera eterna', async () => {
+      pintar(filtro({ fuente: fuente({}) }))
+      expect(document.querySelector('.animate-pulse')).toBeNull()
+      expect(screen.getByText('loadFailure.noOptions')).toBeInTheDocument()
+    })
+
+    it('su lectura caída: avisa, y reintentar vuelve a pedir', async () => {
+      const f = caida()
+      pintar(filtro({ fuente: f }))
+      expect(screen.getByText(SIN_DATOS)).toBeInTheDocument()
+      fireEvent.click(await reintentar())
+      expect(f.refetch).toHaveBeenCalledOnce()
+    })
+
+    it('caída con opciones anteriores: las opciones siguen, con su aviso', async () => {
+      const f = { ...caida(), data: opciones }
+      pintar(filtro({ fuente: f, options: opciones }))
+      expect(screen.getByText(CON_DATOS)).toBeInTheDocument()
+      expect(screen.getByText('Azul')).toBeInTheDocument()
+      fireEvent.click(await reintentar())
+      expect(f.refetch).toHaveBeenCalledOnce()
+    })
+
+    it.each([
+      ['caída', { isError: true, error: new Error('caída') }],
+      ['en pausa', { isPaused: true }],
+    ])('leída y vacía, y su recarga %s: el vacío sigue, con el aviso de datos viejos', async (_e, estado) => {
+      pintar(filtro({ fuente: fuente({ data: [], ...estado }), emptyLabel: 'No hay áreas' }))
+      expect(screen.getByText(CON_DATOS)).toBeInTheDocument()
+      expect(screen.getByText('No hay áreas')).toBeInTheDocument()
+      expect(seVe(SIN_DATOS)).toBe(false)
+    })
+
+    it('un 403 no ofrece reintentar', async () => {
+      pintar(filtro({ fuente: fuente({ isError: true, error: { response: { status: 403 } } }) }))
+      expect(screen.getByText('loadFailure.forbidden')).toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: 'retry' })).toBeNull()
+    })
   })
 
   it('con opciones, una búsqueda sin coincidencias sigue diciendo «Sin resultados»', async () => {
-    pintar(<CheckboxFilterContent {...casilla} searchable options={[{ value: 'a', label: 'Azul' }]} />)
+    pintar(<CheckboxFilterContent {...casilla} searchable options={opciones} />)
     fireEvent.change(screen.getByRole('textbox'), { target: { value: 'zzz' } })
     expect(screen.getByText('Sin resultados')).toBeInTheDocument()
   })
@@ -1666,7 +1720,7 @@ describe('r8 · Catálogo maestro', () => {
     expect(screen.getByText(VACIO)).toBeInTheDocument()
   })
 
-  const BITACORA = /audit/
+  const BITACORA = /audit(?!\/actions)/
   const SIN_EVENTOS = 'No hay eventos para estos filtros.'
 
   it('Bitácora en camino: los filtros siguen, sin «sin eventos» ni «página 1 de 1»', async () => {
@@ -1693,10 +1747,18 @@ describe('r8 · Catálogo maestro', () => {
 
 describe('r8 · Avisos que ahora dejan reintentar', () => {
   it('Presupuesto de tokens: caído, deja reintentar', async () => {
-    red.caida = /tokens\/status/
-    pintar(<TokenBudgetSection venueId="v1" />)
+    const TOKENS = /tokens\/status/
+    const PRESUPUESTO = { freeTokensRemaining: 100, extraTokensBalance: 0, totalAvailable: 100, percentageUsed: 0, isInOverage: false, overageTokensUsed: 0, overageCost: 0, autoRechargeEnabled: false, autoRechargeThreshold: 0, autoRechargeAmount: 0, totalTokensPurchased: 0, totalTokensUsed: 0, totalAmountSpent: 0, totalTokensAvailable: 100, freeTokensUsed: 0, monthlyFreeTokens: 100, pricing: { pricePerThousandTokens: 1, freeTokensPerMonth: 100 } }
+    red.caida = TOKENS
+    pintar(<TokenBudgetSection venueId="v1" />, { rutas: [[TOKENS, { data: PRESUPUESTO, ...PRESUPUESTO }]] })
     await screen.findByText('tokenBudget.loadError')
-    expect(await reintentar()).toBeInTheDocument()
+    red.caida = null
+    fireEvent.click(await reintentar())
+    await screen.findByText('tokenBudget.subtitle')
+    expect(seVe('tokenBudget.loadError')).toBe(false)
+    await recargaCaida(TOKENS)
+    await screen.findByText(CON_DATOS)
+    expect(screen.getByText('tokenBudget.subtitle')).toBeInTheDocument()
   })
 
   it('Pago de la clase: caído o sin internet, avisa y deja reintentar', async () => {
@@ -1704,7 +1766,14 @@ describe('r8 · Avisos que ahora dejan reintentar', () => {
     red.caida = /class/
     pintar(<PagoDeClaseCard sessionId="c1" />, { rutas })
     await screen.findByText('classCard.loadError')
-    expect(await reintentar()).toBeInTheDocument()
+    red.caida = null
+    fireEvent.click(await reintentar())
+    await sinConsultasEnCamino()
+    expect(seVe('classCard.loadError')).toBe(false)
+    // Sin internet la lectura se pausa: sin este aviso, la tarjeta desaparecía sin decir nada.
+    onlineManager.setOnline(false)
+    void client.resetQueries({ predicate: q => JSON.stringify(q.queryKey).includes('c1') })
+    await screen.findByText('classCard.loadError')
   })
 
   it('Ventas excluidas de la global: sin internet, avisa y deja reintentar; no se queda «cargando»', async () => {
@@ -1762,5 +1831,147 @@ describe('r8 · Lo que el error reemplazaba', () => {
     pintar(<PeriodoCerradoView periodId="p1" fecha="2026-09-01" etiqueta="septiembre" etiquetaAbierto="octubre" />)
     await screen.findByText('period.error')
     expect(screen.getByRole('button', { name: 'period.retry' })).toBeInTheDocument()
+  })
+})
+
+describe('r9 · Un 403 no ofrece reintentar', () => {
+  beforeEach(() => {
+    red.estatus = 403
+  })
+
+  it('Bitácora del catálogo', async () => {
+    red.caida = /audit/
+    pintar(<CatalogAuditPage />, { params: { orgId: 'o1' } })
+    await screen.findByText('No se pudo cargar la bitácora.')
+    expect(screen.queryByRole('button', { name: 'Reintentar' })).toBeNull()
+  })
+
+  it('Detalle del Cambio', async () => {
+    red.caida = /exchanges\/x1/
+    pintar(<ExchangeDetailContent exchangeId="x1" />)
+    await screen.findByText('loadFailure.forbidden')
+    expect(seVe('exchange.retry')).toBe(false)
+  })
+
+  it('Periodo cerrado', async () => {
+    red.caida = /report/
+    pintar(<PeriodoCerradoView periodId="p1" fecha="2026-09-01" etiqueta="septiembre" etiquetaAbierto="octubre" />)
+    await screen.findByRole('alert')
+    expect(screen.queryByRole('button', { name: 'period.retry' })).toBeNull()
+  })
+
+  it('Biblioteca de opciones', async () => {
+    red.caida = /option/
+    pintar(<ProductOptions />)
+    await screen.findByText('biblioteca.error')
+    expect(seVe('biblioteca.reintentar')).toBe(false)
+  })
+
+  it('Catálogo de funciones', async () => {
+    red.caida = /catalog/
+    pintar(<FeatureCatalogBrowser />)
+    fireEvent.click(await screen.findByRole('button', { name: /catalog\.title/ }))
+    await screen.findByText('catalog.error')
+    expect(seVe('catalog.retry')).toBe(false)
+  })
+})
+
+describe('r10 · Usuarios de la tienda: las tiendas salen de las zonas', () => {
+  const ZONAS = /stores-analysis\/zones/
+  const abrirTiendas = () => fireEvent.click(screen.getByRole('button', { name: /Tiendas/ }))
+
+  it('zonas caídas: el filtro avisa; al reintentar sigue mirando las zonas, y al llegar se ven', async () => {
+    const rutas: Ruta[] = [
+      [/stores-analysis\/team/, { data: [], team: [], meta: { scope: 'venue', canViewAllOrgStaff: false } }],
+      [ZONAS, { data: [{ id: 'z1', name: 'Norte', venues: [{ id: 'v9', name: 'Tienda Nueve' }] }] }],
+    ]
+    red.caida = ZONAS
+    pintar(<UsersManagement />, { rutas })
+    await sinConsultasEnCamino()
+    abrirTiendas()
+    await screen.findByText(SIN_DATOS)
+    red.caida = null
+    red.colgada = ZONAS
+    fireEvent.click(await reintentar())
+    await unaVueltaAlLazo()
+    expect(seVe('loadFailure.noOptions')).toBe(false)
+    expect(seVe(SIN_DATOS)).toBe(false)
+    esperando()
+  })
+})
+
+describe('r10 · Reintentar no arregla un 403', () => {
+  it('Reportes contables: con 403 no se ofrece, con 500 sí', async () => {
+    const pagar = /payable/
+    red.caida = pagar
+    pintar(<AccountsPayable />)
+    await screen.findByRole('button', { name: /accountingError\.retry/ })
+    cleanup()
+    red.estatus = 403
+    pintar(<AccountsPayable />)
+    await screen.findByText('accountingError.body')
+    await sinConsultasEnCamino()
+    expect(screen.queryByRole('button', { name: /accountingError\.retry/ })).toBeNull()
+  })
+
+  it('Detalle del aparato: con 403 no se ofrece', async () => {
+    red.caida = /tpv\/t1$/
+    red.estatus = 403
+    pintar(<TpvId />, { params: { tpvId: 't1' } })
+    await screen.findByText('detail.errors.loadError')
+    expect(screen.queryByRole('button', { name: 'common:tryAgain' })).toBeNull()
+  })
+})
+
+describe('r10 · Bitácora del catálogo: las acciones del filtro', () => {
+  const ACCIONES = /audit\/actions/
+  const LEIDA = { success: true, data: { logs: [], pagination: { page: 1, pageSize: 25, total: 0, totalPages: 1 } } }
+  const rutas: Ruta[] = [[ACCIONES, { success: true, data: ['CATALOG_ITEM_CREATED'] }], [/audit/, LEIDA]]
+
+  it('caídas: lo dice, y al reintentar llegan al filtro', async () => {
+    red.caida = ACCIONES
+    pintar(<CatalogAuditPage />, { params: { orgId: 'o1' }, rutas })
+    await screen.findByText('No se pudieron cargar las acciones del filtro.')
+    red.caida = null
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
+    await waitFor(() => expect(seVe('item created')).toBe(true))
+    expect(seVe('No se pudieron cargar las acciones del filtro.')).toBe(false)
+  })
+})
+
+describe('r10 · Vales por área', () => {
+  it('Configuración: si cae su recarga, los ajustes siguen, con el aviso', async () => {
+    const VISTA = /area-tickets?(\/overview)?$/
+    pintar(<AreaTickets />, {
+      rutas: [
+        [
+          VISTA,
+          {
+            data: {
+              entitlements: { areaTickets: true, scaleIntegration: true },
+              effective: { areaTickets: true, scales: false, variableWeight: false },
+              settings: {},
+              scaleSettings: {},
+              areas: [],
+              terminals: [],
+              scaleProfiles: [],
+              operations: { tickets: {}, checkouts: {}, paymentReconciliationCount: 0 },
+            },
+          },
+        ],
+      ],
+    })
+    await screen.findByText('Vales activos')
+    await recargaCaida(VISTA)
+    await screen.findByText(CON_DATOS)
+    expect(screen.getByText('Vales activos')).toBeInTheDocument()
+  })
+
+  it('Vales por entregar: la primera lectura espera, no deja la tabla en blanco', async () => {
+    red.colgada = /operations/
+    pintar(<Operations venueId="v1" counters={{ tickets: {}, checkouts: {}, paymentReconciliationCount: 0 } as never} />)
+    await unaVueltaAlLazo()
+    esperando()
+    expect(screen.queryByRole('table')).toBeNull()
   })
 })

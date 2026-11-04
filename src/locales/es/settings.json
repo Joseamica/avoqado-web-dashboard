@@ -734,7 +734,7 @@
     },
     "impliedByInline": "incluido en",
     "includedInBadge": "Incluido",
-    "impliedByTooltip": "Este permiso viene incluido en otro que el rol conserva. Para quitarlo, quita también ese."
+    "impliedByTooltip": "Este permiso viene incluido en «{{permission}}», que el rol conserva. Para quitarlo, quita también ese."
   },
   "crypto": {
     "title": "Pagos con Criptomonedas",
@@ -921,6 +921,15 @@
       "turnedOffCheckout": "Se apagó «Cobrar vales»: un aparato emite vales o los cobra, no las dos cosas. Para cobrar vales usa la caja.",
       "turnedOffIssue": "Se apagó «Emitir vales»: un aparato emite vales o los cobra, no las dos cosas.",
       "bothOnWarning": "Este aparato tiene «Emitir vales» y «Cobrar vales». Así sólo emite: apaga una de las dos. Para cobrar vales usa la caja."
+    },
+    "areas": {
+      "comandaHeader": "Comanda",
+      "comandaHint": "Apagada: sale sólo el vale.",
+      "comandaFor": "Comanda de {{area}}",
+      "comandaOn": "Manda comanda",
+      "comandaOff": "Sólo el vale",
+      "comandaTurnedOn": "{{area}} vuelve a mandar comanda a cocina",
+      "comandaTurnedOff": "{{area}} ya no manda comanda: sale sólo el vale"
     }
   }
 }

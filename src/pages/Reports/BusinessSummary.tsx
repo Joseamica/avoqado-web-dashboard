@@ -105,7 +105,7 @@ export default function BusinessSummary() {
         </div>
       ) : isError ? (
         // B4b (Codex r5 R5-8): con REPORT_TOO_LARGE / REPORT_TIMEOUT, el mensaje del servidor; si no, el genérico.
-        <AccountingErrorState message={mensajeDelReporte(error)} onRetry={() => refetch()} />
+        <AccountingErrorState message={mensajeDelReporte(error)} error={error} onRetry={() => refetch()} />
       ) : hasZeroSales ? (
         <Card className="border-input">
           <CardContent className="flex flex-col items-center gap-2 py-10 text-center">

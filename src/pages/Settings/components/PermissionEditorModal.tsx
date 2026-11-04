@@ -27,6 +27,7 @@ import {
   DASHBOARD_SUPER_CATEGORIES,
   TPV_SUPER_CATEGORIES,
   filterCategoriesByModules,
+  categoriaTrasBuscar,
   filterPermissionsBySearch,
   type SuperCategory,
 } from '@/lib/permissions/permissionGroups'
@@ -203,9 +204,13 @@ export function PermissionEditorModal({ open, onClose, role, venueId }: Permissi
   }, [filterCategoriesByFeatures])
 
   const filteredAllCategories = useMemo(
-    () => filterPermissionsBySearch(allSuperCategories, debouncedSearchTerm),
-    [allSuperCategories, debouncedSearchTerm]
+    () => filterPermissionsBySearch(allSuperCategories, debouncedSearchTerm, t),
+    [allSuperCategories, debouncedSearchTerm, t]
   )
+
+  useEffect(() => {
+    setSelectedCategoryKey(actual => categoriaTrasBuscar(filteredAllCategories, actual, debouncedSearchTerm))
+  }, [filteredAllCategories, debouncedSearchTerm])
 
   // Default permissions for this role
   const defaultPermissions = useMemo(() => DEFAULT_PERMISSIONS[role] || [], [role])

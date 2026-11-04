@@ -76,7 +76,7 @@ function NominaInner() {
       {empQuery.data === undefined && hasAccess && !falloDeCarga(empQuery) ? (
         <Skeleton className="h-64 rounded-2xl" />
       ) : empQuery.data === undefined && falloDeCarga(empQuery) && hasAccess ? (
-        <AccountingErrorState onRetry={() => empQuery.refetch()} />
+        <AccountingErrorState error={empQuery.error} onRetry={() => empQuery.refetch()} />
       ) : needsFiscalSetup ? (
         <Card className="border-input">
           <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
