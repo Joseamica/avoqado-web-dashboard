@@ -144,9 +144,9 @@ export function SalesSummaryExportDialog({
     if (mode === 'detailed' && !canDetailedExport) return // gated; UI shows upsell
     setIsExporting(true)
     try {
-      if (mode === 'detailed' && format !== 'pdf') {
+      if (mode === 'detailed' && format !== 'pdf' && venueId) {
         // Detallado en CSV/Excel: carril nuevo. El PDF detallado sigue por el GET de siempre (tope 1,000).
-        const r = await exportRunsService.pedir(venueId!, 'ventas-detalladas', {
+        const r = await exportRunsService.pedir(venueId, 'ventas-detalladas', {
           format,
           columns: Array.from(columns),
           filters: {
