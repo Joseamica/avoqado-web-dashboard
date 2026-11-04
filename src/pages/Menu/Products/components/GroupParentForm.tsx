@@ -3,6 +3,7 @@ import { ImagePlus, Loader2, Trash2 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Cropper from 'react-easy-crop'
 import { useTranslation } from 'react-i18next'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { PrintStationField } from '@/components/PrintStationField'
 import { SatKeyPicker } from '@/components/SatKeyPicker'
 import { SearchCombobox } from '@/components/search-combobox'
@@ -18,6 +19,7 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useImageUploader } from '@/hooks/use-image-uploader'
 import { useTierFeatureAccess } from '@/hooks/use-tier-feature-access'
 import { useToast } from '@/hooks/use-toast'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { includesNormalized } from '@/lib/utils'
 import { ConfirmarEncendidoIva, SelectorIva, bloqueosDelError, esperaDelIva, useEstadoIva } from '@/pages/Menu/Products/components/SelectorIva'
 import { getMenuCategories, getModifierGroups, IVA_QUERY_KEY, type BloqueoIva } from '@/services/menu.service'
@@ -259,7 +261,7 @@ export function GroupParentForm({
         <div className="space-y-5">
           <div className="space-y-2" data-tour="product-group-category">
             <Label htmlFor="familia-categoria">{tInv('wizard.step1.category')}</Label>
-            {categorias.isError && !categorias.data ? (
+            {categorias.data === undefined && falloDeCarga(categorias) ? (
               <ErrorDeLista texto={t('padre.errorCategorias')} reintentar={() => void categorias.refetch()} />
             ) : (
               /* La categoría se cambia, nunca se vacía: borrar el texto sólo vuelve a mostrar la elegida. */
@@ -273,17 +275,18 @@ export function GroupParentForm({
                   setBuscaCategoria('')
                 }}
                 placeholder={tInv('wizard.step1.categoryPlaceholder')}
-                isLoading={categorias.isLoading}
+                isLoading={categorias.data === undefined}
                 disabled={bloqueado}
               />
             )}
+            {categorias.data !== undefined && <AvisoDeCarga query={categorias} hayDatos />}
           </div>
 
           <div className="space-y-2" data-tour="product-group-modifiers">
             <Label htmlFor="familia-extras">{tInv('wizard.step1.modifierGroups')}</Label>
-            {extras.isError && !extras.data ? (
+            {extras.data === undefined && falloDeCarga(extras) ? (
               <ErrorDeLista texto={t('padre.errorExtras')} reintentar={() => void extras.refetch()} />
-            ) : extras.isLoading || (extras.data ?? []).length > 0 ? (
+            ) : extras.data === undefined || extras.data.length > 0 ? (
               <SearchCombobox
                 inputId="familia-extras"
                 items={opcionesExtras}
@@ -294,12 +297,13 @@ export function GroupParentForm({
                   setBuscaExtra('')
                 }}
                 placeholder={tInv('wizard.step1.selectModifierGroups')}
-                isLoading={extras.isLoading}
+                isLoading={extras.data === undefined}
                 disabled={bloqueado}
               />
             ) : (
               <p className="text-xs italic text-muted-foreground">{t('padre.sinExtras')}</p>
             )}
+            {extras.data !== undefined && <AvisoDeCarga query={extras} hayDatos />}
             {e.modifierGroupIds.length > 0 && (
               <div className="space-y-2">
                 {e.modifierGroupIds.map(id => {

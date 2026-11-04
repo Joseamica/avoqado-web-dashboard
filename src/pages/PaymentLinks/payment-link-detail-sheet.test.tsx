@@ -112,7 +112,7 @@ describe('detalle de una liga', () => {
       .mockResolvedValue({ data: { ...liga(), completedPayments: [], completedPaymentsTotal: 0 } })
     pintar(liga())
 
-    fireEvent.click(await screen.findByRole('button', { name: 'detail.retry' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'retry' }))
     expect(await screen.findByText('detail.noPayments')).toBeInTheDocument()
   })
 })

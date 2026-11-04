@@ -11,6 +11,8 @@ import { useParams, useSearchParams } from 'react-router-dom'
 import { useToast } from '@/hooks/use-toast'
 import { ReceiptUrls } from '@/constants/receipt'
 import { ModernReceiptDesign } from '@/components/receipts/ModernReceiptDesign'
+import { AvisoDeCarga, BotonReintentar } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { AutofacturaPanel } from '@/pages/Payment/AutofacturaPanel'
 import { ReceiptReviewWidget } from '@/components/receipts/ReceiptReviewWidget'
 import { useTranslation } from 'react-i18next'
@@ -36,11 +38,7 @@ export default function ReceiptViewer() {
   const identifier = isPublicView ? accessKey : receiptId
 
   // Query to get receipt details
-  const {
-    data: receipt,
-    isLoading,
-    error: queryError,
-  } = useQuery({
+  const reciboQuery = useQuery({
     queryKey: ['receipt', identifier],
     queryFn: async () => {
       if (isPublicView && accessKey) {
@@ -71,6 +69,7 @@ export default function ReceiptViewer() {
     enabled: !!identifier,
     retry: 2,
   })
+  const { data: receipt, error: queryError } = reciboQuery
 
   // Apply language override for public receipt pages via ?lang=es param
   useEffect(() => {
@@ -164,28 +163,33 @@ export default function ReceiptViewer() {
   const receiptAccessKey = isPublicView ? accessKey : receipt?.accessKey
 
   return (
-    <ModernReceiptDesign
-      receipt={receipt}
-      isLoading={isLoading}
-      error={error}
-      accessKey={receiptAccessKey}
-      variant={isPublicView ? 'full' : 'embedded'}
-      showActions={true}
-      isRefund={isRefund}
-      onShare={handleShare}
-      onCopy={handleCopy}
-      onPrint={handlePrint}
-      onEmail={handleEmail}
-      autofacturaSlot={
-        // Public view only — never on the authenticated dashboard receipt view,
-        // and not for refund receipts (you can't self-invoice a refund).
-        isPublicView && accessKey && !isRefund ? <AutofacturaPanel accessKey={accessKey} /> : undefined
-      }
-      reviewSlot={
-        // Public view only, non-refund. The widget self-hides unless the venue's
-        // plan enables reviews (reviewsEnabled from the status endpoint).
-        isPublicView && accessKey && !isRefund ? <ReceiptReviewWidget accessKey={accessKey} /> : undefined
-      }
-    />
+    <>
+      {/* Una recarga caída no se lleva el recibo que ya se leyó: sigue, con su aviso. */}
+      {receipt !== undefined && <AvisoDeCarga query={reciboQuery} hayDatos deUnRegistro />}
+      <ModernReceiptDesign
+        receipt={receipt}
+        isLoading={!!identifier && receipt === undefined && !falloDeCarga(reciboQuery)}
+        error={receipt === undefined ? error : null}
+        retrySlot={<BotonReintentar query={reciboQuery} />}
+        accessKey={receiptAccessKey}
+        variant={isPublicView ? 'full' : 'embedded'}
+        showActions={true}
+        isRefund={isRefund}
+        onShare={handleShare}
+        onCopy={handleCopy}
+        onPrint={handlePrint}
+        onEmail={handleEmail}
+        autofacturaSlot={
+          // Public view only — never on the authenticated dashboard receipt view,
+          // and not for refund receipts (you can't self-invoice a refund).
+          isPublicView && accessKey && !isRefund ? <AutofacturaPanel accessKey={accessKey} /> : undefined
+        }
+        reviewSlot={
+          // Public view only, non-refund. The widget self-hides unless the venue's
+          // plan enables reviews (reviewsEnabled from the status endpoint).
+          isPublicView && accessKey && !isRefund ? <ReceiptReviewWidget accessKey={accessKey} /> : undefined
+        }
+      />
+    </>
   )
 }

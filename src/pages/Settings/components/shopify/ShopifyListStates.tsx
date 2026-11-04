@@ -3,6 +3,8 @@ import { Loader2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
+import { esNoEncontrado, falloDeCarga } from '@/lib/falloDeCarga'
+import { esSinPermiso } from '@/lib/reintentoSinPermiso'
 
 export function Cargando() {
   const { t } = useTranslation('shopify')
@@ -14,14 +16,16 @@ export function Cargando() {
 }
 
 /** Un error nunca se pinta como «vacío»: dice que falló y deja reintentar (bounded-data-and-query-load.md). */
-export function ErrorConReintento({ texto, onRetry, cargando }: { texto: string; onRetry: () => void; cargando: boolean }) {
+export function ErrorConReintento({ texto, onRetry, cargando }: { texto: string; onRetry?: () => void; cargando: boolean }) {
   const { t } = useTranslation('shopify')
   return (
     <Alert variant="destructive">
       <AlertDescription>{texto}</AlertDescription>
-      <Button variant="outline" size="sm" className="col-start-2 mt-2 justify-self-start" onClick={onRetry} disabled={cargando}>
-        {t('common:retry')}
-      </Button>
+      {onRetry && (
+        <Button variant="outline" size="sm" className="col-start-2 mt-2 justify-self-start" onClick={onRetry} disabled={cargando}>
+          {t('common:retry')}
+        </Button>
+      )}
     </Alert>
   )
 }
@@ -29,8 +33,9 @@ export function ErrorConReintento({ texto, onRetry, cargando }: { texto: string;
 /** Lo que `ListaPaginada` necesita de un `useInfiniteQuery` (TanStack v5). */
 export interface ListaQuery {
   data: unknown
-  isLoading: boolean
+  error: unknown
   isError: boolean
+  isPaused: boolean
   isRefetchError: boolean
   isFetchNextPageError: boolean
   isFetching: boolean
@@ -41,8 +46,8 @@ export interface ListaQuery {
 }
 
 /**
- * Los estados de una lista paginada en el servidor (Codex #37 y N4): cargando · primera carga fallida (error con
- * reintento, nunca «vacío») · datos viejos tras una actualización fallida (se dicen NO actualizados, y una lista vacía en
+ * Los estados de una lista paginada en el servidor (Codex #37 y N4): cargando · primera carga fallida o en pausa (error con
+ * reintento, nunca «vacío»; 403 y 404 sin reintento) · apagada por permiso (no afirma nada) · datos viejos tras una actualización fallida (se dicen NO actualizados, y una lista vacía en
  * caché deja de decir «todo bien») · «Cargar más» fallido (se dice aparte; lo de arriba sigue) · vacío · datos con total.
  */
 export function ListaPaginada({
@@ -61,13 +66,19 @@ export function ListaPaginada({
   children: ReactNode
 }) {
   const { t } = useTranslation('shopify')
-  if (q.isLoading && !q.data) return <Cargando />
-  if (q.isError && !q.data) return <ErrorConReintento texto={textoError} onRetry={() => q.refetch()} cargando={q.isFetching} />
+  if (!q.data) {
+    if (falloDeCarga(q)) {
+      const sinSalida = esSinPermiso(q.error) || esNoEncontrado(q.error)
+      return <ErrorConReintento texto={textoError} onRetry={sinSalida ? undefined : () => q.refetch()} cargando={q.isFetching} />
+    }
+    return q.isFetching ? <Cargando /> : null
+  }
+  const recargaCaida = q.isRefetchError || q.isPaused
   return (
     <>
-      {q.isRefetchError && <ErrorConReintento texto={t('list.staleError')} onRetry={() => q.refetch()} cargando={q.isFetching} />}
+      {recargaCaida && <ErrorConReintento texto={t('list.staleError')} onRetry={() => q.refetch()} cargando={q.isFetching} />}
       {cuantos === 0 ? (
-        !q.isRefetchError && <p className="text-sm text-muted-foreground">{vacio}</p>
+        !recargaCaida && <p className="text-sm text-muted-foreground">{vacio}</p>
       ) : (
         <>
           {children}

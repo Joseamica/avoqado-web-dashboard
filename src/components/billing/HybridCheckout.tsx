@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
+import { AvisoDeCarga, BotonReintentar } from '@/components/AvisoDeCarga'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { FeatureCatalogBrowser } from './FeatureCatalogBrowser'
@@ -24,6 +25,7 @@ import {
 } from '@/lib/hybridIntent'
 import { getConnectionStatus, subscribeToConnection } from '@/api'
 import { useDebounce } from '@/hooks/useDebounce'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { getIntlLocale } from '@/utils/i18n-locale'
 
 export function HybridTermsSummary({ terms, showRenewal = true }: { terms: HybridTerms; showRenewal?: boolean }) {
@@ -176,6 +178,7 @@ export function HybridCheckout({
     retry: false,
     staleTime: 60000,
   })
+  const linkedStatus = (linked.error as { response?: { status?: number } } | null)?.response?.status
   const replacements = useQuery({
     queryKey: ['hybrid-replacements', venueId],
     queryFn: () => hybridBilling.replacements(venueId),
@@ -447,7 +450,13 @@ export function HybridCheckout({
       ) : (
         <>
           <p className="text-muted-foreground">{t('hybrid.intro')}</p>
-          {linked.isError && <p role="status">{t('hybrid.unavailable')}</p>}
+          {/* Un 4xx dice que la campaña ya no está; un 5xx o la red caída no dicen nada de ella: se avisa y se puede reintentar. */}
+          {linked.isError &&
+            (linkedStatus !== undefined && linkedStatus < 500 ? (
+              <p role="status">{t('hybrid.unavailable')}</p>
+            ) : (
+              <AvisoDeCarga query={linked} hayDatos={false} />
+            ))}
           <Input
             aria-label={t('hybrid.search')}
             placeholder={t('hybrid.search')}
@@ -459,17 +468,17 @@ export function HybridCheckout({
               setPage(1)
             }}
           />
-          {offers.isPending ? (
+          {offers.data === undefined && !falloDeCarga(offers) ? (
             <p role="status">{t('catalog.loading')}</p>
-          ) : offers.isError ? (
+          ) : offers.data === undefined ? (
             <div role="alert">
               <p>{t('hybrid.error')}</p>
-              <Button variant="outline" onClick={() => void offers.refetch()}>
-                {t('catalog.retry')}
-              </Button>
+              <BotonReintentar query={offers} />
             </div>
           ) : (
             <>
+              {/* La pausa ya la dice el aviso de sin conexión de arriba. */}
+              {offers.isError && <AvisoDeCarga query={offers} hayDatos />}
               <p className="text-sm text-muted-foreground">{t('hybrid.offersCount', { count: offers.data.total })}</p>
               {!visible.length && <p>{t('hybrid.empty')}</p>}
               <div className="grid gap-4 md:grid-cols-2">

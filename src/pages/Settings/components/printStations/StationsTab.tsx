@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Loader2, PlayCircle, Plus, Printer as PrinterIcon } from 'lucide-react'
+import { AvisoDeCarga, BotonReintentar } from '@/components/AvisoDeCarga'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -26,6 +27,7 @@ import { useAccess } from '@/hooks/use-access'
 import { useToast } from '@/hooks/use-toast'
 import { useTerminology } from '@/hooks/use-terminology'
 import { useTierFeatureAccess } from '@/hooks/use-tier-feature-access'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { StaffRole } from '@/types'
 import {
   createPrintStation,
@@ -56,16 +58,12 @@ export function StationsTab({ venueId }: { venueId: string }) {
 
   // Estaciones + puerta de lanzamiento de la pantalla (servidor, fase 3.1). Toda mutación invalida el prefijo
   // ['printStations', venueId], que también refresca esta clave.
-  const {
-    data: config,
-    isLoading,
-    isError,
-    refetch,
-  } = useQuery({
+  const configQuery = useQuery({
     queryKey: ['printStations', venueId, 'config'],
     queryFn: () => getPrintStationsConfig(venueId),
     enabled: !!venueId,
   })
+  const { data: config } = configQuery
   const stations = config?.stations
   const abiertaAClientes = config?.kitchenDisplayOpenToClients ?? false
   // La estación que se edita se lee VIVA de la lista: si su pantalla cambia desde el formulario, el formulario lo ve.
@@ -103,17 +101,16 @@ export function StationsTab({ venueId }: { venueId: string }) {
         </Button>
       </div>
 
-      {isLoading ? (
+      {config !== undefined && <AvisoDeCarga query={configQuery} hayDatos />}
+      {config === undefined && !falloDeCarga(configQuery) ? (
         <div className="flex items-center justify-center gap-2 py-12 text-muted-foreground">
           <Loader2 className="h-5 w-5 animate-spin" /> {t('loading')}
         </div>
-      ) : isError ? (
+      ) : config === undefined ? (
         <Card className="border-input">
           <CardContent className="space-y-3 py-10 text-center text-sm text-muted-foreground">
             <p>{t('stations.loadError')}</p>
-            <Button variant="outline" onClick={() => refetch()} className="cursor-pointer">
-              {t('stations.retry')}
-            </Button>
+            <BotonReintentar query={configQuery} className="cursor-pointer" />
           </CardContent>
         </Card>
       ) : (stations?.length ?? 0) === 0 ? (

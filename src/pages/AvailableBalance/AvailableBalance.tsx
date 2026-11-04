@@ -367,7 +367,8 @@ function AvailableBalanceContent() {
     )
   }
 
-  if (error) {
+  // Con un saldo en pantalla, un reintento caído no se lo lleva: sigue, con su aviso.
+  if (error && !summary) {
     return (
       <div className="p-6">
         <SummaryQueryBoundary
@@ -456,7 +457,16 @@ function AvailableBalanceContent() {
         </nav>
       </div>
 
-      {fuenteCaida && (
+      {error ? (
+        <SummaryQueryBoundary
+          isError
+          message={error.conReintento ? tCommon('loadFailure.partial') : error.mensaje}
+          retryLabel={tCommon('retry')}
+          onRetry={error.conReintento ? () => setReintento(n => n + 1) : undefined}
+        >
+          {null}
+        </SummaryQueryBoundary>
+      ) : fuenteCaida && (
         <SummaryQueryBoundary
           isError
           message={tCommon(esSinPermiso(fuenteCaida.error) ? 'loadFailure.forbidden' : 'loadFailure.partial')}

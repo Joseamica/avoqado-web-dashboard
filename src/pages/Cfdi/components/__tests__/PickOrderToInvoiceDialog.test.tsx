@@ -154,7 +154,7 @@ describe('PickOrderToInvoiceDialog', () => {
     expect(await screen.findByText(es.pickOrder.error, {}, { timeout: 4000 })).toBeInTheDocument()
     expect(screen.queryByText(es.pickOrder.empty)).not.toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: es.pickOrder.retry }))
+    fireEvent.click(screen.getByRole('button', { name: 'retry' }))
     expect(await screen.findByText('ORD-z')).toBeInTheDocument()
   })
 
