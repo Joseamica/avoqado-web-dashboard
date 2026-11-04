@@ -1,3 +1,4 @@
+import type { EstadoDeCarga } from '@/lib/falloDeCarga'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { CheckboxFilterContent, FilterPill } from '@/components/filters'
@@ -6,6 +7,8 @@ import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 interface OrgTerminalsToolbarProps {
+  /** De donde salen las sucursales del filtro. */
+  venuesQuery?: EstadoDeCarga
   searchTerm: string
   onSearchChange: (value: string) => void
 
@@ -57,6 +60,7 @@ export function OrgTerminalsToolbar({
   onClearAll,
   onRefresh,
   isRefreshing = false,
+  venuesQuery,
 }: OrgTerminalsToolbarProps) {
   const { t } = useTranslation('organization')
   const [isSearchOpen, setIsSearchOpen] = useState(searchTerm.length > 0)
@@ -186,6 +190,7 @@ export function OrgTerminalsToolbar({
           <CheckboxFilterContent
             title={t('terminals.filters.venue')}
             options={venueOptions}
+            fuente={venuesQuery}
             selectedValues={venueFilter}
             onApply={onVenueChange}
             searchable

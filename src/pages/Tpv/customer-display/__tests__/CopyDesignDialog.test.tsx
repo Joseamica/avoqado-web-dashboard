@@ -166,6 +166,7 @@ describe('CopyDesignDialog', () => {
     await act(() => qc.refetchQueries({ queryKey: CLAVE_DE_LA_LISTA }).catch(() => undefined))
     expect(await screen.findByText('copy.listStale')).toBeInTheDocument()
     expect(screen.getByText('copy.empty')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'retry' })).toBeInTheDocument()
   })
   it('🔴 con filas y la recarga en pausa: las filas siguen, con el aviso (Codex r7)', async () => {
     dosPaginas()

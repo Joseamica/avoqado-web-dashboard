@@ -249,7 +249,7 @@ export default function ReviewSummary() {
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Filters Sidebar */}
         <div className="lg:col-span-1">
-          <ReviewFilters filters={filters} onFiltersChange={handleFiltersChange} totalCount={reviews.length} filteredCount={totalCount} />
+          <ReviewFilters filters={filters} onFiltersChange={handleFiltersChange} totalCount={leidas ? reviews.length : undefined} filteredCount={leidas ? totalCount : undefined} />
         </div>
 
         {/* Reviews List */}

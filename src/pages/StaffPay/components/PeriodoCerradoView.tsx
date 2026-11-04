@@ -1,3 +1,5 @@
+import { falloDeCarga } from '@/lib/falloDeCarga'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { AlertTriangle, CheckCircle2, ChevronLeft, ChevronRight, Info, Loader2, Plus, WifiOff } from 'lucide-react'
@@ -56,7 +58,8 @@ export function PeriodoCerradoView({ periodId, fecha, etiqueta, etiquetaAbierto 
   const { formatDate, formatCalendarDate, venueTimezone } = useVenueDateTime()
   const nombreSede = useNombreSede()
   const [offset, setOffset] = useState(0)
-  const { data: crudo, isLoading, isError, error, isPlaceholderData, refetch } = useStaffPayReport({ offset, limit: LIMITE, fecha })
+  const reporteQuery = useStaffPayReport({ offset, limit: LIMITE, fecha })
+  const { data: crudo, isLoading, error, isPlaceholderData, refetch } = reporteQuery
   // 🔴 Codex R1-2: sólo los datos de ESTE periodo; mostrar septiembre y marcar pagado agosto sería pagar el mes equivocado.
   // El hook sólo conserva lo previo dentro del mismo periodo (paginar): mientras llega la página, no se marcan pagos.
   // `estado`: recién cerrado, la caché todavía puede traer el reporte EN VIVO de este mismo periodo (misma llave).
@@ -89,7 +92,7 @@ export function PeriodoCerradoView({ periodId, fecha, etiqueta, etiquetaAbierto 
     [diferencias.data],
   )
 
-  if (isError && !data) {
+  if (!data && falloDeCarga(reporteQuery)) {
     return (
       <Card className="border-input" role="alert">
         <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
@@ -203,6 +206,7 @@ export function PeriodoCerradoView({ periodId, fecha, etiqueta, etiquetaAbierto 
 
   return (
     <div className="space-y-4" data-tour="staffpay-closed-period">
+      <AvisoDeCarga query={reporteQuery} hayDatos />
       <div className="flex flex-wrap items-center gap-2">
         {/* Ancla del foco: a donde vuelve al cerrar un modal cuyo botón ya no existe (QA defecto 12). */}
         <h3 className={`font-semibold ${ANCLA_FOCO}`} tabIndex={-1} data-staffpay-ancla>

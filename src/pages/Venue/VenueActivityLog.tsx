@@ -140,17 +140,19 @@ function VenueActivityLog() {
     placeholderData: previous => previous,
   })
 
-  const { data: availableActions } = useQuery<string[]>({
+  const accionesQuery = useQuery<string[]>({
     queryKey: ['venue-activity-log-actions', venueId],
     queryFn: () => getVenueActivityLogActions(venueId!),
     enabled: !!venueId,
   })
+  const { data: availableActions } = accionesQuery
 
-  const { data: teamData } = useQuery({
+  const equipoQuery = useQuery({
     queryKey: ['venue-activity-log-staff', venueId],
     queryFn: () => teamService.getTeamMembers(venueId!, 1, 100),
     enabled: !!venueId,
   })
+  const { data: teamData } = equipoQuery
 
   const staffOptions = useMemo(
     () =>
@@ -236,6 +238,7 @@ function VenueActivityLog() {
               <SingleSelectFilterContent
                 title={t('activityLog.filters.action')}
                 options={actionOptions}
+                fuente={accionesQuery}
                 selectedValue={actionFilter}
                 onSelect={resetPage(setActionFilter)}
                 searchable
@@ -251,6 +254,7 @@ function VenueActivityLog() {
               <SingleSelectFilterContent
                 title={t('activityLog.filters.staff')}
                 options={staffOptions}
+                fuente={equipoQuery}
                 selectedValue={staffFilter}
                 onSelect={resetPage(setStaffFilter)}
                 searchable

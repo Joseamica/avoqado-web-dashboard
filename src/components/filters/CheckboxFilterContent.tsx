@@ -1,8 +1,11 @@
+import { BotonReintentar } from '@/components/AvisoDeCarga'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
+import { falloDeCarga, type EstadoDeCarga } from '@/lib/falloDeCarga'
 import { cn, includesNormalized } from '@/lib/utils'
 import { Search } from 'lucide-react'
 import { useState, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { FilterPopoverHeader, FilterPopoverFooter } from './FilterPill'
 
 interface CheckboxOption {
@@ -20,7 +23,10 @@ interface CheckboxFilterContentProps {
   searchPlaceholder?: string
   applyLabel?: string
   clearLabel?: string
+  /** Lo que se dice cuando la búsqueda dentro del filtro no encuentra nada. */
   emptyLabel?: string
+  /** La lectura de donde salen las opciones, si no es la de la lista. */
+  fuente?: EstadoDeCarga
 }
 
 /**
@@ -38,7 +44,9 @@ export function CheckboxFilterContent({
   applyLabel = 'Aplicar',
   clearLabel = 'Limpiar',
   emptyLabel = 'Sin resultados',
+  fuente,
 }: CheckboxFilterContentProps) {
+  const { t } = useTranslation('common')
   const [localSelected, setLocalSelected] = useState<string[]>(selectedValues)
   const [searchTerm, setSearchTerm] = useState('')
 
@@ -79,7 +87,13 @@ export function CheckboxFilterContent({
       )}
 
       <div className="max-h-[280px] overflow-y-auto p-2">
-        {filteredOptions.length === 0 ? (
+        {options.length === 0 ? (
+          // Sin opciones no se sabe si no hay o si aún no llegan: no se afirma «Sin resultados».
+          <div className="py-4 text-center text-sm text-muted-foreground">
+            <p>{t(fuente && falloDeCarga(fuente) ? 'loadFailure.empty' : 'loadFailure.noOptions')}</p>
+            {fuente && falloDeCarga(fuente) && <BotonReintentar query={fuente} className="mt-2" />}
+          </div>
+        ) : filteredOptions.length === 0 ? (
           <p className="py-4 text-center text-sm text-muted-foreground">{emptyLabel}</p>
         ) : (
           <div className="space-y-1">

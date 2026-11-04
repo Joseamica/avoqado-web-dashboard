@@ -1060,6 +1060,7 @@ export default function CommandCenter() {
                   <CheckboxFilterContent
                     title={t('commandCenter.activity.filters.venueTitle', { defaultValue: 'Filtrar por tienda' })}
                     options={activityVenueOptions}
+                    fuente={venuesQuery}
                     selectedValues={activityVenueFilter}
                     onApply={setActivityVenueFilter}
                     searchable
@@ -1079,6 +1080,7 @@ export default function CommandCenter() {
                   <CheckboxFilterContent
                     title={t('commandCenter.activity.filters.promoterTitle', { defaultValue: 'Filtrar por promotor' })}
                     options={activityPromoterOptions}
+                    fuente={activityFeedQuery}
                     selectedValues={activityPromoterFilter}
                     onApply={setActivityPromoterFilter}
                     searchable
@@ -1098,6 +1100,7 @@ export default function CommandCenter() {
                   <CheckboxFilterContent
                     title={t('commandCenter.activity.filters.typeTitle', { defaultValue: 'Filtrar por tipo' })}
                     options={activityTypeOptions}
+                    fuente={activityFeedQuery}
                     selectedValues={activityTypeFilter}
                     onApply={setActivityTypeFilter}
                     applyLabel={t('commandCenter.activity.filters.apply', { defaultValue: 'Aplicar' })}

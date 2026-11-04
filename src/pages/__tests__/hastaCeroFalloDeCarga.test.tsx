@@ -118,6 +118,23 @@ vi.mock('recharts', async original => ({
 }))
 
 import { PaymentActivationCard } from '@/components/onboarding/PaymentActivationCard'
+import { FeatureCatalogBrowser } from '@/components/billing/FeatureCatalogBrowser'
+import { CheckboxFilterContent } from '@/components/filters/CheckboxFilterContent'
+import { SingleSelectFilterContent } from '@/components/filters/SingleSelectFilterContent'
+import { GlobalComplementariaDialog } from '@/pages/Cfdi/components/GlobalComplementariaDialog'
+import { GlobalExcluidasDialog } from '@/pages/Cfdi/components/GlobalExcluidasDialog'
+import TeamCommissionTable from '@/pages/Commissions/components/TeamCommissionTable'
+import ProductOptions from '@/pages/Menu/ProductOptions/ProductOptions'
+import CatalogAuditPage from '@/pages/Organization/MasterCatalog/CatalogAuditPage'
+import CatalogItemsPage from '@/pages/Organization/MasterCatalog/CatalogItemsPage'
+import { ExchangeDetailContent } from '@/pages/Payment/components/ExchangeLinksCard'
+import PayLaterAging from '@/pages/Reports/PayLaterAging'
+import { PagoDeClaseCard } from '@/pages/Reservations/components/PagoDeClaseCard'
+import { TokenBudgetSection } from '@/pages/Settings/components/TokenBudgetSection'
+import { PeriodoCerradoView } from '@/pages/StaffPay/components/PeriodoCerradoView'
+import TeamCommissionSection from '@/pages/Team/components/TeamCommissionSection'
+import PromotersAuditPage from '@/pages/playtelecom/PromotersAudit/PromotersAuditPage'
+import { VenueSimCustodyPanel } from '@/pages/playtelecom/Stock/components/VenueSimCustodyPanel'
 import DataTable from '@/components/data-table'
 import MenuOverview from '@/pages/Menu/MenuOverview'
 import OrganizationTeam from '@/pages/Organization/OrganizationTeam'
@@ -1434,5 +1451,316 @@ describe('r7 · Terminales de la organización: reintentar sí vuelve a leer', (
     red.caida = null
     fireEvent.click(await reintentar())
     await waitFor(() => expect(seVe('settings.tpvLoadError')).toBe(false))
+  })
+})
+
+// ─── Codex r8 ───
+describe('r8 · Filtro sin opciones: no afirma «Sin resultados»', () => {
+  const caida = { isError: true, isFetching: false, isPaused: false, error: new Error('caída'), refetch: () => {} }
+  const casilla = { title: 'x', selectedValues: [], onApply: () => {} }
+  const unaSola = { title: 'x', selectedValue: '', onApply: () => {} }
+
+  it.each([
+    ['Casillas', (o: object) => <CheckboxFilterContent {...casilla} options={[]} {...o} />],
+    ['Una opción', (o: object) => <SingleSelectFilterContent {...unaSola} options={[]} {...o} />],
+  ])('%s: sin opciones lo dice sin afirmar nada; con su lectura caída, avisa y deja reintentar', async (_n, filtro) => {
+    pintar(filtro({}))
+    expect(screen.getByText('loadFailure.noOptions')).toBeInTheDocument()
+    expect(seVe('Sin resultados')).toBe(false)
+    cleanup()
+    pintar(filtro({ fuente: caida }))
+    expect(screen.getByText(SIN_DATOS)).toBeInTheDocument()
+    expect(await reintentar()).toBeInTheDocument()
+  })
+
+  it('con opciones, una búsqueda sin coincidencias sigue diciendo «Sin resultados»', async () => {
+    pintar(<CheckboxFilterContent {...casilla} searchable options={[{ value: 'a', label: 'Azul' }]} />)
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'zzz' } })
+    expect(screen.getByText('Sin resultados')).toBeInTheDocument()
+  })
+})
+
+describe('r8 · Reseñas: el conteo del filtro sólo con lo leído', () => {
+  const RESENAS = /venues\/v1\/reviews/
+  const RESENA = { id: 'r1', source: 'AVOQADO', overallRating: 5, customerName: 'Ana Cliente', comment: 'Muy bien', createdAt: new Date().toISOString(), responseText: null }
+  const buscar = (texto: string) => fireEvent.change(screen.getAllByRole('textbox')[0], { target: { value: texto } })
+
+  it('con un filtro puesto y sin leer: nada de «0 / 0»', async () => {
+    red.colgada = RESENAS
+    pintar(<ReviewSummary />)
+    await unaVueltaAlLazo()
+    buscar('muy')
+    expect(seVe('0 / 0')).toBe(false)
+  })
+
+  it('leídas: el conteo sí sale', async () => {
+    pintar(<ReviewSummary />, { rutas: [[RESENAS, { reviews: [RESENA] }]] })
+    await screen.findByText('Ana Cliente')
+    buscar('muy')
+    await screen.findByText('1 / 1')
+  })
+})
+
+describe('r8 · Facturas del proveedor: el paginador sin leer no dice total', () => {
+  it('en camino', async () => {
+    red.colgada = /invoices/
+    pintar(<StandaloneInvoicesSection venueId="v1" />)
+    await unaVueltaAlLazo()
+    expect(seVe('invoices.receipt.page')).toBe(false)
+  })
+})
+
+describe('r8 · Auditoría de promotores: los filtros siguen', () => {
+  const LISTA = /staff\/attendance/
+
+  it('en camino y al reintentar', async () => {
+    red.colgada = LISTA
+    pintar(<PromotersAuditPage />)
+    await unaVueltaAlLazo()
+    expect(seVe('Tienda')).toBe(true)
+    esperando()
+    cleanup()
+    red.colgada = null
+    red.caida = LISTA
+    pintar(<PromotersAuditPage />)
+    await screen.findByText(SIN_DATOS)
+    expect(seVe('Tienda')).toBe(true)
+    red.caida = null
+    red.colgada = LISTA
+    fireEvent.click(await reintentar())
+    await unaVueltaAlLazo()
+    expect(seVe('Tienda')).toBe(true)
+    esperando()
+  })
+})
+
+describe('r8 · Custodia de SIMs', () => {
+  const panel = () => <VenueSimCustodyPanel orgId="o1" venueId="v1" timeZone="America/Mexico_City" />
+  const CUSTODIA = /organizations\/o1/
+
+  it('en camino: el buscador sigue', async () => {
+    red.colgada = CUSTODIA
+    pintar(panel())
+    await unaVueltaAlLazo()
+    expect(screen.getByRole('textbox')).toBeInTheDocument()
+    esperando()
+  })
+
+  it('caída: el aviso deja reintentar', async () => {
+    red.caida = CUSTODIA
+    pintar(panel())
+    await screen.findByText(/No pudimos cargar tus SIMs/)
+    expect(await reintentar()).toBeInTheDocument()
+  })
+})
+
+describe('r8 · Comisiones: lo que decide es haber leído, no estar en cero', () => {
+  const RESUMENES = /\/summaries/
+
+  it('Equipo: leída y vacía, y cae la recarga: el vacío sigue, con aviso', async () => {
+    pintar(<TeamCommissionTable />, { rutas: [[RESUMENES, { data: [], meta: { total: 0 } }]] })
+    await screen.findByText('summary.noSummaries')
+    await recargaCaida(RESUMENES)
+    await screen.findByText(CON_DATOS)
+    expect(screen.getByText('summary.noSummaries')).toBeInTheDocument()
+    expect(screen.queryByText(SIN_DATOS)).toBeNull()
+  })
+
+  it('Una persona: leída y en cero, y cae la recarga: los importes siguen, con aviso', async () => {
+    const PERSONA = /staff\/s1\/commissions/
+    pintar(<TeamCommissionSection staffId="s1" />, { rutas: [[PERSONA, { data: { calculations: [], summaries: [], stats: {}, tierProgress: null } }]] })
+    await screen.findByText('staff.commissions')
+    await recargaCaida(PERSONA)
+    await screen.findByText(CON_DATOS)
+    expect(screen.getByText('staff.commissions')).toBeInTheDocument()
+    expect(screen.queryByText(SIN_DATOS)).toBeNull()
+  })
+})
+
+describe('r8 · Cuentas por cobrar', () => {
+  const CARTERA = /pay-later-aging/
+  const VACIA = { data: { summary: { total_count: 0, total_balance: 0 }, orders: { aging_0_30: [], aging_31_60: [], aging_61_90: [], aging_90_plus: [] } } }
+
+  it('sin leer: «—», no $0 ni «sin cuentas», y el buscador sigue', async () => {
+    red.caida = CARTERA
+    pintar(<PayLaterAging />)
+    await screen.findByText(SIN_DATOS)
+    expect(screen.getAllByText('—').length).toBeGreaterThan(0)
+    expect(seVe('$0')).toBe(false)
+    expect(seVe('payLaterAging.empty.title')).toBe(false)
+    expect(screen.getByPlaceholderText('payLaterAging.searchPlaceholder')).toBeInTheDocument()
+  })
+
+  it('en camino: espera, sin $0 ni «sin cuentas»', async () => {
+    red.colgada = CARTERA
+    pintar(<PayLaterAging />)
+    await unaVueltaAlLazo()
+    esperando()
+    expect(seVe('$0')).toBe(false)
+    expect(seVe('payLaterAging.empty.title')).toBe(false)
+  })
+
+  it('leída y en cero, y cae la recarga: el vacío sigue, con aviso', async () => {
+    pintar(<PayLaterAging />, { rutas: [[CARTERA, VACIA]] })
+    await screen.findByText('payLaterAging.empty.title')
+    await recargaCaida(CARTERA)
+    await screen.findByText(CON_DATOS)
+    expect(screen.getByText('payLaterAging.empty.title')).toBeInTheDocument()
+  })
+})
+
+describe('r8 · Biblioteca de opciones', () => {
+  const BIBLIOTECA = /option/
+  const VACIA = { items: [], total: 0, page: 1, pageSize: 50, totalPages: 0, data: [], meta: { total: 0 } }
+
+  it('sin internet y sin leer: su error, no «sin opciones»', async () => {
+    onlineManager.setOnline(false)
+    pintar(<ProductOptions />)
+    await screen.findByText('biblioteca.error')
+    expect(seVe('biblioteca.vacia')).toBe(false)
+  })
+
+  it('leída y vacía, y cae la recarga: el vacío sigue, con aviso', async () => {
+    pintar(<ProductOptions />, { rutas: [[BIBLIOTECA, { data: VACIA, ...VACIA }]] })
+    await screen.findByText('biblioteca.vacia')
+    await recargaCaida(BIBLIOTECA)
+    await screen.findByText(CON_DATOS)
+    expect(screen.getByText('biblioteca.vacia')).toBeInTheDocument()
+  })
+})
+
+describe('r8 · Catálogo maestro', () => {
+  const ARTICULOS = /items/
+  const ESTADO = () => document.querySelector('#catalog-status')
+  const VACIO = 'No hay artículos con este estado.'
+
+  it('Artículos en camino: el filtro de estado sigue, sin «no hay artículos»', async () => {
+    red.colgada = ARTICULOS
+    pintar(<CatalogItemsPage />, { params: { orgId: 'o1' } })
+    await unaVueltaAlLazo()
+    expect(ESTADO()).not.toBeNull()
+    expect(seVe(VACIO)).toBe(false)
+    esperando()
+  })
+
+  it('Artículos caídos: aviso con reintento, y el filtro sigue', async () => {
+    red.caida = ARTICULOS
+    pintar(<CatalogItemsPage />, { params: { orgId: 'o1' } })
+    await screen.findByText('No se pudieron cargar los artículos.')
+    expect(ESTADO()).not.toBeNull()
+    expect(await reintentar()).toBeInTheDocument()
+  })
+
+  it('Artículos sin internet: no se queda en espera eterna', async () => {
+    onlineManager.setOnline(false)
+    pintar(<CatalogItemsPage />, { params: { orgId: 'o1' } })
+    await screen.findByText('No se pudieron cargar los artículos.')
+    expect(ESTADO()).not.toBeNull()
+  })
+
+  it('Artículos leídos y vacíos, y cae la recarga: el vacío sigue, con aviso', async () => {
+    pintar(<CatalogItemsPage />, { params: { orgId: 'o1' }, rutas: [[ARTICULOS, { success: true, data: { items: [], nextCursor: null } }]] })
+    await screen.findByText(VACIO)
+    await recargaCaida(ARTICULOS)
+    await screen.findByText(CON_DATOS)
+    expect(screen.getByText(VACIO)).toBeInTheDocument()
+  })
+
+  const BITACORA = /audit/
+  const SIN_EVENTOS = 'No hay eventos para estos filtros.'
+
+  it('Bitácora en camino: los filtros siguen, sin «sin eventos» ni «página 1 de 1»', async () => {
+    red.colgada = BITACORA
+    pintar(<CatalogAuditPage />, { params: { orgId: 'o1' } })
+    await unaVueltaAlLazo()
+    expect(screen.getByRole('textbox')).toBeInTheDocument()
+    expect(seVe(SIN_EVENTOS)).toBe(false)
+    expect(seVe(/Página \d+ de/)).toBe(false)
+    esperando()
+  })
+
+  it('Bitácora caída: se dice y al reintentar llega', async () => {
+    red.caida = BITACORA
+    pintar(<CatalogAuditPage />, { params: { orgId: 'o1' }, rutas: [[BITACORA, { success: true, data: { logs: [], pagination: { page: 1, pageSize: 25, total: 0, totalPages: 1 } } }]] })
+    await screen.findByText('No se pudo cargar la bitácora.')
+    expect(seVe(SIN_EVENTOS)).toBe(false)
+    red.caida = null
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
+    await screen.findByText(SIN_EVENTOS)
+    expect(screen.queryByText('No se pudo cargar la bitácora.')).toBeNull()
+  })
+})
+
+describe('r8 · Avisos que ahora dejan reintentar', () => {
+  it('Presupuesto de tokens: caído, deja reintentar', async () => {
+    red.caida = /tokens\/status/
+    pintar(<TokenBudgetSection venueId="v1" />)
+    await screen.findByText('tokenBudget.loadError')
+    expect(await reintentar()).toBeInTheDocument()
+  })
+
+  it('Pago de la clase: caído o sin internet, avisa y deja reintentar', async () => {
+    const rutas: Ruta[] = [[/staff-pay\/access|staff-pay$/, { enabled: true, activado: true }]]
+    red.caida = /class/
+    pintar(<PagoDeClaseCard sessionId="c1" />, { rutas })
+    await screen.findByText('classCard.loadError')
+    expect(await reintentar()).toBeInTheDocument()
+  })
+
+  it('Ventas excluidas de la global: sin internet, avisa y deja reintentar; no se queda «cargando»', async () => {
+    onlineManager.setOnline(false)
+    pintar(<GlobalExcluidasDialog emisorId="e1" principalId="g1" open onOpenChange={() => {}} />)
+    await screen.findByText('globalInvoice.excluded.loadError')
+    expect(seVe('globalInvoice.excluded.loading')).toBe(false)
+    expect(await reintentar()).toBeInTheDocument()
+  })
+
+  it('Complementaria: sin internet, avisa y deja reintentar', async () => {
+    onlineManager.setOnline(false)
+    pintar(<GlobalComplementariaDialog emisorId="e1" principalId="g1" onOpenChange={() => {}} />)
+    await screen.findByText('globalInvoice.complementaryDialog.loadError')
+    expect(await reintentar()).toBeInTheDocument()
+  })
+})
+
+describe('r8 · Lo que el error reemplazaba', () => {
+  it('Detalle del Cambio: un 404 dice que no existe, sin reintentar', async () => {
+    red.caida = /exchanges\/x1/
+    red.estatus = 404
+    pintar(<ExchangeDetailContent exchangeId="x1" />)
+    await screen.findByText(NO_EXISTE)
+    expect(screen.queryByRole('button', { name: 'retry' })).toBeNull()
+  })
+
+  it('Detalle del Cambio: sin internet avisa, no se queda «cargando»', async () => {
+    onlineManager.setOnline(false)
+    pintar(<ExchangeDetailContent exchangeId="x1" />)
+    await screen.findByText('exchange.loadError')
+    expect(seVe('exchange.loading')).toBe(false)
+  })
+
+  it('Catálogo de funciones: sin internet avisa; leído, la recarga caída no lo borra', async () => {
+    const abrir = async () => fireEvent.click(await screen.findByRole('button', { name: /catalog\.title/ }))
+    onlineManager.setOnline(false)
+    pintar(<FeatureCatalogBrowser />)
+    await abrir()
+    await screen.findByText('catalog.error')
+    expect(seVe('catalog.loading')).toBe(false)
+    cleanup()
+    onlineManager.setOnline(true)
+    const CATALOGO = /catalog/
+    pintar(<FeatureCatalogBrowser />, { rutas: [[CATALOGO, { data: { items: [], total: 0, page: 1, pageSize: 24, totalPages: 0 } }]] })
+    await abrir()
+    await screen.findByText('catalog.total')
+    await recargaCaida(CATALOGO)
+    await screen.findByText(CON_DATOS)
+    expect(screen.getByText('catalog.total')).toBeInTheDocument()
+  })
+
+  it('Periodo cerrado: sin internet avisa y deja reintentar, sin espera eterna', async () => {
+    onlineManager.setOnline(false)
+    pintar(<PeriodoCerradoView periodId="p1" fecha="2026-09-01" etiqueta="septiembre" etiquetaAbierto="octubre" />)
+    await screen.findByText('period.error')
+    expect(screen.getByRole('button', { name: 'period.retry' })).toBeInTheDocument()
   })
 })

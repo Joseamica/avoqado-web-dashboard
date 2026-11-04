@@ -59,6 +59,7 @@
   "na": "N/A",
   "unknown": "Desconocido",
   "loadFailure": {
+    "noOptions": "Sin opciones por ahora.",
     "backToFirstPage": "Volver a la primera página",
     "empty": "No pudimos cargar esta información. Inténtalo de nuevo.",
     "partial": "No pudimos actualizar esta lista: puede estar incompleta o desactualizada.",

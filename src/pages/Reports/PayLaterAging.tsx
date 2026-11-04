@@ -436,15 +436,9 @@ export default function PayLaterAging() {
     [formatDate, navigate, t, daysLabel, can]
   )
 
-  if (falloDeCarga(listQuery) && !summary?.total_count) {
-    return (
-      <div className="p-4">
-        <AvisoDeCarga query={listQuery} hayDatos={false} />
-      </div>
-    )
-  }
-
-  const isEmpty = !isLoading && (summary?.total_count || 0) === 0
+  const sinDatos = data === undefined
+  const sinLeer = sinDatos && falloDeCarga(listQuery)
+  const isEmpty = !sinDatos && (summary?.total_count || 0) === 0
 
   return (
     <div className="mx-auto max-w-7xl p-4 sm:p-6 space-y-6">
@@ -468,14 +462,14 @@ export default function PayLaterAging() {
             <div>
               <p className="text-sm font-medium text-muted-foreground">{t('payLaterAging.totalLabel')}</p>
               <div className="mt-1 flex items-baseline gap-2.5">
-                {isLoading ? (
+                {sinDatos && !sinLeer ? (
                   <div className="h-9 w-44 animate-pulse rounded-md bg-muted" />
                 ) : (
                   <span className="text-4xl font-bold tracking-tight tabular-nums text-foreground">
-                    {Currency(totalBalance)}
+                    {sinLeer ? '—' : Currency(totalBalance)}
                   </span>
                 )}
-                <span className="text-sm text-muted-foreground">{ordersLabel(summary?.total_count || 0)}</span>
+                {!sinDatos && <span className="text-sm text-muted-foreground">{ordersLabel(summary?.total_count || 0)}</span>}
               </div>
             </div>
 
@@ -493,7 +487,7 @@ export default function PayLaterAging() {
           </div>
 
           {/* Proportional aging bar */}
-          {isLoading ? (
+          {sinDatos && !sinLeer ? (
             <div className="h-3 w-full animate-pulse rounded-full bg-muted" />
           ) : totalBalance > 0 ? (
             <div className="flex h-3 w-full gap-0.5 overflow-hidden rounded-full">
@@ -544,15 +538,15 @@ export default function PayLaterAging() {
                     </span>
                     {isSelected && <X className="h-3.5 w-3.5 text-muted-foreground" />}
                   </div>
-                  {isLoading ? (
+                  {sinDatos && !sinLeer ? (
                     <div className="mt-2 h-7 w-20 animate-pulse rounded bg-muted" />
                   ) : (
                     <span className={cn('mt-1.5 text-2xl font-bold tabular-nums', c.text)}>
-                      {Currency(b.total)}
+                      {sinLeer ? '—' : Currency(b.total)}
                     </span>
                   )}
                   <span className="mt-0.5 text-xs text-muted-foreground">
-                    {b.caption} · {ordersLabel(b.count)}
+                    {b.caption}{!sinDatos && ` · ${ordersLabel(b.count)}`}
                   </span>
                 </button>
               )
@@ -565,6 +559,7 @@ export default function PayLaterAging() {
       {isEmpty ? (
         <Card className="border-input">
           <CardContent className="flex flex-col items-center justify-center gap-3 py-16 text-center">
+            <AvisoDeCarga query={listQuery} hayDatos />
             <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500/10">
               <PartyPopper className="h-7 w-7 text-emerald-600 dark:text-emerald-400" />
             </div>

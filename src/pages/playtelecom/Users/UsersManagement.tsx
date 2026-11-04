@@ -627,6 +627,7 @@ export function UsersManagement() {
                 <CheckboxFilterContent
                   title="Filtrar por Tienda"
                   options={storesOptions}
+                  fuente={listQuery}
                   selectedValues={storesFilter}
                   searchable={storesOptions.length > 5}
                   onApply={setStoresFilter}

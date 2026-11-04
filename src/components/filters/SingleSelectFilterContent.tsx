@@ -1,3 +1,6 @@
+import { BotonReintentar } from '@/components/AvisoDeCarga'
+import { falloDeCarga, type EstadoDeCarga } from '@/lib/falloDeCarga'
+import { useTranslation } from 'react-i18next'
 import { Input } from '@/components/ui/input'
 import { cn, includesNormalized } from '@/lib/utils'
 import { Check, Search } from 'lucide-react'
@@ -17,7 +20,10 @@ interface SingleSelectFilterContentProps {
   onClose?: () => void
   searchable?: boolean
   searchPlaceholder?: string
+  /** Lo que se dice cuando la búsqueda dentro del filtro no encuentra nada. */
   emptyLabel?: string
+  /** La lectura de donde salen las opciones, si no es la de la lista. */
+  fuente?: EstadoDeCarga
 }
 
 /**
@@ -39,7 +45,9 @@ export function SingleSelectFilterContent({
   searchable = false,
   searchPlaceholder = 'Buscar...',
   emptyLabel = 'Sin resultados',
+  fuente,
 }: SingleSelectFilterContentProps) {
+  const { t } = useTranslation('common')
   const [searchTerm, setSearchTerm] = useState('')
 
   const filteredOptions = useMemo(() => {
@@ -71,7 +79,13 @@ export function SingleSelectFilterContent({
       )}
 
       <div className="max-h-[280px] overflow-y-auto p-2">
-        {filteredOptions.length === 0 ? (
+        {options.length === 0 ? (
+          // Sin opciones no se sabe si no hay o si aún no llegan: no se afirma «Sin resultados».
+          <div className="py-4 text-center text-sm text-muted-foreground">
+            <p>{t(fuente && falloDeCarga(fuente) ? 'loadFailure.empty' : 'loadFailure.noOptions')}</p>
+            {fuente && falloDeCarga(fuente) && <BotonReintentar query={fuente} className="mt-2" />}
+          </div>
+        ) : filteredOptions.length === 0 ? (
           <p className="py-4 text-center text-sm text-muted-foreground">{emptyLabel}</p>
         ) : (
           <div className="space-y-1">

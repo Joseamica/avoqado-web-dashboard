@@ -15,7 +15,7 @@
  */
 import { useDeferredValue, useMemo, useState } from 'react'
 import { AlertTriangle, ArrowRight, Loader2, Package, Search, Users, X } from 'lucide-react'
-import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { AvisoDeCarga, BotonReintentar } from '@/components/AvisoDeCarga'
 import { falloDeCarga } from '@/lib/falloDeCarga'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -165,9 +165,12 @@ export function VenueSimCustodyPanel({ orgId, venueId, dateRange, timeZone }: Pr
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-24 text-muted-foreground">
-        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-        Cargando custodia…
+      <div className="space-y-4">
+        <div className="flex items-center justify-center py-24 text-muted-foreground">
+          <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+          Cargando custodia…
+        </div>
+        {buscador}
       </div>
     )
   }
@@ -177,7 +180,8 @@ export function VenueSimCustodyPanel({ orgId, venueId, dateRange, timeZone }: Pr
     return (
       <div className="space-y-4">
         <GlassCard className="p-6">
-          <p className="text-sm text-red-600">No pudimos cargar tus SIMs. Intenta recargar.</p>
+          <p className="text-sm text-red-600">No pudimos cargar tus SIMs.</p>
+          <BotonReintentar query={custodyQuery} className="mt-3" />
         </GlassCard>
         {buscador}
       </div>

@@ -3,7 +3,7 @@
  * `t` pega los valores con «:» (`fuentes.productos:3`); `GroupExistingDialog` se simula (tiene su prueba). vitest corre con mockReset:
  * las respuestas van en beforeEach o dentro del `it`.
  */
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { onlineManager, QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -188,6 +188,17 @@ describe('GroupFromSourcesDialog — Sugerencias', () => {
     expect(await screen.findByText('fuentes.cargando')).toBeInTheDocument()
     expect(screen.queryByText('fuentes.vacio')).not.toBeInTheDocument()
     expect(screen.queryByText('fuentes.error')).not.toBeInTheDocument()
+  })
+
+  it('sin internet y sin leer: avisa con reintento, no dice que no hay sugerencias (Codex r8)', async () => {
+    onlineManager.setOnline(false)
+    try {
+      pintar()
+      expect(await screen.findByText('fuentes.error')).toBeInTheDocument()
+      expect(screen.queryByText('fuentes.vacio')).not.toBeInTheDocument()
+    } finally {
+      onlineManager.setOnline(true)
+    }
   })
 
   it('vacío: dice cómo seguir a mano', async () => {

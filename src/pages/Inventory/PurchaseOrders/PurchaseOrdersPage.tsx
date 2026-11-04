@@ -125,11 +125,12 @@ export default function PurchaseOrdersPage() {
   const { data: purchaseOrders, isLoading } = listQuery
 
   // Fetch suppliers for filter
-  const { data: suppliers } = useQuery({
+  const suppliersQuery = useQuery({
     queryKey: ['suppliers', venue?.id],
     queryFn: () => supplierService.getSuppliers(venue!.id),
     enabled: !!venue,
   })
+  const { data: suppliers } = suppliersQuery
 
   // Apply filters in frontend
   const filteredPurchaseOrders = useMemo(() => {
@@ -781,6 +782,7 @@ export default function PurchaseOrdersPage() {
             <CheckboxFilterContent
               title={t('filters.supplier')}
               options={supplierOptions}
+              fuente={suppliersQuery}
               selectedValues={selectedSuppliers}
               onApply={setSelectedSuppliers}
             />

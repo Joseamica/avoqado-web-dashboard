@@ -123,7 +123,7 @@ export function StandaloneInvoicesSection({ venueId }: { venueId: string }) {
           </ul>
         )}
         <div className="flex justify-between items-center gap-2 text-sm">
-          <span>{t('invoices.receipt.page', { page, pages: Math.max(1, data?.totalPages ?? 1), total: data?.total ?? 0 })}</span>
+          <span>{data && t('invoices.receipt.page', { page, pages: Math.max(1, data.totalPages), total: data.total })}</span>
           <div className="flex gap-2"><Button variant="outline" disabled={page === 1 || isFetching} onClick={() => setPage(p => p - 1)}>{t('invoices.receipt.previous')}</Button>
             <Button variant="outline" disabled={!data || page >= data.totalPages || isFetching} onClick={() => setPage(p => p + 1)}>{t('invoices.receipt.next')}</Button></div>
         </div>

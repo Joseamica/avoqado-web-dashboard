@@ -1,3 +1,4 @@
+import { Skeleton } from '@/components/ui/skeleton'
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -21,7 +22,7 @@ function actionLabel(action: string): string {
 export default function CatalogAuditPage() {
   const { orgId = '' } = useParams<{ orgId: string }>()
   const { t } = useTranslation('organization')
-  const [data, setData] = useState<CatalogAuditData>({ logs: [], pagination: { page: 1, pageSize: 25, total: 0, totalPages: 1 } })
+  const [data, setData] = useState<CatalogAuditData | null>(null)
   const [actions, setActions] = useState<string[]>([])
   const [action, setAction] = useState('')
   const [search, setSearch] = useState('')
@@ -97,10 +98,16 @@ export default function CatalogAuditPage() {
       </Card>
       <Card>
         <CardContent className="pt-6">
-          {error ? (
-            <p role="alert" className="text-destructive">
-              {t('masterCatalog.audit.loadError', { defaultValue: 'No se pudo cargar la bitácora.' })}
-            </p>
+          {error && (
+            <div role="alert" className="mb-4 flex flex-wrap items-center justify-between gap-2 text-destructive">
+              <p>{t('masterCatalog.audit.loadError', { defaultValue: 'No se pudo cargar la bitácora.' })}</p>
+              <Button variant="outline" size="sm" onClick={() => void load(data?.pagination.page ?? 1)}>
+                {t('common:retry', { defaultValue: 'Reintentar' })}
+              </Button>
+            </div>
+          )}
+          {data === null ? (
+            !error && <Skeleton className="h-72 w-full" />
           ) : (
             <Table aria-label={t('masterCatalog.audit.tableLabel', { defaultValue: 'Bitácora del catálogo maestro' })}>
               <TableHeader>
@@ -139,34 +146,36 @@ export default function CatalogAuditPage() {
               </TableBody>
             </Table>
           )}
-          <nav
-            className="mt-4 grid gap-3 sm:grid-cols-[auto_1fr_auto] sm:items-center"
-            aria-label={t('masterCatalog.audit.pagination', { defaultValue: 'Paginación de la bitácora' })}
-          >
-            <Button
-              className="min-h-11 w-full sm:min-h-9 sm:w-auto"
-              variant="outline"
-              onClick={() => void load(data.pagination.page - 1)}
-              disabled={data.pagination.page <= 1}
+          {data && (
+            <nav
+              className="mt-4 grid gap-3 sm:grid-cols-[auto_1fr_auto] sm:items-center"
+              aria-label={t('masterCatalog.audit.pagination', { defaultValue: 'Paginación de la bitácora' })}
             >
-              {t('masterCatalog.audit.previous', { defaultValue: 'Página anterior' })}
-            </Button>
-            <span className="-order-1 text-center text-sm text-muted-foreground sm:order-none">
-              {t('masterCatalog.audit.page', {
-                defaultValue: 'Página {{page}} de {{totalPages}}',
-                page: data.pagination.page,
-                totalPages: data.pagination.totalPages,
-              })}
-            </span>
-            <Button
-              variant="outline"
-              className="min-h-11 w-full sm:min-h-9 sm:w-auto"
-              onClick={() => void load(data.pagination.page + 1)}
-              disabled={data.pagination.page >= data.pagination.totalPages}
-            >
-              {t('masterCatalog.audit.next', { defaultValue: 'Siguiente página' })}
-            </Button>
-          </nav>
+              <Button
+                className="min-h-11 w-full sm:min-h-9 sm:w-auto"
+                variant="outline"
+                onClick={() => void load(data.pagination.page - 1)}
+                disabled={data.pagination.page <= 1}
+              >
+                {t('masterCatalog.audit.previous', { defaultValue: 'Página anterior' })}
+              </Button>
+              <span className="-order-1 text-center text-sm text-muted-foreground sm:order-none">
+                {t('masterCatalog.audit.page', {
+                  defaultValue: 'Página {{page}} de {{totalPages}}',
+                  page: data.pagination.page,
+                  totalPages: data.pagination.totalPages,
+                })}
+              </span>
+              <Button
+                variant="outline"
+                className="min-h-11 w-full sm:min-h-9 sm:w-auto"
+                onClick={() => void load(data.pagination.page + 1)}
+                disabled={data.pagination.page >= data.pagination.totalPages}
+              >
+                {t('masterCatalog.audit.next', { defaultValue: 'Siguiente página' })}
+              </Button>
+            </nav>
+          )}
         </CardContent>
       </Card>
     </div>

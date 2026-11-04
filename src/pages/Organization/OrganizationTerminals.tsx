@@ -144,11 +144,12 @@ export default function OrganizationTerminals() {
   })
   const { data, isLoading, isFetching, refetch } = listQuery
 
-  const { data: venues } = useQuery({
+  const venuesQuery = useQuery({
     queryKey: ['organization', 'venues', orgId],
     queryFn: () => getOrganizationVenues(orgId!),
     enabled: !!orgId,
   })
+  const { data: venues } = venuesQuery
 
   const invalidateTerminals = () => queryClient.invalidateQueries({ queryKey: ['org-terminals'] })
 
@@ -584,6 +585,7 @@ export default function OrganizationTerminals() {
               typeFilter={typeFilter}
               onTypeChange={setTypeValues}
               venueOptions={(venues ?? []).map(v => ({ value: v.id, label: v.name }))}
+              venuesQuery={venuesQuery}
               venueFilter={venueFilter}
               onVenueChange={setVenueValues}
               versionOptions={VERSION_OPTIONS.map(v => ({

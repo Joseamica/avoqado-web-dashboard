@@ -923,10 +923,11 @@ const StaffManagement: React.FC = () => {
   const [detailStaffId, setDetailStaffId] = useState<string | null>(null)
   const [isDetailOpen, setIsDetailOpen] = useState(false)
 
-  const { data: orgs = [] } = useQuery({
+  const orgsQuery = useQuery({
     queryKey: ['superadmin-organizations-list'],
     queryFn: organizationAPI.getOrganizationsList,
   })
+  const { data: orgs = [] } = orgsQuery
 
   const orgOptions = useMemo(
     () => orgs.map(o => ({ value: o.id, label: o.name })),
@@ -1182,6 +1183,7 @@ const StaffManagement: React.FC = () => {
           <CheckboxFilterContent
             title="Organización"
             options={orgOptions}
+            fuente={orgsQuery}
             selectedValues={orgFilter}
             onApply={v => { setOrgFilter(v); setPage(1) }}
             searchable

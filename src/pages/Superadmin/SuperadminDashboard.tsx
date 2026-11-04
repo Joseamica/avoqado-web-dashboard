@@ -1,3 +1,5 @@
+import { falloDeCarga } from '@/lib/falloDeCarga'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import React from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -67,7 +69,8 @@ const DashboardSkeleton = () => (
 
 const SuperadminDashboard: React.FC = () => {
   const { t } = useTranslation('superadmin')
-  const { data: dashboardData, isLoading, isError, error, refetch, isFetching } = useSuperadminDashboard()
+  const dashboardQuery = useSuperadminDashboard()
+  const { data: dashboardData, isLoading, error, refetch, isFetching } = dashboardQuery
 
   const refreshAllData = useRefreshSuperadminData()
 
@@ -93,7 +96,7 @@ const SuperadminDashboard: React.FC = () => {
     return <DashboardSkeleton />
   }
 
-  if (isError) {
+  if (dashboardData === undefined && falloDeCarga(dashboardQuery)) {
     return <DashboardError error={error} refetch={refetch} />
   }
 
@@ -105,6 +108,7 @@ const SuperadminDashboard: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      <AvisoDeCarga query={dashboardQuery} hayDatos />
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>

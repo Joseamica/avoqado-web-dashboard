@@ -293,13 +293,14 @@ export default function Orders() {
 
   // Opciones de las píldoras de filtro: valores DISTINTOS del venue, calculados en el servidor
   // (antes: las 500 órdenes más recientes del listado, con las que se deducían aquí).
-  const { data: filterOptionsData } = useQuery({
+  const filterOptionsQuery = useQuery({
     queryKey: ['orders-filter-options', venueId],
     queryFn: () => orderService.getOrderFilterOptions(venueId),
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
     retry: 1,
     refetchOnWindowFocus: false,
   })
+  const { data: filterOptionsData } = filterOptionsQuery
 
   // Resumen para las pestañas y las tarjetas (2026-09-01): el servidor agrega por estado con
   // TODOS los filtros — los del listado y los de monto (total/propina) que antes se aplicaban
@@ -1171,6 +1172,7 @@ export default function Orders() {
                 onClear={() => setTypeFilter([])}
               >
                 <CheckboxFilterContent
+                  fuente={filterOptionsQuery}
                   title={`Filtrar por: ${t('columns.type').toLowerCase()}`}
                   options={typeOptions.map(type => ({
                     value: type,
@@ -1195,6 +1197,7 @@ export default function Orders() {
                 onClear={() => setTableFilter([])}
               >
                 <CheckboxFilterContent
+                  fuente={filterOptionsQuery}
                   title={`Filtrar por: ${t('columns.table').toLowerCase()}`}
                   options={tables.map((tb: any) => ({
                     value: tb.id,
@@ -1221,6 +1224,7 @@ export default function Orders() {
                 onClear={() => setWaiterFilter([])}
               >
                 <CheckboxFilterContent
+                  fuente={filterOptionsQuery}
                   title={`Filtrar por: ${t('columns.waiter').toLowerCase()}`}
                   options={waiterOptions.map((w: any) => ({
                     value: w.id,
@@ -1244,6 +1248,7 @@ export default function Orders() {
                 onClear={() => setStatusFilter([])}
               >
                 <CheckboxFilterContent
+                  fuente={filterOptionsQuery}
                   title={`Filtrar por: ${t('columns.status').toLowerCase()}`}
                   options={statuses.map(s => ({ value: s, label: t(`statuses.${s}`, { defaultValue: s }) }))}
                   selectedValues={statusFilter}

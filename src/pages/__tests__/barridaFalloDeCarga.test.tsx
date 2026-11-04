@@ -334,7 +334,7 @@ const casos: Caso[] = [
     rutas: [[/stock-control\/custody/, { data: CUSTODIA }]],
     miente: ['Aún no tienes SIMs asignados. Pide al Admin que te asigne un lote.', 'Total'],
     sigue: ['En almacén'],
-    aviso: 'No pudimos cargar tus SIMs. Intenta recargar.',
+    aviso: 'No pudimos cargar tus SIMs.',
   },
   {
     nombre: 'Inventario serializado',

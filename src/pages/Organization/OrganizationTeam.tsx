@@ -601,6 +601,7 @@ const OrganizationTeam: React.FC = () => {
                 <CheckboxFilterContent
                   title={t('organization:team.filterByRole', { defaultValue: 'Filtrar por Rol' })}
                   options={roleOptions}
+                  fuente={listQuery}
                   selectedValues={roleFilter}
                   onApply={setRoleFilter}
                 />

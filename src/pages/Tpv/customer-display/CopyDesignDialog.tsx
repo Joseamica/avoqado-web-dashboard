@@ -1,3 +1,4 @@
+import { AvisoDeCarga, BotonReintentar } from '@/components/AvisoDeCarga'
 import * as CheckboxPrimitive from '@radix-ui/react-checkbox'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { AlertCircle, AlertTriangle, Check, Loader2 } from 'lucide-react'
@@ -403,9 +404,10 @@ export function CopyDesignDialog({ onClose, venueId, source, tokenVigente, entit
           )}
           {/* Una relectura o «Cargar más» que falla con filas ya cargadas no borra la lista (Codex #3): se dice aparte. */}
           {falloDeCarga(destinos) && paginas !== undefined && (
-            <p role="alert" className="text-xs text-destructive">
-              {t('copy.listStale')}
-            </p>
+            <div role="alert" className="flex flex-wrap items-center gap-2 text-xs text-destructive">
+              <span>{t('copy.listStale')}</span>
+              <BotonReintentar query={destinos} />
+            </div>
           )}
           {lleno && <p className="text-xs text-muted-foreground">{t('copy.limit', { max: MAX_DESTINOS })}</p>}
         </div>

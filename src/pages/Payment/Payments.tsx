@@ -341,13 +341,14 @@ export default function Payments() {
 
   // Opciones de las píldoras de filtro: valores DISTINTOS del venue, calculados en el servidor
   // (antes: las 500 filas más recientes del listado, con las que se deducían aquí).
-  const { data: filterOptionsData } = useQuery({
+  const filterOptionsQuery = useQuery({
     queryKey: ['payments-filter-options', venueId],
     queryFn: () => getPaymentFilterOptions(venueId),
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
     retry: 1,
     refetchOnWindowFocus: false,
   })
+  const { data: filterOptionsData } = filterOptionsQuery
 
   // Resumen para las pestañas y las tarjetas (2026-09-01): el servidor agrega por estado×tipo
   // con TODOS los filtros — los del listado (fechas, cuentas, métodos, orígenes, personal,
@@ -1249,6 +1250,7 @@ export default function Payments() {
                   onClear={() => setMerchantAccountFilter([])}
                 >
                   <CheckboxFilterContent
+                    fuente={filterOptionsQuery}
                     title={`Filtrar por: ${t('columns.merchantAccount').toLowerCase()}`}
                     options={merchantAccounts.map(account => ({
                       value: account.id,
@@ -1272,6 +1274,7 @@ export default function Payments() {
                   onClear={() => setMethodFilter([])}
                 >
                   <CheckboxFilterContent
+                    fuente={filterOptionsQuery}
                     title={`Filtrar por: ${t('columns.method').toLowerCase()}`}
                     options={methods.map((method: string) => ({ value: method, label: etiquetaDeMetodo(method, t) }))}
                     selectedValues={methodFilter}
@@ -1290,6 +1293,7 @@ export default function Payments() {
                   onClear={() => setCardBrandFilter([])}
                 >
                   <CheckboxFilterContent
+                    fuente={filterOptionsQuery}
                     title={`Filtrar por: ${t('columns.cardBrand', { defaultValue: 'Marca' }).toLowerCase()}`}
                     options={cardBrands.map((brand: string) => ({ value: brand, label: formatCardBrandLabel(brand) }))}
                     selectedValues={cardBrandFilter}
@@ -1313,6 +1317,7 @@ export default function Payments() {
                   onClear={() => setSourceFilter([])}
                 >
                   <CheckboxFilterContent
+                    fuente={filterOptionsQuery}
                     title={`Filtrar por: ${t('columns.source').toLowerCase()}`}
                     options={sources.map((source: string) => ({
                       value: source,
@@ -1334,6 +1339,7 @@ export default function Payments() {
                   onClear={() => setInternationalFilter([])}
                 >
                   <CheckboxFilterContent
+                    fuente={filterOptionsQuery}
                     title={`Filtrar por: ${t('columns.international', { defaultValue: 'Internacional' }).toLowerCase()}`}
                     options={[
                       { value: 'yes', label: t('international.yes', { defaultValue: 'Sí' }) },
@@ -1358,6 +1364,7 @@ export default function Payments() {
                   onClear={() => setWaiterFilter([])}
                 >
                   <CheckboxFilterContent
+                    fuente={filterOptionsQuery}
                     title={`Filtrar por: ${t('columns.waiter').toLowerCase()}`}
                     options={waiters.map((waiter: any) => ({
                       value: waiter.id,

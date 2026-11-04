@@ -1,3 +1,5 @@
+import { falloDeCarga } from '@/lib/falloDeCarga'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { useMutation } from '@tanstack/react-query'
 import { AlertTriangle, ChevronDown, Loader2 } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type ReactNode } from 'react'
@@ -199,7 +201,7 @@ function PanelDeSugerencias(p: { venueId: string; onRevisar: (s: GroupSuggestion
         {t('fuentes.cargando')}
       </p>
     )
-  if (q.isError && items.length === 0)
+  if (q.data === undefined && falloDeCarga(q))
     return (
       <div role="alert" className="space-y-2 rounded-xl border border-input bg-card p-4 text-sm">
         <p className="font-medium text-destructive">{t('fuentes.error')}</p>
@@ -209,7 +211,13 @@ function PanelDeSugerencias(p: { venueId: string; onRevisar: (s: GroupSuggestion
         </Button>
       </div>
     )
-  if (items.length === 0) return <p className="text-sm text-muted-foreground">{t('fuentes.vacio')}</p>
+  if (items.length === 0)
+    return (
+      <>
+        <AvisoDeCarga query={q} hayDatos />
+        <p className="text-sm text-muted-foreground">{t('fuentes.vacio')}</p>
+      </>
+    )
 
   return (
     <div className="space-y-3">
@@ -235,6 +243,7 @@ function PanelDeSugerencias(p: { venueId: string; onRevisar: (s: GroupSuggestion
         ))}
       </ul>
       {q.isFetchNextPageError && <p role="alert" className="text-sm text-destructive">{t('fuentes.errorMas')}</p>}
+      {!q.isFetchNextPageError && <AvisoDeCarga query={q} hayDatos />}
       {q.hasNextPage && (
         <Button
           variant="outline"
@@ -477,7 +486,7 @@ function PanelDeShopify(p: { venueId: string; activa: boolean; onRevisar: (x: Sh
         {t('shopify.cargando')}
       </p>
     )
-  else if (q.isError && items.length === 0)
+  else if (q.data === undefined && falloDeCarga(q))
     contenido = (
       <div role="alert" className="space-y-2 rounded-xl border border-input bg-card p-4 text-sm">
         <p className="font-medium text-destructive">{t('shopify.error')}</p>
@@ -487,7 +496,13 @@ function PanelDeShopify(p: { venueId: string; activa: boolean; onRevisar: (x: Sh
         </Button>
       </div>
     )
-  else if (items.length === 0) contenido = <p className="text-sm text-muted-foreground">{t('shopify.vacio')}</p>
+  else if (items.length === 0)
+    contenido = (
+      <>
+        <AvisoDeCarga query={q} hayDatos />
+        <p className="text-sm text-muted-foreground">{t('shopify.vacio')}</p>
+      </>
+    )
   else
     contenido = (
       <>
@@ -520,6 +535,7 @@ function PanelDeShopify(p: { venueId: string; activa: boolean; onRevisar: (x: Sh
             {t('shopify.errorMas')}
           </p>
         )}
+        {!q.isFetchNextPageError && <AvisoDeCarga query={q} hayDatos />}
         {q.hasNextPage && (
           <Button
             variant="outline"

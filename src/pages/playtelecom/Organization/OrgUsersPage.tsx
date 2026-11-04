@@ -749,6 +749,7 @@ export default function OrgUsersPage() {
                   <CheckboxFilterContent
                     title={t('playtelecom:users.filterByRole', { defaultValue: 'Filtrar por Rol' })}
                     options={roleOptions}
+                    fuente={listQuery}
                     selectedValues={roleFilter}
                     onApply={setRoleFilter}
                   />

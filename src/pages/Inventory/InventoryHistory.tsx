@@ -675,6 +675,7 @@ export default function InventoryHistory() {
             <CheckboxFilterContent
               title={t('history.sku', { defaultValue: 'SKU' })}
               options={skuOptions}
+              fuente={listQuery}
               selectedValues={skuFilter}
               onApply={setSkuFilter}
               searchable
@@ -692,6 +693,7 @@ export default function InventoryHistory() {
             <CheckboxFilterContent
               title={t('history.provider', { defaultValue: 'Proveedor' })}
               options={providerOptions}
+              fuente={listQuery}
               selectedValues={providerFilter}
               onApply={setProviderFilter}
             />
