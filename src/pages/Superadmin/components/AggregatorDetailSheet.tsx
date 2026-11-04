@@ -22,6 +22,8 @@ import {
 } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { detalleNoCargo } from '@/lib/falloDeCarga'
 import api from '@/api'
 import { Currency } from '@/utils/currency'
 import { aggregatorAPI, type Aggregator } from '@/services/aggregator.service'
@@ -36,7 +38,7 @@ import RevenueShareEditDialog from './RevenueShareEditDialog'
  * bajo demanda — cada consulta pega al banco real, por eso no se auto-fetchea.
  */
 function MerchantBankBalance({ merchantId, hasLinkedAccount }: { merchantId: string; hasLinkedAccount: boolean }) {
-  const { data, isFetching, refetch, isError } = useQuery({
+  const { data, isFetching, isPaused, refetch, isError } = useQuery({
     queryKey: ['superadmin-merchant-balance', merchantId],
     queryFn: async (): Promise<AccountBalance> => {
       const r = await api.get(`/api/v1/dashboard/superadmin/merchant-accounts/${merchantId}/balance`)
@@ -57,7 +59,8 @@ function MerchantBankBalance({ merchantId, hasLinkedAccount }: { merchantId: str
         ) : (
           <Badge variant="destructive">Sin saldo</Badge>
         ))}
-      {isError && <Badge variant="destructive">Error</Badge>}
+      {/* Sin internet la consulta se pausa, sin error ni giro: sin esto el botón no hacía nada visible. */}
+      {isPaused ? <Badge variant="destructive">Sin conexión</Badge> : isError && !isFetching && <Badge variant="destructive">Error</Badge>}
       <Button variant="ghost" size="icon" aria-label="Consultar saldo" disabled={isFetching} onClick={() => refetch()}>
         <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
       </Button>
@@ -81,22 +84,24 @@ export default function AggregatorDetailSheet({
 }: AggregatorDetailSheetProps) {
   // Cargamos detalle completo del agregador (incluye lista de merchants y
   // venueCommissions). Solo fetcheamos cuando el sheet está abierto + hay id.
-  const { data: aggregator, isLoading } = useQuery({
+  const aggregatorQuery = useQuery({
     queryKey: ['aggregator-detail', aggregatorId],
     queryFn: () => aggregatorAPI.getById(aggregatorId!),
     enabled: !!aggregatorId && open,
     staleTime: 30_000,
   })
+  const { data: aggregator, isLoading } = aggregatorQuery
 
   // Cargamos en bloque todos los revenue-shares activos para poder pintar el
   // badge de status por merchant sin N requests. Si hay muchos merchants
   // sería ideal un endpoint dedicado, pero por ahora N=3 a 10, está OK.
-  const { data: allShares } = useQuery({
+  const sharesQuery = useQuery({
     queryKey: ['merchant-revenue-shares-all'],
     queryFn: () => merchantRevenueShareAPI.getAll(),
     enabled: open,
     staleTime: 30_000,
   })
+  const { data: allShares } = sharesQuery
   const shareByMerchant = new Map((allShares ?? []).map(s => [s.merchantAccountId, s]))
 
   // Click en un merchant del sheet → abre el dialog de edit de revenue-share.
@@ -122,10 +127,15 @@ export default function AggregatorDetailSheet({
           <div className="flex items-center justify-center py-10">
             <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
           </div>
+        ) : detalleNoCargo(aggregatorQuery) ? (
+          <div className="py-4">
+            <AvisoDeCarga query={aggregatorQuery} hayDatos={false} />
+          </div>
         ) : !aggregator ? (
           <p className="py-10 text-center text-sm text-muted-foreground">No se encontró el agregador.</p>
         ) : (
           <div className="space-y-5 py-4">
+            <AvisoDeCarga query={aggregatorQuery} hayDatos deUnRegistro />
             {/* Metadata block */}
             <div className="rounded-lg border border-input p-3 space-y-2">
               <div className="flex items-center justify-between text-sm">
@@ -169,6 +179,7 @@ export default function AggregatorDetailSheet({
                 </div>
               ) : (
                 <div className="space-y-1.5">
+                  <AvisoDeCarga query={sharesQuery} hayDatos={allShares !== undefined} />
                   {aggregator.merchants.map(m => {
                     const share = shareByMerchant.get(m.id)
                     return (
@@ -187,7 +198,12 @@ export default function AggregatorDetailSheet({
                             >
                               {m.active ? 'Activo' : 'Inactivo'}
                             </Badge>
-                            {share ? (
+                            {/* Sin leer los repartos no se sabe: «sin reparto» es decir que todo es de Avoqado. */}
+                            {allShares === undefined ? (
+                              <Badge variant="outline" className="text-[10px]">
+                                —
+                              </Badge>
+                            ) : share ? (
                               <Badge variant="default" className="text-[10px]">
                                 {share.aggregatorPrice ? 'vía agregador' : 'directo'}
                               </Badge>
@@ -221,7 +237,7 @@ export default function AggregatorDetailSheet({
                           }
                         >
                           <Settings2 className="w-3.5 h-3.5 mr-1" />
-                          {share ? 'Editar reparto' : 'Configurar'}
+                          {allShares === undefined ? 'Reparto' : share ? 'Editar reparto' : 'Configurar'}
                         </Button>
                       </div>
                     )

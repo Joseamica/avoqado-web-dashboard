@@ -25,6 +25,8 @@ import { useAccess } from '@/hooks/use-access'
 import { isDemoVenueStatus } from '@/types/superadmin'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { detalleNoCargo } from '@/lib/falloDeCarga'
 import { ArrowLeft, AlertCircle, FileText, Loader2, Clock } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState, useRef } from 'react'
 import { useForm } from 'react-hook-form'
@@ -155,7 +157,7 @@ export default function BasicInfo() {
   const [showActiveShiftBlockedDialog, setShowActiveShiftBlockedDialog] = useState(false)
   const [activeShiftStaffName, setActiveShiftStaffName] = useState<string | null>(null)
 
-  const { data: venue, isLoading } = useQuery({
+  const venueQuery = useQuery({
     queryKey: ['get-venue-data', venueId],
     queryFn: async () => {
       const response = await api.get(`/api/v1/dashboard/venues/${venueId}`)
@@ -167,6 +169,7 @@ export default function BasicInfo() {
       return failureCount < 2
     },
   })
+  const { data: venue, isLoading } = venueQuery
 
   const form = useForm<BasicInfoFormValues>({
     resolver: zodResolver(basicInfoFormSchema),
@@ -629,6 +632,15 @@ export default function BasicInfo() {
 
   if (isLoading) return <BasicInfoSkeleton />
 
+  // Sólo un 404 dice que no existe. Si la lectura no llegó, el formulario no se ofrece: guardaría sobre datos que no se leyeron.
+  if (detalleNoCargo(venueQuery)) {
+    return (
+      <div className="container mx-auto max-w-3xl pt-6 pb-20 px-4 md:px-6 lg:px-8">
+        <AvisoDeCarga query={venueQuery} hayDatos={false} />
+      </div>
+    )
+  }
+
   if (!venue) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -762,6 +774,7 @@ export default function BasicInfo() {
 
         {/* Centered form container */}
         <div className="max-w-3xl mx-auto">
+          <AvisoDeCarga query={venueQuery} hayDatos deUnRegistro />
           <Form {...form}>
             {!canEdit && (
               <div className="mb-6 rounded-md border border-border bg-muted/40 text-muted-foreground text-sm px-4 py-3">

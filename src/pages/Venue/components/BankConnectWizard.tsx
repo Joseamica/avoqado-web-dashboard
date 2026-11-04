@@ -11,6 +11,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { AlertCircle, Building2, CheckCircle2, Loader2 } from 'lucide-react'
 
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -65,11 +66,12 @@ export function BankConnectWizard({ open, onClose, venueId, resume }: Props) {
   const [code, setCode] = useState('')
   const [error, setError] = useState<string | null>(null)
 
-  const { data: providers = [], isLoading: loadingProviders } = useQuery({
+  const providersQuery = useQuery({
     queryKey: ['financial-providers'],
     queryFn: financialConnectionAPI.listProviders,
     enabled: open,
   })
+  const { data: providers = [], isLoading: loadingProviders } = providersQuery
 
   const advance = (r: ConnectionStepResult) => {
     setConnectionId(r.connectionId)
@@ -160,7 +162,8 @@ export function BankConnectWizard({ open, onClose, venueId, resume }: Props) {
               <p className="text-sm text-muted-foreground">{t('wizard.step1.description')}</p>
             </div>
             {loadingProviders && <Loader2 className="h-5 w-5 animate-spin" />}
-            {!loadingProviders && providers.length === 0 && (
+            <AvisoDeCarga query={providersQuery} hayDatos={providersQuery.data !== undefined} />
+            {providersQuery.data !== undefined && providers.length === 0 && (
               <p className="text-sm text-muted-foreground">{t('wizard.step1.none')}</p>
             )}
             <div className="grid gap-3">

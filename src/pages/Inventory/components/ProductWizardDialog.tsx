@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { esNoEncontrado, falloDeCarga } from '@/lib/falloDeCarga'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -378,7 +380,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
   })
 
   // Fetch existing product data in edit mode
-  const { data: existingProductData, isLoading: isLoadingExistingData } = useQuery({
+  const progresoQuery = useQuery({
     queryKey: ['product-wizard-progress', venueId, productId],
     queryFn: async () => {
       if (!productId) return null
@@ -387,9 +389,10 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
     },
     enabled: !!venueId && !!productId && mode === 'edit' && open,
   })
+  const { data: existingProductData, isLoading: isLoadingExistingData } = progresoQuery
 
   // Fetch full product details in edit mode (for name, price, description, etc.)
-  const { data: existingProduct, isLoading: isLoadingProduct } = useQuery({
+  const productoQuery = useQuery({
     queryKey: ['product-detail', venueId, productId],
     queryFn: async () => {
       if (!productId) return null
@@ -398,25 +401,28 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
     },
     enabled: !!venueId && !!productId && mode === 'edit' && open,
   })
+  const { data: existingProduct, isLoading: isLoadingProduct } = productoQuery
   // Otras pantallas abren el asistente por id: si es una variante, nombre, descripción, categoría, foto, extras, impresora, claves SAT e
   // IVA son del padre — se ven deshabilitados y NO se mandan (deshabilitar no basta: `description: ''` cuenta como cambio ⇒ 409).
   const esVariante = mode === 'edit' && !!existingProduct?.productGroupId
 
   // Fetch full recipe data - always try to load in edit mode (recipe existence overrides inventoryMethod)
-  const { data: existingRecipeData } = useQuery({
+  const recetaQuery = useQuery({
     queryKey: ['product-recipe', venueId, productId],
     queryFn: async () => {
       if (!productId) return null
       try {
         const response = await recipesApi.get(venueId, productId)
         return response.data.data
-      } catch {
-        // Recipe might not exist yet, that's ok
-        return null
+      } catch (error) {
+        // Sólo un 404 significa «sin receta». Tragarse un fallo dejaba guardar una receta vacía encima de la real.
+        if (esNoEncontrado(error)) return null
+        throw error
       }
     },
     enabled: !!venueId && !!productId && mode === 'edit' && open,
   })
+  const existingRecipeData = recetaQuery.data
 
   // Fetch menu categories for category dropdown
   const { data: categories, isLoading: isCategoriesLoading } = useQuery({
@@ -1299,7 +1305,10 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
   // True while edit-mode wizard is fetching the product to prefill the form.
   // During this window we render a skeleton and lock the action buttons so the
   // user can't submit empty data or close mid-fetch.
-  const isInitialLoadingEdit = mode === 'edit' && open && !!productId && (isLoadingProduct || isLoadingExistingData)
+  const lecturasDeEdicion = mode === 'edit' && open && !!productId ? [productoQuery, progresoQuery, recetaQuery] : []
+  // Sin internet `isLoading` es false: sin esto salía el formulario vacío con «Guardar» activo, que guarda encima de lo real.
+  const lecturaSinLlegar = lecturasDeEdicion.find(q => q.data === undefined && falloDeCarga(q))
+  const isInitialLoadingEdit = mode === 'edit' && open && !!productId && !lecturaSinLlegar && (isLoadingProduct || isLoadingExistingData)
 
   // En el alta, Cancelar, la X y Esc preguntan antes de tirar lo capturado (guardar con éxito cierra por handleWizardComplete, sin
   // preguntar). Cuenta un campo que el usuario tocó (`dirtyFields`), no `isDirty`: éste compara contra los valores iniciales y sale
@@ -1340,7 +1349,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
           form="step1-form"
           data-tour="product-wizard-finish"
           className="min-h-11 px-2 sm:px-4"
-          disabled={isLoading || isInitialLoadingEdit || (mode === 'create' && (uploading || !!imageForCrop))}
+          disabled={isLoading || lecturasDeEdicion.some(q => q.data === undefined) || (mode === 'create' && (uploading || !!imageForCrop))}
         >
           {(isLoading || isInitialLoadingEdit) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           {mode === 'edit' ? tCommon('save') : t('wizard.finish')}
@@ -2511,7 +2520,10 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
         titleClassName="max-sm:sr-only pointer-events-none left-20 right-[13.5rem] translate-x-0 min-w-0 text-left sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:max-w-[calc(100%-28rem)] sm:text-center [&>*]:truncate"
       >
         <div className="mx-auto max-w-5xl min-w-0 p-3 sm:p-6 space-y-4 sm:space-y-6">
-          {isInitialLoadingEdit ? (
+          {!lecturaSinLlegar && <AvisoDeCarga query={lecturasDeEdicion.find(q => falloDeCarga(q)) ?? null} hayDatos deUnRegistro />}
+          {lecturaSinLlegar ? (
+            <AvisoDeCarga query={lecturaSinLlegar} hayDatos={false} deUnRegistro />
+          ) : isInitialLoadingEdit ? (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6" aria-busy="true" aria-live="polite">
               <div className="lg:col-span-8 space-y-6">
                 <section className="bg-card rounded-2xl border border-border/50 p-4">

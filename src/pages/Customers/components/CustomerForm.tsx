@@ -28,6 +28,8 @@ import { useToast } from '@/hooks/use-toast'
 import customerService from '@/services/customer.service'
 import marketingService from '@/services/marketing.service'
 import { tieneAvisoPublicado } from '@/lib/privacy-notice'
+import { BotonReintentar } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import type { Customer, CustomerGroup } from '@/types/customer'
 
 // Predefined colors for groups
@@ -62,16 +64,17 @@ export default function CustomerForm({ venueId, customer, groups, onSuccess }: C
 	// 🔴 MISMA llave que la que usa PrivacyNoticeModal para invalidar — si el checkbox
 	// mira una llave distinta, guardar el aviso nunca lo destraba (la trampa de caché
 	// ya documentada en el repo).
+	const privacyNoticeQuery = useQuery({
+		queryKey: ['privacy-notice', venueId],
+		queryFn: () => marketingService.getPrivacyNotice(venueId),
+		enabled: Boolean(venueId),
+	})
 	const {
 		data: privacyNoticeData,
 		isLoading: isPrivacyNoticeLoading,
 		isError: isPrivacyNoticeError,
 		error: privacyNoticeQueryError,
-	} = useQuery({
-		queryKey: ['privacy-notice', venueId],
-		queryFn: () => marketingService.getPrivacyNotice(venueId),
-		enabled: Boolean(venueId),
-	})
+	} = privacyNoticeQuery
 	// 🔴 NO es `Boolean(notice)`: desde la fase 1C-A el servidor devuelve SIEMPRE un objeto
 	// `notice` — cuando el negocio no tiene aviso propio, manda una PLANTILLA de precarga con
 	// `content: null` y `esPlantilla: true`. Con `Boolean(notice)` este candado quedó siempre
@@ -351,7 +354,14 @@ export default function CustomerForm({ venueId, customer, groups, onSuccess }: C
 					{!hasPrivacyNotice && !isPrivacyNoticeLoading && isPrivacyNoticeForbidden && (
 						<p className="text-xs text-muted-foreground italic">{t('form.consentNoticeUnknown')}</p>
 					)}
-					{!hasPrivacyNotice && !isPrivacyNoticeLoading && !isPrivacyNoticeForbidden && (
+					{falloDeCarga(privacyNoticeQuery) && !isPrivacyNoticeForbidden && (
+						<div className="flex items-center gap-2">
+							<p className="text-xs text-muted-foreground italic">{t('form.consentNoticeFailed')}</p>
+							<BotonReintentar query={privacyNoticeQuery} />
+						</div>
+					)}
+					{/* Sólo lo que se leyó puede decir que falta el aviso: un 500 o una pausa no le piden publicar el que ya tiene. */}
+					{privacyNoticeData !== undefined && !hasPrivacyNotice && !isPrivacyNoticeForbidden && (
 						<PermissionGate
 							permission="marketing:manage"
 							fallback={<p className="text-xs text-muted-foreground italic">{t('form.consentNeedsNoticeNoPermission')}</p>}

@@ -17,6 +17,7 @@ import { CreditCard, AlertCircle, Trash2, Check } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useToast } from '@/hooks/use-toast'
 import { AddPaymentMethodDialog } from '@/components/AddPaymentMethodDialog'
+import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import api from '@/api'
 import getIcon from '@/utils/getIcon'
 
@@ -62,7 +63,7 @@ export function PaymentMethodsSection({
   }
 
   // Fetch payment methods
-  const { data: paymentMethods, isLoading: loadingPaymentMethods } = useQuery<PaymentMethod[]>({
+  const paymentMethodsQuery = useQuery<PaymentMethod[]>({
     queryKey: ['paymentMethods', venueId],
     queryFn: async () => {
       const response = await api.get(`/api/v1/dashboard/venues/${venueId}/payment-methods`)
@@ -70,6 +71,7 @@ export function PaymentMethodsSection({
     },
     enabled: !!venueId,
   })
+  const { data: paymentMethods, isLoading: loadingPaymentMethods } = paymentMethodsQuery
 
   // Remove payment method mutation
   const removePaymentMethodMutation = useMutation({
@@ -160,9 +162,10 @@ export function PaymentMethodsSection({
           <CardDescription>{t('paymentMethods.subtitle')}</CardDescription>
         </CardHeader>
         <CardContent>
+          <AvisoDeCarga query={paymentMethodsQuery} hayDatos={paymentMethods !== undefined} />
           {loadingPaymentMethods ? (
             <p className="text-muted-foreground">{t('loading')}</p>
-          ) : !paymentMethods?.length ? (
+          ) : paymentMethods === undefined ? null : !paymentMethods.length ? (
             <Alert>
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>

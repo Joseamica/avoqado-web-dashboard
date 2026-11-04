@@ -7,16 +7,22 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Skeleton } from '@/components/ui/skeleton'
+import { AvisoDeCarga, BotonReintentar } from '@/components/AvisoDeCarga'
+import { falloDeCarga } from '@/lib/falloDeCarga'
 import { useToast } from '@/hooks/use-toast'
 
 export default function MasterTotpSetup() {
   const { toast } = useToast()
   const [copied, setCopied] = useState(false)
 
-  const { data: totpData, isLoading, error } = useQuery<MasterTotpSetupData>({
+  const totpQuery = useQuery<MasterTotpSetupData>({
     queryKey: ['superadmin', 'master-totp-setup'],
     queryFn: superadminAPI.getMasterTotpSetup,
   })
+  const { data: totpData, isLoading, error } = totpQuery
+  // Sólo el servidor sabe si falta el secreto, y lo dice en su mensaje. Una red caída no es un error de configuración.
+  const mensajeDelServidor = (error as { response?: { data?: { message?: string } } } | null)?.response?.data?.message
+  const faltaElSecreto = !!mensajeDelServidor?.includes('TOTP_MASTER_SECRET')
 
   const handleCopyUri = async () => {
     if (!totpData?.uri) return
@@ -39,23 +45,29 @@ export default function MasterTotpSetup() {
     }
   }
 
-  if (error) {
+  if (totpData === undefined && falloDeCarga(totpQuery)) {
     return (
       <div className="space-y-6">
         <h1 className="text-2xl font-bold">Master TOTP Setup</h1>
-        <Alert variant="destructive">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Error de configuracion</AlertTitle>
-          <AlertDescription>
-            No se pudo cargar la configuracion TOTP. Asegurate de que TOTP_MASTER_SECRET esta configurado en el backend.
-          </AlertDescription>
-        </Alert>
+        {faltaElSecreto ? (
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Error de configuracion</AlertTitle>
+            <AlertDescription>
+              No se pudo cargar la configuracion TOTP. Asegurate de que TOTP_MASTER_SECRET esta configurado en el backend.
+            </AlertDescription>
+            <BotonReintentar query={totpQuery} className="mt-2" />
+          </Alert>
+        ) : (
+          <AvisoDeCarga query={totpQuery} hayDatos={false} />
+        )}
       </div>
     )
   }
 
   return (
     <div className="space-y-6">
+      {totpData !== undefined && <AvisoDeCarga query={totpQuery} hayDatos />}
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold flex items-center gap-2">

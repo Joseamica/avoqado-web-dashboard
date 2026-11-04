@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 
+import { AvisoDeCarga, BotonReintentar } from '@/components/AvisoDeCarga'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -34,11 +35,12 @@ export default function PrivacyNotice() {
     setActions({})
   }, [setActions])
 
-  const { data, isLoading, isError } = useQuery({
+  const noticeQuery = useQuery({
     queryKey: ['privacy-notice', venueId],
     queryFn: () => marketingService.getPrivacyNotice(venueId!),
     enabled: !!venueId,
   })
+  const { data, isLoading } = noticeQuery
   const notice = data?.notice ?? null
   const published = tieneAvisoPublicado(notice)
 
@@ -52,8 +54,11 @@ export default function PrivacyNotice() {
         <CardContent className="space-y-5">
           {isLoading || !venueId ? (
             <Skeleton className="h-5 w-72" />
-          ) : isError ? (
-            <p className="text-sm text-destructive">{t('edit.privacy.loadFailed')}</p>
+          ) : data === undefined ? (
+            <div className="space-y-2">
+              <p className="text-sm text-destructive">{t('edit.privacy.loadFailed')}</p>
+              <BotonReintentar query={noticeQuery} />
+            </div>
           ) : (
             <p className="flex items-center gap-2 text-sm">
               {published ? (
@@ -65,6 +70,7 @@ export default function PrivacyNotice() {
               {published ? t('edit.privacy.published', { date: formatDate(notice?.createdAt) }) : t('edit.privacy.notPublished')}
             </p>
           )}
+          {data !== undefined && <AvisoDeCarga query={noticeQuery} hayDatos />}
 
           <div className="space-y-1 text-sm">
             <p className="font-medium">{t('edit.privacy.usedFor')}</p>
@@ -75,15 +81,18 @@ export default function PrivacyNotice() {
             </ul>
           </div>
 
-          <Button
-            type="button"
-            className="cursor-pointer"
-            disabled={!venueId || isLoading}
-            onClick={() => setEditorOpen(true)}
-            data-tour="venue-privacy-notice-btn"
-          >
-            {published ? t('edit.privacy.edit') : t('edit.privacy.write')}
-          </Button>
+          {/* Sin leerlo no se sabe si es «Escribir» o «Editar». */}
+          {(isLoading || data !== undefined) && (
+            <Button
+              type="button"
+              className="cursor-pointer"
+              disabled={!venueId || isLoading}
+              onClick={() => setEditorOpen(true)}
+              data-tour="venue-privacy-notice-btn"
+            >
+              {published ? t('edit.privacy.edit') : t('edit.privacy.write')}
+            </Button>
+          )}
         </CardContent>
       </Card>
 
