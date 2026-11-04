@@ -134,6 +134,10 @@ import { TokenBudgetSection } from '@/pages/Settings/components/TokenBudgetSecti
 import { PeriodoCerradoView } from '@/pages/StaffPay/components/PeriodoCerradoView'
 import TeamCommissionSection from '@/pages/Team/components/TeamCommissionSection'
 import PromotersAuditPage from '@/pages/playtelecom/PromotersAudit/PromotersAuditPage'
+import { PromoterCharts } from '@/pages/playtelecom/PromotersAudit/components/PromoterCharts'
+import CampaignDetail from '@/pages/Superadmin/Marketing/CampaignDetail'
+import SalesReport from '@/pages/playtelecom/Sales/SalesReport'
+import VenueMerchantAccounts from '@/pages/Venue/VenueMerchantAccounts'
 import { VenueSimCustodyPanel } from '@/pages/playtelecom/Stock/components/VenueSimCustodyPanel'
 import DataTable from '@/components/data-table'
 import MenuOverview from '@/pages/Menu/MenuOverview'
@@ -2006,5 +2010,111 @@ describe('r10 · Vales por área', () => {
     await unaVueltaAlLazo()
     esperando()
     expect(screen.queryByRole('table')).toBeNull()
+  })
+})
+
+describe('r12 · Lo que enseñaba ceros mientras esperaba', () => {
+  it('Gráficas del promotor: en camino esperan, sin «Sin datos» ni asistencias en cero', async () => {
+    red.colgada = /organizations\/o1\/staff/
+    pintar(<PromoterCharts promoterId="p1" promoterName="Ana" />)
+    await unaVueltaAlLazo()
+    esperando()
+    expect(seVe('Sin datos de ventas')).toBe(false)
+  })
+
+  it('Cuentas de comercio: en camino no presenta 0 cuentas, 0 terminales ni 0 configuración', async () => {
+    red.colgada = /./
+    pintar(<VenueMerchantAccounts />)
+    await unaVueltaAlLazo()
+    expect(document.body.textContent).not.toMatch(/\b0\b/)
+  })
+})
+
+describe('r12 · Más conteos que hablaban mientras esperaban', () => {
+  it('Comercios de e-commerce: sin «0 de 0»', async () => {
+    red.colgada = /ecommerce-merchants/
+    pintar(<EcommerceMerchantsGlobal />)
+    await unaVueltaAlLazo()
+    expect(seVe('0 de 0')).toBe(false)
+  })
+
+  it('Reporte de ventas: sin «Conciliadas: 0» ni «Pendientes: 0»', async () => {
+    red.colgada = /summary/
+    pintar(<SalesReport />)
+    await unaVueltaAlLazo()
+    expect(seVe('Conciliadas: 0')).toBe(false)
+    expect(seVe('Pendientes: 0')).toBe(false)
+  })
+
+  it('Motor por roster: sin leer no sale un interruptor apagado', async () => {
+    red.colgada = /roster/
+    pintar(<VenueRosterPanel venueId="v1" venueName="Mi negocio" />)
+    await unaVueltaAlLazo()
+    expect(screen.queryByRole('switch')).toBeNull()
+  })
+
+  it('Entregas de campaña: en camino espera, sin «No hay entregas»; leída y vacía con la recarga caída, avisa', async () => {
+    const CAMPANA = { id: 'c1', name: 'Campaña', status: 'DRAFT', creator: { firstName: 'Ana', lastName: 'Admin' }, templateName: null, startedAt: null, completedAt: null, subject: 'Hola', totalRecipients: 0, sentCount: 0, openedCount: 0, clickedCount: 0, failedCount: 0, createdAt: new Date().toISOString(), bodyHtml: '', bodyText: '', targetAllVenues: false, targetVenueIds: [], includeStaff: false, targetStaffRoles: [] }
+    const ENTREGAS = /deliveries/
+    const abrir = async () => fireEvent.mouseDown(await screen.findByRole('tab', { name: /entregas|deliveries/i }))
+    const rutas: Ruta[] = [[ENTREGAS, { data: { deliveries: [], total: 0 }, deliveries: [], total: 0 }], [/campaigns\/c1/, { campaign: CAMPANA }]]
+    red.colgada = ENTREGAS
+    pintar(<CampaignDetail />, { params: { campaignId: 'c1' }, rutas })
+    await abrir()
+    await unaVueltaAlLazo()
+    expect(seVe('No hay entregas registradas')).toBe(false)
+    esperando()
+    cleanup()
+    red.colgada = null
+    pintar(<CampaignDetail />, { params: { campaignId: 'c1' }, rutas })
+    await abrir()
+    await screen.findByText('No hay entregas registradas')
+    await recargaCaida(ENTREGAS)
+    await screen.findByText(CON_DATOS)
+    expect(screen.getByText('No hay entregas registradas')).toBeInTheDocument()
+  })
+})
+
+describe('r12 · Integraciones: la recarga caída también avisa', () => {
+  const RUTAS: Ruta[] = [
+    [/integrations\/google\/status/, { connected: true }],
+    [/chat\/status/, { mode: 'QR' }],
+    [/ecommerce-merchants/, { data: { merchants: [{ id: 'e1' }] } }],
+    [/financial-connections/, { data: [{ id: 'b1', status: 'CONNECTED' }] }],
+    [/pass-integrations/, { data: { planActive: true, connections: [], classProducts: { items: [], total: 0 } } }],
+    [/shopify/, { data: { connection: null } }],
+    [/venues\/v1$/, { id: 'v1' }],
+  ]
+  const tarjeta = (nombre: string) => document.querySelector(`[data-tour="integration-card-${nombre}"]`)?.textContent ?? ''
+  const CONECTAR = 'edit.integrations.catalog.connect'
+  const SIN_LEER = 'edit.integrations.catalog.status.loadError'
+  const DISPONIBLE = 'edit.integrations.catalog.status.available'
+
+  const GOOGLE = /google/
+  it('leída y cae: lo leído sigue, con el aviso, y reintentar vuelve a leer', async () => {
+    pintar(<Integrations />, { rutas: [[GOOGLE, { connected: true, data: { connected: true } }], ...RUTAS] })
+    await sinConsultasEnCamino()
+    await recargaCaida(GOOGLE)
+    await screen.findByText(CON_DATOS)
+    red.caida = null
+    fireEvent.click(await reintentar())
+    await sinConsultasEnCamino()
+    expect(screen.queryByText(CON_DATOS)).toBeNull()
+  })
+
+  it('primera lectura caída: se puede reintentar desde el aviso', async () => {
+    red.caida = GOOGLE
+    pintar(<Integrations />, { rutas: RUTAS })
+    await screen.findByText(SIN_DATOS)
+    expect(await reintentar()).toBeInTheDocument()
+  })
+
+  it('un 403 o un 404 aquí son normales: sin aviso', async () => {
+    red.caida = GOOGLE
+    red.estatus = 404
+    pintar(<Integrations />, { rutas: RUTAS })
+    await sinConsultasEnCamino()
+    expect(screen.queryByText(SIN_DATOS)).toBeNull()
+    expect(screen.queryByText(CON_DATOS)).toBeNull()
   })
 })

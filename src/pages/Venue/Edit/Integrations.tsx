@@ -2,8 +2,8 @@ import React, { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
-import { BotonReintentar } from '@/components/AvisoDeCarga'
-import { detalleNoCargo, type EstadoDeCarga } from '@/lib/falloDeCarga'
+import { AvisoDeCarga, BotonReintentar } from '@/components/AvisoDeCarga'
+import { detalleNoCargo, falloDeCarga, reintentarSirve, type EstadoDeCarga } from '@/lib/falloDeCarga'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -177,6 +177,8 @@ export default function VenueIntegrations() {
         ? { connected: false, label: t('edit.integrations.catalog.status.loadError') }
         : statusLabel(connected)
   const sinSaber = (fuente: Fuente) => fuente.data === undefined && (fuente.isFetching || detalleNoCargo(fuente))
+  // Un solo aviso aunque caigan varias, y su «Reintentar» las vuelve a leer todas. Un 403 o un 404 aquí son normales: no se avisan.
+  const lecturasCaidas = [googleQuery, chatQuery, merchantsQuery, banksQuery, passesQuery].filter(q => falloDeCarga(q) && reintentarSirve(q.error))
   const googleSinLeer = sinSaber(googleQuery)
   const whatsappSinLeer = sinSaber(chatQuery)
   const ecommerceSinLeer = sinSaber(merchantsQuery)
@@ -218,6 +220,12 @@ export default function VenueIntegrations() {
 
   return (
     <div className="container mx-auto pt-6 pb-20 px-3 md:px-4 space-y-6" data-tour="settings-integrations-page">
+      {lecturasCaidas.length > 0 && (
+        <AvisoDeCarga
+          query={{ ...lecturasCaidas[0], refetch: () => lecturasCaidas.forEach(q => void q.refetch()) }}
+          hayDatos={lecturasCaidas.every(q => q.data !== undefined)}
+        />
+      )}
       <div>
         <h2 className="text-2xl font-bold text-foreground">{t('edit.integrations.title')}</h2>
         <p className="text-muted-foreground mt-2">{t('edit.integrations.subtitle')}</p>
