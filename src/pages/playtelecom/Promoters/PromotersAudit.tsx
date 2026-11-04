@@ -421,7 +421,7 @@ export function PromotersAudit() {
             <PromoterDetailPanel
               promoter={selectedPromoterData}
               deposits={selectedPromoterDeposits}
-              depositsListos={depositsData !== undefined}
+              depositsEstado={depositsData !== undefined ? 'listos' : falloDeCarga(depositsQuery) ? 'caidos' : 'esperando'}
               isLoading={isLoadingDetail}
               currency={venue?.currency || 'MXN'}
               onApproveDeposit={handleApproveDeposit}

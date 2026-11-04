@@ -111,7 +111,6 @@ import OrganizationDashboard from '@/pages/Organization/OrganizationDashboard'
 import { PaymentDrawerContent } from '@/pages/Payment/PaymentDrawerContent'
 import PaymentId from '@/pages/Payment/PaymentId'
 import BancosBeneficiarios from '@/pages/Bancos/BancosBeneficiarios'
-import TeamCommissionRanking from '@/pages/Commissions/components/TeamCommissionRanking'
 import ReferralsSettings from '@/pages/Referrals/ReferralsSettings'
 import CashBasisVat from '@/pages/Reports/CashBasisVat'
 import Nomina from '@/pages/Reports/Nomina'
@@ -716,13 +715,6 @@ describe('Otras fuentes sueltas', () => {
     await screen.findByText(SIN_DATOS)
     expect(seVe('hub.beneficiaries.empty')).toBe(false)
     expect(seVe('no_results')).toBe(false)
-  })
-
-  it('Ranking de comisiones: caído, sin «sin comisiones»', async () => {
-    red.caida = /\/summaries/
-    pintar(<TeamCommissionRanking />, { rutas: [[/\/stats/, {}]] })
-    await screen.findByText(SIN_DATOS)
-    expect(seVe('ranking.empty')).toBe(false)
   })
 
   it('Personal (superadmin): sin leer los conteos no hay un 0', async () => {

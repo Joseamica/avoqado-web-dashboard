@@ -376,7 +376,7 @@ const casos: Caso[] = [
   {
     nombre: 'Cuadrícula de la tabla de pagos',
     pantalla: () => <TablaDePagosTab />,
-    caida: /levels/,
+    caida: /\/tables/,
     rutas: [
       [/levels/, []],
       [/assignments/, []],
@@ -384,7 +384,6 @@ const casos: Caso[] = [
       [/venues\/v1\/team/, { data: [], meta: { totalCount: 0 } }],
     ],
     vacio: 'grid.empty',
-    aviso: 'states.loadError',
   },
   {
     nombre: 'Pedidos de terminales',

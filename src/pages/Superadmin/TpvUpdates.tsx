@@ -107,7 +107,7 @@ function formatDate(dateString: string): string {
 // TARGETING SECTION (Aplica a: Todas / Sucursales / TPVs por serie)
 // ============================================================================
 
-function TargetingSection({
+export function TargetingSection({
   targetType,
   onTargetTypeChange,
   selectedVenueIds,

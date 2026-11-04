@@ -19,7 +19,6 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { GlassCard } from '@/components/ui/glass-card'
 import { Input } from '@/components/ui/input'
-import { Skeleton } from '@/components/ui/skeleton'
 import { useAuth } from '@/context/AuthContext'
 import { useCurrentOrganization } from '@/hooks/use-current-organization'
 import { useIsOrgWhiteLabel } from '@/hooks/useIsOrgWhiteLabel'
@@ -672,19 +671,6 @@ export default function OrgUsersPage() {
   )
 
   // ---------- Render ----------
-
-  if (isLoading) {
-    return (
-      <div className="space-y-6">
-        <Skeleton className="h-8 w-60" />
-        <div className="flex flex-wrap items-center gap-2">
-          <Skeleton className="h-8 w-20 rounded-full" />
-          <Skeleton className="h-8 w-24 rounded-full" />
-        </div>
-        <Skeleton className="h-[500px] rounded-xl" />
-      </div>
-    )
-  }
 
   return (
     <>

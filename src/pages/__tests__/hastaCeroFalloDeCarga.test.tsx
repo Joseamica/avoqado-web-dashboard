@@ -88,6 +88,7 @@ vi.mock('@/components/billing/FeatureGate', () => ({ FeatureGate: ({ children }:
 vi.mock('@/components/PermissionGate', () => ({ PermissionGate: ({ children }: { children: ReactNode }) => <>{children}</> }))
 // El filtro se finge sólo para encontrarlo: lo que se prueba es que la pantalla lo conserve.
 vi.mock('@/components/date-range-picker', () => ({ DateRangePicker: () => <div data-testid="filtro-fechas" /> }))
+vi.mock('@/pages/Menu/MenuMakerLayout', () => ({ useMenuMakerHeader: () => ({ setHeader: () => {} }) }))
 vi.mock('@/pages/Reports/components/ExchangesToReviewSection', () => ({ ExchangesToReviewSection: () => null }))
 vi.mock('@/pages/Customers/components/WalletPassCard', () => ({ default: () => null, WalletPassCard: () => null }))
 vi.mock('@/context/SocketContext', () => ({ useSocket: () => ({ socket: null, isConnected: false }), SocketProvider: ({ children }: { children: ReactNode }) => <>{children}</> }))
@@ -117,6 +118,15 @@ vi.mock('recharts', async original => ({
 }))
 
 import { PaymentActivationCard } from '@/components/onboarding/PaymentActivationCard'
+import DataTable from '@/components/data-table'
+import MenuOverview from '@/pages/Menu/MenuOverview'
+import OrganizationTeam from '@/pages/Organization/OrganizationTeam'
+import ReviewSummary from '@/pages/Review/Reviews'
+import { TablaDePagosTab } from '@/pages/StaffPay/components/TablaDePagosTab'
+import OrgUsersPage from '@/pages/playtelecom/Organization/OrgUsersPage'
+import UsersManagement from '@/pages/playtelecom/Users/UsersManagement'
+import { TargetingSection } from '@/pages/Superadmin/TpvUpdates'
+import Subscriptions from '@/pages/Settings/Billing/Subscriptions'
 import { StandaloneInvoicesSection } from '@/pages/Inventory/PurchaseOrders/components/StandaloneInvoicesSection'
 import { IncidentsQueue } from '@/pages/AreaTickets/components/IncidentsQueue'
 import { SettlementsQueue } from '@/pages/AreaTickets/components/SettlementsQueue'
@@ -148,6 +158,7 @@ import { RoutingTab } from '@/pages/Settings/components/printStations/RoutingTab
 import OrganizationActivityLog from '@/pages/Organization/OrganizationActivityLog'
 import OrganizationTerminals from '@/pages/Organization/OrganizationTerminals'
 import OrganizationVenues from '@/pages/Organization/OrganizationVenues'
+import { OrgTpvConfigSection } from '@/pages/Organization/OrganizationSettings'
 import ActivityLog from '@/pages/Superadmin/ActivityLog'
 import EcommerceMerchantsGlobal from '@/pages/Superadmin/EcommerceMerchantsGlobal'
 import MarketingPage from '@/pages/Superadmin/Marketing/MarketingPage'
@@ -826,7 +837,7 @@ describe('F4 · Saldo disponible: una fuente secundaria no se lleva el saldo', (
     [/available-balance\/by-card-type/, { data: [{ cardType: 'DEBIT', transactionCount: 7, totalSales: 10, fees: 1, netAmount: 9, settledAmount: 9, pendingAmount: 0, baseSales: 10, tips: 0, settlementDays: 1 }] }],
     [/available-balance\/timeline/, { data: [] }],
     [/available-balance\/settlement-calendar/, { data: [] }],
-    [/available-balance\/settlement-week/, { data: { days: [] } }],
+    [/available-balance\/settlement-week/, { data: { weekStart: '2026-11-02', weekEnd: '2026-11-08', days: [], weekTotal: { gross: 0, fees: 0, net: 0, transactionCount: 0 } } }],
     [/available-balance/, { data: { totalSales: 0, totalFees: 0, availableNow: 0, pendingSettlement: 0, estimatedNextSettlement: { date: null, amount: 0 } } }],
     [/cash-closeouts\/expected/, { data: { needsCloseout: false, daysSinceLastCloseout: 0, hasCloseouts: false, expectedAmount: 0 } }],
   ]
@@ -1030,5 +1041,398 @@ describe('F2 · Detalle del cliente: lealtad y créditos por su lado', () => {
     fireEvent.mouseDown(pestana('detail\\.tabs\\.credits'))
     await screen.findByText(SIN_DATOS)
     expect(seVe('detail.credits.emptyState')).toBe(false)
+  })
+})
+
+// ─── Codex r7: cargar o reintentar no se lleva los filtros, y una fuente caída no esconde a las demás ───
+describe('r7 · la tabla compartida: sólo el cuerpo espera', () => {
+  it('mientras carga siguen su barra de filtros y sus pestañas', async () => {
+    pintar(<DataTable data={[]} columns={[{ accessorKey: 'a', header: 'A' }]} rowCount={0} isLoading query={null} tableTabLeft={<span>mi-filtro</span>} tableTab={<span>mi-pestana</span>} />)
+    expect(screen.getByText('mi-filtro')).toBeInTheDocument()
+    expect(screen.getByText('mi-pestana')).toBeInTheDocument()
+    esperando()
+    expect(seVe('no_results')).toBe(false)
+  })
+
+  const columnas = [{ accessorKey: 'a', header: 'A' }]
+  const consulta = (data: unknown) => ({ data, isError: true, isFetching: false, isPaused: false, error: new Error('caída'), refetch: () => {} })
+
+  it('leída y vacía, y cae la recarga: el vacío sigue, con el aviso de datos viejos', async () => {
+    pintar(<DataTable data={[]} columns={columnas} rowCount={0} query={consulta([])} />)
+    expect(screen.getByText(CON_DATOS)).toBeInTheDocument()
+    expect(seVe('no_results')).toBe(true)
+  })
+
+  it('sin leer y caída: el aviso en lugar del vacío', async () => {
+    pintar(<DataTable data={[]} columns={columnas} rowCount={0} query={consulta(undefined)} />)
+    expect(screen.getByText(SIN_DATOS)).toBeInTheDocument()
+    expect(seVe('no_results')).toBe(false)
+  })
+
+  it('sin consulta y sin filas: su vacío de siempre', async () => {
+    pintar(<DataTable data={[]} columns={columnas} rowCount={0} query={null} />)
+    expect(seVe('no_results')).toBe(true)
+  })
+})
+
+describe.each([
+  ['Equipo de la organización', () => <OrganizationTeam />, 'Sucursales'],
+  ['Usuarios de la organización', () => <OrgUsersPage />, 'Estado'],
+  ['Usuarios de la tienda', () => <UsersManagement />, 'Estado'],
+])('r7 · %s', (_nombre, pantalla, filtro) => {
+  const rutas: Ruta[] = [[/organizations\/o1\/venues/, []]]
+
+  it('primera lectura en camino: los filtros siguen y la tabla espera', async () => {
+    red.colgada = /team/
+    pintar(pantalla(), { params: { orgId: 'o1' }, rutas })
+    await unaVueltaAlLazo()
+    expect(seVe(filtro)).toBe(true)
+    esperando()
+  })
+
+  it('cae y se reintenta: los filtros siguen en el aviso y mientras reintenta', async () => {
+    red.caida = /team/
+    pintar(pantalla(), { params: { orgId: 'o1' }, rutas })
+    await screen.findByText(SIN_DATOS)
+    expect(seVe(filtro)).toBe(true)
+    red.caida = null
+    red.colgada = /team/
+    fireEvent.click(await reintentar())
+    await unaVueltaAlLazo()
+    expect(seVe(filtro)).toBe(true)
+    esperando()
+  })
+})
+
+describe('r7 · Equipo de la organización: sin leer no hay «0 miembros»', () => {
+  it('en camino y caído no dice cuántos son; leído, sí', async () => {
+    red.colgada = /team/
+    pintar(<OrganizationTeam />, { params: { orgId: 'o1' } })
+    await unaVueltaAlLazo()
+    expect(seVe('organization:team.subtitle')).toBe(false)
+    cleanup()
+    red.colgada = null
+    red.caida = /team/
+    pintar(<OrganizationTeam />, { params: { orgId: 'o1' } })
+    await screen.findByText(SIN_DATOS)
+    expect(seVe('organization:team.subtitle')).toBe(false)
+    cleanup()
+    red.caida = null
+    pintar(<OrganizationTeam />, { params: { orgId: 'o1' }, rutas: [[/team/, []]] })
+    await screen.findByText('organization:team.subtitle')
+    expect(screen.queryByText(SIN_DATOS)).toBeNull()
+  })
+})
+
+describe('r7 · Resumen del menú: cada fuente por su lado', () => {
+  const MENUS = /venues\/v1\/menus/
+  const rutas: Ruta[] = [[MENUS, [{ id: 'm1', name: 'Carta', active: true, categories: [] }]], [/venues\/v1\/products/, []]]
+  const buscador = () => screen.getByPlaceholderText('overview.searchPlaceholder')
+
+  it('menús en camino: el buscador sigue, sin conteo y esperando', async () => {
+    red.colgada = MENUS
+    pintar(<MenuOverview />, { rutas })
+    await unaVueltaAlLazo()
+    expect(buscador()).toBeInTheDocument()
+    expect(seVe('overview.itemsCount')).toBe(false)
+    esperando()
+  })
+
+  it('menús caídos: aviso con reintento, el buscador sigue y sin «0 elementos»', async () => {
+    red.caida = MENUS
+    pintar(<MenuOverview />, { rutas })
+    await screen.findByText(SIN_DATOS)
+    expect(buscador()).toBeInTheDocument()
+    expect(seVe('overview.itemsCount')).toBe(false)
+    red.caida = null
+    red.colgada = MENUS
+    fireEvent.click(await reintentar())
+    await unaVueltaAlLazo()
+    expect(buscador()).toBeInTheDocument()
+    esperando()
+  })
+
+  it('recarga caída con menús leídos: los menús siguen, con su aviso', async () => {
+    pintar(<MenuOverview />, { rutas })
+    await screen.findAllByText('Carta')
+    await recargaCaida(MENUS)
+    await screen.findByText(CON_DATOS)
+    expect(screen.getAllByText('Carta').length).toBeGreaterThan(0)
+    expect(buscador()).toBeInTheDocument()
+  })
+
+  it('productos caídos: los menús que sí llegaron se ven', async () => {
+    red.caida = /venues\/v1\/products/
+    pintar(<MenuOverview />, { rutas })
+    await screen.findAllByText('Carta')
+    await sinConsultasEnCamino()
+    expect(seVe('overview.errorLoading')).toBe(false)
+  })
+
+  it('sano: sin aviso', async () => {
+    pintar(<MenuOverview />, { rutas })
+    await screen.findAllByText('Carta')
+    await sinConsultasEnCamino()
+    expect(screen.queryByText(SIN_DATOS)).toBeNull()
+    expect(screen.queryByText(CON_DATOS)).toBeNull()
+  })
+})
+
+describe('r7 · Reseñas: los filtros siguen', () => {
+  const RESENAS = /venues\/v1\/reviews/
+  const RESENA = { id: 'r1', source: 'AVOQADO', overallRating: 5, customerName: 'Ana Cliente', comment: 'Muy bien', createdAt: new Date().toISOString(), responseText: null }
+  const filtros = () => {
+    expect(screen.getByTestId('filtro-fechas')).toBeInTheDocument()
+    expect(screen.getByText('filters.title')).toBeInTheDocument()
+  }
+  const noAfirmaNada = () => {
+    expect(seVe('emptyState.title')).toBe(false)
+    expect(seVe('averageDescription')).toBe(false)
+  }
+
+  it('en camino: filtros, espera y sin «sin reseñas»', async () => {
+    red.colgada = RESENAS
+    pintar(<ReviewSummary />)
+    await unaVueltaAlLazo()
+    filtros()
+    noAfirmaNada()
+    esperando()
+  })
+
+  it('caídas: aviso con reintento, filtros, y sin «sin reseñas»', async () => {
+    red.caida = RESENAS
+    pintar(<ReviewSummary />)
+    await screen.findByText(SIN_DATOS)
+    filtros()
+    noAfirmaNada()
+    red.caida = null
+    red.colgada = RESENAS
+    fireEvent.click(await reintentar())
+    await unaVueltaAlLazo()
+    filtros()
+    esperando()
+  })
+
+  it('recarga caída con reseñas: la reseña sigue, con su aviso y sus filtros', async () => {
+    pintar(<ReviewSummary />, { rutas: [[RESENAS, { reviews: [RESENA] }]] })
+    await screen.findByText('Ana Cliente')
+    await recargaCaida(RESENAS)
+    await screen.findByText(CON_DATOS)
+    expect(screen.getByText('Ana Cliente')).toBeInTheDocument()
+    filtros()
+  })
+
+  it('leídas y vacías: «sin reseñas» sin aviso; si cae la recarga, sigue con aviso', async () => {
+    pintar(<ReviewSummary />, { rutas: [[RESENAS, { reviews: [] }]] })
+    await screen.findByText('emptyState.title')
+    expect(screen.queryByText(SIN_DATOS)).toBeNull()
+    await recargaCaida(RESENAS)
+    await screen.findByText(CON_DATOS)
+    expect(screen.getByText('emptyState.title')).toBeInTheDocument()
+  })
+})
+
+describe('r7 · Tabla de pagos: una fuente caída no se lleva a las demás', () => {
+  const NIVELES = /\/levels/
+  const ASIGNACIONES = /\/assignments/
+  const TABLAS = /\/tables/
+  const rutas: Ruta[] = [
+    [NIVELES, [{ id: 'n1', name: 'Head Coach', archivedAt: null, sortOrder: 0 }]],
+    [ASIGNACIONES, []],
+    [TABLAS, [{ id: 't1', name: 'Tabla', productIds: [], vigente: { id: 'ver1', maxCount: 2, cells: [], reglas: null } }]],
+    [/venues\/v1\/team/, { data: [{ id: 's1', staffId: 's1', firstName: 'Ana', lastName: 'Coach', active: true }], meta: { totalCount: 1 } }],
+  ]
+
+  it('sano: niveles, personas y cuadrícula, sin aviso', async () => {
+    pintar(<TablaDePagosTab />, { rutas })
+    await screen.findByText('grid.publish')
+    await sinConsultasEnCamino()
+    expect(screen.getByText(/steps\.levels/)).toBeInTheDocument()
+    expect(screen.queryByText(SIN_DATOS)).toBeNull()
+  })
+
+  it('asignaciones caídas: niveles y cuadrícula siguen; nadie sale «sin nivel»', async () => {
+    red.caida = ASIGNACIONES
+    pintar(<TablaDePagosTab />, { rutas })
+    await screen.findByText(SIN_DATOS)
+    await screen.findByText('grid.publish')
+    expect(screen.getAllByText('Head Coach').length).toBeGreaterThan(0)
+    expect(seVe('Ana Coach')).toBe(false)
+    expect(seVe('who.noLevel')).toBe(false)
+  })
+
+  it('tablas caídas: los niveles siguen; sin «crea tu tabla»', async () => {
+    red.caida = TABLAS
+    pintar(<TablaDePagosTab />, { rutas })
+    await screen.findByText(SIN_DATOS)
+    await screen.findByText('Head Coach')
+    expect(seVe('grid.empty')).toBe(false)
+    expect(seVe('grid.create')).toBe(false)
+  })
+
+  it('niveles caídos: nada dice que no hay niveles', async () => {
+    red.caida = NIVELES
+    pintar(<TablaDePagosTab />, { rutas })
+    await screen.findByText(SIN_DATOS)
+    await sinConsultasEnCamino()
+    expect(seVe('levels.empty')).toBe(false)
+    expect(seVe('who.needLevels')).toBe(false)
+    expect(seVe('grid.needLevels')).toBe(false)
+    expect(seVe('steps.levels')).toBe(false)
+  })
+
+  it('tablas leídas y vacías con niveles caídos: crear la tabla sigue a la mano', async () => {
+    red.caida = NIVELES
+    pintar(<TablaDePagosTab />, { rutas: [[TABLAS, []], ...rutas.filter(([r]) => r !== TABLAS)] })
+    await screen.findByText('grid.empty')
+    expect(screen.getByText(SIN_DATOS)).toBeInTheDocument()
+  })
+
+  it('tablas en camino: los niveles se ven y la cuadrícula espera', async () => {
+    red.colgada = TABLAS
+    pintar(<TablaDePagosTab />, { rutas })
+    await screen.findByText('Head Coach')
+    esperando()
+    expect(seVe('grid.empty')).toBe(false)
+  })
+
+  it('las tres caídas: UN solo aviso, y reintentar las trae todas', async () => {
+    red.caida = /\/levels|\/assignments|\/tables/
+    pintar(<TablaDePagosTab />, { rutas })
+    await waitFor(() => expect(screen.getAllByText(SIN_DATOS)).toHaveLength(1))
+    await sinConsultasEnCamino()
+    expect(screen.getAllByText(SIN_DATOS)).toHaveLength(1)
+    red.caida = null
+    fireEvent.click(await reintentar())
+    await screen.findByText('grid.publish')
+    expect(screen.queryByText(SIN_DATOS)).toBeNull()
+  })
+
+  it('recarga caída con datos: los niveles siguen, con su aviso', async () => {
+    pintar(<TablaDePagosTab />, { rutas })
+    await screen.findByText('grid.publish')
+    await recargaCaida(NIVELES)
+    await screen.findByText(CON_DATOS)
+    expect(screen.getAllByText('Head Coach').length).toBeGreaterThan(0)
+    expect(screen.getByText('grid.publish')).toBeInTheDocument()
+  })
+})
+
+// ─── Los arreglos de la ronda r7 que quedaron sin prueba propia ───
+describe('r7 · Promotores: los depósitos por su lado', () => {
+  const DEPOSITOS = /promoters\/p1\/deposits/
+  const rutas: Ruta[] = [
+    [DEPOSITOS, { data: { deposits: [] } }],
+    [/promoters\/p1/, { data: { promoter: { id: 'p1', name: 'Ana Promotora', email: null, phone: null, photo: null }, todayMetrics: { sales: 0, units: 0, commission: 0 }, attendance: { days: [] }, checkIn: null } }],
+    [/promoters/, { data: { promoters: [{ id: 'p1', name: 'Ana Promotora', status: 'ACTIVE', todaySales: 0, todayUnits: 0, commission: 0, store: { name: 'Tienda' }, lastActivity: null, photo: null }], summary: { total: 1, active: 1, onBreak: 0, todayTotalSales: 0, todayTotalCommissions: 0 } } }],
+  ]
+
+  it('en camino: espera, sin «Sin depósitos»', async () => {
+    red.colgada = DEPOSITOS
+    pintar(<PromotersAudit />, { rutas })
+    await screen.findAllByText('Ana Promotora')
+    await unaVueltaAlLazo()
+    expect(seVe('Sin depósitos')).toBe(false)
+    expect(screen.getByTestId('depositos-esperando')).toBeInTheDocument()
+  })
+
+  it('caídos: aviso, sin «Sin depósitos» ni espera eterna', async () => {
+    red.caida = DEPOSITOS
+    pintar(<PromotersAudit />, { rutas })
+    await screen.findByText(SIN_DATOS)
+    expect(seVe('Sin depósitos')).toBe(false)
+    expect(screen.queryByTestId('depositos-esperando')).toBeNull()
+  })
+
+  it('leídos y vacíos: «Sin depósitos», sin aviso', async () => {
+    pintar(<PromotersAudit />, { rutas })
+    await screen.findByText('Sin depósitos')
+    expect(screen.queryByText(SIN_DATOS)).toBeNull()
+  })
+})
+
+describe('r7 · 404 de conteos y transferencias: dice que no existe', () => {
+  it.each([
+    ['Conteo', () => <StockCountDetailPage />, /stock-counts\/c1/, 'Este conteo no existe', 'No se pudo cargar el conteo', { countId: 'c1' }],
+    ['Transferencia', () => <TransferDetailPage />, /transfers\/t1/, 'Esta transferencia no existe', 'No se pudo cargar la transferencia', { transferId: 't1' }],
+  ] as const)('%s', async (_n, pantalla, patron, noExiste, noCargo, params) => {
+    red.caida = patron
+    red.estatus = 404
+    pintar(pantalla(), { params })
+    await screen.findByText(new RegExp(noExiste))
+    expect(seVe(noCargo)).toBe(false)
+    expect(screen.queryByRole('button', { name: 'retry' })).toBeNull()
+  })
+})
+
+describe('r7 · Ganancias: la pestaña de costos', () => {
+  const abrirCostos = async () => {
+    const pestana = await screen.findByRole('tab', { name: /Cost Structures/ })
+    fireEvent.mouseDown(pestana)
+    await screen.findByText('Current Cost Structures')
+  }
+
+  it('en camino: «—», no una región en blanco', async () => {
+    red.colgada = /cost-structures\/analysis/
+    pintar(<ProfitAnalyticsDashboard />)
+    await abrirCostos()
+    expect(screen.getAllByText('—').length).toBeGreaterThan(0)
+  })
+})
+
+describe('r7 · Comisiones de e-commerce: el historial de un canal', () => {
+  const HISTORIAL = /fee-history/
+  const rutas: Ruta[] = [
+    [HISTORIAL, { data: [] }],
+    [/ecommerce-merchants/, { data: [{ id: 'm1', channelName: 'Tienda web', contactEmail: 'a@b.mx', active: true, provider: { name: 'Stripe' }, paymentCount: 0, totalCollected: 0, venue: { id: 'v1', name: 'Mi negocio' } }] }],
+  ]
+
+  it('recarga caída con historial leído: su aviso', async () => {
+    pintar(<EcommerceMerchantsGlobal />, { rutas })
+    fireEvent.click(await screen.findByTitle('Ver historial de cambios de comisión'))
+    await sinConsultasEnCamino()
+    await recargaCaida(HISTORIAL)
+    await screen.findByText(CON_DATOS)
+  })
+})
+
+describe('r7 · Versiones de la TPV: el selector de sucursales', () => {
+  const SUCURSALES = /superadmin\/venues/
+  const rutas: Ruta[] = [[SUCURSALES, { data: [{ id: 'v9', name: 'Sucursal Nueve', slug: 'nueve' }] }]]
+
+  it('recarga caída con sucursales leídas: la lista sigue, con su aviso', async () => {
+    pintar(<TargetingSection targetType="VENUES" onTargetTypeChange={() => {}} selectedVenueIds={[]} onToggleVenue={() => {}} />, { rutas })
+    await screen.findByText('Sucursal Nueve')
+    await recargaCaida(SUCURSALES)
+    await screen.findByText(CON_DATOS)
+    expect(screen.getByText('Sucursal Nueve')).toBeInTheDocument()
+  })
+
+  it('caída sin leer: su aviso, y no «sin sucursales»', async () => {
+    red.caida = SUCURSALES
+    pintar(<TargetingSection targetType="VENUES" onTargetTypeChange={() => {}} selectedVenueIds={[]} onToggleVenue={() => {}} />, { rutas })
+    await screen.findByText(SIN_DATOS)
+  })
+})
+
+describe('r7 · Planes: reintentar sí vuelve a leer', () => {
+  it('el plan caído ofrece reintentar y al reintentar se va el error', async () => {
+    red.caida = /\/plan|subscription/
+    pintar(<Subscriptions />)
+    await screen.findByText('plan.page.planError')
+    red.caida = null
+    fireEvent.click(await reintentar())
+    await waitFor(() => expect(seVe('plan.page.planError')).toBe(false))
+  })
+})
+
+describe('r7 · Terminales de la organización: reintentar sí vuelve a leer', () => {
+  it('la configuración caída ofrece reintentar y al reintentar se va el error', async () => {
+    red.caida = /tpv-defaults|tpv-config|defaults/
+    pintar(<OrgTpvConfigSection orgId="o1" />)
+    await screen.findByText('settings.tpvLoadError')
+    red.caida = null
+    fireEvent.click(await reintentar())
+    await waitFor(() => expect(seVe('settings.tpvLoadError')).toBe(false))
   })
 })

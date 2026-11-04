@@ -29,6 +29,7 @@
  * Ver cada componente hijo para detalles específicos.
  */
 
+import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 import React from 'react'
 import { useTranslation } from 'react-i18next'
@@ -97,8 +98,8 @@ interface PromoterData {
 interface PromoterDetailPanelProps {
   promoter: PromoterData
   deposits?: DepositData[]
-  /** Sin leer los depósitos no se afirma «Sin depósitos». */
-  depositsListos?: boolean
+  /** Sin leer los depósitos no se afirma «Sin depósitos»: en camino, su región espera; caídos, el aviso lo da la página. */
+  depositsEstado?: 'listos' | 'esperando' | 'caidos'
   isLoading?: boolean
   currency?: string
   onApproveDeposit?: (depositId: string, notes?: string) => void
@@ -125,7 +126,7 @@ const mapAttendanceStatus = (status: 'PRESENT' | 'ABSENT' | 'LATE' | 'HALF_DAY')
 export const PromoterDetailPanel: React.FC<PromoterDetailPanelProps> = ({
   promoter,
   deposits = [],
-  depositsListos = true,
+  depositsEstado = 'listos',
   isLoading: _isLoading = false,
   currency = 'MXN',
   onApproveDeposit,
@@ -174,7 +175,8 @@ export const PromoterDetailPanel: React.FC<PromoterDetailPanelProps> = ({
       {/* Row 3: Calendar + Deposits */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <AttendanceCalendar data={attendanceData} />
-        {depositsListos && <DepositValidation deposits={deposits} currency={currency} onApprove={onApproveDeposit} onReject={onRejectDeposit} />}
+        {depositsEstado === 'listos' && <DepositValidation deposits={deposits} currency={currency} onApprove={onApproveDeposit} onReject={onRejectDeposit} />}
+        {depositsEstado === 'esperando' && <Skeleton data-testid="depositos-esperando" className="h-48 w-full rounded-xl" />}
       </div>
     </div>
   )
