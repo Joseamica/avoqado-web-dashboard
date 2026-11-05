@@ -121,9 +121,12 @@ function marcar(staffId: string, id: string, sincronizado: boolean) {
 
 export const cerradoLocalmente = (staffId: string | undefined, id: string) => leerCierres(staffId).some(c => c.id === id)
 
-/** Quita el anuncio de la caché de la consulta del inicio. */
-export function quitarDeLaCache(queryClient: QueryClient, id: string) {
-  queryClient.setQueryData<HomeAnnouncements>(['announcements', 'home'], previo =>
+/** 🔴 La caché del inicio es POR PERSONA: un 200 tardío de Ana sólo toca la entrada de Ana. */
+export const claveHome = (staffId: string | undefined) => ['announcements', 'home', staffId] as const
+
+/** Quita el anuncio de la caché de la consulta del inicio de ESA persona. */
+export function quitarDeLaCache(queryClient: QueryClient, id: string, staffId: string) {
+  queryClient.setQueryData<HomeAnnouncements>(claveHome(staffId), previo =>
     previo && {
       banner: previo.banner?.id === id ? null : previo.banner,
       modal: previo.modal?.id === id ? null : previo.modal,

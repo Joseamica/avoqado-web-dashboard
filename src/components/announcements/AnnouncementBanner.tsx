@@ -1,11 +1,11 @@
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowRight, Sparkles, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { CornerSparkles } from '@/components/effects/CornerSparkles'
 import { AnnouncementModal } from './AnnouncementModal'
 import { useAuth } from '@/context/AuthContext'
-import { cerrarAnuncio, cerradoLocalmente, getHomeAnnouncements, quitarDeLaCache } from '@/services/announcement.service'
+import { cerrarAnuncio, cerradoLocalmente, claveHome, getHomeAnnouncements, quitarDeLaCache } from '@/services/announcement.service'
 
 /**
  * El banner de novedades del inicio, y la ventana que interrumpe.
@@ -21,14 +21,13 @@ import { cerrarAnuncio, cerradoLocalmente, getHomeAnnouncements, quitarDeLaCache
 export function AnnouncementBanner() {
   const queryClient = useQueryClient()
   const staffId = useAuth().user?.id
-  const staffVigente = useRef(staffId)
-  staffVigente.current = staffId
   const [abierto, setAbierto] = useState(false)
   const [descartado, setDescartado] = useState(false)
 
   const { data } = useQuery({
-    queryKey: ['announcements', 'home'],
+    queryKey: claveHome(staffId),
     queryFn: getHomeAnnouncements,
+    enabled: !!staffId,
     staleTime: 60_000,
   })
 
@@ -64,9 +63,7 @@ export function AnnouncementBanner() {
                     setDescartado(true)
                     if (staffId) {
                       cerrarAnuncio(staffId, banner.id)
-                        .then(() => {
-                          if (staffVigente.current === staffId) quitarDeLaCache(queryClient, banner.id)
-                        })
+                        .then(() => quitarDeLaCache(queryClient, banner.id, staffId))
                         .catch(() => {})
                     }
                   }}

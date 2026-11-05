@@ -59,7 +59,7 @@ afterEach(() => {
 function mount(cached = false) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } })
   clients.push(client)
-  if (cached) client.setQueryData(['announcements', 'home'], { banner: null, modal: null }, { updatedAt: 1 })
+  if (cached) client.setQueryData(['announcements', 'home', 'staff-ana'], { banner: null, modal: null }, { updatedAt: 1 })
   function Layout() {
     return (
       <>
@@ -93,7 +93,7 @@ describe('AnnouncementGate — anuncios pendientes al navegar', () => {
 
   it('al cambiar de pantalla muestra el anuncio publicado después de la primera consulta, aunque siga fresca', async () => {
     const { client, user } = mount()
-    await waitFor(() => expect(client.getQueryState(['announcements', 'home'])?.status).toBe('success'))
+    await waitFor(() => expect(client.getQueryState(['announcements', 'home', 'staff-ana'])?.status).toBe('success'))
     pending = first
     await user.click(screen.getByRole('link', { name: 'Ajustes' }))
     expect(screen.getByRole('heading', { name: 'Ajustes de prueba', hidden: true })).toBeInTheDocument()
@@ -127,7 +127,7 @@ describe('AnnouncementGate — anuncios pendientes al navegar', () => {
   it('vuelve a intentar la consulta en la siguiente pantalla después de un fallo temporal', async () => {
     failing = true
     const { client, user } = mount()
-    await waitFor(() => expect(client.getQueryState(['announcements', 'home'])?.status).toBe('error'))
+    await waitFor(() => expect(client.getQueryState(['announcements', 'home', 'staff-ana'])?.status).toBe('error'))
     failing = false
     pending = first
     await user.click(screen.getByRole('link', { name: 'Ajustes' }))
@@ -136,7 +136,7 @@ describe('AnnouncementGate — anuncios pendientes al navegar', () => {
 
   it('cambiar sólo filtros o pestañas de la misma pantalla no dispara otra consulta', async () => {
     const { client, router } = mount()
-    await waitFor(() => expect(client.getQueryState(['announcements', 'home'])?.status).toBe('success'))
+    await waitFor(() => expect(client.getQueryState(['announcements', 'home', 'staff-ana'])?.status).toBe('success'))
     const previousRequests = requests
     await act(async () => { await router.navigate('/venues/prueba/reports?search=abc#detalle') })
     expect(requests).toBe(previousRequests)
@@ -177,11 +177,11 @@ describe('AnnouncementGate — anuncios pendientes al navegar', () => {
     await user.click(screen.getByRole('button', { name: 'Ahora no' }))
     await waitFor(() => expect(localStorage.getItem(clave)).toContain(first.id))
     // la caché sigue trayendo el anuncio (frescura de 60 s) y el componente se vuelve a montar
-    client.setQueryData(['announcements', 'home'], { banner: null, modal: first })
+    client.setQueryData(['announcements', 'home', 'staff-ana'], { banner: null, modal: first })
     cleanup()
     const cliente2 = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } })
     clients.push(cliente2)
-    cliente2.setQueryData(['announcements', 'home'], { banner: null, modal: first })
+    cliente2.setQueryData(['announcements', 'home', 'staff-ana'], { banner: null, modal: first })
     const router = createMemoryRouter([{ path: '/venues/:slug', element: <><Outlet /><AnnouncementGate /></>, children: [{ path: 'reports', element: <h1>R</h1> }] }], { initialEntries: ['/venues/prueba/reports'] })
     render(<QueryClientProvider client={cliente2}><RouterProvider router={router} /></QueryClientProvider>)
     await new Promise(r => setTimeout(r, 50))
@@ -235,7 +235,7 @@ describe('AnnouncementGate — anuncios pendientes al navegar', () => {
     expect(await screen.findByRole('dialog')).toHaveTextContent(first.title)
   })
 
-  it('la confirmación tardía de Ana no quita la ventana de Beatriz', async () => {
+  it('la confirmación tardía de Ana no quita la ventana de Beatriz (el Gate se desmonta de verdad)', async () => {
     let soltar!: () => void
     const espera = new Promise<void>(r => { soltar = r })
     server.use(http.post('*/api/v1/dashboard/announcements/:id/dismiss', async () => {
@@ -243,17 +243,32 @@ describe('AnnouncementGate — anuncios pendientes al navegar', () => {
       return HttpResponse.json({ success: true })
     }))
     pending = first
-    const { client, user } = mount()
+    // UN solo cliente de consulta, como en la app: sobrevive al cambio de persona
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } })
+    clients.push(client)
+    const montar = () => {
+      const router = createMemoryRouter([{ path: '/venues/:slug', element: <><Outlet /><AnnouncementGate /></>, children: [{ path: 'reports', element: <h1>R</h1> }] }], { initialEntries: ['/venues/prueba/reports'] })
+      render(<QueryClientProvider client={client}><RouterProvider router={router} /></QueryClientProvider>)
+    }
+    montar()
     await screen.findByRole('dialog')
-    await user.click(screen.getByRole('button', { name: 'Ahora no' }))
-    // sale Ana, entra Beatriz (mismo anuncio le toca) y la pantalla se vuelve a pintar
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Ahora no' }))
+    cleanup() // sale Ana: ProtectedRoute desmonta la pantalla
     sesion.user = { id: 'staff-beatriz' }
-    await user.click(screen.getByRole('link', { name: 'Ajustes' }))
+    montar() // entra Beatriz, a quien le toca el mismo anuncio
     expect(await screen.findByRole('dialog')).toHaveTextContent(first.title)
-    await waitFor(() => expect(client.getQueryData<{ modal: unknown }>(['announcements', 'home'])?.modal).toBeTruthy())
-    soltar()
+    soltar() // llega tarde el 200 de Ana
     await waitFor(() => expect(localStorage.getItem('avoqado:anuncios-cerrados:staff-ana')).toContain('true'))
-    expect(client.getQueryData<{ modal: unknown }>(['announcements', 'home'])?.modal).toBeTruthy()
+    expect(client.getQueryData<{ modal: unknown }>(['announcements', 'home', 'staff-beatriz'])?.modal).toBeTruthy()
     expect(screen.getByRole('dialog')).toHaveTextContent(first.title)
+  })
+
+  it('sin sesión la consulta de anuncios no corre', async () => {
+    sesion.user = null
+    pending = first
+    mount()
+    await new Promise(r => setTimeout(r, 50))
+    expect(requests).toBe(0)
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 })

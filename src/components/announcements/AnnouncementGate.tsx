@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useLocation } from 'react-router-dom'
 import { ArrowRight, Sparkles } from 'lucide-react'
@@ -9,6 +9,7 @@ import { useAuth } from '@/context/AuthContext'
 import {
   cerrarAnuncio,
   cerradoLocalmente,
+  claveHome,
   getHomeAnnouncements,
   quitarDeLaCache,
   reintentarCierresPendientes,
@@ -33,30 +34,26 @@ export function AnnouncementGate() {
   const { pathname } = useLocation()
   const queryClient = useQueryClient()
   const staffId = useAuth().user?.id
-  // 🔴 Una confirmación tardía de Ana no toca la caché si ya entró otra persona.
-  const staffVigente = useRef(staffId)
-  staffVigente.current = staffId
   const [cerrados, setCerrados] = useState<string[]>([])
   const [verCompleto, setVerCompleto] = useState<string | null>(null)
 
   const { data } = useQuery({
-    queryKey: ['announcements', 'home'],
+    queryKey: claveHome(staffId),
     queryFn: getHomeAnnouncements,
+    enabled: !!staffId,
     staleTime: 60_000,
   })
 
   // El layout persiste al navegar: cambiar de pantalla no vuelve a montar esta consulta.
   useEffect(() => {
-    void queryClient.invalidateQueries({ queryKey: ['announcements', 'home'], exact: true }, { cancelRefetch: false })
-  }, [pathname, queryClient])
+    void queryClient.invalidateQueries({ queryKey: claveHome(staffId), exact: true }, { cancelRefetch: false })
+  }, [pathname, queryClient, staffId])
 
   // Los cierres que no llegaron al servidor se reintentan al montar y al volver la red.
   useEffect(() => {
     if (!staffId) return
     const reintentar = () =>
-      void reintentarCierresPendientes(staffId).then(ids => {
-        if (staffVigente.current === staffId) ids.forEach(id => quitarDeLaCache(queryClient, id))
-      })
+      void reintentarCierresPendientes(staffId).then(ids => ids.forEach(id => quitarDeLaCache(queryClient, id, staffId)))
     reintentar()
     window.addEventListener('online', reintentar)
     return () => window.removeEventListener('online', reintentar)
@@ -73,9 +70,7 @@ export function AnnouncementGate() {
     setVerCompleto(null)
     if (staffId) {
       cerrarAnuncio(staffId, ventana.id)
-        .then(() => {
-          if (staffVigente.current === staffId) quitarDeLaCache(queryClient, ventana.id)
-        })
+        .then(() => quitarDeLaCache(queryClient, ventana.id, staffId))
         .catch(() => {})
     }
   }
