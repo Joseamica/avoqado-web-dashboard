@@ -20,8 +20,8 @@ export type ContentBlock =
   | { type: 'heading'; text: string }
   | { type: 'paragraph'; text: string }
   | { type: 'bullets'; items: string[] }
-  | { type: 'image'; url: string; alt: string; caption?: string }
-  | { type: 'gallery'; images: Array<{ url: string; alt: string; caption?: string }> }
+  | { type: 'image'; url: string; alt: string; caption?: string; width?: number; height?: number }
+  | { type: 'gallery'; images: Array<{ url: string; alt: string; caption?: string; width?: number; height?: number }> }
   | { type: 'specs'; rows: Array<{ label: string; value: string }> }
   | { type: 'callout'; tone: 'info' | 'warning' | 'success'; text: string }
   | { type: 'button'; label: string; url: string }
