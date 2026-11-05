@@ -69,8 +69,8 @@ export function IssueCfdiDialog({ open, onOpenChange, orderId, onIssued }: Issue
    */
   const quienFactura = useQuienFactura(orderId, { enabled: open })
   // Codex r1 #4 y r3 #2: un «no» viejo no manda ni si la última pregunta falló ni mientras llega la nueva (TanStack conserva el dato anterior).
-  const noSePuede =
-    !quienFactura.isFetching && !quienFactura.isError && quienFactura.data && !quienFactura.data.listo ? quienFactura.data : null
+  const respuesta = quienFactura.isFetching || quienFactura.isError ? undefined : quienFactura.data
+  const noSePuede = respuesta && !respuesta.listo ? respuesta : null
   /** Validation reasons from a 422 — rendered inline, modal stays open. */
   const [reasons, setReasons] = useState<string[]>([])
   /**
