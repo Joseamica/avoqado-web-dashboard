@@ -611,6 +611,17 @@ describe('what the page keeps honest when something fails or changes mid-way', (
     expect(hybridBilling.quote).toHaveBeenCalledTimes(1)
   })
 
+  // D6 (5-nov): the selection stays as it was reviewed while its purchase is on its way.
+  it('with a purchase in flight no function can be marked and no plan picked', async () => {
+    vi.mocked(hybridBilling.quote).mockReturnValue(new Promise(() => undefined) as never)
+    renderPage()
+    await userEvent.click(await screen.findByRole('checkbox', { name: 'Marcar Programa de lealtad' }))
+    await userEvent.click(review())
+    await waitFor(() => expect(review()).toBeDisabled())
+    expect(screen.queryByRole('checkbox', { name: 'Marcar Reservas y citas' })).toBeNull()
+    for (const radio of screen.getAllByRole('radio')) expect(radio).toBeDisabled()
+  })
+
   it('the downgrade is sent once, even with two clicks', async () => {
     vi.mocked(downgradeVenueToFree).mockReturnValue(new Promise(() => undefined) as never)
     const confirm = await reachWhoStays()

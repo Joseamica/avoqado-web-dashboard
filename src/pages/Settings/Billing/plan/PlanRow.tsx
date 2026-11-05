@@ -82,7 +82,8 @@ export function PlanRow(props: PlanRowProps) {
                 type="button"
                 role="radio"
                 aria-checked={isSelected}
-                disabled={grandfathered || !canManage}
+                // A purchase on its way keeps the plan it was reviewed with (D6, 5-nov).
+                disabled={grandfathered || !canManage || busy}
                 onClick={() => props.onSelect(tier)}
                 data-tour={`plan-option-${tier.toLowerCase()}`}
                 className={cn(
@@ -122,8 +123,12 @@ export function PlanRow(props: PlanRowProps) {
                 key={value}
                 type="button"
                 aria-pressed={props.interval === value}
+                disabled={busy}
                 onClick={() => props.onIntervalChange(value)}
-                className={cn('rounded-md px-3 py-1', props.interval === value && 'bg-foreground text-background')}
+                className={cn(
+                  'rounded-md px-3 py-1 disabled:cursor-not-allowed disabled:opacity-60',
+                  props.interval === value && 'bg-foreground text-background',
+                )}
               >
                 {t(`plan.billing.${value}`)}
               </button>
