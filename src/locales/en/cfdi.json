@@ -278,9 +278,9 @@
     "save": "Save issuer",
     "cancel": "Cancel",
     "invoiceCashSales": "Invoice cash sales",
-    "invoiceCashSalesHint": "Off by default. Most businesses don't declare cash, so cash sales aren't invoiced via the receipt QR or the global invoice. Turn it on only if you want cash sales to be invoiceable. For a sale paid only in cash, without going through the terminal, to go into the global invoice, also turn on \"Include in the global invoice the sales charged outside the terminal\".",
+    "invoiceCashSalesHint": "Off by default: cash sales can't be invoiced through the receipt QR or the global invoice. Turn it on so they can be invoiced. For a sale paid only in cash, without going through the terminal, to go into the global invoice, also turn on \"Include in the global invoice the sales charged outside the terminal\". Ask your accountant how to set this up.",
     "includeCashInAccounting": "Count cash in accounting",
-    "includeCashInAccountingHint": "Off by default. Your CASH sales don't enter the fiscal books (IVA, ISR, journal entries). Your “how much did I make?” view always shows them. Turn on only if you want to declare cash.",
+    "includeCashInAccountingHint": "Off by default: cash sales aren't counted in Avoqado's journal entries or IVA and ISR calculations. Your “how much did I make?” view always shows them. Turn it on to count them. Ask your accountant how to set this up.",
     "isnRate": "Payroll tax rate (%)",
     "isnRateHint": "State payroll tax (ISN), paid by the employer on wages. Varies by state (~1%–4%). Leave 0 if not applicable; the system computes it on each payroll.",
     "regimenFiscalSelect": "Select your tax regime",
@@ -330,7 +330,7 @@
       "button": "Add",
       "allConfigured": "All merchants are already configured."
     },
-    "globalHelp": "Billing on: lets this merchant issue CFDIs. Self-invoice: customers invoice themselves via the receipt QR. Include in global: Avoqado automatically issues the global invoice (on the issuer's schedule) to the General Public for sales nobody invoiced. Turn this on ONLY if your accountant does NOT issue it separately. In accounting: turn off to exclude this merchant from your fiscal books (journal entries / IVA / ISR); your management view still shows it.",
+    "globalHelp": "Billing on: lets this merchant issue CFDIs. Self-invoice: customers invoice themselves via the receipt QR. Include in global: Avoqado automatically issues the global invoice (on the issuer's schedule) to the General Public for sales nobody invoiced. Turn this on ONLY if your accountant does NOT issue it separately. In accounting: sets whether this merchant's sales count in Avoqado's journal entries and IVA and ISR calculations; your management view always shows them. Ask your accountant how to set this up.",
     "confirmGlobal": {
       "title": "Let Avoqado issue your global invoice?",
       "description": "With this on, Avoqado will automatically issue a global invoice, on the issuer's schedule, to the General Public for this merchant's sales that no customer invoiced. If your accountant already issues that global invoice, do NOT enable this — you'd be reporting the same income twice to the SAT. Enable only if you want Avoqado to handle the global.",

@@ -813,7 +813,8 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
         // Load QUANTITY data
         if (inventoryMethod === 'QUANTITY' && details) {
           step3SimpleForm.setValue('initialStock', details.currentStock || 0)
-          step3SimpleForm.setValue('costPerUnit', details.costPerUnit || 0)
+          // Sin costo capturado el campo queda vacío, no en 0: el mínimo del campo no frena «Guardar» por un dato que nadie escribió.
+          if (details.costPerUnit > 0) step3SimpleForm.setValue('costPerUnit', details.costPerUnit)
           step3SimpleForm.setValue('reorderPoint', details.reorderPoint || 10)
         }
 
@@ -1160,6 +1161,31 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
 
       if (inventoryMethod === 'QUANTITY') {
         const simpleStockData = step3SimpleForm.getValues()
+        // El SERVIDOR no acepta guardar existencias sin costo. Producto que ya lleva inventario, sin costo y sin tocar esta sección:
+        // se guarda sólo el producto (D2). Si tocó la sección, se pide el costo.
+        if (!(simpleStockData.costPerUnit > 0)) {
+          if (inventarioTocado || existingProductData?.inventoryMethod !== 'QUANTITY') {
+            toast({ title: tCommon('error'), description: t('wizard.step3.costPerUnitMinimum'), variant: 'destructive' })
+            revealSection('inventory', section => section.querySelector<HTMLElement>('#costPerUnit'))
+            return
+          }
+          updateProductFirst()
+            .then(() => {
+              queryClient.invalidateQueries({ queryKey: ['product', venueId, productId] })
+              queryClient.invalidateQueries({ queryKey: ['product-detail', venueId, productId] })
+              if (sesionDelEnvio !== sesion.current) return
+              toast({
+                title: tMenu('products.detail.toasts.saved'),
+                description: tMenu('products.detail.toasts.savedDesc'),
+                variant: 'default',
+              })
+              handleWizardComplete(sesionDelEnvio, venueId, productId)
+            })
+            .catch(() => {
+              // Error already handled in updateProductFirst
+            })
+          return
+        }
         updateProductFirst()
           .then(() => {
             if (sesionDelEnvio !== sesion.current) return
@@ -1324,6 +1350,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
   // (agregar y quitar opciones vacías no es captura), y también un valor en las fichas que aún no es ficha (`data-por-confirmar`).
   // Mientras se guarda cierra directo, sin «descartar»: el guardado sigue (Codex r3) y sin red no se queda sin salida (Codex r2).
   const tocado = (f: { formState: { dirtyFields: object } }) => Object.keys(f.formState.dirtyFields).length > 0
+  const inventarioTocado = tocado(step3SimpleForm) // se lee aquí también en edición: `dirtyFields` sólo se lleva si se lee al pintar
   const hayCaptura =
     mode === 'create' &&
     (tocado(step1Form) ||

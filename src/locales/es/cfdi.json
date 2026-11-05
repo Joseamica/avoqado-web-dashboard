@@ -278,9 +278,9 @@
     "save": "Guardar emisor",
     "cancel": "Cancelar",
     "invoiceCashSales": "Facturar ventas en efectivo",
-    "invoiceCashSalesHint": "Apagado por defecto. La mayoría de los negocios no declara el efectivo, así que no se factura ni en el recibo (QR) ni en la factura global. Actívalo solo si quieres que las ventas en efectivo sí se puedan facturar. Para que una venta pagada sólo en efectivo, sin pasar por la terminal, entre a la factura global, activa también «Incluir en la factura global las ventas cobradas fuera de la terminal».",
+    "invoiceCashSalesHint": "Apagado por defecto: las ventas en efectivo no se pueden facturar ni con el QR del recibo ni en la factura global. Actívalo para que sí se puedan facturar. Para que una venta pagada sólo en efectivo, sin pasar por la terminal, entre a la factura global, activa también «Incluir en la factura global las ventas cobradas fuera de la terminal». Consulta con tu contador cómo configurarlo.",
     "includeCashInAccounting": "Contar el efectivo en la contabilidad",
-    "includeCashInAccountingHint": "Apagado por defecto. Tus ventas en EFECTIVO no entran a los libros fiscales (IVA, ISR, pólizas). Tu vista de “¿cuánto gané?” siempre las muestra. Actívalo solo si quieres declarar el efectivo.",
+    "includeCashInAccountingHint": "Apagado por defecto: las ventas en efectivo no se cuentan en las pólizas ni en los cálculos de IVA e ISR de Avoqado. Tu vista de “¿cuánto gané?” siempre las muestra. Actívalo para contarlas. Consulta con tu contador cómo configurarlo.",
     "isnRate": "Tasa de ISN (%)",
     "isnRateHint": "Impuesto sobre nómina de tu estado, lo paga el patrón sobre los sueldos. Varía por estado (~1%–4%). Déjalo en 0 si no aplica; el sistema lo calcula en cada nómina.",
     "regimenFiscalSelect": "Selecciona tu régimen",
@@ -330,7 +330,7 @@
       "button": "Agregar",
       "allConfigured": "Todos los comercios ya están configurados."
     },
-    "globalHelp": "Facturación activa: se pueden emitir facturas de las ventas cobradas por este comercio. Autofactura: tu cliente se factura solo con el QR del recibo. Incluir en global: Avoqado emite la factura global al Público en General por las ventas que nadie facturó, según la periodicidad del emisor; actívalo solo si tu contador NO la emite por su cuenta. En contabilidad: apágalo para dejar este comercio fuera de tus libros fiscales (pólizas, IVA, ISR); tu vista gerencial lo sigue mostrando.",
+    "globalHelp": "Facturación activa: se pueden emitir facturas de las ventas cobradas por este comercio. Autofactura: tu cliente se factura solo con el QR del recibo. Incluir en global: Avoqado emite la factura global al Público en General por las ventas que nadie facturó, según la periodicidad del emisor; actívalo solo si tu contador NO la emite por su cuenta. En contabilidad: indica si las ventas de este comercio se cuentan en las pólizas y en los cálculos de IVA e ISR de Avoqado; tu vista gerencial siempre las muestra. Consulta con tu contador cómo configurarlo.",
     "confirmGlobal": {
       "title": "¿Que Avoqado emita tu factura global?",
       "description": "Con esto activado, Avoqado emitirá automáticamente, según la periodicidad del emisor, una factura global al Público en General por las ventas de este comercio que ningún cliente facturó. Si tu contador ya emite esa factura global por su cuenta, NO lo actives: estarías declarando los mismos ingresos dos veces ante el SAT. Actívalo solo si quieres que Avoqado se encargue de la global.",

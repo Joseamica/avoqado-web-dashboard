@@ -43,7 +43,8 @@ vi.mock('@/hooks/use-current-venue', () => ({
     venue: { id: 'v1', organizationId: 'o1' },
   }),
 }))
-vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: () => undefined }) }))
+const toast = vi.hoisted(() => vi.fn())
+vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast }) }))
 const access = vi.hoisted(() => ({ cfdi: false }))
 vi.mock('@/hooks/use-tier-feature-access', () => ({
   useTierFeatureAccess: (code: string) => ({
@@ -492,6 +493,38 @@ describe('ProductWizardDialog: observed request contracts before the visual move
         ],
       ]
     `)
+  })
+
+  // Un producto por cantidad puede no tener costo. El campo salía en 0, el mínimo del navegador frenaba «Guardar» y el servidor
+  // tampoco acepta costo 0: no se podía cambiar nada del producto (D2).
+  it.each([0, null])('saves a change to a product whose cost is %s without touching its stock', async costPerUnit => {
+    inventory.productWizardApi.getWizardProgress.mockResolvedValue({
+      data: { data: { inventoryMethod: 'QUANTITY', details: { currentStock: 7, costPerUnit, reorderPoint: 3 } } },
+    })
+    mount({ mode: 'edit' })
+    await screen.findByDisplayValue('Café en grano')
+    await screen.findByDisplayValue('7')
+    expect(screen.getByLabelText(/wizard\.step3\.costPerUnit/)).toHaveValue(null)
+    await userEvent.click(screen.getByRole('button', { name: 'save' }))
+    await waitFor(() => expect(http.put).toHaveBeenCalledTimes(1))
+    expect(http.put.mock.calls[0][1]).toMatchObject({ name: 'Café en grano', price: 250 })
+    await new Promise(resolve => setTimeout(resolve, 0))
+    expect(http.put).toHaveBeenCalledTimes(1)
+    expect(inventory.productWizardApi.configureSimpleStock).not.toHaveBeenCalled()
+  })
+
+  it('asks for the cost before saving a stock change on a product without one', async () => {
+    inventory.productWizardApi.getWizardProgress.mockResolvedValue({
+      data: { data: { inventoryMethod: 'QUANTITY', details: { currentStock: 7, costPerUnit: 0, reorderPoint: 3 } } },
+    })
+    mount({ mode: 'edit' })
+    await screen.findByDisplayValue('Café en grano')
+    change(await screen.findByDisplayValue('7'), '9')
+    await userEvent.click(screen.getByRole('button', { name: 'save' }))
+    await new Promise(resolve => setTimeout(resolve, 0))
+    expect(http.put).not.toHaveBeenCalled()
+    expect(inventory.productWizardApi.configureSimpleStock).not.toHaveBeenCalled()
+    expect(toast).toHaveBeenCalledWith(expect.objectContaining({ description: 'wizard.step3.costPerUnitMinimum' }))
   })
 
   it('edits existing recipe ingredients through recipesApi.update', async () => {
