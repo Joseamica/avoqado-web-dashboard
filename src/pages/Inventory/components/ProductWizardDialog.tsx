@@ -510,6 +510,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
   const [confirmarDescartar, setConfirmarDescartar] = useState(false) // «¿Descartar cambios?» (ver pedirCerrar)
   const conVariantesActiva = mode === 'create' && tipoAdmiteVariantes && conVariantes
   const enviando = useRef(false) // isPending no cambia entre dos clics del mismo instante
+  const [guardandoProducto, setGuardandoProducto] = useState(false) // el PUT de la edición no es una mutación: `isLoading` no lo vería
   const invalidarCatalogo = useInvalidarCatalogo()
   const crearFamilia = useMutation({
     mutationFn: (body: CreateGroupBody) => createProductGroup(venueId!, body),
@@ -598,7 +599,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
         })
       }
 
-      handleWizardComplete(contexto?.sesion, variables.venueId)
+      handleWizardComplete(contexto?.sesion, variables.venueId, variables.productId)
     },
     onError: (error: any, variables, contexto) => {
       if (contexto?.sesion !== sesion.current) return
@@ -693,6 +694,10 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
     queryClient.invalidateQueries({ queryKey: ['products', venueDelEnvio] })
     queryClient.invalidateQueries({ queryKey: ['products-with-recipes', venueDelEnvio] })
     queryClient.invalidateQueries({ queryKey: IVA_QUERY_KEY(venueDelEnvio) }) // el primer encendido pudo prender el IVA por producto
+    // Llenan el formulario una sola vez al abrir: con la copia de antes, guardar sin tocar nada devolvía todo a como estaba.
+    for (const lectura of ['product-detail', 'product-wizard-progress', 'product-recipe']) {
+      queryClient.invalidateQueries({ queryKey: [lectura, venueDelEnvio, productoCompletado], refetchType: 'all' })
+    }
     if (sesionDelEnvio !== undefined && sesionDelEnvio !== sesion.current) return
 
     if (onSuccess && productoCompletado) {
@@ -729,6 +734,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
     setPorConfirmarIva(null)
     setConVariantes(false) // el asistente sigue montado al cerrarse: el siguiente alta arranca sin la casilla
     enviando.current = false
+    setGuardandoProducto(false)
     setVariantes(VARIANTES_INICIALES)
     setConfirmarDescartar(false) // la X durante el guardado no deja la pregunta abierta tras cerrar
     resetImage()
@@ -815,7 +821,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
           step3SimpleForm.setValue('initialStock', details.currentStock || 0)
           // Sin costo capturado el campo queda vacío, no en 0: el mínimo del campo no frena «Guardar» por un dato que nadie escribió.
           if (details.costPerUnit > 0) step3SimpleForm.setValue('costPerUnit', details.costPerUnit)
-          step3SimpleForm.setValue('reorderPoint', details.reorderPoint || 10)
+          step3SimpleForm.setValue('reorderPoint', details.minimumStock ?? 10) // el SERVIDOR lo manda como `minimumStock`; 0 es válido
         }
 
         // Load RECIPE data (only if inventoryMethod is RECIPE)
@@ -949,6 +955,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
 
   // Step 1 Submit Handler - Single step: product data + inventory selection + inventory config
   const handleStep1Submit = (data: Step1FormData) => {
+    if (enviando.current) return
     const sesionDelEnvio = sesion.current
     // Use imageUrl from uploader hook if available, otherwise use form value
     const finalImageUrl = imageUrl || data.imageUrl
@@ -959,7 +966,6 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
     // Producto con variantes: se crea la FAMILIA (nunca el producto suelto). Precio, SKU, código y existencias van por variante;
     // sin IVA (nace al 16 %, P4).
     if (conVariantesActiva) {
-      if (enviando.current) return
       const opciones = limpiarOpciones(variantes.opciones)
       const problema = validarOpciones(opciones) ?? validarFilas(data.name, variantes.filas, variantes.conInventario)
       if (problema) {
@@ -1050,6 +1056,20 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
     }
     if (esVariante) productData = sinCamposDelPadre(productData)
 
+    // Un solo PUT a la vez, también con doble clic. El candado es de ESTA apertura: una anterior que termina no suelta el de la actual.
+    const guardarProducto = async (cuerpo: object) => {
+      enviando.current = true
+      setGuardandoProducto(true)
+      try {
+        return await api.put(`/api/v1/dashboard/venues/${venueId}/products/${productId}`, cuerpo)
+      } finally {
+        if (sesionDelEnvio === sesion.current) {
+          enviando.current = false
+          setGuardandoProducto(false)
+        }
+      }
+    }
+
     setStep1Data(productData)
 
     // Get inventory selection from step2Form (now part of step 1)
@@ -1075,12 +1095,11 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
         }
 
         // Call API to update product and disable inventory tracking
-        api
-          .put(`/api/v1/dashboard/venues/${venueId}/products/${productId}`, {
-            ...productData,
-            // Sin poder leer su inventario no se sabe si lo lleva: mandar `false` lo apagaría sin haberlo visto.
-            ...(esSinPermiso(progresoQuery.error) || esSinPermiso(recetaQuery.error) ? {} : { trackInventory: false }),
-          })
+        guardarProducto({
+          ...productData,
+          // Sin poder leer su inventario no se sabe si lo lleva: mandar `false` lo apagaría sin haberlo visto.
+          ...(esSinPermiso(progresoQuery.error) || esSinPermiso(recetaQuery.error) ? {} : { trackInventory: false }),
+        })
           .then(() => {
             queryClient.invalidateQueries({ queryKey: ['products', venueId] })
             queryClient.invalidateQueries({ queryKey: ['product', venueId, productId] })
@@ -1144,7 +1163,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
       const updateProductFirst = async () => {
         if (productId) {
           try {
-            await api.put(`/api/v1/dashboard/venues/${venueId}/products/${productId}`, productData)
+            await guardarProducto(productData)
           } catch (error: any) {
             if (sesionDelEnvio !== sesion.current) throw error
             const bloqueos = bloqueosDelError(error)
@@ -1329,7 +1348,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
     handleStep1Submit(data)
   }
 
-  const isLoading = createProductWithInventoryMutation.isPending || configureInventoryMutation.isPending || crearFamilia.isPending
+  const isLoading = guardandoProducto || createProductWithInventoryMutation.isPending || configureInventoryMutation.isPending || crearFamilia.isPending
 
   // True while edit-mode wizard is fetching the product to prefill the form.
   // During this window we render a skeleton and lock the action buttons so the
@@ -1999,7 +2018,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                                     <Input
                                       id="reorderPoint"
                                       type="number"
-                                      step="1"
+                                      step="any"
                                       min="0"
                                       placeholder="10"
                                       className="h-12 scroll-mt-24 text-base"
