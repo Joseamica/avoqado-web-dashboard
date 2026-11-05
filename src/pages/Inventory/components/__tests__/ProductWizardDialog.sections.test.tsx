@@ -322,9 +322,16 @@ describe('simple product sections', () => {
     await waitFor(() => expect(opener('recipe')).toBeVisible())
     expect(document.querySelector('[data-tour="product-wizard-recipe-section"]')).not.toBeInTheDocument()
   })
+  // Ronda 5: las existencias en blanco ya no viajan (se piden junto al campo); para llegar al rechazo del SERVIDOR se capturan.
+  it('blank stock in a new product is asked next to the field and nothing is sent', async () => {
+    mount(); await fillProduct(); await openOptional('inventory'); changeValue('costPerUnit', '12')
+    await userEvent.click(screen.getByRole('button', { name: 'wizard.finish' }))
+    expect(await screen.findByText('wizard.step3.initialStockRequired')).toBeInTheDocument()
+    expect(inventory.productWizardApi.createProductWithInventory).not.toHaveBeenCalled()
+  })
   it('an unchanged server rejection keeps the inventory section and entered core values', async () => {
-    inventory.productWizardApi.createProductWithInventory.mockRejectedValue({ response: { status: 400, data: { message: 'Stock inicial requerido' } } })
-    mount(); await fillProduct(); await openOptional('inventory')
+    inventory.productWizardApi.createProductWithInventory.mockRejectedValue({ response: { status: 400, data: { message: 'Costo requerido' } } })
+    mount(); await fillProduct(); await openOptional('inventory'); changeValue('initialStock', '3')
     await userEvent.click(screen.getByRole('button', { name: 'wizard.finish' }))
     await waitFor(() => expect(inventory.productWizardApi.createProductWithInventory).toHaveBeenCalledTimes(1))
     expect(section('inventory')).toBeVisible()
