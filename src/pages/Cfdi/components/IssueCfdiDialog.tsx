@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useTranslation } from 'react-i18next'
@@ -8,8 +9,9 @@ import { Button } from '@/components/ui/button'
 import { Form } from '@/components/ui/form'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { useAccess } from '@/hooks/use-access'
+import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
-import { useConfirmPriceContract, useIssueCfdi } from '@/hooks/use-cfdi'
+import { useConfirmPriceContract, useIssueCfdi, useQuienFactura } from '@/hooks/use-cfdi'
 import type { CfdiReceptor, IssueCfdiValidationError, PriceContractPreview } from '@/services/cfdi.service'
 import { Currency } from '@/utils/currency'
 import { useVenueDateTime } from '@/utils/datetime'
@@ -27,6 +29,9 @@ function mismoIntento(a: IntentoDeFacturar, b: IntentoDeFacturar): boolean {
   // Los dos salen de `intentoDesde`, así que las llaves van en el mismo orden.
   return JSON.stringify(a) === JSON.stringify(b)
 }
+
+/** D11: los motivos (del servidor) que el dueño arregla en Facturación › Configuración; los demás no tienen a dónde ir. */
+const SE_ARREGLA_EN_CONFIGURACION = new Set(['COMERCIO_SIN_CONFIGURAR', 'FACTURACION_APAGADA', 'SIN_COMERCIO_ENCENDIDO', 'SIN_EMISOR'])
 
 interface IssueCfdiDialogProps {
   open: boolean
@@ -57,6 +62,15 @@ export function IssueCfdiDialog({ open, onOpenChange, orderId, onIssued }: Issue
   const { formatDate } = useVenueDateTime()
   const issueMutation = useIssueCfdi()
   const confirmMutation = useConfirmPriceContract()
+  const { fullBasePath } = useCurrentVenue()
+  /**
+   * D11: antes del formulario, si ya se sabe que nadie factura esta venta (el comercio sin configurar, la facturación apagada…), se dice
+   * qué falta en vez de dejar capturar todo para fallar al final. Misma regla que el servidor; mientras carga o si falla, como siempre.
+   */
+  const quienFactura = useQuienFactura(orderId, { enabled: open })
+  // Codex r1 #4 y r3 #2: un «no» viejo no manda ni si la última pregunta falló ni mientras llega la nueva (TanStack conserva el dato anterior).
+  const noSePuede =
+    !quienFactura.isFetching && !quienFactura.isError && quienFactura.data && !quienFactura.data.listo ? quienFactura.data : null
   /** Validation reasons from a 422 — rendered inline, modal stays open. */
   const [reasons, setReasons] = useState<string[]>([])
   /**
@@ -277,7 +291,7 @@ export function IssueCfdiDialog({ open, onOpenChange, orderId, onIssued }: Issue
       actions={
         <Button
           onClick={form.handleSubmit(onSubmit)}
-          disabled={issueMutation.isPending || confirmMutation.isPending}
+          disabled={issueMutation.isPending || confirmMutation.isPending || !!noSePuede}
           data-tour="cfdi-issue-submit"
         >
           {issueMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -378,11 +392,29 @@ export function IssueCfdiDialog({ open, onOpenChange, orderId, onIssued }: Issue
           </div>
         )}
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <ReceptorFields form={form} />
-          </form>
-        </Form>
+        {noSePuede ? (
+          <section role="alert" className="rounded-2xl border border-input bg-card p-5 space-y-3" data-tour="cfdi-issue-no-se-puede">
+            <div className="flex items-center gap-2 font-medium">
+              <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+              {t('issueDialog.notReady.title')}
+            </div>
+            <p className="text-sm text-muted-foreground">{noSePuede.error}</p>
+            {SE_ARREGLA_EN_CONFIGURACION.has(noSePuede.motivo) &&
+              (can('cfdi:configure') ? (
+                <Button asChild variant="outline" size="sm">
+                  <Link to={`${fullBasePath}/cfdi/configuracion`}>{t('issueDialog.notReady.goToSettings')}</Link>
+                </Button>
+              ) : (
+                <p className="text-sm text-muted-foreground">{t('issueDialog.notReady.askOwner')}</p>
+              ))}
+          </section>
+        ) : (
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <ReceptorFields form={form} />
+            </form>
+          </Form>
+        )}
       </div>
     </FullScreenModal>
   )

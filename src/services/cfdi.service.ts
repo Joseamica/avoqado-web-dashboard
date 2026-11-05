@@ -476,6 +476,9 @@ export interface PriceContractPreview {
 }
 
 /** Cuerpo del 422 de «Facturar»: no se timbró nada; `reasons` dice por qué. */
+/** D11: respuesta de `quienFactura` (`motivo` es el código del servidor; `error`, el texto para el dueño). */
+export type QuienFactura = { listo: true } | { listo: false; motivo: string; error: string }
+
 export interface IssueCfdiValidationError {
   error: string
   reasons: string[]
@@ -969,6 +972,15 @@ export const cfdiService = {
       ...(receptor.email?.trim() && { email: receptor.email.trim() }),
     }
     const response = await api.post(`/api/v1/dashboard/venues/${venueId}/orders/${orderId}/cfdi`, body)
+    return response.data?.data ?? response.data
+  },
+
+  /**
+   * D11: antes de capturar al cliente, ¿se sabe quién factura esta venta y tiene la facturación encendida? La misma regla que
+   * «Facturar» en el servidor, sin efectos. `listo: false` trae en `error` lo que falta y dónde se arregla.
+   */
+  async quienFactura(venueId: string, orderId: string): Promise<QuienFactura> {
+    const response = await api.get(`/api/v1/dashboard/venues/${venueId}/orders/${orderId}/cfdi/quien-factura`)
     return response.data?.data ?? response.data
   },
 

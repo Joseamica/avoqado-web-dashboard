@@ -86,6 +86,20 @@ export function useFiscalConfig(options?: { enabled?: boolean }) {
   })
 }
 
+/**
+ * D11: ¿se sabe quién factura esta venta? Se vuelve a preguntar cada vez que el diálogo de «Facturar» abre (sin `staleTime`): la
+ * configuración pudo cambiar en otra pestaña. Mientras carga o si falla, el diálogo sigue como siempre (el candado es el servidor).
+ */
+export function useQuienFactura(orderId: string, options: { enabled: boolean }) {
+  const { venueId } = useCurrentVenue()
+  return useQuery({
+    queryKey: ['cfdi-quien-factura', venueId, orderId],
+    queryFn: () => cfdiService.quienFactura(venueId!, orderId),
+    enabled: !!venueId && !!orderId && options.enabled,
+    retry: false,
+  })
+}
+
 /** Create or update an emisor. Pass `emisorId` to update, omit to create. */
 export function useUpsertEmisor() {
   const { venueId } = useCurrentVenue()
