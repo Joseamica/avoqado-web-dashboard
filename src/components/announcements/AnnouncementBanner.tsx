@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowRight, Sparkles, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -21,6 +21,8 @@ import { cerrarAnuncio, cerradoLocalmente, getHomeAnnouncements, quitarDeLaCache
 export function AnnouncementBanner() {
   const queryClient = useQueryClient()
   const staffId = useAuth().user?.id
+  const staffVigente = useRef(staffId)
+  staffVigente.current = staffId
   const [abierto, setAbierto] = useState(false)
   const [descartado, setDescartado] = useState(false)
 
@@ -62,7 +64,9 @@ export function AnnouncementBanner() {
                     setDescartado(true)
                     if (staffId) {
                       cerrarAnuncio(staffId, banner.id)
-                        .then(() => quitarDeLaCache(queryClient, banner.id))
+                        .then(() => {
+                          if (staffVigente.current === staffId) quitarDeLaCache(queryClient, banner.id)
+                        })
                         .catch(() => {})
                     }
                   }}

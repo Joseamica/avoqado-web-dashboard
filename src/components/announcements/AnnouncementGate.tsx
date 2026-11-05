@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useLocation } from 'react-router-dom'
 import { ArrowRight, Sparkles } from 'lucide-react'
@@ -33,6 +33,9 @@ export function AnnouncementGate() {
   const { pathname } = useLocation()
   const queryClient = useQueryClient()
   const staffId = useAuth().user?.id
+  // 🔴 Una confirmación tardía de Ana no toca la caché si ya entró otra persona.
+  const staffVigente = useRef(staffId)
+  staffVigente.current = staffId
   const [cerrados, setCerrados] = useState<string[]>([])
   const [verCompleto, setVerCompleto] = useState<string | null>(null)
 
@@ -51,7 +54,9 @@ export function AnnouncementGate() {
   useEffect(() => {
     if (!staffId) return
     const reintentar = () =>
-      void reintentarCierresPendientes(staffId).then(ids => ids.forEach(id => quitarDeLaCache(queryClient, id)))
+      void reintentarCierresPendientes(staffId).then(ids => {
+        if (staffVigente.current === staffId) ids.forEach(id => quitarDeLaCache(queryClient, id))
+      })
     reintentar()
     window.addEventListener('online', reintentar)
     return () => window.removeEventListener('online', reintentar)
@@ -59,16 +64,18 @@ export function AnnouncementGate() {
 
   const ventana = data?.modal ?? null
   // La marca local manda sobre la caché de la consulta (puede traer un anuncio ya cerrado).
-  if (!ventana || cerrados.includes(ventana.id) || cerradoLocalmente(staffId, ventana.id)) return null
+  if (!ventana || cerrados.includes(`${staffId}:${ventana.id}`) || cerradoLocalmente(staffId, ventana.id)) return null
 
   // Cerrar (en cualquiera de los dos niveles) apaga la ventana para siempre. Se guarda en
   // el servidor con su propia marca — NO con `isRead`, que la campana enciende sola.
   const cerrar = () => {
-    setCerrados(previous => [...previous, ventana.id])
+    setCerrados(previous => [...previous, `${staffId}:${ventana.id}`])
     setVerCompleto(null)
     if (staffId) {
       cerrarAnuncio(staffId, ventana.id)
-        .then(() => quitarDeLaCache(queryClient, ventana.id))
+        .then(() => {
+          if (staffVigente.current === staffId) quitarDeLaCache(queryClient, ventana.id)
+        })
         .catch(() => {})
     }
   }

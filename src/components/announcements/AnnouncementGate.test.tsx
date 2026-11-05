@@ -234,4 +234,26 @@ describe('AnnouncementGate — anuncios pendientes al navegar', () => {
     mount()
     expect(await screen.findByRole('dialog')).toHaveTextContent(first.title)
   })
+
+  it('la confirmación tardía de Ana no quita la ventana de Beatriz', async () => {
+    let soltar!: () => void
+    const espera = new Promise<void>(r => { soltar = r })
+    server.use(http.post('*/api/v1/dashboard/announcements/:id/dismiss', async () => {
+      await espera
+      return HttpResponse.json({ success: true })
+    }))
+    pending = first
+    const { client, user } = mount()
+    await screen.findByRole('dialog')
+    await user.click(screen.getByRole('button', { name: 'Ahora no' }))
+    // sale Ana, entra Beatriz (mismo anuncio le toca) y la pantalla se vuelve a pintar
+    sesion.user = { id: 'staff-beatriz' }
+    await user.click(screen.getByRole('link', { name: 'Ajustes' }))
+    expect(await screen.findByRole('dialog')).toHaveTextContent(first.title)
+    await waitFor(() => expect(client.getQueryData<{ modal: unknown }>(['announcements', 'home'])?.modal).toBeTruthy())
+    soltar()
+    await waitFor(() => expect(localStorage.getItem('avoqado:anuncios-cerrados:staff-ana')).toContain('true'))
+    expect(client.getQueryData<{ modal: unknown }>(['announcements', 'home'])?.modal).toBeTruthy()
+    expect(screen.getByRole('dialog')).toHaveTextContent(first.title)
+  })
 })
