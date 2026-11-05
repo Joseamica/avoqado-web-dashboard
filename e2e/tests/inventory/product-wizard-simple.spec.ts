@@ -131,10 +131,9 @@ test('simple creation appears without reload; quantity preserves the exact paylo
   await page.locator('#initialStock').fill('0')
   await page.locator('#costPerUnit').fill('12.5')
   await page.locator('#reorderPoint').fill('4')
-  await page.locator('#lowStockThreshold').fill('2')
   await target(page, 'finish').click()
   await expect(page.locator('input#name')).toBeHidden()
-  expect(state.bodies[1]).toEqual({ product: { name: 'Vaso con inventario', description: '', price: 55, categoryId: CATEGORY.id, modifierGroupIds: [], printStationId: null, satProductKey: null, satUnitKey: null, soldByWeight: false, type: 'REGULAR' }, inventory: { useInventory: true, inventoryMethod: 'QUANTITY' }, simpleStock: { initialStock: 0, costPerUnit: 12.5, reorderPoint: 4, lowStockThreshold: 2, unit: 'UNIT' } })
+  expect(state.bodies[1]).toEqual({ product: { name: 'Vaso con inventario', description: '', price: 55, categoryId: CATEGORY.id, modifierGroupIds: [], printStationId: null, satProductKey: null, satUnitKey: null, soldByWeight: false, type: 'REGULAR' }, inventory: { useInventory: true, inventoryMethod: 'QUANTITY' }, simpleStock: { initialStock: 0, costPerUnit: 12.5, reorderPoint: 4, unit: 'UNIT' } })
   expect(reloads).toBe(0)
 })
 

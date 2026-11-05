@@ -572,6 +572,8 @@
     }
   },
   "wizard": {
+    "inventoryNotSavedAfterClose": "“{{name}}” was saved, but its inventory wasn't. Open it and save again.",
+    "productNotSavedAfterClose": "“{{name}}” wasn't saved. Open it and try again.",
     "title": "Product Wizard",
     "subtitle": "Create a new product with optional inventory tracking",
     "progress": "Step {{current}} of {{total}}",
@@ -1099,17 +1101,6 @@
     "optionalPriceFloor": "Optional price floor - suggested price will not go below this value",
     "invalidStockLevels": "Invalid stock levels",
     "minimumStockMustBeLessOrEqualToReorderPoint": "Minimum stock must be less than or equal to reorder point. The reorder point is when a purchase order is triggered, so it should be higher than minimum stock to account for delivery time."
-  },
-  "lowStockThreshold": {
-    "label": "Low Stock Alert Threshold",
-    "labelPortions": "Low Stock Alert Threshold (portions)",
-    "title": "What is Low Stock Threshold?",
-    "description": "Stock level that triggers a low stock alert in your dashboard. When stock falls below this number, the product will be highlighted.",
-    "descriptionPortions": "Number of portions that triggers a low stock alert. When available portions fall below this number, the product will be highlighted in your dashboard.",
-    "defaultNote": "Default: {{value}} units. Adjust based on your sales volume and reorder frequency.",
-    "defaultNotePortions": "Default: {{value}} portions. Adjust based on your daily sales and preparation time.",
-    "separateFromReorder": "Alert when stock falls below this level (separate from reorder point)",
-    "alertWhenBelow": "Alert when available portions fall below this level"
   },
   "pricingStrategy": {
     "manualDescription": "Manually set product prices",
