@@ -6,7 +6,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string, o?: Record<string, unknown>) => (o ? `${key}|${Object.values(o).join(',')}` : key) }),
 }))
-vi.mock('@/hooks/use-current-venue', () => ({ useCurrentVenue: () => ({ venueId: 'venue-1' }) }))
+let venueType: string | undefined
+vi.mock('@/hooks/use-current-venue', () => ({ useCurrentVenue: () => ({ venueId: 'venue-1', venue: { type: venueType } }) }))
 const toast = vi.fn()
 vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast }) }))
 
@@ -64,6 +65,7 @@ describe('MenuTab', () => {
       .mockResolvedValue({ items: [prod('p1'), prod('p2', { imageUrl: null, active: false })], nextCursor: null, total: 2 })
     setMenuAvailability.mockReset().mockResolvedValue({ updated: 1 })
     toast.mockReset()
+    venueType = 'RESTAURANT'
   })
   afterEach(() => vi.useRealTimers())
 
@@ -96,6 +98,25 @@ describe('MenuTab', () => {
     await userEvent.click(await screen.findByRole('switch', { name: 'menu.product.toggle|Producto p1' }))
     await waitFor(() => expect(setMenuAvailability).toHaveBeenCalledWith('venue-1', { availableOnline: true, productIds: ['p1'] }))
     await waitFor(() => expect(spy).toHaveBeenCalledTimes(2))
+  })
+
+  it.each([
+    ['FITNESS', 'menu.bulk.showAllConfirmServices'],
+    ['SALON', 'menu.bulk.showAllConfirmServices'],
+    ['RESTAURANT', 'menu.bulk.showAllConfirm'],
+    ['RETAIL_STORE', 'menu.bulk.showAllConfirm'],
+  ])('«Mostrar todo el menú» en un negocio %s avisa con %s', async (tipo, aviso) => {
+    venueType = tipo
+    renderTab()
+    await userEvent.click(await screen.findByRole('button', { name: 'menu.bulk.showAll' }))
+    expect(await screen.findByText(aviso)).toBeInTheDocument()
+  })
+
+  it('«Quitar todo de línea» no cambia su aviso en un giro de servicios', async () => {
+    venueType = 'FITNESS'
+    renderTab()
+    await userEvent.click(await screen.findByRole('button', { name: 'menu.bulk.hideAll' }))
+    expect(await screen.findByText('menu.bulk.hideAllConfirm')).toBeInTheDocument()
   })
 
   it('un error del servidor sale en un toast', async () => {
