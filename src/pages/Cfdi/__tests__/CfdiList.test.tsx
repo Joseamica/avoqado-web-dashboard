@@ -3,7 +3,7 @@
  * complementaria» por SU id, de cualquier periodicidad (también de antes de cambiarla). Una complementaria, una factura individual
  * o una fila de un servidor que todavía no dice si es complementaria, no.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { afterEach, describe, it, expect, vi, beforeEach } from 'vitest'
 import type { ReactNode } from 'react'
 import { render, screen, fireEvent, within, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
@@ -29,6 +29,9 @@ const m = vi.hoisted(() => ({
   extracciones: undefined as { total: number; enProceso: number } | undefined,
   conFacturacion: true,
   ultimosFiltros: {} as Record<string, unknown>,
+  // Por default, sin leer todavía: lo que no prueba «qué falta para facturar» llega al buscador.
+  fiscal: { data: undefined, isError: false } as { data: unknown; isError: boolean },
+  releerFiscal: vi.fn(),
 }))
 vi.mock('@/hooks/use-access', () => ({ useAccess: () => ({ can: (p: string) => m.permisos.includes(p) }) }))
 vi.mock('@/hooks/use-tier-feature-access', () => ({ useTierFeatureAccess: () => ({ hasAccess: m.conFacturacion }) }))
@@ -37,6 +40,7 @@ vi.mock('@/hooks/use-current-venue', () => ({
 }))
 vi.mock('@/utils/datetime', () => ({ useVenueDateTime: () => ({ formatDate: (d: string) => `fecha(${d})` }) }))
 vi.mock('@/hooks/use-cfdi', () => ({
+  useFiscalConfig: () => ({ ...m.fiscal, refetch: m.releerFiscal }),
   useCfdis: (filtros: Record<string, unknown>) => {
     m.ultimosFiltros = filtros
     return { data: { cfdis: m.filas, total: m.filas.length }, isLoading: false, isError: false }
@@ -659,6 +663,100 @@ describe('CfdiList · «Nueva factura»', () => {
 
     await waitFor(() => expect(m.ultimosFiltros.receptorRfc).toBe('EKU9003173C9'))
     expect(m.ultimosFiltros).toMatchObject({ page: 1, status: ['STAMPED'], from: '2025-01-15' })
+  })
+
+  describe('qué falta para facturar', () => {
+    const SIN_EMISOR = { emisores: [], merchantConfigs: [] }
+    const LISTO = { emisores: [{ id: 'e1', csdStatus: 'ACTIVE' }], merchantConfigs: [{ fiscalEmisorId: 'e1', facturacionEnabled: true }] }
+    const tocarElBoton = () => {
+      render(
+        <MemoryRouter>
+          <CfdiList />
+        </MemoryRouter>,
+      )
+      fireEvent.click(screen.getByRole('button', { name: BOTON }))
+    }
+
+    beforeEach(() => {
+      m.permisos = ['cfdi:view', 'cfdi:issue', 'cfdi:configure', 'orders:read']
+      m.releerFiscal.mockClear()
+    })
+    afterEach(() => {
+      m.fiscal = { data: undefined, isError: false }
+    })
+
+    it('🔴 sin emisor ⇒ en vez del buscador, dice qué falta y lleva a Configuración', () => {
+      m.fiscal = { data: SIN_EMISOR, isError: false }
+      tocarElBoton()
+
+      expect(screen.queryByTestId('buscador')).not.toBeInTheDocument()
+      expect(screen.getByText(es.faltaParaFacturar.configurar.emisor)).toBeInTheDocument()
+      expect(screen.getByRole('link', { name: es.faltaParaFacturar.irAConfiguracion })).toHaveAttribute(
+        'href',
+        '/venues/demo/cfdi/configuracion',
+      )
+    })
+
+    it('🔴 emisor sin CSD activo ⇒ dice que falta el CSD', () => {
+      m.fiscal = { data: { emisores: [{ id: 'e1', csdStatus: 'NONE' }], merchantConfigs: [] }, isError: false }
+      tocarElBoton()
+
+      expect(screen.queryByTestId('buscador')).not.toBeInTheDocument()
+      expect(screen.getByText(es.faltaParaFacturar.configurar.csd)).toBeInTheDocument()
+    })
+
+    it('🔴 sin `cfdi:configure` ⇒ le pide al dueño y no ofrece una Configuración que no puede abrir', () => {
+      m.permisos = ['cfdi:view', 'cfdi:issue', 'orders:read']
+      m.fiscal = { data: SIN_EMISOR, isError: false }
+      tocarElBoton()
+
+      expect(screen.getByText(es.faltaParaFacturar.pedirlo.emisor)).toBeInTheDocument()
+      expect(screen.queryByRole('link', { name: es.faltaParaFacturar.irAConfiguracion })).not.toBeInTheDocument()
+    })
+
+    it('al cerrar la ventana regresa a la lista, sin buscador; el botón sigue visible', () => {
+      m.fiscal = { data: SIN_EMISOR, isError: false }
+      tocarElBoton()
+
+      fireEvent.click(screen.getByRole('button', { name: es.faltaParaFacturar.ahoraNo }))
+
+      expect(screen.queryByText(es.faltaParaFacturar.title)).not.toBeInTheDocument()
+      expect(screen.queryByTestId('buscador')).not.toBeInTheDocument()
+      expect(screen.getByRole('button', { name: BOTON, hidden: true })).toBeInTheDocument()
+    })
+
+    it('🔴 el dueño ya lo dejó listo en otra pestaña: al tocar el botón se vuelve a leer, no se confía en lo guardado', () => {
+      m.fiscal = { data: SIN_EMISOR, isError: false }
+      tocarElBoton()
+      expect(m.releerFiscal).toHaveBeenCalled()
+    })
+
+    it('todo listo ⇒ el buscador, sin aviso', () => {
+      m.fiscal = { data: LISTO, isError: false }
+      tocarElBoton()
+
+      expect(screen.getByTestId('buscador')).toBeInTheDocument()
+      expect(screen.queryByText(es.faltaParaFacturar.title)).not.toBeInTheDocument()
+    })
+
+    it('🔴 cargando o con la lectura fallida ⇒ deja pasar y no pinta un error falso: decide el servidor', () => {
+      for (const fiscal of [
+        { data: undefined, isError: false },
+        { data: undefined, isError: true },
+        { data: SIN_EMISOR, isError: true },
+      ]) {
+        m.fiscal = fiscal
+        const { unmount } = render(
+          <MemoryRouter>
+            <CfdiList />
+          </MemoryRouter>,
+        )
+        fireEvent.click(screen.getByRole('button', { name: BOTON }))
+        expect(screen.getByTestId('buscador')).toBeInTheDocument()
+        expect(screen.queryByText(es.faltaParaFacturar.title)).not.toBeInTheDocument()
+        unmount()
+      }
+    })
   })
 
   it('control — sin permiso de facturar, sin ver ventas o sin la función de facturación, no aparece', () => {

@@ -88,6 +88,22 @@
     "confirm": "Cancelar factura",
     "cancel": "No, regresar"
   },
+  "faltaParaFacturar": {
+    "title": "Antes de facturar",
+    "configurar": {
+      "emisor": "Da de alta tu emisor (RFC y razón social) y sube tu CSD: los archivos .cer y .key que te da el SAT.",
+      "csd": "Tu emisor todavía no tiene un CSD activo. Sube tu CSD vigente: los archivos .cer y .key que te da el SAT.",
+      "comercio": "Tu emisor ya tiene su CSD activo, pero ningún comercio factura con él. Agrega el comercio con el que cobras y deja encendida la «Facturación activa»."
+    },
+    "pedirlo": {
+      "emisor": "Este negocio todavía no tiene emisor ni CSD (los archivos .cer y .key del SAT). Pídele al dueño o a un administrador que los dé de alta.",
+      "csd": "El emisor de este negocio todavía no tiene un CSD activo (los archivos .cer y .key del SAT). Pídele al dueño o a un administrador que lo suba.",
+      "comercio": "Todavía ningún comercio de este negocio factura con su emisor. Pídele al dueño o a un administrador que lo conecte en Facturación › Configuración."
+    },
+    "irAConfiguracion": "Ir a Configuración",
+    "ahoraNo": "Ahora no",
+    "entendido": "Entendido"
+  },
   "pickOrder": {
     "title": "Nueva factura",
     "subtitle": "Elige la venta que quieres facturar",

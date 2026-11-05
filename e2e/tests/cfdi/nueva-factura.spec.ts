@@ -72,7 +72,12 @@ interface Servidor {
   ventasFallan: boolean
 }
 
-async function fixture(page: Page, permissions: string[], ventas: Servidor['ventas']): Promise<Servidor> {
+const FISCAL_LISTO = {
+  emisores: [{ id: 'c777777777777777777777001', csdStatus: 'ACTIVE' }],
+  merchantConfigs: [{ id: 'c777777777777777777777002', fiscalEmisorId: 'c777777777777777777777001', facturacionEnabled: true }],
+}
+
+async function fixture(page: Page, permissions: string[], ventas: Servidor['ventas'], fiscal: unknown = FISCAL_LISTO): Promise<Servidor> {
   await page.addInitScript(() => {
     localStorage.setItem('lang', 'es')
     localStorage.setItem('vite-ui-theme', 'light')
@@ -150,6 +155,10 @@ async function fixture(page: Page, permissions: string[], ventas: Servidor['vent
     })
   })
 
+  await page.route(new RegExp(`/api/v1/dashboard/venues/${venueId}/fiscal/config(\\?.*)?$`), route =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(fiscal) }),
+  )
+
   await page.goto(`/venues/${SLUG}/cfdi`)
   return servidor
 }
@@ -216,6 +225,27 @@ test('un Gerente factura una venta desde «Nueva factura» y la ve sin recargar,
   await page.getByRole('button', { name: 'Nueva factura' }).click()
   await expect(page.getByRole('dialog').getByText('ORD-1002')).toBeVisible()
   await expect(page.getByRole('dialog').getByRole('button', { name: 'Facturar la venta ORD-1002' })).toHaveCount(0)
+})
+
+test('sin emisor: «Nueva factura» dice qué falta y lleva a Configuración; quien no puede configurar, se lo pide al dueño', async ({
+  page,
+}) => {
+  const SIN_EMISOR = { emisores: [], merchantConfigs: [] }
+  await fixture(page, [...GERENTE, 'cfdi:configure'], VENTAS(), SIN_EMISOR)
+  await expect(page.getByRole('heading', { name: 'Facturas' })).toBeVisible({ timeout: 20_000 })
+  await page.getByRole('button', { name: 'Nueva factura' }).click()
+
+  const aviso = page.getByRole('alertdialog')
+  await expect(aviso.getByText('Antes de facturar')).toBeVisible()
+  await expect(page.getByText('ORD-1001')).toHaveCount(0)
+  await aviso.getByRole('link', { name: 'Ir a Configuración' }).click()
+  await expect(page).toHaveURL(new RegExp(`/venues/${SLUG}/cfdi/configuracion`))
+
+  await fixture(page, GERENTE, VENTAS(), SIN_EMISOR)
+  await expect(page.getByRole('heading', { name: 'Facturas' })).toBeVisible({ timeout: 20_000 })
+  await page.getByRole('button', { name: 'Nueva factura' }).click()
+  await expect(page.getByRole('alertdialog').getByText(/Pídele al dueño/)).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Ir a Configuración' })).toHaveCount(0)
 })
 
 test('un Mesero sin permiso de facturar no ve «Nueva factura»', async ({ page }) => {
