@@ -39,9 +39,9 @@ export function FotoDeAnuncio({ url, alt, width, height, caption }: FotoDeAnunci
       {caption ? <figcaption className="text-xs text-muted-foreground">{caption}</figcaption> : null}
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="flex max-w-[95vw] items-center justify-center border-0 bg-neutral-950/90 p-2 sm:max-w-[95vw]">
+        <DialogContent className="flex max-w-[95vw] items-center justify-center border-0 bg-neutral-950/90 p-2 pt-14 sm:max-w-[95vw] [&>button]:rounded-full [&>button]:bg-neutral-800/80 [&>button]:p-1.5 [&>button]:text-neutral-50 [&>button]:opacity-100">
           <DialogTitle className="sr-only">{alt || 'Foto'}</DialogTitle>
-          <img src={url} alt={alt} className="max-h-[90vh] max-w-full object-contain" />
+          <img src={url} alt={alt} className="max-h-[80vh] max-w-full object-contain" />
         </DialogContent>
       </Dialog>
     </figure>

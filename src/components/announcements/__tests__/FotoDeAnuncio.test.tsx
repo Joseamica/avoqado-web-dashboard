@@ -36,7 +36,19 @@ describe('FotoDeAnuncio', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Foto A' }))
     const fotos = screen.getAllByAltText('Foto A')
     expect(fotos).toHaveLength(2)
-    expect(fotos[1].className).toContain('max-h-[90vh]')
+    expect(fotos[1].className).toContain('max-h-[80vh]')
     expect(screen.getByRole('button', { name: 'common:close' })).toBeTruthy()
+  })
+
+  it('el visor deja la X legible en los dos temas y la foto no queda debajo de ella', async () => {
+    render(<FotoDeAnuncio url="https://x.test/a.jpg" alt="Foto A" />)
+    await userEvent.click(screen.getByRole('button', { name: 'Foto A' }))
+    const cerrar = screen.getByRole('button', { name: 'common:close' })
+    const contenido = cerrar.parentElement!
+    // fondo oscuro fijo => X clara fija (no depende del tema) y con fondo propio
+    expect(contenido.className).toContain('[&>button]:text-neutral-50')
+    expect(contenido.className).toContain('[&>button]:bg-neutral-800/80')
+    // la foto arranca debajo de la X (a 375 px la X no la tapa)
+    expect(contenido.className).toMatch(/\bpt-14\b/)
   })
 })

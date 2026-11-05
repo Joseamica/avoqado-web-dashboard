@@ -76,6 +76,7 @@ function Sonda() {
       <span data-testid="ids">{n.notifications.map(x => x.id).join(',')}</span>
       <span data-testid="count">{n.unreadCount}</span>
       <span data-testid="error">{n.error ?? ''}</span>
+      <span data-testid="loading">{String(n.loading)}</span>
       <button onClick={() => n.markAllAsRead()}>marcar</button>
     </div>
   )
@@ -157,6 +158,21 @@ describe('campana por negocio · pedir la lista', () => {
     act(() => ir('/venues/mindform/home'))
     await waitFor(() => expect(ids()).toBe(''))
     expect(cuenta()).toBe('0')
+  })
+
+  it('mientras carga la del nuevo negocio dice «cargando», nunca el vacío', async () => {
+    h.svc.getNotifications.mockResolvedValueOnce(respuesta([aviso('g1')]))
+    montar('/venues/galeterie/home')
+    await waitFor(() => expect(ids()).toBe('g1'))
+    expect(screen.getByTestId('loading').textContent).toBe('false')
+    let soltar: (v: unknown) => void = () => {}
+    h.svc.getNotifications.mockReturnValueOnce(new Promise(r => (soltar = r)))
+    act(() => ir('/venues/mindform/home'))
+    await waitFor(() => expect(ids()).toBe(''))
+    expect(screen.getByTestId('loading').textContent).toBe('true')
+    await act(async () => soltar(respuesta([aviso('m1')])))
+    await waitFor(() => expect(ids()).toBe('m1'))
+    expect(screen.getByTestId('loading').textContent).toBe('false')
   })
 
   it('si la del nuevo negocio falla, queda vacía con su error', async () => {

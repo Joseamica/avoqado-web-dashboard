@@ -92,6 +92,8 @@ export default function NotificationPreferences5() {
     queryKey: announcementKey,
     queryFn: notificationService.getAnnouncementEmailPreference,
   })
+  // Guarda síncrona: `isPending` llega tarde y un doble clic mandaba dos PUT.
+  const anuncioEnVuelo = useRef(false)
   const announcementMutation = useMutation({
     mutationFn: (enabled: boolean) => notificationService.setAnnouncementEmailPreference(enabled),
     onMutate: async (enabled: boolean) => {
@@ -105,7 +107,10 @@ export default function NotificationPreferences5() {
       toast({ title: t('error'), description: error?.message || t('failedToUpdate'), variant: 'destructive' })
     },
     // Tras guardar (bien o mal) se vuelve a leer lo que de verdad quedó en el servidor.
-    onSettled: () => queryClient.invalidateQueries({ queryKey: announcementKey }),
+    onSettled: () => {
+      anuncioEnVuelo.current = false
+      return queryClient.invalidateQueries({ queryKey: announcementKey })
+    },
   })
 
   function addPending(key: string): void {
@@ -323,7 +328,11 @@ export default function NotificationPreferences5() {
             aria-label={t('fromAvoqado.emailAnnouncements')}
             checked={announcementPref?.enabled ?? false}
             disabled={announcementLoading || !announcementPref || announcementMutation.isPending}
-            onCheckedChange={enabled => announcementMutation.mutate(enabled)}
+            onCheckedChange={enabled => {
+              if (anuncioEnVuelo.current) return
+              anuncioEnVuelo.current = true
+              announcementMutation.mutate(enabled)
+            }}
           />
         </div>
       </div>

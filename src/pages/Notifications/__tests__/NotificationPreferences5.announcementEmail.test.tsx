@@ -86,4 +86,15 @@ describe('preferencias: sección «De Avoqado»', () => {
     await waitFor(() => expect(svc.updateManyPreferences).toHaveBeenCalled())
     expect(svc.setAnnouncementEmailPreference).not.toHaveBeenCalled()
   })
+
+  it('doble clic rápido manda UN solo PUT', async () => {
+    svc.setAnnouncementEmailPreference.mockReturnValue(new Promise(() => {}))
+    pintar()
+    await screen.findByRole('switch', { name: 'fromAvoqado.emailAnnouncements' })
+    await waitFor(() => expect(interruptor()).toBeEnabled())
+    fireEvent.click(interruptor())
+    fireEvent.click(interruptor())
+    await new Promise(r => setTimeout(r, 30))
+    expect(svc.setAnnouncementEmailPreference).toHaveBeenCalledTimes(1)
+  })
 })

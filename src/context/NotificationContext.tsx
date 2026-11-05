@@ -286,6 +286,8 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
   // Context value
   const contextValue: NotificationContextType = {
     ...state,
+    // Mientras la lista del negocio nuevo sigue en vuelo (RESET deja loading:false), se ve «cargando», nunca el vacío.
+    loading: state.loading || (notificationsQuery.isLoading && state.notifications.length === 0),
     venueId,
     lecturaDeNotificaciones: notificationsQuery,
     markAsRead,
