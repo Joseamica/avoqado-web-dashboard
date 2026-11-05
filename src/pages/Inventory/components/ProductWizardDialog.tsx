@@ -599,7 +599,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
         })
       }
 
-      handleWizardComplete(contexto?.sesion, variables.venueId)
+      handleWizardComplete(contexto?.sesion, variables.venueId, variables.productId)
     },
     onError: (error: any, variables, contexto) => {
       if (contexto?.sesion !== sesion.current) return
@@ -694,6 +694,10 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
     queryClient.invalidateQueries({ queryKey: ['products', venueDelEnvio] })
     queryClient.invalidateQueries({ queryKey: ['products-with-recipes', venueDelEnvio] })
     queryClient.invalidateQueries({ queryKey: IVA_QUERY_KEY(venueDelEnvio) }) // el primer encendido pudo prender el IVA por producto
+    // Llenan el formulario una sola vez al abrir: con la copia de antes, guardar sin tocar nada devolvía todo a como estaba.
+    for (const lectura of ['product-detail', 'product-wizard-progress', 'product-recipe']) {
+      queryClient.invalidateQueries({ queryKey: [lectura, venueDelEnvio, productoCompletado], refetchType: 'all' })
+    }
     if (sesionDelEnvio !== undefined && sesionDelEnvio !== sesion.current) return
 
     if (onSuccess && productoCompletado) {

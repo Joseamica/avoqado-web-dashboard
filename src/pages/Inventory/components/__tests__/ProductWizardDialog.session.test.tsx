@@ -641,6 +641,51 @@ describe('asistente — respuestas y fotos entre aperturas', () => {
     expect(vista.onOpenChange).not.toHaveBeenCalled()
   })
 
+  // Estas lecturas llenan el formulario una sola vez al abrir: con la copia de antes del guardado, volver a guardar sin tocar nada
+  // devolvía el mínimo, las existencias y el precio a como estaban.
+  it('reabrir sin recargar muestra lo recién guardado por cantidad, no la copia de antes', async () => {
+    inv.productWizardApi.getWizardProgress.mockResolvedValue({
+      data: { data: { inventoryMethod: 'QUANTITY', details: { currentStock: 5, minimumStock: 3, reservedStock: 0, costPerUnit: 2 } } },
+    })
+    const vista = montar()
+    await screen.findByDisplayValue('Producto a')
+    await screen.findByDisplayValue('5')
+    inv.productWizardApi.getWizardProgress.mockResolvedValue({
+      data: { data: { inventoryMethod: 'QUANTITY', details: { currentStock: 9, minimumStock: 7, reservedStock: 0, costPerUnit: 2 } } },
+    })
+    http.get.mockImplementation(async () => ({ data: { data: { ...producto('a'), name: 'Nombre nuevo' } } }))
+    await guardar()
+    await waitFor(() => expect(vista.onOpenChange).toHaveBeenCalledWith(false))
+    await act(async () => { await new Promise(resolve => setTimeout(resolve, 20)) })
+    vista.abrir(false)
+    vista.abrir(true, 'a')
+    await screen.findByDisplayValue('Nombre nuevo')
+    await screen.findByDisplayValue('9')
+    expect(screen.getByLabelText(/^wizard\.step3\.reorderPoint/)).toHaveValue(7)
+  })
+
+  it('reabrir sin recargar muestra la receta recién guardada, no la copia de antes', async () => {
+    const receta = (nombre: string, id: string) => ({
+      data: { data: { portionYield: 1, lines: [{ rawMaterialId: id, rawMaterial: { name: nombre }, quantity: '1', unit: 'KILOGRAM', isOptional: false }] } },
+    })
+    plan.hasAccess = true
+    inv.productWizardApi.getWizardProgress.mockResolvedValue({ data: { data: { inventoryMethod: 'RECIPE', details: {} } } })
+    inv.recipesApi.get.mockResolvedValue(receta('Insumo viejo', 'rm1'))
+    inv.recipesApi.update.mockResolvedValue({})
+    inv.rawMaterialsApi.getAll.mockResolvedValue({ data: { data: [] } })
+    const vista = montar()
+    await screen.findByDisplayValue('Producto a')
+    await screen.findAllByText('Insumo viejo', { selector: 'p' })
+    inv.recipesApi.get.mockResolvedValue(receta('Insumo nuevo', 'rm2'))
+    await guardar()
+    await waitFor(() => expect(vista.onOpenChange).toHaveBeenCalledWith(false))
+    await act(async () => { await new Promise(resolve => setTimeout(resolve, 20)) })
+    vista.abrir(false)
+    vista.abrir(true, 'a')
+    await screen.findAllByText('Insumo nuevo', { selector: 'p' })
+    expect(screen.queryByText('Insumo viejo')).not.toBeInTheDocument()
+  })
+
   // El PUT de la edición de A no es una mutación: su candado es de ESA apertura. Ni le estorba a B ni A se lo quita al terminar.
   it('PUT de edición A en camino: B guarda libre, y cuando A termina no suelta el candado de B', async () => {
     const putA = diferida()
