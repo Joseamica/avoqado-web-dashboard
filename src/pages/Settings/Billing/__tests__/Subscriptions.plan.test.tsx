@@ -339,7 +339,7 @@ describe('each choice opens its operation (spec §4.1)', () => {
       },
     },
   }
-  const useListButton = { name: 'Usar el precio de lista de Inventario FIFO, recetas y costeo ($599.00)' }
+  const useListButton = { name: 'Usar el precio de lista de Inventario FIFO, recetas y costeo ($516.38 + IVA)' }
   const markInventory = { name: 'Marcar Inventario FIFO, recetas y costeo' }
 
   it('a dependency its promotion brings for too short offers that function at its list price, and quotes it', async () => {

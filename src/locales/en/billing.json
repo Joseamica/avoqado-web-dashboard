@@ -231,7 +231,7 @@
     },
     "grid": {
       "title": "Features · all {{count}}",
-      "intro": "Tick the ones you want. Monthly prices, VAT included; the label says which plan already includes it.",
+      "intro": "Tick the ones you want. Monthly prices before VAT, except promotions; the label says which plan already includes it.",
       "introClosed": "Here are all the features and the plan that includes each one. Soon you'll be able to buy them one by one.",
       "introDrop": "These come with your plan, not with Free. Tick the ones you want to keep on their own.",
       "categories": {
@@ -263,6 +263,7 @@
       "empty": "Pick a plan or tick features to see the total.",
       "monthlyTotal": "Monthly total",
       "monthlyAdded": "Added per month",
+      "netPlusIva": "{{net}} + VAT = {{gross}}",
       "payToday": "You pay {{price}} today",
       "payTodayAtReview": "What you pay today is calculated at review, including your credit if you change plans.",
       "promo_one": "For {{count}} month; then {{price}}",
@@ -270,7 +271,7 @@
       "promoEnd_one": "For {{count}} month; then it ends",
       "promoEnd_other": "For {{count}} months; then it ends",
       "lose": "You'll lose",
-      "hint": "{{tier}} includes these {{covered}} and {{more}} more features, for {{price}} a month.",
+      "hint": "{{tier}} includes these {{covered}} and {{more}} more features, for {{price}} + VAT a month.",
       "hintCta": "See {{tier}}",
       "hintNote": "This is a comparison, not a price guarantee.",
       "review": "Review and pay",
@@ -288,7 +289,7 @@
       "planError": "We couldn't load your plan. Nothing changed; try again in a moment."
     },
     "dependency": {
-      "useList": "Use the list price of {{name}} ({{price}})",
+      "useList": "Use the list price of {{name}} ({{price}} + VAT)",
       "retained": "{{name}} ends before the feature that depends on it. We make this change with you: Assisted change.",
       "missing": "Add {{name}} to your purchase to continue.",
       "remove": "Remove {{name}} from your purchase to continue.",

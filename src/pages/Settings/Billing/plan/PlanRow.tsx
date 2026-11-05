@@ -9,6 +9,7 @@ import type { PlanOrigin, PlanState } from '@/services/features.service'
 import type { FeatureGrid, HybridReplacementOptions } from '@/services/hybridBilling.service'
 import { useVenueDateTime } from '@/utils/datetime'
 import { getIntlLocale } from '@/utils/i18n-locale'
+import { sinIva } from '@/lib/sinIva'
 import { planPillPrice, tierFeatureCount, type PlanTarget } from './planActions'
 
 const TIERS: PlanTarget[] = ['FREE', 'PRO', 'PREMIUM']
@@ -96,8 +97,11 @@ export function PlanRow(props: PlanRowProps) {
                 />
                 <span className="font-semibold">{tierName(tier)}</span>
                 <span className="tabular-nums">
-                  {money(price.amount)}
+                  {money(price.ivaAparte ? sinIva(price.amount) : price.amount)}
                   {tier !== 'FREE' && (price.per === 'year' ? t('plan.perYear') : t('plan.perMonth'))}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {tier !== 'FREE' && t(price.ivaAparte ? 'plan.plusIva' : 'plan.ivaIncluded')}
                 </span>
                 {props.grid && (
                   <span className="text-xs text-muted-foreground">

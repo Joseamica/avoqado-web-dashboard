@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { salesWhatsAppLink } from '@/config/plan-catalog'
 import type { FeatureGridEntry, FeatureGridOffer } from '@/services/hybridBilling.service'
 import { getIntlLocale } from '@/utils/i18n-locale'
+import { sinIva } from '@/lib/sinIva'
 import type { DependencyFix, PlanOperation, SelectionSummaryModel } from './planActions'
 
 export interface SelectionSummaryProps {
@@ -106,7 +107,9 @@ export function SelectionSummary({
                 <p className="text-xs text-muted-foreground">{totalLabel}</p>
                 <p className="text-3xl font-bold tabular-nums">{money(model.monthlyTotal)}</p>
                 <p className="text-xs text-muted-foreground">
-                  {t('plan.ivaIncluded')}
+                  {model.monthlyTotal > 0
+                    ? t('plan.selection.netPlusIva', { net: money(sinIva(model.monthlyTotal)), gross: money(model.monthlyTotal) })
+                    : t('plan.ivaIncluded')}
                   {purchase &&
                     ` · ${model.payToday != null ? t('plan.selection.payToday', { price: money(model.payToday) }) : t('plan.selection.payTodayAtReview')}`}
                 </p>
@@ -132,7 +135,7 @@ export function SelectionSummary({
                     tier: tierName(model.hint.tier),
                     covered: model.hint.covered,
                     more: model.hint.more,
-                    price: money(model.hint.price),
+                    price: money(sinIva(model.hint.price)),
                   })}{' '}
                   <button type="button" className="underline" onClick={() => onPickTier(model.hint!.tier)} data-tour="plan-hint-cta">
                     {t('plan.selection.hintCta', { tier: tierName(model.hint.tier) })}
@@ -192,7 +195,7 @@ export function SelectionSummary({
               >
                 {t('plan.dependency.useList', {
                   name: dependency.plan ? tierName(dependency.plan) : codeName(dependency.prefer, dependency.entry),
-                  price: money(dependency.price),
+                  price: money(sinIva(dependency.price)),
                 })}
               </Button>
             )}

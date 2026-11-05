@@ -2,6 +2,7 @@
 import { useTranslation } from 'react-i18next'
 import { Check } from 'lucide-react'
 import { FUNCIONES_PROXIMAMENTE } from '@/config/plan-comparison'
+import { sinIva, esPrecioDeLista } from '@/lib/sinIva'
 import { cn } from '@/lib/utils'
 import type { FeatureGridEntry, FeatureGridOffer } from '@/services/hybridBilling.service'
 import { useVenueDateTime } from '@/utils/datetime'
@@ -115,7 +116,11 @@ export function FeatureGrid({
         <span className="min-w-0 flex-1">
           <span className="block text-sm font-medium">{name(entry)}</span>
           <span className="block text-sm font-semibold tabular-nums">
-            {showPrice && offer ? `${money(offer.price)}${t('plan.perMonth')}` : entry.offering === 'CONTACT' ? t('plan.grid.quote') : ' '}
+            {showPrice && offer
+              ? `${money(esPrecioDeLista(offer) ? sinIva(offer.price) : offer.price)}${t('plan.perMonth')} ${t(esPrecioDeLista(offer) ? 'plan.plusIva' : 'plan.ivaIncluded')}`
+              : entry.offering === 'CONTACT'
+                ? t('plan.grid.quote')
+                : ' '}
             {listPrice != null && (
               <s className="ml-1.5 font-normal text-muted-foreground">
                 <span className="sr-only">{t('plan.grid.listPrice')} </span>

@@ -231,7 +231,7 @@
     },
     "grid": {
       "title": "Funciones · las {{count}}",
-      "intro": "Marca las que quieras. Precios al mes, con IVA incluido; la etiqueta dice qué plan ya la incluye.",
+      "intro": "Marca las que quieras. Precios al mes, antes de IVA salvo las promociones; la etiqueta dice qué plan ya la incluye.",
       "introClosed": "Aquí ves todas las funciones y en qué plan vienen. Pronto podrás contratarlas sueltas.",
       "introDrop": "Estas vienen en tu plan y no en Gratis. Marca las que quieras conservar sueltas.",
       "categories": {
@@ -263,6 +263,7 @@
       "empty": "Elige un plan o marca funciones para ver el total.",
       "monthlyTotal": "Total al mes",
       "monthlyAdded": "Agregas al mes",
+      "netPlusIva": "{{net}} + IVA = {{gross}}",
       "payToday": "Hoy pagas {{price}}",
       "payTodayAtReview": "Lo que pagas hoy se calcula al revisar, con tu crédito si cambias de plan.",
       "promo_one": "Por {{count}} mes; luego {{price}}",
@@ -270,7 +271,7 @@
       "promoEnd_one": "Por {{count}} mes; después termina",
       "promoEnd_other": "Por {{count}} meses; después termina",
       "lose": "Dejas de tener",
-      "hint": "{{tier}} incluye estas {{covered}} y {{more}} funciones más, por {{price}} al mes.",
+      "hint": "{{tier}} incluye estas {{covered}} y {{more}} funciones más, por {{price}} + IVA al mes.",
       "hintCta": "Ver {{tier}}",
       "hintNote": "Es una comparación, no una garantía de precios.",
       "review": "Revisar y pagar",
@@ -288,7 +289,7 @@
       "planError": "No pudimos cargar tu plan. No cambió nada; intenta de nuevo en un momento."
     },
     "dependency": {
-      "useList": "Usar el precio de lista de {{name}} ({{price}})",
+      "useList": "Usar el precio de lista de {{name}} ({{price}} + IVA)",
       "retained": "{{name}} termina antes que la función que depende de ella. Este cambio lo hacemos contigo: Cambio asistido.",
       "missing": "Agrega {{name}} a tu compra para continuar.",
       "remove": "Quita {{name}} de tu compra para continuar.",

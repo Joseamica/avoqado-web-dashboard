@@ -89,6 +89,34 @@ describe('FeatureGrid', () => {
     expect(props.onToggle).toHaveBeenCalledWith('LOYALTY_PROGRAM')
   })
 
+  it('a list price shows without IVA and says + IVA; an offer below its list keeps IVA included and its strike', () => {
+    const list = entry('LOYALTY_PROGRAM', 'customers', 'PRO', 'NONE', 249)
+    list.offer = { ...list.offer!, listPrice: 249 }
+    const { unmount } = render(
+      <FeatureGrid
+        entries={[list]}
+        purchasesEnabled
+        mode="ADD"
+        marked={[]}
+        isMarkable={i => isMarkable(i, 'ADD')}
+        onToggle={vi.fn()}
+        onPickTier={vi.fn()}
+        canManage
+        target="FREE"
+      />,
+    )
+    expect(screen.getByText(/\$214\.66/)).toBeInTheDocument()
+    expect(screen.getByText(/plan\.plusIva/)).toBeInTheDocument()
+    unmount()
+    const promo = entry('LOYALTY_PROGRAM', 'customers', 'PRO', 'NONE', 149)
+    promo.offer = { ...promo.offer!, listPrice: 249, renewal: 'REPRICE', renewalPrice: 249, promotionCycles: 3 }
+    renderGrid({ entries: [promo] })
+    expect(screen.getByText(/\$149\.00/)).toBeInTheDocument()
+    expect(screen.getByText(/plan\.ivaIncluded/)).toBeInTheDocument()
+    expect(document.querySelector('s')).toHaveTextContent('$249.00')
+    expect(screen.queryByText(/\$214\.66/)).toBeNull()
+  })
+
   it('a price with cents shows its cents, as the summary and the server do', () => {
     renderGrid({ entries: [entry('LOYALTY_PROGRAM', 'customers', 'PRO', 'NONE', 199.99)] })
     expect(screen.getByText(/199\.99/)).toBeInTheDocument()
@@ -188,7 +216,7 @@ describe('FeatureGrid', () => {
       promotionCycles: null,
     }
     renderGrid({ entries: [promo], preferList: ['INVENTORY_TRACKING'] })
-    expect(screen.getByText(/\$599\.00/)).toBeInTheDocument()
+    expect(screen.getByText(/\$516\.38/)).toBeInTheDocument()
     expect(screen.queryByText(/\$479\.20/)).toBeNull()
     expect(document.querySelector('s')).toBeNull()
     expect(screen.queryByText(/plan\.selection\.promo|promoForever/)).toBeNull()
