@@ -38,6 +38,9 @@ const REQUIREMENTS: StoreRequirement[] = ['address', 'phone', 'privacyNotice']
 // El 4.º paso refleja la regla `NO_PAYMENT_MODE` del servidor: no se enciende (ni se queda encendida) sin un medio de pago VIVO:
 // «Pagar al recoger», o la tarjeta prendida con un Stripe que sí cobra (`card.merchantStatus === 'READY'`).
 const STEPS: (StoreRequirement | 'payment')[] = [...REQUIREMENTS, 'payment']
+// En tema oscuro, apagado era `bg-muted` sobre la tarjeta (1.2:1) y no se veía; así da 3.3:1. No va en `switch.tsx`: en oscuro le ganaría al
+// rojo de «inactivo» que Productos y Servicios ponen a su interruptor.
+const SWITCH_OFF_VISIBLE = 'dark:data-[state=unchecked]:bg-muted-foreground/60'
 
 const schema = z.object({
   enabled: z.boolean(),
@@ -89,6 +92,8 @@ function RequirementsList({
   focusRef,
   noticeButtonRef,
   onWriteNotice,
+  onEnable,
+  enableDisabled,
 }: {
   missing: StoreRequirement[]
   /** Con el valor VIVO del formulario: apagar «Pagar al recoger» sin guardar ya quita el «Todo listo». */
@@ -98,6 +103,8 @@ function RequirementsList({
   focusRef: RefObject<HTMLDivElement>
   noticeButtonRef: RefObject<HTMLButtonElement>
   onWriteNotice: () => void
+  onEnable: () => void
+  enableDisabled: boolean
 }) {
   const { t } = useTranslation('onlineOrdering')
   const allSet = missing.length === 0 && hasPayment
@@ -107,6 +114,11 @@ function RequirementsList({
       <Alert role="status" data-tour="online-ordering-requirements">
         <AlertDescription className="space-y-2">
           <p className="font-medium">{t(allSet ? 'settings.requirements.allSet' : 'settings.requirements.title')}</p>
+          {allSet && (
+            <Button type="button" size="sm" className="cursor-pointer" disabled={enableDisabled} onClick={onEnable}>
+              {t('settings.enable')}
+            </Button>
+          )}
           {/* Sin viñetas, Safari/VoiceOver deja de anunciarla como lista si no lleva el rol explícito. */}
           <ul role="list" className="space-y-2">
             {STEPS.map(r => {
@@ -180,6 +192,7 @@ export function SettingsTab() {
   const [noticeOpen, setNoticeOpen] = useState(false)
   const stepsRef = useRef<HTMLDivElement>(null)
   const noticeButtonRef = useRef<HTMLButtonElement>(null)
+  const enableSwitchRef = useRef<HTMLButtonElement>(null)
 
   const settingsQuery = useQuery({
     queryKey: onlineOrderingKeys.settings(venueId ?? ''),
@@ -252,6 +265,15 @@ export function SettingsTab() {
     if (Object.keys(patch).length) mutation.mutate(patch)
   })
 
+  // El interruptor sólo prende y espera «Guardar»; un botón «Encender» que no enciende sería otra trampa, así que éste prende y guarda
+  // por el MISMO camino (mismo PUT, errores y aviso), junto con lo que hubiera sin guardar. Al encenderse, la lista y este botón se van:
+  // el foco pasa al interruptor, no a <body>.
+  const enableStore = () => {
+    setValue('enabled', true, { shouldDirty: true })
+    enableSwitchRef.current?.focus({ preventScroll: true })
+    void onSubmit()
+  }
+
   // El editor guarda el aviso en SU llave (`privacy-notice`); el requisito viaja en los ajustes. Al cerrarlo (al publicar, por
   // `onSaved`; sin publicar, con la X) se vuelven a pedir para que el ⬜ pase a ✅ y el interruptor se habilite solo, y lo que dijo un
   // 400 `STORE_REQUIREMENTS_MISSING` anterior sobre el aviso ya no manda: decide el GET nuevo.
@@ -317,6 +339,8 @@ export function SettingsTab() {
           focusRef={stepsRef}
           noticeButtonRef={noticeButtonRef}
           onWriteNotice={() => setNoticeOpen(true)}
+          onEnable={enableStore}
+          enableDisabled={hourErrors.length > 0 || mutation.isPending}
         />
       )}
 
@@ -338,7 +362,9 @@ export function SettingsTab() {
               name="enabled"
               render={({ field }) => (
                 <Switch
+                  ref={enableSwitchRef}
                   id="oo-enabled"
+                  className={SWITCH_OFF_VISIBLE}
                   aria-label={t('settings.enable')}
                   checked={!!field.value}
                   disabled={!field.value && enableBlocked}
@@ -355,7 +381,13 @@ export function SettingsTab() {
                 control={control}
                 name="acceptsPayAtPickup"
                 render={({ field }) => (
-                  <Switch id="oo-pay" aria-label={t('settings.payAtPickup')} checked={!!field.value} onCheckedChange={field.onChange} />
+                  <Switch
+                    id="oo-pay"
+                    className={SWITCH_OFF_VISIBLE}
+                    aria-label={t('settings.payAtPickup')}
+                    checked={!!field.value}
+                    onCheckedChange={field.onChange}
+                  />
                 )}
               />
             </div>
@@ -369,6 +401,7 @@ export function SettingsTab() {
                     // El valor guardado no se toca: nace prendido de fábrica (paso 5) y, al conectar Stripe, la tarjeta queda lista sola.
                     <Switch
                       id="oo-card"
+                      className={SWITCH_OFF_VISIBLE}
                       aria-label={t('settings.cardOnline')}
                       checked={cardAvailable && !!field.value}
                       disabled={!cardAvailable}
@@ -454,7 +487,13 @@ export function SettingsTab() {
               control={control}
               name="manualPause"
               render={({ field }) => (
-                <Switch id="oo-pause" aria-label={t('settings.manualPause')} checked={!!field.value} onCheckedChange={field.onChange} />
+                <Switch
+                  id="oo-pause"
+                  className={SWITCH_OFF_VISIBLE}
+                  aria-label={t('settings.manualPause')}
+                  checked={!!field.value}
+                  onCheckedChange={field.onChange}
+                />
               )}
             />
           </div>
@@ -470,6 +509,7 @@ export function SettingsTab() {
           <div className="flex items-center gap-3">
             <Switch
               id="oo-hours"
+              className={SWITCH_OFF_VISIBLE}
               aria-label={t('settings.hours.use')}
               checked={hours !== null}
               onCheckedChange={on => setValue('hours', on ? defaultWeek() : null, { shouldDirty: true })}
