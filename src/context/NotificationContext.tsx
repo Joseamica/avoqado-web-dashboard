@@ -276,6 +276,8 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
   }, [])
 
   const refreshNotifications = useCallback(() => {
+    // refetch() ignora `enabled`: sin esta guarda pediría la lista de TODOS los negocios.
+    if (negocioRef.current.venuePendiente) return
     notificationsQuery.refetch()
   }, [notificationsQuery])
 
