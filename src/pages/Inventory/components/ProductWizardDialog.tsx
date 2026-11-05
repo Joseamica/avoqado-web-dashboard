@@ -119,6 +119,8 @@ const NO_MODIFIER_GROUP_TYPES: ProductType[] = ['APPOINTMENTS_SERVICE', 'CLASS',
 
 type OptionalSectionId = 'variants' | 'inventory' | 'codes' | 'weight' | 'modifiers' | 'preparation' | 'description' | 'fiscal'
 type OptionalOpener = OptionalSectionId | 'recipe'
+// Con variantes, cada combinación lleva su código, su peso y sus existencias: estas secciones se ocultan y la familia no las manda.
+const SECCIONES_QUE_OCULTAN_VARIANTES: OptionalSectionId[] = ['codes', 'weight', 'inventory']
 
 interface ProductWizardDialogProps {
   open: boolean
@@ -1886,6 +1888,9 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                   )}
 
 </>
+  // Lo escrito en las secciones que las variantes ocultan se conserva (al quitar las tallas regresa), pero la familia no lo
+  // manda: se avisa a la vista para que no se pierda en silencio (pizarrón D2, 5-nov).
+  const ocultasPorVariantes = conVariantesActiva ? SECCIONES_QUE_OCULTAN_VARIANTES.filter(id => hasSectionData(id)) : []
   const optionalFields: Record<OptionalSectionId, React.ReactNode> = {
     variants: <>                      {/* Producto con variantes (Tarea 5): sólo en el alta y en los tipos que admiten familia; antes del precio */}
                       {mode === 'create' && tipoAdmiteVariantes && (
@@ -1930,6 +1935,19 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                     >
                       <SectionHeader icon={Layers} title={tv('alta.seccion')} className="mb-2" />
                       <p className="text-sm text-muted-foreground mb-6">{tv('alta.seccionAyuda')}</p>
+                      {ocultasPorVariantes.length > 0 && (
+                        <div role="status" data-tour="product-wizard-variants-hidden-data" className="mb-6 rounded-lg border border-input bg-muted/40 p-4 text-sm">
+                          <p className="font-medium">{t('wizard.optional.variantsHiddenTitle')}</p>
+                          <ul className="mt-2 list-disc space-y-1 pl-5">
+                            {ocultasPorVariantes.map(id => (
+                              <li key={id}>
+                                {t(`wizard.optional.${id === 'inventory' && step2Form.getValues('inventoryMethod') === 'RECIPE' ? 'recipe' : id}.title`)}
+                              </li>
+                            ))}
+                          </ul>
+                          <p className="mt-2 text-muted-foreground">{t('wizard.optional.variantsHiddenHint')}</p>
+                        </div>
+                      )}
                       <VariantsSection
                         venueId={venueId!}
                         nombrePadre={step1Form.watch('name') ?? ''}

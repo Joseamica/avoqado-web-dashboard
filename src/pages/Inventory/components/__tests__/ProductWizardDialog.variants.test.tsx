@@ -6,7 +6,7 @@
  * Arnés copiado de `ProductWizardDialog.iva.test.tsx` (mismos `vi.mock`), parametrizado para el alta. `t` devuelve la clave.
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -686,5 +686,64 @@ describe('asistente de producto: editar una variante (Tarea 13)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'save' }))
     await waitFor(() => expect(http.put).toHaveBeenCalledTimes(1))
     expect(http.put.mock.calls[0][1]).toMatchObject({ name: 'Café en grano', categoryId: 'c1', modifierGroupIds: [] })
+  })
+})
+
+/**
+ * Pizarrón D2 (5-nov, full-testing en Safari): al marcar la casilla, Código de barras y SKU, «Se vende por peso» e Inventario
+ * se ocultan y la familia no los manda. Lo escrito se conserva a propósito (al desmarcar regresa: alta sencilla, `dee37ac4`),
+ * pero se perdía al guardar sin que nadie lo dijera. Ahora la sección de variantes lo avisa y nombra cada sección.
+ */
+describe('asistente de producto: marcar variantes con datos en las secciones que se ocultan', () => {
+  const abrirSeccion = async (id: string) => {
+    let opener: HTMLButtonElement | null = null
+    await waitFor(() => {
+      opener = document.querySelector<HTMLButtonElement>(`[data-tour="product-wizard-add-${id}"]`)
+      expect(opener).toBeEnabled()
+    })
+    fireEvent.click(opener!)
+  }
+  const aviso = () => document.querySelector<HTMLElement>('[data-tour="product-wizard-variants-hidden-data"]')
+
+  it('🔴 con un código de barras escrito, marcar la casilla avisa que no se guarda; al desmarcar el código regresa', async () => {
+    pintar()
+    fireEvent.change(await screen.findByPlaceholderText('wizard.step1.namePlaceholder'), { target: { value: 'Playera' } })
+    await abrirSeccion('codes')
+    fireEvent.change(screen.getByLabelText(/^GTIN/), { target: { value: '7501234567890' } })
+    fireEvent.click(await casilla())
+    expect(await screen.findByLabelText('opciones.nombre')).toBeInTheDocument()
+    const caja = aviso()
+    expect(caja).toBeVisible()
+    expect(within(caja!).getByText('wizard.optional.variantsHiddenTitle')).toBeInTheDocument()
+    expect(within(caja!).getByText('wizard.optional.codes.title')).toBeInTheDocument()
+    expect(within(caja!).getByText('wizard.optional.variantsHiddenHint')).toBeInTheDocument()
+    fireEvent.click(await casilla())
+    expect(screen.getByLabelText(/^GTIN/)).toHaveValue('7501234567890')
+    expect(aviso()).not.toBeInTheDocument()
+  })
+
+  it('nombra también existencias escritas y «Se vende por peso», y sólo las que tienen algo', async () => {
+    productWizardApiMock.shouldUseInventory.mockResolvedValue({ data: { data: { hasInventoryFeature: true } } })
+    pintar()
+    fireEvent.change(await screen.findByPlaceholderText('wizard.step1.namePlaceholder'), { target: { value: 'Playera' } })
+    await abrirInventario()
+    fireEvent.change(screen.getByLabelText(/^wizard\.step3\.initialStock/), { target: { value: '20' } })
+    await abrirSeccion('weight')
+    fireEvent.click(screen.getByRole('switch', { name: /^wizard\.step1\.soldByWeight/ }))
+    await abrirSeccion('codes')
+    fireEvent.click(await casilla())
+    const caja = await waitFor(() => { const c = aviso(); expect(c).toBeVisible(); return c! })
+    expect(within(caja).getByText('wizard.optional.inventory.title')).toBeInTheDocument()
+    expect(within(caja).getByText('wizard.optional.weight.title')).toBeInTheDocument()
+    expect(within(caja).queryByText('wizard.optional.codes.title')).not.toBeInTheDocument() // abierta pero vacía
+  })
+
+  it('sin nada escrito en esas secciones no hay aviso (como hoy)', async () => {
+    pintar()
+    fireEvent.change(await screen.findByPlaceholderText('wizard.step1.namePlaceholder'), { target: { value: 'Playera' } })
+    await abrirSeccion('codes')
+    fireEvent.click(await casilla())
+    expect(await screen.findByLabelText('opciones.nombre')).toBeInTheDocument()
+    expect(aviso()).not.toBeInTheDocument()
   })
 })
