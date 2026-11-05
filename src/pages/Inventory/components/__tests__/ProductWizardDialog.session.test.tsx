@@ -399,7 +399,7 @@ describe('asistente — respuestas y fotos entre aperturas', () => {
   it.each([false, true])('edición actual con inventario=%s conserva su callback con el ID editado', async inventario => {
     if (inventario)
       inv.productWizardApi.getWizardProgress.mockResolvedValue({
-        data: { data: { inventoryMethod: 'QUANTITY', details: { currentStock: 5, costPerUnit: 2, reorderPoint: 3 } } },
+        data: { data: { inventoryMethod: 'QUANTITY', details: { currentStock: 5, minimumStock: 3, reservedStock: 0, costPerUnit: 2 } } },
       })
     const vista = montar()
     await screen.findByDisplayValue('Producto a')
@@ -416,7 +416,7 @@ describe('asistente — respuestas y fotos entre aperturas', () => {
   ])('edición con inventario=%s: %s tardío de A no afecta B', async (inventario, resultado) => {
     if (inventario)
       inv.productWizardApi.getWizardProgress.mockResolvedValue({
-        data: { data: { inventoryMethod: 'QUANTITY', details: { currentStock: 5, costPerUnit: 2, reorderPoint: 3 } } },
+        data: { data: { inventoryMethod: 'QUANTITY', details: { currentStock: 5, minimumStock: 3, reservedStock: 0, costPerUnit: 2 } } },
       })
     const pendiente = diferida()
     http.put.mockReturnValueOnce(pendiente.promise)
@@ -482,7 +482,7 @@ describe('asistente — respuestas y fotos entre aperturas', () => {
     'configuración ya enviada: %s tardío de A no cierra B ni abre su conversión',
     async resultado => {
       inv.productWizardApi.getWizardProgress.mockResolvedValue({
-        data: { data: { inventoryMethod: 'QUANTITY', details: { currentStock: 5, costPerUnit: 2, reorderPoint: 3 } } },
+        data: { data: { inventoryMethod: 'QUANTITY', details: { currentStock: 5, minimumStock: 3, reservedStock: 0, costPerUnit: 2 } } },
       })
       const pendiente = diferida()
       inv.productWizardApi.configureSimpleStock.mockReturnValueOnce(pendiente.promise)
@@ -512,7 +512,7 @@ describe('asistente — respuestas y fotos entre aperturas', () => {
 
   it.each(['éxito', 'error'])('conversión ya enviada: %s tardío de A no reintenta con B ni deja su diálogo abierto', async resultado => {
     inv.productWizardApi.getWizardProgress.mockResolvedValue({
-      data: { data: { inventoryMethod: 'QUANTITY', details: { currentStock: 5, costPerUnit: 2, reorderPoint: 3 } } },
+      data: { data: { inventoryMethod: 'QUANTITY', details: { currentStock: 5, minimumStock: 3, reservedStock: 0, costPerUnit: 2 } } },
     })
     inv.productWizardApi.configureSimpleStock.mockRejectedValueOnce({
       response: { status: 409, data: {} },
@@ -548,7 +548,7 @@ describe('asistente — respuestas y fotos entre aperturas', () => {
 
   it('sin cerrar, la conversión reintenta la configuración de A con su captura original', async () => {
     inv.productWizardApi.getWizardProgress.mockResolvedValue({
-      data: { data: { inventoryMethod: 'QUANTITY', details: { currentStock: 5, costPerUnit: 2, reorderPoint: 3 } } },
+      data: { data: { inventoryMethod: 'QUANTITY', details: { currentStock: 5, minimumStock: 3, reservedStock: 0, costPerUnit: 2 } } },
     })
     const stock = { initialStock: 5, costPerUnit: 2, reorderPoint: 3 }
     inv.productWizardApi.configureSimpleStock.mockRejectedValueOnce({
@@ -567,7 +567,7 @@ describe('asistente — respuestas y fotos entre aperturas', () => {
 
   it('configuración pausada antes del primer servicio conserva el destino A al reanudar después de abrir B', async () => {
     inv.productWizardApi.getWizardProgress.mockResolvedValue({
-      data: { data: { inventoryMethod: 'QUANTITY', details: { currentStock: 5, costPerUnit: 2, reorderPoint: 3 } } },
+      data: { data: { inventoryMethod: 'QUANTITY', details: { currentStock: 5, minimumStock: 3, reservedStock: 0, costPerUnit: 2 } } },
     })
     http.put.mockImplementationOnce(async () => { onlineManager.setOnline(false); return { data: {} } })
     const vista = montar()
@@ -592,7 +592,7 @@ describe('asistente — respuestas y fotos entre aperturas', () => {
 
   it('conversión pausada antes del servicio conserva producto y dirección A al reanudar después de abrir B', async () => {
     inv.productWizardApi.getWizardProgress.mockResolvedValue({
-      data: { data: { inventoryMethod: 'QUANTITY', details: { currentStock: 5, costPerUnit: 2, reorderPoint: 3 } } },
+      data: { data: { inventoryMethod: 'QUANTITY', details: { currentStock: 5, minimumStock: 3, reservedStock: 0, costPerUnit: 2 } } },
     })
     inv.productWizardApi.configureSimpleStock.mockRejectedValueOnce({
       response: { status: 409, data: {} },
@@ -622,7 +622,7 @@ describe('asistente — respuestas y fotos entre aperturas', () => {
 
   it('el éxito de configuración de edición A no muestra toast en una nueva alta B', async () => {
     inv.productWizardApi.getWizardProgress.mockResolvedValue({
-      data: { data: { inventoryMethod: 'QUANTITY', details: { currentStock: 5, costPerUnit: 2, reorderPoint: 3 } } },
+      data: { data: { inventoryMethod: 'QUANTITY', details: { currentStock: 5, minimumStock: 3, reservedStock: 0, costPerUnit: 2 } } },
     })
     const pendiente = diferida()
     inv.productWizardApi.configureSimpleStock.mockReturnValueOnce(pendiente.promise)
@@ -641,9 +641,34 @@ describe('asistente — respuestas y fotos entre aperturas', () => {
     expect(vista.onOpenChange).not.toHaveBeenCalled()
   })
 
+  // El PUT de la edición de A no es una mutación: su candado es de ESA apertura. Ni le estorba a B ni A se lo quita al terminar.
+  it('PUT de edición A en camino: B guarda libre, y cuando A termina no suelta el candado de B', async () => {
+    const putA = diferida()
+    const putB = diferida()
+    http.put.mockReturnValueOnce(putA.promise)
+    const vista = montar()
+    await screen.findByDisplayValue('Producto a')
+    await guardar()
+    await waitFor(() => expect(http.put).toHaveBeenCalledTimes(1))
+    expect(screen.getByRole('button', { name: 'save' })).toBeDisabled()
+    vista.abrir(false)
+    vista.abrir(true, 'b')
+    await screen.findByDisplayValue('Producto b')
+    await waitFor(() => expect(screen.getByRole('button', { name: 'save' })).toBeEnabled())
+    http.put.mockReturnValueOnce(putB.promise)
+    await guardar()
+    await waitFor(() => expect(http.put).toHaveBeenCalledTimes(2))
+    await act(async () => { putA.resolve({ data: {} }); await putA.promise })
+    expect(screen.getByRole('button', { name: 'save' })).toBeDisabled()
+    await guardar().catch(() => undefined)
+    expect(http.put).toHaveBeenCalledTimes(2)
+    await act(async () => { putB.resolve({ data: {} }); await putB.promise })
+    await waitFor(() => expect(vista.onOpenChange).toHaveBeenCalledWith(false))
+  })
+
   it('B está guardando cuando A termina: onSettled de A no libera el candado de cierre de B', async () => {
     inv.productWizardApi.getWizardProgress.mockResolvedValue({
-      data: { data: { inventoryMethod: 'QUANTITY', details: { currentStock: 5, costPerUnit: 2, reorderPoint: 3 } } },
+      data: { data: { inventoryMethod: 'QUANTITY', details: { currentStock: 5, minimumStock: 3, reservedStock: 0, costPerUnit: 2 } } },
     })
     inv.productWizardApi.configureSimpleStock.mockRejectedValueOnce({
       response: { status: 409, data: {} },
