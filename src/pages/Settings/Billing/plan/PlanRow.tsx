@@ -86,7 +86,7 @@ export function PlanRow(props: PlanRowProps) {
                 onClick={() => props.onSelect(tier)}
                 data-tour={`plan-option-${tier.toLowerCase()}`}
                 className={cn(
-                  'flex items-center gap-2 rounded-xl border border-input bg-card px-4 py-2.5 text-left text-sm transition-colors',
+                  'flex flex-wrap items-center gap-2 rounded-xl border border-input bg-card px-4 py-2.5 text-left text-sm transition-colors',
                   isSelected ? 'border-foreground ring-1 ring-foreground' : 'hover:bg-muted/50',
                   'disabled:cursor-not-allowed disabled:opacity-60',
                 )}
@@ -96,13 +96,15 @@ export function PlanRow(props: PlanRowProps) {
                   className={cn('h-3.5 w-3.5 rounded-full border', isSelected ? 'border-[5px] border-foreground' : 'border-input')}
                 />
                 <span className="font-semibold">{tierName(tier)}</span>
-                <span className="tabular-nums">
+                <span className="whitespace-nowrap tabular-nums">
                   {money(price.ivaAparte ? sinIva(price.amount) : price.amount)}
                   {tier !== 'FREE' && (price.per === 'year' ? t('plan.perYear') : t('plan.perMonth'))}
                 </span>
-                <span className="text-xs text-muted-foreground">
-                  {tier !== 'FREE' && t(price.ivaAparte ? 'plan.plusIva' : 'plan.ivaIncluded')}
-                </span>
+                {tier !== 'FREE' && (
+                  <span className="whitespace-nowrap text-xs text-muted-foreground">
+                    {t(price.ivaAparte ? 'plan.plusIva' : 'plan.ivaIncluded')}
+                  </span>
+                )}
                 {props.grid && (
                   <span className="text-xs text-muted-foreground">
                     {t('plan.row.features', { count: tierFeatureCount(props.grid.entries, tier) })}
