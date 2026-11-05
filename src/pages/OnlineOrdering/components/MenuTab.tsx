@@ -18,6 +18,7 @@ import { Button, buttonVariants } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { deriveBusinessCategory } from '@/config/sector-terminology'
 import { useToast } from '@/hooks/use-toast'
 import { useDebounce } from '@/hooks/useDebounce'
 import { falloDeCarga } from '@/lib/falloDeCarga'
@@ -40,7 +41,7 @@ type Bulk = 'showAll' | 'hideAll' | null
  */
 export function MenuTab() {
   const { t } = useTranslation('onlineOrdering')
-  const { venueId } = useCurrentVenue()
+  const { venueId, venue } = useCurrentVenue()
   const { toast } = useToast()
   const qc = useQueryClient()
   const [categoryId, setCategoryId] = useState<string | null>(null)
@@ -266,7 +267,15 @@ export function MenuTab() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>{bulk && t(`menu.bulk.${bulk}`)}</AlertDialogTitle>
-            <AlertDialogDescription>{bulk && t(`menu.bulk.${bulk}Confirm`)}</AlertDialogDescription>
+            <AlertDialogDescription>
+              {/* ponytail: sólo avisa; lo REGULAR que es clase o paquete no se distingue por tipo hasta la etapa de paquetes. */}
+              {bulk &&
+                t(
+                  bulk === 'showAll' && deriveBusinessCategory(venue?.type) === 'SERVICES'
+                    ? 'menu.bulk.showAllConfirmServices'
+                    : `menu.bulk.${bulk}Confirm`,
+                )}
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel className="cursor-pointer">{t('menu.bulk.cancel')}</AlertDialogCancel>

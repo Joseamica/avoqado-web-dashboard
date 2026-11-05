@@ -126,7 +126,7 @@
       "searchPlaceholder": "Buscar producto…",
       "searchClear": "Borrar búsqueda",
       "noResults": "Ningún producto coincide con la búsqueda.",
-      "empty": "Esta categoría no tiene productos.",
+      "empty": "Esta categoría no tiene productos que se vendan en línea. Las clases, paquetes, citas y servicios no se venden aquí.",
       "noPhoto": "Sin foto",
       "inactive": "Inactivo en el POS",
       "toggle": "Mostrar {{name}} en línea",
@@ -136,6 +136,7 @@
       "showAll": "Mostrar todo el menú",
       "hideAll": "Quitar todo de línea",
       "showAllConfirm": "Todos los productos quedarán visibles en tu tienda en línea.",
+      "showAllConfirmServices": "Se publicará todo lo que aparece en esta lista. Los paquetes y clases no se venden aquí porque no entregan créditos: revisa la lista y apaga los que estén dados de alta como producto.",
       "hideAllConfirm": "Ningún producto se verá en tu tienda en línea. Los pedidos que ya llegaron no cambian.",
       "confirm": "Confirmar",
       "cancel": "Cancelar"
