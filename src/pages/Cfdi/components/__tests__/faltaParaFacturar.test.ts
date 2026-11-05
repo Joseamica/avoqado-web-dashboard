@@ -20,9 +20,17 @@ describe('queFaltaParaFacturar', () => {
     expect(queFaltaParaFacturar(config([emisor('e1', estado)], [comercio('e1', true)]))).toBe('csd')
   })
 
-  it('CSD activo sin comercio, o con su comercio apagado ⇒ falta el comercio', () => {
-    expect(queFaltaParaFacturar(config([emisor('e1', 'ACTIVE')]))).toBe('comercio')
+  // D11 opción A (founder, 5-nov, «el RFC basta»): un solo RFC con CSD y SIN comercios ligados factura sus ventas sin terminal.
+  it('A: un solo RFC con CSD activo y sin ningún comercio ⇒ no falta nada (el RFC basta)', () => {
+    expect(queFaltaParaFacturar(config([emisor('e1', 'ACTIVE')]))).toBeNull()
+  })
+
+  it('con su comercio apagado ⇒ falta el comercio (la regla de siempre)', () => {
     expect(queFaltaParaFacturar(config([emisor('e1', 'ACTIVE')], [comercio('e1', false)]))).toBe('comercio')
+  })
+
+  it('A: dos RFC y ningún comercio ⇒ sigue faltando el comercio (con varios RFC el servidor no elige)', () => {
+    expect(queFaltaParaFacturar(config([emisor('a', 'ACTIVE'), emisor('b', 'ACTIVE')]))).toBe('comercio')
   })
 
   it('🔴 el comercio encendido es de OTRO emisor, sin CSD ⇒ no alcanza: el emisor listo no factura con ningún comercio', () => {
