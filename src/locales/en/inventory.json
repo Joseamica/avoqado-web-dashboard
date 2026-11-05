@@ -572,6 +572,7 @@
     }
   },
   "wizard": {
+    "savingPrevious": "Saving the previous change to this product…",
     "inventoryNotSavedAfterClose": "“{{name}}” was saved, but its inventory wasn't. Open it and save again.",
     "productNotSavedAfterClose": "“{{name}}” wasn't saved. Open it and try again.",
     "title": "Product Wizard",
@@ -682,7 +683,7 @@
       "recipeInfo": "Configure the recipe for this product. You can add ingredients later.",
       "initialStock": "Initial Stock",
       "initialStockHelp": "How many units do you currently have in stock? (tracked as unit count)",
-      "initialStockRequired": "Initial stock is required",
+      "initialStockRequired": "Enter how many you have (it can be 0)",
       "initialStockMinimum": "Initial stock must be 0 or greater",
       "costPerUnit": "Cost Per Unit",
       "costPerUnitHelp": "The cost you pay per unit. This is used to calculate product profitability.",

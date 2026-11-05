@@ -647,6 +647,37 @@ describe('asistente — respuestas y fotos entre aperturas', () => {
     await act(async () => { stockA.resolve({}); await stockA.promise })
   })
 
+  // Codex r4 #2: reabrir el MISMO producto mientras termina su guardado dejaba «Guardar» y «Cancelar» apagados sin explicación, y el
+  // formulario con la lectura de antes. Ahora lo dice, espera, relee lo que quedó y se habilita solo.
+  it('reabrir el mismo producto mientras termina su guardado: avisa, espera y se habilita con lo que quedó', async () => {
+    inv.productWizardApi.getWizardProgress.mockResolvedValue({
+      data: { data: { inventoryMethod: 'QUANTITY', details: { currentStock: 5, minimumStock: 3, reservedStock: 0, costPerUnit: 2 } } },
+    })
+    const stockA = diferida()
+    inv.productWizardApi.configureSimpleStock.mockReturnValueOnce(stockA.promise)
+    const vista = montar()
+    await screen.findByDisplayValue('Producto a')
+    fireEvent.change(await screen.findByDisplayValue('5'), { target: { value: '33' } })
+    await guardar()
+    await waitFor(() => expect(inv.productWizardApi.configureSimpleStock).toHaveBeenCalledTimes(1))
+    vista.abrir(false)
+    vista.abrir(true, 'a')
+    expect(await screen.findByText('wizard.savingPrevious')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'save' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'cancel' })).toBeEnabled() // cerrar no cruza escrituras
+    inv.productWizardApi.getWizardProgress.mockResolvedValue({
+      data: { data: { inventoryMethod: 'QUANTITY', details: { currentStock: 33, minimumStock: 3, reservedStock: 0, costPerUnit: 2 } } },
+    })
+    await act(async () => { stockA.resolve({}); await stockA.promise })
+    await waitFor(() => expect(screen.getByRole('button', { name: 'save' })).toBeEnabled())
+    expect(screen.queryByText('wizard.savingPrevious')).not.toBeInTheDocument()
+    expect(await screen.findByDisplayValue('33')).toBeInTheDocument() // lo que quedó, no la lectura de antes
+    await guardar() // sin tocar nada: sólo el producto, sin reenviar existencias
+    await waitFor(() => expect(http.put).toHaveBeenCalledTimes(3))
+    await act(async () => { await new Promise(resolve => setTimeout(resolve, 20)) })
+    expect(inv.productWizardApi.configureSimpleStock).toHaveBeenCalledTimes(1)
+  })
+
   it('cerrar durante el PUT de una receta: la receta se manda igual', async () => {
     plan.hasAccess = true
     inv.productWizardApi.getWizardProgress.mockResolvedValue({ data: { data: { inventoryMethod: 'RECIPE', details: {} } } })

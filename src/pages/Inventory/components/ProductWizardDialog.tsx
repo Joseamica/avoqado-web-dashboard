@@ -186,9 +186,8 @@ let contadorDeGuardados = 0
 
 interface InventoryConfiguration {
   inventoryMethod: InventoryMethod
-  simpleStock?: Step3SimpleStockFormData
+  simpleStock?: Omit<Step3SimpleStockFormData, 'initialStock'> & { initialStock?: number } // sin existencias si nadie las tocó
   recipe?: Step3RecipeFormData
-  conservarExistencias?: boolean // nadie las tocó: se relee el saldo justo antes de enviar
 }
 
 interface InventoryRequest {
@@ -197,6 +196,7 @@ interface InventoryRequest {
   sesion: number
   nombre?: string // para el aviso si falla con la ventana ya cerrada
   guardado?: number // su turno en `ultimoGuardado`
+  version?: string // `updatedAt` que contestó el PUT del producto: el SERVIDOR rechaza (409) si alguien lo cambió en medio
   configuration: InventoryConfiguration
 }
 
@@ -553,7 +553,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
       return { sesion: sesionDelEnvio }
     },
     // TanStack puede reemplazar las closures mientras espera red: el destino viaja con la captura.
-    mutationFn: async ({ venueId: targetVenueId, productId: targetProductId, configuration: data, guardado }: InventoryRequest) => {
+    mutationFn: async ({ venueId: targetVenueId, productId: targetProductId, configuration: data, guardado, version }: InventoryRequest) => {
       if (!targetProductId) {
         throw new Error('Product ID is required')
       }
@@ -563,36 +563,23 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
 
       // ✅ FIX: First update product with trackInventory + inventoryMethod
       // This ensures atomic commit of all changes together
-      await api.put(`/api/v1/dashboard/venues/${targetVenueId}/products/${targetProductId}`, {
+      // Cada paso lleva la versión que contestó el anterior: una activación atrasada no vuelve a prender un inventario que otra
+      // ventana apagó en medio (Codex r4 #1); el SERVIDOR contesta 409 PRODUCT_CHANGED. Sin versión (SERVIDOR viejo), como antes.
+      const activacion = await api.put(`/api/v1/dashboard/venues/${targetVenueId}/products/${targetProductId}`, {
         trackInventory: true,
         inventoryMethod: data.inventoryMethod,
+        ...(version ? { expectedUpdatedAt: version } : {}),
       })
+      const versionActivada: string | undefined = activacion?.data?.data?.updatedAt
 
       // Then configure the inventory details
       if (data.inventoryMethod === 'QUANTITY' && data.simpleStock) {
-        // ✅ FIX: In edit mode, backend should handle upsert automatically
-        // Wrap in try-catch to handle potential conflicts gracefully
-        let simpleStock = data.simpleStock
-        if (data.conservarExistencias) {
-          // ponytail: quedan milisegundos entre esta lectura y el POST; cerrarlo del todo pide que el SERVIDOR acepte mínimo y costo sin existencias.
-          const saldo = (await productWizardApi.getWizardProgress(targetVenueId, targetProductId)).data.data.details?.currentStock
-          // Sin saldo en la lectura (sin fila de inventario, u otro aparato apagó el seguimiento en ese instante) nunca se inventa un cero sobre uno real.
-          simpleStock = { ...simpleStock, initialStock: typeof saldo === 'number' ? saldo : Number.isFinite(simpleStock.initialStock) ? simpleStock.initialStock : 0 }
-        }
         if (superado()) return
-        try {
-          return await productWizardApi.configureSimpleStock(targetVenueId, targetProductId, simpleStock)
-        } catch (error: any) {
-          // If inventory already exists, try to update via product endpoint
-          if (error.response?.status === 400 && error.response?.data?.message?.includes('already exists')) {
-            return api.put(`/api/v1/dashboard/venues/${targetVenueId}/products/${targetProductId}/inventory`, {
-              currentStock: simpleStock.initialStock,
-              reorderPoint: simpleStock.reorderPoint,
-              costPerUnit: simpleStock.costPerUnit,
-            })
-          }
-          throw error
-        }
+        // Sin existencias tocadas no viajan: el SERVIDOR deja el saldo como esté (antes se releía y quedaban milisegundos para pisar una venta).
+        return productWizardApi.configureSimpleStock(targetVenueId, targetProductId, {
+          ...data.simpleStock,
+          ...(versionActivada ? { expectedUpdatedAt: versionActivada } : {}),
+        })
       } else if (data.inventoryMethod === 'RECIPE' && data.recipe) {
         // ✅ FIX: Try UPDATE first, fallback to CREATE if recipe doesn't exist
         // This is more robust than checking existence first (EAFP pattern)
@@ -637,16 +624,21 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
       }
       inventarioEnDuda.current = true
       if (handleMasterCatalogError(error)) return
+      // Alguien cambió el producto mientras se guardaba: el SERVIDOR no aplicó esto y lo explica. No es un cambio de método.
+      if (error.response?.data?.code === 'PRODUCT_CHANGED') {
+        toast({ title: tCommon('error'), description: error.response.data.message, variant: 'destructive' })
+        return
+      }
       // Check for 409 conflict error
       if (error.response?.status === 409) {
         // Store the pending configuration to retry after conversion
         setPendingInventoryConfig({
           ...variables,
+          version: undefined, // la conversión cambia el producto: el reintento es de esta misma persona, sin versión
           configuration: {
             inventoryMethod: error.config?.data ? JSON.parse(error.config.data).inventoryMethod : variables.configuration.inventoryMethod,
             simpleStock: error.config?.data ? JSON.parse(error.config.data).simpleStock : undefined,
             recipe: error.config?.data ? JSON.parse(error.config.data).recipe : undefined,
-            conservarExistencias: variables.configuration.conservarExistencias,
           },
         })
 
@@ -725,6 +717,30 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
     },
   })
 
+  // Codex r4 #2: al reabrir el MISMO producto mientras termina el guardado de una apertura anterior, esta ventana espera (no cruza dos
+  // escrituras), lo dice, y al terminar relee lo que quedó: lo leído al abrir ya no es lo de ahora.
+  const anteriorEnCamino =
+    mode === 'edit' &&
+    configureInventoryMutation.isPending &&
+    configureInventoryMutation.variables?.productId === productId &&
+    configureInventoryMutation.variables?.sesion !== sesion.current
+  const [esperandoAnterior, setEsperandoAnterior] = useState(false)
+  useEffect(() => {
+    if (anteriorEnCamino) return setEsperandoAnterior(true)
+    if (!esperandoAnterior) return
+    let vigente = true
+    void Promise.allSettled([productoQuery.refetch(), progresoQuery.refetch(), recetaQuery.refetch()]).then(() => {
+      if (!vigente) return
+      setHasLoadedProductDetails(false)
+      setHasLoadedExistingData(false)
+      setEsperandoAnterior(false)
+    })
+    return () => {
+      vigente = false
+    }
+  }, [anteriorEnCamino, esperandoAnterior]) // eslint-disable-line react-hooks/exhaustive-deps -- las consultas cambian de identidad en cada render
+  const releyendoTrasAnterior = anteriorEnCamino || esperandoAnterior
+
   // Handle wizard completion. `sesionDelEnvio` (de onMutate): si el asistente se cerró desde que se envió, el guardado sólo refresca la
   // lista; NO cierra ni limpia el alta que se haya abierto después (Codex r3 #3).
   const handleWizardComplete = (sesionDelEnvio?: number, venueDelEnvio = venueId, productoCompletado = createdProductId) => {
@@ -777,6 +793,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
     setGuardandoProducto(false)
     setVariantes(VARIANTES_INICIALES)
     setConfirmarDescartar(false) // la X durante el guardado no deja la pregunta abierta tras cerrar
+    setEsperandoAnterior(false)
     resetImage()
     step1Form.reset()
     step2Form.reset()
@@ -795,7 +812,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
   // Load existing product data into step1Form in edit mode
   // Uses its own flag (hasLoadedProductDetails) independent from inventory data loading
   useEffect(() => {
-    if (open && mode === 'edit' && existingProduct && !isLoadingProduct && !hasLoadedProductDetails) {
+    if (open && mode === 'edit' && existingProduct && !isLoadingProduct && !hasLoadedProductDetails && !releyendoTrasAnterior) {
       // Populate step1Form with existing product data
       step1Form.setValue('name', existingProduct.name || '')
       step1Form.setValue('description', existingProduct.description || '')
@@ -838,13 +855,21 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
 
       setHasLoadedProductDetails(true)
     }
-  }, [open, mode, existingProduct, isLoadingProduct, hasLoadedProductDetails, step1Form])
+  }, [open, mode, existingProduct, isLoadingProduct, hasLoadedProductDetails, step1Form, releyendoTrasAnterior])
 
   // Load existing inventory data in edit mode
   useEffect(() => {
     // Only load data ONCE when first opening the wizard
     // This prevents overwriting user changes when they modify inventory settings
-    if (open && mode === 'edit' && existingProductData && !isLoadingExistingData && !hasLoadedExistingData && !removedSections.current.has('inventory')) {
+    if (
+      open &&
+      mode === 'edit' &&
+      existingProductData &&
+      !isLoadingExistingData &&
+      !hasLoadedExistingData &&
+      !releyendoTrasAnterior &&
+      !removedSections.current.has('inventory')
+    ) {
       const { inventoryMethod, details } = existingProductData
 
       // ✅ WORLD-CLASS: inventoryMethod column is the SOURCE OF TRUTH
@@ -892,7 +917,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
       setHasLoadedExistingData(true)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- step2Form, step3SimpleForm, step3RecipeForm are stable refs from useForm
-  }, [open, mode, existingProductData, existingRecipeData, isLoadingExistingData, hasLoadedExistingData])
+  }, [open, mode, existingProductData, existingRecipeData, isLoadingExistingData, hasLoadedExistingData, releyendoTrasAnterior])
 
   // ✅ FIX: Separate effect to load recipe data when it becomes available
   // This handles the case where existingRecipeData loads AFTER existingProductData
@@ -1206,10 +1231,11 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
       }
 
       // First update product data
-      const updateProductFirst = async () => {
+      // Contesta la versión (`updatedAt`) que dejó el PUT: el paso siguiente la manda para que el SERVIDOR note un cambio ajeno en medio.
+      const updateProductFirst = async (): Promise<string | undefined> => {
         if (productId) {
           try {
-            await guardarProducto(productData)
+            return (await guardarProducto(productData))?.data?.data?.updatedAt
           } catch (error: any) {
             if (sesionDelEnvio !== sesion.current) {
               avisarProductoSinGuardar(error)
@@ -1239,6 +1265,12 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
         // Con el seguimiento apagado (la app móvil lo deja así) guardar lo prende, salvo que falte el costo que el SERVIDOR exige para eso.
         // `inventarioLeido` sólo existe si al abrir era por cantidad: otro aparato pudo cambiar el método y la lectura refrescarse; sin tocar nada no se le regresa.
         const soloProducto = !inventarioTocado && !inventarioEnDuda.current && (existingProduct?.trackInventory !== false || !(simpleStockData.costPerUnit > 0))
+        // Existencias en blanco: se piden en el formulario, no viaja un `null` que el SERVIDOR contestaba en inglés. Si ya estaban en
+        // blanco al abrir (sin saldo leído), no es un cambio y el saldo queda como esté.
+        if (!soloProducto && !Number.isFinite(simpleStockData.initialStock) && (!leido || Number.isFinite(leido.initialStock))) {
+          pedirExistencias()
+          return
+        }
         // El SERVIDOR no acepta guardar existencias sin costo: si tocó la sección, se pide el costo.
         if (!soloProducto && !(simpleStockData.costPerUnit > 0)) {
           toast({ title: tCommon('error'), description: t('wizard.step3.costPerUnitMinimum'), variant: 'destructive' })
@@ -1266,8 +1298,9 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
           return
         }
         existenciasEscritas.current = existenciasTocadas
+        const { initialStock, ...sinExistencias } = simpleStockData
         updateProductFirst()
-          .then(() => {
+          .then(version => {
             // Aunque la ventana ya se haya cerrado: lo capturado termina de enviarse (D9). Los avisos y el cierre ya distinguen la apertura.
             configureInventoryMutation.mutate({
               venueId,
@@ -1275,11 +1308,11 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
               sesion: sesionDelEnvio,
               nombre: data.name,
               guardado: esteGuardado,
+              version,
               configuration: {
                 inventoryMethod: 'QUANTITY',
-                simpleStock: simpleStockData,
-                // Tocó mínimo o costo, no las existencias: van las de este momento, no las de cuando se abrió.
-                conservarExistencias: !!leido && !existenciasTocadas,
+                // Tocó mínimo o costo, no las existencias: no viajan, y el SERVIDOR conserva las de ese momento (con lo vendido).
+                simpleStock: existenciasTocadas || !leido ? { ...sinExistencias, initialStock } : sinExistencias,
               },
             })
           })
@@ -1345,6 +1378,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
     // In create mode, submit product with inventory configuration
     if (inventoryMethod === 'QUANTITY') {
       const simpleStockData = step3SimpleForm.getValues()
+      if (!Number.isFinite(simpleStockData.initialStock)) return pedirExistencias()
       createProductWithInventoryMutation.mutate({
         product: { ...productData, type: effectiveProductType ?? undefined },
         inventory: inventoryData,
@@ -1417,9 +1451,9 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
     handleStep1Submit(data)
   }
 
-  // `guardandoProducto` ya cubre lo de esta apertura. Un envío tardío sólo frena a quien abrió ese mismo producto (para no cruzar escrituras), no a otro.
-  const enviandoEsteProducto = configureInventoryMutation.isPending && configureInventoryMutation.variables?.productId === productId
-  const isLoading = guardandoProducto || createProductWithInventoryMutation.isPending || enviandoEsteProducto || crearFamilia.isPending
+  // `guardandoProducto` ya cubre lo de esta apertura. Un envío tardío de otra apertura sólo frena «Guardar» de quien abrió ese mismo
+  // producto (`releyendoTrasAnterior`, con su aviso); «Cancelar» sí cierra: cerrar no cruza escrituras.
+  const isLoading = guardandoProducto || createProductWithInventoryMutation.isPending || crearFamilia.isPending
 
   // True while edit-mode wizard is fetching the product to prefill the form.
   // During this window we render a skeleton and lock the action buttons so the
@@ -1432,7 +1466,8 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
   const recetaSinLeer = mode === 'edit' && !!productId && recetaQuery.data === undefined
   // Sin internet `isLoading` es false: sin esto salía el formulario vacío con «Guardar» activo, que guarda encima de lo real.
   const lecturaSinLlegar = lecturasDeEdicion.find(q => q.data === undefined && falloDeCarga(q))
-  const isInitialLoadingEdit = mode === 'edit' && open && !!productId && !lecturaSinLlegar && (isLoadingProduct || isLoadingExistingData)
+  const isInitialLoadingEdit =
+    mode === 'edit' && open && !!productId && ((!lecturaSinLlegar && (isLoadingProduct || isLoadingExistingData)) || releyendoTrasAnterior)
 
   // En el alta, Cancelar, la X y Esc preguntan antes de tirar lo capturado (guardar con éxito cierra por handleWizardComplete, sin
   // preguntar). Cuenta un campo que el usuario tocó (`dirtyFields`), no `isDirty`: éste compara contra los valores iniciales y sale
@@ -1466,7 +1501,13 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
   const renderActions = () => {
     return (
       <>
-        <Button type="button" className="min-h-11 px-2 sm:px-4" variant="outline" onClick={pedirCerrar} disabled={isLoading || isInitialLoadingEdit}>
+        <Button
+          type="button"
+          className="min-h-11 px-2 sm:px-4"
+          variant="outline"
+          onClick={pedirCerrar}
+          disabled={isLoading || (isInitialLoadingEdit && !releyendoTrasAnterior)}
+        >
           {tCommon('cancel')}
         </Button>
         <Button
@@ -1474,7 +1515,12 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
           form="step1-form"
           data-tour="product-wizard-finish"
           className="min-h-11 px-2 sm:px-4"
-          disabled={isLoading || lecturasDeEdicion.some(q => q.data === undefined) || (mode === 'create' && (uploading || !!imageForCrop))}
+          disabled={
+            isLoading ||
+            releyendoTrasAnterior ||
+            lecturasDeEdicion.some(q => q.data === undefined) ||
+            (mode === 'create' && (uploading || !!imageForCrop))
+          }
         >
           {(isLoading || isInitialLoadingEdit) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           {mode === 'edit' ? tCommon('save') : t('wizard.finish')}
@@ -1493,6 +1539,11 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
       field?.focus({ preventScroll: true })
       ;(field ?? node).scrollIntoView?.({ block: field ? 'center' : 'nearest', behavior: 'smooth' })
     })
+  }
+  // Existencias en blanco: el aviso va junto al campo (la validación del navegador no corre fuera del formulario principal).
+  const pedirExistencias = () => {
+    step3SimpleForm.setError('initialStock', { type: 'required', message: t('wizard.step3.initialStockRequired') })
+    revealSection('inventory', section => section.querySelector<HTMLElement>('#initialStock'))
   }
   const openOptional = (opener: OptionalOpener) => {
     const id = opener === 'recipe' ? 'inventory' : opener
@@ -2052,6 +2103,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                                     {...step3SimpleForm.register('initialStock', {
                                       required: t('wizard.step3.initialStockRequired'),
                                       valueAsNumber: true,
+                                      onChange: () => step3SimpleForm.clearErrors('initialStock'),
                                       min: { value: 0, message: t('wizard.step3.initialStockMinimum') },
                                     })}
                                   />
@@ -2591,6 +2643,12 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
           ) : isInitialLoadingEdit ? (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6" aria-busy="true" aria-live="polite">
               <div className="lg:col-span-8 space-y-6">
+                {releyendoTrasAnterior && (
+                  <Alert role="status">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <AlertDescription>{t('wizard.savingPrevious')}</AlertDescription>
+                  </Alert>
+                )}
                 <section className="bg-card rounded-2xl border border-border/50 p-4">
                   <div className="flex items-center gap-3">
                     <Skeleton className="h-10 w-10 rounded-xl" />

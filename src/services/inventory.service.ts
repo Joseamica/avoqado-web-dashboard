@@ -587,9 +587,10 @@ export interface ProductWizardStep2Data {
 }
 
 export interface ProductWizardStep3SimpleStockData {
-  initialStock: number
+  initialStock?: number // sin existencias, el SERVIDOR deja el saldo como esté y sólo guarda mínimo y costo
   reorderPoint: number
   costPerUnit: number
+  expectedUpdatedAt?: string // versión del producto del paso anterior: si cambió en medio, 409 PRODUCT_CHANGED
 }
 
 export interface ProductWizardStep3RecipeData {
