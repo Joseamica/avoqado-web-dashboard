@@ -307,7 +307,8 @@
     "upgrade": "Upgrade to {{tier}}",
     "seeAll": "See all plans",
     "planPrice": "The {{tier}} plan is {{price}}/mo + VAT",
-    "alonePrice": "Or get just this one for {{price}}/mo",
+    "alonePrice": "Or get just this one for {{price}}/mo + VAT",
+    "alonePriceIvaIncluido": "Or get just this one for {{price}}/mo, VAT included",
     "askOwner": "Ask the account owner to turn it on.",
     "aloneContact": "write to us to add it",
     "aloneContactSubject": "I want to add the {{feature}} feature"

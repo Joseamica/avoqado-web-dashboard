@@ -316,8 +316,32 @@ describe('FeatureGate', () => {
     renderGate()
 
     expect(screen.getByText('featureGate.planPrice:Premium:$1,699')).toBeInTheDocument()
-    expect(screen.getByText('featureGate.alonePrice:$89')).toBeInTheDocument()
+    expect(screen.getByText('featureGate.alonePrice:$76.72')).toBeInTheDocument()
     expect(screen.getByText('featureGate.upgrade:Premium')).toBeInTheDocument()
+  })
+
+  it('un precio sin IVA que termina en cero se ve con dos decimales ($79 → $68.10)', () => {
+    mockUseQuery.mockReturnValue({
+      data: { ...makePlanState('GRATIS'), availableFeatures: [{ code: 'CFDI', monthlyPrice: 79, stripePriceId: 'price_cfdi' }] },
+      isLoading: false,
+    })
+    renderGate()
+    expect(screen.getByText('featureGate.alonePrice:$68.10')).toBeInTheDocument()
+  })
+
+  it('🔴 una oferta de 149 que no es de lista se anuncia con IVA incluido, tal cual', () => {
+    mockUseQuery.mockReturnValue({
+      data: {
+        ...makePlanState('GRATIS'),
+        availableFeatures: [{ code: 'CFDI', monthlyPrice: 0, stripePriceId: null }],
+        entries: [
+          { featureCode: 'CFDI', offer: { kind: 'FEATURES', includedFeatureCodes: ['CFDI'], price: 149, listPrice: 199, renewal: 'SAME_PRICE' } },
+        ],
+      },
+      isLoading: false,
+    })
+    renderGate()
+    expect(screen.getByText('featureGate.alonePriceIvaIncluido:$149.00')).toBeInTheDocument()
   })
 
   it('SIN permiso de facturación → sigue viéndose el cartel, pero sin precios ni botón', () => {
@@ -385,7 +409,7 @@ describe('FeatureGate', () => {
 
     renderGate()
 
-    expect(screen.getByText('featureGate.alonePrice:$89')).toBeInTheDocument()
+    expect(screen.getByText('featureGate.alonePrice:$76.72')).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'featureGate.aloneContact' })).not.toBeInTheDocument()
   })
 

@@ -2,11 +2,14 @@ import { useQuery } from '@tanstack/react-query'
 import { useAccess } from '@/hooks/use-access'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { getVenueFeatures, type VenueFeatureStatus } from '@/services/features.service'
+import { esPrecioDeLista } from '@/lib/sinIva'
 import { hybridBilling, type FeatureGridOffer } from '@/services/hybridBilling.service'
 
 interface FeaturePrice {
   /** Precio mensual de contratar SÓLO esta función; null si no se vende suelta o no se pudo leer. */
   price: number | null
+  /** true si `price` se anuncia «+ IVA» (fila `Feature` o precio de lista); false: ya es un monto con IVA incluido. */
+  ivaAparte: boolean
   /** Si este usuario puede VER precios (`billing:subscriptions:read`). */
   canSeePrices: boolean
   /**
@@ -71,5 +74,7 @@ export function useFeaturePrice(featureCode: string, opciones?: { enabled?: bool
   const entrada = entradas.find(e => e.featureCode === featureCode)
   const deLaLista = sola(entrada?.offer) ?? sola(entrada?.listOffer)
   const precio = vendible ? suelta.monthlyPrice : (deLaLista?.price ?? null)
-  return { price: precio, canSeePrices, canPurchase }
+  // La fila `Feature` se cobra tal cual, con IVA: su precio se anuncia sin IVA. De la lista, sólo el precio de lista; una oferta sigue con IVA incluido.
+  const ivaAparte = precio != null && (vendible ? true : deLaLista != null && esPrecioDeLista(deLaLista))
+  return { price: precio, ivaAparte, canSeePrices, canPurchase }
 }
