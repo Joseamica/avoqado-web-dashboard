@@ -640,6 +640,21 @@ describe('ProductWizardDialog: observed request contracts before the visual move
     expect(inventory.productWizardApi.configureSimpleStock.mock.calls[0][2]).toMatchObject({ initialStock: 9, expectedUpdatedAt: '2026-11-05T18:00:00.002Z' })
   })
 
+  // Codex r1 (ronda 5) #2: la receta también lleva la versión en su activación.
+  it('a recipe save also chains the product version into the activation', async () => {
+    inventory.productWizardApi.getWizardProgress.mockResolvedValue({ data: { data: { inventoryMethod: 'RECIPE', details: {} } } })
+    inventory.recipesApi.get.mockResolvedValue({
+      data: { data: { portionYield: 1, lines: [{ rawMaterialId: 'rm1', rawMaterial: { name: 'Café molido' }, quantity: '1', unit: 'KILOGRAM', isOptional: false }] } },
+    })
+    http.put.mockResolvedValueOnce({ data: { data: { updatedAt: '2026-11-05T18:00:00.001Z' } } })
+    mount({ mode: 'edit' })
+    await screen.findByDisplayValue('Café en grano')
+    await waitFor(() => expect(screen.getByRole('button', { name: 'save' })).toBeEnabled())
+    await userEvent.click(screen.getByRole('button', { name: 'save' }))
+    await waitFor(() => expect(inventory.recipesApi.update).toHaveBeenCalledTimes(1))
+    expect(http.put.mock.calls[1][1]).toEqual({ inventoryMethod: 'RECIPE', trackInventory: true, expectedUpdatedAt: '2026-11-05T18:00:00.001Z' })
+  })
+
   it('a product that changed while saving shows the server message and does not offer a conversion', async () => {
     inventory.productWizardApi.getWizardProgress.mockResolvedValue(conStock())
     http.put.mockResolvedValueOnce({ data: { data: { updatedAt: '2026-11-05T18:00:00.001Z' } } }).mockRejectedValueOnce({

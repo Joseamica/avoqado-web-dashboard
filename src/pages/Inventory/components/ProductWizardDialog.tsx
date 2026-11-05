@@ -519,6 +519,11 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
   const conVariantesActiva = mode === 'create' && tipoAdmiteVariantes && conVariantes
   const enviando = useRef(false) // isPending no cambia entre dos clics del mismo instante
   const [guardandoProducto, setGuardandoProducto] = useState(false) // el PUT de la edición no es una mutación: `isLoading` no lo vería
+  // Guardados de edición en camino, de su primer PUT al último paso: apertura → producto. Una apertura posterior del MISMO producto
+  // espera a que terminen (Codex r4 #2 y r1 de la ronda 5 #3).
+  const [cadenas, setCadenas] = useState<Record<number, string>>({})
+  const terminarCadena = (sesionDeLaCadena: number) =>
+    setCadenas(({ [sesionDeLaCadena]: _terminada, ...resto }) => resto)
   const invalidarCatalogo = useInvalidarCatalogo()
   const crearFamilia = useMutation({
     mutationFn: (body: CreateGroupBody) => createProductGroup(venueId!, body),
@@ -662,7 +667,8 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
         variant: 'destructive',
       })
     },
-    onSettled: (_data, _error, _variables, contexto) => {
+    onSettled: (_data, _error, variables, contexto) => {
+      terminarCadena(variables.sesion)
       if (contexto?.sesion !== sesion.current) return
       sesionGuardando.current = null
       enviando.current = false
@@ -720,10 +726,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
   // Codex r4 #2: al reabrir el MISMO producto mientras termina el guardado de una apertura anterior, esta ventana espera (no cruza dos
   // escrituras), lo dice, y al terminar relee lo que quedó: lo leído al abrir ya no es lo de ahora.
   const anteriorEnCamino =
-    mode === 'edit' &&
-    configureInventoryMutation.isPending &&
-    configureInventoryMutation.variables?.productId === productId &&
-    configureInventoryMutation.variables?.sesion !== sesion.current
+    mode === 'edit' && Object.entries(cadenas).some(([sesionDeLaCadena, producto]) => producto === productId && Number(sesionDeLaCadena) !== sesion.current)
   const [esperandoAnterior, setEsperandoAnterior] = useState(false)
   useEffect(() => {
     if (anteriorEnCamino) return setEsperandoAnterior(true)
@@ -1120,7 +1123,10 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
     const guardarProducto = async (cuerpo: object) => {
       enviando.current = true
       setGuardandoProducto(true)
-      if (productId) ultimoGuardado.set(productId, esteGuardado)
+      if (productId) {
+        ultimoGuardado.set(productId, esteGuardado)
+        setCadenas(actuales => ({ ...actuales, [sesionDelEnvio]: productId }))
+      }
       try {
         return await api.put(`/api/v1/dashboard/venues/${venueId}/products/${productId}`, cuerpo)
       } finally {
@@ -1193,6 +1199,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
               onSuccess(productId)
             }
           })
+          .finally(() => terminarCadena(sesionDelEnvio))
           .catch((error: any) => {
             if (sesionDelEnvio !== sesion.current) return avisarProductoSinGuardar(error)
             inventarioEnDuda.current = true // el apagado pudo aplicarse aunque contestara error
@@ -1295,6 +1302,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
             .catch(() => {
               // Error already handled in updateProductFirst
             })
+            .finally(() => terminarCadena(sesionDelEnvio))
           return
         }
         existenciasEscritas.current = existenciasTocadas
@@ -1317,7 +1325,8 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
             })
           })
           .catch(() => {
-            // Error already handled in updateProductFirst
+            // Error already handled in updateProductFirst; la mutación no arrancó, la cadena termina aquí
+            terminarCadena(sesionDelEnvio)
           })
         return
       } else if (inventoryMethod === 'RECIPE') {
@@ -1357,18 +1366,20 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
         const cleanedRecipe = cleanRecipeDataForBackend(recipeData)
 
         updateProductFirst()
-          .then(() => {
+          .then(version => {
             configureInventoryMutation.mutate({
               venueId,
               productId: productId || createdProductId,
               sesion: sesionDelEnvio,
               nombre: data.name,
               guardado: esteGuardado,
+              version,
               configuration: { inventoryMethod: 'RECIPE', recipe: cleanedRecipe },
             })
           })
           .catch(() => {
-            // Error already handled in updateProductFirst
+            // Error already handled in updateProductFirst; la mutación no arrancó, la cadena termina aquí
+            terminarCadena(sesionDelEnvio)
           })
         return
       }

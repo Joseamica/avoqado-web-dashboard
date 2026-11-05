@@ -576,8 +576,9 @@ describe('asistente — respuestas y fotos entre aperturas', () => {
     await waitFor(() => expect(vista.onOpenChange).toHaveBeenCalledWith(false))
   })
 
-  // Codex r2: lo que termina de enviarse al cerrar no gana contra un guardado más nuevo del MISMO producto.
-  it('reabrir el mismo producto y guardar 44: el 33 de antes ya no se manda al terminar su PUT', async () => {
+  // Codex r2: lo que termina de enviarse al cerrar no gana contra un guardado más nuevo del MISMO producto. Desde la ronda 5, reabrir el
+  // mismo producto espera a que el guardado anterior termine: los dos van en orden y el más nuevo queda al final, sin cruzarse.
+  it('reabrir el mismo producto y guardar 44: el 33 de antes termina primero y el 44 queda al final', async () => {
     inv.productWizardApi.getWizardProgress.mockResolvedValue({
       data: { data: { inventoryMethod: 'QUANTITY', details: { currentStock: 5, minimumStock: 3, reservedStock: 0, costPerUnit: 2 } } },
     })
@@ -590,14 +591,16 @@ describe('asistente — respuestas y fotos entre aperturas', () => {
     await waitFor(() => expect(http.put).toHaveBeenCalledTimes(1))
     vista.abrir(false)
     vista.abrir(true, 'a')
-    await screen.findByDisplayValue('Producto a')
-    fireEvent.change(await screen.findByDisplayValue('5'), { target: { value: '44' } })
+    expect(await screen.findByText('wizard.savingPrevious')).toBeInTheDocument()
+    inv.productWizardApi.getWizardProgress.mockResolvedValue({
+      data: { data: { inventoryMethod: 'QUANTITY', details: { currentStock: 33, minimumStock: 3, reservedStock: 0, costPerUnit: 2 } } },
+    })
+    await act(async () => { putViejo.resolve({ data: {} }); await putViejo.promise })
+    fireEvent.change(await screen.findByDisplayValue('33'), { target: { value: '44' } })
     await waitFor(() => expect(screen.getByRole('button', { name: 'save' })).toBeEnabled())
     await guardar()
-    await waitFor(() => expect(inv.productWizardApi.configureSimpleStock).toHaveBeenCalledTimes(1))
-    await act(async () => { putViejo.resolve({ data: {} }); await putViejo.promise })
-    await act(async () => { await new Promise(resolve => setTimeout(resolve, 20)) })
-    expect(inv.productWizardApi.configureSimpleStock.mock.calls.map(([, , stock]) => stock.initialStock)).toEqual([44])
+    await waitFor(() => expect(inv.productWizardApi.configureSimpleStock).toHaveBeenCalledTimes(2))
+    expect(inv.productWizardApi.configureSimpleStock.mock.calls.map(([, , stock]) => stock.initialStock)).toEqual([33, 44])
   })
 
   // Codex r3: la comprobación del «último guardado» va justo antes de escribir, también si lo tardío ya venía en camino desde otra instancia.
@@ -676,6 +679,34 @@ describe('asistente — respuestas y fotos entre aperturas', () => {
     await waitFor(() => expect(http.put).toHaveBeenCalledTimes(3))
     await act(async () => { await new Promise(resolve => setTimeout(resolve, 20)) })
     expect(inv.productWizardApi.configureSimpleStock).toHaveBeenCalledTimes(1)
+  })
+
+  // Codex r1 (ronda 5) #3: reabrir durante el PRIMER PUT (antes de que arranque el inventario) dejaba escribir y luego la relectura
+  // borraba lo escrito. La espera cubre todo el guardado anterior, desde su primer PUT.
+  it('reabrir el mismo producto durante el primer PUT del guardado anterior: espera desde el principio', async () => {
+    inv.productWizardApi.getWizardProgress.mockResolvedValue({
+      data: { data: { inventoryMethod: 'QUANTITY', details: { currentStock: 5, minimumStock: 3, reservedStock: 0, costPerUnit: 2 } } },
+    })
+    const putA = diferida()
+    http.put.mockReturnValueOnce(putA.promise)
+    const vista = montar()
+    await screen.findByDisplayValue('Producto a')
+    fireEvent.change(await screen.findByDisplayValue('5'), { target: { value: '33' } })
+    await guardar()
+    await waitFor(() => expect(http.put).toHaveBeenCalledTimes(1))
+    vista.abrir(false)
+    vista.abrir(true, 'a')
+    expect(await screen.findByText('wizard.savingPrevious')).toBeInTheDocument()
+    expect(screen.queryByDisplayValue('Producto a')).not.toBeInTheDocument() // en espera: no hay campos donde escribir
+    expect(screen.getByRole('button', { name: 'save' })).toBeDisabled()
+    inv.productWizardApi.getWizardProgress.mockResolvedValue({
+      data: { data: { inventoryMethod: 'QUANTITY', details: { currentStock: 33, minimumStock: 3, reservedStock: 0, costPerUnit: 2 } } },
+    })
+    await act(async () => { putA.resolve({ data: {} }); await putA.promise })
+    await waitFor(() => expect(inv.productWizardApi.configureSimpleStock).toHaveBeenCalledTimes(1))
+    await waitFor(() => expect(screen.getByRole('button', { name: 'save' })).toBeEnabled())
+    expect(await screen.findByDisplayValue('33')).toBeInTheDocument()
+    expect(screen.queryByText('wizard.savingPrevious')).not.toBeInTheDocument()
   })
 
   it('cerrar durante el PUT de una receta: la receta se manda igual', async () => {
