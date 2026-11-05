@@ -163,7 +163,6 @@ interface Step3SimpleStockFormData {
   initialStock: number
   costPerUnit: number
   reorderPoint: number
-  lowStockThreshold?: number // Alert threshold for low stock warnings
 }
 
 interface Step3RecipeFormData {
@@ -171,7 +170,6 @@ interface Step3RecipeFormData {
   prepTime?: number
   cookTime?: number
   notes?: string
-  lowStockThreshold?: number // Alert threshold for low stock warnings
   ingredients: Array<{
     rawMaterialId: string
     rawMaterialName?: string
@@ -182,16 +180,23 @@ interface Step3RecipeFormData {
   }>
 }
 
+// Último guardado de cada producto, entre aperturas: lo que termina de enviarse con la ventana cerrada no pisa uno más nuevo.
+const ultimoGuardado = new Map<string, number>()
+let contadorDeGuardados = 0
+
 interface InventoryConfiguration {
   inventoryMethod: InventoryMethod
   simpleStock?: Step3SimpleStockFormData
   recipe?: Step3RecipeFormData
+  conservarExistencias?: boolean // nadie las tocó: se relee el saldo justo antes de enviar
 }
 
 interface InventoryRequest {
   venueId: string | null
   productId?: string
   sesion: number
+  nombre?: string // para el aviso si falla con la ventana ya cerrada
+  guardado?: number // su turno en `ultimoGuardado`
   configuration: InventoryConfiguration
 }
 
@@ -258,6 +263,9 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
   const [createdProductId, setCreatedProductId] = useState<string | undefined>(productId)
   const sesion = useRef(0) // sube cada vez que el asistente se cierra (ver handleWizardComplete)
   const sesionGuardando = useRef<number | null>(null) // de qué apertura es el guardado en camino (ver pedirCerrar)
+  const inventarioLeido = useRef<Step3SimpleStockFormData | null>(null) // lo que el formulario enseñó al abrir: tocar = distinto de esto
+  const inventarioEnDuda = useRef(false) // un envío falló a medias: el método en el SERVIDOR ya no es por fuerza el que se leyó
+  const existenciasEscritas = useRef(false) // ya se intentó mandar un número tecleado: desde ahí manda lo que diga el campo, aunque coincida con lo leído
   const marcarEnvio = () => {
     sesionGuardando.current = sesion.current
     return { sesion: sesion.current }
@@ -535,14 +543,23 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
   // Mutation for configuring inventory on existing product (edit mode)
   const configureInventoryMutation = useMutation({
     onMutate: ({ sesion: sesionDelEnvio }) => {
-      sesionGuardando.current = sesionDelEnvio
+      // Puede arrancar con la ventana ya cerrada (ver handleStep1Submit). Los candados son de esta apertura, no de `isPending`: un envío
+      // tardío de otra apertura ocupa esta misma mutación y, al terminar, lo apagaría con este guardado aún en camino (Codex r1).
+      if (sesionDelEnvio === sesion.current) {
+        sesionGuardando.current = sesionDelEnvio
+        enviando.current = true
+        setGuardandoProducto(true)
+      }
       return { sesion: sesionDelEnvio }
     },
     // TanStack puede reemplazar las closures mientras espera red: el destino viaja con la captura.
-    mutationFn: async ({ venueId: targetVenueId, productId: targetProductId, configuration: data }: InventoryRequest) => {
+    mutationFn: async ({ venueId: targetVenueId, productId: targetProductId, configuration: data, guardado }: InventoryRequest) => {
       if (!targetProductId) {
         throw new Error('Product ID is required')
       }
+      // Lo que termina de enviarse con la ventana cerrada no pisa un guardado más nuevo de este producto: se comprueba al arrancar y justo antes de escribir.
+      const superado = () => guardado !== undefined && ultimoGuardado.get(targetProductId) !== guardado
+      if (superado()) return
 
       // ✅ FIX: First update product with trackInventory + inventoryMethod
       // This ensures atomic commit of all changes together
@@ -555,15 +572,23 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
       if (data.inventoryMethod === 'QUANTITY' && data.simpleStock) {
         // ✅ FIX: In edit mode, backend should handle upsert automatically
         // Wrap in try-catch to handle potential conflicts gracefully
+        let simpleStock = data.simpleStock
+        if (data.conservarExistencias) {
+          // ponytail: quedan milisegundos entre esta lectura y el POST; cerrarlo del todo pide que el SERVIDOR acepte mínimo y costo sin existencias.
+          const saldo = (await productWizardApi.getWizardProgress(targetVenueId, targetProductId)).data.data.details?.currentStock
+          // Sin saldo en la lectura (sin fila de inventario, u otro aparato apagó el seguimiento en ese instante) nunca se inventa un cero sobre uno real.
+          simpleStock = { ...simpleStock, initialStock: typeof saldo === 'number' ? saldo : Number.isFinite(simpleStock.initialStock) ? simpleStock.initialStock : 0 }
+        }
+        if (superado()) return
         try {
-          return await productWizardApi.configureSimpleStock(targetVenueId, targetProductId, data.simpleStock)
+          return await productWizardApi.configureSimpleStock(targetVenueId, targetProductId, simpleStock)
         } catch (error: any) {
           // If inventory already exists, try to update via product endpoint
           if (error.response?.status === 400 && error.response?.data?.message?.includes('already exists')) {
             return api.put(`/api/v1/dashboard/venues/${targetVenueId}/products/${targetProductId}/inventory`, {
-              currentStock: data.simpleStock.initialStock,
-              reorderPoint: data.simpleStock.reorderPoint,
-              costPerUnit: data.simpleStock.costPerUnit,
+              currentStock: simpleStock.initialStock,
+              reorderPoint: simpleStock.reorderPoint,
+              costPerUnit: simpleStock.costPerUnit,
             })
           }
           throw error
@@ -577,6 +602,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
         }
 
         try {
+          if (superado()) return
           return await recipesApi.update(targetVenueId, targetProductId, updatePayload)
         } catch (error: any) {
           // Recipe doesn't exist (404), use CREATE
@@ -589,20 +615,27 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
       throw new Error('Invalid inventory configuration')
     },
     onSuccess: (_response, variables, contexto) => {
-      // ✅ FIX: In edit mode, don't show toast here - let parent handle it
-      // This prevents double toasts (wizard + parent onSuccess callback)
-      if (contexto?.sesion === sesion.current && mode !== 'edit') {
-        toast({
-          title: t('wizard.success'),
-          description: t('wizard.successMessage'),
-          variant: 'default',
-        })
+      if (contexto?.sesion === sesion.current) {
+        toast(
+          mode === 'edit'
+            ? { title: tMenu('products.detail.toasts.saved'), description: tMenu('products.detail.toasts.savedDesc'), variant: 'default' }
+            : { title: t('wizard.success'), description: t('wizard.successMessage'), variant: 'default' },
+        )
       }
 
       handleWizardComplete(contexto?.sesion, variables.venueId, variables.productId)
     },
     onError: (error: any, variables, contexto) => {
-      if (contexto?.sesion !== sesion.current) return
+      if (contexto?.sesion !== sesion.current) {
+        // Se cerró durante el guardado: el producto ya quedó y falló esta parte. Se avisa sin tocar lo que haya abierto ahora.
+        toast({
+          title: t('wizard.inventoryNotSavedAfterClose', { name: variables.nombre }),
+          description: error.response?.data?.message || t('wizard.error'),
+          variant: 'destructive',
+        })
+        return
+      }
+      inventarioEnDuda.current = true
       if (handleMasterCatalogError(error)) return
       // Check for 409 conflict error
       if (error.response?.status === 409) {
@@ -613,6 +646,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
             inventoryMethod: error.config?.data ? JSON.parse(error.config.data).inventoryMethod : variables.configuration.inventoryMethod,
             simpleStock: error.config?.data ? JSON.parse(error.config.data).simpleStock : undefined,
             recipe: error.config?.data ? JSON.parse(error.config.data).recipe : undefined,
+            conservarExistencias: variables.configuration.conservarExistencias,
           },
         })
 
@@ -637,7 +671,10 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
       })
     },
     onSettled: (_data, _error, _variables, contexto) => {
-      if (contexto?.sesion === sesion.current) sesionGuardando.current = null
+      if (contexto?.sesion !== sesion.current) return
+      sesionGuardando.current = null
+      enviando.current = false
+      setGuardandoProducto(false)
     },
   })
 
@@ -695,7 +732,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
     queryClient.invalidateQueries({ queryKey: ['products-with-recipes', venueDelEnvio] })
     queryClient.invalidateQueries({ queryKey: IVA_QUERY_KEY(venueDelEnvio) }) // el primer encendido pudo prender el IVA por producto
     // Llenan el formulario una sola vez al abrir: con la copia de antes, guardar sin tocar nada devolvía todo a como estaba.
-    for (const lectura of ['product-detail', 'product-wizard-progress', 'product-recipe']) {
+    for (const lectura of ['product', 'product-detail', 'product-wizard-progress', 'product-recipe']) {
       queryClient.invalidateQueries({ queryKey: [lectura, venueDelEnvio, productoCompletado], refetchType: 'all' })
     }
     if (sesionDelEnvio !== undefined && sesionDelEnvio !== sesion.current) return
@@ -729,6 +766,9 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
     setAdvancedRecipeOpen(false)
     setHasLoadedExistingData(false)
     setHasLoadedProductDetails(false)
+    inventarioLeido.current = null
+    inventarioEnDuda.current = false
+    existenciasEscritas.current = false
     setIva(undefined)
     setBloqueosIva(undefined)
     setPorConfirmarIva(null)
@@ -823,6 +863,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
           if (details.costPerUnit > 0) step3SimpleForm.setValue('costPerUnit', details.costPerUnit)
           step3SimpleForm.setValue('reorderPoint', details.minimumStock ?? 10) // el SERVIDOR lo manda como `minimumStock`; 0 es válido
         }
+        if (inventoryMethod === 'QUANTITY') inventarioLeido.current = step3SimpleForm.getValues()
 
         // Load RECIPE data (only if inventoryMethod is RECIPE)
         if (inventoryMethod === 'RECIPE' && existingRecipeData && existingRecipeData.lines && existingRecipeData.lines.length > 0) {
@@ -830,7 +871,6 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
           step3RecipeForm.setValue('prepTime', existingRecipeData.prepTime)
           step3RecipeForm.setValue('cookTime', existingRecipeData.cookTime)
           step3RecipeForm.setValue('notes', existingRecipeData.notes || '')
-          step3RecipeForm.setValue('lowStockThreshold', existingRecipeData.lowStockThreshold)
 
           const ingredients = existingRecipeData.lines.map((line: any) => ({
             rawMaterialId: line.rawMaterialId,
@@ -868,7 +908,6 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
         step3RecipeForm.setValue('prepTime', existingRecipeData.prepTime)
         step3RecipeForm.setValue('cookTime', existingRecipeData.cookTime)
         step3RecipeForm.setValue('notes', existingRecipeData.notes || '')
-        step3RecipeForm.setValue('lowStockThreshold', existingRecipeData.lowStockThreshold)
 
         const ingredients = existingRecipeData.lines.map((line: any) => ({
           rawMaterialId: line.rawMaterialId,
@@ -943,11 +982,6 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
     // Only include notes if it's not empty
     if (recipeData.notes && recipeData.notes.trim().length > 0) {
       cleanedData.notes = recipeData.notes
-    }
-
-    // Only include lowStockThreshold if it's a valid number
-    if (recipeData.lowStockThreshold && !isNaN(recipeData.lowStockThreshold) && recipeData.lowStockThreshold > 0) {
-      cleanedData.lowStockThreshold = recipeData.lowStockThreshold
     }
 
     return cleanedData
@@ -1057,9 +1091,11 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
     if (esVariante) productData = sinCamposDelPadre(productData)
 
     // Un solo PUT a la vez, también con doble clic. El candado es de ESTA apertura: una anterior que termina no suelta el de la actual.
+    const esteGuardado = ++contadorDeGuardados
     const guardarProducto = async (cuerpo: object) => {
       enviando.current = true
       setGuardandoProducto(true)
+      if (productId) ultimoGuardado.set(productId, esteGuardado)
       try {
         return await api.put(`/api/v1/dashboard/venues/${venueId}/products/${productId}`, cuerpo)
       } finally {
@@ -1068,6 +1104,15 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
           setGuardandoProducto(false)
         }
       }
+    }
+
+    // La ventana se cerró con el guardado en camino y el producto no se guardó: nada más lo diría.
+    const avisarProductoSinGuardar = (error: any) => {
+      toast({
+        title: t('wizard.productNotSavedAfterClose', { name: data.name }),
+        description: error.response?.data?.message || t('wizard.error'),
+        variant: 'destructive',
+      })
     }
 
     setStep1Data(productData)
@@ -1124,7 +1169,8 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
             }
           })
           .catch((error: any) => {
-            if (sesionDelEnvio !== sesion.current) return
+            if (sesionDelEnvio !== sesion.current) return avisarProductoSinGuardar(error)
+            inventarioEnDuda.current = true // el apagado pudo aplicarse aunque contestara error
             const bloqueos = bloqueosDelError(error)
             setBloqueosIva(bloqueos)
             toast({
@@ -1165,7 +1211,10 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
           try {
             await guardarProducto(productData)
           } catch (error: any) {
-            if (sesionDelEnvio !== sesion.current) throw error
+            if (sesionDelEnvio !== sesion.current) {
+              avisarProductoSinGuardar(error)
+              throw error
+            }
             const bloqueos = bloqueosDelError(error)
             setBloqueosIva(bloqueos)
             toast({
@@ -1180,14 +1229,25 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
 
       if (inventoryMethod === 'QUANTITY') {
         const simpleStockData = step3SimpleForm.getValues()
-        // El SERVIDOR no acepta guardar existencias sin costo. Producto que ya lleva inventario, sin costo y sin tocar esta sección:
-        // se guarda sólo el producto (D2). Si tocó la sección, se pide el costo.
-        if (!(simpleStockData.costPerUnit > 0)) {
-          if (inventarioTocado || existingProductData?.inventoryMethod !== 'QUANTITY') {
-            toast({ title: tCommon('error'), description: t('wizard.step3.costPerUnitMinimum'), variant: 'destructive' })
-            revealSection('inventory', section => section.querySelector<HTMLElement>('#costPerUnit'))
-            return
-          }
+        // Existencias, costo y mínimo se comparan con lo que se enseñó al abrir (no con `dirtyFields`: ése compara contra los valores
+        // iniciales del formulario, y bajar el mínimo guardado de 3 al 10 inicial no contaría como cambio).
+        const igual = (a?: number, b?: number) => a === b || (!Number.isFinite(a) && !Number.isFinite(b))
+        const leido = inventarioLeido.current
+        const existenciasTocadas = existenciasEscritas.current || !igual(simpleStockData.initialStock, leido?.initialStock)
+        const inventarioTocado =
+          !leido || existenciasTocadas || !igual(simpleStockData.costPerUnit, leido.costPerUnit) || !igual(simpleStockData.reorderPoint, leido.reorderPoint)
+        // Con el seguimiento apagado (la app móvil lo deja así) guardar lo prende, salvo que falte el costo que el SERVIDOR exige para eso.
+        // `inventarioLeido` sólo existe si al abrir era por cantidad: otro aparato pudo cambiar el método y la lectura refrescarse; sin tocar nada no se le regresa.
+        const soloProducto = !inventarioTocado && !inventarioEnDuda.current && (existingProduct?.trackInventory !== false || !(simpleStockData.costPerUnit > 0))
+        // El SERVIDOR no acepta guardar existencias sin costo: si tocó la sección, se pide el costo.
+        if (!soloProducto && !(simpleStockData.costPerUnit > 0)) {
+          toast({ title: tCommon('error'), description: t('wizard.step3.costPerUnitMinimum'), variant: 'destructive' })
+          revealSection('inventory', section => section.querySelector<HTMLElement>('#costPerUnit'))
+          return
+        }
+        // Sin tocar la sección, sólo se guarda el producto: el SERVIDOR escribe las existencias como número absoluto, y reenviar las
+        // que se leyeron al abrir desharía lo vendido desde entonces (D7).
+        if (soloProducto) {
           updateProductFirst()
             .then(() => {
               queryClient.invalidateQueries({ queryKey: ['product', venueId, productId] })
@@ -1205,14 +1265,22 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
             })
           return
         }
+        existenciasEscritas.current = existenciasTocadas
         updateProductFirst()
           .then(() => {
-            if (sesionDelEnvio !== sesion.current) return
+            // Aunque la ventana ya se haya cerrado: lo capturado termina de enviarse (D9). Los avisos y el cierre ya distinguen la apertura.
             configureInventoryMutation.mutate({
               venueId,
               productId: productId || createdProductId,
               sesion: sesionDelEnvio,
-              configuration: { inventoryMethod: 'QUANTITY', simpleStock: simpleStockData },
+              nombre: data.name,
+              guardado: esteGuardado,
+              configuration: {
+                inventoryMethod: 'QUANTITY',
+                simpleStock: simpleStockData,
+                // Tocó mínimo o costo, no las existencias: van las de este momento, no las de cuando se abrió.
+                conservarExistencias: !!leido && !existenciasTocadas,
+              },
             })
           })
           .catch(() => {
@@ -1257,11 +1325,12 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
 
         updateProductFirst()
           .then(() => {
-            if (sesionDelEnvio !== sesion.current) return
             configureInventoryMutation.mutate({
               venueId,
               productId: productId || createdProductId,
               sesion: sesionDelEnvio,
+              nombre: data.name,
+              guardado: esteGuardado,
               configuration: { inventoryMethod: 'RECIPE', recipe: cleanedRecipe },
             })
           })
@@ -1348,7 +1417,9 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
     handleStep1Submit(data)
   }
 
-  const isLoading = guardandoProducto || createProductWithInventoryMutation.isPending || configureInventoryMutation.isPending || crearFamilia.isPending
+  // `guardandoProducto` ya cubre lo de esta apertura. Un envío tardío sólo frena a quien abrió ese mismo producto (para no cruzar escrituras), no a otro.
+  const enviandoEsteProducto = configureInventoryMutation.isPending && configureInventoryMutation.variables?.productId === productId
+  const isLoading = guardandoProducto || createProductWithInventoryMutation.isPending || enviandoEsteProducto || crearFamilia.isPending
 
   // True while edit-mode wizard is fetching the product to prefill the form.
   // During this window we render a skeleton and lock the action buttons so the
@@ -1367,9 +1438,9 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
   // preguntar). Cuenta un campo que el usuario tocó (`dirtyFields`), no `isDirty`: éste compara contra los valores iniciales y sale
   // `true` sin tocar nada (QA en navegador, 19-oct). En variantes cuenta lo escrito, no el identificador interno de cada opción
   // (agregar y quitar opciones vacías no es captura), y también un valor en las fichas que aún no es ficha (`data-por-confirmar`).
-  // Mientras se guarda cierra directo, sin «descartar»: el guardado sigue (Codex r3) y sin red no se queda sin salida (Codex r2).
+  // Mientras se guarda cierra directo, sin «descartar»: el guardado sigue hasta el final, inventario incluido, y avisa si falla (D9); sin
+  // red no se queda sin salida (Codex r2).
   const tocado = (f: { formState: { dirtyFields: object } }) => Object.keys(f.formState.dirtyFields).length > 0
-  const inventarioTocado = tocado(step3SimpleForm) // se lee aquí también en edición: `dirtyFields` sólo se lleva si se lee al pintar
   const hayCaptura =
     mode === 'create' &&
     (tocado(step1Form) ||
@@ -1452,9 +1523,8 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
         const recipe = step3RecipeForm.getValues()
         const entered = (value: unknown) => typeof value === 'number' && Number.isFinite(value)
         return (mode === 'edit' && !!existingProductData?.inventoryMethod) || entered(stock.initialStock) || entered(stock.costPerUnit) ||
-          stock.reorderPoint !== 10 || (entered(stock.lowStockThreshold) && stock.lowStockThreshold !== 10) || recipe.ingredients.length > 0 ||
-          recipe.portionYield !== 1 || entered(recipe.prepTime) || entered(recipe.cookTime) || !!recipe.notes?.trim() ||
-          (entered(recipe.lowStockThreshold) && recipe.lowStockThreshold !== 5)
+          stock.reorderPoint !== 10 || recipe.ingredients.length > 0 ||
+          recipe.portionYield !== 1 || entered(recipe.prepTime) || entered(recipe.cookTime) || !!recipe.notes?.trim()
       }
     }
   }
@@ -1975,7 +2045,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                                   <Input
                                     id="initialStock"
                                     type="number"
-                                    step="0.01"
+                                    step="any"
                                     min="0"
                                     placeholder="0"
                                     className="h-12 scroll-mt-24 text-base"
@@ -2026,39 +2096,6 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                                     />
                                     <p className="text-xs text-muted-foreground">{t('wizard.step3.reorderPointHelp')}</p>
                                   </div>
-                                </div>
-
-                                <div className="space-y-2">
-                                  <div className="flex items-center gap-2">
-                                    <Label htmlFor="lowStockThreshold">{t('lowStockThreshold.label')}</Label>
-                                    <TooltipProvider>
-                                      <Tooltip>
-                                        <TooltipTrigger asChild>
-                                          <Info className="h-4 w-4 text-muted-foreground cursor-help" />
-                                        </TooltipTrigger>
-                                        <TooltipContent className="max-w-xs">
-                                          <div className="space-y-2">
-                                            <p className="font-semibold">{t('lowStockThreshold.title')}</p>
-                                            <p className="text-sm">{t('lowStockThreshold.description')}</p>
-                                            <p className="text-sm text-muted-foreground">
-                                              {t('lowStockThreshold.defaultNote', { value: 10 })}
-                                            </p>
-                                          </div>
-                                        </TooltipContent>
-                                      </Tooltip>
-                                    </TooltipProvider>
-                                  </div>
-                                  <Input
-                                    id="lowStockThreshold"
-                                    type="number"
-                                    step="1"
-                                    min="0"
-                                    placeholder="10"
-                                    defaultValue={10}
-                                    className="h-12 scroll-mt-24 text-base"
-                                    {...step3SimpleForm.register('lowStockThreshold', { valueAsNumber: true, min: 0 })}
-                                  />
-                                  <p className="text-xs text-muted-foreground">{t('lowStockThreshold.separateFromReorder')}</p>
                                 </div>
                               </div>
                             )}
@@ -2192,40 +2229,6 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                                       <p className="text-xs text-muted-foreground">
                                         {t('recipes.notesHelp', { defaultValue: 'Instrucciones o notas adicionales para la preparación' })}
                                       </p>
-                                    </div>
-
-                                    {/* Low Stock Threshold */}
-                                    <div className="space-y-2">
-                                      <div className="flex items-center gap-2">
-                                        <Label htmlFor="lowStockThresholdRecipe">{t('lowStockThreshold.labelPortions')}</Label>
-                                        <TooltipProvider>
-                                          <Tooltip>
-                                            <TooltipTrigger asChild>
-                                              <Info className="h-4 w-4 text-muted-foreground cursor-help" />
-                                            </TooltipTrigger>
-                                            <TooltipContent className="max-w-xs">
-                                              <div className="space-y-2">
-                                                <p className="font-semibold">{t('lowStockThreshold.title')}</p>
-                                                <p className="text-sm">{t('lowStockThreshold.descriptionPortions')}</p>
-                                                <p className="text-sm text-muted-foreground">
-                                                  {t('lowStockThreshold.defaultNotePortions', { value: 5 })}
-                                                </p>
-                                              </div>
-                                            </TooltipContent>
-                                          </Tooltip>
-                                        </TooltipProvider>
-                                      </div>
-                                      <Input
-                                        id="lowStockThresholdRecipe"
-                                        type="number"
-                                        step="1"
-                                        min="0"
-                                        placeholder="5"
-                                        defaultValue={5}
-                                        className="h-12 scroll-mt-24 text-base"
-                                        {...step3RecipeForm.register('lowStockThreshold', { valueAsNumber: true, min: 0 })}
-                                      />
-                                      <p className="text-xs text-muted-foreground">{t('lowStockThreshold.alertWhenBelow')}</p>
                                     </div>
                                   </CollapsibleContent>
                                 </Collapsible>

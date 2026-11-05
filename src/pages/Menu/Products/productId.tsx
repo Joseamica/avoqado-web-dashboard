@@ -1315,11 +1315,7 @@ export default function ProductId() {
         mode="edit"
         productId={productId}
         onSuccess={() => {
-          toast({
-            title: t('products.detail.toasts.saved'),
-            description: t('products.detail.inventoryConfigured'),
-          })
-          queryClient.invalidateQueries({ queryKey: ['product', venueId, productId] })
+          queryClient.invalidateQueries({ queryKey: ['product', venueId, productId] }) // el aviso de «guardado» lo da el asistente
         }}
       />
     </div>

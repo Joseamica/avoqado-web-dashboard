@@ -572,6 +572,8 @@
     }
   },
   "wizard": {
+    "inventoryNotSavedAfterClose": "«{{name}}» se guardó, pero su inventario no. Ábrelo y vuelve a guardar.",
+    "productNotSavedAfterClose": "«{{name}}» no se guardó. Ábrelo y vuelve a intentarlo.",
     "title": "Asistente de Productos",
     "subtitle": "Crea un nuevo producto con seguimiento de inventario opcional",
     "progress": "Paso {{current}} de {{total}}",
@@ -1099,17 +1101,6 @@
     "optionalPriceFloor": "Precio mínimo opcional - el precio sugerido no será menor a este valor",
     "invalidStockLevels": "Niveles de stock inválidos",
     "minimumStockMustBeLessOrEqualToReorderPoint": "El stock mínimo debe ser menor o igual al punto de reorden. El punto de reorden es cuando se activa una orden de compra, así que debe ser mayor que el stock mínimo para considerar el tiempo de entrega."
-  },
-  "lowStockThreshold": {
-    "label": "Umbral de Alerta de Stock Bajo",
-    "labelPortions": "Umbral de Alerta de Stock Bajo (porciones)",
-    "title": "¿Qué es el Umbral de Stock Bajo?",
-    "description": "Nivel de stock que activa una alerta de stock bajo en tu panel. Cuando el stock cae por debajo de este número, el producto será resaltado.",
-    "descriptionPortions": "Número de porciones que activa una alerta de stock bajo. Cuando las porciones disponibles caen por debajo de este número, el producto será resaltado en tu panel.",
-    "defaultNote": "Por defecto: {{value}} unidades. Ajusta según tu volumen de ventas y frecuencia de reorden.",
-    "defaultNotePortions": "Por defecto: {{value}} porciones. Ajusta según tus ventas diarias y tiempo de preparación.",
-    "separateFromReorder": "Alerta cuando el stock cae por debajo de este nivel (separado del punto de reorden)",
-    "alertWhenBelow": "Alerta cuando las porciones disponibles caen por debajo de este nivel"
   },
   "pricingStrategy": {
     "manualDescription": "Establece manualmente los precios de los productos",

@@ -438,7 +438,9 @@ describe('asistente — respuestas y fotos entre aperturas', () => {
     expect(vista.onOpenChange).not.toHaveBeenCalled()
     expect(vista.onSuccess).not.toHaveBeenCalled()
     expect(screen.queryByText('Bloqueo de A')).not.toBeInTheDocument()
-    expect(toastMock).not.toHaveBeenCalled()
+    // B no cambia, pero un guardado de A que falló con la ventana cerrada sí se avisa, con su nombre (D9).
+    if (resultado === 'éxito') expect(toastMock).not.toHaveBeenCalled()
+    else expect(toastMock.mock.calls).toEqual([[expect.objectContaining({ title: 'wizard.productNotSavedAfterClose', variant: 'destructive' })]])
     expect(inv.productWizardApi.configureSimpleStock).not.toHaveBeenCalled()
     expect(http.put).toHaveBeenCalledTimes(1)
   })
@@ -488,6 +490,7 @@ describe('asistente — respuestas y fotos entre aperturas', () => {
       inv.productWizardApi.configureSimpleStock.mockReturnValueOnce(pendiente.promise)
       const vista = montar()
       await screen.findByDisplayValue('Producto a')
+      fireEvent.change(await screen.findByDisplayValue('5'), { target: { value: '6' } })
       await guardar()
       await waitFor(() => expect(inv.productWizardApi.configureSimpleStock).toHaveBeenCalledTimes(1))
       expect(inv.productWizardApi.configureSimpleStock.mock.calls[0].slice(0, 2)).toEqual(['v1', 'a'])
@@ -505,10 +508,184 @@ describe('asistente — respuestas y fotos entre aperturas', () => {
       expect(vista.onOpenChange).not.toHaveBeenCalled()
       expect(vista.onSuccess).not.toHaveBeenCalled()
       expect(screen.queryByText('conversion.toQuantity.title')).not.toBeInTheDocument()
-      expect(toastMock).not.toHaveBeenCalled()
+      // El aviso lleva el nombre de A y no se mete con B: cerrar no debe dejar un fallo sin que nadie se entere (D9).
+      if (resultado === 'éxito') expect(toastMock).not.toHaveBeenCalled()
+      else expect(toastMock.mock.calls).toEqual([[expect.objectContaining({ title: 'wizard.inventoryNotSavedAfterClose', variant: 'destructive' })]])
       expect(inv.productWizardApi.configureSimpleStock).toHaveBeenCalledTimes(1)
     },
   )
+
+  // D9: cerrar con la X durante el primer PUT no tira lo capturado; termina de enviarse, con lo de ESA apertura.
+  it('cerrar durante el PUT: el inventario se manda igual, con lo capturado, y B no se entera', async () => {
+    inv.productWizardApi.getWizardProgress.mockResolvedValue({
+      data: { data: { inventoryMethod: 'QUANTITY', details: { currentStock: 5, minimumStock: 3, reservedStock: 0, costPerUnit: 2 } } },
+    })
+    const putA = diferida()
+    http.put.mockReturnValueOnce(putA.promise)
+    const vista = montar()
+    await screen.findByDisplayValue('Producto a')
+    fireEvent.change(await screen.findByDisplayValue('5'), { target: { value: '33' } })
+    await guardar()
+    await waitFor(() => expect(http.put).toHaveBeenCalledTimes(1))
+    vista.abrir(false)
+    vista.abrir(true, 'b')
+    await escribirB()
+    vista.onOpenChange.mockClear()
+    toastMock.mockClear()
+    await act(async () => { putA.resolve({ data: {} }); await putA.promise })
+    await waitFor(() => expect(inv.productWizardApi.configureSimpleStock).toHaveBeenCalledTimes(1))
+    expect(inv.productWizardApi.configureSimpleStock.mock.calls[0]).toEqual(['v1', 'a', expect.objectContaining({ initialStock: 33, reorderPoint: 3, costPerUnit: 2 })])
+    expect(http.put.mock.calls[1]).toEqual(['/api/v1/dashboard/venues/v1/products/a', { trackInventory: true, inventoryMethod: 'QUANTITY' }])
+    await act(async () => { await new Promise(resolve => setTimeout(resolve, 0)) })
+    expect(screen.getByDisplayValue('B sin perder')).toBeInTheDocument()
+    expect(vista.onOpenChange).not.toHaveBeenCalled()
+    expect(vista.onSuccess).not.toHaveBeenCalled()
+    expect(toastMock).not.toHaveBeenCalled()
+  })
+
+  // Codex r1: el envío tardío de A usa la misma mutación; al terminar antes que B dejaba `isPending` en falso con B todavía en camino.
+  it('el envío tardío de A no vuelve a habilitar «Guardar» mientras B sigue guardando', async () => {
+    inv.productWizardApi.getWizardProgress.mockResolvedValue({
+      data: { data: { inventoryMethod: 'QUANTITY', details: { currentStock: 5, minimumStock: 3, reservedStock: 0, costPerUnit: 2 } } },
+    })
+    const putA = diferida()
+    const stockB = diferida()
+    http.put.mockReturnValueOnce(putA.promise)
+    const vista = montar()
+    await screen.findByDisplayValue('Producto a')
+    fireEvent.change(await screen.findByDisplayValue('5'), { target: { value: '33' } })
+    await guardar()
+    await waitFor(() => expect(http.put).toHaveBeenCalledTimes(1))
+    vista.abrir(false)
+    vista.abrir(true, 'b')
+    await screen.findByDisplayValue('Producto b')
+    fireEvent.change(await screen.findByDisplayValue('5'), { target: { value: '44' } })
+    await waitFor(() => expect(screen.getByRole('button', { name: 'save' })).toBeEnabled())
+    inv.productWizardApi.configureSimpleStock.mockReturnValueOnce(stockB.promise)
+    await guardar()
+    await waitFor(() => expect(inv.productWizardApi.configureSimpleStock).toHaveBeenCalledTimes(1))
+    expect(inv.productWizardApi.configureSimpleStock.mock.calls[0].slice(0, 2)).toEqual(['v1', 'b'])
+    await act(async () => { putA.resolve({ data: {} }); await putA.promise })
+    await waitFor(() => expect(inv.productWizardApi.configureSimpleStock).toHaveBeenCalledTimes(2))
+    expect(inv.productWizardApi.configureSimpleStock.mock.calls[1][1]).toBe('a')
+    await act(async () => { await new Promise(resolve => setTimeout(resolve, 20)) })
+    expect(screen.getByRole('button', { name: 'save' })).toBeDisabled()
+    await guardar().catch(() => undefined)
+    expect(inv.productWizardApi.configureSimpleStock).toHaveBeenCalledTimes(2)
+    await act(async () => { stockB.resolve({}); await stockB.promise })
+    await waitFor(() => expect(vista.onOpenChange).toHaveBeenCalledWith(false))
+  })
+
+  // Codex r2: lo que termina de enviarse al cerrar no gana contra un guardado más nuevo del MISMO producto.
+  it('reabrir el mismo producto y guardar 44: el 33 de antes ya no se manda al terminar su PUT', async () => {
+    inv.productWizardApi.getWizardProgress.mockResolvedValue({
+      data: { data: { inventoryMethod: 'QUANTITY', details: { currentStock: 5, minimumStock: 3, reservedStock: 0, costPerUnit: 2 } } },
+    })
+    const putViejo = diferida()
+    http.put.mockReturnValueOnce(putViejo.promise)
+    const vista = montar()
+    await screen.findByDisplayValue('Producto a')
+    fireEvent.change(await screen.findByDisplayValue('5'), { target: { value: '33' } })
+    await guardar()
+    await waitFor(() => expect(http.put).toHaveBeenCalledTimes(1))
+    vista.abrir(false)
+    vista.abrir(true, 'a')
+    await screen.findByDisplayValue('Producto a')
+    fireEvent.change(await screen.findByDisplayValue('5'), { target: { value: '44' } })
+    await waitFor(() => expect(screen.getByRole('button', { name: 'save' })).toBeEnabled())
+    await guardar()
+    await waitFor(() => expect(inv.productWizardApi.configureSimpleStock).toHaveBeenCalledTimes(1))
+    await act(async () => { putViejo.resolve({ data: {} }); await putViejo.promise })
+    await act(async () => { await new Promise(resolve => setTimeout(resolve, 20)) })
+    expect(inv.productWizardApi.configureSimpleStock.mock.calls.map(([, , stock]) => stock.initialStock)).toEqual([44])
+  })
+
+  // Codex r3: la comprobación del «último guardado» va justo antes de escribir, también si lo tardío ya venía en camino desde otra instancia.
+  it('otra instancia guarda 44 con el PUT de activación de la vieja en camino: el 33 ya no se manda', async () => {
+    inv.productWizardApi.getWizardProgress.mockResolvedValue({
+      data: { data: { inventoryMethod: 'QUANTITY', details: { currentStock: 5, minimumStock: 3, reservedStock: 0, costPerUnit: 2 } } },
+    })
+    const putActivar = diferida()
+    http.put.mockResolvedValueOnce({ data: {} }).mockReturnValueOnce(putActivar.promise)
+    const lista = montar()
+    await screen.findByDisplayValue('Producto a')
+    fireEvent.change(await screen.findByDisplayValue('5'), { target: { value: '33' } })
+    await guardar()
+    await waitFor(() => expect(http.put).toHaveBeenCalledTimes(2))
+    lista.abrir(false)
+    montar()
+    await screen.findByDisplayValue('Producto a')
+    fireEvent.change(await screen.findByDisplayValue('5'), { target: { value: '44' } })
+    await waitFor(() => expect(screen.getByRole('button', { name: 'save' })).toBeEnabled())
+    await guardar()
+    await waitFor(() => expect(inv.productWizardApi.configureSimpleStock).toHaveBeenCalledTimes(1))
+    await act(async () => { putActivar.resolve({ data: {} }); await putActivar.promise })
+    await act(async () => { await new Promise(resolve => setTimeout(resolve, 20)) })
+    expect(inv.productWizardApi.configureSimpleStock.mock.calls.map(([, , stock]) => stock.initialStock)).toEqual([44])
+  })
+
+  // Codex r3: lo tardío de A no le apaga «Guardar» a B, un producto distinto que todavía no está guardando.
+  it('el envío tardío de A no deshabilita «Guardar» de otro producto', async () => {
+    inv.productWizardApi.getWizardProgress.mockResolvedValue({
+      data: { data: { inventoryMethod: 'QUANTITY', details: { currentStock: 5, minimumStock: 3, reservedStock: 0, costPerUnit: 2 } } },
+    })
+    const putA = diferida()
+    const stockA = diferida()
+    http.put.mockReturnValueOnce(putA.promise)
+    inv.productWizardApi.configureSimpleStock.mockReturnValueOnce(stockA.promise)
+    const vista = montar()
+    await screen.findByDisplayValue('Producto a')
+    fireEvent.change(await screen.findByDisplayValue('5'), { target: { value: '33' } })
+    await guardar()
+    await waitFor(() => expect(http.put).toHaveBeenCalledTimes(1))
+    vista.abrir(false)
+    vista.abrir(true, 'b')
+    await screen.findByDisplayValue('Producto b')
+    await act(async () => { putA.resolve({ data: {} }); await putA.promise })
+    await waitFor(() => expect(inv.productWizardApi.configureSimpleStock).toHaveBeenCalledTimes(1))
+    await waitFor(() => expect(screen.getByRole('button', { name: 'save' })).toBeEnabled())
+    await act(async () => { stockA.resolve({}); await stockA.promise })
+  })
+
+  it('cerrar durante el PUT de una receta: la receta se manda igual', async () => {
+    plan.hasAccess = true
+    inv.productWizardApi.getWizardProgress.mockResolvedValue({ data: { data: { inventoryMethod: 'RECIPE', details: {} } } })
+    inv.recipesApi.get.mockResolvedValue({
+      data: { data: { portionYield: 1, lines: [{ rawMaterialId: 'rm1', rawMaterial: { name: 'Insumo' }, quantity: '1', unit: 'KILOGRAM', isOptional: false }] } },
+    })
+    inv.recipesApi.update.mockResolvedValue({})
+    inv.rawMaterialsApi.getAll.mockResolvedValue({ data: { data: [] } })
+    const putA = diferida()
+    http.put.mockReturnValueOnce(putA.promise)
+    const vista = montar()
+    await screen.findByDisplayValue('Producto a')
+    await screen.findAllByText('Insumo', { selector: 'p' })
+    await guardar()
+    await waitFor(() => expect(http.put).toHaveBeenCalledTimes(1))
+    vista.abrir(false)
+    await act(async () => { putA.resolve({ data: {} }); await putA.promise })
+    await waitFor(() => expect(inv.recipesApi.update).toHaveBeenCalledTimes(1))
+    expect(inv.recipesApi.update.mock.calls[0][1]).toBe('a')
+  })
+
+  it('cerrar y que falle el primer PUT: también avisa, sin tocar B', async () => {
+    const putA = diferida()
+    http.put.mockReturnValueOnce(putA.promise)
+    const vista = montar()
+    await screen.findByDisplayValue('Producto a')
+    await guardar()
+    await waitFor(() => expect(http.put).toHaveBeenCalledTimes(1))
+    vista.abrir(false)
+    vista.abrir(true, 'b')
+    await escribirB()
+    toastMock.mockClear()
+    await act(async () => {
+      putA.reject({ response: { status: 500, data: { message: 'Falló A' } } })
+      await putA.promise.catch(() => undefined)
+    })
+    await waitFor(() => expect(toastMock).toHaveBeenCalledWith(expect.objectContaining({ title: 'wizard.productNotSavedAfterClose', description: 'Falló A', variant: 'destructive' })))
+    expect(screen.getByDisplayValue('B sin perder')).toBeInTheDocument()
+  })
 
   it.each(['éxito', 'error'])('conversión ya enviada: %s tardío de A no reintenta con B ni deja su diálogo abierto', async resultado => {
     inv.productWizardApi.getWizardProgress.mockResolvedValue({
@@ -522,6 +699,7 @@ describe('asistente — respuestas y fotos entre aperturas', () => {
     inv.productInventoryApi.switchInventoryMethod.mockReturnValueOnce(pendiente.promise)
     const vista = montar()
     await screen.findByDisplayValue('Producto a')
+    fireEvent.change(await screen.findByDisplayValue('5'), { target: { value: '6' } })
     await guardar()
     await userEvent.click(await screen.findByRole('button', { name: 'conversion.toQuantity.confirm' }))
     await waitFor(() => expect(inv.productInventoryApi.switchInventoryMethod).toHaveBeenCalledWith('v1', 'a', 'QUANTITY'))
@@ -558,6 +736,7 @@ describe('asistente — respuestas y fotos entre aperturas', () => {
     inv.productInventoryApi.switchInventoryMethod.mockResolvedValue({})
     const vista = montar()
     await screen.findByDisplayValue('Producto a')
+    fireEvent.change(await screen.findByDisplayValue('5'), { target: { value: '6' } })
     await guardar()
     await userEvent.click(await screen.findByRole('button', { name: 'conversion.toQuantity.confirm' }))
     await waitFor(() => expect(inv.productWizardApi.configureSimpleStock).toHaveBeenCalledTimes(2))
@@ -572,6 +751,7 @@ describe('asistente — respuestas y fotos entre aperturas', () => {
     http.put.mockImplementationOnce(async () => { onlineManager.setOnline(false); return { data: {} } })
     const vista = montar()
     await screen.findByDisplayValue('Producto a')
+    fireEvent.change(await screen.findByDisplayValue('5'), { target: { value: '6' } })
     await guardar()
     await waitFor(() => expect(vista.qc.getMutationCache().getAll().some(m => m.state.isPaused)).toBe(true))
     expect(http.put).toHaveBeenCalledTimes(1)
@@ -583,7 +763,7 @@ describe('asistente — respuestas y fotos entre aperturas', () => {
     await act(async () => { onlineManager.setOnline(true); await vista.qc.resumePausedMutations() })
     await waitFor(() => expect(inv.productWizardApi.configureSimpleStock).toHaveBeenCalledTimes(1))
     expect(inv.productWizardApi.configureSimpleStock.mock.calls[0]).toEqual([
-      'v1', 'a', expect.objectContaining({ initialStock: 5, costPerUnit: 2, reorderPoint: 3 }),
+      'v1', 'a', expect.objectContaining({ initialStock: 6, costPerUnit: 2, reorderPoint: 3 }),
     ])
     expect(http.put.mock.calls[1]).toEqual(['/api/v1/dashboard/venues/v1/products/a', { trackInventory: true, inventoryMethod: 'QUANTITY' }])
     expect(screen.getByDisplayValue('B sin perder')).toBeInTheDocument()
@@ -601,6 +781,7 @@ describe('asistente — respuestas y fotos entre aperturas', () => {
     inv.productInventoryApi.switchInventoryMethod.mockResolvedValue({})
     const vista = montar()
     await screen.findByDisplayValue('Producto a')
+    fireEvent.change(await screen.findByDisplayValue('5'), { target: { value: '6' } })
     await guardar()
     const confirmar = await screen.findByRole('button', { name: 'conversion.toQuantity.confirm' })
     act(() => onlineManager.setOnline(false))
@@ -628,6 +809,7 @@ describe('asistente — respuestas y fotos entre aperturas', () => {
     inv.productWizardApi.configureSimpleStock.mockReturnValueOnce(pendiente.promise)
     const vista = montar()
     await screen.findByDisplayValue('Producto a')
+    fireEvent.change(await screen.findByDisplayValue('5'), { target: { value: '6' } })
     await guardar()
     await waitFor(() => expect(inv.productWizardApi.configureSimpleStock).toHaveBeenCalledTimes(1))
     vista.abrir(false)
@@ -725,6 +907,7 @@ describe('asistente — respuestas y fotos entre aperturas', () => {
     inv.productWizardApi.createProductWithInventory.mockReturnValueOnce(guardadoB.promise)
     const vista = montar()
     await screen.findByDisplayValue('Producto a')
+    fireEvent.change(await screen.findByDisplayValue('5'), { target: { value: '6' } })
     await guardar()
     await userEvent.click(await screen.findByRole('button', { name: 'conversion.toQuantity.confirm' }))
     await waitFor(() => expect(inv.productInventoryApi.switchInventoryMethod).toHaveBeenCalledTimes(1))

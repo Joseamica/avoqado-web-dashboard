@@ -222,7 +222,9 @@ const InviteTeamMemberForm = forwardRef<InviteTeamMemberFormRef, InviteTeamMembe
       reset,
     } = useForm<InviteTeamMemberFormData>({
       resolver: zodResolver(createInviteSchema(t, inviteType, allowFakeEmailForSuperadmin)),
-      mode: 'onBlur',
+      // onTouched: `isValid` se actualiza al escribir, y el error no sale antes de terminar el campo. Con onBlur el botón seguía apagado con
+      // el último campo enfocado: el clic sólo quitaba el foco y no enviaba.
+      mode: 'onTouched',
       defaultValues: {
         type: 'email',
       },
