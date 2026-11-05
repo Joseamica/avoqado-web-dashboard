@@ -7,6 +7,8 @@ import { useAccess } from '@/hooks/use-access'
 import { useTierFeatureAccess } from '@/hooks/use-tier-feature-access'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
+import { FaltaParaFacturarDialog } from '@/pages/Cfdi/components/FaltaParaFacturarDialog'
+import { useFaltaParaFacturar } from '@/pages/Cfdi/components/faltaParaFacturar'
 import { IssueCfdiDialog } from '@/pages/Cfdi/components/IssueCfdiDialog'
 import type { Order } from '@/types'
 import { Currency } from '@/utils/currency'
@@ -40,6 +42,7 @@ export function OrderActionsSheet({ order, open, onOpenChange, fullBasePath }: P
   // "Facturar" is an action, not a discovery teaser — hide it unless the user
   // can issue CFDIs AND the venue has the CFDI feature active.
   const canIssueCfdi = can('cfdi:issue') && hasCfdi
+  const faltaParaFacturar = useFaltaParaFacturar({ enabled: canIssueCfdi && (open || issueCfdiOpen), abierto: issueCfdiOpen })
 
   const payments = order.payments ?? []
   const hasOne = payments.length === 1
@@ -180,7 +183,8 @@ export function OrderActionsSheet({ order, open, onOpenChange, fullBasePath }: P
       </DialogContent>
     </Dialog>
 
-      <IssueCfdiDialog open={issueCfdiOpen} onOpenChange={setIssueCfdiOpen} orderId={order.id} venueId={venueId} />
+      <IssueCfdiDialog open={issueCfdiOpen && !faltaParaFacturar} onOpenChange={setIssueCfdiOpen} orderId={order.id} venueId={venueId} />
+      <FaltaParaFacturarDialog falta={faltaParaFacturar} open={issueCfdiOpen} onOpenChange={setIssueCfdiOpen} />
     </>
   )
 }

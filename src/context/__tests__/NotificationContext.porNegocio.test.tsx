@@ -244,6 +244,16 @@ describe('campana por negocio · avisos en vivo', () => {
     expect(cuenta()).toBe('1')
   })
 
+  it('un aviso personal sin negocio (KYC, avisos de superadmin) sí entra en la campana del negocio (D7)', async () => {
+    montar('/venues/galeterie/home')
+    await waitFor(() => expect(h.handlers['notification_new']).toBeDefined())
+    await esperarLista()
+    act(() => h.handlers['notification_new']({ id: 'p1', venueId: '', type: 'GENERAL', title: 't', message: 'm', priority: 'NORMAL', isRead: false }))
+    act(() => h.handlers['notification_new']({ id: 'p2', type: 'GENERAL', title: 't', message: 'm', priority: 'NORMAL', isRead: false }))
+    expect(ids()).toBe('p2,p1')
+    expect(cuenta()).toBe('2')
+  })
+
   it('en pantallas de organización entran los avisos de cualquier negocio', async () => {
     montar('/organizations/o1/home')
     await waitFor(() => expect(h.handlers['notification_new']).toBeDefined())

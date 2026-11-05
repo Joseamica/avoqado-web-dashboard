@@ -29,6 +29,8 @@ import { FeatureGate } from '@/components/billing/FeatureGate'
 import type { Cfdi, CfdiFlow } from '@/services/cfdi.service'
 import { CancelCfdiDialog } from './components/CancelCfdiDialog'
 import { ExtraccionesPendientesAviso } from './components/ExtraccionesPendientesAviso'
+import { FaltaParaFacturarDialog } from './components/FaltaParaFacturarDialog'
+import { useFaltaParaFacturar } from './components/faltaParaFacturar'
 import { GlobalComplementariaDialog } from './components/GlobalComplementariaDialog'
 import { IssueCfdiDialog } from './components/IssueCfdiDialog'
 import { PickOrderToInvoiceDialog } from './components/PickOrderToInvoiceDialog'
@@ -180,6 +182,7 @@ export default function CfdiList() {
   // `orders:read`: Pedidos → ⋯ → Facturar exige lo mismo de hecho.
   const canStartInvoice = hasCfdi && canIssue && can('orders:read')
   const [pickOrderOpen, setPickOrderOpen] = useState(false)
+  const faltaParaFacturar = useFaltaParaFacturar({ enabled: canStartInvoice, abierto: pickOrderOpen })
   const [orderToInvoice, setOrderToInvoice] = useState<string | null>(null)
 
   const [cancelTarget, setCancelTarget] = useState<Cfdi | null>(null)
@@ -582,7 +585,7 @@ export default function CfdiList() {
         {hasCfdi && <ReplaceCfdiDialog cfdi={replaceTarget} onOpenChange={open => !open && setReplaceTarget(null)} />}
         {canStartInvoice && (
           <PickOrderToInvoiceDialog
-            open={pickOrderOpen}
+            open={pickOrderOpen && !faltaParaFacturar}
             onOpenChange={setPickOrderOpen}
             onSelect={orderId => {
               setPickOrderOpen(false)
@@ -590,6 +593,7 @@ export default function CfdiList() {
             }}
           />
         )}
+        {canStartInvoice && <FaltaParaFacturarDialog falta={faltaParaFacturar} open={pickOrderOpen} onOpenChange={setPickOrderOpen} />}
         {canStartInvoice && orderToInvoice && (
           <IssueCfdiDialog
             open
