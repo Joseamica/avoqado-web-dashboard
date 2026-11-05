@@ -199,6 +199,11 @@
       "changedSinceReview": "The sale changed since you reviewed it. Tap “{{submit}}” again to see the updated sale.",
       "confirmedManual": "Done, it is confirmed. Check the details and tap “{{submit}}” to invoice.",
       "confirmError": "Could not confirm. Try again."
+    },
+    "notReady": {
+      "title": "This sale can't be invoiced yet",
+      "goToSettings": "Go to settings",
+      "askOwner": "Ask the business owner to review it."
     }
   },
   "autofactura": {
