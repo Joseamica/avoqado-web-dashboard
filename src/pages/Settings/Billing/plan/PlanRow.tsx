@@ -47,7 +47,8 @@ export function PlanRow(props: PlanRowProps) {
   const untilText = until ? formatDate(until) : null
   const suspended = origin.kind === 'CLASSIC' && (planState?.state === 'past_due' || planState?.state === 'suspended')
   // Mensual/Anual only matters to the classic checkout: a paid plan picked while on Gratis.
-  const showInterval = origin.kind === 'NONE' && !grandfathered && !props.classicRejected && selected !== 'FREE'
+  const quedarseConLaPrueba = origin.kind === 'COMP' && !!origin.firstChargeAt && selected === current
+  const showInterval = (origin.kind === 'NONE' || quedarseConLaPrueba) && !grandfathered && !props.classicRejected && selected !== 'FREE'
   const priceInput = {
     origin,
     grandfathered,

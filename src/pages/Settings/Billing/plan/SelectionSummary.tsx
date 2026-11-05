@@ -6,10 +6,13 @@ import { salesWhatsAppLink } from '@/config/plan-catalog'
 import type { FeatureGridEntry, FeatureGridOffer } from '@/services/hybridBilling.service'
 import { getIntlLocale } from '@/utils/i18n-locale'
 import { sinIva } from '@/lib/sinIva'
+import { useVenueDateTime } from '@/utils/datetime'
 import type { DependencyFix, PlanOperation, SelectionSummaryModel } from './planActions'
 
 export interface SelectionSummaryProps {
   model: SelectionSummaryModel
+  /** Mensual o anual del checkout clásico: decide si el total es «al mes» o «al año». */
+  interval?: 'monthly' | 'annual'
   seatRule: 'CHOOSE' | 'AUTOMATIC'
   canManage: boolean
   busy: boolean
@@ -39,6 +42,7 @@ function ctaKey(op: PlanOperation): string {
 /** "Tu selección": what changes and what it costs — "Pagas hoy" only when a server number backs it (spec §4.2). */
 export function SelectionSummary({
   model,
+  interval = 'monthly',
   seatRule,
   canManage,
   busy,
@@ -51,6 +55,7 @@ export function SelectionSummary({
   onPreferList,
 }: SelectionSummaryProps) {
   const { t, i18n } = useTranslation('billing')
+  const { formatDate } = useVenueDateTime()
   const lang = (['es', 'en', 'fr'] as const).find(code => i18n.language.startsWith(code)) ?? 'es'
   const money = (value: number) => new Intl.NumberFormat(getIntlLocale(i18n.language), { style: 'currency', currency: 'MXN' }).format(value)
   const tierName = (tier: string) => t(`plan.tiers.${tier.toLowerCase()}.name`)
@@ -70,9 +75,17 @@ export function SelectionSummary({
   const title = model.target !== model.current ? t('plan.selection.titleChange') : t('plan.selection.title')
   const cta = t(ctaKey(op))
   // On a paid plan the lines are only the functions being added: the figure is what's added, not the whole bill.
+  // La compra clásica cobra el plan entero (también «quedarse» con el de una prueba regalada), al mes o al año.
   const totalLabel = t(
-    model.target === model.current && model.current !== 'FREE' ? 'plan.selection.monthlyAdded' : 'plan.selection.monthlyTotal',
+    op.kind === 'CLASSIC_CHECKOUT'
+      ? interval === 'annual'
+        ? 'plan.selection.annualTotal'
+        : 'plan.selection.monthlyTotal'
+      : model.target === model.current && model.current !== 'FREE'
+        ? 'plan.selection.monthlyAdded'
+        : 'plan.selection.monthlyTotal',
   )
+  const primerCobro = model.firstChargeAt ? formatDate(model.firstChargeAt) : null
 
   const idleText =
     op.kind === 'FOUNDER'
@@ -111,8 +124,19 @@ export function SelectionSummary({
                     ? t('plan.selection.netPlusIva', { net: money(sinIva(model.monthlyTotal)), gross: money(model.monthlyTotal) })
                     : t('plan.ivaIncluded')}
                   {purchase &&
-                    ` · ${model.payToday != null ? t('plan.selection.payToday', { price: money(model.payToday) }) : t('plan.selection.payTodayAtReview')}`}
+                    ` · ${
+                      primerCobro
+                        ? t('plan.selection.payTodayDeferred', { price: money(0), date: primerCobro })
+                        : model.payToday != null
+                          ? t('plan.selection.payToday', { price: money(model.payToday) })
+                          : t('plan.selection.payTodayAtReview')
+                    }`}
                 </p>
+                {primerCobro && (
+                  <p className="mt-2 text-xs text-muted-foreground" data-tour="plan-deferred-note">
+                    {t('plan.selection.deferredNote', { date: primerCobro })}
+                  </p>
+                )}
               </div>
             )}
             {model.lose.length > 0 && (

@@ -141,6 +141,11 @@ export interface PlanOrigin {
   contractRevision: number | null
   subscriptionId: string | null
   paymentIssue: string | null
+  /**
+   * D3: en una prueba REGALADA (`COMP` con fecha), el día del primer cobro si el dueño se queda con su plan hoy (= el fin de
+   * la prueba). Sólo llega cuando el SERVIDOR todavía puede diferir el cobro; un servidor anterior no lo manda.
+   */
+  firstChargeAt?: string | null
 }
 
 /**
@@ -256,8 +261,17 @@ export const createPlanCheckoutSession = async (
   venueId: string,
   tier: 'PRO' | 'PREMIUM',
   interval: 'monthly' | 'annual',
+  /**
+   * D3: sólo desde «Quedarme con mi plan» de una prueba regalada: la fecha del primer cobro que se mostró. Si el SERVIDOR
+   * ya no puede diferir o la prueba cambió de fecha, contesta 409 en vez de abrir otro pago.
+   */
+  opciones: { primerCobroAnunciado?: string } = {},
 ): Promise<string> => {
-  const res = await api.post(`/api/v1/dashboard/venues/${venueId}/plan/checkout`, { tier, interval })
+  const res = await api.post(`/api/v1/dashboard/venues/${venueId}/plan/checkout`, {
+    tier,
+    interval,
+    ...(opciones.primerCobroAnunciado ? { primerCobroAnunciado: opciones.primerCobroAnunciado } : {}),
+  })
   return res.data.url as string
 }
 

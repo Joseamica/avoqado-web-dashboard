@@ -6,6 +6,8 @@ import type { FeatureGridEntry } from '@/services/hybridBilling.service'
 import { SelectionSummary, type SelectionSummaryProps } from '../SelectionSummary'
 import type { SelectionSummaryModel } from '../planActions'
 
+vi.mock('@/utils/datetime', () => ({ useVenueDateTime: () => ({ formatDate: (value: string) => value.slice(0, 10) }) }))
+
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     i18n: { language: 'es' },
@@ -46,6 +48,7 @@ const model = (over: Partial<SelectionSummaryModel> = {}): SelectionSummaryModel
   ],
   monthlyTotal: 199,
   payToday: null,
+  firstChargeAt: null,
   lose: [],
   hint: { tier: 'PRO', covered: 1, more: 17, price: 1158.84 },
   seatNotice: false,
@@ -317,5 +320,26 @@ describe('SelectionSummary', () => {
     // The figure is the monthly total, never read as today's charge.
     expect(bar).toHaveTextContent('plan.selection.monthlyTotal')
     expect(document.querySelector('[data-tour="plan-review-bar"]')).not.toBeNull()
+  })
+
+  // D3: quedarse con el plan de una prueba regalada — hoy $0 y el día del primer cobro, nunca «Hoy pagas $1,158.84».
+  it('quedarse con el plan de una prueba regalada dice hoy $0, el primer cobro y que puede cancelar antes', () => {
+    renderSummary({
+      interval: 'annual',
+      model: model({
+        operation: { kind: 'CLASSIC_CHECKOUT', tier: 'PRO', firstChargeAt: '2026-12-05T17:19:24.498Z' },
+        current: 'PRO',
+        target: 'PRO',
+        lines: [{ key: 'plan-PRO', plan: 'PRO', price: 11588.4 }],
+        monthlyTotal: 11588.4,
+        payToday: 0,
+        firstChargeAt: '2026-12-05T17:19:24.498Z',
+        hint: null,
+      }),
+    })
+    expect(screen.getAllByText('plan.selection.annualTotal').length).toBeGreaterThan(0)
+    expect(screen.getByText(/plan\.selection\.payTodayDeferred\|price=\$0\.00\|date=2026-12-05/)).toBeInTheDocument()
+    expect(screen.getByText('plan.selection.deferredNote|date=2026-12-05')).toBeInTheDocument()
+    expect(screen.queryByText(/plan\.selection\.payToday\|/)).toBeNull()
   })
 })

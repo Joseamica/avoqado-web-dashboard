@@ -48,8 +48,20 @@ export function usePlanOperations(venueId: string, openCheckout: () => void) {
   const failToast = (fallback: string) => (value: unknown) => toast({ title: serverMessage(value, t(fallback)), variant: 'destructive' })
 
   const classicCheckout = useMutation({
-    mutationFn: async ({ tier, interval }: { tier: 'PRO' | 'PREMIUM'; interval: 'monthly' | 'annual' }) => {
-      const url = await createPlanCheckoutSession(venueId, tier, interval)
+    mutationFn: async ({
+      tier,
+      interval,
+      primerCobroAnunciado,
+    }: {
+      tier: 'PRO' | 'PREMIUM'
+      interval: 'monthly' | 'annual'
+      /** D3: quedarse con el plan de una prueba regalada (hoy $0): la fecha del primer cobro que se mostró. */
+      primerCobroAnunciado?: string
+    }) => {
+      // Sin la marca, la llamada de siempre: sólo «quedarse» con la prueba la manda.
+      const url = primerCobroAnunciado
+        ? await createPlanCheckoutSession(venueId, tier, interval, { primerCobroAnunciado })
+        : await createPlanCheckoutSession(venueId, tier, interval)
       // No url means no checkout: fail loudly (the page shows it) instead of navigating to "undefined".
       if (!url) throw new Error('Plan checkout returned no url')
       return url

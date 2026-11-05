@@ -243,6 +243,45 @@ describe('each choice opens its operation (spec §4.1)', () => {
     await waitFor(() => expect(createPlanCheckoutSession).toHaveBeenCalledWith('venue', 'PRO', 'monthly'))
   })
 
+  it('D3: con una prueba regalada, quedarse con Pro dice hoy $0 y abre el checkout marcado «sin cobro hoy»', async () => {
+    vi.mocked(getVenuePlan).mockResolvedValue(
+      plan({ kind: 'COMP', tier: 'PRO', currentPeriodEnd: '2026-12-05T17:19:24.498Z', firstChargeAt: '2026-12-05T17:19:24.498Z' }) as never,
+    )
+    renderPage()
+    await userEvent.click(await screen.findByRole('radio', { name: /Pro/ }))
+    expect(await screen.findByText(/Hoy pagas \$0\.00 · primer cobro el/)).toBeInTheDocument()
+    await userEvent.click(review())
+    await waitFor(() =>
+      expect(createPlanCheckoutSession).toHaveBeenCalledWith('venue', 'PRO', 'monthly', {
+        primerCobroAnunciado: '2026-12-05T17:19:24.498Z',
+      }),
+    )
+  })
+
+  it('D3: al volver de Stripe «sin cobro hoy» con la suscripción ligada: tarjeta guardada y la fecha, nunca «Pago recibido»', async () => {
+    vi.mocked(getVenuePlan).mockResolvedValue(
+      plan(
+        { kind: 'CLASSIC', tier: 'PRO', subscriptionId: 'sub_1', currentPeriodEnd: '2026-12-05T17:19:24.000Z' },
+        { state: 'trial', hasPlan: true, stripeSubscriptionId: 'sub_1', trialEndsAt: '2026-12-05T17:19:24.000Z' },
+      ) as never,
+    )
+    renderPage('/?checkout=success&sinCobroHoy=1')
+    await waitFor(() =>
+      expect(toastSpy).toHaveBeenCalledWith({ title: 'Listo: tu tarjeta quedó guardada. El primer cobro será el 2026-12-05.' }),
+    )
+    expect(toastSpy).not.toHaveBeenCalledWith({ title: 'Pago recibido. Estamos activando tu plan…' })
+  })
+
+  it('D3: con una prueba regalada, Premium sigue en «escríbenos» (no abre checkout)', async () => {
+    vi.mocked(getVenuePlan).mockResolvedValue(
+      plan({ kind: 'COMP', tier: 'PRO', currentPeriodEnd: '2026-12-05T17:19:24.498Z', firstChargeAt: '2026-12-05T17:19:24.498Z' }) as never,
+    )
+    renderPage()
+    await userEvent.click(await screen.findByRole('radio', { name: /Premium/ }))
+    expect(await screen.findByText('Tu plan es de cortesía: para cambiarlo, escríbenos.')).toBeInTheDocument()
+    expect(createPlanCheckoutSession).not.toHaveBeenCalled()
+  })
+
   it('PLAN_ABSORBE_SUELTA switches to a replacement with credit and opens the hybrid checkout', async () => {
     vi.mocked(hybridBilling.replacements).mockResolvedValue({
       ...noReplacements,
