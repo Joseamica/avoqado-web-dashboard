@@ -16,7 +16,7 @@ interface NotificationBellProps {
 
 export function NotificationBell({ className }: NotificationBellProps) {
   const { unreadCount, hasUnread } = useNotificationBadge()
-  const { notifications, markAsRead, markAllAsRead, loading } = useNotifications()
+  const { notifications, markAsRead, markAllAsRead, loading, venueId } = useNotifications()
   const { t } = useTranslation('notifications')
   // BUG #6 FIX: Use fullBasePath for white-label compatibility
   // fullBasePath returns /venues/:slug in normal mode, /wl/venues/:slug in white-label mode
@@ -123,6 +123,10 @@ export function NotificationBell({ className }: NotificationBellProps) {
                   />
                   <div className="flex-1">
                     <p className="text-sm font-medium text-foreground">{notification.title}</p>
+                    {/* Pantallas de organización: cada aviso dice de qué negocio es (los anuncios de Avoqado no llevan). */}
+                    {!venueId && notification.type !== 'ANNOUNCEMENT' && notification.venue?.name && (
+                      <p className="text-xs text-muted-foreground">{notification.venue.name}</p>
+                    )}
                     <p className="text-xs text-muted-foreground">{notification.message}</p>
                     <p className="text-xs text-muted-foreground mt-1">{formatNotificationTime(notification.createdAt)}</p>
                     {notification.actionLabel && (

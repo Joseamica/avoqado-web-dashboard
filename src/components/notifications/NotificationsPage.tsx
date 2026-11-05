@@ -45,6 +45,7 @@ export function NotificationsPage({ className }: NotificationsPageProps) {
     deleteNotification,
     setFilters,
     refreshNotifications,
+    venueId,
   } = useNotifications()
   const [vaciando, setVaciando] = useState(false)
 
@@ -323,10 +324,12 @@ export function NotificationsPage({ className }: NotificationsPageProps) {
               className="text-destructive hover:text-destructive"
               disabled={vaciando}
               onClick={async () => {
+                // Con slug pero sin negocio resuelto todavía, borrar sin header vaciaría el buzón de TODOS los negocios.
+                if (venueSlug && !venueId) return
                 if (!window.confirm(t('confirmDeleteAll'))) return
                 setVaciando(true)
                 try {
-                  await deleteAllNotifications()
+                  await deleteAllNotifications(venueId)
                   await refreshNotifications()
                 } finally {
                   setVaciando(false)

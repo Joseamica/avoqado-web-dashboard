@@ -34,7 +34,7 @@ export function useSuperadminDashboard() {
 export function useSuperadminNotifications(limit = 5) {
   return useQuery({
     queryKey: [...superadminQueryKeys.notifications, { limit }],
-    queryFn: () => getNotifications({}, { limit }),
+    queryFn: () => getNotifications({}, { limit }), // superadmin: sin negocio a propósito
     staleTime: 2 * 60 * 1000, // 2 minutos
     gcTime: 5 * 60 * 1000, // 5 minutos
     retry: 2,
@@ -55,7 +55,7 @@ export function useSuperadminNotifications(limit = 5) {
 export function useUnreadNotificationsCount() {
   return useQuery({
     queryKey: superadminQueryKeys.unreadCount,
-    queryFn: getUnreadCount,
+    queryFn: () => getUnreadCount(), // superadmin: sin negocio a propósito (junta todo)
     staleTime: 1 * 60 * 1000, // 1 minuto
     gcTime: 2 * 60 * 1000, // 2 minutos
     retry: 2,

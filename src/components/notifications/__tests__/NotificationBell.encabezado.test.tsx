@@ -8,13 +8,13 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 
-const estado = vi.hoisted(() => ({ unreadCount: 0, notifications: [] as Array<Record<string, unknown>> }))
+const estado = vi.hoisted(() => ({ unreadCount: 0, venueId: undefined as string | undefined, notifications: [] as Array<Record<string, unknown>> }))
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (k: string, o?: { count?: number }) => (o?.count !== undefined ? `${k} ${o.count}` : k) }),
 }))
 vi.mock('@/context/NotificationContext', () => ({
   useNotificationBadge: () => ({ unreadCount: estado.unreadCount, hasUnread: estado.unreadCount > 0 }),
-  useNotifications: () => ({ notifications: estado.notifications, markAsRead: vi.fn(), markAllAsRead: vi.fn(), loading: false }),
+  useNotifications: () => ({ venueId: estado.venueId, notifications: estado.notifications, markAsRead: vi.fn(), markAllAsRead: vi.fn(), loading: false }),
 }))
 vi.mock('@/hooks/use-current-venue', () => ({
   useCurrentVenue: () => ({ fullBasePath: '/venues/demo', venueBasePath: '/venues', venueSlug: 'demo' }),
@@ -67,5 +67,25 @@ describe('NotificationBell — encabezado', () => {
     estado.notifications = [aviso('1'), aviso('2')]
     await abrir()
     expect(await screen.findByText('unread_count 2')).toBeInTheDocument()
+  })
+
+  it('en pantallas de organización (sin negocio) enseña el nombre del negocio de cada aviso, menos en los anuncios', async () => {
+    estado.unreadCount = 0
+    estado.venueId = undefined
+    estado.notifications = [
+      { ...aviso('1'), venue: { id: 'v1', name: 'Galeterie', slug: 'galeterie' } },
+      { ...aviso('2'), type: 'ANNOUNCEMENT', venue: { id: 'v1', name: 'Galeterie', slug: 'galeterie' } },
+    ]
+    await abrir()
+    expect(await screen.findAllByText('Galeterie')).toHaveLength(1)
+  })
+
+  it('dentro de un negocio no enseña la etiqueta', async () => {
+    estado.unreadCount = 0
+    estado.venueId = 'v1'
+    estado.notifications = [{ ...aviso('1'), venue: { id: 'v1', name: 'Galeterie', slug: 'galeterie' } }]
+    await abrir()
+    await screen.findByText('Aviso 1')
+    expect(screen.queryByText('Galeterie')).toBeNull()
   })
 })
