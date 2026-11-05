@@ -161,4 +161,25 @@ describe('PlanRow', () => {
     expect(screen.getAllByRole('radio')[2]).toBeDisabled()
     expect(screen.getByRole('button', { name: 'currentPlan.actions.cancel' })).toBeDisabled()
   })
+
+  // D5 (5-nov-2026): con un cupón vigente, «Tu plan» dice lo que paga, hasta cuándo y el precio después.
+  it('cupón de 3 meses: lo que paga, hasta cuándo y después el precio de lista', () => {
+    const conCupon = {
+      ...CLASSIC,
+      discount: { gross: 811.19, percentOff: 30, duration: 'repeating' as const, endsAt: '2027-02-05T17:00:00.000Z' },
+    }
+    render(<PlanRow {...props({ origin: conCupon, current: 'PRO', selected: 'PRO' })} />)
+    expect(screen.getByText(/plan\.row\.discountUntil\|price=\$811\.19\|date=2027-02-05\|list=\$1,158\.84/)).toBeInTheDocument()
+  })
+
+  it('cupón de una vez: «en tu siguiente cobro»', () => {
+    const conCupon = { ...CLASSIC, discount: { gross: 811.19, percentOff: 30, duration: 'once' as const, endsAt: null } }
+    render(<PlanRow {...props({ origin: conCupon, current: 'PRO', selected: 'PRO' })} />)
+    expect(screen.getByText(/plan\.row\.discountOnce\|price=\$811\.19\|list=\$1,158\.84/)).toBeInTheDocument()
+  })
+
+  it('REGRESIÓN: sin cupón no aparece ninguna línea de descuento', () => {
+    render(<PlanRow {...props({ origin: CLASSIC, current: 'PRO', selected: 'PRO' })} />)
+    expect(screen.queryByText(/plan\.row\.discount/)).toBeNull()
+  })
 })

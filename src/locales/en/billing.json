@@ -227,7 +227,10 @@
       "compNoDate": "Your {{tier}} plan is complimentary.",
       "founder": "Your business is a founder: you have every feature at no cost.",
       "paymentPending": "Your payment is pending and paid access is on hold. Update your payment method to get it back.",
-      "resume": "Resume"
+      "resume": "Resume",
+      "discountUntil": "With your discount you pay {{price}} until {{date}}; then {{list}}.",
+      "discountOnce": "With your discount you pay {{price}} on your next charge; then {{list}}.",
+      "discountForever": "With your discount you pay {{price}}."
     },
     "grid": {
       "title": "Features · all {{count}}",
