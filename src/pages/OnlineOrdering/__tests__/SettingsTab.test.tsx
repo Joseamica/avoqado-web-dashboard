@@ -359,13 +359,23 @@ describe('SettingsTab', () => {
     expect(await screen.findByText('Tu plan no incluye la tienda')).toBeInTheDocument()
   })
 
-  it('en tema oscuro los interruptores apagados de esta pantalla se distinguen de la tarjeta', async () => {
-    getSettings.mockResolvedValue(base({ hours: null }))
+  it('si el servidor guardó y falló al responder, la pantalla no sigue diciendo «Todo listo»: vuelve a pedir lo guardado', async () => {
+    getSettings.mockResolvedValueOnce(base())
+    getSettings.mockResolvedValue(base({ enabled: true }))
+    updateSettings.mockRejectedValue({ response: { status: 500, data: { error: 'No se pudo guardar' } } })
     renderTab()
     await formularioCargado()
-    for (const name of ['settings.enable', 'settings.payAtPickup', 'settings.cardOnline', 'settings.manualPause', 'settings.hours.use']) {
-      expect(screen.getByRole('switch', { name })).toHaveClass('dark:data-[state=unchecked]:bg-muted-foreground/60')
-    }
+    await userEvent.click(botonEncender()!)
+    expect(await screen.findByText('No se pudo guardar')).toBeInTheDocument()
+    await waitFor(() => expect(screen.queryByText('settings.requirements.allSet')).toBeNull())
+    expect(screen.getByRole('switch', { name: 'settings.enable' })).toBeChecked()
+  })
+
+  it('en tema oscuro, los interruptores apagados de esta pantalla (también los del horario) se distinguen de la tarjeta', async () => {
+    getSettings.mockResolvedValue(base())
+    const { container } = renderTab()
+    await formularioCargado()
+    expect(container.querySelector('form')).toHaveClass('dark:[&_[role=switch][data-state=unchecked]]:bg-muted-foreground/60')
   })
 
   // ── La forma de cobro (Codex r1): el servidor rechaza una tienda encendida sin medio de pago (`NO_PAYMENT_MODE`) ──

@@ -38,9 +38,6 @@ const REQUIREMENTS: StoreRequirement[] = ['address', 'phone', 'privacyNotice']
 // El 4.º paso refleja la regla `NO_PAYMENT_MODE` del servidor: no se enciende (ni se queda encendida) sin un medio de pago VIVO:
 // «Pagar al recoger», o la tarjeta prendida con un Stripe que sí cobra (`card.merchantStatus === 'READY'`).
 const STEPS: (StoreRequirement | 'payment')[] = [...REQUIREMENTS, 'payment']
-// En tema oscuro, apagado era `bg-muted` sobre la tarjeta (1.2:1) y no se veía; así da 3.3:1. No va en `switch.tsx`: en oscuro le ganaría al
-// rojo de «inactivo» que Productos y Servicios ponen a su interruptor.
-const SWITCH_OFF_VISIBLE = 'dark:data-[state=unchecked]:bg-muted-foreground/60'
 
 const schema = z.object({
   enabled: z.boolean(),
@@ -245,6 +242,8 @@ export function SettingsTab() {
         return
       }
       setSaveError(serverMessage(error, t('settings.saveFailed')))
+      // El servidor pudo guardar y fallar después, al armar la respuesta: lo guardado lo dice el GET, no el error.
+      void qc.invalidateQueries({ queryKey: onlineOrderingKeys.settings(venueId!) })
     },
   })
 
@@ -309,7 +308,9 @@ export function SettingsTab() {
       : '—'
 
   return (
-    <form noValidate onSubmit={onSubmit} className="space-y-6">
+    // En tema oscuro, un interruptor apagado era `bg-muted` sobre la tarjeta (1.2:1) y no se veía; así da 3.3:1. Va aquí y no en `switch.tsx`
+    // porque allá le ganaría al rojo de «inactivo» de Productos y Servicios.
+    <form noValidate onSubmit={onSubmit} className="space-y-6 dark:[&_[role=switch][data-state=unchecked]]:bg-muted-foreground/60">
       <AvisoDeCarga query={settingsQuery} hayDatos />
       <div className="sticky top-0 z-10 flex items-center justify-between gap-3 rounded-xl border border-border bg-background/95 p-3 backdrop-blur">
         <div className="text-sm" data-tour="online-ordering-store-status">
@@ -364,7 +365,6 @@ export function SettingsTab() {
                 <Switch
                   ref={enableSwitchRef}
                   id="oo-enabled"
-                  className={SWITCH_OFF_VISIBLE}
                   aria-label={t('settings.enable')}
                   checked={!!field.value}
                   disabled={!field.value && enableBlocked}
@@ -381,13 +381,7 @@ export function SettingsTab() {
                 control={control}
                 name="acceptsPayAtPickup"
                 render={({ field }) => (
-                  <Switch
-                    id="oo-pay"
-                    className={SWITCH_OFF_VISIBLE}
-                    aria-label={t('settings.payAtPickup')}
-                    checked={!!field.value}
-                    onCheckedChange={field.onChange}
-                  />
+                  <Switch id="oo-pay" aria-label={t('settings.payAtPickup')} checked={!!field.value} onCheckedChange={field.onChange} />
                 )}
               />
             </div>
@@ -401,7 +395,6 @@ export function SettingsTab() {
                     // El valor guardado no se toca: nace prendido de fábrica (paso 5) y, al conectar Stripe, la tarjeta queda lista sola.
                     <Switch
                       id="oo-card"
-                      className={SWITCH_OFF_VISIBLE}
                       aria-label={t('settings.cardOnline')}
                       checked={cardAvailable && !!field.value}
                       disabled={!cardAvailable}
@@ -487,13 +480,7 @@ export function SettingsTab() {
               control={control}
               name="manualPause"
               render={({ field }) => (
-                <Switch
-                  id="oo-pause"
-                  className={SWITCH_OFF_VISIBLE}
-                  aria-label={t('settings.manualPause')}
-                  checked={!!field.value}
-                  onCheckedChange={field.onChange}
-                />
+                <Switch id="oo-pause" aria-label={t('settings.manualPause')} checked={!!field.value} onCheckedChange={field.onChange} />
               )}
             />
           </div>
@@ -509,7 +496,6 @@ export function SettingsTab() {
           <div className="flex items-center gap-3">
             <Switch
               id="oo-hours"
-              className={SWITCH_OFF_VISIBLE}
               aria-label={t('settings.hours.use')}
               checked={hours !== null}
               onCheckedChange={on => setValue('hours', on ? defaultWeek() : null, { shouldDirty: true })}
