@@ -97,12 +97,13 @@ describe('SelectionSummary', () => {
       }),
     })
     expect(screen.getByText(/plan\.selection\.payToday\|price=\$1,158\.84/)).toBeInTheDocument()
+    expect(screen.getByText(/plan\.selection\.netPlusIva\|net=\$999\.00\|gross=\$1,158\.84/)).toBeInTheDocument()
   })
 
   it('the plan comparison is informative and can switch to that plan', async () => {
     const props = renderSummary()
     expect(document.querySelector('[data-tour="plan-hint"]')).toHaveTextContent(
-      'plan.selection.hint|tier=plan.tiers.pro.name|covered=1|more=17',
+      'plan.selection.hint|tier=plan.tiers.pro.name|covered=1|more=17|price=$999.00',
     )
     await userEvent.click(screen.getByRole('button', { name: 'plan.selection.hintCta|tier=plan.tiers.pro.name' }))
     expect(props.onPickTier).toHaveBeenCalledWith('PRO')
@@ -123,6 +124,7 @@ describe('SelectionSummary', () => {
       }),
     })
     expect(screen.getByText('plan.selection.lose')).toBeInTheDocument()
+    expect(screen.queryByText(/netPlusIva/)).toBeNull()
     expect(screen.getByText('Lealtad')).toBeInTheDocument()
     expect(document.querySelector('[data-tour="plan-seat-notice"]')).toHaveTextContent('plan.seatNotice.choose')
     expect(review()).toHaveTextContent('plan.selection.drop')
@@ -196,14 +198,14 @@ describe('SelectionSummary', () => {
       dependency: { kind: 'LIST', prefer: 'INVENTORY_TRACKING', entry: inventory, price: 599 },
       onPreferList,
     })
-    await userEvent.click(screen.getByRole('button', { name: 'plan.dependency.useList|name=Inventario FIFO|price=$599.00' }))
+    await userEvent.click(screen.getByRole('button', { name: 'plan.dependency.useList|name=Inventario FIFO|price=$516.38' }))
     expect(onPreferList).toHaveBeenCalledWith('INVENTORY_TRACKING')
   })
 
   it('… the plan line: the list of the plan', async () => {
     const onPreferList = vi.fn()
     renderSummary({ error: 'x', dependency: { kind: 'LIST', prefer: 'PLAN', plan: 'PRO', price: 1158.84 }, onPreferList })
-    await userEvent.click(screen.getByRole('button', { name: 'plan.dependency.useList|name=plan.tiers.pro.name|price=$1,158.84' }))
+    await userEvent.click(screen.getByRole('button', { name: 'plan.dependency.useList|name=plan.tiers.pro.name|price=$999.00' }))
     expect(onPreferList).toHaveBeenCalledWith('PLAN')
   })
 

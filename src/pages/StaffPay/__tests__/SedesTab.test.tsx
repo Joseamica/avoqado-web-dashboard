@@ -3,7 +3,7 @@ import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { SedesTab } from '../components/SedesTab'
 
-const m = vi.hoisted(() => ({ sedes: vi.fn(), dialogo: vi.fn(), precio: vi.fn(), can: vi.fn() }))
+const m = vi.hoisted(() => ({ sedes: vi.fn(), dialogo: vi.fn(), precio: vi.fn(), can: vi.fn(), ivaAparte: { v: true, price: 299 } }))
 vi.mock('@/hooks/use-access', () => ({ useAccess: () => ({ can: m.can }) }))
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (k: string, o?: any) => (o ? `${k}:${JSON.stringify(o)}` : k), i18n: { language: 'es' } }) }))
 vi.mock('@/utils/datetime', () => ({ useVenueDateTime: () => ({ formatCalendarDate: (d: string) => `dia(${d})` }) }))
@@ -11,7 +11,7 @@ vi.mock('@/hooks/use-current-venue', () => ({ useCurrentVenue: () => ({ fullBase
 vi.mock('@/hooks/use-feature-price', () => ({
   useFeaturePrice: (codigo: string, o?: { enabled?: boolean }) => {
     m.precio(codigo, o)
-    return { price: 199, canSeePrices: true, canPurchase: true }
+    return { price: m.ivaAparte.price, ivaAparte: m.ivaAparte.v, canSeePrices: true, canPurchase: true }
   },
 }))
 vi.mock('@/hooks/useStaffPay', () => ({ useStaffPaySedes: (enabled: boolean) => m.sedes(enabled) }))
@@ -68,7 +68,7 @@ describe('SedesTab — pantalla 1 del founder (diseño r3.7(1))', () => {
   it('sin plan: dice cómo se consigue, con el precio suelto, y no hay botones', () => {
     con([sede({ estado: 'SIN_PLAN', tienePlan: false, desde: null, puedeDesactivar: false })])
     pantalla()
-    expect(screen.getByText(/sedes\.sinPlan/)).toHaveTextContent('199')
+    expect(screen.getByText(/sedes\.sinPlan/)).toHaveTextContent('257.76')
     expect(screen.queryByRole('button', { name: /sedes\.(activar|desactivar)/ })).toBeNull()
     // El catálogo de precios sólo se pide cuando hay alguna sede sin plan.
     expect(m.precio).toHaveBeenLastCalledWith('SERVICE_PAY', { enabled: true })
@@ -213,8 +213,20 @@ describe('SedesTab — pantalla 1 del founder (diseño r3.7(1))', () => {
     pantalla()
     const roma = screen.getByText('Roma').closest('li')!
     expect(roma).toHaveTextContent('sedes.sinPlanPrecio')
-    expect(roma).toHaveTextContent('199')
+    expect(roma).toHaveTextContent('257.76')
     expect(screen.getByText('Prado Norte').closest('li')).not.toHaveTextContent('sedes.sinPlan')
+  })
+
+  it('🔴 una oferta de 149 que no es de lista: IVA incluido y el monto tal cual', () => {
+    m.ivaAparte.v = false
+    m.ivaAparte.price = 149
+    con([sede({ venueId: 'c', nombre: 'Roma', tienePlan: false, estado: 'SIN_PLAN', desde: null, puedeDesactivar: false })], false)
+    pantalla()
+    const roma = screen.getByText('Roma').closest('li')!
+    expect(roma).toHaveTextContent('sedes.sinPlanPrecioIvaIncluido')
+    expect(roma).toHaveTextContent('149.00')
+    m.ivaAparte.v = true
+    m.ivaAparte.price = 299
   })
 
   it('cargando: esqueleto, sin lista', () => {

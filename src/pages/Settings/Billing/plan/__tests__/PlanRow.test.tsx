@@ -45,15 +45,25 @@ const CLASSIC = origin({
 })
 
 describe('PlanRow', () => {
-  it('shows Gratis, Pro and Premium with IVA prices, marks the current plan and selects', async () => {
+  it('shows Gratis, Pro and Premium with list prices before IVA, marks the current plan and selects', async () => {
     const onSelect = vi.fn()
     render(<PlanRow {...props({ onSelect })} />)
     const radios = screen.getAllByRole('radio')
     expect(radios).toHaveLength(3)
     expect(within(radios[0]).getByText('plan.row.current')).toBeInTheDocument()
-    expect(within(radios[1]).getByText(/1,158\.84/)).toBeInTheDocument()
+    expect(within(radios[1]).getByText(/999\.00/)).toBeInTheDocument()
+    expect(within(radios[1]).getByText('plan.plusIva')).toBeInTheDocument()
     await userEvent.click(radios[2])
     expect(onSelect).toHaveBeenCalledWith('PREMIUM')
+  })
+
+  it('the current plan keeps what it pays, VAT included: a $22 promotion never shows as $18.97', () => {
+    const promo = origin({ ...CLASSIC, price: { base: 18.97, gross: 22, currency: 'MXN' } })
+    render(<PlanRow {...props({ origin: promo, current: 'PRO', selected: 'PRO' })} />)
+    const pro = screen.getAllByRole('radio')[1]
+    expect(within(pro).getByText(/22\.00/)).toBeInTheDocument()
+    expect(within(pro).getByText('plan.ivaIncluded')).toBeInTheDocument()
+    expect(pro).not.toHaveTextContent('18.97')
   })
 
   it('offers Mensual/Anual only when the classic checkout applies (a paid plan picked from Gratis)', () => {
@@ -127,7 +137,7 @@ describe('PlanRow', () => {
 
   it('without the feature grid (loading or failed) shows prices but no function count', () => {
     const { rerender } = render(<PlanRow {...props()} />)
-    expect(within(screen.getAllByRole('radio')[1]).getByText(/1,158\.84/)).toBeInTheDocument()
+    expect(within(screen.getAllByRole('radio')[1]).getByText(/999\.00/)).toBeInTheDocument()
     expect(screen.queryByText(/plan\.row\.features/)).toBeNull()
     rerender(
       <PlanRow {...props({ grid: { catalogVersion: 'v1', purchasesEnabled: true, plans: { PRO: null, PREMIUM: null }, entries: [] } })} />,

@@ -696,3 +696,41 @@ describe('prices and counts', () => {
     expect(tierFeatureCount(ENTRIES, 'PREMIUM')).toBe(6)
   })
 })
+
+describe('planPillPrice: ivaAparte', () => {
+  const pill = (tier: 'FREE' | 'PRO' | 'PREMIUM', over: Record<string, unknown> = {}) =>
+    planPillPrice(tier, { ...base, origin: NO_ORIGIN, interval: 'monthly', ...over } as Parameters<typeof planPillPrice>[1])
+  const proFrom = (planOfferPro: FeatureGridOffer) => ({
+    classicRejected: true,
+    replacements: replacements([{ subscriptionId: 'sub_loyalty', featureCodes: ['LOYALTY_PROGRAM'], replaceable: true }]),
+    grid: grid(ENTRIES, { plans: { PRO: planOfferPro, PREMIUM: null } }),
+  })
+
+  it('la lista de un plan que no tienes va + IVA, y amount sigue con IVA', () => {
+    expect(pill('PRO')).toMatchObject({ amount: 1158.84, ivaAparte: true })
+  })
+  it('el plan actual con promoción de $22 sigue con IVA incluido', () => {
+    const o = origin({ kind: 'CLASSIC', tier: 'PRO', subscriptionId: 's', price: { gross: 22 } as PlanOrigin['price'], interval: 'month' })
+    expect(pill('PRO', { origin: o })).toMatchObject({ amount: 22, ivaAparte: false })
+  })
+  it('oferta REPRICE: con IVA incluido', () => {
+    expect(pill('PRO', proFrom(planOffer('PRO', 899, 'x'))).amount).toBe(899)
+    expect(pill('PRO', proFrom({ ...planOffer('PRO', 899), renewal: 'REPRICE' })).ivaAparte).toBe(false)
+  })
+  it('SAME_PRICE sin lista: con IVA incluido; con lista igual: + IVA', () => {
+    expect(pill('PRO', proFrom(planOffer('PRO', 899))).ivaAparte).toBe(false)
+    expect(pill('PRO', proFrom({ ...planOffer('PRO', 899), listPrice: 899 })).ivaAparte).toBe(true)
+  })
+  it('Gratis: no', () => expect(pill('FREE')).toEqual({ amount: 0, per: 'month', ivaAparte: false }))
+})
+
+describe('al pagar se cobra con IVA', () => {
+  it('el checkout clásico de Pro cobra 1158.84 y el anual de Premium 19708.4', () => {
+    const model = summarizeSelection({ ...base, origin: NO_ORIGIN, target: 'PRO', interval: 'monthly' })
+    expect(model.operation.kind).toBe('CLASSIC_CHECKOUT')
+    expect(model.payToday).toBe(1158.84)
+    expect(model.monthlyTotal).toBe(1158.84)
+    expect(model.lines[0].price).toBe(1158.84)
+    expect(classicPrice('PREMIUM', 'annual')).toBe(19708.4)
+  })
+})

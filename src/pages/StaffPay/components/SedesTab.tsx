@@ -10,6 +10,7 @@ import { useAccess } from '@/hooks/use-access'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useFeaturePrice } from '@/hooks/use-feature-price'
 import { useStaffPaySedes } from '@/hooks/useStaffPay'
+import { sinIva } from '@/lib/sinIva'
 import { cn } from '@/lib/utils'
 import type { EstadoSedesDto, SedeEnPagoAlPersonalDto } from '@/types/staffPay'
 import { Currency } from '@/utils/currency'
@@ -21,6 +22,8 @@ import { mensajeLegible } from '../rangos'
 import { ParticipacionSedeDialog } from './ParticipacionSedeDialog'
 
 type Accion = 'activar' | 'desactivar'
+/** Precio suelto ya listo para anunciar: sin IVA si es de lista (`ivaAparte`), tal cual si es una oferta. */
+type PrecioAviso = { monto: number; ivaAparte: boolean } | null
 
 /**
  * Pestaña «Sedes» de pago al personal (pantalla 1 del founder): cada sede con su estado, lo que hoy queda fuera y sus
@@ -33,7 +36,8 @@ export function SedesTab({ activa }: { activa: boolean }) {
   const { fullBasePath } = useCurrentVenue()
   const { data, isLoading, isError, error, refetch } = useStaffPaySedes(activa)
   // El precio suelto sólo se pide si alguna sede no tiene el plan (es una lectura de facturación).
-  const { price } = useFeaturePrice('SERVICE_PAY', { enabled: !!data?.sedes.some(s => s.estado === 'SIN_PLAN') })
+  const { price: lista, ivaAparte } = useFeaturePrice('SERVICE_PAY', { enabled: !!data?.sedes.some(s => s.estado === 'SIN_PLAN') })
+  const price: PrecioAviso = lista != null ? { monto: ivaAparte ? sinIva(lista) : lista, ivaAparte } : null
   const [abierto, setAbierto] = useState<{ sede: SedeEnPagoAlPersonalDto; accion: Accion } | null>(null)
 
   const aviso = (
@@ -75,7 +79,7 @@ export function SedesTab({ activa }: { activa: boolean }) {
   )
 }
 
-function AntesDeActivar({ data, precio, irA }: { data: EstadoSedesDto; precio: number | null; irA: string }) {
+function AntesDeActivar({ data, precio, irA }: { data: EstadoSedesDto; precio: PrecioAviso; irA: string }) {
   const { t } = useTranslation('staffPay')
   return (
     <>
@@ -106,10 +110,10 @@ function AntesDeActivar({ data, precio, irA }: { data: EstadoSedesDto; precio: n
 }
 
 /** Cómo se consigue pago al personal en una sede sin el plan: el plan Pro o suelto (con su precio, si se conoce). */
-function SinPlan({ precio }: { precio: number | null }) {
+function SinPlan({ precio }: { precio: PrecioAviso }) {
   const { t } = useTranslation('staffPay')
   return (
-    <p className="text-sm text-muted-foreground">{precio != null ? t('sedes.sinPlanPrecio', { precio: Currency(precio) }) : t('sedes.sinPlan')}</p>
+    <p className="text-sm text-muted-foreground">{precio == null ? t('sedes.sinPlan') : t(precio.ivaAparte ? 'sedes.sinPlanPrecio' : 'sedes.sinPlanPrecioIvaIncluido', { precio: Currency(precio.monto) })}</p>
   )
 }
 
@@ -121,7 +125,7 @@ function TarjetaDeSede({
   onAbrir,
 }: {
   sede: SedeEnPagoAlPersonalDto
-  precio: number | null
+  precio: PrecioAviso
   desdeDelPeriodo: string | null
   /** Las sedes desde donde sí puede activar o desactivar, ya dichas («Full y Wellness»), o null si no hay ninguna. */
   dondeSi: string | null

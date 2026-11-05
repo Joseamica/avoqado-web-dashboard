@@ -6,6 +6,7 @@ import { useTierFeatureAccess } from '@/hooks/use-tier-feature-access'
 import { useFeaturePrice } from '@/hooks/use-feature-price'
 import { Button } from '@/components/ui/button'
 import { getTierDef, type TierId } from '@/config/plan-catalog'
+import { sinIva } from '@/lib/sinIva'
 import { cn } from '@/lib/utils'
 
 interface FeatureGateProps {
@@ -18,10 +19,12 @@ interface FeatureGateProps {
 
 /**
  * Los PLANES se muestran «$999/mes + IVA» (`plan.plusIva`) porque su precio de catálogo es base.
- * 🔴 Las funciones sueltas NO: `syncFeaturesToStripe` cobra `monthlyPrice` tal cual, sin IVA encima,
- * así que su texto no lleva «+ IVA» (Codex, 21-sep).
+ * Las funciones sueltas también se anuncian sin IVA («+ IVA»), aunque `syncFeaturesToStripe` cobra
+ * `monthlyPrice` tal cual, con el IVA adentro. Una oferta que no es de lista sigue «IVA incluido».
  */
 const fmtMxn = (n: number) => `$${n.toLocaleString('es-MX')}`
+// Dos decimales siempre en el suelto: $79 → «$68.10», nunca «$68.1».
+const fmtMxn2 = (n: number) => `$${n.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 
 const ACCENT: Record<string, string> = {
   free: 'text-muted-foreground',
@@ -37,7 +40,7 @@ export function FeatureGate({ feature, requiredTier, children }: FeatureGateProp
   // Tier-aware access (gates normal venues by plan tier — unlike canFeature which is white-label-only).
   const { hasAccess, requiredTier: tierId } = useTierFeatureAccess(feature, requiredTier)
   // Sólo se pide el precio cuando el cartel se va a dibujar (`!hasAccess`).
-  const { price: precioSuelto, canSeePrices, canPurchase } = useFeaturePrice(feature, { enabled: !hasAccess })
+  const { price: precioSuelto, ivaAparte, canSeePrices, canPurchase } = useFeaturePrice(feature, { enabled: !hasAccess })
 
   if (hasAccess) return <>{children}</>
 
@@ -80,7 +83,9 @@ export function FeatureGate({ feature, requiredTier, children }: FeatureGateProp
                 )}
                 {precioSuelto != null && (
                   <p className="text-xs text-muted-foreground">
-                    <span>{t('featureGate.alonePrice', { price: fmtMxn(precioSuelto) })}</span>
+                    <span>{ivaAparte
+                        ? t('featureGate.alonePrice', { price: fmtMxn2(sinIva(precioSuelto)) })
+                        : t('featureGate.alonePriceIvaIncluido', { price: fmtMxn2(precioSuelto) })}</span>
                     {/* 🔴 La compra suelta está CERRADA por ahora (founder, 21-sep, opción A): se contrata con
                         nuestro equipo. Sólo quien puede contratar ve el enlace; a los demás, «pídesela al dueño». */}
                     {canPurchase && (

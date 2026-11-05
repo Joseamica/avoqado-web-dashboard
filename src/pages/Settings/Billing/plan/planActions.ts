@@ -1,4 +1,5 @@
 // src/pages/Settings/Billing/plan/planActions.ts
+import { esPrecioDeLista } from '@/lib/sinIva'
 import { getTierDef } from '@/config/plan-catalog'
 import type { PlanOrigin, PlanState } from '@/services/features.service'
 import type {
@@ -245,20 +246,23 @@ export function isMarkable(entry: FeatureGridEntry, mode: GridMode): boolean {
   return false
 }
 
-/** The price a plan pill shows: the one its operation would charge (classic, replacement offer, or the list as reference). */
+/**
+ * The price a plan pill shows: the one its operation would charge (classic, replacement offer, or the list as reference).
+ * `amount` is always IVA included; `ivaAparte` says the amount is a LIST price, announced as "+ IVA" (spec: when in doubt, IVA included).
+ */
 export function planPillPrice(
   tier: PlanTarget,
   input: Omit<SelectionInput, 'target' | 'marked'> & { interval: 'monthly' | 'annual' },
-): { amount: number; per: 'month' | 'year' } {
-  if (tier === 'FREE') return { amount: 0, per: 'month' }
+): { amount: number; per: 'month' | 'year'; ivaAparte: boolean } {
+  if (tier === 'FREE') return { amount: 0, per: 'month', ivaAparte: false }
   if (tier === currentTarget(input.origin) && input.origin.price)
-    return { amount: input.origin.price.gross, per: input.origin.interval === 'year' ? 'year' : 'month' }
+    return { amount: input.origin.price.gross, per: input.origin.interval === 'year' ? 'year' : 'month', ivaAparte: false }
   const op = planOperation({ ...input, target: tier, marked: [] })
   if (op.kind === 'CLASSIC_CHECKOUT')
-    return { amount: classicPrice(tier, input.interval), per: input.interval === 'annual' ? 'year' : 'month' }
+    return { amount: classicPrice(tier, input.interval), per: input.interval === 'annual' ? 'year' : 'month', ivaAparte: true }
   const offer = op.kind === 'HYBRID_REPLACE' ? chosenPlanOffer(input.grid, tier, input.preferList) : null
-  if (offer) return { amount: offer.price, per: 'month' }
-  return { amount: classicPrice(tier, 'monthly'), per: 'month' }
+  if (offer) return { amount: offer.price, per: 'month', ivaAparte: esPrecioDeLista(offer) }
+  return { amount: classicPrice(tier, 'monthly'), per: 'month', ivaAparte: true }
 }
 
 export interface SummaryLine {
