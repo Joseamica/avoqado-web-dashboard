@@ -38,6 +38,7 @@
   "markAllAsRead": "Marcar todas como leídas",
   "markRead": "Marcar como leída",
   "view_all": "Ver todas las notificaciones",
+  "loading": "Cargando avisos…",
   "none": "No hay notificaciones",
   "allRead": "Todas leídas",
   "unread_count": "{{count}} sin leer",

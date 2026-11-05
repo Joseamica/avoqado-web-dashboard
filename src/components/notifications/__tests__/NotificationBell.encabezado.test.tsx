@@ -8,13 +8,13 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 
-const estado = vi.hoisted(() => ({ unreadCount: 0, venueId: undefined as string | undefined, notifications: [] as Array<Record<string, unknown>> }))
+const estado = vi.hoisted(() => ({ unreadCount: 0, venueId: undefined as string | undefined, notifications: [] as Array<Record<string, unknown>>, loading: false }))
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (k: string, o?: { count?: number }) => (o?.count !== undefined ? `${k} ${o.count}` : k) }),
 }))
 vi.mock('@/context/NotificationContext', () => ({
   useNotificationBadge: () => ({ unreadCount: estado.unreadCount, hasUnread: estado.unreadCount > 0 }),
-  useNotifications: () => ({ venueId: estado.venueId, notifications: estado.notifications, markAsRead: vi.fn(), markAllAsRead: vi.fn(), loading: false }),
+  useNotifications: () => ({ venueId: estado.venueId, notifications: estado.notifications, markAsRead: vi.fn(), markAllAsRead: vi.fn(), loading: estado.loading }),
 }))
 vi.mock('@/hooks/use-current-venue', () => ({
   useCurrentVenue: () => ({ fullBasePath: '/venues/demo', venueBasePath: '/venues', venueSlug: 'demo' }),
@@ -87,5 +87,15 @@ describe('NotificationBell — encabezado', () => {
     await abrir()
     await screen.findByText('Aviso 1')
     expect(screen.queryByText('Galeterie')).toBeNull()
+  })
+
+  it('mientras carga el negocio nuevo dice que carga, nunca «No hay notificaciones» (full-testing r2)', async () => {
+    estado.unreadCount = 0
+    estado.notifications = []
+    estado.loading = true
+    await abrir()
+    expect(await screen.findByText('loading')).toBeInTheDocument()
+    expect(screen.queryByText('none')).toBeNull()
+    estado.loading = false
   })
 })
