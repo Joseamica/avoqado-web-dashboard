@@ -467,7 +467,7 @@
   },
   "salesSummary": {
     "title": "Resumen de Ventas",
-    "totalSales": "Total de Ventas",
+    "totalSales": "Total cobrado",
     "transactions": "transacciones",
     "transactionsLabel": "transacciones",
     "transactionsShort": "trans.",
@@ -609,7 +609,7 @@
     },
     "tooltips": {
       "grossSales": "Importe total de ventas antes de aplicar descuentos y reembolsos",
-      "items": "Todas las ventas de artículos, sin incluir impuestos, descuentos, cortesías ni reembolsos",
+      "items": "Ventas de artículos al precio cobrado (con el IVA incluido), antes de descuentos, cortesías y reembolsos",
       "serviceCosts": "Costes del servicio, incluidas las propinas integradas en la cuenta, los recargos y otras comisiones",
       "discounts": "Descuentos aplicados a los pedidos, incluyendo promociones y cupones",
       "refunds": "Devoluciones procesadas durante el período seleccionado",
@@ -778,7 +778,7 @@
           "grossSales": "Ventas brutas",
           "grossSalesDesc": "Ventas de artículos, incluidos los modificadores y costes del servicio",
           "items": "Artículos",
-          "itemsDesc": "Todas las ventas de artículos, sin incluir impuestos, descuentos, cortesías ni reembolsos",
+          "itemsDesc": "Ventas de artículos al precio cobrado (con el IVA incluido), antes de descuentos, cortesías y reembolsos",
           "serviceCosts": "Costes del servicio",
           "serviceCostsDesc": "Costes del servicio, incluidas las propinas integradas, recargos y otras comisiones",
           "discounts": "Descuentos",
