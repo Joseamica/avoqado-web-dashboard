@@ -467,7 +467,7 @@
   },
   "salesSummary": {
     "title": "Sales Summary",
-    "totalSales": "Total Sales",
+    "totalSales": "Total collected",
     "transactions": "transactions",
     "transactionsLabel": "transactions",
     "transactionsShort": "trans.",
@@ -609,7 +609,7 @@
     },
     "tooltips": {
       "grossSales": "Total sales amount before discounts and refunds are applied",
-      "items": "All item sales, excluding taxes, discounts, comps, and refunds",
+      "items": "Item sales at the price charged (VAT included), before discounts, comps, and refunds",
       "serviceCosts": "Service costs including integrated tips, surcharges, and other fees",
       "discounts": "Discounts applied to orders, including promotions and coupons",
       "refunds": "Refunds processed during the selected period",
@@ -778,7 +778,7 @@
           "grossSales": "Gross sales",
           "grossSalesDesc": "Item sales, including modifiers and service costs",
           "items": "Items",
-          "itemsDesc": "All item sales, excluding taxes, discounts, comps, and refunds",
+          "itemsDesc": "Item sales at the price charged (VAT included), before discounts, comps, and refunds",
           "serviceCosts": "Service costs",
           "serviceCostsDesc": "Service costs including integrated tips, surcharges, and other fees",
           "discounts": "Discounts",

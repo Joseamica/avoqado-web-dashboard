@@ -1074,7 +1074,7 @@ export default function SalesSummary() {
 
     const totalPaymentAmount = paymentMethods.reduce((sum, p) => sum + p.amount, 0)
 
-    // La barra de arriba reparte el «Total de Ventas», que es VENTAS (full-testing v2 #1): con tarjetas de regalo el server manda
+    // La barra de arriba reparte las VENTAS por método (full-testing v2 #1; la cifra grande es «Total cobrado», D16): con tarjetas de regalo el server manda
     // `salesByPaymentMethod` (sin las cargas, con lo pagado con saldo como GIFT_CARD); sin él, ventas y dinero son lo mismo.
     const ventas = apiResponse.salesByPaymentMethod ?? paymentMethods
     const esTarjeta = (m: string) => ['CREDIT_CARD', 'DEBIT_CARD', 'CARD'].includes(m)
