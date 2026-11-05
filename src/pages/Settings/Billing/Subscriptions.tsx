@@ -200,9 +200,21 @@ export default function Subscriptions() {
     setError(null)
     setCancelOpen(true)
   }
-  const quote = (body: HybridQuoteBody) => ops.hybridQuote.mutate(body, { onSuccess: reset, onError: fail })
+  // onError shows the failure; the promise only tells `review` when the operation settled.
+  const quote = (body: HybridQuoteBody) => ops.hybridQuote.mutateAsync(body, { onSuccess: reset, onError: fail }).catch(() => undefined)
 
+  // Two clicks in the same instant both got here before `busy` re-rendered and disabled the button (D4, 5-nov).
+  const reviewing = useRef(false)
   const review = async (op: PlanOperation = model.operation) => {
+    if (reviewing.current) return
+    reviewing.current = true
+    try {
+      await runReview(op)
+    } finally {
+      reviewing.current = false
+    }
+  }
+  const runReview = async (op: PlanOperation) => {
     setError(null)
     if (op.kind === 'ASSISTED') {
       const tier = assistedFor(op.tier)
@@ -210,10 +222,12 @@ export default function Subscriptions() {
       return
     }
     if (op.kind === 'CLASSIC_CHECKOUT')
-      return ops.classicCheckout.mutate(
-        { tier: op.tier, interval: billingInterval },
-        { onError: value => (serverCode(value) === 'PLAN_ABSORBE_SUELTA' ? setClassicRejected(true) : fail(value)) },
-      )
+      return ops.classicCheckout
+        .mutateAsync(
+          { tier: op.tier, interval: billingInterval },
+          { onError: value => (serverCode(value) === 'PLAN_ABSORBE_SUELTA' ? setClassicRejected(true) : fail(value)) },
+        )
+        .catch(() => undefined)
     if (op.kind === 'FEATURES') return quote({ lines: op.lines, replaceSubscriptionIds: [], dropFeatureCodes: [] })
     if (op.kind === 'HYBRID_REPLACE')
       return quote({ lines: op.lines, replaceSubscriptionIds: op.replaceSubscriptionIds, dropFeatureCodes: op.dropFeatureCodes })
