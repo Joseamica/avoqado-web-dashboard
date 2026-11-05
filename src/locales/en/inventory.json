@@ -738,6 +738,8 @@
       "removeTitle": "Remove {{section}} from this product?",
       "removeDescription": "What you entered in this section will be cleared.",
       "confirmRemove": "Remove",
+      "variantsHiddenTitle": "With sizes or colors, what you entered here is not saved:",
+      "variantsHiddenHint": "Each combination has its own code and stock, and is not sold by weight. Remove the sizes to get it back.",
       "variants": {
         "title": "Sizes or colors",
         "description": "One item in several sizes or colors"

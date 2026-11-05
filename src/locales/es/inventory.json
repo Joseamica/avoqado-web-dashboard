@@ -738,6 +738,8 @@
       "removeTitle": "¿Quitar {{section}} de este producto?",
       "removeDescription": "Se borra lo que escribiste en esta sección.",
       "confirmRemove": "Quitar",
+      "variantsHiddenTitle": "Con tallas o colores no se guarda lo que escribiste en:",
+      "variantsHiddenHint": "Cada combinación lleva su propio código y sus existencias, y ninguna se vende por peso. Si quitas las tallas, lo recuperas.",
       "variants": {
         "title": "Tallas o colores",
         "description": "Una prenda en varias tallas o colores"
