@@ -242,8 +242,6 @@ export function SettingsTab() {
         return
       }
       setSaveError(serverMessage(error, t('settings.saveFailed')))
-      // El servidor pudo guardar y fallar después, al armar la respuesta: lo guardado lo dice el GET, no el error.
-      void qc.invalidateQueries({ queryKey: onlineOrderingKeys.settings(venueId!) })
     },
   })
 

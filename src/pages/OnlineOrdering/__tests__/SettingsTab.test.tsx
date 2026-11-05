@@ -359,16 +359,20 @@ describe('SettingsTab', () => {
     expect(await screen.findByText('Tu plan no incluye la tienda')).toBeInTheDocument()
   })
 
-  it('si el servidor guardó y falló al responder, la pantalla no sigue diciendo «Todo listo»: vuelve a pedir lo guardado', async () => {
-    getSettings.mockResolvedValueOnce(base())
-    getSettings.mockResolvedValue(base({ enabled: true }))
-    updateSettings.mockRejectedValue({ response: { status: 500, data: { error: 'No se pudo guardar' } } })
+  it('un error del servidor no borra lo que estaba sin guardar: reintentar manda todo otra vez', async () => {
+    getSettings.mockResolvedValue(base())
+    updateSettings.mockRejectedValueOnce({ response: { data: { error: 'No se pudo guardar' } } })
+    updateSettings.mockResolvedValueOnce(putToday({ enabled: true, minOrderAmount: 80 }))
     renderTab()
     await formularioCargado()
+    const minimo = screen.getByLabelText('settings.minOrder')
+    await userEvent.clear(minimo)
+    await userEvent.type(minimo, '80')
     await userEvent.click(botonEncender()!)
     expect(await screen.findByText('No se pudo guardar')).toBeInTheDocument()
-    await waitFor(() => expect(screen.queryByText('settings.requirements.allSet')).toBeNull())
-    expect(screen.getByRole('switch', { name: 'settings.enable' })).toBeChecked()
+    expect(screen.getByLabelText('settings.minOrder')).toHaveValue(80)
+    await userEvent.click(botonEncender()!)
+    await waitFor(() => expect(updateSettings).toHaveBeenLastCalledWith('venue-1', { enabled: true, minOrderAmount: 80 }))
   })
 
   it('en tema oscuro, los interruptores apagados de esta pantalla (también los del horario) se distinguen de la tarjeta', async () => {
