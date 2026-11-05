@@ -5,7 +5,14 @@ import { ArrowRight, Sparkles } from 'lucide-react'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { AnnouncementModal } from './AnnouncementModal'
-import { dismissAnnouncement, getHomeAnnouncements } from '@/services/announcement.service'
+import { useAuth } from '@/context/AuthContext'
+import {
+  cerrarAnuncio,
+  cerradoLocalmente,
+  getHomeAnnouncements,
+  quitarDeLaCache,
+  reintentarCierresPendientes,
+} from '@/services/announcement.service'
 
 /**
  * El aviso que interrumpe, en DOS niveles:
@@ -25,6 +32,7 @@ import { dismissAnnouncement, getHomeAnnouncements } from '@/services/announceme
 export function AnnouncementGate() {
   const { pathname } = useLocation()
   const queryClient = useQueryClient()
+  const staffId = useAuth().user?.id
   const [cerrados, setCerrados] = useState<string[]>([])
   const [verCompleto, setVerCompleto] = useState<string | null>(null)
 
@@ -39,15 +47,30 @@ export function AnnouncementGate() {
     void queryClient.invalidateQueries({ queryKey: ['announcements', 'home'], exact: true }, { cancelRefetch: false })
   }, [pathname, queryClient])
 
+  // Los cierres que no llegaron al servidor se reintentan al montar y al volver la red.
+  useEffect(() => {
+    if (!staffId) return
+    const reintentar = () =>
+      void reintentarCierresPendientes(staffId).then(ids => ids.forEach(id => quitarDeLaCache(queryClient, id)))
+    reintentar()
+    window.addEventListener('online', reintentar)
+    return () => window.removeEventListener('online', reintentar)
+  }, [staffId, queryClient])
+
   const ventana = data?.modal ?? null
-  if (!ventana || cerrados.includes(ventana.id)) return null
+  // La marca local manda sobre la caché de la consulta (puede traer un anuncio ya cerrado).
+  if (!ventana || cerrados.includes(ventana.id) || cerradoLocalmente(staffId, ventana.id)) return null
 
   // Cerrar (en cualquiera de los dos niveles) apaga la ventana para siempre. Se guarda en
   // el servidor con su propia marca — NO con `isRead`, que la campana enciende sola.
   const cerrar = () => {
     setCerrados(previous => [...previous, ventana.id])
     setVerCompleto(null)
-    dismissAnnouncement(ventana.id).catch(() => {})
+    if (staffId) {
+      cerrarAnuncio(staffId, ventana.id)
+        .then(() => quitarDeLaCache(queryClient, ventana.id))
+        .catch(() => {})
+    }
   }
 
   if (verCompleto === ventana.id) {

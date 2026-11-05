@@ -6,7 +6,11 @@ import { Link, Outlet, RouterProvider, createMemoryRouter } from 'react-router-d
 import { delay, http, HttpResponse } from 'msw'
 import { server } from '@/test/setup'
 import type { Announcement } from '@/services/announcement.service'
+import { almacenLocalConMemoria } from './__tests__/almacenLocal'
 import { AnnouncementGate } from './AnnouncementGate'
+
+const sesion = vi.hoisted(() => ({ user: { id: 'staff-ana' } as { id: string } | null }))
+vi.mock('@/context/AuthContext', () => ({ useAuth: () => ({ user: sesion.user }) }))
 
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key }) }))
 
@@ -30,6 +34,8 @@ beforeEach(() => {
   requests = 0
   failing = false
   dismissed = []
+  sesion.user = { id: 'staff-ana' }
+  almacenLocalConMemoria()
   server.use(
     http.get('*/api/v1/dashboard/announcements/home', () => {
       requests++
@@ -145,5 +151,87 @@ describe('AnnouncementGate — anuncios pendientes al navegar', () => {
     mount(true)
     expect(await screen.findByRole('dialog', { name: first.title })).toBeInTheDocument()
     expect(requests).toBe(1)
+  })
+
+  // ── 15b: el cierre sin red se recuerda ────────────────────────────────────────
+  const clave = 'avoqado:anuncios-cerrados:staff-ana'
+
+  it('un cierre sin red no vuelve a enseñar la ventana tras recargar', async () => {
+    server.use(http.post('*/api/v1/dashboard/announcements/:id/dismiss', () => HttpResponse.error()))
+    pending = first
+    const primero = mount()
+    await screen.findByRole('dialog')
+    await primero.user.click(screen.getByRole('button', { name: 'Ahora no' }))
+    await waitFor(() => expect(JSON.parse(localStorage.getItem(clave)!)).toEqual([{ id: first.id, sincronizado: false }]))
+    cleanup()
+    mount()
+    await waitFor(() => expect(requests).toBeGreaterThan(1))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('volver al negocio antes de 60 s no reabre la ventana cerrada', async () => {
+    server.use(http.post('*/api/v1/dashboard/announcements/:id/dismiss', () => HttpResponse.error()))
+    pending = first
+    const { client, user } = mount()
+    await screen.findByRole('dialog')
+    await user.click(screen.getByRole('button', { name: 'Ahora no' }))
+    await waitFor(() => expect(localStorage.getItem(clave)).toContain(first.id))
+    // la caché sigue trayendo el anuncio (frescura de 60 s) y el componente se vuelve a montar
+    client.setQueryData(['announcements', 'home'], { banner: null, modal: first })
+    cleanup()
+    const cliente2 = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } })
+    clients.push(cliente2)
+    cliente2.setQueryData(['announcements', 'home'], { banner: null, modal: first })
+    const router = createMemoryRouter([{ path: '/venues/:slug', element: <><Outlet /><AnnouncementGate /></>, children: [{ path: 'reports', element: <h1>R</h1> }] }], { initialEntries: ['/venues/prueba/reports'] })
+    render(<QueryClientProvider client={cliente2}><RouterProvider router={router} /></QueryClientProvider>)
+    await new Promise(r => setTimeout(r, 50))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('al volver la red se manda el cierre y queda marcado como sincronizado (no se borra)', async () => {
+    localStorage.setItem(clave, JSON.stringify([{ id: first.id, sincronizado: false }]))
+    const cuerpos: unknown[] = []
+    server.use(http.post('*/api/v1/dashboard/announcements/:id/dismiss', async ({ request, params }) => {
+      cuerpos.push(await request.json())
+      dismissed.push(String(params.id))
+      return HttpResponse.json({ success: true })
+    }))
+    mount()
+    await waitFor(() => expect(dismissed).toEqual([first.id]))
+    expect(cuerpos).toEqual([{ staffId: 'staff-ana' }])
+    await waitFor(() => expect(JSON.parse(localStorage.getItem(clave)!)).toEqual([{ id: first.id, sincronizado: true }]))
+  })
+
+  it('un 409 deja el cierre pendiente', async () => {
+    localStorage.setItem(clave, JSON.stringify([{ id: first.id, sincronizado: false }]))
+    server.use(http.post('*/api/v1/dashboard/announcements/:id/dismiss', () =>
+      HttpResponse.json({ code: 'CIERRE_DE_OTRA_PERSONA' }, { status: 409 })))
+    mount()
+    await waitFor(() => expect(requests).toBeGreaterThan(0))
+    await new Promise(r => setTimeout(r, 50))
+    expect(JSON.parse(localStorage.getItem(clave)!)).toEqual([{ id: first.id, sincronizado: false }])
+  })
+
+  it('el cierre pendiente de otra persona no se manda con la sesión actual', async () => {
+    localStorage.setItem('avoqado:anuncios-cerrados:staff-beto', JSON.stringify([{ id: first.id, sincronizado: false }]))
+    mount()
+    await waitFor(() => expect(requests).toBeGreaterThan(0))
+    await new Promise(r => setTimeout(r, 50))
+    expect(dismissed).toEqual([])
+  })
+
+  it('al volver a estar en línea reintenta los pendientes', async () => {
+    mount()
+    await waitFor(() => expect(requests).toBeGreaterThan(0))
+    localStorage.setItem(clave, JSON.stringify([{ id: first.id, sincronizado: false }]))
+    window.dispatchEvent(new Event('online'))
+    await waitFor(() => expect(dismissed).toEqual([first.id]))
+  })
+
+  it('un valor corrupto en localStorage se trata como lista vacía', async () => {
+    localStorage.setItem(clave, '{no es json')
+    pending = first
+    mount()
+    expect(await screen.findByRole('dialog')).toHaveTextContent(first.title)
   })
 })
