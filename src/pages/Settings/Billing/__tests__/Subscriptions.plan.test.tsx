@@ -1,5 +1,5 @@
 // src/pages/Settings/Billing/__tests__/Subscriptions.plan.test.tsx
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { onlineManager, QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter } from 'react-router-dom'
@@ -582,6 +582,33 @@ describe('what the page keeps honest when something fails or changes mid-way', (
     expect(screen.queryByText('Tu plan actual')).toBeNull()
     expect(review()).toBeNull()
     expect(screen.getByText('checkout cerrado')).toBeInTheDocument()
+  })
+
+  // D4 (5-nov): two clicks in the same instant both reached the server before `busy` disabled the button.
+  it('two clicks in the same instant open one classic checkout', async () => {
+    vi.mocked(createPlanCheckoutSession).mockReturnValue(new Promise(() => undefined) as never)
+    renderPage()
+    await userEvent.click(await screen.findByRole('radio', { name: /Pro/ }))
+    // Both clicks land before React re-renders, as a fast double click does in the browser.
+    act(() => {
+      review().click()
+      review().click()
+    })
+    await waitFor(() => expect(review()).toBeDisabled())
+    expect(createPlanCheckoutSession).toHaveBeenCalledTimes(1)
+  })
+
+  it('two clicks in the same instant quote the functions once', async () => {
+    vi.mocked(hybridBilling.quote).mockReturnValue(new Promise(() => undefined) as never)
+    renderPage()
+    await userEvent.click(await screen.findByRole('checkbox', { name: 'Marcar Programa de lealtad' }))
+    // Both clicks land before React re-renders, as a fast double click does in the browser.
+    act(() => {
+      review().click()
+      review().click()
+    })
+    await waitFor(() => expect(review()).toBeDisabled())
+    expect(hybridBilling.quote).toHaveBeenCalledTimes(1)
   })
 
   it('the downgrade is sent once, even with two clicks', async () => {
