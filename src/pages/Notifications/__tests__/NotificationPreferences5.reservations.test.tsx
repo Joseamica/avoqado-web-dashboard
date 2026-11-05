@@ -76,8 +76,8 @@ describe('preferencias de notificación — los avisos de «No Show» sólo deja
     pintar()
     await screen.findByText('channels')
 
-    // Los dos primeros interruptores son los generales: Web y Correo.
-    fireEvent.click(screen.getAllByRole('switch')[0])
+    // El primer interruptor es el de anuncios de Avoqado; los dos siguientes son los generales: Web y Correo.
+    fireEvent.click(screen.getAllByRole('switch')[1])
     fireEvent.click(await screen.findByRole('button', { name: 'disable' }))
 
     await waitFor(() => expect(svc.updateManyPreferences).toHaveBeenCalled())
@@ -90,7 +90,7 @@ describe('preferencias de notificación — los avisos de «No Show» sólo deja
     pintar()
     await screen.findByText('channels')
 
-    fireEvent.click(screen.getAllByRole('switch')[1])
+    fireEvent.click(screen.getAllByRole('switch')[2])
     fireEvent.click(await screen.findByRole('button', { name: 'disable' }))
 
     await waitFor(() => expect(svc.updateManyPreferences).toHaveBeenCalled())

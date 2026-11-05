@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { Button } from '@/components/ui/button'
 import { AnnouncementBlocks } from './AnnouncementBlocks'
+import { FotoDeAnuncio } from './FotoDeAnuncio'
 import { getAnnouncement, recordAnnouncementCta, recordAnnouncementOpen } from '@/services/announcement.service'
 import type { Announcement } from '@/services/announcement.service'
 
@@ -80,14 +81,7 @@ export function AnnouncementModal({
       <div className="mx-auto max-w-2xl space-y-6 py-2">
         <p className="text-base leading-relaxed text-foreground">{anuncio.body}</p>
 
-        {anuncio.imageUrl ? (
-          <img
-            src={anuncio.imageUrl}
-            alt=""
-            loading="lazy"
-            className="w-full rounded-lg border border-border object-cover"
-          />
-        ) : null}
+        {anuncio.imageUrl ? <FotoDeAnuncio url={anuncio.imageUrl} alt="" /> : null}
 
         <AnnouncementBlocks blocks={anuncio.contentBlocks} />
       </div>

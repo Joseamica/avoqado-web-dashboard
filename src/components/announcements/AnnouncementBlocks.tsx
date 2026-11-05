@@ -1,4 +1,5 @@
 import type { ContentBlock } from '@/services/announcement.service'
+import { FotoDeAnuncio } from './FotoDeAnuncio'
 
 /**
  * Pinta los bloques del contenido ampliado de un anuncio.
@@ -39,30 +40,21 @@ export function AnnouncementBlocks({ blocks }: { blocks?: ContentBlock[] | null 
 
           case 'image':
             return (
-              <figure key={i} className="space-y-2">
-                <img
-                  src={String(block.url)}
-                  alt={String(block.alt ?? '')}
-                  loading="lazy"
-                  className="w-full rounded-lg border border-border object-cover"
-                />
-                {block.caption ? (
-                  <figcaption className="text-xs text-muted-foreground">{String(block.caption)}</figcaption>
-                ) : null}
-              </figure>
+              <FotoDeAnuncio
+                key={i}
+                url={String(block.url)}
+                alt={String(block.alt ?? '')}
+                width={block.width as number | undefined}
+                height={block.height as number | undefined}
+                caption={block.caption ? String(block.caption) : undefined}
+              />
             )
 
           case 'gallery':
             return (
-              <div key={i} className="grid grid-cols-2 gap-3">
-                {(block.images as Array<{ url: string; alt: string }>).map((img, k) => (
-                  <img
-                    key={k}
-                    src={img.url}
-                    alt={img.alt}
-                    loading="lazy"
-                    className="w-full rounded-lg border border-border object-cover"
-                  />
+              <div key={i} className="space-y-3">
+                {(block.images as Array<{ url: string; alt: string; caption?: string; width?: number; height?: number }>).map((img, k) => (
+                  <FotoDeAnuncio key={k} url={img.url} alt={img.alt} width={img.width} height={img.height} caption={img.caption} />
                 ))}
               </div>
             )
@@ -84,10 +76,7 @@ export function AnnouncementBlocks({ blocks }: { blocks?: ContentBlock[] | null 
 
           case 'callout':
             return (
-              <div
-                key={i}
-                className="rounded-lg border border-border bg-muted/40 px-3.5 py-3 text-sm text-muted-foreground"
-              >
+              <div key={i} className="rounded-lg border border-border bg-muted/40 px-3.5 py-3 text-sm text-muted-foreground">
                 {String(block.text ?? '')}
               </div>
             )

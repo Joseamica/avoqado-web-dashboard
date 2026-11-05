@@ -38,6 +38,7 @@
   "markAllAsRead": "Mark all as read",
   "markRead": "Mark as read",
   "view_all": "View all notifications",
+  "loading": "Loading notifications…",
   "none": "No notifications",
   "allRead": "All read",
   "unread_count": "{{count}} unread",
@@ -95,6 +96,11 @@
   "error": "Error",
   "failedToUpdate": "Failed to update notification preferences",
   "required": "Required",
+  "fromAvoqado": {
+    "title": "From Avoqado",
+    "emailAnnouncements": "Avoqado announcements by email",
+    "emailAnnouncementsHelp": "News and important notices from Avoqado. In-app notices keep arriving."
+  },
   "channels": "Channels",
   "channelsDescription": "Disable a channel to stop receiving notifications through it.",
   "enable": "Enable",

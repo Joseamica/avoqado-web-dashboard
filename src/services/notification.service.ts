@@ -182,26 +182,35 @@ export enum NotificationChannel {
 // ===== API FUNCTIONS =====
 
 /**
+ * La campana es por negocio: con `x-venue-id` el servidor devuelve sólo los avisos de ese negocio más los anuncios de
+ * plataforma de la persona; sin él, todo lo de la persona (pantallas de organización).
+ */
+function headerDeNegocio(venueId?: string): Record<string, string> {
+  return venueId ? { 'x-venue-id': venueId } : {}
+}
+
+/**
  * Get user notifications
  */
 export async function getNotifications(
   filters: NotificationFilters = {},
   pagination: PaginationOptions = {},
+  venueId?: string,
 ): Promise<NotificationsResponse> {
   const params = {
     ...filters,
     ...pagination,
   }
 
-  const response = await api.get('/api/v1/dashboard/notifications', { params })
+  const response = await api.get('/api/v1/dashboard/notifications', { params, headers: headerDeNegocio(venueId) })
   return response.data.data
 }
 
 /**
  * Get unread notifications count
  */
-export async function getUnreadCount(): Promise<{ count: number }> {
-  const response = await api.get('/api/v1/dashboard/notifications/unread-count')
+export async function getUnreadCount(venueId?: string): Promise<{ count: number }> {
+  const response = await api.get('/api/v1/dashboard/notifications/unread-count', { headers: headerDeNegocio(venueId) })
   return response.data.data
 }
 
@@ -216,8 +225,8 @@ export async function markAsRead(notificationId: string): Promise<Notification> 
 /**
  * Mark all notifications as read
  */
-export async function markAllAsRead(): Promise<{ count: number }> {
-  const response = await api.patch('/api/v1/dashboard/notifications/mark-all-read')
+export async function markAllAsRead(venueId?: string): Promise<{ count: number }> {
+  const response = await api.patch('/api/v1/dashboard/notifications/mark-all-read', undefined, { headers: headerDeNegocio(venueId) })
   return response.data.data
 }
 
@@ -230,8 +239,8 @@ export async function markAllAsRead(): Promise<{ count: number }> {
  * 🔴 "Seleccionar todo" sólo marcaba las 20 cargadas en pantalla: se borraban 20, la
  * lista se rellenaba y parecía que nada pasaba. Esto borra de verdad todas.
  */
-export async function deleteAllNotifications(): Promise<{ deleted: number }> {
-  const response = await api.delete('/api/v1/dashboard/notifications')
+export async function deleteAllNotifications(venueId?: string): Promise<{ deleted: number }> {
+  const response = await api.delete('/api/v1/dashboard/notifications', { headers: headerDeNegocio(venueId) })
   return response.data?.data ?? { deleted: 0 }
 }
 
@@ -246,6 +255,22 @@ export async function getPreferences(venueId?: string | null): Promise<Notificat
   const headers: Record<string, string> = {}
   if (venueId) headers['x-venue-id'] = venueId
   const response = await api.get('/api/v1/dashboard/notifications/preferences', { headers })
+  return response.data.data
+}
+
+/**
+ * Preferencia de la PERSONA (global, no por negocio) de recibir por correo los anuncios de Avoqado.
+ * Sin `x-venue-id` a propósito.
+ */
+const ANNOUNCEMENT_EMAIL_URL = '/api/v1/dashboard/notifications/preferences/announcement-email'
+
+export async function getAnnouncementEmailPreference(): Promise<{ enabled: boolean }> {
+  const response = await api.get(ANNOUNCEMENT_EMAIL_URL)
+  return response.data.data
+}
+
+export async function setAnnouncementEmailPreference(enabled: boolean): Promise<{ enabled: boolean }> {
+  const response = await api.put(ANNOUNCEMENT_EMAIL_URL, { enabled })
   return response.data.data
 }
 

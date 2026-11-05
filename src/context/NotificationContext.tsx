@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useReducer, useEffect, ReactNode, useCallback } from 'react'
+import React, { createContext, useContext, useReducer, useEffect, useRef, ReactNode, useCallback } from 'react'
+import { matchPath, useLocation } from 'react-router-dom'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import * as notificationService from '@/services/notification.service'
 import { Notification, NotificationFilters, PaginationOptions } from '@/services/notification.service'
@@ -19,6 +20,8 @@ interface NotificationState {
 }
 
 interface NotificationContextType extends NotificationState {
+  /** El negocio de la campana (el de la URL). Sin él (pantallas de organización) la campana junta los avisos de todos. */
+  venueId: string | undefined
   /** La lectura de la lista. `error` no sirve para saber si llegó: también lo escriben las mutaciones, y sin internet no se llena. */
   lecturaDeNotificaciones: EstadoDeCarga & { data: unknown }
   // Actions
@@ -42,6 +45,8 @@ type NotificationAction =
   | { type: 'ADD_NOTIFICATION'; payload: Notification }
   | { type: 'SET_FILTERS'; payload: NotificationFilters }
   | { type: 'SET_PAGINATION'; payload: PaginationOptions }
+  | { type: 'RESET' }
+  | { type: 'MARK_ALL_READ' }
 
 // ===== REDUCER =====
 
@@ -73,7 +78,20 @@ function notificationReducer(state: NotificationState, action: NotificationActio
     case 'SET_UNREAD_COUNT':
       return { ...state, unreadCount: action.payload }
 
-    case 'MARK_AS_READ':
+    case 'RESET':
+      return { ...state, notifications: [], unreadCount: 0, loading: false, error: null }
+
+    case 'MARK_ALL_READ':
+      return {
+        ...state,
+        notifications: state.notifications.map(n => ({ ...n, isRead: true, readAt: new Date().toISOString() })),
+        unreadCount: 0,
+      }
+
+    case 'MARK_AS_READ': {
+      // Sólo resta si el aviso está en ESTA lista y estaba sin leer: una respuesta tardía de otro negocio no baja este contador.
+      const objetivo = state.notifications.find(n => n.id === action.payload)
+      if (!objetivo || objetivo.isRead) return state
       return {
         ...state,
         notifications: state.notifications.map(notification =>
@@ -83,6 +101,7 @@ function notificationReducer(state: NotificationState, action: NotificationActio
         ),
         unreadCount: Math.max(0, state.unreadCount - 1)
       }
+    }
 
     case 'DELETE_NOTIFICATION':
       {
@@ -133,13 +152,29 @@ interface NotificationProviderProps {
 export function NotificationProvider({ children }: NotificationProviderProps) {
   const [state, dispatch] = useReducer(notificationReducer, initialState)
   const { socket, isConnected } = useSocket()
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, allVenues } = useAuth()
+
+  // Este provider está por ENCIMA del Outlet: useParams no ve `:slug`. Se saca de la ruta (normal y marca blanca).
+  const { pathname } = useLocation()
+  const slug =
+    matchPath('/venues/:slug/*', pathname)?.params.slug ?? matchPath('/wl/venues/:slug/*', pathname)?.params.slug
+  const venueId = slug ? allVenues?.find(v => v.slug === slug)?.id : undefined
+  // Hay slug pero su negocio aún no está en la lista (cargando): no se pide sin header, sería la lista de TODOS los negocios.
+  const venuePendiente = Boolean(slug) && !venueId
+  const negocioRef = useRef({ venueId, venuePendiente })
+  negocioRef.current = { venueId, venuePendiente }
+
+  // Al cambiar de negocio se vacían lista y contador en el acto: nunca se ve la del negocio anterior.
+  // (Va antes del efecto que copia la consulta, para que una lista ya en caché del nuevo negocio gane.)
+  useEffect(() => {
+    dispatch({ type: 'RESET' })
+  }, [venueId])
 
   // Fetch notifications
   const notificationsQuery = useQuery({
-    queryKey: ['notifications', state.filters, state.pagination],
-    queryFn: () => notificationService.getNotifications(state.filters, state.pagination),
-    enabled: isAuthenticated,
+    queryKey: ['notifications', venueId ?? null, state.filters, state.pagination],
+    queryFn: () => notificationService.getNotifications(state.filters, state.pagination, venueId),
+    enabled: isAuthenticated && !venuePendiente,
     refetchInterval: false,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
@@ -164,10 +199,10 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
 
   // Refetch once when socket connects or reconnects to sync any missed data
   useEffect(() => {
-    if (isAuthenticated && isConnected) {
+    if (isAuthenticated && isConnected && !venuePendiente) {
       refetch()
     }
-  }, [isAuthenticated, isConnected, refetch])
+  }, [isAuthenticated, isConnected, venuePendiente, refetch])
 
   // Mark as read mutation
   const markAsReadMutation = useMutation({
@@ -180,15 +215,11 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
     }
   })
 
-  // Mark all as read mutation
+  // Mark all as read mutation. Lleva el negocio de ORIGEN: si al responder ya se cambió de negocio, no toca la lista nueva.
   const markAllAsReadMutation = useMutation({
-    mutationFn: notificationService.markAllAsRead,
-    onSuccess: () => {
-      dispatch({
-        type: 'SET_NOTIFICATIONS',
-        payload: state.notifications.map(n => ({ ...n, isRead: true, readAt: new Date().toISOString() }))
-      })
-      dispatch({ type: 'SET_UNREAD_COUNT', payload: 0 })
+    mutationFn: (origen: { venueId?: string }) => notificationService.markAllAsRead(origen.venueId),
+    onSuccess: (_, origen) => {
+      if (origen.venueId === negocioRef.current.venueId) dispatch({ type: 'MARK_ALL_READ' })
     },
     onError: (error: any) => {
       dispatch({ type: 'SET_ERROR', payload: error.message || 'Failed to mark all notifications as read' })
@@ -219,7 +250,8 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
 
   const markAllAsRead = useCallback(async () => {
     try {
-      await markAllAsReadMutation.mutateAsync()
+      if (negocioRef.current.venuePendiente) return
+      await markAllAsReadMutation.mutateAsync({ venueId: negocioRef.current.venueId })
     } catch (error) {
       // Error is already handled by onError in mutation config
       console.error('Failed to mark all notifications as read:', error)
@@ -244,6 +276,8 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
   }, [])
 
   const refreshNotifications = useCallback(() => {
+    // refetch() ignora `enabled`: sin esta guarda pediría la lista de TODOS los negocios.
+    if (negocioRef.current.venuePendiente) return
     notificationsQuery.refetch()
   }, [notificationsQuery])
 
@@ -252,6 +286,9 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
   // Context value
   const contextValue: NotificationContextType = {
     ...state,
+    // Mientras la lista del negocio nuevo sigue en vuelo (RESET deja loading:false), se ve «cargando», nunca el vacío.
+    loading: state.loading || (notificationsQuery.isLoading && state.notifications.length === 0),
+    venueId,
     lecturaDeNotificaciones: notificationsQuery,
     markAsRead,
     markAllAsRead,
@@ -272,6 +309,11 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
       console.error('Notification received without ID:', notification)
       return
     }
+
+    // Con negocio actual, un aviso en vivo de otro negocio no entra, sea del tipo que sea (los anuncios de plataforma
+    // no salen por socket: se recogen al pedir la lista).
+    const { venueId: actual, venuePendiente: pendiente } = negocioRef.current
+    if (pendiente || (actual && transformedNotification.venueId !== actual)) return
 
     dispatch({ type: 'ADD_NOTIFICATION', payload: transformedNotification })
 

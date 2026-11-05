@@ -38,6 +38,7 @@
   "markAllAsRead": "Marcar todas como leídas",
   "markRead": "Marcar como leída",
   "view_all": "Ver todas las notificaciones",
+  "loading": "Cargando avisos…",
   "none": "No hay notificaciones",
   "allRead": "Todas leídas",
   "unread_count": "{{count}} sin leer",
@@ -95,6 +96,11 @@
   "error": "Error",
   "failedToUpdate": "No se pudieron actualizar las preferencias de notificaciones",
   "required": "Requerido",
+  "fromAvoqado": {
+    "title": "De Avoqado",
+    "emailAnnouncements": "Anuncios de Avoqado por correo",
+    "emailAnnouncementsHelp": "Novedades y avisos importantes de Avoqado. Los avisos dentro del panel siguen llegando."
+  },
   "channels": "Canales",
   "channelsDescription": "Desactiva un canal para dejar de recibir notificaciones por esa vía.",
   "enable": "Habilitar",

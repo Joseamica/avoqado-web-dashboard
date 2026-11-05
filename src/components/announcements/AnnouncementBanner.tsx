@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowRight, Sparkles, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { CornerSparkles } from '@/components/effects/CornerSparkles'
 import { AnnouncementModal } from './AnnouncementModal'
-import { dismissAnnouncement, getHomeAnnouncements } from '@/services/announcement.service'
+import { useAuth } from '@/context/AuthContext'
+import { cerrarAnuncio, cerradoLocalmente, claveHome, getHomeAnnouncements, quitarDeLaCache } from '@/services/announcement.service'
 
 /**
  * El banner de novedades del inicio, y la ventana que interrumpe.
@@ -18,16 +19,20 @@ import { dismissAnnouncement, getHomeAnnouncements } from '@/services/announceme
  * persona pasa por el Home, que es justo donde menos falta hace.
  */
 export function AnnouncementBanner() {
+  const queryClient = useQueryClient()
+  const staffId = useAuth().user?.id
   const [abierto, setAbierto] = useState(false)
   const [descartado, setDescartado] = useState(false)
 
   const { data } = useQuery({
-    queryKey: ['announcements', 'home'],
+    queryKey: claveHome(staffId),
     queryFn: getHomeAnnouncements,
+    enabled: !!staffId,
     staleTime: 60_000,
   })
 
-  const banner = descartado ? null : (data?.banner ?? null)
+  const candidato = data?.banner ?? null
+  const banner = descartado || (candidato && cerradoLocalmente(staffId, candidato.id)) ? null : candidato
 
   return (
     <>
@@ -56,7 +61,11 @@ export function AnnouncementBanner() {
                     // 🔴 La X CIERRA. Antes abría el detalle: el mismo gesto que en toda
                     // la app significa "quítamelo de enfrente" hacía justo lo contrario.
                     setDescartado(true)
-                    dismissAnnouncement(banner.id).catch(() => {})
+                    if (staffId) {
+                      cerrarAnuncio(staffId, banner.id)
+                        .then(() => quitarDeLaCache(queryClient, banner.id, staffId))
+                        .catch(() => {})
+                    }
                   }}
                   className="h-8 w-8 cursor-pointer"
                   aria-label="Cerrar aviso"
