@@ -311,9 +311,11 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
     }
 
     // Con negocio actual, un aviso en vivo de otro negocio no entra, sea del tipo que sea (los anuncios de plataforma
-    // no salen por socket: se recogen al pedir la lista).
+    // no salen por socket: se recogen al pedir la lista). Un aviso personal sin negocio (venueId vacío: KYC, avisos de
+    // superadmin) sí entra, igual que en la lista del servidor (D7).
     const { venueId: actual, venuePendiente: pendiente } = negocioRef.current
-    if (pendiente || (actual && transformedNotification.venueId !== actual)) return
+    const deOtroNegocio = Boolean(actual && transformedNotification.venueId && transformedNotification.venueId !== actual)
+    if (pendiente || deOtroNegocio) return
 
     dispatch({ type: 'ADD_NOTIFICATION', payload: transformedNotification })
 
