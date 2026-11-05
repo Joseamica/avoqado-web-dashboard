@@ -2,7 +2,7 @@
  * Notification Preferences — Collapsible categories + channel pills per type.
  * Master channel toggles at top with confirmation dialog.
  */
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   BarChart3,
   Bell,
@@ -84,6 +84,26 @@ export default function NotificationPreferences5() {
   const { data: preferences = [], isLoading } = useQuery({
     queryKey: ['notification-preferences', venueId],
     queryFn: () => notificationService.getPreferences(venueId),
+  })
+
+  // «De Avoqado»: preferencia de la persona (no del negocio), por eso su propia llave sin venueId.
+  const announcementKey = ['announcement-email-preference']
+  const { data: announcementPref, isLoading: announcementLoading } = useQuery({
+    queryKey: announcementKey,
+    queryFn: notificationService.getAnnouncementEmailPreference,
+  })
+  const announcementMutation = useMutation({
+    mutationFn: (enabled: boolean) => notificationService.setAnnouncementEmailPreference(enabled),
+    onMutate: async (enabled: boolean) => {
+      await queryClient.cancelQueries({ queryKey: announcementKey })
+      const previous = queryClient.getQueryData<{ enabled: boolean }>(announcementKey)
+      queryClient.setQueryData(announcementKey, { enabled })
+      return { previous }
+    },
+    onError: (error: any, _enabled, ctx) => {
+      queryClient.setQueryData(announcementKey, ctx?.previous)
+      toast({ title: t('error'), description: error?.message || t('failedToUpdate'), variant: 'destructive' })
+    },
   })
 
   function addPending(key: string): void {
@@ -287,6 +307,23 @@ export default function NotificationPreferences5() {
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-foreground">{t('preferences')}</h1>
         <p className="text-sm text-muted-foreground mt-1">{t('preferencesSubtitle')}</p>
+      </div>
+
+      {/* De Avoqado: anuncios por correo (preferencia de la persona; el interruptor por canal no la toca) */}
+      <div className="mb-4">
+        <h2 className="text-sm font-semibold text-foreground mb-1">{t('fromAvoqado.title')}</h2>
+        <div className="flex items-center justify-between gap-3 rounded-xl border border-input bg-card p-3.5">
+          <div>
+            <span className="text-sm font-medium text-foreground block">{t('fromAvoqado.emailAnnouncements')}</span>
+            <p className="text-xs text-muted-foreground mt-0.5">{t('fromAvoqado.emailAnnouncementsHelp')}</p>
+          </div>
+          <Switch
+            aria-label={t('fromAvoqado.emailAnnouncements')}
+            checked={announcementPref?.enabled ?? false}
+            disabled={announcementLoading || !announcementPref}
+            onCheckedChange={enabled => announcementMutation.mutate(enabled)}
+          />
+        </div>
       </div>
 
       {/* Master channel toggles */}

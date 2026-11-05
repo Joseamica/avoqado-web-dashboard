@@ -91,6 +91,11 @@
   "error": "Erreur",
   "failedToUpdate": "Échec de la mise à jour des préférences de notification",
   "required": "Requis",
+  "fromAvoqado": {
+    "title": "De la part d'Avoqado",
+    "emailAnnouncements": "Annonces d'Avoqado par e-mail",
+    "emailAnnouncementsHelp": "Nouveautés et avis importants d'Avoqado. Les avis dans le panneau continuent d'arriver."
+  },
   "channels": "Canaux",
   "channelsDescription": "Désactivez un canal pour ne plus recevoir de notifications par ce moyen.",
   "enable": "Activer",

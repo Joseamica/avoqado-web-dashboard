@@ -4,12 +4,19 @@
  * are made. Verifies the master toggle persists via ONE atomic request.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { updateManyPreferences, updatePreferences, NotificationChannel, NotificationType } from '@/services/notification.service'
+import {
+  getAnnouncementEmailPreference,
+  setAnnouncementEmailPreference,
+  updateManyPreferences,
+  updatePreferences, NotificationChannel, NotificationType,
+} from '@/services/notification.service'
 
 const mockPut = vi.fn()
+const mockGet = vi.fn()
 vi.mock('@/api', () => ({
   default: {
     put: (...args: unknown[]) => mockPut(...args),
+    get: (...args: unknown[]) => mockGet(...args),
   },
 }))
 
@@ -17,6 +24,7 @@ const venueId = 'venue-1'
 
 beforeEach(() => {
   mockPut.mockReset()
+  mockGet.mockReset()
 })
 
 describe('updateManyPreferences()', () => {
@@ -63,5 +71,21 @@ describe('updatePreferences() single-type (regression — unchanged path)', () =
 
     expect(mockPut).toHaveBeenCalledWith('/api/v1/dashboard/notifications/preferences', pref, { headers: { 'x-venue-id': venueId } })
     expect(result).toEqual(pref)
+  })
+})
+
+describe('preferencia de anuncios de Avoqado por correo (de la persona, sin negocio)', () => {
+  const url = '/api/v1/dashboard/notifications/preferences/announcement-email'
+
+  it('GET desenvuelve { enabled } y no manda x-venue-id', async () => {
+    mockGet.mockResolvedValue({ data: { data: { enabled: false } } })
+    expect(await getAnnouncementEmailPreference()).toEqual({ enabled: false })
+    expect(mockGet).toHaveBeenCalledWith(url)
+  })
+
+  it('PUT manda { enabled } y no manda x-venue-id', async () => {
+    mockPut.mockResolvedValue({ data: { data: { enabled: true } } })
+    expect(await setAnnouncementEmailPreference(true)).toEqual({ enabled: true })
+    expect(mockPut).toHaveBeenCalledWith(url, { enabled: true })
   })
 })

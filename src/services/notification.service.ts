@@ -259,6 +259,22 @@ export async function getPreferences(venueId?: string | null): Promise<Notificat
 }
 
 /**
+ * Preferencia de la PERSONA (global, no por negocio) de recibir por correo los anuncios de Avoqado.
+ * Sin `x-venue-id` a propósito.
+ */
+const ANNOUNCEMENT_EMAIL_URL = '/api/v1/dashboard/notifications/preferences/announcement-email'
+
+export async function getAnnouncementEmailPreference(): Promise<{ enabled: boolean }> {
+  const response = await api.get(ANNOUNCEMENT_EMAIL_URL)
+  return response.data.data
+}
+
+export async function setAnnouncementEmailPreference(enabled: boolean): Promise<{ enabled: boolean }> {
+  const response = await api.put(ANNOUNCEMENT_EMAIL_URL, { enabled })
+  return response.data.data
+}
+
+/**
  * Update notification preferences
  */
 export async function updatePreferences(
