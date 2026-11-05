@@ -266,6 +266,36 @@ describe('OfferStep — el pie de las tarjetas', () => {
     expect(abrir).toHaveBeenCalledWith(expect.stringContaining('wa.me'), '_blank', 'noopener,noreferrer')
     expect(decodeURIComponent(String(abrir.mock.calls[0][0]))).toContain('no tengo tarjeta')
   })
+
+  // hz:c24ea658:D15 — casi todos se iban de esta pantalla sin un clic; que quien tenga una duda escriba en vez de irse.
+  it('«¿Tienes dudas? Escríbenos por WhatsApp» va ARRIBA de las tarjetas (se ve sin bajar en el celular)', async () => {
+    pintar()
+    const dudas = await screen.findByRole('button', { name: '¿Tienes dudas? Escríbenos por WhatsApp' })
+    const primeraTarjeta = screen.getByRole('button', { name: 'Elegir Pro por $22.00' })
+    expect(dudas.compareDocumentPosition(primeraTarjeta) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(dudas).toHaveAttribute('data-tour', 'setup-offer-whatsapp')
+  })
+
+  it('el mensaje lleva el nombre del negocio y la oferta, y el toque se mide en PostHog', async () => {
+    const abrir = vi.spyOn(window, 'open').mockImplementation(() => null)
+    pintar({ data: { businessName: 'Taquería El Patio' } })
+    await userEvent.setup().click(await screen.findByRole('button', { name: '¿Tienes dudas? Escríbenos por WhatsApp' }))
+    expect(abrir).toHaveBeenCalledWith(expect.stringContaining('wa.me'), '_blank', 'noopener,noreferrer')
+    const texto = decodeURIComponent(String(abrir.mock.calls[0][0]))
+    expect(texto).toContain('Taquería El Patio')
+    expect(texto).toContain('POS22')
+    expect(track).toHaveBeenCalledWith('setup_whatsapp_click', { step_id: 'offer', launch_offer_code: 'POS22', motivo: 'dudas' })
+  })
+
+  it('sin nombre ni oferta, el mensaje no dice «undefined» ni deja huecos', async () => {
+    const abrir = vi.spyOn(window, 'open').mockImplementation(() => null)
+    pintar({ launchOffer: null })
+    await userEvent.setup().click(await screen.findByRole('button', { name: '¿Tienes dudas? Escríbenos por WhatsApp' }))
+    const texto = decodeURIComponent(String(abrir.mock.calls[0][0]))
+    expect(texto).toContain('Hola, estoy dando de alta mi negocio en Avoqado y tengo una duda sobre los planes')
+    expect(texto).not.toMatch(/undefined|null|\s{2}/)
+    expect(track).toHaveBeenCalledWith('setup_whatsapp_click', { step_id: 'offer', launch_offer_code: undefined, motivo: 'dudas' })
+  })
 })
 
 describe('OfferStep — la ventana para pagar', () => {

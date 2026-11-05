@@ -21,7 +21,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { loadStripe } from '@stripe/stripe-js'
 import { Elements } from '@stripe/react-stripe-js'
-import { AlertCircle, RotateCw } from 'lucide-react'
+import { AlertCircle, MessageCircle, RotateCw } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
@@ -643,6 +643,15 @@ export function OfferStep({
   }
 
   const abrirWhatsApp = (texto: string) => window.open(salesWhatsAppLink(texto), '_blank', 'noopener,noreferrer')
+  // hz:c24ea658:D15 (founder, 28-oct): casi todos se iban de esta pantalla sin un clic; quien tenga una duda, que escriba.
+  const escribirConDudas = () => {
+    const codigo = mostrarOferta ? oferta?.code : undefined
+    const negocio = data?.businessName?.trim() || t('plans.doubtsMyBusiness')
+    track('setup_whatsapp_click', { step_id: 'offer', launch_offer_code: codigo, motivo: 'dudas' })
+    abrirWhatsApp(
+      codigo ? t('plans.doubtsWhatsAppOffer', { business: negocio, offer: codigo }) : t('plans.doubtsWhatsApp', { business: negocio }),
+    )
+  }
 
   // ── Lo que dice la ventana del plan elegido. Sólo formatea montos del servidor; no calcula ninguno ──
   const ventanaDeOferta = !!planElegido && mostrarOferta && planElegido === oferta!.planTier
@@ -703,6 +712,16 @@ export function OfferStep({
           ) : (
             <p className="text-sm text-muted-foreground">{t('plans.subtitle')}</p>
           )}
+          <Button
+            type="button"
+            variant="outline"
+            data-tour="setup-offer-whatsapp"
+            className="mt-1 w-fit gap-2 rounded-full"
+            onClick={escribirConDudas}
+          >
+            <MessageCircle className="h-4 w-4" aria-hidden="true" />
+            {t('plans.doubts')}
+          </Button>
         </div>
 
         {(aviso || noDisponible) && (
