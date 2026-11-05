@@ -88,6 +88,22 @@
     "confirm": "Cancel invoice",
     "cancel": "No, go back"
   },
+  "faltaParaFacturar": {
+    "title": "Before you can invoice",
+    "configurar": {
+      "emisor": "Add your issuer (RFC and legal name) and upload your CSD: the .cer and .key files from the SAT.",
+      "csd": "Your issuer doesn't have an active CSD yet. Upload your current CSD: the .cer and .key files from the SAT.",
+      "comercio": "Your issuer's CSD is active, but no merchant invoices with it. Add the merchant you take payments with and keep \"Invoicing enabled\" on."
+    },
+    "pedirlo": {
+      "emisor": "This business doesn't have an issuer or a CSD yet (the .cer and .key files from the SAT). Ask the owner or an admin to add them.",
+      "csd": "This business's issuer doesn't have an active CSD yet (the .cer and .key files from the SAT). Ask the owner or an admin to upload it.",
+      "comercio": "No merchant in this business invoices with its issuer yet. Ask the owner or an admin to connect one in Invoicing › Settings."
+    },
+    "irAConfiguracion": "Go to Settings",
+    "ahoraNo": "Not now",
+    "entendido": "Got it"
+  },
   "pickOrder": {
     "title": "New invoice",
     "subtitle": "Choose the sale you want to invoice",
