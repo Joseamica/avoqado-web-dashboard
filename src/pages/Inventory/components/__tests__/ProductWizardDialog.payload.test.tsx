@@ -638,6 +638,10 @@ describe('ProductWizardDialog: observed request contracts before the visual move
     expect(http.put.mock.calls[0][1]).not.toHaveProperty('expectedUpdatedAt') // el primero no: sólo cambia datos del producto
     expect(http.put.mock.calls[1][1]).toEqual({ inventoryMethod: 'QUANTITY', trackInventory: true, expectedUpdatedAt: '2026-11-05T18:00:00.001Z' })
     expect(inventory.productWizardApi.configureSimpleStock.mock.calls[0][2]).toMatchObject({ initialStock: 9, expectedUpdatedAt: '2026-11-05T18:00:00.002Z' })
+    // Codex r2 de la ronda 5: lo que lleva versión no se reintenta solo (src/api.ts repite la petición si se pierde la respuesta, y la
+    // repetición chocaría con su propia versión). Si falla, se avisa y la persona vuelve a guardar con una versión nueva.
+    expect(http.put.mock.calls[1][2]).toEqual({ _retry: true })
+    expect(inventory.productWizardApi.configureSimpleStock.mock.calls[0][3]).toEqual({ _retry: true })
   })
 
   // Codex r1 (ronda 5) #2: la receta también lleva la versión en su activación.

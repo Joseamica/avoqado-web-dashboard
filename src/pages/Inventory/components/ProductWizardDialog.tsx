@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import type { AxiosRequestConfig } from 'axios'
 import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { esNoEncontrado, falloDeCarga } from '@/lib/falloDeCarga'
 import { esSinPermiso } from '@/lib/reintentoSinPermiso'
@@ -179,6 +180,10 @@ interface Step3RecipeFormData {
     substituteNotes?: string
   }>
 }
+
+// Lo que lleva versión no se reintenta solo: `src/api.ts` repite una petición cuya respuesta se perdió, y la repetición chocaría con su
+// propia versión (409 falso). Si falla, se avisa y quien guarda vuelve a intentar con una versión nueva (Codex r2 de la ronda 5).
+const SIN_REINTENTO = { _retry: true } as AxiosRequestConfig
 
 // Último guardado de cada producto, entre aperturas: lo que termina de enviarse con la ventana cerrada no pisa uno más nuevo.
 const ultimoGuardado = new Map<string, number>()
@@ -570,21 +575,20 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
       // This ensures atomic commit of all changes together
       // Cada paso lleva la versión que contestó el anterior: una activación atrasada no vuelve a prender un inventario que otra
       // ventana apagó en medio (Codex r4 #1); el SERVIDOR contesta 409 PRODUCT_CHANGED. Sin versión (SERVIDOR viejo), como antes.
-      const activacion = await api.put(`/api/v1/dashboard/venues/${targetVenueId}/products/${targetProductId}`, {
-        trackInventory: true,
-        inventoryMethod: data.inventoryMethod,
-        ...(version ? { expectedUpdatedAt: version } : {}),
-      })
+      const urlProducto = `/api/v1/dashboard/venues/${targetVenueId}/products/${targetProductId}`
+      const activar = { trackInventory: true, inventoryMethod: data.inventoryMethod }
+      const activacion = version
+        ? await api.put(urlProducto, { ...activar, expectedUpdatedAt: version }, SIN_REINTENTO)
+        : await api.put(urlProducto, activar)
       const versionActivada: string | undefined = activacion?.data?.data?.updatedAt
 
       // Then configure the inventory details
       if (data.inventoryMethod === 'QUANTITY' && data.simpleStock) {
         if (superado()) return
         // Sin existencias tocadas no viajan: el SERVIDOR deja el saldo como esté (antes se releía y quedaban milisegundos para pisar una venta).
-        return productWizardApi.configureSimpleStock(targetVenueId, targetProductId, {
-          ...data.simpleStock,
-          ...(versionActivada ? { expectedUpdatedAt: versionActivada } : {}),
-        })
+        return versionActivada
+          ? productWizardApi.configureSimpleStock(targetVenueId, targetProductId, { ...data.simpleStock, expectedUpdatedAt: versionActivada }, SIN_REINTENTO)
+          : productWizardApi.configureSimpleStock(targetVenueId, targetProductId, data.simpleStock)
       } else if (data.inventoryMethod === 'RECIPE' && data.recipe) {
         // ✅ FIX: Try UPDATE first, fallback to CREATE if recipe doesn't exist
         // This is more robust than checking existence first (EAFP pattern)
