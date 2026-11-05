@@ -1,6 +1,6 @@
 /** Exact calls observed through the real form before the single-page visual change. */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -441,7 +441,7 @@ describe('ProductWizardDialog: observed request contracts before the visual move
       data: {
         data: {
           inventoryMethod: 'QUANTITY',
-          details: { currentStock: 7, costPerUnit: 20, reorderPoint: 3 },
+          details: { currentStock: 7, minimumStock: 3, reservedStock: 0, costPerUnit: 20 },
         },
       },
     })
@@ -499,7 +499,7 @@ describe('ProductWizardDialog: observed request contracts before the visual move
   // tampoco acepta costo 0: no se podía cambiar nada del producto (D2).
   it.each([0, null])('saves a change to a product whose cost is %s without touching its stock', async costPerUnit => {
     inventory.productWizardApi.getWizardProgress.mockResolvedValue({
-      data: { data: { inventoryMethod: 'QUANTITY', details: { currentStock: 7, costPerUnit, reorderPoint: 3 } } },
+      data: { data: { inventoryMethod: 'QUANTITY', details: { currentStock: 7, minimumStock: 3, reservedStock: 0, costPerUnit } } },
     })
     mount({ mode: 'edit' })
     await screen.findByDisplayValue('Café en grano')
@@ -515,7 +515,7 @@ describe('ProductWizardDialog: observed request contracts before the visual move
 
   it('asks for the cost before saving a stock change on a product without one', async () => {
     inventory.productWizardApi.getWizardProgress.mockResolvedValue({
-      data: { data: { inventoryMethod: 'QUANTITY', details: { currentStock: 7, costPerUnit: 0, reorderPoint: 3 } } },
+      data: { data: { inventoryMethod: 'QUANTITY', details: { currentStock: 7, minimumStock: 3, reservedStock: 0, costPerUnit: 0 } } },
     })
     mount({ mode: 'edit' })
     await screen.findByDisplayValue('Café en grano')
@@ -525,6 +525,21 @@ describe('ProductWizardDialog: observed request contracts before the visual move
     expect(http.put).not.toHaveBeenCalled()
     expect(inventory.productWizardApi.configureSimpleStock).not.toHaveBeenCalled()
     expect(toast).toHaveBeenCalledWith(expect.objectContaining({ description: 'wizard.step3.costPerUnitMinimum' }))
+  })
+
+  // El SERVIDOR manda `minimumStock`: leer `reorderPoint` llenaba el campo con 10 y guardar pisaba el mínimo real (D3).
+  // 0 es un mínimo válido, y un decimal (venta por peso) no debe frenar «Guardar» por el `step` del campo.
+  it.each([0, 3, 2.5])('keeps a saved minimum of %s when saving without touching it', async minimumStock => {
+    inventory.productWizardApi.getWizardProgress.mockResolvedValue({
+      data: { data: { inventoryMethod: 'QUANTITY', details: { currentStock: 7, minimumStock, reservedStock: 0, costPerUnit: 20 } } },
+    })
+    mount({ mode: 'edit' })
+    await screen.findByDisplayValue('Café en grano')
+    await screen.findByDisplayValue('7')
+    expect(screen.getByLabelText(/^wizard\.step3\.reorderPoint/)).toHaveValue(minimumStock)
+    await userEvent.click(screen.getByRole('button', { name: 'save' }))
+    await waitFor(() => expect(inventory.productWizardApi.configureSimpleStock).toHaveBeenCalledTimes(1))
+    expect(inventory.productWizardApi.configureSimpleStock.mock.calls[0][2]).toMatchObject({ reorderPoint: minimumStock })
   })
 
   it('edits existing recipe ingredients through recipesApi.update', async () => {
@@ -718,5 +733,96 @@ describe('ProductWizardDialog: observed request contracts before the visual move
         },
       ],
     ])
+  })
+})
+
+// Los PUT de la edición no eran mutaciones: «Guardar» seguía activo mientras iban en camino y un doble clic guardaba dos veces (D4).
+describe('ProductWizardDialog: un solo guardado por clic', () => {
+  const diferida = () => {
+    let resolve!: (value: unknown) => void
+    let reject!: (reason: unknown) => void
+    const promise = new Promise((si, no) => {
+      resolve = si
+      reject = no
+    })
+    return { promise, resolve, reject }
+  }
+  const conStock = (costPerUnit: number) => ({
+    data: { data: { inventoryMethod: 'QUANTITY', details: { currentStock: 7, minimumStock: 3, reservedStock: 0, costPerUnit } } },
+  })
+  const receta = {
+    data: { data: { portionYield: 1, lines: [{ rawMaterialId: 'rm1', rawMaterial: { name: 'Café molido' }, quantity: '1', unit: 'KILOGRAM', isOptional: false }] } },
+  }
+  const stock = inventory.productWizardApi.configureSimpleStock
+  const guardarBtn = () => screen.getByRole('button', { name: 'save' })
+  const caminos = {
+    'sin inventario': { preparar: () => undefined, listo: 'Café en grano', puts: 1, stock: 0, receta: 0 },
+    'por cantidad con costo': { preparar: () => inventory.productWizardApi.getWizardProgress.mockResolvedValue(conStock(20)), listo: '7', puts: 2, stock: 1, receta: 0 },
+    'por cantidad sin costo ni tocar el inventario': { preparar: () => inventory.productWizardApi.getWizardProgress.mockResolvedValue(conStock(0)), listo: '7', puts: 1, stock: 0, receta: 0 },
+    receta: {
+      preparar: () => {
+        inventory.productWizardApi.getWizardProgress.mockResolvedValue({ data: { data: { inventoryMethod: 'RECIPE', details: {} } } })
+        inventory.recipesApi.get.mockResolvedValue(receta)
+      },
+      listo: 'Café en grano',
+      puts: 2,
+      stock: 0,
+      receta: 1,
+    },
+  }
+  const abrirEdicion = async (camino: keyof typeof caminos) => {
+    caminos[camino].preparar()
+    mount({ mode: 'edit', productType: camino === 'receta' ? 'FOOD_AND_BEV' : 'REGULAR' })
+    await screen.findByDisplayValue('Café en grano')
+    await screen.findByDisplayValue(caminos[camino].listo)
+    if (camino === 'receta') await screen.findAllByText('Café molido', { selector: 'p' })
+    await waitFor(() => expect(guardarBtn()).toBeEnabled())
+  }
+  const asentar = () => act(async () => { await new Promise(resolve => setTimeout(resolve, 20)) })
+
+  it.each(Object.keys(caminos) as Array<keyof typeof caminos>)('%s: el doble clic guarda una sola vez', async camino => {
+    await abrirEdicion(camino)
+    const put = diferida()
+    http.put.mockReturnValueOnce(put.promise)
+    await userEvent.dblClick(guardarBtn())
+    await waitFor(() => expect(http.put).toHaveBeenCalledTimes(1))
+    expect(guardarBtn()).toBeDisabled()
+    await act(async () => { put.resolve({ data: {} }); await put.promise })
+    await asentar()
+    expect({ puts: http.put.mock.calls.length, stock: stock.mock.calls.length, receta: inventory.recipesApi.update.mock.calls.length }).toStrictEqual({
+      puts: caminos[camino].puts,
+      stock: caminos[camino].stock,
+      receta: caminos[camino].receta,
+    })
+  })
+
+  it('dos clics del mismo instante también guardan una sola vez', async () => {
+    await abrirEdicion('por cantidad sin costo ni tocar el inventario')
+    const put = diferida()
+    http.put.mockReturnValueOnce(put.promise)
+    fireEvent.click(guardarBtn())
+    fireEvent.click(guardarBtn())
+    await waitFor(() => expect(http.put).toHaveBeenCalled())
+    await asentar()
+    expect(http.put).toHaveBeenCalledTimes(1)
+    await act(async () => { put.resolve({ data: {} }); await put.promise })
+  })
+
+  it.each(Object.keys(caminos) as Array<keyof typeof caminos>)('%s: tras un error se libera y se puede reintentar', async camino => {
+    await abrirEdicion(camino)
+    const put = diferida()
+    http.put.mockReturnValueOnce(put.promise)
+    await userEvent.click(guardarBtn())
+    await waitFor(() => expect(guardarBtn()).toBeDisabled())
+    await act(async () => { put.reject({ response: { status: 500, data: { message: 'Falló' } } }); await put.promise.catch(() => undefined) })
+    await waitFor(() => expect(guardarBtn()).toBeEnabled())
+    expect(toast).toHaveBeenCalledWith(expect.objectContaining({ description: 'Falló', variant: 'destructive' }))
+    expect(stock).not.toHaveBeenCalled()
+    expect(inventory.recipesApi.update).not.toHaveBeenCalled()
+    await userEvent.click(guardarBtn())
+    await asentar()
+    expect(http.put).toHaveBeenCalledTimes(1 + caminos[camino].puts)
+    expect(stock).toHaveBeenCalledTimes(caminos[camino].stock)
+    expect(inventory.recipesApi.update).toHaveBeenCalledTimes(caminos[camino].receta)
   })
 })
