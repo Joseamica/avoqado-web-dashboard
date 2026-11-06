@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { ArrowLeft, Loader2, Plus, User, X } from 'lucide-react'
 import { DateTime } from 'luxon'
-import { useEffect, useMemo, useState, type MutableRefObject } from 'react'
+import { useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react'
 import { useTranslation } from 'react-i18next'
 import { tableNumber } from '@/lib/tableName'
 import { useNavigate } from 'react-router-dom'
@@ -134,6 +134,8 @@ export function CreateReservationForm({
   const [showServiceForm, setShowServiceForm] = useState(false)
   const [newServiceType, setNewServiceType] = useState<ServiceProductType | null>(null)
   const [pendingOverCapacity, setPendingOverCapacity] = useState<CreateFormData | null>(null)
+  const showTables = venue?.type ? VENUE_TYPES_WITH_TABLES.has(venue.type) : false
+  const partySizeEdited = useRef(false)
 
   const {
     register,
@@ -148,7 +150,7 @@ export function CreateReservationForm({
       startTime: defaultStartTime || '',
       endTime: '',
       duration: 60,
-      partySize: 2,
+      partySize: showTables ? 2 : 1,
       productId: '',
       guestMode: 'new',
       guestName: '',
@@ -168,6 +170,13 @@ export function CreateReservationForm({
   const watchTableId = watch('tableId')
   const watchAssignedStaffId = watch('assignedStaffId')
   const watchStartTime = watch('startTime')
+
+  // D27: 2 personas es la costumbre de una MESA (negocio con mesas y sin servicio elegido); una cita de servicio es de 1.
+  // Lo que la persona escribió a mano manda.
+  const suggestedPartySize = showTables && !watchProductId ? 2 : 1
+  useEffect(() => {
+    if (!partySizeEdited.current) setValue('partySize', suggestedPartySize)
+  }, [suggestedPartySize, setValue])
 
   // Fetch APPOINTMENTS_SERVICE products for the service selector
   const { data: allProducts = [], isLoading: productsLoading } = useQuery({
@@ -323,7 +332,6 @@ export function CreateReservationForm({
 
   // When a slot is selected, update start/end time and available tables
   const [selectedSlot, setSelectedSlot] = useState<AvailableSlot | null>(null)
-  const showTables = venue?.type ? VENUE_TYPES_WITH_TABLES.has(venue.type) : false
   const requiresProductStaffMapping = staffAware && isAppointmentProduct
 
   const staffSelectionOptions = useMemo(() => {
@@ -684,7 +692,16 @@ export function CreateReservationForm({
             <div className="w-px h-4 bg-border" />
             <div className="flex items-center gap-2">
               <Label className="text-xs text-muted-foreground">{t('form.fields.partySize', { defaultValue: 'Personas' })}</Label>
-              <Input type="number" min={1} className="w-14 h-8 text-center text-xs" {...register('partySize')} />
+              <Input
+                type="number"
+                min={1}
+                className="w-14 h-8 text-center text-xs"
+                {...register('partySize', {
+                  onChange: () => {
+                    partySizeEdited.current = true
+                  },
+                })}
+              />
             </div>
             {watchStartTime && watch('endTime') && (
               <>
