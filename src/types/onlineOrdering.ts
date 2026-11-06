@@ -152,6 +152,8 @@ export interface Inbox {
 
 /** Un folio de «Nadie» (la cuenta con su pedido). Los campos de la tienda híbrida son opcionales para las formas viejas. */
 export interface FolioOrder extends InboxOrder {
+  /** Hora del pago (ISO); el servidor puede no mandarla. */
+  paidAt?: string | null
   channel?: string | null
 }
 

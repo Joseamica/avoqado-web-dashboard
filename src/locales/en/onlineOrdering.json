@@ -342,6 +342,7 @@
     "emptyToDeliver": "When a folio is paid at the register, it shows up here so you can mark it ready and handed over.",
     "loadFailed": "We couldn't load the folios. Check your connection and try again.",
     "retry": "Retry",
-    "loadMoreFailed": "We couldn't load more folios. Try again."
+    "loadMoreFailed": "We couldn't load more folios. Try again.",
+    "paidAt": "Paid at {{time}}"
   }
 }

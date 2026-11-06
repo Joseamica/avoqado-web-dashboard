@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 
@@ -6,7 +6,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useToast } from '@/hooks/use-toast'
-import { getToPay, onlineOrderingKeys } from '@/services/onlineOrdering.service'
+import { getSettings, getToPay, onlineOrderingKeys } from '@/services/onlineOrdering.service'
 import type { FolioOrder } from '@/types/onlineOrdering'
 import { Currency } from '@/utils/currency'
 import { useVenueDateTime } from '@/utils/datetime'
@@ -38,9 +38,22 @@ export function FolioSections({ venueId, canAnswer, canCancel, busy, hidden, onA
     refetchIntervalInBackground: false,
     retry: 1,
   })
-  // ponytail: lo traído con «Cargar más» no se relee en el sondeo (sólo se quitan los tocados); se renueva al recargar la pantalla.
+  // «Nadie» según los ajustes (misma llave que Configuración). Sin esa señal ni un to-pay con folios, no se enseña nada nuevo.
+  const settings = useQuery({
+    queryKey: onlineOrderingKeys.settings(venueId),
+    queryFn: () => getSettings(venueId),
+    enabled: !!venueId,
+    retry: false,
+  })
+  const nadie = settings.data?.requiresAcceptance === false
+  // Cada lectura nueva de la página 1 invalida lo traído con «Cargar más»: así no queda un folio ya cobrado o vencido congelado.
   const [extra, setExtra] = useState<Record<Section, Extra>>({ toPay: NO_EXTRA, toDeliver: NO_EXTRA })
   const [loadingMore, setLoadingMore] = useState<Section | null>(null)
+  const startedAt = useRef(0)
+  useEffect(() => {
+    startedAt.current = dataUpdatedAt
+    setExtra({ toPay: NO_EXTRA, toDeliver: NO_EXTRA })
+  }, [dataUpdatedAt])
   const [now, setNow] = useState(() => Date.now())
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 15_000)
@@ -48,6 +61,7 @@ export function FolioSections({ venueId, canAnswer, canCancel, busy, hidden, onA
   }, [])
 
   if (!data) {
+    if (!nadie) return null
     return isError ? (
       <Alert variant="destructive" data-testid="folio-error">
         <AlertDescription className="flex flex-wrap items-center justify-between gap-2">
@@ -63,15 +77,17 @@ export function FolioSections({ venueId, canAnswer, canCancel, busy, hidden, onA
       </div>
     )
   }
-  if (!data.showTile && data.counts.toPay + data.counts.toDeliver === 0) return null
+  if (!nadie && !data.showTile && data.counts.toPay + data.counts.toDeliver === 0) return null
 
   const nowServer = Date.parse(data.serverTime) + (Math.max(now, dataUpdatedAt) - dataUpdatedAt)
   const loadMore = async (section: Section) => {
     const cursor = extra[section].started ? extra[section].cursor : data.nextCursors[section]
     if (!cursor || loadingMore) return
     setLoadingMore(section)
+    const since = dataUpdatedAt
     try {
       const page = await getToPay(venueId, { section, cursor })
+      if (startedAt.current !== since) return // llegó una lectura nueva mientras tanto: esta página ya es vieja
       setExtra(e => ({
         ...e,
         [section]: { items: [...e[section].items, ...page[section]], cursor: page.nextCursors[section], started: true },
@@ -83,12 +99,20 @@ export function FolioSections({ venueId, canAnswer, canCancel, busy, hidden, onA
     }
   }
 
+  const build = (sec: Section) => {
+    const seen = new Set(data[sec].map(o => o.orderId))
+    return [...data[sec], ...extra[sec].items.filter(o => !seen.has(o.orderId))].filter(o => !hidden.has(o.orderId))
+  }
+  const toDeliverList = build('toDeliver')
+  // Un folio nunca sale en las dos secciones: si ya está por entregar, ya no está por pagar.
+  const inDeliver = new Set(toDeliverList.map(o => o.orderId))
+  const lists: Record<Section, FolioOrder[]> = { toPay: build('toPay').filter(o => !inDeliver.has(o.orderId)), toDeliver: toDeliverList }
+
   return (
     <div className="space-y-4" data-testid="folio-sections">
       {!data.requiresAcceptance && <p className="text-sm text-muted-foreground">{t('folio.note')}</p>}
       {(['toPay', 'toDeliver'] as const).map(section => {
-        const seen = new Set(data[section].map(o => o.orderId))
-        const list = [...data[section], ...extra[section].items.filter(o => !seen.has(o.orderId))].filter(o => !hidden.has(o.orderId))
+        const list = lists[section]
         const total = data.counts[section]
         const next = extra[section].started ? extra[section].cursor : data.nextCursors[section]
         return (
@@ -96,7 +120,9 @@ export function FolioSections({ venueId, canAnswer, canCancel, busy, hidden, onA
             <h2 className="text-base font-semibold">
               {t(`folio.sections.${section}`)} <span className="text-muted-foreground">({total})</span>
             </h2>
-            {list.length < total && <p className="text-xs text-muted-foreground">{t('inbox.sections.showing', { shown: list.length, total })}</p>}
+            {list.length < total && (
+              <p className="text-xs text-muted-foreground">{t('inbox.sections.showing', { shown: list.length, total })}</p>
+            )}
             {list.length === 0 ? (
               <p className="text-sm text-muted-foreground">{t(section === 'toPay' ? 'folio.emptyToPay' : 'folio.emptyToDeliver')}</p>
             ) : (
@@ -161,7 +187,10 @@ function FolioCard({ order, section, nowServer, stale, canAnswer, canCancel, bus
         </div>
       </div>
       <p className="text-sm text-muted-foreground">
-        {t('folio.orderedAt', { time: formatTime(order.createdAt) })} · {t('folio.products', { count: units })}
+        {section === 'toDeliver' && order.paidAt
+          ? t('folio.paidAt', { time: formatTime(order.paidAt) })
+          : t('folio.orderedAt', { time: formatTime(order.createdAt) })}{' '}
+        · {t('folio.products', { count: units })}
       </p>
       <ul className="space-y-0.5 text-sm">
         {order.items.map((item, i) => (

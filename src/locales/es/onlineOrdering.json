@@ -342,6 +342,7 @@
     "emptyToDeliver": "Cuando se cobre un folio en caja, aparece aquí para que lo marques listo y entregado.",
     "loadFailed": "No pudimos cargar los folios. Revisa tu conexión y vuelve a intentar.",
     "retry": "Reintentar",
-    "loadMoreFailed": "No pudimos cargar más folios. Vuelve a intentar."
+    "loadMoreFailed": "No pudimos cargar más folios. Vuelve a intentar.",
+    "paidAt": "Pagado a las {{time}}"
   }
 }

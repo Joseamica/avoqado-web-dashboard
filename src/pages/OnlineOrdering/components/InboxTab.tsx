@@ -130,6 +130,7 @@ export function InboxTab() {
     // onSuccess/onError DEVUELVEN el refresco: `isPending` lo cubre y los botones no se reactivan con la tarjeta vieja.
     onError: (err: unknown, a: Act) => {
       const outcome = actionOutcome(err, a.target)
+      if (a.orderId && (outcome === 'success' || outcome === 'gone')) setTouched(s => new Set(s).add(a.orderId!))
       if (outcome === 'success') return refresh()
       if (outcome === 'confirming' && a.orderId) setConfirmingSince(m => ({ ...m, [a.orderId!]: Date.now() }))
       const title =
@@ -248,9 +249,18 @@ export function InboxTab() {
           {t('inbox.sound.unlock')}
         </Button>
       )}
-      {soundSupported && !soundOn && pending > 0 && <p className="rounded-xl bg-muted/50 p-3 text-sm font-medium">{t('inbox.sound.nag')}</p>}
+      {soundSupported && !soundOn && pending > 0 && (
+        <p className="rounded-xl bg-muted/50 p-3 text-sm font-medium">{t('inbox.sound.nag')}</p>
+      )}
 
-      <FolioSections venueId={venueId} canAnswer={canAnswer} canCancel={canCancel} busy={action.isPending} hidden={touched} onAct={onFolioAct} />
+      <FolioSections
+        venueId={venueId}
+        canAnswer={canAnswer}
+        canCancel={canCancel}
+        busy={action.isPending}
+        hidden={touched}
+        onAct={onFolioAct}
+      />
 
       {SECTIONS.map(section => {
         // Los folios de «Nadie» ya están en «Por entregar»: no se repiten en «En preparación».

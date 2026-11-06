@@ -37,6 +37,7 @@ vi.mock('../lib/chime', () => ({
 
 const getInbox = vi.fn()
 const getToPay = vi.fn()
+const getSettings = vi.fn()
 const acceptOrder = vi.fn()
 const rejectOrder = vi.fn()
 const markReady = vi.fn()
@@ -49,6 +50,7 @@ vi.mock('@/services/onlineOrdering.service', async importOriginal => {
     ...actual,
     getInbox: (...a: unknown[]) => getInbox(...a),
     getToPay: (...a: unknown[]) => getToPay(...a),
+    getSettings: (...a: unknown[]) => getSettings(...a),
     acceptOrder: (...a: unknown[]) => acceptOrder(...a),
     rejectOrder: (...a: unknown[]) => rejectOrder(...a),
     markReady: (...a: unknown[]) => markReady(...a),
@@ -113,7 +115,11 @@ const folio = (over: Record<string, unknown> = {}) =>
     items: [{ name: 'Flautas', quantity: 2, note: null, modifiers: [] }],
     ...over,
   })
-const toPayRes = (toPay: ReturnType<typeof folio>[] = [], toDeliver: ReturnType<typeof folio>[] = [], over: Record<string, unknown> = {}) => ({
+const toPayRes = (
+  toPay: ReturnType<typeof folio>[] = [],
+  toDeliver: ReturnType<typeof folio>[] = [],
+  over: Record<string, unknown> = {},
+) => ({
   serverTime: '2026-10-17T18:00:00.000Z',
   enabled: true,
   requiresAcceptance: toPay.length + toDeliver.length === 0 ? true : false,
@@ -165,10 +171,25 @@ const settleMutations = () => act(async () => void (await new Promise(r => setTi
 
 describe('InboxTab', () => {
   beforeEach(() => {
-    for (const f of [getInbox, getToPay, acceptOrder, rejectOrder, markReady, markDelivered, cancelOrder, pauseOrdering, toast, unlock, play, mockStatus])
+    for (const f of [
+      getInbox,
+      getToPay,
+      getSettings,
+      acceptOrder,
+      rejectOrder,
+      markReady,
+      markDelivered,
+      cancelOrder,
+      pauseOrdering,
+      toast,
+      unlock,
+      play,
+      mockStatus,
+    ])
       f.mockReset()
     mockStatus.mockReturnValue(status())
     getToPay.mockResolvedValue(toPayRes())
+    getSettings.mockResolvedValue({ requiresAcceptance: false })
     unlock.mockResolvedValue(true)
     chime.state = 'running'
     for (const k of Object.keys(storage)) delete storage[k]
@@ -497,14 +518,17 @@ describe('InboxTab', () => {
   })
 
   // ── Ronda final · D4: un pedido cerrado sin cobro no dice «Cobrar al recoger» ──
-  it.each(['CANCELLED_BY_CUSTOMER', 'CANCELLED_BY_STAFF', 'REJECTED', 'EXPIRED'])('🔴 %s no dice «Cobrar al recoger»: dice «Sin cobro»', async st => {
-    getInbox.mockResolvedValue(inbox([order({ status: st, remaining: 95, total: 95, acceptDeadlineAt: null })]))
-    renderTab()
-    const card = await screen.findByTestId('order-o1')
-    expect(within(card).getByText('inbox.card.noCharge')).toBeInTheDocument()
-    expect(within(card).queryByText(/^inbox\.card\.payAtPickup\|/)).toBeNull()
-    expect(within(card).queryByText('inbox.card.paid')).toBeNull()
-  })
+  it.each(['CANCELLED_BY_CUSTOMER', 'CANCELLED_BY_STAFF', 'REJECTED', 'EXPIRED'])(
+    '🔴 %s no dice «Cobrar al recoger»: dice «Sin cobro»',
+    async st => {
+      getInbox.mockResolvedValue(inbox([order({ status: st, remaining: 95, total: 95, acceptDeadlineAt: null })]))
+      renderTab()
+      const card = await screen.findByTestId('order-o1')
+      expect(within(card).getByText('inbox.card.noCharge')).toBeInTheDocument()
+      expect(within(card).queryByText(/^inbox\.card\.payAtPickup\|/)).toBeNull()
+      expect(within(card).queryByText('inbox.card.paid')).toBeNull()
+    },
+  )
 
   it('un pedido entregado y pagado sigue diciendo «Pagado»', async () => {
     getInbox.mockResolvedValue(inbox([order({ status: 'COMPLETED', remaining: 0, acceptDeadlineAt: null })]))
@@ -581,20 +605,63 @@ describe('InboxTab', () => {
       card: { status: 'AUTHORIZED', amount: 80, capturedAmount: null, authorizedAt: '2026-10-17T17:55:00.000Z', capturedAt: null },
       ...over,
     })
-  const captured = { status: 'CAPTURED', amount: 80, capturedAmount: 80, authorizedAt: '2026-10-17T17:55:00.000Z', capturedAt: '2026-10-17T18:00:00.000Z' }
+  const captured = {
+    status: 'CAPTURED',
+    amount: 80,
+    capturedAmount: 80,
+    authorizedAt: '2026-10-17T17:55:00.000Z',
+    capturedAt: '2026-10-17T18:00:00.000Z',
+  }
   const closedCard = (status: string, charge: string) =>
     cardOrder({ status, cardStatus: null, card: { ...captured, status: charge, capturedAmount: null }, acceptDeadlineAt: null })
   const moneyLine = (card: HTMLElement) => within(card).getByText(/^inbox\.card\.(card|payAtPickup|paid|noCharge)/)
 
   it.each([
     ['por aceptar (tarjeta apartada)', cardOrder(), 'inbox.card.cardAuthorized'],
-    ['cobrándose', cardOrder({ cardStatus: 'CONFIRMING', card: { ...captured, status: 'CAPTURING', capturedAmount: null } }), 'inbox.card.cardConfirming'],
-    ['aceptado y cobrado', cardOrder({ status: 'ACCEPTED', cardStatus: null, card: captured, paymentStatus: 'PAID', remaining: 0 }), 'inbox.card.cardPaid'],
-    ['entregado (remaining 0)', cardOrder({ status: 'COMPLETED', cardStatus: null, card: captured, paymentStatus: 'COMPLETED', remaining: 0, acceptDeadlineAt: null }), 'inbox.card.cardPaid'],
+    [
+      'cobrándose',
+      cardOrder({ cardStatus: 'CONFIRMING', card: { ...captured, status: 'CAPTURING', capturedAmount: null } }),
+      'inbox.card.cardConfirming',
+    ],
+    [
+      'aceptado y cobrado',
+      cardOrder({ status: 'ACCEPTED', cardStatus: null, card: captured, paymentStatus: 'PAID', remaining: 0 }),
+      'inbox.card.cardPaid',
+    ],
+    [
+      'entregado (remaining 0)',
+      cardOrder({
+        status: 'COMPLETED',
+        cardStatus: null,
+        card: captured,
+        paymentStatus: 'COMPLETED',
+        remaining: 0,
+        acceptDeadlineAt: null,
+      }),
+      'inbox.card.cardPaid',
+    ],
     // Codex iOS r1 #4: la cuenta se pagó por otro camino y la tarjeta se soltó: «Pagado», sin atribuírselo a la tarjeta.
-    ['pagado por otro camino, tarjeta liberada', cardOrder({ status: 'ACCEPTED', cardStatus: null, card: { ...captured, status: 'RELEASED', capturedAmount: null }, paymentStatus: 'PAID', remaining: 0 }), 'inbox.card.paid'],
-    ['pagado sin cargo conocido', cardOrder({ status: 'ACCEPTED', cardStatus: null, card: null, paymentStatus: 'PAID', remaining: 0 }), 'inbox.card.paid'],
-    ['rechazado con la tarjeta COBRADA', cardOrder({ status: 'REJECTED', cardStatus: null, card: captured, acceptDeadlineAt: null }), 'inbox.card.cardCapturedRefund'],
+    [
+      'pagado por otro camino, tarjeta liberada',
+      cardOrder({
+        status: 'ACCEPTED',
+        cardStatus: null,
+        card: { ...captured, status: 'RELEASED', capturedAmount: null },
+        paymentStatus: 'PAID',
+        remaining: 0,
+      }),
+      'inbox.card.paid',
+    ],
+    [
+      'pagado sin cargo conocido',
+      cardOrder({ status: 'ACCEPTED', cardStatus: null, card: null, paymentStatus: 'PAID', remaining: 0 }),
+      'inbox.card.paid',
+    ],
+    [
+      'rechazado con la tarjeta COBRADA',
+      cardOrder({ status: 'REJECTED', cardStatus: null, card: captured, acceptDeadlineAt: null }),
+      'inbox.card.cardCapturedRefund',
+    ],
     ['vencido con la tarjeta liberada', closedCard('EXPIRED', 'RELEASED'), 'inbox.card.cardNotCharged'],
     ['rechazado con el cargo abandonado', closedCard('REJECTED', 'ABANDONED'), 'inbox.card.cardNotCharged'],
     ['rechazado porque no se pudo cobrar', closedCard('REJECTED', 'CAPTURE_FAILED'), 'inbox.card.cardNotCharged'],
@@ -602,7 +669,11 @@ describe('InboxTab', () => {
     ['cancelado con la tarjeta liberándose', closedCard('CANCELLED_BY_CUSTOMER', 'RELEASING'), 'inbox.card.cardReleasing'],
     ['vencido con la tarjeta todavía apartada', closedCard('EXPIRED', 'AUTHORIZED'), 'inbox.card.cardReleasing'],
     ['cancelado con el cobro en curso', closedCard('CANCELLED_BY_STAFF', 'CAPTURING'), 'inbox.card.cardReleasing'],
-    ['cerrado sin cargo conocido', cardOrder({ status: 'EXPIRED', cardStatus: null, card: null, acceptDeadlineAt: null }), 'inbox.card.cardReleasing'],
+    [
+      'cerrado sin cargo conocido',
+      cardOrder({ status: 'EXPIRED', cardStatus: null, card: null, acceptDeadlineAt: null }),
+      'inbox.card.cardReleasing',
+    ],
   ])('🔴 tarjeta en línea %s ⇒ su texto de dinero, nunca «Cobrar al recoger»', async (_name, o, text) => {
     getInbox.mockResolvedValue(inbox([o]))
     renderTab()
@@ -643,7 +714,9 @@ describe('InboxTab', () => {
 
   it('🔴 409 ONLINE_ORDER_CONFIRMING_PAYMENT al aceptar ⇒ aviso NEUTRO con el texto del servidor y refresca la bandeja', async () => {
     getInbox.mockResolvedValue(inbox([cardOrder()]))
-    acceptOrder.mockRejectedValue(http(409, { message: 'Estamos confirmando el pago con la tarjeta', code: 'ONLINE_ORDER_CONFIRMING_PAYMENT' }))
+    acceptOrder.mockRejectedValue(
+      http(409, { message: 'Estamos confirmando el pago con la tarjeta', code: 'ONLINE_ORDER_CONFIRMING_PAYMENT' }),
+    )
     renderTab()
     await userEvent.click(await screen.findByRole('button', { name: 'inbox.actions.accept' }))
     await userEvent.click(await screen.findByRole('button', { name: 'inbox.accept.minutes|15' }))
@@ -656,7 +729,8 @@ describe('InboxTab', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'inbox.actions.accept' }))
     await userEvent.click(await screen.findByRole('button', { name: 'inbox.accept.minutes|15' }))
   }
-  const confirmingError = () => http(409, { message: 'Estamos confirmando el pago con la tarjeta', code: 'ONLINE_ORDER_CONFIRMING_PAYMENT' })
+  const confirmingError = () =>
+    http(409, { message: 'Estamos confirmando el pago con la tarjeta', code: 'ONLINE_ORDER_CONFIRMING_PAYMENT' })
 
   it('🔴 tras el 409 CONFIRMING, si la relectura FALLA, «Aceptar» sigue apagado aunque la tarjeta vieja diga «apartada»', async () => {
     getInbox.mockResolvedValueOnce(inbox([cardOrder()]))
@@ -739,6 +813,7 @@ describe('InboxTab · folios de «Nadie» (Por pagar / Por entregar)', () => {
     mockStatus.mockReturnValue(status())
     getInbox.mockResolvedValue(inbox([]))
     getToPay.mockResolvedValue(toPayRes())
+    getSettings.mockResolvedValue({ requiresAcceptance: false })
   })
 
   it('«Por pagar» lista el folio con «Vence en N min» y «Falta $X», sin Aceptar ni Cobrar', async () => {
@@ -802,7 +877,9 @@ describe('InboxTab · folios de «Nadie» (Por pagar / Por entregar)', () => {
   })
 
   it('«Por entregar» lista folios pagados con «Listo» y «Entregado»; «Entregado» avisa y el folio sale', async () => {
-    getToPay.mockResolvedValueOnce(toPayRes([], [folio({ status: 'ACCEPTED', paymentStatus: 'PAID', remaining: 0 })])).mockResolvedValue(toPayRes())
+    getToPay
+      .mockResolvedValueOnce(toPayRes([], [folio({ status: 'ACCEPTED', paymentStatus: 'PAID', remaining: 0 })]))
+      .mockResolvedValue(toPayRes())
     markDelivered.mockResolvedValue({ status: 'COMPLETED' })
     renderTab()
     const card = await screen.findByTestId('folio-f1')
@@ -843,8 +920,18 @@ describe('InboxTab · folios de «Nadie» (Por pagar / Por entregar)', () => {
   })
 
   it('con 101 por entregar, «Cargar más» pide nextCursors.toDeliver con section=toDeliver y deja marcar el 101', async () => {
-    const first = Array.from({ length: 100 }, (_, i) => folio({ orderId: `d${i}`, onlineOrderId: `do${i}`, orderNumber: `W${i}`, status: 'ACCEPTED', paymentStatus: 'PAID', remaining: 0 }))
-    const last = folio({ orderId: 'd100', onlineOrderId: 'do100', orderNumber: 'W100', customerName: 'Zoe', status: 'ACCEPTED', paymentStatus: 'PAID', remaining: 0 })
+    const first = Array.from({ length: 100 }, (_, i) =>
+      folio({ orderId: `d${i}`, onlineOrderId: `do${i}`, orderNumber: `W${i}`, status: 'ACCEPTED', paymentStatus: 'PAID', remaining: 0 }),
+    )
+    const last = folio({
+      orderId: 'd100',
+      onlineOrderId: 'do100',
+      orderNumber: 'W100',
+      customerName: 'Zoe',
+      status: 'ACCEPTED',
+      paymentStatus: 'PAID',
+      remaining: 0,
+    })
     getToPay
       .mockResolvedValueOnce(toPayRes([], first, { counts: { toPay: 0, toDeliver: 101 }, nextCursors: { toPay: null, toDeliver: 'CUR1' } }))
       .mockResolvedValueOnce(toPayRes([], [last], { counts: { toPay: 0, toDeliver: 101 }, nextCursors: { toPay: null, toDeliver: null } }))
@@ -881,7 +968,10 @@ describe('InboxTab · folios de «Nadie» (Por pagar / Por entregar)', () => {
   })
 
   it('cargando: esqueleto; error: «Reintentar» vuelve a pedir', async () => {
-    getToPay.mockRejectedValueOnce(http(500, {})).mockRejectedValueOnce(http(500, {})).mockResolvedValue(toPayRes([folio()]))
+    getToPay
+      .mockRejectedValueOnce(http(500, {}))
+      .mockRejectedValueOnce(http(500, {}))
+      .mockResolvedValue(toPayRes([folio()]))
     renderTab()
     expect(await screen.findByText('folio.loadFailed', {}, { timeout: 4000 })).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'folio.retry' }))
@@ -895,6 +985,52 @@ describe('InboxTab · folios de «Nadie» (Por pagar / Por entregar)', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'inbox.actions.ready' }))
     await waitFor(() => expect(toast).toHaveBeenCalledWith({ title: 'inbox.outcome.gone' }))
     await waitFor(() => expect(getToPay.mock.calls.length).toBeGreaterThan(1))
+  })
+
+  it('«Mi equipo» con el endpoint fallando: no se ve esqueleto ni error de folios', async () => {
+    getSettings.mockResolvedValue({ requiresAcceptance: true })
+    getToPay.mockRejectedValue(http(403, {}))
+    renderTab()
+    await screen.findByTestId('online-inbox')
+    await new Promise(r => setTimeout(r, 1500))
+    expect(screen.queryByTestId('folio-error')).toBeNull()
+    expect(screen.queryByTestId('folio-loading')).toBeNull()
+    expect(screen.queryByText('folio.loadFailed')).toBeNull()
+  })
+
+  it('lo traído con «Cargar más» que cambió: ORDER_STATE_CHANGED lo quita y no repite el aviso', async () => {
+    const mk = (i: number) =>
+      folio({ orderId: `d${i}`, onlineOrderId: `do${i}`, orderNumber: `W${i}`, status: 'ACCEPTED', paymentStatus: 'PAID', remaining: 0 })
+    getToPay
+      .mockResolvedValueOnce(toPayRes([], [mk(0)], { counts: { toPay: 0, toDeliver: 2 }, nextCursors: { toPay: null, toDeliver: 'C' } }))
+      .mockResolvedValueOnce(toPayRes([], [mk(1)], { counts: { toPay: 0, toDeliver: 2 } }))
+      .mockResolvedValue(toPayRes([], [mk(0)], { counts: { toPay: 0, toDeliver: 2 }, nextCursors: { toPay: null, toDeliver: 'C' } }))
+    markReady.mockRejectedValue(http(409, { code: 'ORDER_STATE_CHANGED', status: 'COMPLETED' }))
+    renderTab()
+    await userEvent.click(await screen.findByRole('button', { name: 'folio.loadMore' }))
+    const card = await screen.findByTestId('folio-d1')
+    await userEvent.click(within(card).getByRole('button', { name: 'inbox.actions.ready' }))
+    await waitFor(() => expect(screen.queryByTestId('folio-d1')).toBeNull())
+    expect(toast).toHaveBeenCalledTimes(1)
+  })
+
+  it('un folio presente en las dos secciones sólo sale en «Por entregar»', async () => {
+    const f = folio({ status: 'ACCEPTED', paymentStatus: 'PAID', remaining: 0 })
+    getToPay.mockResolvedValue(toPayRes([folio()], [f], { counts: { toPay: 1, toDeliver: 1 } }))
+    renderTab()
+    await screen.findByTestId('folio-f1')
+    expect(screen.getAllByTestId('folio-f1')).toHaveLength(1)
+    expect(screen.getByRole('button', { name: 'inbox.actions.delivered' })).toBeInTheDocument()
+  })
+
+  it('«Por entregar» con paidAt dice «Pagado a las HH:MM»; sin paidAt, «Pidió»', async () => {
+    const base = { status: 'ACCEPTED', paymentStatus: 'PAID', remaining: 0 }
+    getToPay.mockResolvedValue(
+      toPayRes([], [folio({ ...base, paidAt: '2026-10-17T18:05:00.000Z' }), folio({ ...base, orderId: 'f2', orderNumber: 'W2' })]),
+    )
+    renderTab()
+    expect(await screen.findByText(/^folio\.paidAt\|T\(2026-10-17T18:05:00.000Z\)/)).toBeInTheDocument()
+    expect(within(screen.getByTestId('folio-f2')).getByText(/^folio\.orderedAt\|/)).toBeInTheDocument()
   })
 
   it('la nota de «Nadie» sale sólo con folios de «Nadie»', async () => {
