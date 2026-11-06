@@ -187,7 +187,11 @@ export interface CreateDiscountRequest {
 	active?: boolean
 }
 
-export type UpdateDiscountRequest = Partial<CreateDiscountRequest>
+// null en un límite de usos = sin límite (D14: vaciar el campo al editar).
+export type UpdateDiscountRequest = Omit<Partial<CreateDiscountRequest>, 'maxTotalUses' | 'maxUsesPerCustomer'> & {
+	maxTotalUses?: number | null
+	maxUsesPerCustomer?: number | null
+}
 
 export interface CreateCouponRequest {
 	discountId: string
@@ -200,7 +204,10 @@ export interface CreateCouponRequest {
 	active?: boolean
 }
 
-export type UpdateCouponRequest = Partial<Omit<CreateCouponRequest, 'discountId'>>
+export type UpdateCouponRequest = Omit<Partial<Omit<CreateCouponRequest, 'discountId'>>, 'maxUses' | 'maxUsesPerCustomer'> & {
+	maxUses?: number | null
+	maxUsesPerCustomer?: number | null
+}
 
 export interface BulkGenerateCouponsRequest {
 	discountId: string
