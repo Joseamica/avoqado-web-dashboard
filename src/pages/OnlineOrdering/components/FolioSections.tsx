@@ -107,7 +107,7 @@ export function FolioSections({ venueId, canAnswer, canCancel, busy, hidden, inb
         const list = lists[section]
         // Un folio quitado de «Por pagar» por estar ya en «Por entregar» no debe contradecir el número ni el «Mostrando».
         const removed = section === 'toPay' ? build('toPay').length - list.length : 0
-        const total = Math.max(data.counts[section] - removed, list.length)
+        const total = data.counts[section] - removed
         const { next, loading, loadMore } = more[section]
         return (
           <section key={section} className="space-y-2" data-tour={`online-inbox-${section}`}>

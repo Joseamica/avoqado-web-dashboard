@@ -1160,6 +1160,24 @@ describe('InboxTab · folios de «Nadie» (Por pagar / Por entregar)', () => {
     expect(cursorCalls).toBe(3)
   })
 
+  it('la página 2 ya no existe (otra caja entregó y todo cabe en la página 1): los extras se limpian y el conteo es el del servidor', async () => {
+    getToPay
+      .mockResolvedValueOnce(page1())
+      .mockResolvedValueOnce(toPayRes([], [mkD(1)], { counts: { toPay: 0, toDeliver: 3 } }))
+      // Otra caja entregó d1 y d5: queda sólo d0, sin cursor.
+      .mockImplementation(async () =>
+        toPayRes([], [mkD(0)], { counts: { toPay: 0, toDeliver: 1 }, nextCursors: { toPay: null, toDeliver: null } }),
+      )
+    markReady.mockRejectedValue(http(500, {}))
+    renderTab()
+    await userEvent.click(await screen.findByRole('button', { name: 'folio.loadMore' }))
+    await screen.findByTestId('folio-d1')
+    await userEvent.click(within(screen.getByTestId('folio-d0')).getByRole('button', { name: 'inbox.actions.ready' }))
+    await waitFor(() => expect(screen.queryByTestId('folio-d1')).toBeNull())
+    expect(screen.getByRole('heading', { name: /folio\.sections\.toDeliver/ })).toHaveTextContent('(1)')
+    expect(screen.queryByRole('button', { name: 'folio.loadMore' })).toBeNull()
+  })
+
   it('un folio que cambió de página entre lecturas no sale dos veces', async () => {
     getToPay.mockImplementation(async (_v: string, p?: { cursor?: string }) => {
       if (!p?.cursor) return page1()

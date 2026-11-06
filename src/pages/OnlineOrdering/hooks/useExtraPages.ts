@@ -45,6 +45,7 @@ export function useExtraPages<T>(
           again.current = false
           const want = pages.current
           let cursor = first.current
+          let reached = 0
           for (let i = 0; cursor && i < want; i++) {
             const p = await fetchRef.current(cursor)
             const idx = i
@@ -54,7 +55,11 @@ export function useExtraPages<T>(
               return { pages: pg, next: p.next === null || idx === s.pages.length - 1 ? p.next : s.next }
             })
             cursor = p.next
+            reached++
           }
+          // Las páginas que la relectura ya no alcanza (sin cursor: otra caja las vació) se sueltan; nunca quedan tarjetas viejas.
+          if (reached < want) setSt(s => ({ pages: s.pages.slice(0, reached), next: null }))
+          // ponytail: si cada recorrido tarda más que el sondeo, las relecturas se encadenan sin pausa (una sola en vuelo, acotada a lo cargado); se afloja con un respiro si llega a pesar.
         } while (again.current)
       } catch {
         // Una relectura fallida deja lo que ya se veía; el siguiente sondeo lo vuelve a intentar.
