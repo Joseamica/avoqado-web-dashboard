@@ -229,13 +229,15 @@ export default function BulkGenerateDialog({ venueId, discounts, onSuccess }: Bu
 					<FormField
 						control={form.control}
 						name="maxUsesPerCode"
+						// D14: el SERVIDOR exige 1 o más; vacío = ilimitado (antes dejaba escribir 0).
+						rules={{ min: { value: 1, message: t('discounts.form.validation.usesMin') } }}
 						render={({ field }) => (
 							<FormItem>
 								<FormLabel>{t('coupons.bulkGenerate.fields.maxUsesPerCode')}</FormLabel>
 								<FormControl>
 									<Input
 										type="number"
-										min={0}
+										min={1}
 										placeholder={t('coupons.form.placeholders.maxUses')}
 										{...field}
 										value={field.value ?? ''}
@@ -250,13 +252,15 @@ export default function BulkGenerateDialog({ venueId, discounts, onSuccess }: Bu
 					<FormField
 						control={form.control}
 						name="maxUsesPerCustomer"
+						// D14: el SERVIDOR exige 1 o más; vacío = ilimitado (antes dejaba escribir 0).
+						rules={{ min: { value: 1, message: t('discounts.form.validation.usesMin') } }}
 						render={({ field }) => (
 							<FormItem>
 								<FormLabel>{t('coupons.bulkGenerate.fields.maxUsesPerCustomer')}</FormLabel>
 								<FormControl>
 									<Input
 										type="number"
-										min={0}
+										min={1}
 										placeholder={t('coupons.form.placeholders.maxUsesPerCustomer')}
 										{...field}
 										value={field.value ?? ''}

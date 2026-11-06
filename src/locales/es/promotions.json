@@ -141,7 +141,8 @@
         "scopeRequired": "El alcance del descuento es requerido",
         "bogoRequired": "La configuración BOGO es requerida para el alcance de cantidad",
         "timeRangeInvalid": "La hora de fin debe ser posterior a la hora de inicio",
-        "categoriesRequired": "Elige al menos una categoría para un descuento por categorías"
+        "categoriesRequired": "Elige al menos una categoría para un descuento por categorías",
+        "usesMin": "Pon 1 o más, o déjalo vacío para que sea ilimitado"
       },
       "types": {
         "PERCENTAGE": "Porcentaje",

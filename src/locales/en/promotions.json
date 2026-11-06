@@ -141,7 +141,8 @@
         "scopeRequired": "Discount scope is required",
         "bogoRequired": "BOGO configuration is required for quantity scope",
         "timeRangeInvalid": "End time must be after start time",
-        "categoriesRequired": "Choose at least one category for a category discount"
+        "categoriesRequired": "Choose at least one category for a category discount",
+        "usesMin": "Enter 1 or more, or leave it empty for unlimited"
       },
       "types": {
         "PERCENTAGE": "Percentage",
