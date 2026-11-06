@@ -22,6 +22,12 @@ export interface OnlineOrderingSettings {
   pausedUntil: string | null
   hours: OperatingHours | null
   lastInboxPollAt: string | null
+  /** Tienda híbrida: `false` = «Nadie» confirma (la clienta paga en caja). Opcional: un servidor viejo no lo manda (= «Mi equipo»). */
+  requiresAcceptance?: boolean
+  /** Último latido de un aparato que cobra folios (la terminal o el POS al abrir «Por pagar»). */
+  lastToPayPollAt?: string | null
+  /** `false` = para este giro conviene «Nadie». Sólo una sugerencia: el servidor nunca elige solo (R37). */
+  suggestedRequiresAcceptance?: boolean
   store: StoreState
   requirements: Record<StoreRequirement, boolean>
   /** Fase 2: si la tarjeta puede cobrar de verdad (Stripe del negocio). Opcional: un servidor viejo no lo manda. */
@@ -40,7 +46,7 @@ export type OnlineOrderingSettingsSaved = Omit<OnlineOrderingSettings, 'store' |
 export type OnlineOrderingSettingsInput = Pick<
   OnlineOrderingSettings,
   'enabled' | 'minOrderAmount' | 'defaultPrepMinutes' | 'acceptsPayAtPickup' | 'acceptsCardOnline' | 'manualPause' | 'pausedUntil' | 'hours'
->
+> & { requiresAcceptance: boolean }
 
 /** 400 del PUT /settings cuando falta algo para abrir la tienda. */
 export interface StoreRequirementsMissingBody {
@@ -137,6 +143,26 @@ export interface Inbox {
   orders: InboxOrder[]
   truncated: boolean
   nextCursor: string | null
+  store: (StoreState & { status: StoreStatus }) | null
+}
+
+/** Un folio de «Nadie» (la cuenta con su pedido). Los campos de la tienda híbrida son opcionales para las formas viejas. */
+export interface FolioOrder extends InboxOrder {
+  requiresAcceptance?: boolean
+  channel?: string | null
+}
+
+/** `GET …/online-ordering/orders/to-pay` (sin latido: el panel no cuenta como aparato que cobra). Dinero en PESOS. */
+export interface ToPayResponse {
+  serverTime: string
+  enabled: boolean
+  requiresAcceptance: boolean
+  showTile: boolean
+  pollSeconds: number
+  counts: { toPay: number; toDeliver: number }
+  toPay: FolioOrder[]
+  toDeliver: FolioOrder[]
+  nextCursors: { toPay: string | null; toDeliver: string | null }
   store: (StoreState & { status: StoreStatus }) | null
 }
 

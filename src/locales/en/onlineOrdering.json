@@ -104,6 +104,46 @@
     "minOrderErrors": {
       "range": "Minimum order must be between $0 and $100,000",
       "decimals": "Use at most 2 decimals"
+    },
+    "unsaved": "Unsaved changes",
+    "confirm": {
+      "title": "Who confirms orders?",
+      "team": {
+        "label": "My team",
+        "help": "Someone accepts each order in the Inbox before it is prepared. It can be paid at the end.",
+        "path": "Orders → You accept → Prepared → Pays"
+      },
+      "noOne": {
+        "label": "No one",
+        "help": "The customer orders and pays at the register; once paid, it is prepared. If they do not pay within 30 min, it cancels itself. The Inbox does not need to be open.",
+        "path": "Orders → Pays at the register → Prepared"
+      },
+      "suggested": "Suggested for your business type",
+      "noOneNote": "With \"No one\", the customer pays before it is prepared. If your customers order and pay at the end, choose \"My team\".",
+      "checklistTitle": "To receive orders with “No one”",
+      "allWeek": "Monday to Sunday",
+      "hoursOk": "Ordering hours: {{days}}, {{open}}–{{close}}",
+      "hoursCustom": "Ordering hours: the ones you set below, in “Hours”",
+      "hoursMissing": "Set your hours: with \"No one\", unpaid orders are cancelled at closing",
+      "hoursLink": "Go to Hours",
+      "deviceOk": "A device that takes payment for order numbers connected {{minutes}} min ago",
+      "deviceOkHours": "A device that takes payment for order numbers connected {{hours}} h ago",
+      "deviceOkDays": "A device that takes payment for order numbers connected {{days}} days ago",
+      "deviceMissing": "No device can take payment for order numbers yet: update the terminal or the POS",
+      "deviceWhatToDo": "What to do: open the terminal or the POS, already updated, with the cash register open. Once it connects, this will say “A device that takes payment for order numbers connected N min ago”. Meanwhile, you can save “No one” with the store turned off.",
+      "enableNoDevice": "A device that takes payment for order numbers is missing.",
+      "payNoOne": "With \"No one\", payment is at the register.",
+      "cardNoOne": "With \"No one\", payment is at the register. To charge online, choose \"My team\".",
+      "toPayNotice": {
+        "title_one": "You have {{count}} order awaiting payment",
+        "title_other": "You have {{count}} orders awaiting payment",
+        "body": "They stay in “Orders to pay” on the terminal and the POS until they are paid or expire. New orders will be accepted by your team in the Inbox."
+      },
+      "errors": {
+        "NO_FOLIO_DEVICE": "No device can take payment for order numbers yet: update the terminal or the POS, open it with the cash register open and try again.",
+        "HOURS_REQUIRED": "Set your hours: with \"No one\", unpaid orders are cancelled at closing.",
+        "PAY_AT_PICKUP_REQUIRED": "With \"No one\", payment is at the register, so “Pay at pickup” must stay on."
+      }
     }
   },
   "menu": {

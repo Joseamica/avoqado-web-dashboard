@@ -104,6 +104,46 @@
     "minOrderErrors": {
       "range": "El pedido mínimo va de $0 a $100,000",
       "decimals": "Usa máximo 2 decimales"
+    },
+    "unsaved": "Cambios sin guardar",
+    "confirm": {
+      "title": "¿Quién confirma los pedidos?",
+      "team": {
+        "label": "Mi equipo",
+        "help": "Alguien acepta cada pedido en la Bandeja antes de prepararlo. Se puede cobrar al final.",
+        "path": "Pide → Lo aceptas → Se prepara → Paga"
+      },
+      "noOne": {
+        "label": "Nadie",
+        "help": "El cliente pide y paga en caja; al pagar, se prepara. Si no paga en 30 min, se cancela solo. No hace falta tener la Bandeja abierta.",
+        "path": "Pide → Paga en caja → Se prepara"
+      },
+      "suggested": "Sugerido para tu giro",
+      "noOneNote": "Con \"Nadie\", la clienta paga antes de que se prepare. Si tus clientes piden y pagan al final, elige \"Mi equipo\".",
+      "checklistTitle": "Para recibir pedidos con «Nadie»",
+      "allWeek": "lunes a domingo",
+      "hoursOk": "Horario de pedidos: {{days}}, {{open}}–{{close}}",
+      "hoursCustom": "Horario de pedidos: el que pusiste abajo, en «Horario»",
+      "hoursMissing": "Pon tu horario: con \"Nadie\", los folios se cancelan al cierre",
+      "hoursLink": "Ir a Horario",
+      "deviceOk": "Un aparato que cobra folios se conectó hace {{minutes}} min",
+      "deviceOkHours": "Un aparato que cobra folios se conectó hace {{hours}} h",
+      "deviceOkDays": "Un aparato que cobra folios se conectó hace {{days}} días",
+      "deviceMissing": "Ningún aparato puede cobrar folios todavía: actualiza la terminal o el POS",
+      "deviceWhatToDo": "Qué hacer: abre la terminal o el POS, ya actualizados, con la caja abierta. Cuando se conecte, aquí dirá «Un aparato que cobra folios se conectó hace N min». Mientras, puedes guardar «Nadie» con la tienda apagada.",
+      "enableNoDevice": "Falta un aparato que cobre folios.",
+      "payNoOne": "Con \"Nadie\" se paga en caja.",
+      "cardNoOne": "Con \"Nadie\" se paga en caja. Para cobrar en línea elige \"Mi equipo\".",
+      "toPayNotice": {
+        "title_one": "Tienes {{count}} folio por pagar",
+        "title_other": "Tienes {{count}} folios por pagar",
+        "body": "Siguen en «Pedidos por pagar» de la terminal y del POS hasta que se cobren o venzan. Los pedidos nuevos los acepta tu equipo en la Bandeja."
+      },
+      "errors": {
+        "NO_FOLIO_DEVICE": "Ningún aparato puede cobrar folios todavía: actualiza la terminal o el POS, ábrelo con la caja abierta y vuelve a intentar.",
+        "HOURS_REQUIRED": "Pon tu horario: con \"Nadie\", los folios se cancelan al cierre.",
+        "PAY_AT_PICKUP_REQUIRED": "Con \"Nadie\" se paga en caja, así que «Pagar al recoger» debe quedar prendido."
+      }
     }
   },
   "menu": {

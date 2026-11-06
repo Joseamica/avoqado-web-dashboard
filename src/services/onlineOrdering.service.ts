@@ -19,6 +19,7 @@ import type {
   OnlineOrderingSettingsSaved,
   PauseMinutes,
   RejectReason,
+  ToPayResponse,
 } from '@/types/onlineOrdering'
 
 const base = (venueId: string) => `/api/v1/dashboard/venues/${venueId}/online-ordering`
@@ -27,6 +28,7 @@ export const onlineOrderingKeys = {
   settings: (v: string) => ['online-ordering', v, 'settings'] as const,
   categories: (v: string) => ['online-ordering', v, 'menu', 'categories'] as const,
   products: (v: string, q: object) => ['online-ordering', v, 'menu', 'products', q] as const,
+  toPay: (v: string) => ['online-ordering', v, 'to-pay'] as const,
   inbox: (v: string) => ['online-ordering', v, 'inbox'] as const,
   order: (v: string, orderId: string) => ['online-ordering', v, 'order', orderId] as const,
   cardRefunds: (v: string, orderId: string) => ['online-ordering', v, 'order', orderId, 'card-refunds'] as const,
@@ -61,6 +63,10 @@ export const getInbox = async (venueId: string, opts: { tray: boolean }): Promis
       ...(opts.tray ? { headers: { 'x-online-orders-tray': '1' } } : {}),
     })
   ).data.data
+
+/** Folios de «Nadie»: por pagar y por entregar. Sin cabecera de latido a propósito. `section`+`cursor` piden la siguiente página. */
+export const getToPay = async (venueId: string, params?: { section?: 'toPay' | 'toDeliver'; cursor?: string }): Promise<ToPayResponse> =>
+  (await api.get(`${base(venueId)}/orders/to-pay`, { params })).data.data
 
 const act = async (venueId: string, orderId: string, action: string, body: object = {}): Promise<ActionResult> =>
   (await api.post(`${base(venueId)}/orders/${orderId}/${action}`, body)).data.data
