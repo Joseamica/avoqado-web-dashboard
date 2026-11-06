@@ -983,13 +983,9 @@ export default function ReservationSettings() {
                   <div className="flex items-start gap-3 p-4 text-sm">
                     <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
                     <div className="flex-1 space-y-2">
-                      <p className="text-muted-foreground">
-                        Para cobrar depósitos o prepagos necesitas{' '}
-                        <strong>dar de alta un proveedor de e-commerce (Stripe / Mercado Pago)</strong>. Sin él solo puedes dejarlo en{' '}
-                        <strong>&quot;Sin depósito&quot;</strong>: las reservaciones se confirman y el cliente paga al llegar al local.
-                      </p>
+                      <p className="text-muted-foreground">{t('settings.onlineCharge.missingDeposits')}</p>
                       <Button asChild size="sm" variant="outline" className="h-8">
-                        <Link to={`${fullBasePath}/settings/integrations`}>Conectar cobros en línea</Link>
+                        <Link to={`${fullBasePath}/settings/integrations`}>{t('settings.onlineCharge.connect')}</Link>
                       </Button>
                     </div>
                   </div>
@@ -1044,14 +1040,12 @@ export default function ReservationSettings() {
                 <div className="flex items-start gap-3 rounded-md border border-emerald-500/40 bg-emerald-50 p-3 text-sm dark:border-emerald-500/30 dark:bg-emerald-950/40">
                   <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
                   <div className="flex flex-1 flex-wrap items-center justify-between gap-2">
-                    <p className="text-emerald-900 dark:text-emerald-100">
-                      Los cobros en línea están activos. Los prepagos de tus reservaciones se cobrarán en línea a tu cuenta.
-                    </p>
+                    <p className="text-emerald-900 dark:text-emerald-100">{t('settings.onlineCharge.active')}</p>
                     <Link
                       to={`${fullBasePath}/settings/integrations`}
                       className="font-medium text-emerald-700 underline-offset-4 hover:underline dark:text-emerald-300"
                     >
-                      Administrar
+                      {t('settings.onlineCharge.manage')}
                     </Link>
                   </div>
                 </div>
@@ -1059,12 +1053,9 @@ export default function ReservationSettings() {
                 <div className="flex items-start gap-3 rounded-md border border-amber-500/40 bg-amber-50 p-3 text-sm dark:border-amber-500/30 dark:bg-amber-950/40">
                   <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
                   <div className="flex-1 space-y-2">
-                    <p className="text-amber-900 dark:text-amber-100">
-                      Para cobrar prepagos en línea necesitas dar de alta un proveedor de e-commerce (Stripe / Mercado Pago). Sin él, las
-                      reservaciones se confirman pero el cliente paga al llegar al local.
-                    </p>
+                    <p className="text-amber-900 dark:text-amber-100">{t('settings.onlineCharge.missingUpfront')}</p>
                     <Button asChild size="sm" variant="outline" className="h-8">
-                      <Link to={`${fullBasePath}/settings/integrations`}>Conectar cobros en línea</Link>
+                      <Link to={`${fullBasePath}/settings/integrations`}>{t('settings.onlineCharge.connect')}</Link>
                     </Button>
                   </div>
                 </div>

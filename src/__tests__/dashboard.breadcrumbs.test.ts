@@ -73,7 +73,6 @@ const DEUDA_CONOCIDA = new Set([
     'isr',
   'libro-diario',
     'movimientos',
-  'online-booking',
   'preparacion',
   'pricing',
         'resumen',
