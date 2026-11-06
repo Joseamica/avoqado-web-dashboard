@@ -20,3 +20,15 @@ describe('textos del plano que la guía puso a prueba', () => {
     expect(en.page.emptyBody).not.toMatch(/point of sale/i)
   })
 })
+
+describe('🔴 D20: ningún texto del plano le antepone «mesa» al número', () => {
+  // El número de una mesa puede ya traer la palabra («Mesa 1» en la demo). Los textos reciben el NOMBRE ya armado
+  // (`tableName`), así que ninguno puede volver a escribir «mesa {{…}}» o «table {{…}}» delante.
+  const plano = (o: unknown): string[] => (typeof o === 'string' ? [o] : Object.values(o as object).flatMap(plano))
+  it.each([
+    ['es', es],
+    ['en', en],
+  ])('%s', (_, dict) => {
+    expect(plano(dict).filter(s => /\b(mesas?|tables?)\s*\{\{/i.test(s))).toEqual([])
+  })
+})

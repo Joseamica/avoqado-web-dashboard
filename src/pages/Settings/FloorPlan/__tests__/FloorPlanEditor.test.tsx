@@ -9,7 +9,19 @@ import type { FloorPlanDto, PublishFloorPlanResult } from '../model/types'
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
-    t: (key: string, o?: Record<string, unknown>) => (o?.numbers ? `${key}:${o.numbers}` : o?.number ? `${key}:${o.number}` : key),
+    // `common:tableWord`/`common:tableName` arman el nombre de la mesa como en la app («Mesa 2»), para leer las pruebas.
+    t: (key: string, o?: Record<string, unknown>) =>
+      key === 'common:tableWord'
+        ? 'Mesa'
+        : key === 'common:tableName'
+          ? `Mesa ${o?.number}`
+          : o?.names
+            ? `${key}:${o.names}`
+            : o?.numbers
+              ? `${key}:${o.numbers}`
+              : o?.number
+                ? `${key}:${o.number}`
+                : key,
   }),
 }))
 const toast = vi.fn()
@@ -165,7 +177,7 @@ describe('FloorPlanEditor', () => {
     renderEditor()
     await crearArea(user, { blank: true })
     await user.click(screen.getByTestId('floor-plan-save'))
-    expect(await screen.findByTestId('floor-plan-open-orders')).toHaveTextContent('openOrders.title:4, 7')
+    expect(await screen.findByTestId('floor-plan-open-orders')).toHaveTextContent('openOrders.title:Mesa 4, Mesa 7')
     // 4 y 7 no estaban en el plano guardado (vacío): no hay nada que regresar, así que no se ofrece.
     expect(screen.queryByTestId('floor-plan-restore-tables')).not.toBeInTheDocument()
     await user.click(screen.getByTestId('floor-plan-save'))
@@ -346,14 +358,14 @@ describe('FloorPlanEditor', () => {
     await user.keyboard('{Delete}')
     expect(screen.queryByTestId('floor-table-2')).not.toBeInTheDocument()
     await user.click(screen.getByTestId('floor-plan-save'))
-    expect(await screen.findByTestId('floor-plan-open-orders')).toHaveTextContent('openOrders.title:2')
+    expect(await screen.findByTestId('floor-plan-open-orders')).toHaveTextContent('openOrders.title:Mesa 2')
     expect(publish.mock.calls[0][1].tables.map(t => t.id)).toEqual(['t1'])
     await user.click(screen.getByTestId('floor-plan-restore-tables'))
     expect(screen.queryByTestId('floor-plan-open-orders')).not.toBeInTheDocument()
     // Donde estaba en el plano guardado (0.8 × 40 = 32; 0.5 × 25 = 12.5), con su punto de cuenta abierta y seleccionada.
     expect(screen.getByTestId('floor-table-2')).toHaveAttribute('transform', 'rotate(0 32 12.5)')
     expect(screen.getByTestId('floor-open-order-2')).toBeInTheDocument()
-    expect(screen.getByText('inspector.table:2')).toBeInTheDocument()
+    expect(screen.getByText('Mesa 2')).toBeInTheDocument()
     // Ya se sabe que tiene cuenta: Supr no la vuelve a quitar.
     await user.keyboard('{Delete}')
     expect(screen.getByTestId('floor-table-2')).toBeInTheDocument()

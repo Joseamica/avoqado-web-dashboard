@@ -13,7 +13,19 @@ import type { FloorPlanDto, PublishFloorPlanResult } from '../model/types'
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
-    t: (key: string, o?: Record<string, unknown>) => (o?.numbers ? `${key}:${o.numbers}` : o?.number ? `${key}:${o.number}` : key),
+    // `common:tableWord`/`common:tableName` arman el nombre de la mesa como en la app («Mesa 2»), para leer las pruebas.
+    t: (key: string, o?: Record<string, unknown>) =>
+      key === 'common:tableWord'
+        ? 'Mesa'
+        : key === 'common:tableName'
+          ? `Mesa ${o?.number}`
+          : o?.names
+            ? `${key}:${o.names}`
+            : o?.numbers
+              ? `${key}:${o.numbers}`
+              : o?.number
+                ? `${key}:${o.number}`
+                : key,
   }),
 }))
 const toast = vi.fn()
@@ -87,7 +99,7 @@ describe('FloorPlanEditor — ola final', () => {
     const lienzo = screen.getByTestId('floor-canvas')
     expect(within(lienzo).getByTestId('floor-table-1')).toBeInTheDocument()
     expect(within(lienzo).queryByTestId('floor-table-2')).not.toBeInTheDocument()
-    expect(screen.getByText('inspector.table:1')).toBeInTheDocument()
+    expect(screen.getByText('Mesa 1')).toBeInTheDocument()
     await user.keyboard('{Delete}')
     // Supr quitó sólo la que se ve; la 2 sigue en Salón.
     await user.click(screen.getByTestId('floor-area-tab-Salón'))

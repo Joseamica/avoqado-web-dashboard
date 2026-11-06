@@ -1,4 +1,6 @@
 {
+  "tableWord": "Table",
+  "tableName": "Table {{number}}",
   "search": "Rechercher...",
   "cancel": "Annuler",
   "close": "Fermer",

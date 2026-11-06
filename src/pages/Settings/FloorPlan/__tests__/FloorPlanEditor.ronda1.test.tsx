@@ -10,7 +10,19 @@ import type { FloorPlanDto } from '../model/types'
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
-    t: (key: string, o?: Record<string, unknown>) => (o?.numbers ? `${key}:${o.numbers}` : o?.number ? `${key}:${o.number}` : key),
+    // `common:tableWord`/`common:tableName` arman el nombre de la mesa como en la app («Mesa 2»), para leer las pruebas.
+    t: (key: string, o?: Record<string, unknown>) =>
+      key === 'common:tableWord'
+        ? 'Mesa'
+        : key === 'common:tableName'
+          ? `Mesa ${o?.number}`
+          : o?.names
+            ? `${key}:${o.names}`
+            : o?.numbers
+              ? `${key}:${o.numbers}`
+              : o?.number
+                ? `${key}:${o.number}`
+                : key,
   }),
 }))
 const toast = vi.fn()
@@ -83,7 +95,7 @@ describe('FloorPlanEditor — ronda de arreglo 1 de la tarea 15-D', () => {
     await user.click(await screen.findByTestId('floor-plan-restore-tables'))
     expect(screen.getAllByTestId('floor-table-2')).toHaveLength(2)
     const aviso = screen.getByTestId('floor-plan-duplicates')
-    expect(aviso).toHaveTextContent('duplicates.title:2')
+    expect(aviso).toHaveTextContent('duplicates.title:Mesa 2')
     expect(aviso).toHaveTextContent('duplicates.bodyNew')
     expect(screen.getByTestId('floor-plan-save')).toBeDisabled()
     // «Ver la nueva» selecciona la que NO tiene cuenta; se le cambia el número y se puede guardar.
@@ -124,7 +136,7 @@ describe('FloorPlanEditor — ronda de arreglo 1 de la tarea 15-D', () => {
     await user.click(await screen.findByTestId('floor-plan-restore-tables'))
     expect(screen.getAllByTestId(/^floor-table-/)).toHaveLength(1)
     expect(toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'limits.tables' }))
-    expect(screen.getByTestId('floor-plan-open-orders')).toHaveTextContent('openOrders.title:2')
+    expect(screen.getByTestId('floor-plan-open-orders')).toHaveTextContent('openOrders.title:Mesa 2')
   })
 
   it('I3: tras tocar un botón con el ratón (p. ej. «+» del zoom), Espacio es la mano del lienzo, no el botón', async () => {

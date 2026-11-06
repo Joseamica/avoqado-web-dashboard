@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next'
+import { tableName } from '@/lib/tableName'
 import { TABLE_DRAG_MIME } from './FloorCanvas'
 import type { DraftTable } from '../model/types'
 
@@ -29,7 +30,7 @@ export function UnplacedTray({ tables, onPlace }: { tables: DraftTable[]; onPlac
               e.dataTransfer.effectAllowed = 'move'
             }}
             onClick={() => onPlace(tb.key)}
-            aria-label={t('tray.place', { number: tb.number })}
+            aria-label={t('tray.place', { name: tableName(t, tb.number) })}
             data-testid={`floor-unplaced-${tb.number}`}
             className="flex h-10 min-w-10 cursor-grab items-center justify-center rounded-lg border border-input bg-background px-3 text-sm font-semibold transition-colors hover:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:cursor-grabbing"
           >
