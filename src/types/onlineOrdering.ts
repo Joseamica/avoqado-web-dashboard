@@ -127,6 +127,8 @@ export interface InboxOrder {
     capturedAt: string | null
   } | null
   rejectReason?: RejectReason | 'PAYMENT_FAILED' | null
+  /** `false` = folio de «Nadie» (se cobra en caja); ausente en servidores viejos. */
+  requiresAcceptance?: boolean
 }
 
 export type CardChargeStatus =
@@ -141,7 +143,7 @@ export type CardChargeStatus =
 
 export interface Inbox {
   serverTime: string
-  counts: { pending: number; accepted: number; ready: number; active: number; done: number }
+  counts: { pending: number; accepted: number; ready: number; active: number; done: number; acceptedTeam?: number }
   orders: InboxOrder[]
   truncated: boolean
   nextCursor: string | null
@@ -150,7 +152,6 @@ export interface Inbox {
 
 /** Un folio de «Nadie» (la cuenta con su pedido). Los campos de la tienda híbrida son opcionales para las formas viejas. */
 export interface FolioOrder extends InboxOrder {
-  requiresAcceptance?: boolean
   channel?: string | null
 }
 

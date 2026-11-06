@@ -25,7 +25,10 @@ export function useOnlineOrdersInbox(venueId: string, opts: { trayActive: () => 
   useEffect(() => {
     if (!venueId || !socket) return
     joinVenueRoom(venueId)
-    const refresh = () => queryClient.invalidateQueries({ queryKey: onlineOrderingKeys.inbox(venueId) })
+    const refresh = () => {
+      void queryClient.invalidateQueries({ queryKey: onlineOrderingKeys.inbox(venueId) })
+      void queryClient.invalidateQueries({ queryKey: onlineOrderingKeys.toPay(venueId) })
+    }
     // Un evento de OTRO negocio (el socket puede estar en varios cuartos) no toca esta bandeja.
     const otherVenue = (e: { venueId?: string } | undefined) => !!e?.venueId && e.venueId !== venueId
     const onCreated = (e: { source?: string; venueId?: string } | undefined) => {

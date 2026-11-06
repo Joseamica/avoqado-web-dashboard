@@ -31,7 +31,7 @@ import {
   rejectOrder,
   serverMessage,
 } from '@/services/onlineOrdering.service'
-import type { Inbox, InboxOrder, OnlineOrderStatus } from '@/types/onlineOrdering'
+import type { FolioOrder, Inbox, InboxOrder, OnlineOrderStatus } from '@/types/onlineOrdering'
 import { useVenueDateTime } from '@/utils/datetime'
 
 import { useOnlineOrdersInbox } from '../hooks/useOnlineOrdersInbox'
@@ -40,6 +40,7 @@ import { createChime, type Chime } from '../lib/chime'
 import { pauseLabel } from '../lib/pauseLabel'
 import { AcceptDialog } from './AcceptDialog'
 import { CardRefundButton } from './CardRefundSheet'
+import { FolioSections, type FolioAction } from './FolioSections'
 import { OrderCard, type OrderAction } from './OrderCard'
 import { PauseControl } from './PauseControl'
 import { RejectDialog } from './RejectDialog'
@@ -71,8 +72,8 @@ const SECTIONS: Array<{ key: keyof Inbox['counts']; match: (s: OnlineOrderStatus
   { key: 'done', match: s => s !== 'PENDING_ACCEPTANCE' && s !== 'ACCEPTED' && s !== 'READY' },
 ]
 
-type DialogState = { kind: 'accept' | 'reject' | 'cancel'; order: InboxOrder } | null
-type Act = { target: OnlineOrderStatus; run: () => Promise<unknown>; orderId?: string }
+type DialogState = { kind: 'accept' | 'reject' | 'cancel' | 'cancelFolio'; order: InboxOrder } | null
+type Act = { target: OnlineOrderStatus; run: () => Promise<unknown>; orderId?: string; okTitle?: string }
 
 /**
  * Bandeja de pedidos en línea. 🔴 No depende del plan (R14): los pedidos que ya llegaron se ven, se contestan y se pausan.
@@ -91,6 +92,8 @@ export function InboxTab() {
   // 409 CONFIRMING: «Aceptar» de ese pedido queda apagado hasta que una lectura EXITOSA posterior (dataUpdatedAt > la hora del
   // 409) lo traiga sin `cardStatus: 'CONFIRMING'`. Una relectura fallida no mueve `dataUpdatedAt`: sigue apagado.
   const [confirmingSince, setConfirmingSince] = useState<Record<string, number>>({})
+  // Folios de «Nadie» ya tocados con éxito: salen de «Por pagar»/«Por entregar» sin esperar al sondeo.
+  const [touched, setTouched] = useState<ReadonlySet<string>>(new Set())
   const [soundOn, setSoundOn] = useState(readSoundPref)
   const [, rerender] = useReducer((n: number) => n + 1, 0)
   const pending = data?.counts.pending ?? 0
@@ -105,7 +108,11 @@ export function InboxTab() {
     if (!hasPlan && dataUpdatedAt) void queryClient.invalidateQueries({ queryKey: planTierQueryKey(venueId) })
   }, [hasPlan, dataUpdatedAt, venueId, queryClient])
 
-  const refresh = () => queryClient.invalidateQueries({ queryKey: onlineOrderingKeys.inbox(venueId) })
+  const refresh = () =>
+    Promise.all([
+      queryClient.invalidateQueries({ queryKey: onlineOrderingKeys.inbox(venueId) }),
+      queryClient.invalidateQueries({ queryKey: onlineOrderingKeys.toPay(venueId) }),
+    ])
 
   // `isPending` llega en otro turno del navegador: dos clics seguidos (7 ms) se cuelan antes de que el botón se deshabilite.
   // Este candado se cierra en el mismo clic y se suelta al terminar (con éxito o sin él), justo antes de que `isPending` baje.
@@ -115,7 +122,11 @@ export function InboxTab() {
     onSettled: () => {
       inFlight.current = false
     },
-    onSuccess: () => refresh(),
+    onSuccess: (_res, a: Act) => {
+      if (a.orderId) setTouched(s => new Set(s).add(a.orderId!))
+      if (a.okTitle) toast({ title: a.okTitle })
+      return refresh()
+    },
     // onSuccess/onError DEVUELVEN el refresco: `isPending` lo cubre y los botones no se reactivan con la tarjeta vieja.
     onError: (err: unknown, a: Act) => {
       const outcome = actionOutcome(err, a.target)
@@ -140,17 +151,28 @@ export function InboxTab() {
     },
   })
 
-  const run = (target: OnlineOrderStatus, fn: () => Promise<unknown>, orderId?: string) => {
+  const run = (target: OnlineOrderStatus, fn: () => Promise<unknown>, orderId?: string, okTitle?: string) => {
     if (inFlight.current) return
     inFlight.current = true
     setDialog(null)
-    action.mutate({ target, run: fn, orderId })
+    action.mutate({ target, run: fn, orderId, okTitle })
   }
 
   const onAction = (order: InboxOrder, a: OrderAction) => {
     if (a === 'ready') return run('READY', () => markReady(venueId, order.orderId))
     if (a === 'delivered') return run('COMPLETED', () => markDelivered(venueId, order.orderId))
     setDialog({ kind: a, order })
+  }
+
+  const onFolioAct = (order: FolioOrder, a: FolioAction) => {
+    if (a === 'ready') return run('READY', () => markReady(venueId, order.orderId), order.orderId)
+    if (a === 'delivered') {
+      const okTitle = order.customerName
+        ? t('folio.delivered', { folio: order.orderNumber, name: order.customerName })
+        : t('folio.deliveredNoName', { folio: order.orderNumber })
+      return run('COMPLETED', () => markDelivered(venueId, order.orderId), order.orderId, okTitle)
+    }
+    setDialog({ kind: 'cancelFolio', order })
   }
 
   const unlockSound = async () => {
@@ -228,9 +250,12 @@ export function InboxTab() {
       )}
       {soundSupported && !soundOn && pending > 0 && <p className="rounded-xl bg-muted/50 p-3 text-sm font-medium">{t('inbox.sound.nag')}</p>}
 
+      <FolioSections venueId={venueId} canAnswer={canAnswer} canCancel={canCancel} busy={action.isPending} hidden={touched} onAct={onFolioAct} />
+
       {SECTIONS.map(section => {
-        const list = data.orders.filter(o => section.match(o.status))
-        const total = data.counts[section.key]
+        // Los folios de «Nadie» ya están en «Por entregar»: no se repiten en «En preparación».
+        const list = data.orders.filter(o => section.match(o.status) && !(section.key === 'accepted' && o.requiresAcceptance === false))
+        const total = section.key === 'accepted' ? (data.counts.acceptedTeam ?? data.counts.accepted) : data.counts[section.key]
         return (
           <section key={section.key} className="space-y-2">
             <h2 className="text-base font-semibold">
@@ -276,6 +301,28 @@ export function InboxTab() {
           onClose={() => setDialog(null)}
           onReject={(reason, note) => run('REJECTED', () => rejectOrder(venueId, dialog.order.orderId, reason, note))}
         />
+      )}
+      {dialog?.kind === 'cancelFolio' && (
+        <AlertDialog open onOpenChange={open => !open && setDialog(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{t('folio.cancelDialog.title', { folio: dialog.order.orderNumber })}</AlertDialogTitle>
+              <AlertDialogDescription>
+                {dialog.order.customerName
+                  ? t('folio.cancelDialog.description', { name: dialog.order.customerName })
+                  : t('folio.cancelDialog.descriptionNoName')}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>{t('folio.cancelDialog.back')}</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => run('CANCELLED_BY_STAFF', () => cancelOrder(venueId, dialog.order.orderId), dialog.order.orderId)}
+              >
+                {t('folio.cancelDialog.confirm')}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       )}
       {dialog?.kind === 'cancel' && (
         <AlertDialog open onOpenChange={open => !open && setDialog(null)}>

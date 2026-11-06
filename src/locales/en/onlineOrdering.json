@@ -310,5 +310,38 @@
       "confirmYes": "Yes, I returned it",
       "confirmNo": "Not yet"
     }
+  },
+  "folio": {
+    "note": "With “No one”, folios are paid at the register (terminal or POS). Here you can see them, cancel the fake ones and mark what was handed over.",
+    "sections": {
+      "toPay": "To pay",
+      "toDeliver": "To hand over"
+    },
+    "expiresIn": "Expires in {{minutes}} min",
+    "expiresAt": "Expires at {{time}}",
+    "expiring": "About to expire",
+    "missing": "{{remaining}} of {{total}} still due",
+    "alreadyPaid": "Already paid {{paid}}",
+    "collectAtRegister": "Paid at the register",
+    "orderedAt": "Ordered {{time}}",
+    "paidTag": "Paid",
+    "products_one": "{{count}} item",
+    "products_other": "{{count}} items",
+    "cancel": "Cancel folio",
+    "delivered": "{{folio}} handed to {{name}}",
+    "deliveredNoName": "{{folio}} handed over",
+    "cancelDialog": {
+      "title": "Cancel folio {{folio}}?",
+      "description": "{{name}} will see it cancelled on their phone and won't be able to pay it at the register.",
+      "descriptionNoName": "Whoever ordered will see it cancelled on their phone and won't be able to pay it at the register.",
+      "back": "No",
+      "confirm": "Yes, cancel"
+    },
+    "loadMore": "Load more",
+    "emptyToPay": "No folios waiting for payment. New orders from your store show up here until they are paid at the register.",
+    "emptyToDeliver": "When a folio is paid at the register, it shows up here so you can mark it ready and handed over.",
+    "loadFailed": "We couldn't load the folios. Check your connection and try again.",
+    "retry": "Retry",
+    "loadMoreFailed": "We couldn't load more folios. Try again."
   }
 }

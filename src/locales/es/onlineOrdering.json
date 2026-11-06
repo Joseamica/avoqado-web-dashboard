@@ -310,5 +310,38 @@
       "confirmYes": "Sí, ya se lo devolví",
       "confirmNo": "Todavía no"
     }
+  },
+  "folio": {
+    "note": "Con «Nadie», los folios se cobran en caja (terminal o POS). Aquí los ves, cancelas los falsos y marcas lo entregado.",
+    "sections": {
+      "toPay": "Por pagar",
+      "toDeliver": "Por entregar"
+    },
+    "expiresIn": "Vence en {{minutes}} min",
+    "expiresAt": "Vence a las {{time}}",
+    "expiring": "Está por vencer",
+    "missing": "Falta {{remaining}} de {{total}}",
+    "alreadyPaid": "Ya pagó {{paid}}",
+    "collectAtRegister": "Se cobra en caja",
+    "orderedAt": "Pidió {{time}}",
+    "paidTag": "Pagado",
+    "products_one": "{{count}} producto",
+    "products_other": "{{count}} productos",
+    "cancel": "Cancelar folio",
+    "delivered": "{{folio}} entregado a {{name}}",
+    "deliveredNoName": "{{folio}} entregado",
+    "cancelDialog": {
+      "title": "¿Cancelar el folio {{folio}}?",
+      "description": "{{name}} lo verá cancelado en su celular y ya no podrá pagarlo en caja.",
+      "descriptionNoName": "Quien lo pidió lo verá cancelado en su celular y ya no podrá pagarlo en caja.",
+      "back": "No",
+      "confirm": "Sí, cancelar"
+    },
+    "loadMore": "Cargar más",
+    "emptyToPay": "No hay folios esperando pago. Los pedidos nuevos de tu tienda aparecen aquí hasta que se cobren en caja.",
+    "emptyToDeliver": "Cuando se cobre un folio en caja, aparece aquí para que lo marques listo y entregado.",
+    "loadFailed": "No pudimos cargar los folios. Revisa tu conexión y vuelve a intentar.",
+    "retry": "Reintentar",
+    "loadMoreFailed": "No pudimos cargar más folios. Vuelve a intentar."
   }
 }
