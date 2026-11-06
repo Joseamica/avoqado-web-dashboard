@@ -57,6 +57,20 @@ export function PlanRow(props: PlanRowProps) {
     interval: props.interval,
     preferList: props.preferList,
   }
+  // D5: con un cupón vigente, lo que paga, hasta cuándo y el precio después — nunca sólo el precio de lista.
+  const descuento = origin.kind === 'CLASSIC' ? origin.discount : null
+  const discountText =
+    descuento && origin.price
+      ? descuento.duration === 'repeating' && descuento.endsAt
+        ? t('plan.row.discountUntil', {
+            price: money(descuento.gross),
+            date: formatDate(descuento.endsAt),
+            list: money(origin.price.gross),
+          })
+        : descuento.duration === 'forever'
+          ? t('plan.row.discountForever', { price: money(descuento.gross) })
+          : t('plan.row.discountOnce', { price: money(descuento.gross), list: money(origin.price.gross) })
+      : null
   const statusText =
     origin.kind === 'COMP'
       ? untilText
@@ -163,7 +177,14 @@ export function PlanRow(props: PlanRowProps) {
               {t('hybrid.fundingIssue')}
             </p>
           ) : (
-            statusText && <p className="text-muted-foreground">{statusText}</p>
+            <>
+              {statusText && <p className="text-muted-foreground">{statusText}</p>}
+              {discountText && (
+                <p className="text-muted-foreground" data-tour="plan-discount">
+                  {discountText}
+                </p>
+              )}
+            </>
           )}
           {origin.kind === 'CLASSIC' &&
             (origin.cancelAt ? (

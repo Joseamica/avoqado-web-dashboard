@@ -227,7 +227,10 @@
       "compNoDate": "Tu plan {{tier}} es de cortesía.",
       "founder": "Tu negocio es fundador: tienes todas las funciones sin costo.",
       "paymentPending": "Tu pago está pendiente y el acceso de pago está en pausa. Actualiza tu método de pago para recuperarlo.",
-      "resume": "Reanudar"
+      "resume": "Reanudar",
+      "discountUntil": "Con tu descuento pagas {{price}} hasta el {{date}}; después {{list}}.",
+      "discountOnce": "Con tu descuento pagas {{price}} en tu siguiente cobro; después {{list}}.",
+      "discountForever": "Con tu descuento pagas {{price}}."
     },
     "grid": {
       "title": "Funciones · las {{count}}",

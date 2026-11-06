@@ -141,6 +141,11 @@ export interface PlanOrigin {
   contractRevision: number | null
   subscriptionId: string | null
   paymentIssue: string | null
+  /**
+   * D5: CLASSIC con un cupón vigente — lo que paga con el descuento (con IVA) y hasta cuándo. `price` sigue siendo el de
+   * lista. Un servidor anterior no lo manda.
+   */
+  discount?: { gross: number; percentOff: number | null; duration: 'once' | 'repeating' | 'forever'; endsAt: string | null } | null
 }
 
 /**
