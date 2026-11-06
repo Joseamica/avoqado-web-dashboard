@@ -14,6 +14,7 @@ import type { CreateDiscountRequest, Discount, DiscountScope, DiscountType, Upda
 import { ChevronLeft, ChevronRight, Check, Loader2 } from 'lucide-react'
 
 import { useDiscountFormData } from '../hooks/useDiscountFormData'
+import { limiteParaGuardar } from '../limitesDeUso'
 import { WizardStep1BasicInfo } from './wizard-steps/WizardStep1BasicInfo'
 import { WizardStep2Scope } from './wizard-steps/WizardStep2Scope'
 import { WizardStep3Rules } from './wizard-steps/WizardStep3Rules'
@@ -338,6 +339,7 @@ export function DiscountWizard({ open, onOpenChange, venueId, editDiscount, onSu
       // Step 3
       minPurchaseAmount: step3Data.minPurchaseAmount || undefined,
       maxDiscountAmount: step3Data.maxDiscountAmount || undefined,
+      // Al editar, vacío = null (sin límite); se ajusta abajo, porque crear no acepta null.
       maxTotalUses: step3Data.maxTotalUses || undefined,
       maxUsesPerCustomer: step3Data.maxUsesPerCustomer || undefined,
       validFrom: step3Data.validFrom || undefined,
@@ -357,7 +359,16 @@ export function DiscountWizard({ open, onOpenChange, venueId, editDiscount, onSu
 
     // Use update or create mutation based on mode
     if (isEditMode) {
-      updateDiscountMutation.mutate(sinTocarCategoriasViejas(completeData, editDiscount))
+      updateDiscountMutation.mutate(
+        sinTocarCategoriasViejas(
+          {
+            ...completeData,
+            maxTotalUses: limiteParaGuardar(completeData.maxTotalUses, true),
+            maxUsesPerCustomer: limiteParaGuardar(completeData.maxUsesPerCustomer, true),
+          },
+          editDiscount,
+        ),
+      )
     } else {
       createDiscountMutation.mutate(completeData)
     }
