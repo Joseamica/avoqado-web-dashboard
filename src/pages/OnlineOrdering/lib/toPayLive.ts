@@ -1,21 +1,19 @@
 import type { QueryClient } from '@tanstack/react-query'
 
 import { onlineOrderingKeys } from '@/services/onlineOrdering.service'
-import type { Inbox, ToPayResponse } from '@/types/onlineOrdering'
+import type { ToPayResponse } from '@/types/onlineOrdering'
 
 /**
- * ¿La consulta `to-pay` debe estar VIVA (sondeo de 10 s + releer con eventos de la Bandeja)? Sí si hay folios (conteos o listas de la
- * primera página), si la Bandeja ya vio un folio de «Nadie» o si los ajustes dicen «Nadie». Si no, va en modo LENTO (120 s, sin
- * eventos). La consulta NUNCA se apaga del todo: un folio que llega justo tras una lectura la despierta en el siguiente repaso.
+ * R88 · El MODO de la consulta `to-pay` (VIVO: 10 s y releer con eventos · LENTO: 120 s y sin eventos) sale ÚNICAMENTE de la última
+ * respuesta buena de to-pay: `showTile` (la lectura fresca de los ajustes en el SERVIDOR), conteos > 0 o una primera página con folios.
+ * Ni los ajustes guardados en el panel ni la historia de la Bandeja deciden el modo (se quedaban pegados). Sin respuesta (arranque en
+ * frío o error) es LENTO, con el reintento normal; la consulta nunca se apaga.
  */
-export function toPayIsLive(queryClient: QueryClient, venueId: string, inboxSignal = false): boolean {
-  const d = queryClient.getQueryData<ToPayResponse>(onlineOrderingKeys.toPay(venueId))
-  if (d && (d.counts.toPay + d.counts.toDeliver > 0 || d.toPay.length > 0 || d.toDeliver.length > 0)) return true
-  if (queryClient.getQueryData<{ requiresAcceptance?: boolean }>(onlineOrderingKeys.settings(venueId))?.requiresAcceptance === false)
-    return true
-  if (queryClient.getQueryData<Inbox>(onlineOrderingKeys.inbox(venueId))?.orders.some(o => o.requiresAcceptance === false)) return true
-  return inboxSignal
-}
+export const toPayModeIsLive = (d: ToPayResponse | undefined): boolean =>
+  !!d && (d.showTile || d.counts.toPay + d.counts.toDeliver > 0 || d.toPay.length > 0 || d.toDeliver.length > 0)
+
+export const toPayIsLive = (queryClient: QueryClient, venueId: string): boolean =>
+  toPayModeIsLive(queryClient.getQueryData<ToPayResponse>(onlineOrderingKeys.toPay(venueId)))
 
 /** Un evento o una acción relee `to-pay` sólo en modo vivo; en modo lento espera su repaso de 120 s. */
 export const invalidateToPay = (queryClient: QueryClient, venueId: string) =>

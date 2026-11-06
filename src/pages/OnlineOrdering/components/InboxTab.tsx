@@ -200,15 +200,42 @@ export function InboxTab() {
     if (on) unlockSound().catch(() => {}) // el estado ya quedó guardado; dentro del clic: es lo que el navegador exige para dejar sonar
   }
 
+  // R88: los folios de «Nadie» viven de su propia consulta; SIEMPRE montados, aunque la Bandeja falle o aún cargue. La Bandeja
+  // sólo les da un empujón único con los folios de «Nadie» ACTIVOS que ve (ni cerrados ni cancelados).
+  const CLOSED: ReadonlySet<string> = new Set(['COMPLETED', 'REJECTED', 'EXPIRED', 'CANCELLED_BY_CUSTOMER', 'CANCELLED_BY_STAFF'])
+  const nadieIds = [...(data?.orders ?? []), ...activeMore.items]
+    .filter(o => o.requiresAcceptance === false && !CLOSED.has(o.status))
+    .map(o => o.orderId)
+  const folioSections = (
+    <FolioSections
+      venueId={venueId}
+      canAnswer={canAnswer}
+      canCancel={canCancel}
+      busy={action.isPending}
+      hidden={touched}
+      inboxNadieIds={nadieIds}
+      onAct={onFolioAct}
+    />
+  )
+
   if (!data) {
-    return isError ? (
-      <Alert variant="destructive">
-        <AlertDescription>{serverMessage(error, t('inbox.loadFailed'))}</AlertDescription>
-      </Alert>
-    ) : (
-      <div className="space-y-3" data-testid="online-inbox-loading">
-        <Skeleton className="h-20 w-full rounded-xl" />
-        <Skeleton className="h-40 w-full rounded-xl" />
+    // Misma forma que el return de abajo (3 huecos: encabezado · folios · resto) para que FolioSections no se desmonte al llegar la Bandeja.
+    return (
+      <div className="space-y-4">
+        <>
+          {isError ? (
+            <Alert variant="destructive">
+              <AlertDescription>{serverMessage(error, t('inbox.loadFailed'))}</AlertDescription>
+            </Alert>
+          ) : (
+            <div className="space-y-3" data-testid="online-inbox-loading">
+              <Skeleton className="h-20 w-full rounded-xl" />
+              <Skeleton className="h-40 w-full rounded-xl" />
+            </div>
+          )}
+        </>
+        {folioSections}
+        <></>
       </div>
     )
   }
@@ -229,148 +256,142 @@ export function InboxTab() {
 
   return (
     <div className="space-y-4" data-testid="online-inbox">
-      <div className="space-y-3 rounded-xl border border-input p-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          {store && (
-            <p className="text-sm">
-              <span className="text-muted-foreground">{t('settings.status.label')}: </span>
-              <span className="font-medium">{statusText}</span>
-            </p>
-          )}
-          <PauseControl venueId={venueId} store={store} canPause={canPause} />
-        </div>
-        <p className="text-sm text-muted-foreground">{keepsStoreOpen ? t('inbox.keepsOpen') : t('inbox.viewOnly')}</p>
-        {soundSupported ? (
-          <div className="flex items-center gap-2">
-            <Switch id="online-inbox-sound" checked={soundOn} onCheckedChange={toggleSound} data-tour="online-inbox-sound" />
-            <Label htmlFor="online-inbox-sound">{t('inbox.sound.toggle')}</Label>
+      <>
+        <div className="space-y-3 rounded-xl border border-input p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            {store && (
+              <p className="text-sm">
+                <span className="text-muted-foreground">{t('settings.status.label')}: </span>
+                <span className="font-medium">{statusText}</span>
+              </p>
+            )}
+            <PauseControl venueId={venueId} store={store} canPause={canPause} />
           </div>
-        ) : (
-          <p className="text-sm text-muted-foreground">{t('inbox.sound.unsupported')}</p>
+          <p className="text-sm text-muted-foreground">{keepsStoreOpen ? t('inbox.keepsOpen') : t('inbox.viewOnly')}</p>
+          {soundSupported ? (
+            <div className="flex items-center gap-2">
+              <Switch id="online-inbox-sound" checked={soundOn} onCheckedChange={toggleSound} data-tour="online-inbox-sound" />
+              <Label htmlFor="online-inbox-sound">{t('inbox.sound.toggle')}</Label>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">{t('inbox.sound.unsupported')}</p>
+          )}
+        </div>
+
+        {isError && (
+          <Alert>
+            <WifiOff className="h-4 w-4" />
+            <AlertDescription>{t('inbox.offline')}</AlertDescription>
+          </Alert>
         )}
-      </div>
+        {soundSupported && soundOn && chime().state() !== 'running' && (
+          <Button variant="outline" className="w-full" onClick={unlockSound} data-tour="online-inbox-unlock-sound">
+            <Volume2 />
+            {t('inbox.sound.unlock')}
+          </Button>
+        )}
+        {soundSupported && !soundOn && pending > 0 && (
+          <p className="rounded-xl bg-muted/50 p-3 text-sm font-medium">{t('inbox.sound.nag')}</p>
+        )}
+      </>
+      {folioSections}
+      <>
+        {SECTIONS.map(section => {
+          // Los folios de «Nadie» ya están en «Por entregar»: no se repiten en «En preparación».
+          const seen = new Set(data.orders.map(o => o.orderId))
+          const all = [...data.orders, ...activeMore.items.filter(o => !seen.has(o.orderId))]
+          const list = all.filter(o => section.match(o.status) && !(section.key === 'accepted' && o.requiresAcceptance === false))
+          const total = section.key === 'accepted' ? (data.counts.acceptedTeam ?? data.counts.accepted) : data.counts[section.key]
+          return (
+            <section key={section.key} className="space-y-2">
+              <h2 className="text-base font-semibold">
+                {t(`inbox.sections.${section.key}`)} <span className="text-muted-foreground">({total})</span>
+              </h2>
+              {list.length < total && (
+                <p className="text-xs text-muted-foreground">{t('inbox.sections.showing', { shown: list.length, total })}</p>
+              )}
+              {list.length === 0 ? (
+                <p className="text-sm text-muted-foreground">{t('inbox.sections.empty')}</p>
+              ) : (
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+                  {list.map(order => (
+                    <OrderCard
+                      key={order.orderId}
+                      order={order}
+                      skewMs={skewMs}
+                      canAnswer={canAnswer}
+                      canCancel={canCancel}
+                      busy={action.isPending}
+                      acceptLocked={order.orderId in confirmingSince && dataUpdatedAt <= confirmingSince[order.orderId]}
+                      onAction={a => onAction(order, a)}
+                    >
+                      {canRefund && <CardRefundButton venueId={venueId} order={order} />}
+                    </OrderCard>
+                  ))}
+                </div>
+              )}
+              {activeMore.next && (section.key === 'accepted' || section.key === 'ready') && (
+                <Button variant="outline" className="w-full" disabled={activeMore.loading} onClick={() => void activeMore.loadMore()}>
+                  {t('inbox.sections.loadMore')}
+                </Button>
+              )}
+            </section>
+          )
+        })}
 
-      {isError && (
-        <Alert>
-          <WifiOff className="h-4 w-4" />
-          <AlertDescription>{t('inbox.offline')}</AlertDescription>
-        </Alert>
-      )}
-      {soundSupported && soundOn && chime().state() !== 'running' && (
-        <Button variant="outline" className="w-full" onClick={unlockSound} data-tour="online-inbox-unlock-sound">
-          <Volume2 />
-          {t('inbox.sound.unlock')}
-        </Button>
-      )}
-      {soundSupported && !soundOn && pending > 0 && (
-        <p className="rounded-xl bg-muted/50 p-3 text-sm font-medium">{t('inbox.sound.nag')}</p>
-      )}
-
-      <FolioSections
-        venueId={venueId}
-        canAnswer={canAnswer}
-        canCancel={canCancel}
-        busy={action.isPending}
-        hidden={touched}
-        inboxSignal={[...data.orders, ...activeMore.items].some(o => o.requiresAcceptance === false)}
-        onAct={onFolioAct}
-      />
-
-      {SECTIONS.map(section => {
-        // Los folios de «Nadie» ya están en «Por entregar»: no se repiten en «En preparación».
-        const seen = new Set(data.orders.map(o => o.orderId))
-        const all = [...data.orders, ...activeMore.items.filter(o => !seen.has(o.orderId))]
-        const list = all.filter(o => section.match(o.status) && !(section.key === 'accepted' && o.requiresAcceptance === false))
-        const total = section.key === 'accepted' ? (data.counts.acceptedTeam ?? data.counts.accepted) : data.counts[section.key]
-        return (
-          <section key={section.key} className="space-y-2">
-            <h2 className="text-base font-semibold">
-              {t(`inbox.sections.${section.key}`)} <span className="text-muted-foreground">({total})</span>
-            </h2>
-            {list.length < total && (
-              <p className="text-xs text-muted-foreground">{t('inbox.sections.showing', { shown: list.length, total })}</p>
-            )}
-            {list.length === 0 ? (
-              <p className="text-sm text-muted-foreground">{t('inbox.sections.empty')}</p>
-            ) : (
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-                {list.map(order => (
-                  <OrderCard
-                    key={order.orderId}
-                    order={order}
-                    skewMs={skewMs}
-                    canAnswer={canAnswer}
-                    canCancel={canCancel}
-                    busy={action.isPending}
-                    acceptLocked={order.orderId in confirmingSince && dataUpdatedAt <= confirmingSince[order.orderId]}
-                    onAction={a => onAction(order, a)}
-                  >
-                    {canRefund && <CardRefundButton venueId={venueId} order={order} />}
-                  </OrderCard>
-                ))}
-              </div>
-            )}
-            {activeMore.next && (section.key === 'accepted' || section.key === 'ready') && (
-              <Button variant="outline" className="w-full" disabled={activeMore.loading} onClick={() => void activeMore.loadMore()}>
-                {t('inbox.sections.loadMore')}
-              </Button>
-            )}
-          </section>
-        )
-      })}
-
-      {dialog?.kind === 'accept' && (
-        <AcceptDialog
-          order={dialog.order}
-          onClose={() => setDialog(null)}
-          onAccept={minutes => run('ACCEPTED', () => acceptOrder(venueId, dialog.order.orderId, minutes), dialog.order.orderId)}
-        />
-      )}
-      {dialog?.kind === 'reject' && (
-        <RejectDialog
-          order={dialog.order}
-          onClose={() => setDialog(null)}
-          onReject={(reason, note) => run('REJECTED', () => rejectOrder(venueId, dialog.order.orderId, reason, note))}
-        />
-      )}
-      {dialog?.kind === 'cancelFolio' && (
-        <AlertDialog open onOpenChange={open => !open && setDialog(null)}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>{t('folio.cancelDialog.title', { folio: spaceFolio(dialog.order.orderNumber) })}</AlertDialogTitle>
-              <AlertDialogDescription>
-                {dialog.order.customerName
-                  ? t('folio.cancelDialog.description', { name: dialog.order.customerName })
-                  : t('folio.cancelDialog.descriptionNoName')}
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>{t('folio.cancelDialog.back')}</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={() => run('CANCELLED_BY_STAFF', () => cancelOrder(venueId, dialog.order.orderId), dialog.order.orderId)}
-              >
-                {t('folio.cancelDialog.confirm')}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      )}
-      {dialog?.kind === 'cancel' && (
-        <AlertDialog open onOpenChange={open => !open && setDialog(null)}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>{t('inbox.cancel.title', { number: dialog.order.orderNumber })}</AlertDialogTitle>
-              <AlertDialogDescription>{t('inbox.cancel.description')}</AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>{t('inbox.cancel.back')}</AlertDialogCancel>
-              <AlertDialogAction onClick={() => run('CANCELLED_BY_STAFF', () => cancelOrder(venueId, dialog.order.orderId))}>
-                {t('inbox.cancel.confirm')}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      )}
+        {dialog?.kind === 'accept' && (
+          <AcceptDialog
+            order={dialog.order}
+            onClose={() => setDialog(null)}
+            onAccept={minutes => run('ACCEPTED', () => acceptOrder(venueId, dialog.order.orderId, minutes), dialog.order.orderId)}
+          />
+        )}
+        {dialog?.kind === 'reject' && (
+          <RejectDialog
+            order={dialog.order}
+            onClose={() => setDialog(null)}
+            onReject={(reason, note) => run('REJECTED', () => rejectOrder(venueId, dialog.order.orderId, reason, note))}
+          />
+        )}
+        {dialog?.kind === 'cancelFolio' && (
+          <AlertDialog open onOpenChange={open => !open && setDialog(null)}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>{t('folio.cancelDialog.title', { folio: spaceFolio(dialog.order.orderNumber) })}</AlertDialogTitle>
+                <AlertDialogDescription>
+                  {dialog.order.customerName
+                    ? t('folio.cancelDialog.description', { name: dialog.order.customerName })
+                    : t('folio.cancelDialog.descriptionNoName')}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>{t('folio.cancelDialog.back')}</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => run('CANCELLED_BY_STAFF', () => cancelOrder(venueId, dialog.order.orderId), dialog.order.orderId)}
+                >
+                  {t('folio.cancelDialog.confirm')}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
+        {dialog?.kind === 'cancel' && (
+          <AlertDialog open onOpenChange={open => !open && setDialog(null)}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>{t('inbox.cancel.title', { number: dialog.order.orderNumber })}</AlertDialogTitle>
+                <AlertDialogDescription>{t('inbox.cancel.description')}</AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>{t('inbox.cancel.back')}</AlertDialogCancel>
+                <AlertDialogAction onClick={() => run('CANCELLED_BY_STAFF', () => cancelOrder(venueId, dialog.order.orderId))}>
+                  {t('inbox.cancel.confirm')}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
+      </>
     </div>
   )
 }

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -12,7 +12,7 @@ import { Currency } from '@/utils/currency'
 import { useVenueDateTime } from '@/utils/datetime'
 
 import { useExtraPages } from '../hooks/useExtraPages'
-import { toPayIsLive } from '../lib/toPayLive'
+import { toPayModeIsLive } from '../lib/toPayLive'
 
 export type FolioAction = 'ready' | 'delivered' | 'cancelFolio'
 type Section = 'toPay' | 'toDeliver'
@@ -24,13 +24,13 @@ interface Props {
   busy: boolean
   /** Folios ya tocados con éxito: salen de la lista al instante (también los de «Cargar más» hasta que el sondeo los relea). */
   hidden: ReadonlySet<string>
-  /** La Bandeja ya vio un folio de «Nadie» (requiresAcceptance=false): señal para leer `to-pay` aunque los ajustes digan otra cosa. */
-  inboxSignal?: boolean
+  /** Ids de folios de «Nadie» ACTIVOS que la Bandeja ve: sólo dan un empujón único a to-pay, no cambian su modo. */
+  inboxNadieIds?: string[]
   onAct: (order: FolioOrder, action: FolioAction) => void
 }
 
 /** «Por pagar» y «Por entregar» de «Nadie». Salen del `to-pay` del panel (sin latido: el panel no cobra) y no se repiten en «En preparación». */
-export function FolioSections({ venueId, canAnswer, canCancel, busy, hidden, inboxSignal = false, onAct }: Props) {
+export function FolioSections({ venueId, canAnswer, canCancel, busy, hidden, inboxNadieIds = [], onAct }: Props) {
   const { t } = useTranslation('onlineOrdering')
   const { toast } = useToast()
   // «Nadie» según los ajustes (misma llave que Configuración). Sin esa señal ni un to-pay con folios, no se enseña nada nuevo.
@@ -41,24 +41,27 @@ export function FolioSections({ venueId, canAnswer, canCancel, busy, hidden, inb
     retry: false,
   })
   const nadie = settings.data?.requiresAcceptance === false
-  const queryClient = useQueryClient()
-  const live = toPayIsLive(queryClient, venueId, inboxSignal) || nadie
   const { data, isError, isFetching, refetch, dataUpdatedAt } = useQuery({
     queryKey: onlineOrderingKeys.toPay(venueId),
     queryFn: () => getToPay(venueId),
     enabled: !!venueId,
-    // Vivo: 10 s. Lento (sin folios ni señal de «Nadie»): 120 s y sin releer con eventos (ver toPayLive).
-    // ponytail: un folio creado justo tras una lectura en «Mi equipo» puede tardar hasta 120 s en verse; se baja con el SERVIDOR si estorba.
-    refetchInterval: live ? 10_000 : 120_000,
+    // El modo sale sólo de la última respuesta buena (ver toPayLive): VIVO 10 s o LENTO 120 s; en error o arranque en frío, LENTO.
+    // ponytail: tras pasar a «Nadie» desde otra computadora, el primer folio sin pagar puede tardar hasta 120 s en verse en el panel
+    // (la caja cobra en la TPV o el POS, no aquí); la Bandeja lo adelanta con un empujón si trae ese folio.
+    refetchInterval: q => (toPayModeIsLive(q.state.data) ? 10_000 : 120_000),
     refetchIntervalInBackground: false,
     retry: 1,
   })
-  // Llega una señal de «Nadie» desde la Bandeja con la consulta ya leída: se relee ya, sin esperar el repaso lento.
-  const wasSignal = useRef(inboxSignal)
+  // Empujón ÚNICO de la Bandeja: un folio de «Nadie» activo que to-pay aún no tiene ⇒ se relee una vez (no deja bandera pegada).
+  const known = new Set([...(data?.toPay ?? []), ...(data?.toDeliver ?? [])].map(o => o.orderId))
+  const nudged = useRef(new Set<string>())
+  const fresh = (data ? inboxNadieIds : []).filter(id => !known.has(id) && !nudged.current.has(id))
+  const freshKey = fresh.join('|')
   useEffect(() => {
-    if (inboxSignal && !wasSignal.current && dataUpdatedAt > 0) void refetch()
-    wasSignal.current = inboxSignal
-  }, [inboxSignal, refetch, dataUpdatedAt])
+    if (!freshKey) return
+    freshKey.split('|').forEach(id => nudged.current.add(id))
+    void refetch()
+  }, [freshKey, refetch])
   // Lo traído con «Cargar más» se RELEE en cada sondeo (ver useExtraPages): nunca queda un folio viejo congelado.
   const onMoreError = useCallback(() => toast({ title: t('folio.loadMoreFailed'), variant: 'destructive' }), [toast, t])
   const fetchSection = (section: Section) => async (cursor: string) => {
@@ -92,7 +95,7 @@ export function FolioSections({ venueId, canAnswer, canCancel, busy, hidden, inb
       </div>
     )
   }
-  if (!live && data.counts.toPay + data.counts.toDeliver === 0 && data.toPay.length + data.toDeliver.length === 0) return null
+  if (!toPayModeIsLive(data)) return null
 
   const nowServer = Date.parse(data.serverTime) + (Math.max(now, dataUpdatedAt) - dataUpdatedAt)
   const build = (sec: Section) => {

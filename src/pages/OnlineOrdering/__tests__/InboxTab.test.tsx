@@ -1058,7 +1058,7 @@ describe('InboxTab · folios de «Nadie» (Por pagar / Por entregar)', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'folio.loadMore' }))
     await screen.findByTestId('folio-d1')
     await userEvent.click(within(screen.getByTestId('folio-d0')).getByRole('button', { name: 'inbox.actions.ready' }))
-    await waitFor(() => expect(getToPay.mock.calls.filter(c => c[1]?.cursor === 'C').length).toBeGreaterThanOrEqual(2))
+    await waitFor(() => expect(getToPay.mock.calls.filter(c => c[1]?.cursor === 'C').length).toBe(2))
     expect(screen.getByTestId('folio-d1')).toBeInTheDocument()
   })
 
@@ -1126,7 +1126,7 @@ describe('InboxTab · folios de «Nadie» (Por pagar / Por entregar)', () => {
     await waitFor(() => expect(getToPay).toHaveBeenCalledTimes(1))
     await act(async () => handlers['order_updated']?.({ onlineStatus: 'ACCEPTED', venueId: 'venue-1' }))
     expect(await screen.findByTestId('folio-f1')).toBeInTheDocument()
-    expect(getToPay.mock.calls.length).toBeGreaterThanOrEqual(2)
+    expect(getToPay).toHaveBeenCalledTimes(2)
   })
 
   it('relecturas lentas: no se encadenan ni se descartan; la página se aplica al llegar y corre una más al terminar', async () => {
@@ -1229,7 +1229,7 @@ describe('InboxTab · folios de «Nadie» (Por pagar / Por entregar)', () => {
       await act(async () => void (await vi.advanceTimersByTimeAsync(11_000)))
       expect(getToPay).toHaveBeenCalledTimes(1)
       await act(async () => void (await vi.advanceTimersByTimeAsync(115_000)))
-      expect(getToPay.mock.calls.length).toBeGreaterThanOrEqual(2)
+      expect(getToPay).toHaveBeenCalledTimes(2)
     } finally {
       vi.useRealTimers()
     }
@@ -1243,7 +1243,7 @@ describe('InboxTab · folios de «Nadie» (Por pagar / Por entregar)', () => {
       renderTab()
       expect(await screen.findByTestId('folio-f1')).toBeInTheDocument()
       await act(async () => void (await vi.advanceTimersByTimeAsync(11_000)))
-      expect(getToPay.mock.calls.length).toBeGreaterThanOrEqual(2)
+      expect(getToPay).toHaveBeenCalledTimes(2)
     } finally {
       vi.useRealTimers()
     }
@@ -1253,10 +1253,11 @@ describe('InboxTab · folios de «Nadie» (Por pagar / Por entregar)', () => {
     vi.useFakeTimers({ shouldAdvanceTime: true })
     try {
       getSettings.mockResolvedValue({ requiresAcceptance: false })
+      getToPay.mockResolvedValue(toPayRes([], [], { showTile: true }))
       renderTab()
       await screen.findByTestId('online-inbox')
       await act(async () => void (await vi.advanceTimersByTimeAsync(11_000)))
-      expect(getToPay.mock.calls.length).toBeGreaterThanOrEqual(2)
+      expect(getToPay).toHaveBeenCalledTimes(2)
     } finally {
       vi.useRealTimers()
     }
