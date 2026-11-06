@@ -467,7 +467,7 @@
   },
   "salesSummary": {
     "title": "Resumen de Ventas",
-    "totalSales": "Total cobrado",
+    "totalSales": "Neto cobrado",
     "transactions": "transacciones",
     "transactionsLabel": "transacciones",
     "transactionsShort": "trans.",
@@ -602,7 +602,7 @@
       "platformFees": "Comisiones de plataforma",
       "staffCommissions": "Comisiones a empleados",
       "totalSales": "Total de las ventas",
-      "totalCollected": "Total cobrado",
+      "totalCollected": "Neto cobrado",
       "netProfit": "Ganancia neta",
       "giftCardLoads": "Tarjetas de regalo cargadas",
       "paidWithGiftCardBalance": "Pagado con saldo"
@@ -797,7 +797,7 @@
           "platformFeesDesc": "Comisiones cobradas por Avoqado por procesamiento de pagos",
           "staffCommissions": "Comisiones a empleados",
           "staffCommissionsDesc": "Comisiones pagadas a empleados según las configuraciones del venue",
-          "totalCollected": "Total cobrado",
+          "totalCollected": "Neto cobrado",
           "totalCollectedDesc": "Dinero recibido: ventas netas + propinas - comisiones de plataforma",
           "netProfit": "Ganancia neta",
           "netProfitDesc": "Ganancia real después de todos los costos (incluyendo comisiones a empleados)"

@@ -467,7 +467,7 @@
   },
   "salesSummary": {
     "title": "Sales Summary",
-    "totalSales": "Total collected",
+    "totalSales": "Net collected",
     "transactions": "transactions",
     "transactionsLabel": "transactions",
     "transactionsShort": "trans.",
@@ -602,7 +602,7 @@
       "platformFees": "Platform fees",
       "staffCommissions": "Staff commissions",
       "totalSales": "Total sales",
-      "totalCollected": "Total collected",
+      "totalCollected": "Net collected",
       "netProfit": "Net profit",
       "giftCardLoads": "Gift cards loaded",
       "paidWithGiftCardBalance": "Paid with gift balance"
@@ -797,7 +797,7 @@
           "platformFeesDesc": "Fees charged by Avoqado for payment processing",
           "staffCommissions": "Staff commissions",
           "staffCommissionsDesc": "Commissions paid to employees based on venue configurations",
-          "totalCollected": "Total collected",
+          "totalCollected": "Net collected",
           "totalCollectedDesc": "Net sales plus taxes, tips, and other charges",
           "netProfit": "Net profit",
           "netProfitDesc": "True profit after all costs (including staff commissions)"
