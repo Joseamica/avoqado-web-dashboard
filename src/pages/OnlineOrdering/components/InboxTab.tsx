@@ -316,7 +316,7 @@ export function InboxTab() {
         <AlertDialog open onOpenChange={open => !open && setDialog(null)}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>{t('folio.cancelDialog.title', { folio: dialog.order.orderNumber })}</AlertDialogTitle>
+              <AlertDialogTitle>{t('folio.cancelDialog.title', { folio: String(dialog.order.orderNumber).split('').join(' ') })}</AlertDialogTitle>
               <AlertDialogDescription>
                 {dialog.order.customerName
                   ? t('folio.cancelDialog.description', { name: dialog.order.customerName })

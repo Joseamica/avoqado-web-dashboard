@@ -10,10 +10,14 @@ const useExternalServer = !!process.env.E2E_BASE_URL
 
 export default defineConfig({
   testDir: './e2e/tests',
+  globalSetup: './e2e/global-warmup.ts',
+  // La primera carga de cada worker contra el dev server tarda (Vite compila al pedir): 5 s es corto. Sigue fallando si la app no sale.
+  expect: { timeout: 15_000 },
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  // Local: el dev server (Vite, un solo hilo) compila al pedir; con 5 workers a la vez la primera carga de cada uno se queda en blanco.
+  workers: process.env.CI ? 1 : 2,
   reporter: 'html',
 
   use: {

@@ -853,7 +853,7 @@ describe('InboxTab · folios de «Nadie» (Por pagar / Por entregar)', () => {
     renderTab()
     await userEvent.click(await screen.findByRole('button', { name: 'folio.cancel' }))
     expect(cancelOrder).not.toHaveBeenCalled()
-    expect(await screen.findByText('folio.cancelDialog.title|W7KQ2')).toBeInTheDocument()
+    expect(await screen.findByText('folio.cancelDialog.title|W 7 K Q 2')).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'folio.cancelDialog.confirm' }))
     await waitFor(() => expect(cancelOrder).toHaveBeenCalledWith('venue-1', 'f1'))
     await waitFor(() => expect(screen.queryByTestId('folio-f1')).toBeNull())

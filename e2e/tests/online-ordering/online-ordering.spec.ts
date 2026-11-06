@@ -84,6 +84,8 @@ test('aceptar un pedido lo pasa a «En preparación» sin recargar', async ({ pa
 
   await page.goto('/venues/venue-alpha/online-ordering#bandeja')
   const card = page.getByTestId('order-ord-1')
+  // Arranque en frío del servidor de dev: Vite compila la página al primer pedido. Se espera la app (no se oculta nada: si nunca sale, falla).
+  await expect(page.getByRole('heading', { name: /Por aceptar/ })).toBeVisible({ timeout: 45_000 })
   await expect(page.getByRole('heading', { name: /Por aceptar/ })).toContainText('(1)')
   await expect(card).toBeVisible()
 
@@ -407,6 +409,29 @@ for (const theme of ['light', 'dark'] as const) {
     await shootBoth(page, 'bandeja-nadie', theme, async () => {
       await expect(toDeliver).toBeVisible()
     })
+  })
+}
+
+for (const theme of ['light', 'dark'] as const) {
+  test(`Nadie · Bandeja: «Vence en N min» es ámbar con 5 min o menos, nunca rojo (${theme})`, async ({ page }) => {
+    await setupNadie(page, { theme })
+    await mockToPay(page, {
+      toPay: [
+        folio('f1', 'W7KQ2', { acceptDeadlineAt: new Date(Date.now() + 4 * 60_000).toISOString() }),
+        folio('f2', 'WH3N8', { customerName: 'Luis Gómez', acceptDeadlineAt: new Date(Date.now() + 20 * 60_000).toISOString() }),
+      ],
+      toDeliver: [],
+    })
+    await page.goto('/venues/venue-alpha/online-ordering#bandeja')
+    const soon = page.getByTestId('folio-f1').getByText(/^Vence en \d+ min$/)
+    const later = page.getByTestId('folio-f2').getByText(/^Vence en \d+ min$/)
+    await expect(soon).toHaveText('Vence en 4 min', { timeout: 45_000 })
+    await expect(later).toHaveText('Vence en 20 min')
+    await expect(soon).toHaveClass(/text-amber-/)
+    await expect(soon).not.toHaveClass(/red|destructive/)
+    await expect(later).not.toHaveClass(/amber|red|destructive/)
+    await page.setViewportSize({ width: 1280, height: 1000 })
+    await page.screenshot({ path: `${SHOTS}/vence-en-1280-${theme}.png`, fullPage: true })
   })
 }
 

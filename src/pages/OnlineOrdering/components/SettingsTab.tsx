@@ -479,38 +479,40 @@ export function SettingsTab() {
                   <AlertDescription className="space-y-2">
                     <p className="font-medium">{t('settings.confirm.checklistTitle')}</p>
                     <ul role="list" className="space-y-2">
-                      <li className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <li className="flex items-start gap-2">
                         {hours ? (
-                          <CheckCircle2 aria-hidden="true" className="h-4 w-4 shrink-0 text-(--success)" />
+                          <CheckCircle2 aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-(--success)" />
                         ) : (
-                          <Circle aria-hidden="true" className="h-4 w-4 shrink-0 text-muted-foreground" />
+                          <Circle aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
                         )}
-                        {hours ? (
-                          <span>
-                            {sameAllWeek(hours)
-                              ? t('settings.confirm.hoursOk', {
-                                  days: t('settings.confirm.allWeek'),
-                                  open: Object.values(hours)[0].ranges[0].open,
-                                  close: Object.values(hours)[0].ranges[0].close,
-                                })
-                              : t('settings.confirm.hoursCustom')}
-                          </span>
-                        ) : (
-                          <>
-                            <span>{t('settings.confirm.hoursMissing')}</span>
-                            <a href="#oo-hours-card" className="text-primary underline underline-offset-2">
-                              {t('settings.confirm.hoursLink')}
-                            </a>
-                          </>
-                        )}
+                        <span className="min-w-0 flex-1">
+                          {hours ? (
+                            <>
+                              {sameAllWeek(hours)
+                                ? t('settings.confirm.hoursOk', {
+                                    days: t('settings.confirm.allWeek'),
+                                    open: Object.values(hours)[0].ranges[0].open,
+                                    close: Object.values(hours)[0].ranges[0].close,
+                                  })
+                                : t('settings.confirm.hoursCustom')}
+                            </>
+                          ) : (
+                            <>
+                              {t('settings.confirm.hoursMissing')}{' '}
+                              <a href="#oo-hours-card" className="text-primary underline underline-offset-2">
+                                {t('settings.confirm.hoursLink')}
+                              </a>
+                            </>
+                          )}
+                        </span>
                       </li>
-                      <li className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <li className="flex items-start gap-2">
                         {deviceLive ? (
-                          <CheckCircle2 aria-hidden="true" className="h-4 w-4 shrink-0 text-(--success)" />
+                          <CheckCircle2 aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-(--success)" />
                         ) : (
-                          <Circle aria-hidden="true" className="h-4 w-4 shrink-0 text-muted-foreground" />
+                          <Circle aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
                         )}
-                        <span>
+                        <span className="min-w-0 flex-1">
                           {deviceLive && deviceAgeMs !== null
                             ? deviceAgeMs < 3_600_000
                               ? t('settings.confirm.deviceOk', { minutes: Math.floor(deviceAgeMs / 60_000) })
