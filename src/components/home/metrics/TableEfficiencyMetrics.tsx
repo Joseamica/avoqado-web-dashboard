@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next'
+import { tableName } from '@/lib/tableName'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Currency } from '@/utils/currency'
 
@@ -27,7 +28,7 @@ export const TableEfficiencyMetrics = ({ data }: { data: any }) => {
                   </div>
                   <div>
                     <p className="font-medium text-foreground">
-                      {t('table', { defaultValue: 'Mesa' })} {table.tableNumber}
+                      {tableName(t, table.tableNumber)}
                     </p>
                     <p className="text-sm text-muted-foreground">
                       {table.orderCount || 0} {t('charts.orders')}

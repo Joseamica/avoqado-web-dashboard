@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
+import { tableName } from '@/lib/tableName'
 import { CalendarDays, Users, Clock, MapPin, User, MessageSquare, ArrowLeft, XCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -199,7 +200,7 @@ export default function BookingManagePage() {
             <div className="flex items-center gap-3">
               <MapPin className="h-5 w-5 text-muted-foreground" />
               <p>
-                {t('publicBooking.manage.table')} {reservation.table.number}
+                {tableName(t, reservation.table.number)}
               </p>
             </div>
           )}

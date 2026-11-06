@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
+import { tableNumber } from '@/lib/tableName'
 import { Hash, TriangleAlert, Undo2, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
@@ -54,7 +55,7 @@ export function OpenOrdersNotice({ numbers, canRestore, onRestore, onDismiss }: 
   const count = numbers.length
   return (
     <EditorNotice
-      title={t('openOrders.title', { count, numbers: numbers.join(', ') })}
+      title={t('openOrders.title', { count, numbers: numbers.map(n => tableNumber(t, n)).join(', ') })}
       body={t('openOrders.body', { count })}
       action={
         canRestore
@@ -78,7 +79,7 @@ export function DuplicateNumbersNotice({ numbers, newOneTaken, onShow }: { numbe
   return (
     <EditorNotice
       icon={<Hash className="h-5 w-5" />}
-      title={t('duplicates.title', { count, numbers: numbers.join(', ') })}
+      title={t('duplicates.title', { count, numbers: numbers.map(n => tableNumber(t, n)).join(', ') })}
       body={t(newOneTaken ? 'duplicates.bodyNew' : 'duplicates.body', { count })}
       action={{ label: t(newOneTaken ? 'duplicates.showNew' : 'duplicates.show'), onClick: onShow, testId: 'floor-plan-duplicates-show', tour: 'floor-plan-duplicates-show' }}
       testId="floor-plan-duplicates"

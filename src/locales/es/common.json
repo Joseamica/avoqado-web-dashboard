@@ -1,4 +1,6 @@
 {
+  "tableWord": "Mesa",
+  "tableName": "Mesa {{number}}",
   "newManualPayment": "Nuevo pago manual",
   "search": "Buscar...",
   "cancel": "Cancelar",

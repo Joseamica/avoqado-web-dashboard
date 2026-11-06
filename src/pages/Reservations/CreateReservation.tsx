@@ -6,6 +6,7 @@ import { ArrowLeft, Loader2, Plus, User, X } from 'lucide-react'
 import { DateTime } from 'luxon'
 import { useEffect, useMemo, useState, type MutableRefObject } from 'react'
 import { useTranslation } from 'react-i18next'
+import { tableNumber } from '@/lib/tableName'
 import { useNavigate } from 'react-router-dom'
 
 import { falloDeCarga } from '@/lib/falloDeCarga'
@@ -754,7 +755,7 @@ export function CreateReservationForm({
                 noneLabel={t('noTable', { defaultValue: 'Sin mesa' })}
                 formatLabel={table =>
                   t('form.tableCapacity', {
-                    number: table.number,
+                    number: tableNumber(t, table.number),
                     capacity: table.capacity,
                     defaultValue: `Mesa {{number}} ({{capacity}} personas)`,
                   }) as string

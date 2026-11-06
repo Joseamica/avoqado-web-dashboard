@@ -3,6 +3,7 @@ import { CalendarDays, ChevronLeft, ChevronRight, Clock, Columns3, Eye, EyeOff, 
 import { DateTime } from 'luxon'
 import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react'
 import { useTranslation } from 'react-i18next'
+import { tableName } from '@/lib/tableName'
 import { useNavigate } from 'react-router-dom'
 
 import { AvisoDeCarga } from '@/components/AvisoDeCarga'
@@ -630,7 +631,7 @@ export default function ReservationCalendar() {
         headerLabel = staff ? `${staff.firstName} ${staff.lastName}` : key
       } else {
         const table = rsvps[0]?.table
-        headerLabel = table ? `${t('columns.table')} ${table.number}` : key
+        headerLabel = table ? tableName(t, table.number) : key
       }
 
       return { key, headerLabel, reservations: filteredRsvps }
@@ -837,7 +838,7 @@ export default function ReservationCalendar() {
               )}
               <div className="text-muted-foreground pt-1">
                 {formatTime(reservation.startsAt)} – {formatTime(reservation.endsAt)} · {reservation.partySize}p
-                {reservation.table && ` · Mesa ${reservation.table.number}`}
+                {reservation.table && ` · ${tableName(t, reservation.table.number)}`}
               </div>
             </div>
           </TooltipContent>
