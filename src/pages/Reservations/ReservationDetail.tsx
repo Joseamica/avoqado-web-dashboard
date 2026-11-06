@@ -27,6 +27,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { useBreadcrumb } from '@/context/BreadcrumbContext'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
+import { Currency } from '@/utils/currency'
 import { useVenueDateTime } from '@/utils/datetime'
 import reservationService from '@/services/reservation.service'
 import type { RescheduleNotificationChannel } from '@/types/reservation'
@@ -376,7 +377,6 @@ export default function ReservationDetail() {
                   : []
             const mods = reservation.modifiers ?? []
             if (services.length === 0 && mods.length === 0) return null
-            const money = (n: number) => n.toLocaleString('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 })
             const serviceIds = new Set(services.map(s => s.id))
             // Add-ons whose service isn't in the resolved list (defensive — keeps
             // them visible instead of silently dropping like the old bug did).
@@ -391,7 +391,7 @@ export default function ReservationDetail() {
                       <li key={s.id} className="space-y-1">
                         <div className="flex justify-between items-baseline gap-2">
                           <span className="font-medium">{s.name}</span>
-                          {s.price != null && s.price > 0 && <span className="tabular-nums text-sm">{money(s.price)}</span>}
+                          {s.price != null && s.price > 0 && <span className="tabular-nums text-sm">{Currency(s.price)}</span>}
                         </div>
                         {s.duration != null && (
                           <div className="text-xs text-muted-foreground">
@@ -409,7 +409,7 @@ export default function ReservationDetail() {
                                     + {m.name ?? t('unnamed', 'Sin nombre')}
                                     {qtyLabel}
                                   </span>
-                                  {lineTotal > 0 && <span className="tabular-nums">+{money(lineTotal)}</span>}
+                                  {lineTotal > 0 && <span className="tabular-nums">+{Currency(lineTotal)}</span>}
                                 </li>
                               )
                             })}
@@ -427,7 +427,7 @@ export default function ReservationDetail() {
                           {m.name ?? t('unnamed', 'Sin nombre')}
                           {qtyLabel}
                         </span>
-                        {lineTotal > 0 && <span className="font-medium tabular-nums">+{money(lineTotal)}</span>}
+                        {lineTotal > 0 && <span className="font-medium tabular-nums">+{Currency(lineTotal)}</span>}
                       </li>
                     )
                   })}

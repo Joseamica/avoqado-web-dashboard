@@ -278,6 +278,32 @@ describe('ReservationDetail — Services breakdown', () => {
     expect(screen.getByText('Corte de cabello')).toBeDefined()
     expect(screen.getByText('detail.sections.services')).toBeDefined()
   })
+
+  // D27: el SERVIDOR manda el precio como Decimal de Prisma, que en JSON llega como TEXTO ("250.00").
+  // Antes el renglón decía «250» (String#toLocaleString ignora el formato); debe decir lo mismo que «Crear cita».
+  it('el precio que llega como texto se ve con «$» y centavos, igual que en «Crear cita»', async () => {
+    mockReservation = {
+      ...createTestReservation('CONFIRMED'),
+      productId: 'svc-corte',
+      product: { id: 'svc-corte', name: 'Corte de cabello', price: '250.00' as unknown as number },
+      services: [{ id: 'svc-corte', name: 'Corte de cabello', price: '250.00' as unknown as number, duration: 30 }],
+      modifiers: [
+        {
+          id: 'mod-lavado',
+          productId: 'svc-corte',
+          name: 'Lavado',
+          quantity: 2,
+          price: '35.50' as unknown as number,
+          createdAt: '2026-03-15T09:00:00.000Z',
+        },
+      ],
+    }
+    await renderDetail()
+
+    expect(screen.getByText(Currency(250))).toBeInTheDocument()
+    expect(screen.getByText(`+${Currency(71)}`)).toBeInTheDocument()
+    expect(screen.queryByText('250.00')).toBeNull()
+  })
 })
 
 // D4 — «Sí llegó»: deshacer un «No asistió» con una confirmación que dice exactamente qué se revierte, y el pendiente que
