@@ -14,12 +14,21 @@ export const categoriasParaGuardar = (scope: string, valores?: unknown[]): strin
     : undefined
 
 /**
- * Al editar, sólo se manda lo que la persona cambió frente a lo que abrió (Codex D14 v2 r1 #1): un formulario abierto antes de
- * que otra persona guardara no debe pisar su límite o sus categorías con el valor viejo. Listas: mismo conjunto = igual.
+ * Al editar, sólo se manda lo que la persona cambió frente a lo que abrió (Codex D14 v2 r1 #1 y r3): un formulario abierto antes
+ * de que otra persona guardara no debe pisar con el valor viejo un campo que no se tocó. En lo que sí se cambió, gana el último
+ * que guarda (decisión del 5-nov). Listas: mismo conjunto = igual; null y vacío = igual.
  */
-export const siCambio = <T>(nuevo: T, abierto: T): T | undefined => {
-	const a = nuevo ?? null
-	const b = abierto ?? null
-	if (Array.isArray(a) && Array.isArray(b)) return a.length === b.length && a.every(x => b.includes(x)) ? undefined : nuevo
-	return a === b ? undefined : nuevo
+const igual = (nuevo: unknown, abierto: unknown) => {
+  const a = nuevo ?? null
+  const b = abierto ?? null
+  if (Array.isArray(a) && Array.isArray(b)) return a.length === b.length && a.every(x => b.includes(x))
+  return a === b
 }
+
+export const siCambio = <T>(nuevo: T, abierto: unknown): T | undefined => (igual(nuevo, abierto) ? undefined : nuevo)
+
+/** Quita del guardado cada campo igual a lo que se abrió. */
+export const soloLoQueCambio = <T extends object>(datos: T, abierto: object | undefined): Partial<T> =>
+  abierto
+    ? (Object.fromEntries(Object.entries(datos).filter(([k, v]) => !igual(v, (abierto as Record<string, unknown>)[k]))) as Partial<T>)
+    : datos

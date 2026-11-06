@@ -14,7 +14,7 @@ import type { CreateDiscountRequest, Discount, DiscountScope, DiscountType, Upda
 import { ChevronLeft, ChevronRight, Check, Loader2 } from 'lucide-react'
 
 import { useDiscountFormData } from '../hooks/useDiscountFormData'
-import { categoriasParaGuardar, limiteParaGuardar, siCambio } from '../paraGuardar'
+import { categoriasParaGuardar, limiteParaGuardar, soloLoQueCambio } from '../paraGuardar'
 import { WizardStep1BasicInfo } from './wizard-steps/WizardStep1BasicInfo'
 import { WizardStep2Scope } from './wizard-steps/WizardStep2Scope'
 import { WizardStep3Rules } from './wizard-steps/WizardStep3Rules'
@@ -230,7 +230,7 @@ export function DiscountWizard({ open, onOpenChange, venueId, editDiscount, onSu
 
   // Update discount mutation (for edit mode)
   const updateDiscountMutation = useMutation({
-    mutationFn: (data: UpdateDiscountRequest & { active: boolean }) =>
+    mutationFn: (data: UpdateDiscountRequest) =>
       discountService.updateDiscount(venueId, editDiscount!.id, data),
     onSuccess: data => {
       toast({
@@ -345,13 +345,18 @@ export function DiscountWizard({ open, onOpenChange, venueId, editDiscount, onSu
 
     // Use update or create mutation based on mode
     if (isEditMode) {
-      // Límites y categorías sólo si cambiaron frente a lo abierto: así no se pisa lo que otra persona guardó en medio.
-      updateDiscountMutation.mutate({
-        ...completeData,
-        targetCategoryIds: siCambio(completeData.targetCategoryIds, editDiscount?.targetCategoryIds ?? []),
-        maxTotalUses: siCambio(limiteParaGuardar(step3Data.maxTotalUses, true), editDiscount?.maxTotalUses),
-        maxUsesPerCustomer: siCambio(limiteParaGuardar(step3Data.maxUsesPerCustomer, true), editDiscount?.maxUsesPerCustomer),
-      })
+      // Sólo lo que cambió frente a lo abierto (alcance, categorías, límites y lo demás): un campo sin tocar no pisa lo que otra
+      // persona guardó en medio (Codex D14 v2 r1 #1 y r3).
+      updateDiscountMutation.mutate(
+        soloLoQueCambio(
+          {
+            ...completeData,
+            maxTotalUses: limiteParaGuardar(step3Data.maxTotalUses, true),
+            maxUsesPerCustomer: limiteParaGuardar(step3Data.maxUsesPerCustomer, true),
+          },
+          editDiscount,
+        ),
+      )
     } else {
       createDiscountMutation.mutate(completeData)
     }
