@@ -91,11 +91,10 @@ export default function CustomerForm({ venueId, customer, groups, onSuccess }: C
 		register,
 		handleSubmit,
 		setValue,
-		setError,
 		watch,
 		formState: { errors, isValid },
 	} = useForm<CustomerFormData>({
-		resolver: zodResolver(createCustomerSchema(t)),
+		resolver: zodResolver(createCustomerSchema(t, customer)),
 		mode: 'onBlur',
 		defaultValues: {
 			firstName: customer?.firstName || '',
@@ -214,9 +213,6 @@ export default function CustomerForm({ venueId, customer, groups, onSuccess }: C
 
 	const onSubmit = (data: CustomerFormData) => {
 		if (isEditing) {
-			// D15: como en el POS, un dato de contacto que el cliente ya tenía no se vacía (el SERVIDOR tampoco lo borra).
-			if (customer?.email && !data.email) return setError('email', { message: t('form.validation.emailCannotBeCleared') })
-			if (customer?.phone && !data.phone) return setError('phone', { message: t('form.validation.phoneCannotBeCleared') })
 			updateMutation.mutate(data)
 		} else {
 			createMutation.mutate(data)

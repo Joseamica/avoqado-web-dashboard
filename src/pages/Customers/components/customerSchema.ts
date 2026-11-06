@@ -8,7 +8,14 @@ import { z } from 'zod'
  * Exigir ambos dejaba fuera al caso más común del ICP: la estética o el gym que tiene el
  * TELÉFONO de su clienta y no su correo — no la podía dar de alta aunque el backend sí.
  */
-export const createCustomerSchema = (t: (key: string) => string) =>
+/**
+ * D15: al editar, `original` trae el correo y el teléfono guardados. Un dato que el cliente ya tenía no se vacía (como en el
+ * POS y en el SERVIDOR), y se explica en su campo aunque sea el único contacto.
+ */
+export const createCustomerSchema = (
+	t: (key: string) => string,
+	original?: { email?: string | null; phone?: string | null },
+) =>
   z
     .object({
       firstName: z.string().min(1, t('form.validation.firstNameRequired')),
@@ -34,7 +41,17 @@ export const createCustomerSchema = (t: (key: string) => string) =>
        */
       marketingConsent: z.boolean().default(false),
     })
-    .refine(data => Boolean(data.email) || Boolean(data.phone), {
-      message: t('form.validation.emailOrPhoneRequired'),
-      path: ['email'],
+    .superRefine((data, ctx) => {
+      let vaciado = false
+      if (original?.email && !data.email) {
+        ctx.addIssue({ code: 'custom', path: ['email'], message: t('form.validation.emailCannotBeCleared') })
+        vaciado = true
+      }
+      if (original?.phone && !data.phone) {
+        ctx.addIssue({ code: 'custom', path: ['phone'], message: t('form.validation.phoneCannotBeCleared') })
+        vaciado = true
+      }
+      if (!vaciado && !data.email && !data.phone) {
+        ctx.addIssue({ code: 'custom', path: ['email'], message: t('form.validation.emailOrPhoneRequired') })
+      }
     })

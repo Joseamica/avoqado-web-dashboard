@@ -125,4 +125,14 @@ describe('D15 · cliente con un dato de contacto vacío', () => {
 		expect(await screen.findByText('form.validation.phoneCannotBeCleared')).toBeInTheDocument()
 		expect(mockUpdate).not.toHaveBeenCalled()
 	})
+
+	it('🔴 editar: vaciar el ÚNICO contacto (el teléfono) explica junto al teléfono que no se borra (Codex D15 r1 #1)', async () => {
+		pintar(clienteSoloTelefono)
+		escribir('phone', '')
+		enviar()
+
+		expect(await screen.findByText('form.validation.phoneCannotBeCleared')).toBeInTheDocument()
+		expect(mockUpdate).not.toHaveBeenCalled()
+	})
 })
+
