@@ -300,7 +300,9 @@ export function CreateClassSessionDialog({ open, onOpenChange, defaultDate, defa
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md overflow-visible">
+      {/* D26: si no cabe en la ventana, el cuerpo se desplaza y los botones quedan fijos (como EditClassSessionDialog).
+          overflow-visible se queda: los Select con disablePortal son position:fixed y el scroll del cuerpo no los recorta. */}
+      <DialogContent className="flex max-h-[calc(100dvh-2rem)] flex-col overflow-visible sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Users className="h-5 w-5" />
@@ -308,302 +310,304 @@ export function CreateClassSessionDialog({ open, onOpenChange, defaultDate, defa
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={onSubmit} className="space-y-5">
-          {/* Class (product) — like Square's dropdown with "+ Añadir nueva clase" */}
-          <div className="space-y-1.5">
-            <Label htmlFor="productId">{t('classSession.fields.className', { defaultValue: 'Nombre de la clase' })}</Label>
-            {productsLoading ? (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                {tCommon('loading')}
-              </div>
-            ) : classProducts.length === 0 && !selectedProductId ? (
-              /* Prominent empty state with CTA — hidden if a class was just created (pending refetch) */
-              <div className="rounded-lg border border-dashed border-input p-4 text-center space-y-2">
-                <p className="text-sm text-muted-foreground">
-                  {t('classSession.noClassProducts', {
-                    defaultValue: 'No hay clases creadas. Crea un producto tipo "Clase" primero.',
-                  })}
-                </p>
-                <Button type="button" variant="outline" size="sm" className="gap-1.5" onClick={() => setCreateClassOpen(true)}>
-                  <Plus className="h-3.5 w-3.5" />
-                  {t('classSession.createClass', { defaultValue: 'Crear clase' })}
-                </Button>
-              </div>
-            ) : (
-              <Select
-                value={watch('productId')}
-                onValueChange={v => {
-                  if (v === '__create__') {
-                    setCreateClassOpen(true)
-                    return
-                  }
-                  setValue('productId', v, { shouldValidate: true })
-                }}
-              >
-                <SelectTrigger id="productId" className={errors.productId ? 'border-destructive' : ''}>
-                  <SelectValue placeholder={t('classSession.fields.classPlaceholder', { defaultValue: 'Selecciona una clase' })} />
-                </SelectTrigger>
-                <SelectContent disablePortal>
-                  {/* "+ Añadir nueva clase" at top like Square */}
-                  <SelectItem value="__create__" className="gap-2 text-primary font-medium">
-                    <span className="flex items-center gap-2">
-                      <Plus className="h-3.5 w-3.5" />
-                      {t('classSession.addClass', { defaultValue: 'Añadir nueva clase' })}
-                    </span>
-                  </SelectItem>
-                  <SelectSeparator />
-                  <SelectGroup>
-                    <SelectLabel>{t('classSession.allClasses', { defaultValue: 'Todas las clases' })}</SelectLabel>
-                    {classProducts.map(p => (
-                      <SelectItem key={p.id} value={p.id}>
-                        <span className="flex items-center justify-between gap-3 w-full">
-                          <span>
-                            {p.name}
-                            {p.duration && <span className="text-muted-foreground text-xs ml-1.5">{p.duration} min</span>}
-                          </span>
-                          {Number(p.price) > 0 ? (
-                            <span className="text-muted-foreground text-xs">${Number(p.price).toFixed(2)}</span>
-                          ) : (
-                            <span className="text-muted-foreground text-xs">{t('classSession.free', { defaultValue: 'Gratis' })}</span>
-                          )}
-                        </span>
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            )}
-            {errors.productId && <p className="text-xs text-destructive">{errors.productId.message}</p>}
-          </div>
-
-          {/* Date */}
-          <div className="space-y-1.5">
-            <Label htmlFor="date">{t('form.fields.date')}</Label>
-            <Input
-              id="date"
-              type="date"
-              min={formatDateISO(new Date())}
-              {...register('date')}
-              className={errors.date ? 'border-destructive' : ''}
-            />
-            {errors.date && <p className="text-xs text-destructive">{errors.date.message}</p>}
-          </div>
-
-          {/* Start / End time row */}
-          <div className={productDuration ? '' : 'grid grid-cols-2 gap-3'}>
+        <form onSubmit={onSubmit} className="flex min-h-0 flex-1 flex-col gap-4">
+          <div className="-mx-6 min-h-0 flex-1 space-y-5 overflow-y-auto px-6 py-1" data-testid="create-class-session-body">
+            {/* Class (product) — like Square's dropdown with "+ Añadir nueva clase" */}
             <div className="space-y-1.5">
-              <Label htmlFor="startTime">{t('form.fields.startTime')}</Label>
-              <Controller
-                control={control}
-                name="startTime"
-                render={({ field }) => (
-                  <TimePicker
-                    id="startTime"
-                    value={field.value || undefined}
-                    onChange={time => field.onChange(time)}
-                    placeholder="--:--"
-                    label=""
-                    allowManualInput
-                    error={!!errors.startTime}
-                  />
-                )}
-              />
-              {errors.startTime && <p className="text-xs text-destructive">{errors.startTime.message}</p>}
-              {productDuration && startTime && (
-                <p className="text-[11px] text-muted-foreground">
-                  {t('classSession.autoEndTime', {
-                    defaultValue: 'Duración: {{duration}} min — Termina a las {{endTime}}',
-                    duration: productDuration,
-                    endTime: watch('endTime'),
-                  })}
-                </p>
+              <Label htmlFor="productId">{t('classSession.fields.className', { defaultValue: 'Nombre de la clase' })}</Label>
+              {productsLoading ? (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  {tCommon('loading')}
+                </div>
+              ) : classProducts.length === 0 && !selectedProductId ? (
+                /* Prominent empty state with CTA — hidden if a class was just created (pending refetch) */
+                <div className="rounded-lg border border-dashed border-input p-4 text-center space-y-2">
+                  <p className="text-sm text-muted-foreground">
+                    {t('classSession.noClassProducts', {
+                      defaultValue: 'No hay clases creadas. Crea un producto tipo "Clase" primero.',
+                    })}
+                  </p>
+                  <Button type="button" variant="outline" size="sm" className="gap-1.5" onClick={() => setCreateClassOpen(true)}>
+                    <Plus className="h-3.5 w-3.5" />
+                    {t('classSession.createClass', { defaultValue: 'Crear clase' })}
+                  </Button>
+                </div>
+              ) : (
+                <Select
+                  value={watch('productId')}
+                  onValueChange={v => {
+                    if (v === '__create__') {
+                      setCreateClassOpen(true)
+                      return
+                    }
+                    setValue('productId', v, { shouldValidate: true })
+                  }}
+                >
+                  <SelectTrigger id="productId" className={errors.productId ? 'border-destructive' : ''}>
+                    <SelectValue placeholder={t('classSession.fields.classPlaceholder', { defaultValue: 'Selecciona una clase' })} />
+                  </SelectTrigger>
+                  <SelectContent disablePortal>
+                    {/* "+ Añadir nueva clase" at top like Square */}
+                    <SelectItem value="__create__" className="gap-2 text-primary font-medium">
+                      <span className="flex items-center gap-2">
+                        <Plus className="h-3.5 w-3.5" />
+                        {t('classSession.addClass', { defaultValue: 'Añadir nueva clase' })}
+                      </span>
+                    </SelectItem>
+                    <SelectSeparator />
+                    <SelectGroup>
+                      <SelectLabel>{t('classSession.allClasses', { defaultValue: 'Todas las clases' })}</SelectLabel>
+                      {classProducts.map(p => (
+                        <SelectItem key={p.id} value={p.id}>
+                          <span className="flex items-center justify-between gap-3 w-full">
+                            <span>
+                              {p.name}
+                              {p.duration && <span className="text-muted-foreground text-xs ml-1.5">{p.duration} min</span>}
+                            </span>
+                            {Number(p.price) > 0 ? (
+                              <span className="text-muted-foreground text-xs">${Number(p.price).toFixed(2)}</span>
+                            ) : (
+                              <span className="text-muted-foreground text-xs">{t('classSession.free', { defaultValue: 'Gratis' })}</span>
+                            )}
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
               )}
+              {errors.productId && <p className="text-xs text-destructive">{errors.productId.message}</p>}
             </div>
-            {!productDuration && (
+
+            {/* Date */}
+            <div className="space-y-1.5">
+              <Label htmlFor="date">{t('form.fields.date')}</Label>
+              <Input
+                id="date"
+                type="date"
+                min={formatDateISO(new Date())}
+                {...register('date')}
+                className={errors.date ? 'border-destructive' : ''}
+              />
+              {errors.date && <p className="text-xs text-destructive">{errors.date.message}</p>}
+            </div>
+
+            {/* Start / End time row */}
+            <div className={productDuration ? '' : 'grid grid-cols-2 gap-3'}>
               <div className="space-y-1.5">
-                <Label htmlFor="endTime">{t('form.fields.endTime')}</Label>
+                <Label htmlFor="startTime">{t('form.fields.startTime')}</Label>
                 <Controller
                   control={control}
-                  name="endTime"
+                  name="startTime"
                   render={({ field }) => (
                     <TimePicker
-                      id="endTime"
+                      id="startTime"
                       value={field.value || undefined}
                       onChange={time => field.onChange(time)}
                       placeholder="--:--"
                       label=""
                       allowManualInput
-                      error={!!errors.endTime}
+                      error={!!errors.startTime}
                     />
                   )}
                 />
-                {errors.endTime && <p className="text-xs text-destructive">{errors.endTime.message}</p>}
-              </div>
-            )}
-          </div>
-
-          {/* Capacity + Staff row */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="capacity">{t('classSession.fields.capacity', { defaultValue: 'Plazas disponibles' })}</Label>
-              <Input
-                id="capacity"
-                type="number"
-                min={1}
-                placeholder="15"
-                {...register('capacity')}
-                className={errors.capacity ? 'border-destructive' : ''}
-              />
-              {errors.capacity && <p className="text-xs text-destructive">{errors.capacity.message}</p>}
-              {hasLayout && layoutSpotCount && (
-                <p className="text-[11px] text-muted-foreground mt-1">
-                  {t('classSession.capacityFromLayout', {
-                    defaultValue: 'Auto-calculado: {{count}} lugares del mapa',
-                    count: layoutSpotCount,
-                  })}
-                </p>
-              )}
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="assignedStaffId">{t('form.fields.staff')}</Label>
-              {staffLoading ? (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                </div>
-              ) : (
-                <Select value={watch('assignedStaffId') || 'none'} onValueChange={v => setValue('assignedStaffId', v === 'none' ? '' : v)}>
-                  <SelectTrigger id="assignedStaffId">
-                    <SelectValue placeholder={t('noStaff')} />
-                  </SelectTrigger>
-                  <SelectContent disablePortal>
-                    <SelectItem value="none">{t('noStaff')}</SelectItem>
-                    {staffMembers.map(s => (
-                      <SelectItem key={s.staffId} value={s.staffId}>
-                        {s.firstName} {s.lastName}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            </div>
-          </div>
-
-          {/* Recurrence */}
-          <div className="space-y-2 border-t border-border pt-4">
-            <div className="flex items-center gap-2">
-              <Controller
-                control={control}
-                name="isRecurring"
-                render={({ field }) => (
-                  <Checkbox
-                    id="isRecurring"
-                    checked={!!field.value}
-                    onCheckedChange={v => field.onChange(v === true)}
-                  />
+                {errors.startTime && <p className="text-xs text-destructive">{errors.startTime.message}</p>}
+                {productDuration && startTime && (
+                  <p className="text-[11px] text-muted-foreground">
+                    {t('classSession.autoEndTime', {
+                      defaultValue: 'Duración: {{duration}} min — Termina a las {{endTime}}',
+                      duration: productDuration,
+                      endTime: watch('endTime'),
+                    })}
+                  </p>
                 )}
-              />
-              <Label htmlFor="isRecurring" className="cursor-pointer text-sm font-medium">
-                {t('classSession.recurrence.toggle', { defaultValue: 'Repetir esta clase' })}
-              </Label>
-            </div>
-
-            {watch('isRecurring') && (
-              <div className="space-y-3 rounded-lg border border-border p-3 bg-muted/30">
+              </div>
+              {!productDuration && (
                 <div className="space-y-1.5">
-                  <Label className="text-xs">{t('classSession.recurrence.weekdays', { defaultValue: 'Días de la semana' })}</Label>
+                  <Label htmlFor="endTime">{t('form.fields.endTime')}</Label>
                   <Controller
                     control={control}
-                    name="weekdays"
+                    name="endTime"
                     render={({ field }) => (
-                      <div className="flex gap-1.5 flex-wrap">
-                        {[
-                          { v: 1, l: 'L', full: 'Lunes' },
-                          { v: 2, l: 'M', full: 'Martes' },
-                          { v: 3, l: 'X', full: 'Miércoles' },
-                          { v: 4, l: 'J', full: 'Jueves' },
-                          { v: 5, l: 'V', full: 'Viernes' },
-                          { v: 6, l: 'S', full: 'Sábado' },
-                          { v: 0, l: 'D', full: 'Domingo' },
-                        ].map(({ v, l, full }) => {
-                          const selected = (field.value as number[] | undefined)?.includes(v) ?? false
-                          return (
-                            <button
-                              key={v}
-                              type="button"
-                              title={full}
-                              aria-label={full}
-                              aria-pressed={selected}
-                              onClick={() => {
-                                const current = (field.value as number[] | undefined) ?? []
-                                field.onChange(selected ? current.filter(x => x !== v) : [...current, v].sort())
-                              }}
-                              className={
-                                'h-11 w-11 rounded-lg border text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ' +
-                                (selected
-                                  ? 'bg-primary text-primary-foreground border-primary shadow-sm'
-                                  : 'bg-background hover:bg-muted border-input text-muted-foreground hover:text-foreground')
-                              }
-                            >
-                              {l}
-                            </button>
-                          )
-                        })}
-                      </div>
+                      <TimePicker
+                        id="endTime"
+                        value={field.value || undefined}
+                        onChange={time => field.onChange(time)}
+                        placeholder="--:--"
+                        label=""
+                        allowManualInput
+                        error={!!errors.endTime}
+                      />
                     )}
                   />
-                  {errors.weekdays && <p className="text-xs text-destructive">{errors.weekdays.message as string}</p>}
+                  {errors.endTime && <p className="text-xs text-destructive">{errors.endTime.message}</p>}
                 </div>
+              )}
+            </div>
 
-                <div className="grid grid-cols-2 gap-3 items-end">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">{t('classSession.recurrence.endsOn', { defaultValue: 'Termina' })}</Label>
-                    <Select value={watch('endMode')} onValueChange={v => setValue('endMode', v as 'date' | 'count')}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent disablePortal>
-                        <SelectItem value="count">
-                          {t('classSession.recurrence.afterN', { defaultValue: 'Después de N sesiones' })}
-                        </SelectItem>
-                        <SelectItem value="date">
-                          {t('classSession.recurrence.onDate', { defaultValue: 'En una fecha' })}
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  {watch('endMode') === 'date' ? (
-                    <div className="space-y-1.5">
-                      <Label htmlFor="endDate" className="text-xs">{t('classSession.recurrence.endDate', { defaultValue: 'Fecha fin' })}</Label>
-                      <Input id="endDate" type="date" min={watch('date') || formatDateISO(new Date())} {...register('endDate')} />
-                      {errors.endDate && <p className="text-xs text-destructive">{errors.endDate.message as string}</p>}
-                    </div>
-                  ) : (
-                    <div className="space-y-1.5">
-                      <Label htmlFor="occurrences" className="text-xs">{t('classSession.recurrence.count', { defaultValue: '# de sesiones' })}</Label>
-                      <Input id="occurrences" type="number" min={1} max={104} {...register('occurrences')} />
-                      {errors.occurrences && <p className="text-xs text-destructive">{errors.occurrences.message as string}</p>}
-                    </div>
-                  )}
-                </div>
-                <p className="text-[11px] text-muted-foreground">
-                  {t('classSession.recurrence.hint', {
-                    defaultValue:
-                      'Las sesiones se crearán todas a la misma hora. Si alguna fecha ya tiene una clase agendada, se omite automáticamente.',
-                  })}
-                </p>
+            {/* Capacity + Staff row */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="capacity">{t('classSession.fields.capacity', { defaultValue: 'Plazas disponibles' })}</Label>
+                <Input
+                  id="capacity"
+                  type="number"
+                  min={1}
+                  placeholder="15"
+                  {...register('capacity')}
+                  className={errors.capacity ? 'border-destructive' : ''}
+                />
+                {errors.capacity && <p className="text-xs text-destructive">{errors.capacity.message}</p>}
+                {hasLayout && layoutSpotCount && (
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    {t('classSession.capacityFromLayout', {
+                      defaultValue: 'Auto-calculado: {{count}} lugares del mapa',
+                      count: layoutSpotCount,
+                    })}
+                  </p>
+                )}
               </div>
-            )}
-          </div>
 
-          {/* Internal notes */}
-          <div className="space-y-1.5">
-            <Label htmlFor="internalNotes">
-              {t('form.fields.internalNotes')}
-              <span className="text-muted-foreground text-xs ml-1">({tCommon('optional', { defaultValue: 'opcional' })})</span>
-            </Label>
-            <Textarea id="internalNotes" rows={2} placeholder={t('form.placeholders.internalNotes')} {...register('internalNotes')} />
+              <div className="space-y-1.5">
+                <Label htmlFor="assignedStaffId">{t('form.fields.staff')}</Label>
+                {staffLoading ? (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  </div>
+                ) : (
+                  <Select value={watch('assignedStaffId') || 'none'} onValueChange={v => setValue('assignedStaffId', v === 'none' ? '' : v)}>
+                    <SelectTrigger id="assignedStaffId">
+                      <SelectValue placeholder={t('noStaff')} />
+                    </SelectTrigger>
+                    <SelectContent disablePortal>
+                      <SelectItem value="none">{t('noStaff')}</SelectItem>
+                      {staffMembers.map(s => (
+                        <SelectItem key={s.staffId} value={s.staffId}>
+                          {s.firstName} {s.lastName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+            </div>
+
+            {/* Recurrence */}
+            <div className="space-y-2 border-t border-border pt-4">
+              <div className="flex items-center gap-2">
+                <Controller
+                  control={control}
+                  name="isRecurring"
+                  render={({ field }) => (
+                    <Checkbox
+                      id="isRecurring"
+                      checked={!!field.value}
+                      onCheckedChange={v => field.onChange(v === true)}
+                    />
+                  )}
+                />
+                <Label htmlFor="isRecurring" className="cursor-pointer text-sm font-medium">
+                  {t('classSession.recurrence.toggle', { defaultValue: 'Repetir esta clase' })}
+                </Label>
+              </div>
+
+              {watch('isRecurring') && (
+                <div className="space-y-3 rounded-lg border border-border p-3 bg-muted/30">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">{t('classSession.recurrence.weekdays', { defaultValue: 'Días de la semana' })}</Label>
+                    <Controller
+                      control={control}
+                      name="weekdays"
+                      render={({ field }) => (
+                        <div className="flex gap-1.5 flex-wrap">
+                          {[
+                            { v: 1, l: 'L', full: 'Lunes' },
+                            { v: 2, l: 'M', full: 'Martes' },
+                            { v: 3, l: 'X', full: 'Miércoles' },
+                            { v: 4, l: 'J', full: 'Jueves' },
+                            { v: 5, l: 'V', full: 'Viernes' },
+                            { v: 6, l: 'S', full: 'Sábado' },
+                            { v: 0, l: 'D', full: 'Domingo' },
+                          ].map(({ v, l, full }) => {
+                            const selected = (field.value as number[] | undefined)?.includes(v) ?? false
+                            return (
+                              <button
+                                key={v}
+                                type="button"
+                                title={full}
+                                aria-label={full}
+                                aria-pressed={selected}
+                                onClick={() => {
+                                  const current = (field.value as number[] | undefined) ?? []
+                                  field.onChange(selected ? current.filter(x => x !== v) : [...current, v].sort())
+                                }}
+                                className={
+                                  'h-11 w-11 rounded-lg border text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ' +
+                                  (selected
+                                    ? 'bg-primary text-primary-foreground border-primary shadow-sm'
+                                    : 'bg-background hover:bg-muted border-input text-muted-foreground hover:text-foreground')
+                                }
+                              >
+                                {l}
+                              </button>
+                            )
+                          })}
+                        </div>
+                      )}
+                    />
+                    {errors.weekdays && <p className="text-xs text-destructive">{errors.weekdays.message as string}</p>}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 items-end">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">{t('classSession.recurrence.endsOn', { defaultValue: 'Termina' })}</Label>
+                      <Select value={watch('endMode')} onValueChange={v => setValue('endMode', v as 'date' | 'count')}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent disablePortal>
+                          <SelectItem value="count">
+                            {t('classSession.recurrence.afterN', { defaultValue: 'Después de N sesiones' })}
+                          </SelectItem>
+                          <SelectItem value="date">
+                            {t('classSession.recurrence.onDate', { defaultValue: 'En una fecha' })}
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {watch('endMode') === 'date' ? (
+                      <div className="space-y-1.5">
+                        <Label htmlFor="endDate" className="text-xs">{t('classSession.recurrence.endDate', { defaultValue: 'Fecha fin' })}</Label>
+                        <Input id="endDate" type="date" min={watch('date') || formatDateISO(new Date())} {...register('endDate')} />
+                        {errors.endDate && <p className="text-xs text-destructive">{errors.endDate.message as string}</p>}
+                      </div>
+                    ) : (
+                      <div className="space-y-1.5">
+                        <Label htmlFor="occurrences" className="text-xs">{t('classSession.recurrence.count', { defaultValue: '# de sesiones' })}</Label>
+                        <Input id="occurrences" type="number" min={1} max={104} {...register('occurrences')} />
+                        {errors.occurrences && <p className="text-xs text-destructive">{errors.occurrences.message as string}</p>}
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    {t('classSession.recurrence.hint', {
+                      defaultValue:
+                        'Las sesiones se crearán todas a la misma hora. Si alguna fecha ya tiene una clase agendada, se omite automáticamente.',
+                    })}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Internal notes */}
+            <div className="space-y-1.5">
+              <Label htmlFor="internalNotes">
+                {t('form.fields.internalNotes')}
+                <span className="text-muted-foreground text-xs ml-1">({tCommon('optional', { defaultValue: 'opcional' })})</span>
+              </Label>
+              <Textarea id="internalNotes" rows={2} placeholder={t('form.placeholders.internalNotes')} {...register('internalNotes')} />
+            </div>
           </div>
 
           <DialogFooter className="pt-2">
