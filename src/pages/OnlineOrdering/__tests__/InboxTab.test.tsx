@@ -1076,12 +1076,30 @@ describe('InboxTab · folios de «Nadie» (Por pagar / Por entregar)', () => {
   })
 
   it('«Mi equipo» sin folios: una lectura de to-pay y ya no se sondea', async () => {
-    getSettings.mockResolvedValue({ requiresAcceptance: true })
-    renderTab()
-    await screen.findByTestId('online-inbox')
-    await new Promise(r => setTimeout(r, 11_000))
-    expect(getToPay).toHaveBeenCalledTimes(1)
-  }, 20_000)
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    try {
+      getSettings.mockResolvedValue({ requiresAcceptance: true })
+      renderTab()
+      await screen.findByTestId('online-inbox')
+      await act(async () => void (await vi.advanceTimersByTimeAsync(11_000)))
+      expect(getToPay).toHaveBeenCalledTimes(1)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('control: con «Nadie» sí se vuelve a leer to-pay a los 10 s', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    try {
+      getSettings.mockResolvedValue({ requiresAcceptance: false })
+      renderTab()
+      await screen.findByTestId('online-inbox')
+      await act(async () => void (await vi.advanceTimersByTimeAsync(11_000)))
+      expect(getToPay.mock.calls.length).toBeGreaterThanOrEqual(2)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
 
   it('la nota de «Nadie» sale sólo con folios de «Nadie»', async () => {
     getToPay.mockResolvedValue(toPayRes([folio()]))
