@@ -91,6 +91,7 @@ export default function CustomerForm({ venueId, customer, groups, onSuccess }: C
 		register,
 		handleSubmit,
 		setValue,
+		setError,
 		watch,
 		formState: { errors, isValid },
 	} = useForm<CustomerFormData>({
@@ -160,8 +161,9 @@ export default function CustomerForm({ venueId, customer, groups, onSuccess }: C
 			customerService.createCustomer(venueId, {
 				firstName: data.firstName,
 				lastName: data.lastName,
-				email: data.email,
-				phone: data.phone,
+				// D15: un campo vacío no se manda. Con "" el SERVIDOR respondía «Invalid email format» al alta sólo con teléfono.
+				email: data.email || undefined,
+				phone: data.phone || undefined,
 				customerGroupId: data.customerGroupId || undefined,
 				// 🔴 String vacío NO se manda — el schema del servidor exige 'YYYY-MM-DD' o
 				// nada; omitir la llave es lo que deja el alta pasar sin fecha de nacimiento.
@@ -189,8 +191,8 @@ export default function CustomerForm({ venueId, customer, groups, onSuccess }: C
 			customerService.updateCustomer(venueId, customer!.id, {
 				firstName: data.firstName,
 				lastName: data.lastName,
-				email: data.email,
-				phone: data.phone,
+				email: data.email || undefined,
+				phone: data.phone || undefined,
 				customerGroupId: data.customerGroupId || null,
 				birthDate: data.birthDate || undefined,
 				marketingConsent: data.marketingConsent,
@@ -212,6 +214,9 @@ export default function CustomerForm({ venueId, customer, groups, onSuccess }: C
 
 	const onSubmit = (data: CustomerFormData) => {
 		if (isEditing) {
+			// D15: como en el POS, un dato de contacto que el cliente ya tenía no se vacía (el SERVIDOR tampoco lo borra).
+			if (customer?.email && !data.email) return setError('email', { message: t('form.validation.emailCannotBeCleared') })
+			if (customer?.phone && !data.phone) return setError('phone', { message: t('form.validation.phoneCannotBeCleared') })
 			updateMutation.mutate(data)
 		} else {
 			createMutation.mutate(data)

@@ -507,7 +507,13 @@
     "edit": "Edit",
     "create": "Create",
     "add": "Add",
-    "comingSoon": "Coming soon"
+    "comingSoon": "Coming soon",
+    "error": "Error",
+    "na": "N/A",
+    "notFound": "Not found",
+    "deleting": "Deleting…",
+    "saving": "Saving…",
+    "loading": "Loading…"
   },
   "chooseColor": "Choose color",
   "screenReaderOnly": {
