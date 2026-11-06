@@ -36,7 +36,11 @@
     "detail": {
       "title": "Detalles del Descuento",
       "notFound": "Descuento no encontrado",
-      "usage": {"total": "Usos: {{count}}", "pos": "En el POS: {{count}}", "links": "En ligas pagadas: {{count}}"},
+      "usage": {
+        "total": "Usos: {{count}}",
+        "pos": "En el POS: {{count}}",
+        "links": "En ligas pagadas: {{count}}"
+      },
       "tabs": {
         "general": "General",
         "scope": "Alcance",
@@ -136,7 +140,8 @@
         "valuePositive": "El valor debe ser positivo",
         "scopeRequired": "El alcance del descuento es requerido",
         "bogoRequired": "La configuración BOGO es requerida para el alcance de cantidad",
-        "timeRangeInvalid": "La hora de fin debe ser posterior a la hora de inicio"
+        "timeRangeInvalid": "La hora de fin debe ser posterior a la hora de inicio",
+        "categoriesRequired": "Elige al menos una categoría para un descuento por categorías"
       },
       "types": {
         "PERCENTAGE": "Porcentaje",

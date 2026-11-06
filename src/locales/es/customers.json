@@ -114,7 +114,9 @@
       "phoneRequired": "El teléfono es requerido",
       "phoneInvalid": "El teléfono debe tener al menos 10 caracteres",
       "emailOrPhoneRequired": "Pon al menos un correo o un teléfono para poder contactarlo",
-      "birthDateInvalid": "La fecha debe tener el formato AAAA-MM-DD"
+      "birthDateInvalid": "La fecha debe tener el formato AAAA-MM-DD",
+      "emailCannotBeCleared": "El correo del cliente no se puede borrar; escribe uno nuevo o déjalo como estaba",
+      "phoneCannotBeCleared": "El teléfono del cliente no se puede borrar; escribe uno nuevo o déjalo como estaba"
     },
     "buttons": {
       "create": "Crear Cliente",

@@ -177,6 +177,11 @@ export function WizardStep2Scope({ form, products, categoryOptions, customerGrou
         <FormField
           control={form.control}
           name="targetCategoryIds"
+          // D14: «Categorías» sin ninguna categoría avanzaba y se guardaba con la lista vacía.
+          rules={{
+            validate: (v?: unknown[]) =>
+              form.getValues('scope') !== 'CATEGORY' || (v?.length ?? 0) > 0 || t('discounts.form.validation.categoriesRequired'),
+          }}
           render={({ field }) => (
             <FormItem>
               <FormLabel>{t('discounts.form.fields.targetCategories')}</FormLabel>

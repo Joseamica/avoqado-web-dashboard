@@ -215,13 +215,20 @@ export function DiscountFormFields({ form, products, categoryOptions, customerGr
             <FormField
               control={form.control}
               name="targetCategoryIds"
+              // D14: «Categorías» sin ninguna categoría se guardaba con la lista vacía.
+              rules={{
+                validate: (v?: unknown[]) =>
+                  form.getValues('scope') !== 'CATEGORY' || (v?.length ?? 0) > 0 || t('discounts.form.validation.categoriesRequired'),
+              }}
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>{t('discounts.form.fields.targetCategories')}</FormLabel>
                   <FormControl>
                     <MultipleSelector
                       value={
-                        field.value?.map((id: string) => {
+                        // El valor guarda opciones ({ value, label }) al elegir e ids al editar uno existente: se aceptan las dos.
+                        field.value?.map((id: string | Option) => {
+                          if (typeof id === 'object') return id
                           const category = categoryOptions.find((c: any) => c.value === id)
                           return category || { value: id, label: id }
                         }) || []

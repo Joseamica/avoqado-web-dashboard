@@ -507,7 +507,13 @@
     "edit": "Editar",
     "create": "Crear",
     "add": "Agregar",
-    "comingSoon": "Muy pronto"
+    "comingSoon": "Muy pronto",
+    "error": "Error",
+    "na": "N/D",
+    "notFound": "No encontrado",
+    "deleting": "Eliminando…",
+    "saving": "Guardando…",
+    "loading": "Cargando…"
   },
   "chooseColor": "Elegir color",
   "screenReaderOnly": {

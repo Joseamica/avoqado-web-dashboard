@@ -114,7 +114,9 @@
       "phoneRequired": "Phone number is required",
       "phoneInvalid": "Phone number must be at least 10 characters",
       "emailOrPhoneRequired": "Add at least an email or a phone number so you can reach them",
-      "birthDateInvalid": "The date must be in YYYY-MM-DD format"
+      "birthDateInvalid": "The date must be in YYYY-MM-DD format",
+      "emailCannotBeCleared": "The customer's email can't be removed; enter a new one or leave it as it was",
+      "phoneCannotBeCleared": "The customer's phone can't be removed; enter a new one or leave it as it was"
     },
     "buttons": {
       "create": "Create Customer",

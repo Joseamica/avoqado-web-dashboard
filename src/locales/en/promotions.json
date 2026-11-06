@@ -36,7 +36,11 @@
     "detail": {
       "title": "Discount Details",
       "notFound": "Discount not found",
-      "usage": {"total": "Uses: {{count}}", "pos": "At the POS: {{count}}", "links": "In paid links: {{count}}"},
+      "usage": {
+        "total": "Uses: {{count}}",
+        "pos": "At the POS: {{count}}",
+        "links": "In paid links: {{count}}"
+      },
       "tabs": {
         "general": "General",
         "scope": "Scope",
@@ -136,7 +140,8 @@
         "valuePositive": "Value must be positive",
         "scopeRequired": "Discount scope is required",
         "bogoRequired": "BOGO configuration is required for quantity scope",
-        "timeRangeInvalid": "End time must be after start time"
+        "timeRangeInvalid": "End time must be after start time",
+        "categoriesRequired": "Choose at least one category for a category discount"
       },
       "types": {
         "PERCENTAGE": "Percentage",

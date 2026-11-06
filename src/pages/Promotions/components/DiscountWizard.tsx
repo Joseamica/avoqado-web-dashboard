@@ -294,7 +294,7 @@ export function DiscountWizard({ open, onOpenChange, venueId, editDiscount, onSu
     if (!step1Data || !step2Data || !step3Data) {
       toast({
         title: tCommon('common.error'),
-        description: 'Missing wizard data',
+        description: t('discounts.toasts.error'),
         variant: 'destructive',
       })
       return
