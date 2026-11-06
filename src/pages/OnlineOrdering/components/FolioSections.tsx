@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 
@@ -7,11 +7,12 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useToast } from '@/hooks/use-toast'
 import { getSettings, getToPay, onlineOrderingKeys } from '@/services/onlineOrdering.service'
-import type { FolioOrder, ToPayResponse } from '@/types/onlineOrdering'
+import type { FolioOrder } from '@/types/onlineOrdering'
 import { Currency } from '@/utils/currency'
 import { useVenueDateTime } from '@/utils/datetime'
 
 import { useExtraPages } from '../hooks/useExtraPages'
+import { toPayIsLive } from '../lib/toPayLive'
 
 export type FolioAction = 'ready' | 'delivered' | 'cancelFolio'
 type Section = 'toPay' | 'toDeliver'
@@ -41,20 +42,23 @@ export function FolioSections({ venueId, canAnswer, canCancel, busy, hidden, inb
   })
   const nadie = settings.data?.requiresAcceptance === false
   const queryClient = useQueryClient()
-  const prev = queryClient.getQueryState<ToPayResponse>(onlineOrderingKeys.toPay(venueId))
-  const readOnce = (prev?.dataUpdatedAt ?? 0) > 0 || (prev?.errorUpdatedAt ?? 0) > 0
-  const live =
-    nadie || inboxSignal || !!prev?.data?.showTile || (prev?.data ? prev.data.counts.toPay + prev.data.counts.toDeliver > 0 : false)
+  const live = toPayIsLive(queryClient, venueId, inboxSignal) || nadie
   const { data, isError, isFetching, refetch, dataUpdatedAt } = useQuery({
     queryKey: onlineOrderingKeys.toPay(venueId),
     queryFn: () => getToPay(venueId),
-    // Una lectura inicial siempre; después la consulta SÓLO vive con señal de «Nadie» (ajustes, o una respuesta con showTile o
-    // folios, p. ej. al volver a «Mi equipo» con folios vivos). Sin señal, ni el sondeo ni una invalidación la vuelven a pedir.
-    enabled: !!venueId && (!readOnce || live),
-    refetchInterval: 10_000,
+    enabled: !!venueId,
+    // Vivo: 10 s. Lento (sin folios ni señal de «Nadie»): 120 s y sin releer con eventos (ver toPayLive).
+    // ponytail: un folio creado justo tras una lectura en «Mi equipo» puede tardar hasta 120 s en verse; se baja con el SERVIDOR si estorba.
+    refetchInterval: live ? 10_000 : 120_000,
     refetchIntervalInBackground: false,
     retry: 1,
   })
+  // Llega una señal de «Nadie» desde la Bandeja con la consulta ya leída: se relee ya, sin esperar el repaso lento.
+  const wasSignal = useRef(inboxSignal)
+  useEffect(() => {
+    if (inboxSignal && !wasSignal.current && dataUpdatedAt > 0) void refetch()
+    wasSignal.current = inboxSignal
+  }, [inboxSignal, refetch, dataUpdatedAt])
   // Lo traído con «Cargar más» se RELEE en cada sondeo (ver useExtraPages): nunca queda un folio viejo congelado.
   const onMoreError = useCallback(() => toast({ title: t('folio.loadMoreFailed'), variant: 'destructive' }), [toast, t])
   const fetchSection = (section: Section) => async (cursor: string) => {
@@ -88,7 +92,7 @@ export function FolioSections({ venueId, canAnswer, canCancel, busy, hidden, inb
       </div>
     )
   }
-  if (!nadie && !data.showTile && data.counts.toPay + data.counts.toDeliver === 0) return null
+  if (!live && data.counts.toPay + data.counts.toDeliver === 0 && data.toPay.length + data.toDeliver.length === 0) return null
 
   const nowServer = Date.parse(data.serverTime) + (Math.max(now, dataUpdatedAt) - dataUpdatedAt)
   const build = (sec: Section) => {

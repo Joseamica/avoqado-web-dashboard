@@ -41,6 +41,7 @@ import { actionOutcome } from '../lib/actionOutcome'
 import { createChime, type Chime } from '../lib/chime'
 import { pauseLabel } from '../lib/pauseLabel'
 import { spaceFolio } from '../lib/spaceFolio'
+import { invalidateToPay } from '../lib/toPayLive'
 import { AcceptDialog } from './AcceptDialog'
 import { CardRefundButton } from './CardRefundSheet'
 import { FolioSections, type FolioAction } from './FolioSections'
@@ -124,10 +125,7 @@ export function InboxTab() {
   }, [hasPlan, dataUpdatedAt, venueId, queryClient])
 
   const refresh = () =>
-    Promise.all([
-      queryClient.invalidateQueries({ queryKey: onlineOrderingKeys.inbox(venueId) }),
-      queryClient.invalidateQueries({ queryKey: onlineOrderingKeys.toPay(venueId) }),
-    ])
+    Promise.all([queryClient.invalidateQueries({ queryKey: onlineOrderingKeys.inbox(venueId) }), invalidateToPay(queryClient, venueId)])
 
   // `isPending` llega en otro turno del navegador: dos clics seguidos (7 ms) se cuelan antes de que el botón se deshabilite.
   // Este candado se cierra en el mismo clic y se suelta al terminar (con éxito o sin él), justo antes de que `isPending` baje.

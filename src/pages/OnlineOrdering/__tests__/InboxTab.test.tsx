@@ -1219,14 +1219,31 @@ describe('InboxTab · folios de «Nadie» (Por pagar / Por entregar)', () => {
     expect(screen.getByText('folio.emptyToPay')).toBeInTheDocument()
   })
 
-  it('«Mi equipo» sin folios: una lectura de to-pay y ya no se sondea', async () => {
+  it('R87 «Mi equipo» sin nada: no relee to-pay con eventos de la Bandeja ni a los 10 s, pero sí a los 120 s', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true })
     try {
       getSettings.mockResolvedValue({ requiresAcceptance: true })
       renderTab()
       await screen.findByTestId('online-inbox')
+      await act(async () => handlers['order_updated']?.({ onlineStatus: 'ACCEPTED', venueId: 'venue-1' }))
       await act(async () => void (await vi.advanceTimersByTimeAsync(11_000)))
       expect(getToPay).toHaveBeenCalledTimes(1)
+      await act(async () => void (await vi.advanceTimersByTimeAsync(115_000)))
+      expect(getToPay.mock.calls.length).toBeGreaterThanOrEqual(2)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('R87 caso de Codex: un folio en toPay con counts 0 y showTile false se ve y la consulta sigue viva', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    try {
+      getSettings.mockResolvedValue({ requiresAcceptance: true })
+      getToPay.mockResolvedValue(toPayRes([folio()], [], { counts: { toPay: 0, toDeliver: 0 }, showTile: false }))
+      renderTab()
+      expect(await screen.findByTestId('folio-f1')).toBeInTheDocument()
+      await act(async () => void (await vi.advanceTimersByTimeAsync(11_000)))
+      expect(getToPay.mock.calls.length).toBeGreaterThanOrEqual(2)
     } finally {
       vi.useRealTimers()
     }
