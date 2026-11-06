@@ -1,6 +1,6 @@
 // E6a-fix2 K5 (full-testing E6a): la lista del buscador decía «Suggestions» (la etiqueta de fábrica de cmdk) a los lectores de
 // pantalla, en un dashboard en español; y «Sin resultados» iba fijo en español para quien usa el dashboard en inglés.
-import { fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { SearchCombobox } from '../search-combobox'
 import { Command, CommandItem, CommandList } from '../ui/command'
@@ -44,5 +44,36 @@ describe('CommandList', () => {
       </Command>,
     )
     expect(screen.getByRole('listbox')).toHaveAttribute('aria-label', 't:suggestions')
+  })
+})
+
+// Pizarrón D1 (5-nov, medido en Safari de iPhone con una bitácora en pantalla): iOS mueve el foco a la lista (`tabIndex=-1` de
+// cmdk) DESPUÉS del clic, no al presionar como Chrome. El regreso del foco al campo corría con la lista ya cerrada por la
+// elección, y el `onFocus` del campo la volvía a abrir: la lista se reabría sola y en horizontal tapaba «Finalizar».
+describe('SearchCombobox: el foco que llega a la lista después de elegir (orden de iOS)', () => {
+  it('🔴 elegir no vuelve a abrir la lista aunque el foco llegue a la lista en el mismo toque', async () => {
+    const onSelect = vi.fn()
+    const onOpenChange = vi.fn()
+    render(<SearchCombobox items={[{ id: 'c1', label: 'Bebidas' }]} value="" onChange={() => {}} onSelect={onSelect} onOpenChange={onOpenChange} />)
+    fireEvent.focus(screen.getByRole('combobox'))
+    const opcion = await screen.findByRole('option', { name: 'Bebidas' })
+    const lista = screen.getByRole('listbox')
+    // Como en Safari: el foco cae en la lista y el clic elige, en el mismo toque y antes de que React vuelva a pintar.
+    lista.focus()
+    opcion.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    await act(async () => { await new Promise(r => setTimeout(r, 0)) })
+    expect(onSelect).toHaveBeenCalledTimes(1)
+    expect(onOpenChange).toHaveBeenLastCalledWith(false)
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument()
+  })
+
+  it('con la lista abierta, el foco que cae en ella regresa al campo (escribir sigue buscando)', async () => {
+    render(<SearchCombobox items={[{ id: 'c1', label: 'Bebidas' }]} value="" onChange={() => {}} onSelect={() => {}} />)
+    const campo = screen.getByRole('combobox')
+    fireEvent.focus(campo)
+    const lista = await screen.findByRole('listbox')
+    await act(async () => { lista.focus(); await Promise.resolve() })
+    expect(campo).toHaveFocus()
+    expect(screen.getByRole('listbox')).toBeInTheDocument()
   })
 })
