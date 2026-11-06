@@ -94,7 +94,7 @@ export default function CustomerForm({ venueId, customer, groups, onSuccess }: C
 		watch,
 		formState: { errors, isValid },
 	} = useForm<CustomerFormData>({
-		resolver: zodResolver(createCustomerSchema(t)),
+		resolver: zodResolver(createCustomerSchema(t, customer)),
 		mode: 'onBlur',
 		defaultValues: {
 			firstName: customer?.firstName || '',
@@ -160,8 +160,9 @@ export default function CustomerForm({ venueId, customer, groups, onSuccess }: C
 			customerService.createCustomer(venueId, {
 				firstName: data.firstName,
 				lastName: data.lastName,
-				email: data.email,
-				phone: data.phone,
+				// D15: un campo vacío no se manda. Con "" el SERVIDOR respondía «Invalid email format» al alta sólo con teléfono.
+				email: data.email || undefined,
+				phone: data.phone || undefined,
 				customerGroupId: data.customerGroupId || undefined,
 				// 🔴 String vacío NO se manda — el schema del servidor exige 'YYYY-MM-DD' o
 				// nada; omitir la llave es lo que deja el alta pasar sin fecha de nacimiento.
@@ -189,8 +190,8 @@ export default function CustomerForm({ venueId, customer, groups, onSuccess }: C
 			customerService.updateCustomer(venueId, customer!.id, {
 				firstName: data.firstName,
 				lastName: data.lastName,
-				email: data.email,
-				phone: data.phone,
+				email: data.email || undefined,
+				phone: data.phone || undefined,
 				customerGroupId: data.customerGroupId || null,
 				birthDate: data.birthDate || undefined,
 				marketingConsent: data.marketingConsent,
