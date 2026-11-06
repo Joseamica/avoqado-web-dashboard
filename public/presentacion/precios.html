@@ -26,6 +26,8 @@
   .card b { display: block; font-size: 16px; }
   .card .p { font-size: 20px; font-variant-numeric: tabular-nums; }
   .card small { color: var(--muted); font-size: 12px; }
+  /* Lo que vende Avoqado: precio + IVA en chico, nunca el total (founder, 5-nov). */
+  .iva { color: var(--muted); font-size: max(11px, 0.6em); font-weight: 400; }
   h2 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--muted);
     margin: 28px 0 4px; }
   .row { display: grid; grid-template-columns: 24px 1fr auto; gap: 4px 12px; padding: 12px 0;
@@ -192,8 +194,8 @@
         const n = lista.features.filter(f => f.kind === 'SUELTA' && f.includedIn.includes(p.tier)).length
         return el('div', { className: 'card' },
           el('b', { textContent: `Plan ${p.name}` }),
-          el('div', { className: 'p', textContent: `${money.format(sinIva(p.price))} + IVA/mes` }),
-          el('small', { textContent: `Total ${money.format(p.price)} al mes · trae ${n} de las funciones de abajo` }))
+          el('div', { className: 'p' }, money.format(sinIva(p.price)), el('span', { className: 'iva', textContent: ' + IVA/mes' })),
+          el('small', { textContent: `Trae ${n} de las funciones de abajo` }))
       }),
     )
     planes.hidden = lista.plans.length === 0
@@ -223,7 +225,7 @@
     if (f.kind === 'SUELTA' && f.includedIn.length)
       meta.append(el('span', { textContent: `Incluida en ${f.includedIn.map(t => (t === 'PRO' ? 'Pro' : 'Premium')).join(' y ')}` }))
     const precio =
-      f.kind === 'SUELTA' ? el('div', { className: 'price', textContent: `${money.format(sinIva(f.price))} + IVA` })
+      f.kind === 'SUELTA' ? el('div', { className: 'price' }, money.format(sinIva(f.price)), el('span', { className: 'iva', textContent: ' + IVA' }))
       : el('div', { className: 'price muted', textContent: f.kind === 'INCLUIDO' ? 'Incluido' : 'Se cotiza' })
     if (f.kind === 'INCLUIDO') {
       meta.append(el('span', { textContent: 'Viene en todos los planes, también en el gratis.' }))
@@ -242,8 +244,8 @@
     const r = cuenta([...elegidos])
     const n = r.chosen.length + r.quoted.length
     const tot = r.options[0].totalCents
-    $('total').textContent = tot === 0 ? fmt(0) : `${money.format(sinIva(tot / 100))} + IVA`
-    $('cuenta').textContent = n === 0 ? 'Ningún módulo' : `${n} ${n === 1 ? 'módulo' : 'módulos'}${r.quoted.length ? ` · ${r.quoted.length} se cotiza aparte` : ''}${tot === 0 ? '' : ` · Total con IVA: ${fmt(tot)}`}`
+    $('total').replaceChildren(...(tot === 0 ? [fmt(0)] : [money.format(sinIva(tot / 100)), el('span', { className: 'iva', textContent: ' + IVA' })]))
+    $('cuenta').textContent = n === 0 ? 'Ningún módulo' : `${n} ${n === 1 ? 'módulo' : 'módulos'}${r.quoted.length ? ` · ${r.quoted.length} se cotiza aparte` : ''}`
     const consejo = $('consejo')
     if (r.best.kind === 'SUELTO') consejo.hidden = true
     else {
