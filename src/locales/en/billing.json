@@ -228,6 +228,7 @@
       "founder": "Your business is a founder: you have every feature at no cost.",
       "paymentPending": "Your payment is pending and paid access is on hold. Update your payment method to get it back.",
       "resume": "Resume",
+      "firstChargeOn": "Your first charge will be on {{date}}.",
       "discountUntil": "With your discount you pay {{price}} until {{date}}; then {{list}}.",
       "discountOnce": "With your discount you pay {{price}} on your next charge; then {{list}}.",
       "discountForever": "With your discount you pay {{price}}."
@@ -284,7 +285,11 @@
       "assistedNote": "We make this change with you so you're never charged twice.",
       "comp": "Your plan is complimentary: to change it, message us.",
       "founder": "As a founder you already have everything; there's nothing to pay.",
-      "absorbed": "That plan includes a feature you already pay for separately: we switch it today with credit."
+      "absorbed": "That plan includes a feature you already pay for separately: we switch it today with credit.",
+      "annualTotal": "Total per year",
+      "payTodayDeferred": "You pay {{price}} today · first charge on {{date}}",
+      "deferredNote": "Your free trial continues until {{date}}, and the first charge happens that day. You can cancel before then and pay nothing.",
+      "keepPlan": "Keep {{tier}}"
     },
     "page": {
       "contractCancelled": "Done: your plan stops renewing at the end of the paid period.",
@@ -302,7 +307,11 @@
     },
     "review": {
       "repriced": "{{name}} will go from {{from}} to {{to}} with this change."
-    }
+    },
+    "checkoutCardReceived": "We got your card. Saving your plan…",
+    "checkoutCardSaved": "Done: your card is saved. The first charge will be on {{date}}.",
+    "checkoutCardPending": "We got your card. Confirming it can take a few minutes; you were not charged today.",
+    "checkoutCardSavedNoDate": "Done: your card is saved. The first charge will be on the day your trial ends."
   },
   "featureGate": {
     "tierTag": "Included in {{tier}}",

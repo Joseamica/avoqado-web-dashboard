@@ -127,7 +127,8 @@ export type PlanOperation =
   | { kind: 'COMP' }
   | { kind: 'ASSISTED'; tier: PlanTarget }
   | { kind: 'FEATURES'; lines: HybridLineInput[] }
-  | { kind: 'CLASSIC_CHECKOUT'; tier: 'PRO' | 'PREMIUM' }
+  /** `firstChargeAt` (D3): quedarse con el plan de una prueba regalada; hoy no se cobra y el primer cobro es esa fecha. */
+  | { kind: 'CLASSIC_CHECKOUT'; tier: 'PRO' | 'PREMIUM'; firstChargeAt?: string }
   | {
       kind: 'HYBRID_REPLACE'
       tier: 'PRO' | 'PREMIUM'
@@ -193,6 +194,18 @@ export function planOperation(input: SelectionInput): PlanOperation {
     return offer ? [offer] : []
   })
   const lines = offers.map(offer => ({ publicationId: offer.publicationId, selectedFeatureCodes: [] as string[] }))
+  // D3: en una prueba regalada que el SERVIDOR todavía puede diferir, quedarse con SU plan es la compra clásica sin cobro hoy.
+  // Otro plan sigue en «escríbenos»: Premium→Pro le quitaría Premium ese mismo día.
+  const { firstChargeAt, tier: tierDeLaPrueba } = input.origin
+  if (
+    input.origin.kind === 'COMP' &&
+    firstChargeAt &&
+    tierDeLaPrueba &&
+    input.target === current &&
+    !lines.length &&
+    !input.classicRejected
+  )
+    return { kind: 'CLASSIC_CHECKOUT', tier: tierDeLaPrueba, firstChargeAt }
   if (input.target === current) return lines.length ? { kind: 'FEATURES', lines } : { kind: 'NONE' }
   if (input.origin.kind === 'COMP') return { kind: 'COMP' }
   const own = ownSource(input.origin, input.replacements)
@@ -287,6 +300,8 @@ export interface SelectionSummaryModel {
   monthlyTotal: number | null
   /** Only the classic checkout's first charge; a hybrid purchase shows `quote.dueNow` at review. */
   payToday: number | null
+  /** D3: quedarse con el plan de una prueba regalada — hoy $0 y el primer cobro ese día. */
+  firstChargeAt: string | null
   lose: FeatureGridEntry[]
   hint: { tier: 'PRO' | 'PREMIUM'; covered: number; more: number; price: number } | null
   seatNotice: boolean
@@ -323,7 +338,9 @@ export function summarizeSelection(input: SelectionInput & { interval: 'monthly'
     offer: operation.kind === 'HYBRID_REPLACE' ? (chosenPlanOffer(input.grid, operation.tier, input.preferList) ?? undefined) : undefined,
     price: planPillPrice(input.target, input).amount,
   }
-  const lines = input.target === current && current !== 'FREE' ? features : [planLine, ...features]
+  const quedarse = operation.kind === 'CLASSIC_CHECKOUT' && !!operation.firstChargeAt
+  // Quedarse con el plan de la prueba SÍ compra el plan: su línea va aunque el destino sea el plan actual.
+  const lines = input.target === current && current !== 'FREE' && !quedarse ? features : [planLine, ...features]
   const priced = !['NONE', 'FOUNDER', 'COMP'].includes(operation.kind)
   // A replacement drops exactly what its quote lists; ending the plan stops what the plan gives. Only held functions
   // show: a server older than 2026-09-29 listed a classic plan's quote-only functions (white label, master catalog) too.
@@ -339,7 +356,8 @@ export function summarizeSelection(input: SelectionInput & { interval: 'monthly'
     target: input.target,
     lines,
     monthlyTotal: priced ? lines.reduce((sum, line) => sum + (line.price ?? 0), 0) : null,
-    payToday: operation.kind === 'CLASSIC_CHECKOUT' ? planLine.price : null,
+    payToday: operation.kind === 'CLASSIC_CHECKOUT' ? (quedarse ? 0 : planLine.price) : null,
+    firstChargeAt: quedarse && operation.kind === 'CLASSIC_CHECKOUT' ? (operation.firstChargeAt ?? null) : null,
     lose,
     hint: operation.kind === 'FEATURES' ? includedHint(entries, input.marked, current) : null,
     seatNotice: input.target === 'FREE' && current !== 'FREE',

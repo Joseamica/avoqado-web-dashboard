@@ -23,7 +23,7 @@ import { CancelPlanDialog } from '@/components/billing/CancelPlanDialog'
 import { DowngradeReconcileDialog } from '@/components/billing/DowngradeReconcileDialog'
 import { HybridBillingPanel } from '@/components/billing/HybridBillingPanel'
 import { PlanUpgradeDialog } from '@/components/billing/PlanUpgradeDialog'
-import { planDePagoConcedido } from './planConcedido'
+import { contratacionLigada, planDePagoConcedido } from './planConcedido'
 import { SuperadminBillingSection } from './components/SuperadminBillingSection'
 import { FeatureGrid } from './plan/FeatureGrid'
 import { PlanRow } from './plan/PlanRow'
@@ -120,22 +120,38 @@ export default function Subscriptions() {
     const checkoutParam = searchParams.get('checkout')
     if (!checkoutParam) return
     checkoutHandledRef.current = true
+    // D3: quedarse con el plan de una prueba regalada no cobra hoy: nunca «Pago recibido».
+    const sinCobroHoy = searchParams.get('sinCobroHoy') === '1'
     if (checkoutParam === 'success') {
-      toast({ title: t('plan.checkoutReceived') })
+      toast({ title: t(sinCobroHoy ? 'plan.checkoutCardReceived' : 'plan.checkoutReceived') })
       // Stripe sends the owner back a few seconds before its webhook grants the plan: re-read a few times before
       // saying "pending", or the toast contradicts a row that shows the plan a moment later.
       void (async () => {
         let granted = false
+        let plan: { state?: string; stripeSubscriptionId?: string | null; trialEndsAt?: string | null } | undefined
         for (const wait of CHECKOUT_REREADS_MS) {
           if (wait) await new Promise(resolve => setTimeout(resolve, wait))
           await Promise.all([
             queryClient.refetchQueries({ queryKey: ['venuePlan', venueId] }),
             queryClient.refetchQueries({ queryKey: ['featureGrid', venueId] }),
           ])
-          granted = planDePagoConcedido(queryClient.getQueryData<{ state?: string }>(['venuePlan', venueId])?.state)
+          plan = queryClient.getQueryData<{ state?: string; stripeSubscriptionId?: string | null; trialEndsAt?: string | null }>([
+            'venuePlan',
+            venueId,
+          ])
+          // Con una prueba regalada el acceso ya existía: «quedó» exige la suscripción ligada.
+          granted = sinCobroHoy ? contratacionLigada(plan) : planDePagoConcedido(plan?.state)
           if (granted) break
         }
-        toast({ title: granted ? t('plan.checkoutSuccess') : t('plan.checkoutPending') })
+        toast({
+          title: sinCobroHoy
+            ? granted && plan?.trialEndsAt
+              ? t('plan.checkoutCardSaved', { date: formatDate(plan.trialEndsAt) })
+              : t(granted ? 'plan.checkoutCardSavedNoDate' : 'plan.checkoutCardPending')
+            : granted
+              ? t('plan.checkoutSuccess')
+              : t('plan.checkoutPending'),
+        })
       })()
     } else if (checkoutParam === 'cancel') {
       toast({ title: t('plan.checkoutCanceled') })
@@ -144,6 +160,7 @@ export default function Subscriptions() {
       prev => {
         const next = new URLSearchParams(prev)
         next.delete('checkout')
+        next.delete('sinCobroHoy')
         return next
       },
       { replace: true },
@@ -224,8 +241,15 @@ export default function Subscriptions() {
     if (op.kind === 'CLASSIC_CHECKOUT')
       return ops.classicCheckout
         .mutateAsync(
-          { tier: op.tier, interval: billingInterval },
-          { onError: value => (serverCode(value) === 'PLAN_ABSORBE_SUELTA' ? setClassicRejected(true) : fail(value)) },
+          { tier: op.tier, interval: billingInterval, primerCobroAnunciado: op.firstChargeAt },
+          {
+            onError: value => {
+              if (serverCode(value) === 'PLAN_ABSORBE_SUELTA') return setClassicRejected(true)
+              // D3: la oferta «hoy $0» caducó (quedan menos de 2 días): se dice por qué y se vuelve a leer el plan.
+              if (serverCode(value) === 'COBRO_DIFERIDO_CADUCO') void queryClient.invalidateQueries({ queryKey: ['venuePlan', venueId] })
+              fail(value)
+            },
+          },
         )
         .catch(() => undefined)
     if (op.kind === 'FEATURES') return quote({ lines: op.lines, replaceSubscriptionIds: [], dropFeatureCodes: [] })
@@ -315,7 +339,10 @@ export default function Subscriptions() {
     <>
       <div className="space-y-6 p-4 pb-28 sm:p-8 sm:pb-28 xl:pb-8" data-tour="plan-page">
         {plan.data === undefined && falloDeCarga(plan) ? (
-          <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+          <div
+            role="alert"
+            className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive"
+          >
             <p>{t('plan.page.planError')}</p>
             <BotonReintentar query={plan} />
           </div>
@@ -370,6 +397,7 @@ export default function Subscriptions() {
               {/* Outside the grid guard: the classic checkout and the drop need no grid (spec §4.1 falls back to ASSISTED). */}
               <SelectionSummary
                 model={model}
+                interval={billingInterval}
                 seatRule={seatRule}
                 canManage={canManage}
                 busy={busy}

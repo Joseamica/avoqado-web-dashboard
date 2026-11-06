@@ -162,6 +162,13 @@ describe('PlanRow', () => {
     expect(screen.getByRole('button', { name: 'currentPlan.actions.cancel' })).toBeDisabled()
   })
 
+  // D3 full-testing WARN 3: tras quedarse con el plan de una prueba (Stripe en trial), la fecha es el PRIMER cobro.
+  it('en prueba con tarjeta dice «tu primer cobro será el…», no «se renueva el…»', () => {
+    render(<PlanRow {...props({ origin: CLASSIC, planState: { state: 'trial' } as never, current: 'PRO', selected: 'PRO' })} />)
+    expect(screen.getByText('plan.row.firstChargeOn|date=2026-10-27')).toBeInTheDocument()
+    expect(screen.queryByText(/currentPlan\.renewsOn/)).toBeNull()
+  })
+
   // D5 (5-nov-2026): con un cupón vigente, «Tu plan» dice lo que paga, hasta cuándo y el precio después.
   it('cupón de 3 meses: lo que paga, hasta cuándo y después el precio de lista', () => {
     const conCupon = {

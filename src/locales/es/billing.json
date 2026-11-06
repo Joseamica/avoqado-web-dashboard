@@ -228,6 +228,7 @@
       "founder": "Tu negocio es fundador: tienes todas las funciones sin costo.",
       "paymentPending": "Tu pago está pendiente y el acceso de pago está en pausa. Actualiza tu método de pago para recuperarlo.",
       "resume": "Reanudar",
+      "firstChargeOn": "Tu primer cobro será el {{date}}.",
       "discountUntil": "Con tu descuento pagas {{price}} hasta el {{date}}; después {{list}}.",
       "discountOnce": "Con tu descuento pagas {{price}} en tu siguiente cobro; después {{list}}.",
       "discountForever": "Con tu descuento pagas {{price}}."
@@ -284,7 +285,11 @@
       "assistedNote": "Este cambio lo hacemos contigo para no cobrarte dos veces.",
       "comp": "Tu plan es de cortesía: para cambiarlo, escríbenos.",
       "founder": "Como fundador ya tienes todo; no hay nada que pagar.",
-      "absorbed": "Ese plan incluye una función que ya pagas por separado: te lo cambiamos hoy con crédito."
+      "absorbed": "Ese plan incluye una función que ya pagas por separado: te lo cambiamos hoy con crédito.",
+      "annualTotal": "Total al año",
+      "payTodayDeferred": "Hoy pagas {{price}} · primer cobro el {{date}}",
+      "deferredNote": "Tu prueba gratis sigue hasta el {{date}} y ese día se hace el primer cobro. Puedes cancelar antes sin pagar nada.",
+      "keepPlan": "Quedarme con {{tier}}"
     },
     "page": {
       "contractCancelled": "Listo: tu plan deja de renovarse al final del periodo pagado.",
@@ -302,7 +307,11 @@
     },
     "review": {
       "repriced": "{{name}} pasará de {{from}} a {{to}} con este cambio."
-    }
+    },
+    "checkoutCardReceived": "Recibimos tu tarjeta. Estamos guardando tu plan…",
+    "checkoutCardSaved": "Listo: tu tarjeta quedó guardada. El primer cobro será el {{date}}.",
+    "checkoutCardPending": "Recibimos tu tarjeta. Confirmarla puede tardar unos minutos; hoy no se te cobró nada.",
+    "checkoutCardSavedNoDate": "Listo: tu tarjeta quedó guardada. El primer cobro será el día que termina tu prueba."
   },
   "featureGate": {
     "tierTag": "Incluido en {{tier}}",

@@ -735,6 +735,55 @@ describe('al pagar se cobra con IVA', () => {
   })
 })
 
+// D3 (5-nov-2026): con una prueba REGALADA (cortesía con fecha) el dueño puede quedarse con SU plan poniendo la tarjeta;
+// el primer cobro es el día que termina la prueba («como Shopify»). `firstChargeAt` lo decide el SERVIDOR.
+describe('quedarse con el plan durante una prueba regalada (D3)', () => {
+  const FIN = '2026-12-05T17:19:24.498Z'
+  const pruebaPro = origin({ kind: 'COMP', tier: 'PRO', currentPeriodEnd: FIN, firstChargeAt: FIN })
+
+  it('mismo plan, sin funciones marcadas → compra clásica SIN cobro hoy, con la fecha del primer cobro', () => {
+    expect(planOperation({ ...base, origin: pruebaPro, target: 'PRO' })).toEqual({
+      kind: 'CLASSIC_CHECKOUT',
+      tier: 'PRO',
+      firstChargeAt: FIN,
+    })
+  })
+
+  it('🔴 otro plan durante la prueba sigue en «escríbenos» (Premium→Pro le quitaría Premium ese día)', () => {
+    expect(planOperation({ ...base, origin: pruebaPro, target: 'PREMIUM' })).toEqual({ kind: 'COMP' })
+    const pruebaPremium = origin({ kind: 'COMP', tier: 'PREMIUM', currentPeriodEnd: FIN, firstChargeAt: FIN })
+    expect(planOperation({ ...base, origin: pruebaPremium, target: 'PRO' })).toEqual({ kind: 'COMP' })
+  })
+
+  it('sin `firstChargeAt` (cortesía permanente, o le quedan menos de 3 días) → igual que hoy', () => {
+    const sinFecha = origin({ kind: 'COMP', tier: 'PRO', currentPeriodEnd: FIN })
+    expect(planOperation({ ...base, origin: sinFecha, target: 'PRO' })).toEqual({ kind: 'NONE' })
+    expect(planOperation({ ...base, origin: origin({ kind: 'COMP', tier: 'PRO' }), target: 'PRO' })).toEqual({ kind: 'NONE' })
+  })
+
+  it('con funciones marcadas sigue comprando funciones (no mezcla las dos cosas)', () => {
+    expect(planOperation({ ...base, origin: pruebaPro, target: 'PRO', marked: ['RESERVATIONS'] })).toMatchObject({ kind: 'FEATURES' })
+  })
+
+  it('el resumen lleva la línea del plan, hoy $0 y el primer cobro; anual cuenta por año', () => {
+    const mensual = summarizeSelection({ ...base, origin: pruebaPro, target: 'PRO', interval: 'monthly' })
+    expect(mensual.lines).toEqual([expect.objectContaining({ plan: 'PRO', price: classicPrice('PRO', 'monthly') })])
+    expect(mensual.payToday).toBe(0)
+    expect(mensual.firstChargeAt).toBe(FIN)
+    expect(mensual.monthlyTotal).toBe(classicPrice('PRO', 'monthly'))
+    const anual = summarizeSelection({ ...base, origin: pruebaPro, target: 'PRO', interval: 'annual' })
+    expect(anual.lines[0]).toMatchObject({ price: classicPrice('PRO', 'annual') })
+    expect(anual.payToday).toBe(0)
+  })
+
+  it('REGRESIÓN: la compra clásica desde Gratis sigue cobrando hoy y sin fecha diferida', () => {
+    const model = summarizeSelection({ ...base, origin: NO_ORIGIN, target: 'PRO', interval: 'monthly' })
+    expect(model.operation).toEqual({ kind: 'CLASSIC_CHECKOUT', tier: 'PRO' })
+    expect(model.payToday).toBe(classicPrice('PRO', 'monthly'))
+    expect(model.firstChargeAt).toBeNull()
+  })
+})
+
 // D5 (5-nov-2026): con un cupón vigente, la píldora del plan actual dice lo que de verdad paga.
 describe('planPillPrice con cupón (D5)', () => {
   const conPrecio = origin({

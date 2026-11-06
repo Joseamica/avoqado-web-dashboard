@@ -17,3 +17,11 @@ const SIN_ACCESO = ['none', 'canceled', 'suspended'] as const
 export function planDePagoConcedido(state: string | null | undefined): boolean {
   return !!state && !(SIN_ACCESO as readonly string[]).includes(state)
 }
+
+/**
+ * D3: tras quedarse con el plan de una prueba regalada, el acceso YA existía (la cortesía). «Quedó» exige además que la
+ * suscripción de Stripe ya esté ligada, o la pantalla confirmaría lo que todavía no pasó.
+ */
+export function contratacionLigada(plan: { state?: string | null; stripeSubscriptionId?: string | null } | undefined): boolean {
+  return planDePagoConcedido(plan?.state) && !!plan?.stripeSubscriptionId
+}
