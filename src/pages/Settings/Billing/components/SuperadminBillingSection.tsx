@@ -135,12 +135,14 @@ export function SuperadminBillingSection({
                         <div>
                           <p className="text-sm font-medium">{feature.feature.name}</p>
                           <p className="text-xs text-muted-foreground">
-                            {feature.endDate
-                              ? t('superadmin.activeFeatures.trialUntil', {
-                                  defaultValue: 'Trial until {{date}}',
-                                  date: formatDate(feature.endDate),
-                                })
-                              : t('superadmin.activeFeatures.fullyActive', { defaultValue: 'Fully active' })}
+                            {feature.accessGranted === false
+                              ? t('superadmin.activeFeatures.noAccess', { defaultValue: 'No access (unpaid or trial ended)' })
+                              : feature.endDate
+                                ? t('superadmin.activeFeatures.trialUntil', {
+                                    defaultValue: 'Trial until {{date}}',
+                                    date: formatDate(feature.endDate),
+                                  })
+                                : t('superadmin.activeFeatures.fullyActive', { defaultValue: 'Fully active' })}
                           </p>
                         </div>
                       </div>

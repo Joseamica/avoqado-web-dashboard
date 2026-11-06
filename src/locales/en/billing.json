@@ -227,6 +227,8 @@
       "compNoDate": "Your {{tier}} plan is complimentary.",
       "founder": "Your business is a founder: you have every feature at no cost.",
       "paymentPending": "Your payment is pending and paid access is on hold. Update your payment method to get it back.",
+      "paymentPendingUntil": "We couldn't charge your plan. Update your payment method before {{date}} so you don't lose it.",
+      "paymentPendingNoDate": "We couldn't charge your plan. Update your payment method so you don't lose it.",
       "resume": "Resume",
       "firstChargeOn": "Your first charge will be on {{date}}.",
       "discountUntil": "With your discount you pay {{price}} until {{date}}; then {{list}}.",
@@ -642,7 +644,8 @@
     "activeFeatures": {
       "title": "Active Features Control",
       "trialUntil": "Trial until {{date}}",
-      "fullyActive": "Fully active"
+      "fullyActive": "Fully active",
+      "noAccess": "No access (unpaid or trial ended)"
     },
     "disclaimer": "Changes made here only affect this venue. For platform-wide feature management, use the Superadmin dashboard.",
     "grantTrial": {

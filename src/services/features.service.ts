@@ -36,6 +36,11 @@ export interface VenueFeatureStatus {
     // activeFeatures with this flag set and NO real VenueFeature row. The UI must NOT
     // offer "Cancel" on these — there's nothing to cancel, and removeVenueFeature would 404.
     grantedByBasePlan?: boolean
+    // D4 + D6 (5-nov-2026), servidor nuevo: `active` no dice si hay acceso (una prueba vencida o los 4 días tras una
+    // prueba vencidos siguen `active`). Esto sí. Ausente en servidores viejos.
+    accessGranted?: boolean
+    gracePeriodEndsAt?: string | null
+    suspendedAt?: string | null
   }>
   availableFeatures: Array<{
     id: string

@@ -105,8 +105,35 @@ describe('PlanRow', () => {
   })
 
   it('suspended access is said apart from the contracted plan', () => {
-    render(<PlanRow {...props({ origin: CLASSIC, planState: { state: 'past_due' } as never, current: 'PRO', selected: 'PRO' })} />)
+    render(<PlanRow {...props({ origin: CLASSIC, planState: { state: 'suspended' } as never, current: 'PRO', selected: 'PRO' })} />)
     expect(screen.getByRole('alert')).toHaveTextContent('plan.row.paymentPending')
+  })
+
+  // D4 + D6 (5-nov-2026): `past_due` CONSERVA el acceso (el servidor lo concede durante la gracia y hasta el 4.º intento).
+  // Decir «el acceso está en pausa» ahí era falso: el negocio seguía usando su plan.
+  it('🔴 pago pendiente CON acceso: no dice «en pausa»; dice hasta cuándo conserva el plan', () => {
+    render(
+      <PlanRow
+        {...props({
+          origin: CLASSIC,
+          planState: { state: 'past_due', gracePeriodEndsAt: '2099-11-22T04:40:00.000Z' } as never,
+          current: 'PRO',
+          selected: 'PRO',
+        })}
+      />,
+    )
+    const alerta = screen.getByRole('alert')
+    expect(alerta).not.toHaveTextContent('plan.row.paymentPending|')
+    expect(alerta.textContent).toMatch(/^plan\.row\.paymentPendingUntil\|date=/)
+  })
+
+  it('pago pendiente sin fecha de gracia conocida: aviso sin fecha y sin «en pausa»', () => {
+    render(
+      <PlanRow
+        {...props({ origin: CLASSIC, planState: { state: 'past_due', gracePeriodEndsAt: null } as never, current: 'PRO', selected: 'PRO' })}
+      />,
+    )
+    expect(screen.getByRole('alert')).toHaveTextContent('plan.row.paymentPendingNoDate')
   })
 
   it('contract: cancel renewal, and no resume', () => {

@@ -227,6 +227,8 @@
       "compNoDate": "Tu plan {{tier}} es de cortesía.",
       "founder": "Tu negocio es fundador: tienes todas las funciones sin costo.",
       "paymentPending": "Tu pago está pendiente y el acceso de pago está en pausa. Actualiza tu método de pago para recuperarlo.",
+      "paymentPendingUntil": "No pudimos cobrar tu plan. Actualiza tu método de pago antes del {{date}} para no perderlo.",
+      "paymentPendingNoDate": "No pudimos cobrar tu plan. Actualiza tu método de pago para no perderlo.",
       "resume": "Reanudar",
       "firstChargeOn": "Tu primer cobro será el {{date}}.",
       "discountUntil": "Con tu descuento pagas {{price}} hasta el {{date}}; después {{list}}.",
@@ -642,7 +644,8 @@
     "activeFeatures": {
       "title": "Control de Funciones Activas",
       "trialUntil": "Prueba hasta {{date}}",
-      "fullyActive": "Completamente activa"
+      "fullyActive": "Completamente activa",
+      "noAccess": "Sin acceso (cobro pendiente o prueba vencida)"
     },
     "disclaimer": "Los cambios aquí solo afectan este venue. Para gestión de funciones a nivel plataforma, usa el dashboard de Superadmin.",
     "grantTrial": {
