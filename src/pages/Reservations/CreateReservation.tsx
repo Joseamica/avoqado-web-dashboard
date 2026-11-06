@@ -39,7 +39,7 @@ import reservationService from '@/services/reservation.service'
 import { customerService } from '@/services/customer.service'
 import { getProducts } from '@/services/menu.service'
 import { teamService } from '@/services/team.service'
-import { ProductType, VenueType } from '@/types'
+import { ProductType } from '@/types'
 import type { AvailableSlot } from '@/types/reservation'
 import CustomerForm from '@/pages/Customers/components/CustomerForm'
 import { ServiceTypeSelectorDialog } from '@/pages/Menu/Services/ServiceTypeSelectorDialog'
@@ -52,20 +52,7 @@ import {
   isStaffAwareSettings,
   type StaffSelectionOption,
 } from './create-reservation-staff'
-
-const VENUE_TYPES_WITH_TABLES = new Set<VenueType>([
-  VenueType.RESTAURANT,
-  VenueType.BAR,
-  VenueType.CAFE,
-  VenueType.BAKERY,
-  VenueType.FAST_FOOD,
-  VenueType.CATERING,
-  VenueType.FOOD_TRUCK,
-  VenueType.CLOUD_KITCHEN,
-  VenueType.HOTEL,
-  VenueType.HOSTEL,
-  VenueType.RESORT,
-])
+import { VENUE_TYPES_WITH_TABLES, suggestedPartySize } from './party-size'
 
 const createSchema = z
   .object({
@@ -150,7 +137,7 @@ export function CreateReservationForm({
       startTime: defaultStartTime || '',
       endTime: '',
       duration: 60,
-      partySize: showTables ? 2 : 1,
+      partySize: suggestedPartySize(venue?.type, false),
       productId: '',
       guestMode: 'new',
       guestName: '',
@@ -171,12 +158,11 @@ export function CreateReservationForm({
   const watchAssignedStaffId = watch('assignedStaffId')
   const watchStartTime = watch('startTime')
 
-  // D27: 2 personas es la costumbre de una MESA (negocio con mesas y sin servicio elegido); una cita de servicio es de 1.
-  // Lo que la persona escribió a mano manda.
-  const suggestedPartySize = showTables && !watchProductId ? 2 : 1
+  // D27: la sugerencia sigue al servicio elegido; lo que la persona escribió a mano manda.
+  const suggestedSize = suggestedPartySize(venue?.type, !!watchProductId)
   useEffect(() => {
-    if (!partySizeEdited.current) setValue('partySize', suggestedPartySize)
-  }, [suggestedPartySize, setValue])
+    if (!partySizeEdited.current) setValue('partySize', suggestedSize)
+  }, [suggestedSize, setValue])
 
   // Fetch APPOINTMENTS_SERVICE products for the service selector
   const { data: allProducts = [], isLoading: productsLoading } = useQuery({
