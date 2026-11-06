@@ -104,8 +104,9 @@
   "inspector": {
     "nothing": "Haz clic en una mesa o un elemento del plano para cambiarlo.",
     "duplicate": "Copiar",
-        "number": "Número",
-    "numberTaken": "Ya hay otra {{name}}",
+    "table": "Mesa {{number}}",
+    "number": "Número",
+    "numberTaken": "Ya hay una mesa {{number}}",
     "numberRequired": "La mesa necesita un número",
     "capacity": "Personas",
     "capacityUnknown": "Sin dato",
@@ -142,7 +143,7 @@
     "hint": "Arrástralas al plano, o haz clic en una para ponerla al centro.",
     "title_one": "{{count}} mesa sin acomodar",
     "title_other": "{{count}} mesas sin acomodar",
-    "place": "Poner {{name}} en el plano"
+    "place": "Poner la mesa {{number}} en el plano"
   },
   "newArea": {
     "titleFirst": "Crea tu primera área",
@@ -201,8 +202,8 @@
     "areas": "Llegaste al máximo de {{max}} áreas."
   },
   "openOrders": {
-    "title_one": "{{names}} tiene una cuenta abierta",
-    "title_other": "{{names}} tienen una cuenta abierta",
+    "title_one": "La mesa {{numbers}} tiene una cuenta abierta",
+    "title_other": "Las mesas {{numbers}} tienen una cuenta abierta",
     "body_one": "No se guardó: mientras su cuenta siga abierta no se puede quitar del plano. Regrésala, o cierra la cuenta y vuelve a guardar.",
     "body_other": "No se guardó: mientras sus cuentas sigan abiertas no se pueden quitar del plano. Regrésalas, o cierra las cuentas y vuelve a guardar.",
     "restore_one": "Regresar la mesa",
@@ -210,8 +211,8 @@
     "dismiss": "Cerrar aviso"
   },
   "duplicates": {
-    "title_one": "Hay más de una {{names}}",
-    "title_other": "Hay mesas repetidas: {{names}}",
+    "title_one": "Hay más de una mesa con el número {{numbers}}",
+    "title_other": "Hay números de mesa repetidos: {{numbers}}",
     "bodyNew_one": "La nueva usa el número de la que tiene una cuenta abierta. Cámbiale el número a la nueva para poder guardar.",
     "bodyNew_other": "Las nuevas usan los números de las que tienen una cuenta abierta. Cámbiales el número a las nuevas para poder guardar.",
     "body_one": "Cámbiale el número a una de ellas para poder guardar.",

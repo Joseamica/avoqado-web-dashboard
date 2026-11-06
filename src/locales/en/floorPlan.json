@@ -104,8 +104,9 @@
   "inspector": {
     "nothing": "Click a table or an item on the plan to change it.",
     "duplicate": "Duplicate",
+    "table": "Table {{number}}",
     "number": "Number",
-    "numberTaken": "There's already another {{name}}",
+    "numberTaken": "There's already a table {{number}}",
     "numberRequired": "The table needs a number",
     "capacity": "Seats",
     "capacityUnknown": "Not set",
@@ -142,7 +143,7 @@
     "hint": "Drag them onto the plan, or click one to put it in the middle.",
     "title_one": "{{count}} table not placed",
     "title_other": "{{count}} tables not placed",
-    "place": "Put {{name}} on the plan"
+    "place": "Put table {{number}} on the plan"
   },
   "newArea": {
     "titleFirst": "Create your first area",
@@ -201,8 +202,8 @@
     "areas": "You reached the maximum of {{max}} areas."
   },
   "openOrders": {
-    "title_one": "{{names}} has an open check",
-    "title_other": "{{names}} have open checks",
+    "title_one": "Table {{numbers}} has an open check",
+    "title_other": "Tables {{numbers}} have open checks",
     "body_one": "Not saved: while its check is open it can’t be removed from the plan. Put it back, or close the check and save again.",
     "body_other": "Not saved: while their checks are open they can’t be removed from the plan. Put them back, or close the checks and save again.",
     "restore_one": "Put the table back",
@@ -210,8 +211,8 @@
     "dismiss": "Close notice"
   },
   "duplicates": {
-    "title_one": "There's more than one {{names}}",
-    "title_other": "Repeated tables: {{names}}",
+    "title_one": "More than one table has number {{numbers}}",
+    "title_other": "Repeated table numbers: {{numbers}}",
     "bodyNew_one": "The new one uses the number of the table with an open check. Change the new one’s number to save.",
     "bodyNew_other": "The new ones use the numbers of the tables with open checks. Change the new ones’ numbers to save.",
     "body_one": "Change the number of one of them to save.",

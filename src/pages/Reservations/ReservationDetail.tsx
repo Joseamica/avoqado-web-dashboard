@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { CalendarDays, Check, Clock, LogIn, MapPin, Phone, Mail, User, Users, X, AlertTriangle, CalendarClock } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { tableName } from '@/lib/tableName'
+import { tableNumber } from '@/lib/tableName'
 import { useParams } from 'react-router-dom'
 
 import { AvisoDeCarga } from '@/components/AvisoDeCarga'
@@ -341,7 +341,7 @@ export default function ReservationDetail() {
                     <div className="text-sm text-muted-foreground">{t('form.fields.table')}</div>
                     <div className="font-medium">
                       {t('form.tableCapacity', {
-                        name: tableName(t, reservation.table.number),
+                        number: tableNumber(t, reservation.table.number),
                         capacity: reservation.table.capacity,
                       })}
                     </div>

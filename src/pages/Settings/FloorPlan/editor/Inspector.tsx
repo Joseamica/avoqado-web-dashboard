@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { tableName } from '@/lib/tableName'
+import { tableNumber } from '@/lib/tableName'
 import { Circle, Copy, Minus, MousePointerClick, Plus, RectangleHorizontal, RotateCw, Square, Trash2 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -195,7 +195,7 @@ function TableFields({ table, areas, allNumbers, dispatch, onRemove, onDuplicate
     if (!n) return t('inspector.numberRequired')
     // Contra lo guardado SIN espacios: un número viejo « 5» no es «otro número» ni choca consigo mismo.
     if (n === saved.current.trim()) return null
-    if (allNumbers.some(x => x.trim() === n)) return t('inspector.numberTaken', { name: tableName(t, n) })
+    if (allNumbers.some(x => x.trim() === n)) return t('inspector.numberTaken', { number: tableNumber(t, n) })
     saved.current = n
     dispatch({ type: 'UPDATE_TABLE', key: table.key, patch: { number: n } })
     return null
@@ -221,7 +221,7 @@ function TableFields({ table, areas, allNumbers, dispatch, onRemove, onDuplicate
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between gap-2">
-        <h3 className="text-base font-semibold">{tableName(t, table.number)}</h3>
+        <h3 className="text-base font-semibold">{t('inspector.table', { number: tableNumber(t, table.number) })}</h3>
         {table.hasOpenOrder && (
           // El mismo punto ámbar que la mesa en el plano: se reconoce de un vistazo.
           <Badge variant="outline" className="gap-1.5" data-testid="floor-inspector-open-order">

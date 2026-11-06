@@ -4,19 +4,26 @@ type Translate = (key: string, options?: Record<string, unknown>) => string
 const IDIOMAS = ['es', 'en', 'fr']
 
 /**
- * Nombre de una mesa para mostrar: «Mesa 1» cuando su número es «1», y el número tal cual cuando ya trae la palabra.
+ * El número de una mesa SIN la palabra: «Mesa 1» → «1», «5» → «5». Es lo que va en `{{number}}` de toda frase o etiqueta
+ * que ya dice «mesa» («La mesa {{numbers}} tiene una cuenta abierta», «Mesa {{number}}»).
  *
- * 🔴 D20 (5-nov, video del plano): el panel decía «Mesa Mesa 1». La demo siembra las mesas como «Mesa 1…10», y un negocio
- * real en producción las guarda igual; los textos le anteponían otra «Mesa». Todo texto que nombra una mesa recibe este
- * nombre ya armado, nunca «Mesa {{number}}». La palabra se busca en todos los idiomas: «Mesa 1» con el panel en inglés
- * no es «Table Mesa 1» (Codex r1).
+ * 🔴 D20 (5-nov, video del plano): el panel decía «Mesa Mesa 1». La demo sembraba las mesas como «Mesa 1…10» (hay negocios
+ * reales que las guardan igual) y los textos le anteponían otra «Mesa». La palabra se busca en todos los idiomas: «Mesa 1»
+ * con el panel en inglés no es «Table Mesa 1» (Codex r1). Las frases conservan su artículo: «La mesa 1 tiene…» (CI #295).
  */
-export function tableName(t: Translate, number: string | number): string {
+export function tableNumber(t: Translate, number: string | number): string {
   const n = String(number).trim()
   const bajo = n.toLocaleLowerCase()
-  const yaTraePalabra = IDIOMAS.some(lng => {
+  for (const lng of IDIOMAS) {
     const palabra = t('common:tableWord', { lng }).toLocaleLowerCase()
-    return !!palabra && bajo.startsWith(palabra) && !/\p{L}/u.test(n.charAt(palabra.length))
-  })
-  return yaTraePalabra ? n : t('common:tableName', { number: n })
+    if (!palabra || !bajo.startsWith(palabra) || /\p{L}/u.test(n.charAt(palabra.length))) continue
+    const resto = n.slice(palabra.length).replace(/^[\s#:.\-–]+/, '')
+    if (resto) return resto
+  }
+  return n
+}
+
+/** La etiqueta suelta de una mesa: «Mesa 1», sea que se guardó «1» o «Mesa 1». */
+export function tableName(t: Translate, number: string | number): string {
+  return t('common:tableName', { number: tableNumber(t, number) })
 }
