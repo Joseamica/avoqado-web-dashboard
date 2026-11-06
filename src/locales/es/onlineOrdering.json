@@ -130,7 +130,7 @@
       "deviceOkHours": "Un aparato que cobra folios se conectó hace {{hours}} h",
       "deviceOkDays": "Un aparato que cobra folios se conectó hace {{days}} días",
       "deviceMissing": "Ningún aparato puede cobrar folios todavía: actualiza la terminal o el POS",
-      "deviceWhatToDo": "Qué hacer: abre la terminal o el POS, ya actualizados, con la caja abierta. Cuando se conecte, aquí dirá «Un aparato que cobra folios se conectó hace N min». Mientras, puedes guardar «Nadie» con la tienda apagada.",
+      "deviceWhatToDo": "Qué hacer: Abre la terminal o el POS, ya actualizados, con la caja abierta. Cuando se conecte, aquí dirá «Un aparato que cobra folios se conectó hace N min». Mientras, puedes guardar «Nadie» con la tienda apagada.",
       "enableNoDevice": "Falta un aparato que cobre folios.",
       "payNoOne": "Con \"Nadie\" se paga en caja.",
       "cardNoOne": "Con \"Nadie\" se paga en caja. Para cobrar en línea elige \"Mi equipo\".",

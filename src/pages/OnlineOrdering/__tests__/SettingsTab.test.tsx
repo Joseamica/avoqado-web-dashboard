@@ -873,9 +873,9 @@ describe('SettingsTab', () => {
       expect(screen.queryByText('settings.confirm.noOneNote')).toBeNull()
     })
 
-    it('R37: si el giro sugiere «Nadie» y el negocio no ha elegido, viene marcado, dice «Sugerido para tu giro» y «Cambios sin guardar» hasta Guardar', async () => {
-      getSettings.mockResolvedValue(base({ requiresAcceptance: true, suggestedRequiresAcceptance: false }))
-      updateSettings.mockResolvedValue(nadie({ suggestedRequiresAcceptance: false }))
+    it('R66 (a): sin ajustes guardados y el giro sugiere «Nadie»: viene marcado, «Sugerido para tu giro» y «Cambios sin guardar» hasta Guardar', async () => {
+      getSettings.mockResolvedValue(base({ requiresAcceptance: true, suggestedRequiresAcceptance: false, hasSavedSettings: false }))
+      updateSettings.mockResolvedValue(nadie({ suggestedRequiresAcceptance: false, hasSavedSettings: true }))
       renderTab()
       await formularioCargado()
       await waitFor(() => expect(radio('noOne')).toBeChecked())
@@ -885,13 +885,28 @@ describe('SettingsTab', () => {
       await waitFor(() => expect(updateSettings).toHaveBeenCalledWith('venue-1', { requiresAcceptance: false }))
     })
 
-    it('si el giro NO sugiere «Nadie» (o ya está encendida), no se preselecciona nada', async () => {
-      getSettings.mockResolvedValue(base({ suggestedRequiresAcceptance: true }))
+    it.each([[true], [undefined]])(
+      'R66 (b): hasSavedSettings=%s con «Mi equipo» guardado: se queda en «Mi equipo», sin «Cambios sin guardar», y guardar otro campo no manda requiresAcceptance',
+      async has => {
+        getSettings.mockResolvedValue(base({ requiresAcceptance: true, suggestedRequiresAcceptance: false, hasSavedSettings: has }))
+        updateSettings.mockResolvedValue(base({ minOrderAmount: 80 }))
+        renderTab()
+        await formularioCargado()
+        expect(radio('team')).toBeChecked()
+        expect(screen.queryByText('settings.unsaved')).toBeNull()
+        fireEvent.change(screen.getByLabelText('settings.minOrder'), { target: { value: '80' } })
+        await userEvent.click(screen.getByRole('button', { name: 'settings.save' }))
+        await waitFor(() => expect(updateSettings).toHaveBeenCalledWith('venue-1', { minOrderAmount: 80 }))
+      },
+    )
+
+    it('R66 (c): hasSavedSettings=true con «Nadie» guardado: «Nadie» marcado, sin marca de preselección', async () => {
+      getSettings.mockResolvedValue(nadie({ hasSavedSettings: true, suggestedRequiresAcceptance: true }))
       renderTab()
       await formularioCargado()
-      expect(radio('team')).toBeChecked()
-      expect(screen.queryByText('settings.confirm.suggested')).toBeNull()
+      expect(radio('noOne')).toBeChecked()
       expect(screen.queryByText('settings.unsaved')).toBeNull()
+      expect(screen.queryByText('settings.confirm.suggested')).toBeNull()
     })
 
     it('bajo «Nadie»: la nota de R51, «Pagar en caja» prendido y en gris, y la tarjeta en gris con su razón', async () => {

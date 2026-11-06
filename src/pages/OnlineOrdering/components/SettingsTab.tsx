@@ -207,8 +207,6 @@ export function SettingsTab() {
   const qc = useQueryClient()
   const [serverMissing, setServerMissing] = useState<StoreRequirement[]>([])
   const [saveError, setSaveError] = useState<string | null>(null)
-  // Tras guardar una vez, la sugerencia por giro ya no se vuelve a preseleccionar (el servidor no guarda «ya elegí»).
-  const [decided, setDecided] = useState(false)
   const [noticeOpen, setNoticeOpen] = useState(false)
   const stepsRef = useRef<HTMLDivElement>(null)
   const noticeButtonRef = useRef<HTMLButtonElement>(null)
@@ -222,15 +220,10 @@ export function SettingsTab() {
   const { data: settings } = settingsQuery
 
   const saved = useMemo(() => (settings ? toForm(settings) : undefined), [settings])
-  // R37: el servidor nunca pone «Nadie» solo. Mientras el negocio no haya elegido (tienda apagada, sin Bandeja usada, sin guardar aquí),
-  // el formulario ARRANCA en lo sugerido para su giro; como difiere de lo guardado, sale «Cambios sin guardar» hasta Guardar.
-  const preselectNoOne =
-    !decided &&
-    !!settings &&
-    !settings.enabled &&
-    settings.requiresAcceptance !== false &&
-    settings.suggestedRequiresAcceptance === false &&
-    !settings.lastInboxPollAt
+  // R37/R66: el servidor nunca pone «Nadie» solo. Sólo si el negocio NO tiene ajustes guardados (`hasSavedSettings === false`) el
+  // formulario ARRANCA en lo sugerido para su giro; como difiere de lo guardado, sale «Cambios sin guardar» hasta Guardar.
+  // Sin el campo (servidor viejo) o con true: se muestra lo guardado, sin preselección.
+  const preselectNoOne = !!settings && settings.hasSavedSettings === false && settings.suggestedRequiresAcceptance === false
   const formValues = useMemo(() => (saved && preselectNoOne ? { ...saved, requiresAcceptance: false } : saved), [saved, preselectNoOne])
   const form = useForm<FormValues>({ resolver: zodResolver(schema), values: formValues })
   const { control, watch, setValue, handleSubmit, reset, formState } = form
@@ -268,7 +261,6 @@ export function SettingsTab() {
   const mutation = useMutation({
     mutationFn: (patch: Partial<OnlineOrderingSettingsInput>) => updateSettings(venueId!, patch),
     onSuccess: next => {
-      setDecided(true)
       // 🔴 La respuesta del PUT puede venir SIN `store`/`requirements` (sólo el GET los trae): se MEZCLA sobre la caché, nunca la
       // reemplaza, y luego se vuelve a pedir el GET como fuente de verdad.
       const key = onlineOrderingKeys.settings(venueId!)

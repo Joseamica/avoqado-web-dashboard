@@ -130,7 +130,7 @@
       "deviceOkHours": "A device that takes payment for order numbers connected {{hours}} h ago",
       "deviceOkDays": "A device that takes payment for order numbers connected {{days}} days ago",
       "deviceMissing": "No device can take payment for order numbers yet: update the terminal or the POS",
-      "deviceWhatToDo": "What to do: open the terminal or the POS, already updated, with the cash register open. Once it connects, this will say “A device that takes payment for order numbers connected N min ago”. Meanwhile, you can save “No one” with the store turned off.",
+      "deviceWhatToDo": "What to do: Open the terminal or the POS, already updated, with the cash register open. Once it connects, this will say “A device that takes payment for order numbers connected N min ago”. Meanwhile, you can save “No one” with the store turned off.",
       "enableNoDevice": "A device that takes payment for order numbers is missing.",
       "payNoOne": "With \"No one\", payment is at the register.",
       "cardNoOne": "With \"No one\", payment is at the register. To charge online, choose \"My team\".",

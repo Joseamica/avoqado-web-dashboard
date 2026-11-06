@@ -28,6 +28,8 @@ export interface OnlineOrderingSettings {
   lastToPayPollAt?: string | null
   /** `false` = para este giro conviene «Nadie». Sólo una sugerencia: el servidor nunca elige solo (R37). */
   suggestedRequiresAcceptance?: boolean
+  /** `false` = el negocio aún no tiene ajustes guardados (R66); sólo entonces el panel preselecciona la sugerencia. Opcional: servidor viejo. */
+  hasSavedSettings?: boolean
   store: StoreState
   requirements: Record<StoreRequirement, boolean>
   /** Fase 2: si la tarjeta puede cobrar de verdad (Stripe del negocio). Opcional: un servidor viejo no lo manda. */
