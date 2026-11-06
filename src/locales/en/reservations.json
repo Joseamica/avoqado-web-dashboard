@@ -732,7 +732,14 @@
       "minutesBefore": "Send before",
       "minutesBeforeHelp": "Minutes before the reservation"
     },
-    "saved": "Settings saved successfully"
+    "saved": "Settings saved successfully",
+    "onlineCharge": {
+      "active": "Online payments are active. Your reservation prepayments will be charged online to your account.",
+      "manage": "Manage",
+      "missingUpfront": "To charge upfront online you need to connect Stripe in Integrations. Until you do, the reservation is confirmed and the customer pays on arrival. If you don’t want to require prepayment, choose “Pay at the venue”.",
+      "missingDeposits": "To require a deposit you need to connect Stripe in Integrations. Without Stripe, keep “No deposit”: the reservation is confirmed and the customer pays on arrival.",
+      "connect": "Connect Stripe"
+    }
   },
   "toasts": {
     "createSuccess": "Reservation created successfully",

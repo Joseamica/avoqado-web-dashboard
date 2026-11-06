@@ -732,7 +732,14 @@
       "minutesBefore": "Enviar antes de",
       "minutesBeforeHelp": "Minutos antes de la reservación"
     },
-    "saved": "Configuración guardada exitosamente"
+    "saved": "Configuración guardada exitosamente",
+    "onlineCharge": {
+      "active": "Los cobros en línea están activos. Los prepagos de tus reservaciones se cobrarán en línea a tu cuenta.",
+      "manage": "Administrar",
+      "missingUpfront": "Para cobrar por adelantado en línea necesitas conectar Stripe en Integraciones. Mientras no lo conectes, la reservación se confirma y el cliente paga al llegar. Si no quieres pedir prepago, elige «Pagar en el local».",
+      "missingDeposits": "Para pedir depósito necesitas conectar Stripe en Integraciones. Sin Stripe, deja «Sin depósito»: la reservación se confirma y el cliente paga al llegar.",
+      "connect": "Conectar Stripe"
+    }
   },
   "toasts": {
     "createSuccess": "Reservación creada exitosamente",

@@ -114,6 +114,8 @@ const routeKeyMap: Record<string, string> = {
   // Operacion
   reservations: 'sidebar:routes.reservations',
   waitlist: 'sidebar:routes.waitlist',
+  // «Canales de reserva»: salía «Online booking» en la miga de pan (D17, tutoriales 5-nov).
+  'online-booking': 'sidebar:reservationsMenu.onlineBooking',
   passes: 'sidebar:routes.passes',
   reviews: 'sidebar:routes.reviews',
   delivery: 'sidebar:routes.delivery',
