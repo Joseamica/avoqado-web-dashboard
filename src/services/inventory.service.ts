@@ -1,4 +1,5 @@
 import api from '@/api'
+import type { AxiosRequestConfig } from 'axios'
 import type { WasteReasonCode, WasteSummary } from '@/lib/inventoryWaste'
 
 // ===========================================
@@ -587,9 +588,10 @@ export interface ProductWizardStep2Data {
 }
 
 export interface ProductWizardStep3SimpleStockData {
-  initialStock: number
+  initialStock?: number // sin existencias, el SERVIDOR deja el saldo como esté y sólo guarda mínimo y costo
   reorderPoint: number
   costPerUnit: number
+  expectedUpdatedAt?: string // versión del producto del paso anterior: si cambió en medio, 409 PRODUCT_CHANGED
 }
 
 export interface ProductWizardStep3RecipeData {
@@ -638,8 +640,8 @@ export const productWizardApi = {
   createProductWithInventory: (venueId: string, data: CreateProductWithInventoryDto) => api.post(`/api/v1/dashboard/venues/${venueId}/inventory/wizard/complete`, data),
 
   // Convenience methods for edit mode (configure inventory on existing product)
-  configureSimpleStock: (venueId: string, productId: string, data: ProductWizardStep3SimpleStockData) =>
-    api.post(`/api/v1/dashboard/venues/${venueId}/inventory/products/${productId}/wizard/step3-simple`, data),
+  configureSimpleStock: (venueId: string, productId: string, data: ProductWizardStep3SimpleStockData, config?: AxiosRequestConfig) =>
+    api.post(`/api/v1/dashboard/venues/${venueId}/inventory/products/${productId}/wizard/step3-simple`, data, config),
 
   configureRecipe: (venueId: string, productId: string, data: ProductWizardStep3RecipeData) =>
     api.post(`/api/v1/dashboard/venues/${venueId}/inventory/products/${productId}/wizard/step3-recipe`, data),

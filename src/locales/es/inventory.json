@@ -572,6 +572,7 @@
     }
   },
   "wizard": {
+    "savingPrevious": "Guardando el cambio anterior de este producto…",
     "inventoryNotSavedAfterClose": "«{{name}}» se guardó, pero su inventario no. Ábrelo y vuelve a guardar.",
     "productNotSavedAfterClose": "«{{name}}» no se guardó. Ábrelo y vuelve a intentarlo.",
     "title": "Asistente de Productos",
@@ -682,7 +683,7 @@
       "recipeInfo": "Configura la receta para este producto. Puedes agregar ingredientes después.",
       "initialStock": "Stock Inicial",
       "initialStockHelp": "¿Cuántas unidades tienes actualmente en stock? (se rastrea como conteo de unidades)",
-      "initialStockRequired": "El stock inicial es requerido",
+      "initialStockRequired": "Escribe cuántas tienes (puede ser 0)",
       "initialStockMinimum": "El stock inicial debe ser 0 o mayor",
       "costPerUnit": "Costo por Unidad",
       "costPerUnitHelp": "El costo que pagas por unidad. Se usa para calcular la rentabilidad del producto.",

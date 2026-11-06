@@ -432,6 +432,11 @@ describe('ProductWizardDialog: observed request contracts before the visual move
     expect(inventory.productWizardApi.createProductWithInventory).not.toHaveBeenCalled()
   })
 
+  // Lecturas del saldo hechas ANTES del POST de existencias (después, el cierre refresca las consultas: eso no cuenta).
+  const lecturasAntesDelEnvio = () => {
+    const envio = inventory.productWizardApi.configureSimpleStock.mock.invocationCallOrder[0]
+    return inventory.productWizardApi.getWizardProgress.mock.invocationCallOrder.filter(orden => orden < envio).length
+  }
   const conStock = (details: Record<string, unknown> = {}) => ({
     data: { data: { inventoryMethod: 'QUANTITY', details: { currentStock: 7, minimumStock: 3, reservedStock: 0, costPerUnit: 20, ...details } } },
   })
@@ -453,17 +458,18 @@ describe('ProductWizardDialog: observed request contracts before the visual move
 
   // Codex r1: el asistente enseña el inventario de un producto con el método puesto y el seguimiento apagado (la app móvil lo deja así).
   // Guardar lo prende, como siempre; las existencias van las de este momento.
-  it('saving a product with tracking off turns it on keeping the stock of this moment', async () => {
+  it('saving a product with tracking off turns it on without sending any stock', async () => {
     http.get.mockResolvedValue({ data: { data: { ...existingProduct, trackInventory: false } } })
     inventory.productWizardApi.getWizardProgress.mockResolvedValue(conStock())
     mount({ mode: 'edit' })
     await screen.findByDisplayValue('Café en grano')
     await screen.findByDisplayValue('7')
-    inventory.productWizardApi.getWizardProgress.mockResolvedValue(conStock({ currentStock: 5 }))
+    const lecturas = inventory.productWizardApi.getWizardProgress.mock.calls.length
     await userEvent.click(screen.getByRole('button', { name: 'save' }))
     await waitFor(() => expect(inventory.productWizardApi.configureSimpleStock).toHaveBeenCalledTimes(1))
     expect(http.put.mock.calls[1]).toEqual(['/api/v1/dashboard/venues/v1/products/p1', { inventoryMethod: 'QUANTITY', trackInventory: true }])
-    expect(inventory.productWizardApi.configureSimpleStock.mock.calls[0][2]).toMatchObject({ initialStock: 5 })
+    expect(inventory.productWizardApi.configureSimpleStock.mock.calls[0][2]).not.toHaveProperty('initialStock')
+    expect(lecturasAntesDelEnvio()).toBe(lecturas) // ya no se relee el saldo antes de escribir
   })
 
   it('with tracking off and no cost, saving still changes only the product', async () => {
@@ -492,11 +498,10 @@ describe('ProductWizardDialog: observed request contracts before the visual move
     await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.objectContaining({ description: 'Falló la receta' })))
     await waitFor(() => expect(screen.getByRole('button', { name: 'save' })).toBeEnabled())
     await userEvent.click(screen.getByRole('radio', { name: /wizard\.step2\.quantityTracking/ }))
-    inventory.productWizardApi.getWizardProgress.mockResolvedValue(conStock({ currentStock: 5 }))
     await userEvent.click(screen.getByRole('button', { name: 'save' }))
     await waitFor(() => expect(inventory.productWizardApi.configureSimpleStock).toHaveBeenCalledTimes(1))
     expect(http.put.mock.calls[http.put.mock.calls.length - 1]).toEqual(['/api/v1/dashboard/venues/v1/products/p1', { inventoryMethod: 'QUANTITY', trackInventory: true }])
-    expect(inventory.productWizardApi.configureSimpleStock.mock.calls[0][2]).toMatchObject({ initialStock: 5 })
+    expect(inventory.productWizardApi.configureSimpleStock.mock.calls[0][2]).not.toHaveProperty('initialStock')
   })
 
   // Otro aparato cambió el método con la ventana abierta y la lectura se refrescó: sin tocar nada no se le regresa, ni se borra su receta.
@@ -521,8 +526,9 @@ describe('ProductWizardDialog: observed request contracts before the visual move
     expect(inventory.productWizardApi.configureSimpleStock).not.toHaveBeenCalled()
   })
 
-  // Codex r3: una relectura sin saldo (otro aparato apagó el seguimiento en ese instante) nunca se vuelve un cero.
-  it('a re-read without a stock keeps the captured number instead of writing zero', async () => {
+  // Codex r4 (AJENO): sin saldo en la relectura se mandaban las existencias de la apertura (7) sobre las reales (5). Ya no se relee ni se
+  // manda nada: el SERVIDOR deja el saldo como esté.
+  it('changing only the cost never sends the stock read when opening', async () => {
     inventory.productWizardApi.getWizardProgress.mockResolvedValue(conStock())
     mount({ mode: 'edit' })
     await screen.findByDisplayValue('Café en grano')
@@ -531,7 +537,7 @@ describe('ProductWizardDialog: observed request contracts before the visual move
     inventory.productWizardApi.getWizardProgress.mockResolvedValue({ data: { data: { inventoryMethod: null, details: null } } })
     await userEvent.click(screen.getByRole('button', { name: 'save' }))
     await waitFor(() => expect(inventory.productWizardApi.configureSimpleStock).toHaveBeenCalledTimes(1))
-    expect(inventory.productWizardApi.configureSimpleStock.mock.calls[0][2]).toMatchObject({ initialStock: 7, costPerUnit: 30 })
+    expect(inventory.productWizardApi.configureSimpleStock.mock.calls[0][2]).toEqual({ unit: 'UNIT', costPerUnit: 30, reorderPoint: 3 })
   })
 
   // Codex r3: tras un envío que falló, un número que el usuario escribió sigue mandando aunque coincida con el de la apertura.
@@ -600,32 +606,83 @@ describe('ProductWizardDialog: observed request contracts before the visual move
     ])
   })
 
-  // El SERVIDOR sólo cambia mínimo y costo por la misma ruta de las existencias, y ésa las exige. Si nadie las tocó, va el saldo de
-  // este momento. 10 es, además, el valor inicial del formulario: `dirtyFields` no vería el cambio de 3 a 10.
+  // El SERVIDOR acepta mínimo y costo sin existencias: si nadie las tocó, no viajan (antes se releía el saldo y quedaban milisegundos
+  // para pisar una venta). 10 es, además, el valor inicial del formulario: `dirtyFields` no vería el cambio de 3 a 10.
   it.each([
     ['minimum', /^wizard\.step3\.reorderPoint/, '10', { reorderPoint: 10, costPerUnit: 20 }],
     ['cost', /^wizard\.step3\.costPerUnit/, '30', { reorderPoint: 3, costPerUnit: 30 }],
-  ])('changing only the %s sends the stock of this moment, not the one read when opening', async (_campo, etiqueta, valor, esperado) => {
+  ])('changing only the %s sends no stock at all', async (_campo, etiqueta, valor, esperado) => {
     inventory.productWizardApi.getWizardProgress.mockResolvedValue(conStock())
     mount({ mode: 'edit' })
     await screen.findByDisplayValue('Café en grano')
     await screen.findByDisplayValue('7')
+    const lecturas = inventory.productWizardApi.getWizardProgress.mock.calls.length
     change(screen.getByLabelText(etiqueta), valor)
-    inventory.productWizardApi.getWizardProgress.mockResolvedValue(conStock({ currentStock: 5 }))
     await userEvent.click(screen.getByRole('button', { name: 'save' }))
     await waitFor(() => expect(inventory.productWizardApi.configureSimpleStock).toHaveBeenCalledTimes(1))
-    expect(inventory.productWizardApi.configureSimpleStock.mock.calls[0][2]).toMatchObject({ initialStock: 5, ...esperado })
+    expect(inventory.productWizardApi.configureSimpleStock.mock.calls[0][2]).toEqual({ unit: 'UNIT', ...esperado })
+    expect(lecturasAntesDelEnvio()).toBe(lecturas)
   })
 
-  it('if the stock of this moment cannot be read, nothing is written over it', async () => {
+  // Codex r4 #1: cada paso manda la versión que dejó el anterior; si alguien cambió el producto en medio, el SERVIDOR contesta 409.
+  it('chains the product version from each step into the next one', async () => {
+    inventory.productWizardApi.getWizardProgress.mockResolvedValue(conStock())
+    http.put
+      .mockResolvedValueOnce({ data: { data: { updatedAt: '2026-11-05T18:00:00.001Z' } } })
+      .mockResolvedValueOnce({ data: { data: { updatedAt: '2026-11-05T18:00:00.002Z' } } })
+    mount({ mode: 'edit' })
+    await screen.findByDisplayValue('Café en grano')
+    change(await screen.findByDisplayValue('7'), '9')
+    await userEvent.click(screen.getByRole('button', { name: 'save' }))
+    await waitFor(() => expect(inventory.productWizardApi.configureSimpleStock).toHaveBeenCalledTimes(1))
+    expect(http.put.mock.calls[0][1]).not.toHaveProperty('expectedUpdatedAt') // el primero no: sólo cambia datos del producto
+    expect(http.put.mock.calls[1][1]).toEqual({ inventoryMethod: 'QUANTITY', trackInventory: true, expectedUpdatedAt: '2026-11-05T18:00:00.001Z' })
+    expect(inventory.productWizardApi.configureSimpleStock.mock.calls[0][2]).toMatchObject({ initialStock: 9, expectedUpdatedAt: '2026-11-05T18:00:00.002Z' })
+    // Codex r2 de la ronda 5: lo que lleva versión no se reintenta solo (src/api.ts repite la petición si se pierde la respuesta, y la
+    // repetición chocaría con su propia versión). Si falla, se avisa y la persona vuelve a guardar con una versión nueva.
+    expect(http.put.mock.calls[1][2]).toEqual({ _retry: true })
+    expect(inventory.productWizardApi.configureSimpleStock.mock.calls[0][3]).toEqual({ _retry: true })
+  })
+
+  // Codex r1 (ronda 5) #2: la receta también lleva la versión en su activación.
+  it('a recipe save also chains the product version into the activation', async () => {
+    inventory.productWizardApi.getWizardProgress.mockResolvedValue({ data: { data: { inventoryMethod: 'RECIPE', details: {} } } })
+    inventory.recipesApi.get.mockResolvedValue({
+      data: { data: { portionYield: 1, lines: [{ rawMaterialId: 'rm1', rawMaterial: { name: 'Café molido' }, quantity: '1', unit: 'KILOGRAM', isOptional: false }] } },
+    })
+    http.put.mockResolvedValueOnce({ data: { data: { updatedAt: '2026-11-05T18:00:00.001Z' } } })
+    mount({ mode: 'edit' })
+    await screen.findByDisplayValue('Café en grano')
+    await waitFor(() => expect(screen.getByRole('button', { name: 'save' })).toBeEnabled())
+    await userEvent.click(screen.getByRole('button', { name: 'save' }))
+    await waitFor(() => expect(inventory.recipesApi.update).toHaveBeenCalledTimes(1))
+    expect(http.put.mock.calls[1][1]).toEqual({ inventoryMethod: 'RECIPE', trackInventory: true, expectedUpdatedAt: '2026-11-05T18:00:00.001Z' })
+  })
+
+  it('a product that changed while saving shows the server message and does not offer a conversion', async () => {
+    inventory.productWizardApi.getWizardProgress.mockResolvedValue(conStock())
+    http.put.mockResolvedValueOnce({ data: { data: { updatedAt: '2026-11-05T18:00:00.001Z' } } }).mockRejectedValueOnce({
+      response: { status: 409, data: { code: 'PRODUCT_CHANGED', message: 'Este producto cambió mientras se guardaba' } },
+    })
+    mount({ mode: 'edit' })
+    await screen.findByDisplayValue('Café en grano')
+    change(await screen.findByDisplayValue('7'), '9')
+    await userEvent.click(screen.getByRole('button', { name: 'save' }))
+    await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.objectContaining({ description: 'Este producto cambió mientras se guardaba' })))
+    expect(screen.queryByText('conversion.toQuantity.title')).not.toBeInTheDocument()
+    expect(inventory.productWizardApi.configureSimpleStock).not.toHaveBeenCalled()
+  })
+
+  // Existencias en blanco: antes viajaba `null` y el SERVIDOR contestaba «Expected number, received null».
+  it('blank stock asks for it in the form and sends nothing', async () => {
     inventory.productWizardApi.getWizardProgress.mockResolvedValue(conStock())
     mount({ mode: 'edit' })
     await screen.findByDisplayValue('Café en grano')
-    await screen.findByDisplayValue('7')
-    change(screen.getByLabelText(/^wizard\.step3\.reorderPoint/), '6')
-    inventory.productWizardApi.getWizardProgress.mockRejectedValue({ response: { status: 500, data: { message: 'Sin lectura' } } })
+    change(await screen.findByDisplayValue('7'), '')
     await userEvent.click(screen.getByRole('button', { name: 'save' }))
-    await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.objectContaining({ description: 'Sin lectura', variant: 'destructive' })))
+    expect(await screen.findByText('wizard.step3.initialStockRequired')).toBeInTheDocument()
+    await new Promise(resolve => setTimeout(resolve, 0))
+    expect(http.put).not.toHaveBeenCalled()
     expect(inventory.productWizardApi.configureSimpleStock).not.toHaveBeenCalled()
   })
 
