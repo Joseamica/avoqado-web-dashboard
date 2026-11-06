@@ -73,7 +73,8 @@ export function SelectionSummary({
   const purchase = PURCHASES.includes(op.kind)
   const disabled = !canManage || busy || model.tooMany || IDLE.includes(op.kind)
   const title = model.target !== model.current ? t('plan.selection.titleChange') : t('plan.selection.title')
-  const cta = t(ctaKey(op))
+  // D3 full-testing WARN 4: quedarse con el plan de una prueba regalada no es «Revisar y pagar» (hoy no paga nada).
+  const cta = op.kind === 'CLASSIC_CHECKOUT' && op.firstChargeAt ? t('plan.selection.keepPlan', { tier: tierName(op.tier) }) : t(ctaKey(op))
   // On a paid plan the lines are only the functions being added: the figure is what's added, not the whole bill.
   // La compra clásica cobra el plan entero (también «quedarse» con el de una prueba regalada), al mes o al año.
   const totalLabel = t(

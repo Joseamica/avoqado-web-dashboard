@@ -153,4 +153,11 @@ describe('PlanRow', () => {
     expect(screen.getAllByRole('radio')[2]).toBeDisabled()
     expect(screen.getByRole('button', { name: 'currentPlan.actions.cancel' })).toBeDisabled()
   })
+
+  // D3 full-testing WARN 3: tras quedarse con el plan de una prueba (Stripe en trial), la fecha es el PRIMER cobro.
+  it('en prueba con tarjeta dice «tu primer cobro será el…», no «se renueva el…»', () => {
+    render(<PlanRow {...props({ origin: CLASSIC, planState: { state: 'trial' } as never, current: 'PRO', selected: 'PRO' })} />)
+    expect(screen.getByText('plan.row.firstChargeOn|date=2026-10-27')).toBeInTheDocument()
+    expect(screen.queryByText(/currentPlan\.renewsOn/)).toBeNull()
+  })
 })

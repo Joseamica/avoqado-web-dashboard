@@ -227,7 +227,8 @@
       "compNoDate": "Your {{tier}} plan is complimentary.",
       "founder": "Your business is a founder: you have every feature at no cost.",
       "paymentPending": "Your payment is pending and paid access is on hold. Update your payment method to get it back.",
-      "resume": "Resume"
+      "resume": "Resume",
+      "firstChargeOn": "Your first charge will be on {{date}}."
     },
     "grid": {
       "title": "Features · all {{count}}",
@@ -284,7 +285,8 @@
       "absorbed": "That plan includes a feature you already pay for separately: we switch it today with credit.",
       "annualTotal": "Total per year",
       "payTodayDeferred": "You pay {{price}} today · first charge on {{date}}",
-      "deferredNote": "Your free trial continues until {{date}}, and the first charge happens that day. You can cancel before then and pay nothing."
+      "deferredNote": "Your free trial continues until {{date}}, and the first charge happens that day. You can cancel before then and pay nothing.",
+      "keepPlan": "Keep {{tier}}"
     },
     "page": {
       "contractCancelled": "Done: your plan stops renewing at the end of the paid period.",

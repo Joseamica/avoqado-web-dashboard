@@ -227,7 +227,8 @@
       "compNoDate": "Tu plan {{tier}} es de cortesía.",
       "founder": "Tu negocio es fundador: tienes todas las funciones sin costo.",
       "paymentPending": "Tu pago está pendiente y el acceso de pago está en pausa. Actualiza tu método de pago para recuperarlo.",
-      "resume": "Reanudar"
+      "resume": "Reanudar",
+      "firstChargeOn": "Tu primer cobro será el {{date}}."
     },
     "grid": {
       "title": "Funciones · las {{count}}",
@@ -284,7 +285,8 @@
       "absorbed": "Ese plan incluye una función que ya pagas por separado: te lo cambiamos hoy con crédito.",
       "annualTotal": "Total al año",
       "payTodayDeferred": "Hoy pagas {{price}} · primer cobro el {{date}}",
-      "deferredNote": "Tu prueba gratis sigue hasta el {{date}} y ese día se hace el primer cobro. Puedes cancelar antes sin pagar nada."
+      "deferredNote": "Tu prueba gratis sigue hasta el {{date}} y ese día se hace el primer cobro. Puedes cancelar antes sin pagar nada.",
+      "keepPlan": "Quedarme con {{tier}}"
     },
     "page": {
       "contractCancelled": "Listo: tu plan deja de renovarse al final del periodo pagado.",

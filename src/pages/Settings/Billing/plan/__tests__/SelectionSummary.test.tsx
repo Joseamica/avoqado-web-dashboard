@@ -341,5 +341,7 @@ describe('SelectionSummary', () => {
     expect(screen.getByText(/plan\.selection\.payTodayDeferred\|price=\$0\.00\|date=2026-12-05/)).toBeInTheDocument()
     expect(screen.getByText('plan.selection.deferredNote|date=2026-12-05')).toBeInTheDocument()
     expect(screen.queryByText(/plan\.selection\.payToday\|/)).toBeNull()
+    // full-testing WARN 4: el botón dice «Quedarme con Pro», no «Revisar y pagar».
+    expect(screen.getAllByRole('button', { name: /plan\.selection\.keepPlan\|tier=plan\.tiers\.pro\.name/ }).length).toBeGreaterThan(0)
   })
 })

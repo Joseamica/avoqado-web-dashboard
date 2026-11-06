@@ -66,7 +66,10 @@ export function PlanRow(props: PlanRowProps) {
       : origin.cancelAt
         ? t(origin.kind === 'CONTRACT' ? 'plan.row.endsContract' : 'plan.row.endsClassic', { tier: originTier, date: untilText })
         : untilText
-          ? t('currentPlan.renewsOn', { date: untilText })
+          ? // D3 full-testing WARN 3: en prueba con tarjeta, esa fecha es el PRIMER cobro, no una renovación.
+            planState?.state === 'trial'
+            ? t('plan.row.firstChargeOn', { date: untilText })
+            : t('currentPlan.renewsOn', { date: untilText })
           : null
 
   return (
