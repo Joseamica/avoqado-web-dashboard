@@ -317,6 +317,7 @@ export default function PublicBookingPage() {
 				{step === config.formStep && (
 					<GuestInfoForm
 						venueInfo={venueInfo}
+						hasService={!!selectedProduct}
 						onSubmit={handleFormSubmit}
 						isSubmitting={createMutation.isPending}
 					/>

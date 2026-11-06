@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { ArrowLeft, Loader2, Plus, User, X } from 'lucide-react'
 import { DateTime } from 'luxon'
-import { useEffect, useMemo, useState, type MutableRefObject } from 'react'
+import { useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react'
 import { useTranslation } from 'react-i18next'
 import { tableNumber } from '@/lib/tableName'
 import { useNavigate } from 'react-router-dom'
@@ -39,7 +39,7 @@ import reservationService from '@/services/reservation.service'
 import { customerService } from '@/services/customer.service'
 import { getProducts } from '@/services/menu.service'
 import { teamService } from '@/services/team.service'
-import { ProductType, VenueType } from '@/types'
+import { ProductType } from '@/types'
 import type { AvailableSlot } from '@/types/reservation'
 import CustomerForm from '@/pages/Customers/components/CustomerForm'
 import { ServiceTypeSelectorDialog } from '@/pages/Menu/Services/ServiceTypeSelectorDialog'
@@ -52,20 +52,7 @@ import {
   isStaffAwareSettings,
   type StaffSelectionOption,
 } from './create-reservation-staff'
-
-const VENUE_TYPES_WITH_TABLES = new Set<VenueType>([
-  VenueType.RESTAURANT,
-  VenueType.BAR,
-  VenueType.CAFE,
-  VenueType.BAKERY,
-  VenueType.FAST_FOOD,
-  VenueType.CATERING,
-  VenueType.FOOD_TRUCK,
-  VenueType.CLOUD_KITCHEN,
-  VenueType.HOTEL,
-  VenueType.HOSTEL,
-  VenueType.RESORT,
-])
+import { VENUE_TYPES_WITH_TABLES, suggestedPartySize } from './party-size'
 
 const createSchema = z
   .object({
@@ -134,6 +121,8 @@ export function CreateReservationForm({
   const [showServiceForm, setShowServiceForm] = useState(false)
   const [newServiceType, setNewServiceType] = useState<ServiceProductType | null>(null)
   const [pendingOverCapacity, setPendingOverCapacity] = useState<CreateFormData | null>(null)
+  const showTables = venue?.type ? VENUE_TYPES_WITH_TABLES.has(venue.type) : false
+  const partySizeEdited = useRef(false)
 
   const {
     register,
@@ -148,7 +137,7 @@ export function CreateReservationForm({
       startTime: defaultStartTime || '',
       endTime: '',
       duration: 60,
-      partySize: 2,
+      partySize: suggestedPartySize(venue?.type, false),
       productId: '',
       guestMode: 'new',
       guestName: '',
@@ -168,6 +157,12 @@ export function CreateReservationForm({
   const watchTableId = watch('tableId')
   const watchAssignedStaffId = watch('assignedStaffId')
   const watchStartTime = watch('startTime')
+
+  // D27: la sugerencia sigue al servicio elegido; lo que la persona escribió a mano manda.
+  const suggestedSize = suggestedPartySize(venue?.type, !!watchProductId)
+  useEffect(() => {
+    if (!partySizeEdited.current) setValue('partySize', suggestedSize)
+  }, [suggestedSize, setValue])
 
   // Fetch APPOINTMENTS_SERVICE products for the service selector
   const { data: allProducts = [], isLoading: productsLoading } = useQuery({
@@ -323,7 +318,6 @@ export function CreateReservationForm({
 
   // When a slot is selected, update start/end time and available tables
   const [selectedSlot, setSelectedSlot] = useState<AvailableSlot | null>(null)
-  const showTables = venue?.type ? VENUE_TYPES_WITH_TABLES.has(venue.type) : false
   const requiresProductStaffMapping = staffAware && isAppointmentProduct
 
   const staffSelectionOptions = useMemo(() => {
@@ -684,7 +678,16 @@ export function CreateReservationForm({
             <div className="w-px h-4 bg-border" />
             <div className="flex items-center gap-2">
               <Label className="text-xs text-muted-foreground">{t('form.fields.partySize', { defaultValue: 'Personas' })}</Label>
-              <Input type="number" min={1} className="w-14 h-8 text-center text-xs" {...register('partySize')} />
+              <Input
+                type="number"
+                min={1}
+                className="w-14 h-8 text-center text-xs"
+                {...register('partySize', {
+                  onChange: () => {
+                    partySizeEdited.current = true
+                  },
+                })}
+              />
             </div>
             {watchStartTime && watch('endTime') && (
               <>

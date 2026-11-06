@@ -76,5 +76,7 @@ test('429 del servidor: el diálogo muestra su mensaje (el cuerpo del error lleg
   await sinDevtools(page)
   await page.locator('[data-tour="payments-export-btn"]').click()
   await page.locator('[data-tour="export-dialog-submit"]').click()
-  await expect(page.getByText('Ya tienes 3 exportes en curso; espera a que termine uno')).toBeVisible()
+  // exact: el aviso de Radix también deja ~1 s una copia para lectores de pantalla («Notification Ya tienes…»), y sin
+  // exact el localizador encuentra dos y truena al azar (D30).
+  await expect(page.getByText('Ya tienes 3 exportes en curso; espera a que termine uno', { exact: true })).toBeVisible()
 })

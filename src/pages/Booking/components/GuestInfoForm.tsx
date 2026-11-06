@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { LoadingButton } from '@/components/ui/loading-button'
 import { CancellationPolicyBanner } from './CancellationPolicyBanner'
 import type { PublicVenueInfo } from '@/services/publicBooking.service'
+import { suggestedPartySize } from '@/pages/Reservations/party-size'
 
 // Schema is dynamic based on venue settings, so we create it in the component
 function createSchema(t: (key: string) => string, requireEmail: boolean) {
@@ -26,6 +27,8 @@ export type GuestFormData = z.infer<ReturnType<typeof createSchema>>
 
 interface GuestInfoFormProps {
 	venueInfo: PublicVenueInfo
+	/** La clienta eligió un servicio, clase o evento (no una mesa): «Personas» propone 1 (D29). */
+	hasService: boolean
 	onSubmit: (data: GuestFormData) => void
 	isSubmitting: boolean
 	cancellationSettings?: {
@@ -38,6 +41,7 @@ interface GuestInfoFormProps {
 
 export function GuestInfoForm({
 	venueInfo,
+	hasService,
 	onSubmit,
 	isSubmitting,
 	cancellationSettings,
@@ -57,7 +61,7 @@ export function GuestInfoForm({
 			guestPhone: '',
 			guestName: '',
 			guestEmail: '',
-			partySize: 2,
+			partySize: suggestedPartySize(venueInfo.type, hasService),
 			specialRequests: '',
 		},
 	})
