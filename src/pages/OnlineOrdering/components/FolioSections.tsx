@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useCallback, useEffect, useState } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -7,21 +7,21 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useToast } from '@/hooks/use-toast'
 import { getSettings, getToPay, onlineOrderingKeys } from '@/services/onlineOrdering.service'
-import type { FolioOrder } from '@/types/onlineOrdering'
+import type { FolioOrder, ToPayResponse } from '@/types/onlineOrdering'
 import { Currency } from '@/utils/currency'
 import { useVenueDateTime } from '@/utils/datetime'
 
+import { useExtraPages } from '../hooks/useExtraPages'
+
 export type FolioAction = 'ready' | 'delivered' | 'cancelFolio'
 type Section = 'toPay' | 'toDeliver'
-type Extra = { items: FolioOrder[]; cursor: string | null; started: boolean }
-const NO_EXTRA: Extra = { items: [], cursor: null, started: false }
 
 interface Props {
   venueId: string
   canAnswer: boolean
   canCancel: boolean
   busy: boolean
-  /** Folios ya tocados con éxito: salen de la lista al instante (también los de «Cargar más», que el sondeo no relee). */
+  /** Folios ya tocados con éxito: salen de la lista al instante (también los de «Cargar más» hasta que el sondeo los relea). */
   hidden: ReadonlySet<string>
   onAct: (order: FolioOrder, action: FolioAction) => void
 }
@@ -38,31 +38,30 @@ export function FolioSections({ venueId, canAnswer, canCancel, busy, hidden, onA
     retry: false,
   })
   const nadie = settings.data?.requiresAcceptance === false
+  const queryClient = useQueryClient()
+  const prev = queryClient.getQueryState<ToPayResponse>(onlineOrderingKeys.toPay(venueId))
+  const readOnce = (prev?.dataUpdatedAt ?? 0) > 0 || (prev?.errorUpdatedAt ?? 0) > 0
+  const live = nadie || !!prev?.data?.showTile || (prev?.data ? prev.data.counts.toPay + prev.data.counts.toDeliver > 0 : false)
   const { data, isError, isFetching, refetch, dataUpdatedAt } = useQuery({
     queryKey: onlineOrderingKeys.toPay(venueId),
     queryFn: () => getToPay(venueId),
-    enabled: !!venueId,
-    // Una lectura inicial siempre; después sólo se sondea con señal de «Nadie» (o mientras queden folios vivos al volver a «Mi equipo»).
-    refetchInterval: q =>
-      nadie || q.state.data?.showTile || (q.state.data?.counts.toPay ?? 0) + (q.state.data?.counts.toDeliver ?? 0) > 0 ? 10_000 : false,
+    // Una lectura inicial siempre; después la consulta SÓLO vive con señal de «Nadie» (ajustes, o una respuesta con showTile o
+    // folios, p. ej. al volver a «Mi equipo» con folios vivos). Sin señal, ni el sondeo ni una invalidación la vuelven a pedir.
+    enabled: !!venueId && (!readOnce || live),
+    refetchInterval: 10_000,
     refetchIntervalInBackground: false,
     retry: 1,
   })
-  // Lo traído con «Cargar más» se invalida sólo cuando la página 1 CAMBIA de verdad (ids, estado o pago) o cambian los conteos
-  // (un folio extra cobrado o entregado en otro aparato sale de la lista sin tocar la página 1), no en cada sondeo igual.
-  const signature = data
-    ? [
-        `${data.counts.toPay}/${data.counts.toDeliver}`,
-        ...[...data.toPay, ...data.toDeliver].map(o => `${o.orderId}:${o.status}:${o.paymentStatus}:${o.remaining}`),
-      ].join('|')
-    : ''
-  const [extra, setExtra] = useState<Record<Section, Extra>>({ toPay: NO_EXTRA, toDeliver: NO_EXTRA })
-  const [loadingMore, setLoadingMore] = useState<Section | null>(null)
-  const startedAt = useRef('')
-  useEffect(() => {
-    startedAt.current = signature
-    setExtra({ toPay: NO_EXTRA, toDeliver: NO_EXTRA })
-  }, [signature])
+  // Lo traído con «Cargar más» se RELEE en cada sondeo (ver useExtraPages): nunca queda un folio viejo congelado.
+  const onMoreError = useCallback(() => toast({ title: t('folio.loadMoreFailed'), variant: 'destructive' }), [toast, t])
+  const fetchSection = (section: Section) => async (cursor: string) => {
+    const page = await getToPay(venueId, { section, cursor })
+    return { items: page[section], next: page.nextCursors[section] }
+  }
+  const more = {
+    toPay: useExtraPages(data?.nextCursors.toPay ?? null, dataUpdatedAt, fetchSection('toPay'), onMoreError),
+    toDeliver: useExtraPages(data?.nextCursors.toDeliver ?? null, dataUpdatedAt, fetchSection('toDeliver'), onMoreError),
+  }
   const [now, setNow] = useState(() => Date.now())
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 15_000)
@@ -89,28 +88,9 @@ export function FolioSections({ venueId, canAnswer, canCancel, busy, hidden, onA
   if (!nadie && !data.showTile && data.counts.toPay + data.counts.toDeliver === 0) return null
 
   const nowServer = Date.parse(data.serverTime) + (Math.max(now, dataUpdatedAt) - dataUpdatedAt)
-  const loadMore = async (section: Section) => {
-    const cursor = extra[section].started ? extra[section].cursor : data.nextCursors[section]
-    if (!cursor || loadingMore) return
-    setLoadingMore(section)
-    const since = signature
-    try {
-      const page = await getToPay(venueId, { section, cursor })
-      if (startedAt.current !== since) return // llegó una lectura nueva mientras tanto: esta página ya es vieja
-      setExtra(e => ({
-        ...e,
-        [section]: { items: [...e[section].items, ...page[section]], cursor: page.nextCursors[section], started: true },
-      }))
-    } catch {
-      toast({ title: t('folio.loadMoreFailed'), variant: 'destructive' })
-    } finally {
-      setLoadingMore(null)
-    }
-  }
-
   const build = (sec: Section) => {
     const seen = new Set(data[sec].map(o => o.orderId))
-    return [...data[sec], ...extra[sec].items.filter(o => !seen.has(o.orderId))].filter(o => !hidden.has(o.orderId))
+    return [...data[sec], ...more[sec].items.filter(o => !seen.has(o.orderId))].filter(o => !hidden.has(o.orderId))
   }
   const toDeliverList = build('toDeliver')
   // Un folio nunca sale en las dos secciones: si ya está por entregar, ya no está por pagar.
@@ -125,7 +105,7 @@ export function FolioSections({ venueId, canAnswer, canCancel, busy, hidden, onA
         // Un folio quitado de «Por pagar» por estar ya en «Por entregar» no debe contradecir el número ni el «Mostrando».
         const removed = section === 'toPay' ? build('toPay').length - list.length : 0
         const total = Math.max(data.counts[section] - removed, list.length)
-        const next = extra[section].started ? extra[section].cursor : data.nextCursors[section]
+        const { next, loading, loadMore } = more[section]
         return (
           <section key={section} className="space-y-2" data-tour={`online-inbox-${section}`}>
             <h2 className="text-base font-semibold">
@@ -154,7 +134,7 @@ export function FolioSections({ venueId, canAnswer, canCancel, busy, hidden, onA
               </div>
             )}
             {next && (
-              <Button variant="outline" className="w-full" disabled={loadingMore !== null} onClick={() => void loadMore(section)}>
+              <Button variant="outline" className="w-full" disabled={loading} onClick={() => void loadMore()}>
                 {t('folio.loadMore')}
               </Button>
             )}
@@ -221,12 +201,13 @@ function FolioCard({ order, section, nowServer, stale, canAnswer, canCancel, bus
             </>
           )}
           {minutes !== null &&
+            !partial &&
             (stale ? (
               <p className="text-muted-foreground">{t('folio.expiresAt', { time: formatTime(order.acceptDeadlineAt!) })}</p>
             ) : minutes <= 0 ? (
-              <p className="font-medium text-amber-600 dark:text-amber-400">{t('folio.expiring')}</p>
+              <p className="font-medium text-amber-700 dark:text-amber-400">{t('folio.expiring')}</p>
             ) : (
-              <p className={minutes <= 5 ? 'font-medium text-amber-600 dark:text-amber-400' : 'text-muted-foreground'}>
+              <p className={minutes <= 5 ? 'font-medium text-amber-700 dark:text-amber-400' : 'text-muted-foreground'}>
                 {t('folio.expiresIn', { minutes })}
               </p>
             ))}

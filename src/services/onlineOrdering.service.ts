@@ -56,10 +56,10 @@ export const setMenuAvailability = async (
 ): Promise<{ updated: number }> => (await api.put(`${base(venueId)}/menu/availability`, body)).data.data
 
 /** `tray:true` = la bandeja en primer plano: la cabecera le dice al servidor que mantenga abierta la tienda. */
-export const getInbox = async (venueId: string, opts: { tray: boolean }): Promise<Inbox> =>
+export const getInbox = async (venueId: string, opts: { tray: boolean; status?: 'all' | 'active'; cursor?: string }): Promise<Inbox> =>
   (
     await api.get(`${base(venueId)}/orders`, {
-      params: { status: 'all' },
+      params: { status: opts.status ?? 'all', ...(opts.cursor ? { cursor: opts.cursor } : {}) },
       ...(opts.tray ? { headers: { 'x-online-orders-tray': '1' } } : {}),
     })
   ).data.data

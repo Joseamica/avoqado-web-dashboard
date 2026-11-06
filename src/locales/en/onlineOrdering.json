@@ -197,7 +197,9 @@
       "ready": "Ready",
       "done": "Last 24 hours",
       "empty": "No orders for now",
-      "showing": "Showing {{shown}} of {{total}}"
+      "showing": "Showing {{shown}} of {{total}}",
+      "loadMore": "Load more",
+      "loadMoreFailed": "We couldn't load more orders. Try again."
     },
     "sound": {
       "toggle": "Turn on sound",

@@ -1,4 +1,4 @@
-import { useEffect, useReducer, useRef, useState } from 'react'
+import { useCallback, useEffect, useReducer, useRef, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Volume2, WifiOff } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -25,6 +25,7 @@ import { useToast } from '@/hooks/use-toast'
 import {
   acceptOrder,
   cancelOrder,
+  getInbox,
   markDelivered,
   markReady,
   onlineOrderingKeys,
@@ -34,10 +35,12 @@ import {
 import type { FolioOrder, Inbox, InboxOrder, OnlineOrderStatus } from '@/types/onlineOrdering'
 import { useVenueDateTime } from '@/utils/datetime'
 
+import { useExtraPages } from '../hooks/useExtraPages'
 import { useOnlineOrdersInbox } from '../hooks/useOnlineOrdersInbox'
 import { actionOutcome } from '../lib/actionOutcome'
 import { createChime, type Chime } from '../lib/chime'
 import { pauseLabel } from '../lib/pauseLabel'
+import { spaceFolio } from '../lib/spaceFolio'
 import { AcceptDialog } from './AcceptDialog'
 import { CardRefundButton } from './CardRefundSheet'
 import { FolioSections, type FolioAction } from './FolioSections'
@@ -97,6 +100,17 @@ export function InboxTab() {
   const [soundOn, setSoundOn] = useState(readSoundPref)
   const [, rerender] = useReducer((n: number) => n + 1, 0)
   const pending = data?.counts.pending ?? 0
+  // Más de 100 activos: la Bandeja sigue con `nextCursor` (status=active) y los relee en cada sondeo, como los folios.
+  const onMoreError = useCallback(() => toast({ title: t('inbox.sections.loadMoreFailed'), variant: 'destructive' }), [toast, t])
+  const activeMore = useExtraPages(
+    data?.nextCursor ?? null,
+    dataUpdatedAt,
+    async cursor => {
+      const page = await getInbox(venueId, { tray: false, status: 'active', cursor })
+      return { items: page.orders, next: page.nextCursor }
+    },
+    onMoreError,
+  )
 
   // Insiste en cada sondeo mientras haya algo por aceptar (`play()` no hace nada si el navegador no ha dejado sonar).
   useEffect(() => {
@@ -169,8 +183,8 @@ export function InboxTab() {
     if (a === 'ready') return run('READY', () => markReady(venueId, order.orderId), order.orderId)
     if (a === 'delivered') {
       const okTitle = order.customerName
-        ? t('folio.delivered', { folio: order.orderNumber, name: order.customerName })
-        : t('folio.deliveredNoName', { folio: order.orderNumber })
+        ? t('folio.delivered', { folio: spaceFolio(order.orderNumber), name: order.customerName })
+        : t('folio.deliveredNoName', { folio: spaceFolio(order.orderNumber) })
       return run('COMPLETED', () => markDelivered(venueId, order.orderId), order.orderId, okTitle)
     }
     setDialog({ kind: 'cancelFolio', order })
@@ -264,7 +278,9 @@ export function InboxTab() {
 
       {SECTIONS.map(section => {
         // Los folios de «Nadie» ya están en «Por entregar»: no se repiten en «En preparación».
-        const list = data.orders.filter(o => section.match(o.status) && !(section.key === 'accepted' && o.requiresAcceptance === false))
+        const seen = new Set(data.orders.map(o => o.orderId))
+        const all = [...data.orders, ...activeMore.items.filter(o => !seen.has(o.orderId))]
+        const list = all.filter(o => section.match(o.status) && !(section.key === 'accepted' && o.requiresAcceptance === false))
         const total = section.key === 'accepted' ? (data.counts.acceptedTeam ?? data.counts.accepted) : data.counts[section.key]
         return (
           <section key={section.key} className="space-y-2">
@@ -294,6 +310,11 @@ export function InboxTab() {
                 ))}
               </div>
             )}
+            {activeMore.next && (section.key === 'accepted' || section.key === 'ready') && (
+              <Button variant="outline" className="w-full" disabled={activeMore.loading} onClick={() => void activeMore.loadMore()}>
+                {t('inbox.sections.loadMore')}
+              </Button>
+            )}
           </section>
         )
       })}
@@ -316,7 +337,7 @@ export function InboxTab() {
         <AlertDialog open onOpenChange={open => !open && setDialog(null)}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>{t('folio.cancelDialog.title', { folio: String(dialog.order.orderNumber).split('').join(' ') })}</AlertDialogTitle>
+              <AlertDialogTitle>{t('folio.cancelDialog.title', { folio: spaceFolio(dialog.order.orderNumber) })}</AlertDialogTitle>
               <AlertDialogDescription>
                 {dialog.order.customerName
                   ? t('folio.cancelDialog.description', { name: dialog.order.customerName })

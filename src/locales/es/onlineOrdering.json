@@ -197,7 +197,9 @@
       "ready": "Listos",
       "done": "Últimas 24 horas",
       "empty": "Sin pedidos por ahora",
-      "showing": "Mostrando {{shown}} de {{total}}"
+      "showing": "Mostrando {{shown}} de {{total}}",
+      "loadMore": "Cargar más",
+      "loadMoreFailed": "No pudimos cargar más pedidos. Vuelve a intentar."
     },
     "sound": {
       "toggle": "Activar sonido",

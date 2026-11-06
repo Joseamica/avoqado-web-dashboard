@@ -886,7 +886,7 @@ describe('InboxTab · folios de «Nadie» (Por pagar / Por entregar)', () => {
     expect(within(card).getByRole('button', { name: 'inbox.actions.ready' })).toBeInTheDocument()
     await userEvent.click(within(card).getByRole('button', { name: 'inbox.actions.delivered' }))
     await waitFor(() => expect(markDelivered).toHaveBeenCalledWith('venue-1', 'f1'))
-    await waitFor(() => expect(toast).toHaveBeenCalledWith({ title: 'folio.delivered|W7KQ2,Ana' }))
+    await waitFor(() => expect(toast).toHaveBeenCalledWith({ title: 'folio.delivered|W 7 K Q 2,Ana' }))
     await waitFor(() => expect(screen.queryByTestId('folio-f1')).toBeNull())
   })
 
@@ -1046,39 +1046,89 @@ describe('InboxTab · folios de «Nadie» (Por pagar / Por entregar)', () => {
   const page1 = (over: Record<string, unknown> = {}, items = [mkD(0), mkD(5)]) =>
     toPayRes([], items, { counts: { toPay: 0, toDeliver: 3 }, nextCursors: { toPay: null, toDeliver: 'C' }, ...over })
 
-  it('una lectura idéntica de la página 1 conserva lo traído con «Cargar más»; un cambio real lo suelta', async () => {
+  it('en cada sondeo se RELEEN las páginas extra ya cargadas: una lectura igual las conserva', async () => {
     getToPay
       .mockResolvedValueOnce(page1())
       .mockResolvedValueOnce(toPayRes([], [mkD(1)], { counts: { toPay: 0, toDeliver: 3 } }))
-      .mockResolvedValueOnce(page1())
-      .mockResolvedValueOnce(page1({}, [mkD(0), mkD(5, { status: 'READY' })]))
-      .mockResolvedValue(page1({}, [mkD(0), mkD(5, { status: 'READY' })]))
+      .mockImplementation(async (_v: string, p?: { cursor?: string }) =>
+        p?.cursor ? toPayRes([], [mkD(1)], { counts: { toPay: 0, toDeliver: 3 } }) : page1(),
+      )
     markReady.mockRejectedValue(http(500, {}))
     renderTab()
     await userEvent.click(await screen.findByRole('button', { name: 'folio.loadMore' }))
     await screen.findByTestId('folio-d1')
-    // Toque que falla ⇒ se relee la página 1, idéntica ⇒ el extra se queda.
     await userEvent.click(within(screen.getByTestId('folio-d0')).getByRole('button', { name: 'inbox.actions.ready' }))
-    await waitFor(() => expect(getToPay.mock.calls.length).toBeGreaterThanOrEqual(3))
+    await waitFor(() => expect(getToPay.mock.calls.filter(c => c[1]?.cursor === 'C').length).toBeGreaterThanOrEqual(2))
     expect(screen.getByTestId('folio-d1')).toBeInTheDocument()
-    // Otro toque ⇒ la página 1 ahora sí cambió (d5 ya está listo) ⇒ el extra se suelta.
-    await userEvent.click(within(screen.getByTestId('folio-d5')).getByRole('button', { name: 'inbox.actions.ready' }))
-    await waitFor(() => expect(screen.queryByTestId('folio-d1')).toBeNull())
   })
 
-  it('un folio de «Cargar más» que sale por cobro o entrega en otro aparato se suelta aunque la página 1 sea idéntica', async () => {
+  it('un folio de «Cargar más» que cambió en otro aparato con movimientos que se compensan (mismos conteos, misma página 1) se actualiza en el sondeo', async () => {
     getToPay
       .mockResolvedValueOnce(page1())
       .mockResolvedValueOnce(toPayRes([], [mkD(1)], { counts: { toPay: 0, toDeliver: 3 } }))
-      // Otro aparato entregó d1: la página 1 es la misma, sólo cambian los conteos.
-      .mockResolvedValue(page1({ counts: { toPay: 0, toDeliver: 2 } }))
+      // d1 se entregó y entró d2: los conteos y la página 1 son idénticos; sólo cambia lo que hay tras el cursor.
+      .mockImplementation(async (_v: string, p?: { cursor?: string }) =>
+        p?.cursor ? toPayRes([], [mkD(2)], { counts: { toPay: 0, toDeliver: 3 } }) : page1(),
+      )
     markReady.mockRejectedValue(http(500, {}))
     renderTab()
     await userEvent.click(await screen.findByRole('button', { name: 'folio.loadMore' }))
     await screen.findByTestId('folio-d1')
     await userEvent.click(within(screen.getByTestId('folio-d0')).getByRole('button', { name: 'inbox.actions.ready' }))
-    await waitFor(() => expect(getToPay.mock.calls.length).toBeGreaterThanOrEqual(3))
     await waitFor(() => expect(screen.queryByTestId('folio-d1')).toBeNull())
+    expect(await screen.findByTestId('folio-d2')).toBeInTheDocument()
+  })
+
+  it('con más de 100 activos, «Cargar más» de «Listos» pide status=active con el nextCursor y deja marcar el 101', async () => {
+    const ready = (i: number) =>
+      order({ orderId: `r${i}`, orderNumber: `${200 + i}`, status: 'READY', remaining: 0, paymentStatus: 'PAID' })
+    getInbox
+      .mockResolvedValueOnce(inbox([ready(0)], { nextCursor: 'AC1', counts: { pending: 0, accepted: 0, ready: 2, active: 2, done: 0 } }))
+      .mockResolvedValueOnce(inbox([ready(100)], { nextCursor: null, counts: { pending: 0, accepted: 0, ready: 2, active: 2, done: 0 } }))
+      .mockImplementation(async (_v: string, o?: { cursor?: string }) =>
+        o?.cursor
+          ? inbox([ready(100)], { nextCursor: null, counts: { pending: 0, accepted: 0, ready: 2, active: 2, done: 0 } })
+          : inbox([ready(0)], { nextCursor: 'AC1', counts: { pending: 0, accepted: 0, ready: 2, active: 2, done: 0 } }),
+      )
+    markDelivered.mockResolvedValue({ status: 'COMPLETED' })
+    renderTab()
+    await screen.findByTestId('order-r0')
+    expect(screen.queryByTestId('order-r100')).toBeNull()
+    await userEvent.click(screen.getAllByRole('button', { name: 'inbox.sections.loadMore' })[0])
+    expect(getInbox).toHaveBeenCalledWith('venue-1', { tray: false, status: 'active', cursor: 'AC1' })
+    const card = await screen.findByTestId('order-r100')
+    await userEvent.click(within(card).getByRole('button', { name: 'inbox.actions.delivered' }))
+    await waitFor(() => expect(markDelivered).toHaveBeenCalledWith('venue-1', 'r100'))
+  })
+
+  it('«Mi equipo»: un evento de la Bandeja relee el inbox pero no vuelve a pedir to-pay', async () => {
+    getSettings.mockResolvedValue({ requiresAcceptance: true })
+    getInbox.mockResolvedValue(inbox([]))
+    renderTab()
+    await screen.findByTestId('online-inbox')
+    await waitFor(() => expect(getToPay).toHaveBeenCalledTimes(1))
+    const inboxCalls = getInbox.mock.calls.length
+    await act(async () => handlers['order_updated']?.({ onlineStatus: 'ACCEPTED', venueId: 'venue-1' }))
+    await waitFor(() => expect(getInbox.mock.calls.length).toBeGreaterThan(inboxCalls))
+    await settleMutations()
+    expect(getToPay).toHaveBeenCalledTimes(1)
+  })
+
+  it('con abono no hay «Vence en» ni «Está por vencer»: sólo «Se cobra en caja»', async () => {
+    getToPay.mockResolvedValue(toPayRes([folio({ total: 185, remaining: 85, paymentStatus: 'PARTIAL' })]))
+    renderTab()
+    const card = await screen.findByTestId('folio-f1')
+    expect(within(card).getByText('folio.collectAtRegister')).toBeInTheDocument()
+    expect(within(card).queryByText(/folio\.expiresIn|folio\.expiring|folio\.expiresAt/)).toBeNull()
+  })
+
+  it('«Vence en» urgente usa un ámbar con contraste (amber-700 en claro, amber-400 en oscuro)', async () => {
+    getToPay.mockResolvedValue(toPayRes([folio({ acceptDeadlineAt: '2026-10-17T18:03:00.000Z' })]))
+    renderTab()
+    const el = await screen.findByText('folio.expiresIn|3')
+    expect(el.className).toContain('text-amber-700')
+    expect(el.className).toContain('dark:text-amber-400')
+    expect(el.className).not.toContain('text-amber-600')
   })
 
   it('un folio quitado de «Por pagar» por estar en «Por entregar» no descuadra el número', async () => {
