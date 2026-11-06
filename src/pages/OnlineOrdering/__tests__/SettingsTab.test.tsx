@@ -773,12 +773,24 @@ describe('SettingsTab', () => {
     await formularioCargado()
     const link = 'https://pedidos.avoqado.io/taqueria'
     expect(await screen.findByDisplayValue(link)).toBeInTheDocument()
-    expect(screen.getByTestId('qr')).toHaveAttribute('data-value', link)
+    expect(screen.getByTestId('qr')).toHaveAttribute('data-value', `${link}?canal=qr`)
     const snippet = screen.getByTestId('widget-snippet').textContent ?? ''
     expect(snippet).toContain('<script src="https://cdn.avoqado.io/widget.js" defer></script>')
     expect(snippet).toContain('<avoqado-order venue="taqueria"></avoqado-order>')
     expect(snippet).not.toContain('<iframe')
     expect(screen.getByTitle('settings.share.previewTitle')).toHaveAttribute('src', link)
+  })
+
+  it('el QR codifica <url>?canal=qr; la liga copiada no lo lleva', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true })
+    getSettings.mockResolvedValue(base())
+    renderTab()
+    await formularioCargado()
+    const link = 'https://pedidos.avoqado.io/taqueria'
+    expect(screen.getByTestId('qr')).toHaveAttribute('data-value', `${link}?canal=qr`)
+    await userEvent.click(screen.getByRole('button', { name: 'settings.share.copy' }))
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith(link))
   })
 
   // ── Ronda final · D3 (+ ronda 1): la vista previa sólo en los orígenes que la tienda deja enmarcar ──
