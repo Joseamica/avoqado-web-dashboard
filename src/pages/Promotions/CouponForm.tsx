@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectSeparator, SelectTrigger, Sele
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
 import couponService from '@/services/coupon.service'
-import { limiteParaGuardar } from './paraGuardar'
+import { limiteParaGuardar, siCambio } from './paraGuardar'
 import discountService from '@/services/discount.service'
 import type { CreateCouponRequest } from '@/types/discount'
 
@@ -97,8 +97,9 @@ export default function CouponForm() {
         return couponService.updateCoupon(venueId, couponId!, {
           ...updateData,
           // D14: vaciar un límite al editar lo vuelve ilimitado (null); antes se omitía y el límite viejo se quedaba.
-          maxUses: limiteParaGuardar(updateData.maxUses, true),
-          maxUsesPerCustomer: limiteParaGuardar(updateData.maxUsesPerCustomer, true),
+          // Sólo si cambió frente a lo abierto: no pisar lo que otra persona guardó en medio (Codex D14 v2 r1 #1).
+          maxUses: siCambio(limiteParaGuardar(updateData.maxUses, true), existingCoupon?.maxUses),
+          maxUsesPerCustomer: siCambio(limiteParaGuardar(updateData.maxUsesPerCustomer, true), existingCoupon?.maxUsesPerCustomer),
         })
       }
       return couponService.createCoupon(venueId, data)

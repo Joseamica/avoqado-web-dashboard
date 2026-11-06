@@ -12,3 +12,14 @@ export const categoriasParaGuardar = (scope: string, valores?: unknown[]): strin
   scope === 'CATEGORY'
     ? (valores ?? []).map(v => (typeof v === 'object' && v !== null ? (v as { value: string }).value : String(v)))
     : undefined
+
+/**
+ * Al editar, sólo se manda lo que la persona cambió frente a lo que abrió (Codex D14 v2 r1 #1): un formulario abierto antes de
+ * que otra persona guardara no debe pisar su límite o sus categorías con el valor viejo. Listas: mismo conjunto = igual.
+ */
+export const siCambio = <T>(nuevo: T, abierto: T): T | undefined => {
+	const a = nuevo ?? null
+	const b = abierto ?? null
+	if (Array.isArray(a) && Array.isArray(b)) return a.length === b.length && a.every(x => b.includes(x)) ? undefined : nuevo
+	return a === b ? undefined : nuevo
+}

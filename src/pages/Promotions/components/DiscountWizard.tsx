@@ -14,7 +14,7 @@ import type { CreateDiscountRequest, Discount, DiscountScope, DiscountType, Upda
 import { ChevronLeft, ChevronRight, Check, Loader2 } from 'lucide-react'
 
 import { useDiscountFormData } from '../hooks/useDiscountFormData'
-import { categoriasParaGuardar, limiteParaGuardar } from '../paraGuardar'
+import { categoriasParaGuardar, limiteParaGuardar, siCambio } from '../paraGuardar'
 import { WizardStep1BasicInfo } from './wizard-steps/WizardStep1BasicInfo'
 import { WizardStep2Scope } from './wizard-steps/WizardStep2Scope'
 import { WizardStep3Rules } from './wizard-steps/WizardStep3Rules'
@@ -345,10 +345,12 @@ export function DiscountWizard({ open, onOpenChange, venueId, editDiscount, onSu
 
     // Use update or create mutation based on mode
     if (isEditMode) {
+      // Límites y categorías sólo si cambiaron frente a lo abierto: así no se pisa lo que otra persona guardó en medio.
       updateDiscountMutation.mutate({
         ...completeData,
-        maxTotalUses: limiteParaGuardar(step3Data.maxTotalUses, true),
-        maxUsesPerCustomer: limiteParaGuardar(step3Data.maxUsesPerCustomer, true),
+        targetCategoryIds: siCambio(completeData.targetCategoryIds, editDiscount?.targetCategoryIds ?? []),
+        maxTotalUses: siCambio(limiteParaGuardar(step3Data.maxTotalUses, true), editDiscount?.maxTotalUses),
+        maxUsesPerCustomer: siCambio(limiteParaGuardar(step3Data.maxUsesPerCustomer, true), editDiscount?.maxUsesPerCustomer),
       })
     } else {
       createDiscountMutation.mutate(completeData)
