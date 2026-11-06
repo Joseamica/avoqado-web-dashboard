@@ -1114,6 +1114,67 @@ describe('InboxTab · folios de «Nadie» (Por pagar / Por entregar)', () => {
     expect(getToPay).toHaveBeenCalledTimes(1)
   })
 
+  it('«Mi equipo» que se vuelve «Nadie» desde otra computadora: un folio en la Bandeja enciende to-pay y sale en «Por entregar»', async () => {
+    getSettings.mockResolvedValue({ requiresAcceptance: true })
+    const paid = folio({ status: 'ACCEPTED', paymentStatus: 'PAID', remaining: 0 })
+    getInbox
+      .mockResolvedValueOnce(inbox([]))
+      .mockResolvedValue(inbox([paid], { counts: { pending: 0, accepted: 1, acceptedTeam: 0, ready: 0, active: 1, done: 0 } }))
+    getToPay.mockResolvedValueOnce(toPayRes()).mockResolvedValue(toPayRes([], [paid]))
+    renderTab()
+    await screen.findByTestId('online-inbox')
+    await waitFor(() => expect(getToPay).toHaveBeenCalledTimes(1))
+    await act(async () => handlers['order_updated']?.({ onlineStatus: 'ACCEPTED', venueId: 'venue-1' }))
+    expect(await screen.findByTestId('folio-f1')).toBeInTheDocument()
+    expect(getToPay.mock.calls.length).toBeGreaterThanOrEqual(2)
+  })
+
+  it('relecturas lentas: no se encadenan ni se descartan; la página se aplica al llegar y corre una más al terminar', async () => {
+    let cursorCalls = 0
+    const slow = deferred<ReturnType<typeof toPayRes>>()
+    const slow2 = deferred<ReturnType<typeof toPayRes>>()
+    getToPay.mockImplementation(async (_v: string, p?: { cursor?: string }) => {
+      if (!p?.cursor) return page1()
+      cursorCalls++
+      if (cursorCalls === 1) return toPayRes([], [mkD(1)], { counts: { toPay: 0, toDeliver: 3 } })
+      if (cursorCalls === 2) return slow.promise
+      return slow2.promise
+    })
+    markReady.mockRejectedValue(http(500, {}))
+    renderTab()
+    await userEvent.click(await screen.findByRole('button', { name: 'folio.loadMore' }))
+    await screen.findByTestId('folio-d1')
+    await userEvent.click(within(screen.getByTestId('folio-d0')).getByRole('button', { name: 'inbox.actions.ready' }))
+    await waitFor(() => expect(cursorCalls).toBe(2))
+    // Otro sondeo con la relectura en vuelo: no se lanza otra (sigue en 2 llamadas).
+    await userEvent.click(within(screen.getByTestId('folio-d5')).getByRole('button', { name: 'inbox.actions.ready' }))
+    await settleMutations()
+    expect(cursorCalls).toBe(2)
+    await act(async () => slow.resolve(toPayRes([], [mkD(2)], { counts: { toPay: 0, toDeliver: 3 } })))
+    expect(await screen.findByTestId('folio-d2')).toBeInTheDocument()
+    // Y al terminar corre la que quedó anotada.
+    await waitFor(() => expect(cursorCalls).toBe(3))
+    await act(async () => slow2.resolve(toPayRes([], [mkD(3)], { counts: { toPay: 0, toDeliver: 3 } })))
+    expect(await screen.findByTestId('folio-d3')).toBeInTheDocument()
+    expect(screen.queryByTestId('folio-d2')).toBeNull()
+    expect(cursorCalls).toBe(3)
+  })
+
+  it('un folio que cambió de página entre lecturas no sale dos veces', async () => {
+    getToPay.mockImplementation(async (_v: string, p?: { cursor?: string }) => {
+      if (!p?.cursor) return page1()
+      if (p.cursor === 'C')
+        return toPayRes([], [mkD(1)], { counts: { toPay: 0, toDeliver: 3 }, nextCursors: { toPay: null, toDeliver: 'C2' } })
+      return toPayRes([], [mkD(1), mkD(2)], { counts: { toPay: 0, toDeliver: 3 } })
+    })
+    renderTab()
+    await userEvent.click(await screen.findByRole('button', { name: 'folio.loadMore' }))
+    await screen.findByTestId('folio-d1')
+    await userEvent.click(screen.getByRole('button', { name: 'folio.loadMore' }))
+    await screen.findByTestId('folio-d2')
+    expect(screen.getAllByTestId('folio-d1')).toHaveLength(1)
+  })
+
   it('con abono no hay «Vence en» ni «Está por vencer»: sólo «Se cobra en caja»', async () => {
     getToPay.mockResolvedValue(toPayRes([folio({ total: 185, remaining: 85, paymentStatus: 'PARTIAL' })]))
     renderTab()

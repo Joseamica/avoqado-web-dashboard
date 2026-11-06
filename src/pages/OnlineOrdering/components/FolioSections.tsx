@@ -23,11 +23,13 @@ interface Props {
   busy: boolean
   /** Folios ya tocados con éxito: salen de la lista al instante (también los de «Cargar más» hasta que el sondeo los relea). */
   hidden: ReadonlySet<string>
+  /** La Bandeja ya vio un folio de «Nadie» (requiresAcceptance=false): señal para leer `to-pay` aunque los ajustes digan otra cosa. */
+  inboxSignal?: boolean
   onAct: (order: FolioOrder, action: FolioAction) => void
 }
 
 /** «Por pagar» y «Por entregar» de «Nadie». Salen del `to-pay` del panel (sin latido: el panel no cobra) y no se repiten en «En preparación». */
-export function FolioSections({ venueId, canAnswer, canCancel, busy, hidden, onAct }: Props) {
+export function FolioSections({ venueId, canAnswer, canCancel, busy, hidden, inboxSignal = false, onAct }: Props) {
   const { t } = useTranslation('onlineOrdering')
   const { toast } = useToast()
   // «Nadie» según los ajustes (misma llave que Configuración). Sin esa señal ni un to-pay con folios, no se enseña nada nuevo.
@@ -41,7 +43,8 @@ export function FolioSections({ venueId, canAnswer, canCancel, busy, hidden, onA
   const queryClient = useQueryClient()
   const prev = queryClient.getQueryState<ToPayResponse>(onlineOrderingKeys.toPay(venueId))
   const readOnce = (prev?.dataUpdatedAt ?? 0) > 0 || (prev?.errorUpdatedAt ?? 0) > 0
-  const live = nadie || !!prev?.data?.showTile || (prev?.data ? prev.data.counts.toPay + prev.data.counts.toDeliver > 0 : false)
+  const live =
+    nadie || inboxSignal || !!prev?.data?.showTile || (prev?.data ? prev.data.counts.toPay + prev.data.counts.toDeliver > 0 : false)
   const { data, isError, isFetching, refetch, dataUpdatedAt } = useQuery({
     queryKey: onlineOrderingKeys.toPay(venueId),
     queryFn: () => getToPay(venueId),
@@ -59,8 +62,8 @@ export function FolioSections({ venueId, canAnswer, canCancel, busy, hidden, onA
     return { items: page[section], next: page.nextCursors[section] }
   }
   const more = {
-    toPay: useExtraPages(data?.nextCursors.toPay ?? null, dataUpdatedAt, fetchSection('toPay'), onMoreError),
-    toDeliver: useExtraPages(data?.nextCursors.toDeliver ?? null, dataUpdatedAt, fetchSection('toDeliver'), onMoreError),
+    toPay: useExtraPages(data?.nextCursors.toPay ?? null, dataUpdatedAt, fetchSection('toPay'), onMoreError, o => o.orderId),
+    toDeliver: useExtraPages(data?.nextCursors.toDeliver ?? null, dataUpdatedAt, fetchSection('toDeliver'), onMoreError, o => o.orderId),
   }
   const [now, setNow] = useState(() => Date.now())
   useEffect(() => {

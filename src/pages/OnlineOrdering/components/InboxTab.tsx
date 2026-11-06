@@ -110,6 +110,7 @@ export function InboxTab() {
       return { items: page.orders, next: page.nextCursor }
     },
     onMoreError,
+    o => o.orderId,
   )
 
   // Insiste en cada sondeo mientras haya algo por aceptar (`play()` no hace nada si el navegador no ha dejado sonar).
@@ -273,6 +274,7 @@ export function InboxTab() {
         canCancel={canCancel}
         busy={action.isPending}
         hidden={touched}
+        inboxSignal={[...data.orders, ...activeMore.items].some(o => o.requiresAcceptance === false)}
         onAct={onFolioAct}
       />
 
