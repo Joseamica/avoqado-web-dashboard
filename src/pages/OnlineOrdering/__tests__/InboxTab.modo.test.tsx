@@ -332,4 +332,43 @@ describe('to-pay · modo y visibilidad (R88)', () => {
     await advance(500)
     expect(getToPay).toHaveBeenCalledTimes(2)
   })
+
+  it('R90 #1/#3 · Inbox en ERROR: las tarjetas se ven pero sus acciones están apagadas, con la razón', async () => {
+    getInbox.mockRejectedValue(http(500, {}))
+    getSettings.mockResolvedValue({ requiresAcceptance: false })
+    getToPay.mockImplementation(async () => toPayRes([folio()], [nadieFolio({ orderId: 'f2', orderNumber: 'W2' })]))
+    renderTab()
+    await advance(1_500)
+    expect(await screen.findByTestId('folio-f1')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'folio.cancel' })).toBeDisabled()
+    expect(within(screen.getByTestId('folio-f2')).getByRole('button', { name: 'inbox.actions.ready' })).toBeDisabled()
+    expect(within(screen.getByTestId('folio-f2')).getByRole('button', { name: 'inbox.actions.delivered' })).toBeDisabled()
+    expect(screen.getByText('folio.reloadInboxFirst')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'folio.cancel' }), { pointerEventsCheck: 0 })
+    expect(screen.queryByText(/^folio\.cancelDialog\.title/)).toBeNull()
+  })
+
+  it('R90 #3 · Inbox OK: «Cancelar folio» abre su confirmación', async () => {
+    getToPay.mockImplementation(async () => toPayRes([folio()]))
+    getSettings.mockResolvedValue({ requiresAcceptance: false })
+    renderTab()
+    await advance(300)
+    const btn = await screen.findByRole('button', { name: 'folio.cancel' })
+    expect(btn).toBeEnabled()
+    await userEvent.click(btn)
+    expect(await screen.findByText(/^folio\.cancelDialog\.title/)).toBeInTheDocument()
+    expect(screen.queryByText('folio.reloadInboxFirst')).toBeNull()
+  })
+
+  it('R90 #2 · un error de to-pay DESPUÉS de una respuesta viva baja el modo a LENTO aunque queden datos en caché', async () => {
+    getToPay.mockResolvedValueOnce(toPayRes([nadieFolio()])).mockRejectedValue(http(500, {}))
+    renderTab()
+    await advance(300)
+    expect(getToPay).toHaveBeenCalledTimes(1)
+    await advance(12_000) // tick vivo a los 10 s: falla, y su reintento a 1 s también
+    expect(getToPay).toHaveBeenCalledTimes(3)
+    await advance(60_000) // ya LENTO: no vuelve a los 10 s
+    expect(getToPay).toHaveBeenCalledTimes(3)
+    expect(screen.getByTestId('folio-f1')).toBeInTheDocument() // los datos viejos se siguen viendo
+  })
 })

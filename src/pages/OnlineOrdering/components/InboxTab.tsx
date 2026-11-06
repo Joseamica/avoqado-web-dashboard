@@ -90,7 +90,7 @@ export function InboxTab() {
   const { formatTime } = useVenueDateTime()
   const venueId = useCurrentVenue().venueId ?? ''
   const { hasPlan, canAnswer, canCancel, canPause, canRefund, keepsStoreOpen } = useOnlineOrderingStatus()
-  const { data, isError, error, dataUpdatedAt } = useOnlineOrdersInbox(venueId, { trayActive: () => keepsStoreOpen })
+  const { data, isError, error, dataUpdatedAt, refetch: refetchInbox } = useOnlineOrdersInbox(venueId, { trayActive: () => keepsStoreOpen })
 
   const [dialog, setDialog] = useState<DialogState>(null)
   // 409 CONFIRMING: «Aceptar» de ese pedido queda apagado hasta que una lectura EXITOSA posterior (dataUpdatedAt > la hora del
@@ -206,6 +206,62 @@ export function InboxTab() {
   const nadieIds = [...(data?.orders ?? []), ...activeMore.items]
     .filter(o => o.requiresAcceptance === false && !CLOSED.has(o.status))
     .map(o => o.orderId)
+  const dialogs = (
+    <>
+      {dialog?.kind === 'accept' && (
+        <AcceptDialog
+          order={dialog.order}
+          onClose={() => setDialog(null)}
+          onAccept={minutes => run('ACCEPTED', () => acceptOrder(venueId, dialog.order.orderId, minutes), dialog.order.orderId)}
+        />
+      )}
+      {dialog?.kind === 'reject' && (
+        <RejectDialog
+          order={dialog.order}
+          onClose={() => setDialog(null)}
+          onReject={(reason, note) => run('REJECTED', () => rejectOrder(venueId, dialog.order.orderId, reason, note))}
+        />
+      )}
+      {dialog?.kind === 'cancelFolio' && (
+        <AlertDialog open onOpenChange={open => !open && setDialog(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{t('folio.cancelDialog.title', { folio: spaceFolio(dialog.order.orderNumber) })}</AlertDialogTitle>
+              <AlertDialogDescription>
+                {dialog.order.customerName
+                  ? t('folio.cancelDialog.description', { name: dialog.order.customerName })
+                  : t('folio.cancelDialog.descriptionNoName')}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>{t('folio.cancelDialog.back')}</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => run('CANCELLED_BY_STAFF', () => cancelOrder(venueId, dialog.order.orderId), dialog.order.orderId)}
+              >
+                {t('folio.cancelDialog.confirm')}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
+      {dialog?.kind === 'cancel' && (
+        <AlertDialog open onOpenChange={open => !open && setDialog(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{t('inbox.cancel.title', { number: dialog.order.orderNumber })}</AlertDialogTitle>
+              <AlertDialogDescription>{t('inbox.cancel.description')}</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>{t('inbox.cancel.back')}</AlertDialogCancel>
+              <AlertDialogAction onClick={() => run('CANCELLED_BY_STAFF', () => cancelOrder(venueId, dialog.order.orderId))}>
+                {t('inbox.cancel.confirm')}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
+    </>
+  )
   const folioSections = (
     <FolioSections
       venueId={venueId}
@@ -213,6 +269,7 @@ export function InboxTab() {
       canCancel={canCancel}
       busy={action.isPending}
       hidden={touched}
+      actionsLocked={isError}
       inboxNadieIds={nadieIds}
       onAct={onFolioAct}
     />
@@ -225,7 +282,12 @@ export function InboxTab() {
         <>
           {isError ? (
             <Alert variant="destructive">
-              <AlertDescription>{serverMessage(error, t('inbox.loadFailed'))}</AlertDescription>
+              <AlertDescription className="flex flex-wrap items-center justify-between gap-2">
+                {serverMessage(error, t('inbox.loadFailed'))}
+                <Button size="sm" variant="outline" onClick={() => void refetchInbox()}>
+                  {t('folio.retry')}
+                </Button>
+              </AlertDescription>
             </Alert>
           ) : (
             <div className="space-y-3" data-testid="online-inbox-loading">
@@ -236,6 +298,7 @@ export function InboxTab() {
         </>
         {folioSections}
         <></>
+        {dialogs}
       </div>
     )
   }
@@ -338,60 +401,8 @@ export function InboxTab() {
             </section>
           )
         })}
-
-        {dialog?.kind === 'accept' && (
-          <AcceptDialog
-            order={dialog.order}
-            onClose={() => setDialog(null)}
-            onAccept={minutes => run('ACCEPTED', () => acceptOrder(venueId, dialog.order.orderId, minutes), dialog.order.orderId)}
-          />
-        )}
-        {dialog?.kind === 'reject' && (
-          <RejectDialog
-            order={dialog.order}
-            onClose={() => setDialog(null)}
-            onReject={(reason, note) => run('REJECTED', () => rejectOrder(venueId, dialog.order.orderId, reason, note))}
-          />
-        )}
-        {dialog?.kind === 'cancelFolio' && (
-          <AlertDialog open onOpenChange={open => !open && setDialog(null)}>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>{t('folio.cancelDialog.title', { folio: spaceFolio(dialog.order.orderNumber) })}</AlertDialogTitle>
-                <AlertDialogDescription>
-                  {dialog.order.customerName
-                    ? t('folio.cancelDialog.description', { name: dialog.order.customerName })
-                    : t('folio.cancelDialog.descriptionNoName')}
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>{t('folio.cancelDialog.back')}</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={() => run('CANCELLED_BY_STAFF', () => cancelOrder(venueId, dialog.order.orderId), dialog.order.orderId)}
-                >
-                  {t('folio.cancelDialog.confirm')}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        )}
-        {dialog?.kind === 'cancel' && (
-          <AlertDialog open onOpenChange={open => !open && setDialog(null)}>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>{t('inbox.cancel.title', { number: dialog.order.orderNumber })}</AlertDialogTitle>
-                <AlertDialogDescription>{t('inbox.cancel.description')}</AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>{t('inbox.cancel.back')}</AlertDialogCancel>
-                <AlertDialogAction onClick={() => run('CANCELLED_BY_STAFF', () => cancelOrder(venueId, dialog.order.orderId))}>
-                  {t('inbox.cancel.confirm')}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        )}
       </>
+      {dialogs}
     </div>
   )
 }

@@ -345,6 +345,7 @@
     "loadFailed": "No pudimos cargar los folios. Revisa tu conexión y vuelve a intentar.",
     "retry": "Reintentar",
     "loadMoreFailed": "No pudimos cargar más folios. Vuelve a intentar.",
-    "paidAt": "Pagado a las {{time}}"
+    "paidAt": "Pagado a las {{time}}",
+    "reloadInboxFirst": "Primero recarga la Bandeja"
   }
 }

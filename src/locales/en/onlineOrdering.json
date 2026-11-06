@@ -345,6 +345,7 @@
     "loadFailed": "We couldn't load the folios. Check your connection and try again.",
     "retry": "Retry",
     "loadMoreFailed": "We couldn't load more folios. Try again.",
-    "paidAt": "Paid at {{time}}"
+    "paidAt": "Paid at {{time}}",
+    "reloadInboxFirst": "Reload the Inbox first"
   }
 }

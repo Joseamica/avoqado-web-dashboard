@@ -26,11 +26,13 @@ interface Props {
   hidden: ReadonlySet<string>
   /** Ids de folios de «Nadie» ACTIVOS que la Bandeja ve: sólo dan un empujón único a to-pay, no cambian su modo. */
   inboxNadieIds?: string[]
+  /** La Bandeja está en error: las tarjetas se ven, pero ninguna acción que mueva un folio hacia ella (R90). */
+  actionsLocked?: boolean
   onAct: (order: FolioOrder, action: FolioAction) => void
 }
 
 /** «Por pagar» y «Por entregar» de «Nadie». Salen del `to-pay` del panel (sin latido: el panel no cobra) y no se repiten en «En preparación». */
-export function FolioSections({ venueId, canAnswer, canCancel, busy, hidden, inboxNadieIds = [], onAct }: Props) {
+export function FolioSections({ venueId, canAnswer, canCancel, busy, hidden, inboxNadieIds = [], actionsLocked = false, onAct }: Props) {
   const { t } = useTranslation('onlineOrdering')
   const { toast } = useToast()
   // «Nadie» según los ajustes (misma llave que Configuración). Sin esa señal ni un to-pay con folios, no se enseña nada nuevo.
@@ -48,7 +50,7 @@ export function FolioSections({ venueId, canAnswer, canCancel, busy, hidden, inb
     // El modo sale sólo de la última respuesta buena (ver toPayLive): VIVO 10 s o LENTO 120 s; en error o arranque en frío, LENTO.
     // ponytail: tras pasar a «Nadie» desde otra computadora, el primer folio sin pagar puede tardar hasta 120 s en verse en el panel
     // (la caja cobra en la TPV o el POS, no aquí); la Bandeja lo adelanta con un empujón si trae ese folio.
-    refetchInterval: q => (toPayModeIsLive(q.state.data) ? 10_000 : 120_000),
+    refetchInterval: q => (toPayModeIsLive(q.state.data, q.state.status === 'error') ? 10_000 : 120_000),
     refetchIntervalInBackground: false,
     retry: 1,
   })
@@ -110,6 +112,7 @@ export function FolioSections({ venueId, canAnswer, canCancel, busy, hidden, inb
   return (
     <div className="space-y-4" data-testid="folio-sections">
       {!data.requiresAcceptance && <p className="text-sm text-muted-foreground">{t('folio.note')}</p>}
+      {actionsLocked && <p className="text-sm font-medium">{t('folio.reloadInboxFirst')}</p>}
       {(['toPay', 'toDeliver'] as const).map(section => {
         const list = lists[section]
         // Un folio quitado de «Por pagar» por estar ya en «Por entregar» no debe contradecir el número ni el «Mostrando».
@@ -137,7 +140,7 @@ export function FolioSections({ venueId, canAnswer, canCancel, busy, hidden, inb
                     stale={isError}
                     canAnswer={canAnswer}
                     canCancel={canCancel}
-                    busy={busy}
+                    busy={busy || actionsLocked}
                     onAct={a => onAct(order, a)}
                   />
                 ))}
