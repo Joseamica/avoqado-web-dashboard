@@ -45,7 +45,11 @@ export function PlanRow(props: PlanRowProps) {
   const originTier = origin.tier ? tierName(origin.tier) : ''
   const until = origin.cancelAt ?? origin.currentPeriodEnd
   const untilText = until ? formatDate(until) : null
-  const suspended = origin.kind === 'CLASSIC' && (planState?.state === 'past_due' || planState?.state === 'suspended')
+  // D4 + D6 (5-nov-2026): sólo `suspended` está sin acceso. `past_due` lo CONSERVA (gracia de cobranza o en espera del
+  // 4.º intento de Stripe): decir ahí «el acceso está en pausa» era falso.
+  const suspended = origin.kind === 'CLASSIC' && planState?.state === 'suspended'
+  const pagoPendiente = origin.kind === 'CLASSIC' && planState?.state === 'past_due'
+  const graciaHasta = pagoPendiente && planState?.gracePeriodEndsAt ? formatDate(planState.gracePeriodEndsAt) : null
   // Mensual/Anual only matters to the classic checkout: a paid plan picked while on Gratis.
   const showInterval = origin.kind === 'NONE' && !grandfathered && !props.classicRejected && selected !== 'FREE'
   const priceInput = {
@@ -170,6 +174,11 @@ export function PlanRow(props: PlanRowProps) {
             <p role="alert" className="flex items-center gap-2 text-destructive">
               <AlertCircle className="h-4 w-4" />
               {t('plan.row.paymentPending')}
+            </p>
+          ) : pagoPendiente ? (
+            <p role="alert" className="flex items-center gap-2 text-destructive">
+              <AlertCircle className="h-4 w-4" />
+              {graciaHasta ? t('plan.row.paymentPendingUntil', { date: graciaHasta }) : t('plan.row.paymentPendingNoDate')}
             </p>
           ) : origin.kind === 'CONTRACT' && origin.paymentIssue ? (
             <p role="alert" className="flex items-center gap-2 text-destructive">
