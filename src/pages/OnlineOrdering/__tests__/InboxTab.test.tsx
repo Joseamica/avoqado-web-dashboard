@@ -1033,6 +1033,56 @@ describe('InboxTab · folios de «Nadie» (Por pagar / Por entregar)', () => {
     expect(within(screen.getByTestId('folio-f2')).getByText(/^folio\.orderedAt\|/)).toBeInTheDocument()
   })
 
+  const mkD = (i: number, over: Record<string, unknown> = {}) =>
+    folio({
+      orderId: `d${i}`,
+      onlineOrderId: `do${i}`,
+      orderNumber: `W${i}`,
+      status: 'ACCEPTED',
+      paymentStatus: 'PAID',
+      remaining: 0,
+      ...over,
+    })
+  const page1 = (over: Record<string, unknown> = {}, items = [mkD(0), mkD(5)]) =>
+    toPayRes([], items, { counts: { toPay: 0, toDeliver: 3 }, nextCursors: { toPay: null, toDeliver: 'C' }, ...over })
+
+  it('una lectura idéntica de la página 1 conserva lo traído con «Cargar más»; un cambio real lo suelta', async () => {
+    getToPay
+      .mockResolvedValueOnce(page1())
+      .mockResolvedValueOnce(toPayRes([], [mkD(1)], { counts: { toPay: 0, toDeliver: 3 } }))
+      .mockResolvedValueOnce(page1())
+      .mockResolvedValueOnce(page1({}, [mkD(0), mkD(5, { status: 'READY' })]))
+      .mockResolvedValue(page1({}, [mkD(0), mkD(5, { status: 'READY' })]))
+    markReady.mockRejectedValue(http(500, {}))
+    renderTab()
+    await userEvent.click(await screen.findByRole('button', { name: 'folio.loadMore' }))
+    await screen.findByTestId('folio-d1')
+    // Toque que falla ⇒ se relee la página 1, idéntica ⇒ el extra se queda.
+    await userEvent.click(within(screen.getByTestId('folio-d0')).getByRole('button', { name: 'inbox.actions.ready' }))
+    await waitFor(() => expect(getToPay.mock.calls.length).toBeGreaterThanOrEqual(3))
+    expect(screen.getByTestId('folio-d1')).toBeInTheDocument()
+    // Otro toque ⇒ la página 1 ahora sí cambió (d5 ya está listo) ⇒ el extra se suelta.
+    await userEvent.click(within(screen.getByTestId('folio-d5')).getByRole('button', { name: 'inbox.actions.ready' }))
+    await waitFor(() => expect(screen.queryByTestId('folio-d1')).toBeNull())
+  })
+
+  it('un folio quitado de «Por pagar» por estar en «Por entregar» no descuadra el número', async () => {
+    const f = folio({ status: 'ACCEPTED', paymentStatus: 'PAID', remaining: 0 })
+    getToPay.mockResolvedValue(toPayRes([folio()], [f], { counts: { toPay: 1, toDeliver: 1 } }))
+    renderTab()
+    await screen.findByTestId('folio-f1')
+    expect(screen.getByRole('heading', { name: /folio\.sections\.toPay/ })).toHaveTextContent('(0)')
+    expect(screen.getByText('folio.emptyToPay')).toBeInTheDocument()
+  })
+
+  it('«Mi equipo» sin folios: una lectura de to-pay y ya no se sondea', async () => {
+    getSettings.mockResolvedValue({ requiresAcceptance: true })
+    renderTab()
+    await screen.findByTestId('online-inbox')
+    await new Promise(r => setTimeout(r, 11_000))
+    expect(getToPay).toHaveBeenCalledTimes(1)
+  }, 20_000)
+
   it('la nota de «Nadie» sale sólo con folios de «Nadie»', async () => {
     getToPay.mockResolvedValue(toPayRes([folio()]))
     renderTab()

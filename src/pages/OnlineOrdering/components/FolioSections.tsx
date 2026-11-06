@@ -30,14 +30,6 @@ interface Props {
 export function FolioSections({ venueId, canAnswer, canCancel, busy, hidden, onAct }: Props) {
   const { t } = useTranslation('onlineOrdering')
   const { toast } = useToast()
-  const { data, isError, isFetching, refetch, dataUpdatedAt } = useQuery({
-    queryKey: onlineOrderingKeys.toPay(venueId),
-    queryFn: () => getToPay(venueId),
-    enabled: !!venueId,
-    refetchInterval: 10_000,
-    refetchIntervalInBackground: false,
-    retry: 1,
-  })
   // «Nadie» según los ajustes (misma llave que Configuración). Sin esa señal ni un to-pay con folios, no se enseña nada nuevo.
   const settings = useQuery({
     queryKey: onlineOrderingKeys.settings(venueId),
@@ -46,14 +38,27 @@ export function FolioSections({ venueId, canAnswer, canCancel, busy, hidden, onA
     retry: false,
   })
   const nadie = settings.data?.requiresAcceptance === false
-  // Cada lectura nueva de la página 1 invalida lo traído con «Cargar más»: así no queda un folio ya cobrado o vencido congelado.
+  const { data, isError, isFetching, refetch, dataUpdatedAt } = useQuery({
+    queryKey: onlineOrderingKeys.toPay(venueId),
+    queryFn: () => getToPay(venueId),
+    enabled: !!venueId,
+    // Una lectura inicial siempre; después sólo se sondea con señal de «Nadie» (o mientras queden folios vivos al volver a «Mi equipo»).
+    refetchInterval: q =>
+      nadie || q.state.data?.showTile || (q.state.data?.counts.toPay ?? 0) + (q.state.data?.counts.toDeliver ?? 0) > 0 ? 10_000 : false,
+    refetchIntervalInBackground: false,
+    retry: 1,
+  })
+  // Lo traído con «Cargar más» se invalida sólo cuando la página 1 CAMBIA de verdad (ids, estado o pago), no en cada sondeo igual.
+  const signature = data
+    ? [...data.toPay, ...data.toDeliver].map(o => `${o.orderId}:${o.status}:${o.paymentStatus}:${o.remaining}`).join('|')
+    : ''
   const [extra, setExtra] = useState<Record<Section, Extra>>({ toPay: NO_EXTRA, toDeliver: NO_EXTRA })
   const [loadingMore, setLoadingMore] = useState<Section | null>(null)
-  const startedAt = useRef(0)
+  const startedAt = useRef('')
   useEffect(() => {
-    startedAt.current = dataUpdatedAt
+    startedAt.current = signature
     setExtra({ toPay: NO_EXTRA, toDeliver: NO_EXTRA })
-  }, [dataUpdatedAt])
+  }, [signature])
   const [now, setNow] = useState(() => Date.now())
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 15_000)
@@ -84,7 +89,7 @@ export function FolioSections({ venueId, canAnswer, canCancel, busy, hidden, onA
     const cursor = extra[section].started ? extra[section].cursor : data.nextCursors[section]
     if (!cursor || loadingMore) return
     setLoadingMore(section)
-    const since = dataUpdatedAt
+    const since = signature
     try {
       const page = await getToPay(venueId, { section, cursor })
       if (startedAt.current !== since) return // llegó una lectura nueva mientras tanto: esta página ya es vieja
@@ -113,7 +118,9 @@ export function FolioSections({ venueId, canAnswer, canCancel, busy, hidden, onA
       {!data.requiresAcceptance && <p className="text-sm text-muted-foreground">{t('folio.note')}</p>}
       {(['toPay', 'toDeliver'] as const).map(section => {
         const list = lists[section]
-        const total = data.counts[section]
+        // Un folio quitado de «Por pagar» por estar ya en «Por entregar» no debe contradecir el número ni el «Mostrando».
+        const removed = section === 'toPay' ? build('toPay').length - list.length : 0
+        const total = Math.max(data.counts[section] - removed, list.length)
         const next = extra[section].started ? extra[section].cursor : data.nextCursors[section]
         return (
           <section key={section} className="space-y-2" data-tour={`online-inbox-${section}`}>
