@@ -13,8 +13,14 @@ describe.each([
 ])('Resumen de ventas · nombres de los totales (%s)', (_, loc) => {
   const s = loc.salesSummary
 
-  it('la cabecera se llama como el renglón que muestra su misma cifra («Total cobrado»)', () => {
+  it('la cabecera se llama como el renglón que muestra su misma cifra («Neto cobrado»)', () => {
     expect(s.totalSales).toBe(s.rows.totalCollected)
+  })
+
+  // Founder (5-nov, «A»): es lo cobrado DESPUÉS de comisiones, como el «Net total» de Square; no se confunde con «Cobraste».
+  it('esa cifra se llama «Neto cobrado» (Net collected)', () => {
+    expect(s.rows.totalCollected).toBe(_ === 'es' ? 'Neto cobrado' : 'Net collected')
+    expect(s.controls.metrics.options.totalCollected).toBe(s.rows.totalCollected)
   })
 
   it('la cabecera no se confunde con «Total de las ventas» (ventas netas, otra cifra)', () => {
