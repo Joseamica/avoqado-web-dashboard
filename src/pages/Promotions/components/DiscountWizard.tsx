@@ -14,6 +14,7 @@ import type { CreateDiscountRequest, Discount, DiscountScope, DiscountType, Upda
 import { ChevronLeft, ChevronRight, Check, Loader2 } from 'lucide-react'
 
 import { useDiscountFormData } from '../hooks/useDiscountFormData'
+import { categoriasParaGuardar, limiteParaGuardar, soloLoQueCambio } from '../paraGuardar'
 import { WizardStep1BasicInfo } from './wizard-steps/WizardStep1BasicInfo'
 import { WizardStep2Scope } from './wizard-steps/WizardStep2Scope'
 import { WizardStep3Rules } from './wizard-steps/WizardStep3Rules'
@@ -229,7 +230,7 @@ export function DiscountWizard({ open, onOpenChange, venueId, editDiscount, onSu
 
   // Update discount mutation (for edit mode)
   const updateDiscountMutation = useMutation({
-    mutationFn: (data: UpdateDiscountRequest & { active: boolean }) =>
+    mutationFn: (data: UpdateDiscountRequest) =>
       discountService.updateDiscount(venueId, editDiscount!.id, data),
     onSuccess: data => {
       toast({
@@ -294,7 +295,7 @@ export function DiscountWizard({ open, onOpenChange, venueId, editDiscount, onSu
     if (!step1Data || !step2Data || !step3Data) {
       toast({
         title: tCommon('common.error'),
-        description: 'Missing wizard data',
+        description: t('discounts.toasts.error'),
         variant: 'destructive',
       })
       return
@@ -312,7 +313,8 @@ export function DiscountWizard({ open, onOpenChange, venueId, editDiscount, onSu
       // Step 2
       scope: step2Data.scope,
       targetItemIds: step2Data.scope === 'ITEM' ? cleanMultiSelect(step2Data.targetItemIds) : undefined,
-      targetCategoryIds: step2Data.scope === 'CATEGORY' ? cleanMultiSelect(step2Data.targetCategoryIds) : undefined,
+      // D14 v2: la regla de «Categorías» la decide el SERVIDOR (un viejo ya vacío se conserva; uno nuevo responde su mensaje).
+      targetCategoryIds: categoriasParaGuardar(step2Data.scope, step2Data.targetCategoryIds),
       customerGroupId: step2Data.scope === 'CUSTOMER_GROUP' ? step2Data.customerGroupId : undefined,
       buyQuantity: step2Data.scope === 'QUANTITY' ? step2Data.buyQuantity : undefined,
       getQuantity: step2Data.scope === 'QUANTITY' ? step2Data.getQuantity : undefined,
@@ -322,8 +324,10 @@ export function DiscountWizard({ open, onOpenChange, venueId, editDiscount, onSu
       // Step 3
       minPurchaseAmount: step3Data.minPurchaseAmount || undefined,
       maxDiscountAmount: step3Data.maxDiscountAmount || undefined,
-      maxTotalUses: step3Data.maxTotalUses || undefined,
-      maxUsesPerCustomer: step3Data.maxUsesPerCustomer || undefined,
+      // D14 v2: el número tal cual (antes `0 || undefined` volvía «ilimitado» un 0 sin decirlo); vacío al editar = null
+      // (sin límite; antes se omitía y el límite viejo se quedaba). Si 0 vale lo decide el SERVIDOR frente a lo guardado.
+      maxTotalUses: step3Data.maxTotalUses ?? undefined,
+      maxUsesPerCustomer: step3Data.maxUsesPerCustomer ?? undefined,
       validFrom: step3Data.validFrom || undefined,
       validUntil: step3Data.validUntil || undefined,
       daysOfWeek: cleanDaysOfWeek(step3Data.daysOfWeek),
@@ -341,7 +345,18 @@ export function DiscountWizard({ open, onOpenChange, venueId, editDiscount, onSu
 
     // Use update or create mutation based on mode
     if (isEditMode) {
-      updateDiscountMutation.mutate(completeData)
+      // Sólo lo que cambió frente a lo abierto (alcance, categorías, límites y lo demás): un campo sin tocar no pisa lo que otra
+      // persona guardó en medio (Codex D14 v2 r1 #1 y r3).
+      updateDiscountMutation.mutate(
+        soloLoQueCambio(
+          {
+            ...completeData,
+            maxTotalUses: limiteParaGuardar(step3Data.maxTotalUses, true),
+            maxUsesPerCustomer: limiteParaGuardar(step3Data.maxUsesPerCustomer, true),
+          },
+          editDiscount,
+        ),
+      )
     } else {
       createDiscountMutation.mutate(completeData)
     }
