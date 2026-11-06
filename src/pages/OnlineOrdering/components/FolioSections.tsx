@@ -48,9 +48,13 @@ export function FolioSections({ venueId, canAnswer, canCancel, busy, hidden, onA
     refetchIntervalInBackground: false,
     retry: 1,
   })
-  // Lo traído con «Cargar más» se invalida sólo cuando la página 1 CAMBIA de verdad (ids, estado o pago), no en cada sondeo igual.
+  // Lo traído con «Cargar más» se invalida sólo cuando la página 1 CAMBIA de verdad (ids, estado o pago) o cambian los conteos
+  // (un folio extra cobrado o entregado en otro aparato sale de la lista sin tocar la página 1), no en cada sondeo igual.
   const signature = data
-    ? [...data.toPay, ...data.toDeliver].map(o => `${o.orderId}:${o.status}:${o.paymentStatus}:${o.remaining}`).join('|')
+    ? [
+        `${data.counts.toPay}/${data.counts.toDeliver}`,
+        ...[...data.toPay, ...data.toDeliver].map(o => `${o.orderId}:${o.status}:${o.paymentStatus}:${o.remaining}`),
+      ].join('|')
     : ''
   const [extra, setExtra] = useState<Record<Section, Extra>>({ toPay: NO_EXTRA, toDeliver: NO_EXTRA })
   const [loadingMore, setLoadingMore] = useState<Section | null>(null)

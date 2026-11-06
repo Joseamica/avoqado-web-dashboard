@@ -1066,6 +1066,21 @@ describe('InboxTab · folios de «Nadie» (Por pagar / Por entregar)', () => {
     await waitFor(() => expect(screen.queryByTestId('folio-d1')).toBeNull())
   })
 
+  it('un folio de «Cargar más» que sale por cobro o entrega en otro aparato se suelta aunque la página 1 sea idéntica', async () => {
+    getToPay
+      .mockResolvedValueOnce(page1())
+      .mockResolvedValueOnce(toPayRes([], [mkD(1)], { counts: { toPay: 0, toDeliver: 3 } }))
+      // Otro aparato entregó d1: la página 1 es la misma, sólo cambian los conteos.
+      .mockResolvedValue(page1({ counts: { toPay: 0, toDeliver: 2 } }))
+    markReady.mockRejectedValue(http(500, {}))
+    renderTab()
+    await userEvent.click(await screen.findByRole('button', { name: 'folio.loadMore' }))
+    await screen.findByTestId('folio-d1')
+    await userEvent.click(within(screen.getByTestId('folio-d0')).getByRole('button', { name: 'inbox.actions.ready' }))
+    await waitFor(() => expect(getToPay.mock.calls.length).toBeGreaterThanOrEqual(3))
+    await waitFor(() => expect(screen.queryByTestId('folio-d1')).toBeNull())
+  })
+
   it('un folio quitado de «Por pagar» por estar en «Por entregar» no descuadra el número', async () => {
     const f = folio({ status: 'ACCEPTED', paymentStatus: 'PAID', remaining: 0 })
     getToPay.mockResolvedValue(toPayRes([folio()], [f], { counts: { toPay: 1, toDeliver: 1 } }))
