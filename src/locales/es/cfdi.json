@@ -199,6 +199,11 @@
       "changedSinceReview": "La venta cambió desde que la revisaste. Vuelve a tocar «{{submit}}» para ver la venta actualizada.",
       "confirmedManual": "Listo, ya quedó confirmado. Revisa los datos y toca «{{submit}}» para facturar.",
       "confirmError": "No se pudo confirmar. Intenta de nuevo."
+    },
+    "notReady": {
+      "title": "Esta venta todavía no se puede facturar",
+      "goToSettings": "Ir a Configuración",
+      "askOwner": "Pídele al dueño del negocio que lo revise."
     }
   },
   "autofactura": {

@@ -783,3 +783,24 @@ describe('quedarse con el plan durante una prueba regalada (D3)', () => {
     expect(model.firstChargeAt).toBeNull()
   })
 })
+
+// D5 (5-nov-2026): con un cupón vigente, la píldora del plan actual dice lo que de verdad paga.
+describe('planPillPrice con cupón (D5)', () => {
+  const conPrecio = origin({
+    kind: 'CLASSIC',
+    tier: 'PRO',
+    subscriptionId: 'sub_1',
+    interval: 'month',
+    price: { base: 999, gross: 1158.84, currency: 'MXN' },
+  })
+  it('el plan actual con cupón muestra el precio con descuento', () => {
+    const conCupon = {
+      ...conPrecio,
+      discount: { gross: 811.19, percentOff: 30, duration: 'repeating' as const, endsAt: '2027-02-05T17:00:00.000Z' },
+    }
+    expect(planPillPrice('PRO', { ...base, origin: conCupon, interval: 'monthly' }).amount).toBe(811.19)
+  })
+  it('REGRESIÓN: sin cupón, el precio de su plan', () => {
+    expect(planPillPrice('PRO', { ...base, origin: conPrecio, interval: 'monthly' }).amount).toBe(1158.84)
+  })
+})

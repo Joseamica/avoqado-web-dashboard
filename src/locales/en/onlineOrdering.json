@@ -126,7 +126,7 @@
       "searchPlaceholder": "Search products…",
       "searchClear": "Clear search",
       "noResults": "No product matches your search.",
-      "empty": "This category has no products.",
+      "empty": "This category has no products that can be sold online. Classes, packages, appointments and services aren't sold here.",
       "noPhoto": "No photo",
       "inactive": "Inactive in the POS",
       "toggle": "Show {{name}} online",
@@ -136,6 +136,7 @@
       "showAll": "Show the whole menu",
       "hideAll": "Remove everything from online",
       "showAllConfirm": "Every product will be visible in your online store.",
+      "showAllConfirmServices": "Everything on this list will be published. Packages and classes aren't sold here because they don't deliver credits: review the list and turn off any that are set up as a product.",
       "hideAllConfirm": "No product will show in your online store. Orders already placed are not affected.",
       "confirm": "Confirm",
       "cancel": "Cancel"

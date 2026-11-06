@@ -228,7 +228,10 @@
       "founder": "Your business is a founder: you have every feature at no cost.",
       "paymentPending": "Your payment is pending and paid access is on hold. Update your payment method to get it back.",
       "resume": "Resume",
-      "firstChargeOn": "Your first charge will be on {{date}}."
+      "firstChargeOn": "Your first charge will be on {{date}}.",
+      "discountUntil": "With your discount you pay {{price}} until {{date}}; then {{list}}.",
+      "discountOnce": "With your discount you pay {{price}} on your next charge; then {{list}}.",
+      "discountForever": "With your discount you pay {{price}}."
     },
     "grid": {
       "title": "Features · all {{count}}",

@@ -99,8 +99,11 @@ export function SearchCombobox({
   const [open, setOpen] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
+  // Lo último que se pidió (abrir o cerrar), sin esperar a que React vuelva a pintar.
+  const openRef = useRef(false)
 
   const changeOpen = (next: boolean) => {
+    openRef.current = next
     setOpen(next)
     onOpenChange?.(next)
   }
@@ -203,7 +206,9 @@ export function SearchCombobox({
                 if (e.target !== e.currentTarget) return
                 const list = e.currentTarget
                 queueMicrotask(() => {
-                  if (listRef.current === list && document.activeElement === list) inputRef.current?.focus()
+                  // Sólo con la lista abierta. Safari de iOS mueve el foco a la lista DESPUÉS del clic que eligió y la cerró;
+                  // devolverlo al campo la volvía a abrir (su onFocus abre) y en horizontal tapaba «Finalizar» (pizarrón D1, 5-nov).
+                  if (openRef.current && listRef.current === list && document.activeElement === list) inputRef.current?.focus()
                 })
               }}
               className="max-h-[360px]"

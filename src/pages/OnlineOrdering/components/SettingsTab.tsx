@@ -89,6 +89,8 @@ function RequirementsList({
   focusRef,
   noticeButtonRef,
   onWriteNotice,
+  onEnable,
+  enableDisabled,
 }: {
   missing: StoreRequirement[]
   /** Con el valor VIVO del formulario: apagar «Pagar al recoger» sin guardar ya quita el «Todo listo». */
@@ -98,6 +100,8 @@ function RequirementsList({
   focusRef: RefObject<HTMLDivElement>
   noticeButtonRef: RefObject<HTMLButtonElement>
   onWriteNotice: () => void
+  onEnable: () => void
+  enableDisabled: boolean
 }) {
   const { t } = useTranslation('onlineOrdering')
   const allSet = missing.length === 0 && hasPayment
@@ -107,6 +111,11 @@ function RequirementsList({
       <Alert role="status" data-tour="online-ordering-requirements">
         <AlertDescription className="space-y-2">
           <p className="font-medium">{t(allSet ? 'settings.requirements.allSet' : 'settings.requirements.title')}</p>
+          {allSet && (
+            <Button type="button" size="sm" className="cursor-pointer" disabled={enableDisabled} onClick={onEnable}>
+              {t('settings.enable')}
+            </Button>
+          )}
           {/* Sin viñetas, Safari/VoiceOver deja de anunciarla como lista si no lleva el rol explícito. */}
           <ul role="list" className="space-y-2">
             {STEPS.map(r => {
@@ -180,6 +189,7 @@ export function SettingsTab() {
   const [noticeOpen, setNoticeOpen] = useState(false)
   const stepsRef = useRef<HTMLDivElement>(null)
   const noticeButtonRef = useRef<HTMLButtonElement>(null)
+  const enableSwitchRef = useRef<HTMLButtonElement>(null)
 
   const settingsQuery = useQuery({
     queryKey: onlineOrderingKeys.settings(venueId ?? ''),
@@ -252,6 +262,15 @@ export function SettingsTab() {
     if (Object.keys(patch).length) mutation.mutate(patch)
   })
 
+  // El interruptor sólo prende y espera «Guardar»; un botón «Encender» que no enciende sería otra trampa, así que éste prende y guarda
+  // por el MISMO camino (mismo PUT, errores y aviso), junto con lo que hubiera sin guardar. Al encenderse, la lista y este botón se van:
+  // el foco pasa al interruptor, no a <body>.
+  const enableStore = () => {
+    setValue('enabled', true, { shouldDirty: true })
+    enableSwitchRef.current?.focus({ preventScroll: true })
+    void onSubmit()
+  }
+
   // El editor guarda el aviso en SU llave (`privacy-notice`); el requisito viaja en los ajustes. Al cerrarlo (al publicar, por
   // `onSaved`; sin publicar, con la X) se vuelven a pedir para que el ⬜ pase a ✅ y el interruptor se habilite solo, y lo que dijo un
   // 400 `STORE_REQUIREMENTS_MISSING` anterior sobre el aviso ya no manda: decide el GET nuevo.
@@ -287,7 +306,9 @@ export function SettingsTab() {
       : '—'
 
   return (
-    <form noValidate onSubmit={onSubmit} className="space-y-6">
+    // En tema oscuro, un interruptor apagado era `bg-muted` sobre la tarjeta (1.2:1) y no se veía; así da 3.3:1. Va aquí y no en `switch.tsx`
+    // porque allá le ganaría al rojo de «inactivo» de Productos y Servicios.
+    <form noValidate onSubmit={onSubmit} className="space-y-6 dark:[&_[role=switch][data-state=unchecked]]:bg-muted-foreground/60">
       <AvisoDeCarga query={settingsQuery} hayDatos />
       <div className="sticky top-0 z-10 flex items-center justify-between gap-3 rounded-xl border border-border bg-background/95 p-3 backdrop-blur">
         <div className="text-sm" data-tour="online-ordering-store-status">
@@ -317,6 +338,8 @@ export function SettingsTab() {
           focusRef={stepsRef}
           noticeButtonRef={noticeButtonRef}
           onWriteNotice={() => setNoticeOpen(true)}
+          onEnable={enableStore}
+          enableDisabled={hourErrors.length > 0 || mutation.isPending}
         />
       )}
 
@@ -338,6 +361,7 @@ export function SettingsTab() {
               name="enabled"
               render={({ field }) => (
                 <Switch
+                  ref={enableSwitchRef}
                   id="oo-enabled"
                   aria-label={t('settings.enable')}
                   checked={!!field.value}

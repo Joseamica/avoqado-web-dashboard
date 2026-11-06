@@ -77,6 +77,14 @@ describe('PlanRow', () => {
     expect(document.querySelector('[data-tour="plan-interval"]')).toBeNull()
   })
 
+  // D6 (5-nov): with a purchase on its way the plan could still be switched, and its answer landed beside another plan.
+  it('while a write is in flight no plan and no Mensual/Anual can be picked', () => {
+    render(<PlanRow {...props({ selected: 'PRO', busy: true })} />)
+    for (const radio of screen.getAllByRole('radio')) expect(radio).toBeDisabled()
+    const interval = document.querySelector('[data-tour="plan-interval"]') as HTMLElement
+    for (const button of within(interval).getAllByRole('button')) expect(button).toBeDisabled()
+  })
+
   it('classic: renewal date, cancel and payment method', async () => {
     const onCancel = vi.fn()
     render(<PlanRow {...props({ origin: CLASSIC, current: 'PRO', selected: 'PRO', onCancel })} />)
@@ -159,5 +167,26 @@ describe('PlanRow', () => {
     render(<PlanRow {...props({ origin: CLASSIC, planState: { state: 'trial' } as never, current: 'PRO', selected: 'PRO' })} />)
     expect(screen.getByText('plan.row.firstChargeOn|date=2026-10-27')).toBeInTheDocument()
     expect(screen.queryByText(/currentPlan\.renewsOn/)).toBeNull()
+  })
+
+  // D5 (5-nov-2026): con un cupón vigente, «Tu plan» dice lo que paga, hasta cuándo y el precio después.
+  it('cupón de 3 meses: lo que paga, hasta cuándo y después el precio de lista', () => {
+    const conCupon = {
+      ...CLASSIC,
+      discount: { gross: 811.19, percentOff: 30, duration: 'repeating' as const, endsAt: '2027-02-05T17:00:00.000Z' },
+    }
+    render(<PlanRow {...props({ origin: conCupon, current: 'PRO', selected: 'PRO' })} />)
+    expect(screen.getByText(/plan\.row\.discountUntil\|price=\$811\.19\|date=2027-02-05\|list=\$1,158\.84/)).toBeInTheDocument()
+  })
+
+  it('cupón de una vez: «en tu siguiente cobro»', () => {
+    const conCupon = { ...CLASSIC, discount: { gross: 811.19, percentOff: 30, duration: 'once' as const, endsAt: null } }
+    render(<PlanRow {...props({ origin: conCupon, current: 'PRO', selected: 'PRO' })} />)
+    expect(screen.getByText(/plan\.row\.discountOnce\|price=\$811\.19\|list=\$1,158\.84/)).toBeInTheDocument()
+  })
+
+  it('REGRESIÓN: sin cupón no aparece ninguna línea de descuento', () => {
+    render(<PlanRow {...props({ origin: CLASSIC, current: 'PRO', selected: 'PRO' })} />)
+    expect(screen.queryByText(/plan\.row\.discount/)).toBeNull()
   })
 })

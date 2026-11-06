@@ -37,7 +37,7 @@ vi.mock('react-i18next', () => ({
 
 // `mockReset: true` en la config borra la implementación de cada vi.fn() antes de cada prueba: cada
 // prueba dice qué contesta el servidor.
-const svc = vi.hoisted(() => ({ issueCfdiForOrder: vi.fn(), confirmPriceContract: vi.fn() }))
+const svc = vi.hoisted(() => ({ issueCfdiForOrder: vi.fn(), confirmPriceContract: vi.fn(), quienFactura: vi.fn() }))
 vi.mock('@/services/cfdi.service', () => ({ default: svc, cfdiService: svc }))
 
 const toast = vi.hoisted(() => vi.fn())
@@ -179,6 +179,8 @@ async function facturarHasta422(primerMotivo: string) {
 
 describe('IssueCfdiDialog — confirmar que el precio ya incluía IVA', () => {
   beforeEach(() => {
+    // D11: estas ventas sí tienen quién las facture (el aviso previo tiene sus pruebas en IssueCfdiDialog.quienFactura.test.tsx).
+    svc.quienFactura.mockResolvedValue({ listo: true })
     permisos.actuales = new Set(['cfdi:issue', 'cfdi:view', 'cfdi:configure'])
   })
 
@@ -422,6 +424,8 @@ describe('IssueCfdiDialog — confirmar que el precio ya incluía IVA', () => {
 // C2 · ronda QA (D1): con el PAC sin contestar, la factura quedó EN DUDA (el servidor manda `timbreEnDuda`): el aviso no dice «rechazó».
 describe('IssueCfdiDialog — 502: en duda no es rechazo (ronda QA, D1)', () => {
   beforeEach(() => {
+    // D11: estas ventas sí tienen quién las facture (el aviso previo tiene sus pruebas en IssueCfdiDialog.quienFactura.test.tsx).
+    svc.quienFactura.mockResolvedValue({ listo: true })
     permisos.actuales = new Set(['cfdi:issue', 'cfdi:view', 'cfdi:configure'])
   })
   it.each([
@@ -456,6 +460,8 @@ describe('IssueCfdiDialog — 502: en duda no es rechazo (ronda QA, D1)', () => 
 // D2 del /full-testing: «Esta venta se devolvió completa» es una situación normal, no un error: salía en rojo.
 describe('IssueCfdiDialog — 409: venta devuelta completa no es un error (F6, D2)', () => {
   beforeEach(() => {
+    // D11: estas ventas sí tienen quién las facture (el aviso previo tiene sus pruebas en IssueCfdiDialog.quienFactura.test.tsx).
+    svc.quienFactura.mockResolvedValue({ listo: true })
     permisos.actuales = new Set(['cfdi:issue', 'cfdi:view', 'cfdi:configure'])
   })
   it.each([
@@ -484,6 +490,8 @@ describe('IssueCfdiDialog — 409: venta devuelta completa no es un error (F6, D
 
 describe('IssueCfdiDialog — F6: la factura de una venta con devolución', () => {
   beforeEach(() => {
+    // D11: estas ventas sí tienen quién las facture (el aviso previo tiene sus pruebas en IssueCfdiDialog.quienFactura.test.tsx).
+    svc.quienFactura.mockResolvedValue({ listo: true })
     permisos.actuales = new Set(['cfdi:issue', 'cfdi:view', 'cfdi:configure'])
   })
   const emitida = { id: 'c1', uuid: 'U-1', serie: 'F', folio: '9', status: 'STAMPED', xmlUrl: null, pdfUrl: null }

@@ -146,6 +146,11 @@ export interface PlanOrigin {
    * la prueba). Sólo llega cuando el SERVIDOR todavía puede diferir el cobro; un servidor anterior no lo manda.
    */
   firstChargeAt?: string | null
+  /**
+   * D5: CLASSIC con un cupón vigente — lo que paga con el descuento (con IVA) y hasta cuándo. `price` sigue siendo el de
+   * lista. Un servidor anterior no lo manda.
+   */
+  discount?: { gross: number; percentOff: number | null; duration: 'once' | 'repeating' | 'forever'; endsAt: string | null } | null
 }
 
 /**

@@ -269,7 +269,12 @@ export function planPillPrice(
 ): { amount: number; per: 'month' | 'year'; ivaAparte: boolean } {
   if (tier === 'FREE') return { amount: 0, per: 'month', ivaAparte: false }
   if (tier === currentTarget(input.origin) && input.origin.price)
-    return { amount: input.origin.price.gross, per: input.origin.interval === 'year' ? 'year' : 'month', ivaAparte: false }
+    // D5: con un cupón vigente, lo que de verdad paga hoy (la línea de «Tu plan» dice hasta cuándo y el precio después).
+    return {
+      amount: input.origin.discount?.gross ?? input.origin.price.gross,
+      per: input.origin.interval === 'year' ? 'year' : 'month',
+      ivaAparte: false,
+    }
   const op = planOperation({ ...input, target: tier, marked: [] })
   if (op.kind === 'CLASSIC_CHECKOUT')
     return { amount: classicPrice(tier, input.interval), per: input.interval === 'annual' ? 'year' : 'month', ivaAparte: true }

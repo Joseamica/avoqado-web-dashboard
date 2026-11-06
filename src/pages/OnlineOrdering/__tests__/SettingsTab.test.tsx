@@ -265,6 +265,123 @@ describe('SettingsTab', () => {
     expect(screen.queryByRole('alert')).toBeNull()
   })
 
+  // ── El botón de «Todo listo»: el interruptor apagado casi no se veía en tema oscuro ──
+  const botonEncender = () => within(screen.getByRole('status')).queryByRole('button', { name: 'settings.enable' })
+
+  it('con todo listo, «Encender la tienda» prende y guarda por el mismo camino: un PUT, su aviso, y el foco pasa al interruptor', async () => {
+    getSettings.mockResolvedValueOnce(base())
+    getSettings.mockResolvedValue(base({ enabled: true }))
+    updateSettings.mockResolvedValue(putToday({ enabled: true }))
+    renderTab()
+    await formularioCargado()
+    await userEvent.click(botonEncender()!)
+    await waitFor(() => expect(updateSettings).toHaveBeenCalledWith('venue-1', { enabled: true }))
+    expect(updateSettings).toHaveBeenCalledTimes(1)
+    await waitFor(() => expect(toast).toHaveBeenCalledWith({ title: 'settings.saved' }))
+    await waitFor(() => expect(screen.queryByText('settings.requirements.allSet')).toBeNull())
+    const interruptor = screen.getByRole('switch', { name: 'settings.enable' })
+    expect(interruptor).toBeChecked()
+    expect(interruptor).toHaveFocus()
+  })
+
+  it('no se pierde lo que estaba sin guardar: el botón guarda también el cambio pendiente', async () => {
+    getSettings.mockResolvedValue(base())
+    updateSettings.mockResolvedValue(putToday({ enabled: true, minOrderAmount: 80 }))
+    renderTab()
+    await formularioCargado()
+    const minimo = screen.getByLabelText('settings.minOrder')
+    await userEvent.clear(minimo)
+    await userEvent.type(minimo, '80')
+    await userEvent.click(botonEncender()!)
+    await waitFor(() => expect(updateSettings).toHaveBeenCalledWith('venue-1', { enabled: true, minOrderAmount: 80 }))
+  })
+
+  it('sin todo listo no hay botón; apagar «Pagar al recoger» sin guardar lo quita', async () => {
+    getSettings.mockResolvedValue(base())
+    renderTab()
+    await formularioCargado()
+    expect(botonEncender()).not.toBeNull()
+    await userEvent.click(screen.getByRole('switch', { name: 'settings.payAtPickup' }))
+    expect(botonEncender()).toBeNull()
+  })
+
+  it('con la tienda encendida no hay lista ni botón', async () => {
+    getSettings.mockResolvedValue(base({ enabled: true }))
+    renderTab()
+    await formularioCargado()
+    expect(screen.queryByRole('status')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'settings.enable' })).toBeNull()
+  })
+
+  it('mientras guarda se deshabilita, igual que «Guardar», y no manda dos veces', async () => {
+    getSettings.mockResolvedValue(base())
+    let terminar: (v: unknown) => void = () => {}
+    updateSettings.mockReturnValue(new Promise(r => (terminar = r)))
+    renderTab()
+    await formularioCargado()
+    const boton = botonEncender()!
+    await userEvent.click(boton)
+    await waitFor(() => expect(boton).toBeDisabled())
+    expect(screen.getByRole('button', { name: 'settings.save' })).toBeDisabled()
+    await userEvent.click(boton)
+    expect(updateSettings).toHaveBeenCalledTimes(1)
+    terminar(putToday({ enabled: true }))
+    await waitFor(() => expect(toast).toHaveBeenCalled())
+  })
+
+  it('con un horario inválido se deshabilita, igual que «Guardar»: nada se manda', async () => {
+    getSettings.mockResolvedValue(base({ hours: { monday: { enabled: true, ranges: [{ open: '09:00', close: '09:00' }] } } }))
+    renderTab()
+    await formularioCargado()
+    expect(screen.getByRole('button', { name: 'settings.save' })).toBeDisabled()
+    expect(botonEncender()).toBeDisabled()
+  })
+
+  it('STORE_REQUIREMENTS_MISSING al usar el botón: pinta lo que falta, como con el interruptor', async () => {
+    getSettings.mockResolvedValue(base())
+    updateSettings.mockRejectedValue({
+      response: { data: { code: 'STORE_REQUIREMENTS_MISSING', details: { missing: ['privacyNotice'] } } },
+    })
+    renderTab()
+    await formularioCargado()
+    await userEvent.click(botonEncender()!)
+    expect(await screen.findByRole('button', { name: 'settings.requirements.privacyNotice.action' })).toBeInTheDocument()
+    expect(within(paso('privacyNotice')).getByText('settings.requirements.pending')).toBeInTheDocument()
+    expect(botonEncender()).toBeNull()
+  })
+
+  it('un error del servidor al usar el botón sale en el mismo aviso que al guardar', async () => {
+    getSettings.mockResolvedValue(base())
+    updateSettings.mockRejectedValue({ response: { data: { error: 'Tu plan no incluye la tienda' } } })
+    renderTab()
+    await formularioCargado()
+    await userEvent.click(botonEncender()!)
+    expect(await screen.findByText('Tu plan no incluye la tienda')).toBeInTheDocument()
+  })
+
+  it('un error del servidor no borra lo que estaba sin guardar: reintentar manda todo otra vez', async () => {
+    getSettings.mockResolvedValue(base())
+    updateSettings.mockRejectedValueOnce({ response: { data: { error: 'No se pudo guardar' } } })
+    updateSettings.mockResolvedValueOnce(putToday({ enabled: true, minOrderAmount: 80 }))
+    renderTab()
+    await formularioCargado()
+    const minimo = screen.getByLabelText('settings.minOrder')
+    await userEvent.clear(minimo)
+    await userEvent.type(minimo, '80')
+    await userEvent.click(botonEncender()!)
+    expect(await screen.findByText('No se pudo guardar')).toBeInTheDocument()
+    expect(screen.getByLabelText('settings.minOrder')).toHaveValue(80)
+    await userEvent.click(botonEncender()!)
+    await waitFor(() => expect(updateSettings).toHaveBeenLastCalledWith('venue-1', { enabled: true, minOrderAmount: 80 }))
+  })
+
+  it('en tema oscuro, los interruptores apagados de esta pantalla (también los del horario) se distinguen de la tarjeta', async () => {
+    getSettings.mockResolvedValue(base())
+    const { container } = renderTab()
+    await formularioCargado()
+    expect(container.querySelector('form')).toHaveClass('dark:[&_[role=switch][data-state=unchecked]]:bg-muted-foreground/60')
+  })
+
   // ── La forma de cobro (Codex r1): el servidor rechaza una tienda encendida sin medio de pago (`NO_PAYMENT_MODE`) ──
   it('con los tres datos listos, apagar «Pagar al recoger» sin guardar quita el «Todo listo»: falta una forma de cobro y no deja encender', async () => {
     getSettings.mockResolvedValue(base())

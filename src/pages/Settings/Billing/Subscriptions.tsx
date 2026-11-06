@@ -378,7 +378,8 @@ export default function Subscriptions() {
                   isMarkable={entry => isMarkable(entry, mode)}
                   onToggle={toggle}
                   onPickTier={pick}
-                  canManage={canManage && !grandfathered}
+                  // Nothing in the selection changes while a write is in flight (D6, 5-nov).
+                  canManage={canManage && !grandfathered && !busy}
                   target={target}
                   preferList={preferList}
                 />

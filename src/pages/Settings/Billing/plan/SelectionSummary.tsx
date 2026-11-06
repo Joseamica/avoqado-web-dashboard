@@ -1,4 +1,5 @@
 // src/pages/Settings/Billing/plan/SelectionSummary.tsx
+import { useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -69,6 +70,15 @@ export function SelectionSummary({
       : offer.renewal === 'END' && offer.promotionCycles
         ? t('plan.selection.promoEnd', { count: offer.promotionCycles })
         : null
+  // Below xl this box sits under the 47 functions and the fixed bar is the button in sight: a refusal is brought into
+  // view instead of landing far below it (D5, 5-nov). 96 px keeps it clear of that bar.
+  const alertRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const alert = alertRef.current
+    if (!error || !alert) return
+    const { top, bottom } = alert.getBoundingClientRect()
+    if (top < 0 || bottom > window.innerHeight - 96) alert.scrollIntoView({ block: 'center', behavior: 'smooth' })
+  }, [error])
   const op = model.operation
   const purchase = PURCHASES.includes(op.kind)
   const disabled = !canManage || busy || model.tooMany || IDLE.includes(op.kind)
@@ -181,7 +191,11 @@ export function SelectionSummary({
           </>
         )}
         {error && (
-          <div role="alert" className="space-y-1 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+          <div
+            ref={alertRef}
+            role="alert"
+            className="space-y-1 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive"
+          >
             <p>{error}</p>
             {dependency && dependency.kind !== 'LIST' && (
               <p>

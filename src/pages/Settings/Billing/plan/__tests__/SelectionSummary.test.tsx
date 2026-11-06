@@ -1,7 +1,7 @@
 // src/pages/Settings/Billing/plan/__tests__/SelectionSummary.test.tsx
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { FeatureGridEntry } from '@/services/hybridBilling.service'
 import { SelectionSummary, type SelectionSummaryProps } from '../SelectionSummary'
 import type { SelectionSummaryModel } from '../planActions'
@@ -343,5 +343,39 @@ describe('SelectionSummary', () => {
     expect(screen.queryByText(/plan\.selection\.payToday\|/)).toBeNull()
     // full-testing WARN 4: el botón dice «Quedarme con Pro», no «Revisar y pagar».
     expect(screen.getAllByRole('button', { name: /plan\.selection\.keepPlan\|tier=plan\.tiers\.pro\.name/ }).length).toBeGreaterThan(0)
+  })
+})
+
+// D5 (5-nov): below xl the box sits under the 47 functions and the fixed bar is the button in sight; a refusal landed
+// 4,700 px below it and the owner saw nothing happen.
+describe('a refusal comes into view', () => {
+  const refuse = (rect: { top: number; bottom: number }) => {
+    const scroll = vi.fn()
+    Element.prototype.scrollIntoView = scroll
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ top: rect.top, bottom: rect.bottom } as DOMRect)
+    const props: SelectionSummaryProps = {
+      model: model(),
+      seatRule: 'CHOOSE',
+      canManage: true,
+      busy: false,
+      error: null,
+      onReview: vi.fn(),
+      onPickTier: vi.fn(),
+    }
+    const view = render(<SelectionSummary {...props} />)
+    view.rerender(<SelectionSummary {...props} error="Este negocio ya tiene un plan." />)
+    return scroll
+  }
+  afterEach(() => {
+    vi.restoreAllMocks()
+    delete (Element.prototype as Partial<Element>).scrollIntoView
+  })
+
+  it('scrolls to the refusal when it lands out of sight', () => {
+    expect(refuse({ top: 4715, bottom: 4865 })).toHaveBeenCalledWith({ block: 'center', behavior: 'smooth' })
+  })
+
+  it('leaves the page where it is when the refusal is already in sight', () => {
+    expect(refuse({ top: 300, bottom: 400 })).not.toHaveBeenCalled()
   })
 })

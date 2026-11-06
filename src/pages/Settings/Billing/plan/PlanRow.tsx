@@ -58,6 +58,20 @@ export function PlanRow(props: PlanRowProps) {
     interval: props.interval,
     preferList: props.preferList,
   }
+  // D5: con un cupón vigente, lo que paga, hasta cuándo y el precio después — nunca sólo el precio de lista.
+  const descuento = origin.kind === 'CLASSIC' ? origin.discount : null
+  const discountText =
+    descuento && origin.price
+      ? descuento.duration === 'repeating' && descuento.endsAt
+        ? t('plan.row.discountUntil', {
+            price: money(descuento.gross),
+            date: formatDate(descuento.endsAt),
+            list: money(origin.price.gross),
+          })
+        : descuento.duration === 'forever'
+          ? t('plan.row.discountForever', { price: money(descuento.gross) })
+          : t('plan.row.discountOnce', { price: money(descuento.gross), list: money(origin.price.gross) })
+      : null
   const statusText =
     origin.kind === 'COMP'
       ? untilText
@@ -86,7 +100,8 @@ export function PlanRow(props: PlanRowProps) {
                 type="button"
                 role="radio"
                 aria-checked={isSelected}
-                disabled={grandfathered || !canManage}
+                // A purchase on its way keeps the plan it was reviewed with (D6, 5-nov).
+                disabled={grandfathered || !canManage || busy}
                 onClick={() => props.onSelect(tier)}
                 data-tour={`plan-option-${tier.toLowerCase()}`}
                 className={cn(
@@ -126,8 +141,12 @@ export function PlanRow(props: PlanRowProps) {
                 key={value}
                 type="button"
                 aria-pressed={props.interval === value}
+                disabled={busy}
                 onClick={() => props.onIntervalChange(value)}
-                className={cn('rounded-md px-3 py-1', props.interval === value && 'bg-foreground text-background')}
+                className={cn(
+                  'rounded-md px-3 py-1 disabled:cursor-not-allowed disabled:opacity-60',
+                  props.interval === value && 'bg-foreground text-background',
+                )}
               >
                 {t(`plan.billing.${value}`)}
               </button>
@@ -162,7 +181,14 @@ export function PlanRow(props: PlanRowProps) {
               {t('hybrid.fundingIssue')}
             </p>
           ) : (
-            statusText && <p className="text-muted-foreground">{statusText}</p>
+            <>
+              {statusText && <p className="text-muted-foreground">{statusText}</p>}
+              {discountText && (
+                <p className="text-muted-foreground" data-tour="plan-discount">
+                  {discountText}
+                </p>
+              )}
+            </>
           )}
           {origin.kind === 'CLASSIC' &&
             (origin.cancelAt ? (
