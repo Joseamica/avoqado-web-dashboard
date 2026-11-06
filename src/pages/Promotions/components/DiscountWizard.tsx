@@ -28,6 +28,22 @@ interface DiscountWizardProps {
 }
 
 type WizardStep = 1 | 2 | 3 | 4
+
+const esViejoSinCategorias = (d?: Pick<Discount, 'scope' | 'targetCategoryIds'>) =>
+  d?.scope === 'CATEGORY' && !d.targetCategoryIds?.length
+
+/**
+ * D14 (Codex r3 #2): un descuento viejo «Categorías» sin categorías se puede editar (p. ej. apagarlo) sin elegir una. Si no
+ * se tocan alcance ni categorías, no se mandan: el SERVIDOR sólo revisa la regla cuando el cambio los toca.
+ */
+export function sinTocarCategoriasViejas<T extends { scope?: unknown; targetCategoryIds?: unknown }>(
+  datos: T,
+  original?: Pick<Discount, 'scope' | 'targetCategoryIds'>,
+): T {
+  if (!esViejoSinCategorias(original) || datos.scope !== 'CATEGORY' || datos.targetCategoryIds) return datos
+  const { scope: _scope, targetCategoryIds: _categorias, ...resto } = datos
+  return resto as T
+}
 const TOTAL_STEPS = 4
 
 // Step 1: Basic Info
@@ -341,7 +357,7 @@ export function DiscountWizard({ open, onOpenChange, venueId, editDiscount, onSu
 
     // Use update or create mutation based on mode
     if (isEditMode) {
-      updateDiscountMutation.mutate(completeData)
+      updateDiscountMutation.mutate(sinTocarCategoriasViejas(completeData, editDiscount))
     } else {
       createDiscountMutation.mutate(completeData)
     }
@@ -413,6 +429,7 @@ export function DiscountWizard({ open, onOpenChange, venueId, editDiscount, onSu
                 products={products}
                 categoryOptions={categoryOptions}
                 customerGroupOptions={customerGroupOptions}
+                permitirSinCategorias={esViejoSinCategorias(editDiscount)}
               />
             </Form>
           )}

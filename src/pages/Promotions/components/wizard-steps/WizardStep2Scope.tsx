@@ -21,9 +21,11 @@ interface WizardStep2ScopeProps {
   products: ProductoConFamilia[]
   categoryOptions: Option[]
   customerGroupOptions: Option[]
+  /** Editar un descuento viejo que ya era «Categorías» sin categorías: se deja seguir (p. ej. para apagarlo). */
+  permitirSinCategorias?: boolean
 }
 
-export function WizardStep2Scope({ form, products, categoryOptions, customerGroupOptions }: WizardStep2ScopeProps) {
+export function WizardStep2Scope({ form, products, categoryOptions, customerGroupOptions, permitirSinCategorias }: WizardStep2ScopeProps) {
   const { t } = useTranslation('promotions')
   const { t: tCommon } = useTranslation()
 
@@ -180,7 +182,10 @@ export function WizardStep2Scope({ form, products, categoryOptions, customerGrou
           // D14: «Categorías» sin ninguna categoría avanzaba y se guardaba con la lista vacía.
           rules={{
             validate: (v?: unknown[]) =>
-              form.getValues('scope') !== 'CATEGORY' || (v?.length ?? 0) > 0 || t('discounts.form.validation.categoriesRequired'),
+              permitirSinCategorias ||
+              form.getValues('scope') !== 'CATEGORY' ||
+              (v?.length ?? 0) > 0 ||
+              t('discounts.form.validation.categoriesRequired'),
           }}
           render={({ field }) => (
             <FormItem>

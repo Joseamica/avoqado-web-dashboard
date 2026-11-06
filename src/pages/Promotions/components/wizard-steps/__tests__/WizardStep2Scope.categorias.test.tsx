@@ -15,7 +15,7 @@ import { Form } from '@/components/ui/form'
 import { WizardStep2Scope } from '../WizardStep2Scope'
 
 let formulario: UseFormReturn<any>
-function Arnes({ scope, categorias = [] }: { scope: string; categorias?: string[] }) {
+function Arnes({ scope, categorias = [], permitirSinCategorias }: { scope: string; categorias?: string[]; permitirSinCategorias?: boolean }) {
   const form = useForm({ defaultValues: { scope, targetItemIds: [], targetCategoryIds: categorias, buyItemIds: [], getItemIds: [] } })
   formulario = form
   return (
@@ -26,6 +26,7 @@ function Arnes({ scope, categorias = [] }: { scope: string; categorias?: string[
           products={[]}
           categoryOptions={[{ value: 'cat-pan', label: 'Pan dulce' }]}
           customerGroupOptions={[]}
+          permitirSinCategorias={permitirSinCategorias}
         />
       </Form>
     </MemoryRouter>
@@ -60,6 +61,15 @@ describe('Paso 2 del descuento · «Categorías»', () => {
       valido = await formulario.trigger()
     })
     expect(formulario.getValues('scope')).toBe('ORDER')
+    expect(valido).toBe(true)
+  })
+
+  it('🔴 un descuento VIEJO que ya era «Categorías» sin categorías se puede seguir editando (p. ej. para apagarlo; Codex r3 #2)', async () => {
+    render(<Arnes scope="CATEGORY" permitirSinCategorias />)
+    let valido = false
+    await act(async () => {
+      valido = await formulario.trigger()
+    })
     expect(valido).toBe(true)
   })
 })
