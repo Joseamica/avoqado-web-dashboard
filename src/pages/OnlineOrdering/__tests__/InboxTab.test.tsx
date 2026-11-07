@@ -1352,4 +1352,58 @@ describe('R93 · hallazgos de /full-testingv2 WEB', () => {
     expect((price.parentElement as HTMLElement).className).toContain('shrink-0')
     expect((price.parentElement!.parentElement as HTMLElement).className).not.toContain('flex-wrap')
   })
+
+  it('R95 W2 · «Nadie» (por los ajustes) con to-pay aún sin responder: ya no dice que esta pestaña mantiene abierta la tienda', async () => {
+    const off = { status: 'OFFLINE', reason: null, pausedUntil: null, manualPause: false }
+    getInbox.mockResolvedValue(inbox([], { store: off }))
+    getToPay.mockImplementation(() => new Promise(() => {}))
+    renderTab()
+    expect(await screen.findByText('inbox.keepsOpenNadie')).toBeInTheDocument()
+    expect(screen.getByText('inbox.status.offlineNadie')).toBeInTheDocument()
+    expect(screen.queryByText('inbox.keepsOpen')).toBeNull()
+  })
+
+  it('R95 W2 · «Nadie» (por los ajustes) con to-pay en error: tampoco', async () => {
+    const off = { status: 'OFFLINE', reason: null, pausedUntil: null, manualPause: false }
+    getInbox.mockResolvedValue(inbox([], { store: off }))
+    getToPay.mockRejectedValue(http(500, {}))
+    renderTab()
+    expect(await screen.findByText('inbox.keepsOpenNadie')).toBeInTheDocument()
+    expect(screen.queryByText('inbox.keepsOpen')).toBeNull()
+  })
+
+  it('R95 F1 · un folio cancelado que revive con un pago PARCIAL tardío (mismo estado, menos por pagar) se ve', async () => {
+    const pending = folio()
+    const partial = folio({ paymentStatus: 'PARTIAL', remaining: 34 })
+    getToPay
+      .mockResolvedValueOnce(toPayRes([pending]))
+      .mockResolvedValueOnce(toPayRes([pending]))
+      .mockResolvedValue(toPayRes([partial]))
+    cancelOrder.mockResolvedValue({ status: 'CANCELLED_BY_STAFF' })
+    renderTab()
+    await userEvent.click(await screen.findByRole('button', { name: 'folio.cancel' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'folio.cancelDialog.confirm' }))
+    await waitFor(() => expect(cancelOrder).toHaveBeenCalled())
+    await waitFor(() => expect(getToPay.mock.calls.length).toBeGreaterThanOrEqual(2))
+    expect(screen.queryByTestId('folio-f1')).toBeNull()
+    await act(async () => handlers['order_updated']?.({ onlineStatus: 'ACCEPTED', venueId: 'venue-1' }))
+    const card = await screen.findByTestId('folio-f1')
+    expect(within(card).getByText('folio.collectAtRegister')).toBeInTheDocument()
+  })
+
+  it('R95 poda · cuando el folio ya no está en ninguna lista, su ocultar se suelta (si vuelve igual, se ve)', async () => {
+    const pending = folio()
+    getToPay
+      .mockResolvedValueOnce(toPayRes([pending]))
+      .mockResolvedValueOnce(toPayRes([], [], { showTile: true }))
+      .mockResolvedValue(toPayRes([pending]))
+    cancelOrder.mockResolvedValue({ status: 'CANCELLED_BY_STAFF' })
+    renderTab()
+    await userEvent.click(await screen.findByRole('button', { name: 'folio.cancel' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'folio.cancelDialog.confirm' }))
+    await waitFor(() => expect(screen.queryByTestId('folio-f1')).toBeNull())
+    await waitFor(() => expect(getToPay.mock.calls.length).toBeGreaterThanOrEqual(2))
+    await act(async () => handlers['order_updated']?.({ onlineStatus: 'ACCEPTED', venueId: 'venue-1' }))
+    expect(await screen.findByTestId('folio-f1')).toBeInTheDocument()
+  })
 })

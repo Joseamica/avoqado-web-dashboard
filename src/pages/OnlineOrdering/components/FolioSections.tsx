@@ -15,7 +15,7 @@ import { useExtraPages } from '../hooks/useExtraPages'
 import { toPayModeIsLive } from '../lib/toPayLive'
 
 /** Un folio tocado se oculta SÓLO mientras siga en la sección y con el estado que tenía al tocarlo; cuando el servidor lo mueve o lo cambia, se suelta. */
-export type FolioHide = { section: 'toPay' | 'toDeliver'; status: string }
+export type FolioHide = { section: 'toPay' | 'toDeliver'; status: string; remainingCents: number }
 export type FolioAction = 'ready' | 'delivered' | 'cancelFolio'
 type Section = 'toPay' | 'toDeliver'
 
@@ -30,11 +30,25 @@ interface Props {
   inboxNadieIds?: string[]
   /** La Bandeja está en error: las tarjetas se ven, pero ninguna acción que mueva un folio hacia ella (R90). */
   actionsLocked?: boolean
+  /** Ids que ve la Bandeja (para podar ocultos de folios que ya no están en ninguna lista); sin ella no se poda. */
+  inboxIds?: string[]
+  onPrune?: (ids: string[]) => void
   onAct: (order: FolioOrder, action: FolioAction) => void
 }
 
 /** «Por pagar» y «Por entregar» de «Nadie». Salen del `to-pay` del panel (sin latido: el panel no cobra) y no se repiten en «En preparación». */
-export function FolioSections({ venueId, canAnswer, canCancel, busy, hidden, inboxNadieIds = [], actionsLocked = false, onAct }: Props) {
+export function FolioSections({
+  venueId,
+  canAnswer,
+  canCancel,
+  busy,
+  hidden,
+  inboxNadieIds = [],
+  actionsLocked = false,
+  inboxIds,
+  onPrune,
+  onAct,
+}: Props) {
   const { t } = useTranslation('onlineOrdering')
   const { toast } = useToast()
   // «Nadie» según los ajustes (misma llave que Configuración). Sin esa señal ni un to-pay con folios, no se enseña nada nuevo.
@@ -82,6 +96,17 @@ export function FolioSections({ venueId, canAnswer, canCancel, busy, hidden, inb
     return () => clearInterval(id)
   }, [])
 
+  // Poda: un ocultar cuyo folio ya no está en NINGUNA lista (to-pay, sus extras ni la Bandeja) se suelta. Sin lectura buena no se poda.
+  const prunable = !isError && data !== undefined && inboxIds !== undefined
+  useEffect(() => {
+    if (!prunable || !data || !onPrune || hidden.size === 0) return
+    const present = new Set(
+      [...data.toPay, ...data.toDeliver, ...more.toPay.items, ...more.toDeliver.items].map(o => o.orderId).concat(inboxIds ?? []),
+    )
+    const gone = [...hidden.keys()].filter(id => !present.has(id))
+    if (gone.length) onPrune(gone)
+  }, [prunable, data, hidden, inboxIds, more.toPay.items, more.toDeliver.items, onPrune])
+
   if (!data) {
     if (!nadie) return null
     return isError ? (
@@ -106,7 +131,7 @@ export function FolioSections({ venueId, canAnswer, canCancel, busy, hidden, inb
     const seen = new Set(data[sec].map(o => o.orderId))
     return [...data[sec], ...more[sec].items.filter(o => !seen.has(o.orderId))].filter(o => {
       const h = hidden.get(o.orderId)
-      return !(h && h.section === sec && h.status === o.status)
+      return !(h && h.section === sec && h.status === o.status && h.remainingCents === Math.round(o.remaining * 100))
     })
   }
   const toDeliverList = build('toDeliver')

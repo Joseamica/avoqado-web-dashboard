@@ -26,6 +26,7 @@ import {
   acceptOrder,
   cancelOrder,
   getInbox,
+  getSettings,
   getToPay,
   markDelivered,
   markReady,
@@ -33,7 +34,7 @@ import {
   rejectOrder,
   serverMessage,
 } from '@/services/onlineOrdering.service'
-import type { FolioOrder, Inbox, InboxOrder, OnlineOrderStatus } from '@/types/onlineOrdering'
+import type { FolioOrder, Inbox, InboxOrder, OnlineOrderStatus, ToPayResponse } from '@/types/onlineOrdering'
 import { useVenueDateTime } from '@/utils/datetime'
 
 import { useExtraPages } from '../hooks/useExtraPages'
@@ -179,17 +180,22 @@ export function InboxTab() {
     setDialog({ kind: a, order })
   }
 
+  // Lo más reciente que se sabe del folio (la primera página de to-pay) al CONFIRMAR, no al abrir el diálogo.
+  const latest = (o: FolioOrder): FolioOrder => {
+    const d = queryClient.getQueryData<ToPayResponse>(onlineOrderingKeys.toPay(venueId))
+    return [...(d?.toPay ?? []), ...(d?.toDeliver ?? [])].find(x => x.orderId === o.orderId) ?? o
+  }
+  const hideOf = (o: FolioOrder, section: 'toPay' | 'toDeliver'): FolioHide => {
+    const c = latest(o)
+    return { section, status: c.status, remainingCents: Math.round(c.remaining * 100) }
+  }
   const onFolioAct = (order: FolioOrder, a: FolioAction) => {
-    if (a === 'ready')
-      return run('READY', () => markReady(venueId, order.orderId), order.orderId, undefined, { section: 'toDeliver', status: order.status })
+    if (a === 'ready') return run('READY', () => markReady(venueId, order.orderId), order.orderId, undefined, hideOf(order, 'toDeliver'))
     if (a === 'delivered') {
       const okTitle = order.customerName
         ? t('folio.delivered', { folio: spaceFolio(order.orderNumber), name: order.customerName })
         : t('folio.deliveredNoName', { folio: spaceFolio(order.orderNumber) })
-      return run('COMPLETED', () => markDelivered(venueId, order.orderId), order.orderId, okTitle, {
-        section: 'toDeliver',
-        status: order.status,
-      })
+      return run('COMPLETED', () => markDelivered(venueId, order.orderId), order.orderId, okTitle, hideOf(order, 'toDeliver'))
     }
     setDialog({ kind: 'cancelFolio', order })
   }
@@ -208,13 +214,21 @@ export function InboxTab() {
   // R88: los folios de «Nadie» viven de su propia consulta; SIEMPRE montados, aunque la Bandeja falle o aún cargue. La Bandeja
   // sólo les da un empujón único con los folios de «Nadie» ACTIVOS que ve (ni cerrados ni cancelados).
   // «Nadie»: la tienda no la mantiene abierta esta pestaña sino el latido de la TPV o el POS con «Pedidos por pagar».
-  const nadieMode =
-    useQuery({
-      queryKey: onlineOrderingKeys.toPay(venueId),
-      queryFn: () => getToPay(venueId),
-      enabled: false,
-      select: d => d.requiresAcceptance === false,
-    }).data === true
+  // Manda la lectura fresca de to-pay; mientras no haya (o si falla) sirven los ajustes. Es sólo un TEXTO: el modo de sondeo no lo lee.
+  const toPayNadie = useQuery({
+    queryKey: onlineOrderingKeys.toPay(venueId),
+    queryFn: () => getToPay(venueId),
+    enabled: false,
+    select: d => d.requiresAcceptance === false,
+  }).data
+  const settingsNadie = useQuery({
+    queryKey: onlineOrderingKeys.settings(venueId),
+    queryFn: () => getSettings(venueId),
+    enabled: !!venueId,
+    retry: false,
+    select: st => st.requiresAcceptance === false,
+  }).data
+  const nadieMode = toPayNadie ?? settingsNadie === true
   const CLOSED: ReadonlySet<string> = new Set(['COMPLETED', 'REJECTED', 'EXPIRED', 'CANCELLED_BY_CUSTOMER', 'CANCELLED_BY_STAFF'])
   const nadieIds = [...(data?.orders ?? []), ...activeMore.items]
     .filter(o => o.requiresAcceptance === false && !CLOSED.has(o.status))
@@ -250,10 +264,13 @@ export function InboxTab() {
               <AlertDialogCancel>{t('folio.cancelDialog.back')}</AlertDialogCancel>
               <AlertDialogAction
                 onClick={() =>
-                  run('CANCELLED_BY_STAFF', () => cancelOrder(venueId, dialog.order.orderId), dialog.order.orderId, undefined, {
-                    section: 'toPay',
-                    status: dialog.order.status,
-                  })
+                  run(
+                    'CANCELLED_BY_STAFF',
+                    () => cancelOrder(venueId, dialog.order.orderId),
+                    dialog.order.orderId,
+                    undefined,
+                    hideOf(dialog.order, 'toPay'),
+                  )
                 }
               >
                 {t('folio.cancelDialog.confirm')}
@@ -288,6 +305,14 @@ export function InboxTab() {
       busy={action.isPending}
       hidden={touched}
       actionsLocked={isError}
+      inboxIds={data ? [...data.orders, ...activeMore.items].map(o => o.orderId) : undefined}
+      onPrune={ids =>
+        setTouched(m => {
+          const n = new Map(m)
+          ids.forEach(id => n.delete(id))
+          return n
+        })
+      }
       inboxNadieIds={nadieIds}
       onAct={onFolioAct}
     />
