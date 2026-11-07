@@ -189,7 +189,8 @@
     "viewOnly": "You can see the orders, but your account doesn't keep the store open.",
     "status": {
       "noPlan": "No plan: new orders aren't coming in",
-      "offlineNobody": "Nobody who can answer orders has the Tray open"
+      "offlineNobody": "Nobody who can answer orders has the Tray open",
+      "offlineNadie": "No device connected: the store takes orders while a terminal or POS with “Orders to pay” is connected and its register is open"
     },
     "sections": {
       "pending": "To accept",
@@ -272,7 +273,8 @@
       "minutes": "{{minutes}} min",
       "resume": "Resume",
       "failed": "Couldn't change the pause. Try again."
-    }
+    },
+    "keepsOpenNadie": "With “No one”, your store stays open while a terminal or POS with “Orders to pay” is connected; this tab doesn't keep it open."
   },
   "cardRefund": {
     "open": "Refund to card",

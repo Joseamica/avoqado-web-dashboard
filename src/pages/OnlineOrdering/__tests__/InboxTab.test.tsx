@@ -1270,3 +1270,86 @@ describe('InboxTab · folios de «Nadie» (Por pagar / Por entregar)', () => {
     expect(screen.getByText('folio.note')).toBeInTheDocument()
   })
 })
+
+describe('R93 · hallazgos de /full-testingv2 WEB', () => {
+  beforeEach(() => {
+    for (const f of [getInbox, getToPay, getSettings, markReady, markDelivered, cancelOrder, toast, mockStatus]) f.mockReset()
+    mockStatus.mockReturnValue(status())
+    getInbox.mockResolvedValue(inbox([]))
+    getSettings.mockResolvedValue({ requiresAcceptance: false })
+    getToPay.mockResolvedValue(toPayRes())
+  })
+
+  it('F1 · un folio cancelado desde el panel se oculta sólo hasta que el servidor lo confirme; si revive en «Por entregar» se ve con sus botones', async () => {
+    const pending = folio()
+    const revived = folio({ status: 'ACCEPTED', paymentStatus: 'PAID', remaining: 0 })
+    getToPay
+      .mockResolvedValueOnce(toPayRes([pending]))
+      // El servidor aún no refleja la cancelación: el folio sigue ahí y sigue oculto.
+      .mockResolvedValueOnce(toPayRes([pending]))
+      // Llegó el pago tardío de la cola sin red de la TPV: el folio revive en «Por entregar».
+      .mockResolvedValue(toPayRes([], [revived], { showTile: true }))
+    cancelOrder.mockResolvedValue({ status: 'CANCELLED_BY_STAFF' })
+    renderTab()
+    await userEvent.click(await screen.findByRole('button', { name: 'folio.cancel' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'folio.cancelDialog.confirm' }))
+    await waitFor(() => expect(cancelOrder).toHaveBeenCalled())
+    await waitFor(() => expect(getToPay.mock.calls.length).toBeGreaterThanOrEqual(2))
+    expect(screen.queryByTestId('folio-f1')).toBeNull()
+    await act(async () => handlers['order_updated']?.({ onlineStatus: 'ACCEPTED', venueId: 'venue-1' }))
+    const card = await screen.findByTestId('folio-f1')
+    expect(within(card).getByRole('button', { name: 'inbox.actions.delivered' })).toBeInTheDocument()
+  })
+
+  it('W2 · en «Nadie» el estado y la ayuda hablan del aparato (TPV/POS), no de la pestaña; «Mi equipo» queda igual', async () => {
+    const off = { status: 'OFFLINE', reason: null, pausedUntil: null, manualPause: false }
+    getInbox.mockResolvedValue(inbox([], { store: off }))
+    getToPay.mockResolvedValue(toPayRes([], [], { requiresAcceptance: false, showTile: true }))
+    renderTab()
+    expect(await screen.findByText('inbox.status.offlineNadie')).toBeInTheDocument()
+    expect(screen.getByText('inbox.keepsOpenNadie')).toBeInTheDocument()
+    expect(screen.queryByText('inbox.keepsOpen')).toBeNull()
+  })
+
+  it('W2 · «Mi equipo» conserva sus textos de siempre', async () => {
+    const off = { status: 'OFFLINE', reason: null, pausedUntil: null, manualPause: false }
+    getSettings.mockResolvedValue({ requiresAcceptance: true })
+    getInbox.mockResolvedValue(inbox([], { store: off }))
+    getToPay.mockResolvedValue(toPayRes([], [], { requiresAcceptance: true, showTile: false }))
+    renderTab()
+    expect(await screen.findByText('inbox.keepsOpen')).toBeInTheDocument()
+    expect(screen.queryByText('inbox.keepsOpenNadie')).toBeNull()
+    expect(screen.queryByText('inbox.status.offlineNadie')).toBeNull()
+  })
+
+  it('W4 · «Cancelar» no sale en un pedido con dinero (pagado o con abono) y sí en uno sin cobrar', async () => {
+    getInbox.mockResolvedValue(
+      inbox(
+        [
+          order({ orderId: 'paid', orderNumber: '1', status: 'READY', paymentStatus: 'PAID', remaining: 0 }),
+          order({ orderId: 'part', orderNumber: '2', status: 'ACCEPTED', paymentStatus: 'PARTIAL', remaining: 30, total: 80 }),
+          order({ orderId: 'free', orderNumber: '3', status: 'ACCEPTED', paymentStatus: 'PENDING', remaining: 80 }),
+        ],
+        { counts: { pending: 0, accepted: 2, ready: 1, active: 3, done: 0 } },
+      ),
+    )
+    renderTab()
+    await screen.findByTestId('order-free')
+    expect(within(screen.getByTestId('order-paid')).queryByRole('button', { name: 'inbox.actions.cancel' })).toBeNull()
+    expect(within(screen.getByTestId('order-part')).queryByRole('button', { name: 'inbox.actions.cancel' })).toBeNull()
+    expect(within(screen.getByTestId('order-free')).getByRole('button', { name: 'inbox.actions.cancel' })).toBeInTheDocument()
+  })
+
+  it('W5 · con un nombre largo el precio no se parte: nombre con puntos suspensivos y title, precio shrink-0', async () => {
+    const long = 'Maria Guadalupe Hernandez de la Cruz y Fernandez'
+    getToPay.mockResolvedValue(toPayRes([folio({ customerName: long })]))
+    renderTab()
+    const card = await screen.findByTestId('folio-f1')
+    const name = within(card).getByText(long)
+    expect(name.className).toContain('truncate')
+    expect(name).toHaveAttribute('title', long)
+    const price = within(card).getByText('$134.00')
+    expect((price.parentElement as HTMLElement).className).toContain('shrink-0')
+    expect((price.parentElement!.parentElement as HTMLElement).className).not.toContain('flex-wrap')
+  })
+})

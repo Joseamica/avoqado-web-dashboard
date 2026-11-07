@@ -14,6 +14,8 @@ import { useVenueDateTime } from '@/utils/datetime'
 import { useExtraPages } from '../hooks/useExtraPages'
 import { toPayModeIsLive } from '../lib/toPayLive'
 
+/** Un folio tocado se oculta SÓLO mientras siga en la sección y con el estado que tenía al tocarlo; cuando el servidor lo mueve o lo cambia, se suelta. */
+export type FolioHide = { section: 'toPay' | 'toDeliver'; status: string }
 export type FolioAction = 'ready' | 'delivered' | 'cancelFolio'
 type Section = 'toPay' | 'toDeliver'
 
@@ -23,7 +25,7 @@ interface Props {
   canCancel: boolean
   busy: boolean
   /** Folios ya tocados con éxito: salen de la lista al instante (también los de «Cargar más» hasta que el sondeo los relea). */
-  hidden: ReadonlySet<string>
+  hidden: ReadonlyMap<string, FolioHide>
   /** Ids de folios de «Nadie» ACTIVOS que la Bandeja ve: sólo dan un empujón único a to-pay, no cambian su modo. */
   inboxNadieIds?: string[]
   /** La Bandeja está en error: las tarjetas se ven, pero ninguna acción que mueva un folio hacia ella (R90). */
@@ -102,7 +104,10 @@ export function FolioSections({ venueId, canAnswer, canCancel, busy, hidden, inb
   const nowServer = Date.parse(data.serverTime) + (Math.max(now, dataUpdatedAt) - dataUpdatedAt)
   const build = (sec: Section) => {
     const seen = new Set(data[sec].map(o => o.orderId))
-    return [...data[sec], ...more[sec].items.filter(o => !seen.has(o.orderId))].filter(o => !hidden.has(o.orderId))
+    return [...data[sec], ...more[sec].items.filter(o => !seen.has(o.orderId))].filter(o => {
+      const h = hidden.get(o.orderId)
+      return !(h && h.section === sec && h.status === o.status)
+    })
   }
   const toDeliverList = build('toDeliver')
   // Un folio nunca sale en las dos secciones: si ya está por entregar, ya no está por pagar.
@@ -180,12 +185,16 @@ function FolioCard({ order, section, nowServer, stale, canAnswer, canCancel, bus
 
   return (
     <div data-testid={`folio-${order.orderId}`} className="space-y-3 rounded-xl border border-input bg-card p-4">
-      <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
+      <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="break-all text-2xl font-bold tracking-[0.25em]">{order.orderNumber}</p>
-          {order.customerName && <p className="truncate text-sm font-medium">{order.customerName}</p>}
+          {order.customerName && (
+            <p className="truncate text-sm font-medium" title={order.customerName}>
+              {order.customerName}
+            </p>
+          )}
         </div>
-        <div className="text-right">
+        <div className="shrink-0 text-right">
           <p className="text-xl font-semibold">{Currency(section === 'toPay' ? order.remaining : order.total)}</p>
           {section === 'toDeliver' && <p className="text-xs font-medium text-muted-foreground">{t('folio.paidTag')}</p>}
         </div>

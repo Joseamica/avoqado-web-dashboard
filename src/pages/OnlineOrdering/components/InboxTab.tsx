@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Volume2, WifiOff } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
@@ -26,6 +26,7 @@ import {
   acceptOrder,
   cancelOrder,
   getInbox,
+  getToPay,
   markDelivered,
   markReady,
   onlineOrderingKeys,
@@ -44,7 +45,7 @@ import { spaceFolio } from '../lib/spaceFolio'
 import { invalidateToPay } from '../lib/toPayLive'
 import { AcceptDialog } from './AcceptDialog'
 import { CardRefundButton } from './CardRefundSheet'
-import { FolioSections, type FolioAction } from './FolioSections'
+import { FolioSections, type FolioAction, type FolioHide } from './FolioSections'
 import { OrderCard, type OrderAction } from './OrderCard'
 import { PauseControl } from './PauseControl'
 import { RejectDialog } from './RejectDialog'
@@ -77,7 +78,7 @@ const SECTIONS: Array<{ key: keyof Inbox['counts']; match: (s: OnlineOrderStatus
 ]
 
 type DialogState = { kind: 'accept' | 'reject' | 'cancel' | 'cancelFolio'; order: InboxOrder } | null
-type Act = { target: OnlineOrderStatus; run: () => Promise<unknown>; orderId?: string; okTitle?: string }
+type Act = { target: OnlineOrderStatus; run: () => Promise<unknown>; orderId?: string; okTitle?: string; hide?: FolioHide }
 
 /**
  * Bandeja de pedidos en línea. 🔴 No depende del plan (R14): los pedidos que ya llegaron se ven, se contestan y se pausan.
@@ -97,7 +98,7 @@ export function InboxTab() {
   // 409) lo traiga sin `cardStatus: 'CONFIRMING'`. Una relectura fallida no mueve `dataUpdatedAt`: sigue apagado.
   const [confirmingSince, setConfirmingSince] = useState<Record<string, number>>({})
   // Folios de «Nadie» ya tocados con éxito: salen de «Por pagar»/«Por entregar» sin esperar al sondeo.
-  const [touched, setTouched] = useState<ReadonlySet<string>>(new Set())
+  const [touched, setTouched] = useState<ReadonlyMap<string, FolioHide>>(new Map())
   const [soundOn, setSoundOn] = useState(readSoundPref)
   const [, rerender] = useReducer((n: number) => n + 1, 0)
   const pending = data?.counts.pending ?? 0
@@ -136,14 +137,14 @@ export function InboxTab() {
       inFlight.current = false
     },
     onSuccess: (_res, a: Act) => {
-      if (a.orderId) setTouched(s => new Set(s).add(a.orderId!))
+      if (a.orderId && a.hide) setTouched(s => new Map(s).set(a.orderId!, a.hide!))
       if (a.okTitle) toast({ title: a.okTitle })
       return refresh()
     },
     // onSuccess/onError DEVUELVEN el refresco: `isPending` lo cubre y los botones no se reactivan con la tarjeta vieja.
     onError: (err: unknown, a: Act) => {
       const outcome = actionOutcome(err, a.target)
-      if (a.orderId && (outcome === 'success' || outcome === 'gone')) setTouched(s => new Set(s).add(a.orderId!))
+      if (a.orderId && a.hide && (outcome === 'success' || outcome === 'gone')) setTouched(s => new Map(s).set(a.orderId!, a.hide!))
       if (outcome === 'success') return refresh()
       if (outcome === 'confirming' && a.orderId) setConfirmingSince(m => ({ ...m, [a.orderId!]: Date.now() }))
       const title =
@@ -165,11 +166,11 @@ export function InboxTab() {
     },
   })
 
-  const run = (target: OnlineOrderStatus, fn: () => Promise<unknown>, orderId?: string, okTitle?: string) => {
+  const run = (target: OnlineOrderStatus, fn: () => Promise<unknown>, orderId?: string, okTitle?: string, hide?: FolioHide) => {
     if (inFlight.current) return
     inFlight.current = true
     setDialog(null)
-    action.mutate({ target, run: fn, orderId, okTitle })
+    action.mutate({ target, run: fn, orderId, okTitle, hide })
   }
 
   const onAction = (order: InboxOrder, a: OrderAction) => {
@@ -179,12 +180,16 @@ export function InboxTab() {
   }
 
   const onFolioAct = (order: FolioOrder, a: FolioAction) => {
-    if (a === 'ready') return run('READY', () => markReady(venueId, order.orderId), order.orderId)
+    if (a === 'ready')
+      return run('READY', () => markReady(venueId, order.orderId), order.orderId, undefined, { section: 'toDeliver', status: order.status })
     if (a === 'delivered') {
       const okTitle = order.customerName
         ? t('folio.delivered', { folio: spaceFolio(order.orderNumber), name: order.customerName })
         : t('folio.deliveredNoName', { folio: spaceFolio(order.orderNumber) })
-      return run('COMPLETED', () => markDelivered(venueId, order.orderId), order.orderId, okTitle)
+      return run('COMPLETED', () => markDelivered(venueId, order.orderId), order.orderId, okTitle, {
+        section: 'toDeliver',
+        status: order.status,
+      })
     }
     setDialog({ kind: 'cancelFolio', order })
   }
@@ -202,6 +207,14 @@ export function InboxTab() {
 
   // R88: los folios de «Nadie» viven de su propia consulta; SIEMPRE montados, aunque la Bandeja falle o aún cargue. La Bandeja
   // sólo les da un empujón único con los folios de «Nadie» ACTIVOS que ve (ni cerrados ni cancelados).
+  // «Nadie»: la tienda no la mantiene abierta esta pestaña sino el latido de la TPV o el POS con «Pedidos por pagar».
+  const nadieMode =
+    useQuery({
+      queryKey: onlineOrderingKeys.toPay(venueId),
+      queryFn: () => getToPay(venueId),
+      enabled: false,
+      select: d => d.requiresAcceptance === false,
+    }).data === true
   const CLOSED: ReadonlySet<string> = new Set(['COMPLETED', 'REJECTED', 'EXPIRED', 'CANCELLED_BY_CUSTOMER', 'CANCELLED_BY_STAFF'])
   const nadieIds = [...(data?.orders ?? []), ...activeMore.items]
     .filter(o => o.requiresAcceptance === false && !CLOSED.has(o.status))
@@ -236,7 +249,12 @@ export function InboxTab() {
             <AlertDialogFooter>
               <AlertDialogCancel>{t('folio.cancelDialog.back')}</AlertDialogCancel>
               <AlertDialogAction
-                onClick={() => run('CANCELLED_BY_STAFF', () => cancelOrder(venueId, dialog.order.orderId), dialog.order.orderId)}
+                onClick={() =>
+                  run('CANCELLED_BY_STAFF', () => cancelOrder(venueId, dialog.order.orderId), dialog.order.orderId, undefined, {
+                    section: 'toPay',
+                    status: dialog.order.status,
+                  })
+                }
               >
                 {t('folio.cancelDialog.confirm')}
               </AlertDialogAction>
@@ -311,9 +329,11 @@ export function InboxTab() {
     ? t('inbox.status.noPlan')
     : pause
       ? t(pause.key, pause.params)
-      : store?.status === 'OFFLINE' && !keepsStoreOpen
-        ? t('inbox.status.offlineNobody')
-        : t(`settings.status.${store?.status}`, { defaultValue: store?.status })
+      : store?.status === 'OFFLINE' && nadieMode
+        ? t('inbox.status.offlineNadie')
+        : store?.status === 'OFFLINE' && !keepsStoreOpen
+          ? t('inbox.status.offlineNobody')
+          : t(`settings.status.${store?.status}`, { defaultValue: store?.status })
   const soundSupported = chime().state() !== 'unsupported'
   const skewMs = Date.parse(data.serverTime) - dataUpdatedAt
 
@@ -330,7 +350,9 @@ export function InboxTab() {
             )}
             <PauseControl venueId={venueId} store={store} canPause={canPause} />
           </div>
-          <p className="text-sm text-muted-foreground">{keepsStoreOpen ? t('inbox.keepsOpen') : t('inbox.viewOnly')}</p>
+          <p className="text-sm text-muted-foreground">
+            {nadieMode ? t('inbox.keepsOpenNadie') : keepsStoreOpen ? t('inbox.keepsOpen') : t('inbox.viewOnly')}
+          </p>
           {soundSupported ? (
             <div className="flex items-center gap-2">
               <Switch id="online-inbox-sound" checked={soundOn} onCheckedChange={toggleSound} data-tour="online-inbox-sound" />

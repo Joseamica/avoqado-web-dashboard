@@ -189,7 +189,8 @@
     "viewOnly": "Puedes ver los pedidos, pero tu cuenta no mantiene abierta la tienda.",
     "status": {
       "noPlan": "Sin plan: no llegan pedidos nuevos",
-      "offlineNobody": "Nadie con permiso de contestar tiene la Bandeja abierta"
+      "offlineNobody": "Nadie con permiso de contestar tiene la Bandeja abierta",
+      "offlineNadie": "Sin aparato conectado: la tienda recibe pedidos mientras una terminal o un POS con «Pedidos por pagar» esté conectado y con la caja abierta"
     },
     "sections": {
       "pending": "Por aceptar",
@@ -272,7 +273,8 @@
       "minutes": "{{minutes}} min",
       "resume": "Reanudar",
       "failed": "No se pudo cambiar la pausa. Vuelve a intentar."
-    }
+    },
+    "keepsOpenNadie": "Con «Nadie», tu tienda sigue abierta mientras una terminal o un POS con «Pedidos por pagar» esté conectado; esta pestaña no la mantiene abierta."
   },
   "cardRefund": {
     "open": "Devolver a la tarjeta",
