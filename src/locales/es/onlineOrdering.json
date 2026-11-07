@@ -348,6 +348,7 @@
     "retry": "Reintentar",
     "loadMoreFailed": "No pudimos cargar más folios. Vuelve a intentar.",
     "paidAt": "Pagado a las {{time}}",
-    "reloadInboxFirst": "Primero recarga la Bandeja"
+    "reloadInboxFirst": "Primero recarga la Bandeja",
+    "readyChip": "Listo"
   }
 }

@@ -1407,3 +1407,57 @@ describe('R93 · hallazgos de /full-testingv2 WEB', () => {
     expect(await screen.findByTestId('folio-f1')).toBeInTheDocument()
   })
 })
+
+describe('R98 · «Por entregar» = pagado y no entregado (ACCEPTED + READY)', () => {
+  beforeEach(() => {
+    for (const f of [getInbox, getToPay, getSettings, markReady, markDelivered, cancelOrder, toast, mockStatus]) f.mockReset()
+    mockStatus.mockReturnValue(status())
+    getInbox.mockResolvedValue(inbox([]))
+    getSettings.mockResolvedValue({ requiresAcceptance: false })
+    getToPay.mockResolvedValue(toPayRes())
+  })
+  const paid = (over: Record<string, unknown> = {}) => folio({ status: 'ACCEPTED', paymentStatus: 'PAID', remaining: 0, ...over })
+
+  it('un folio READY en «Por entregar» lleva el chip «Listo» y SÓLO «Entregado» (nunca «Cancelar»)', async () => {
+    getToPay.mockResolvedValue(toPayRes([], [paid({ status: 'READY' })]))
+    renderTab()
+    const card = await screen.findByTestId('folio-f1')
+    expect(within(card).getByText('folio.readyChip')).toBeInTheDocument()
+    expect(within(card).getByRole('button', { name: 'inbox.actions.delivered' })).toBeInTheDocument()
+    expect(within(card).queryByRole('button', { name: 'inbox.actions.ready' })).toBeNull()
+    expect(within(card).queryByRole('button', { name: /cancel/i })).toBeNull()
+  })
+
+  it('un folio ACCEPTED conserva «Listo» y «Entregado» y no lleva el chip', async () => {
+    getToPay.mockResolvedValue(toPayRes([], [paid()]))
+    renderTab()
+    const card = await screen.findByTestId('folio-f1')
+    expect(within(card).getByRole('button', { name: 'inbox.actions.ready' })).toBeInTheDocument()
+    expect(within(card).queryByText('folio.readyChip')).toBeNull()
+  })
+
+  it('«Listos» de la Bandeja excluye los folios de «Nadie» (sale una vez, en «Por entregar») y su conteo cuadra', async () => {
+    const f = paid({ status: 'READY' })
+    const team = order({ orderId: 'o9', orderNumber: '109', status: 'READY', requiresAcceptance: true })
+    getInbox.mockResolvedValue(inbox([f, team], { counts: { pending: 0, accepted: 0, ready: 2, active: 2, done: 0 } }))
+    getToPay.mockResolvedValue(toPayRes([], [f]))
+    renderTab()
+    await screen.findByTestId('order-o9')
+    expect(screen.queryByTestId('order-f1')).toBeNull()
+    expect(screen.getByTestId('folio-f1')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /inbox\.sections\.ready/ })).toHaveTextContent('(1)')
+    expect(screen.queryByText(/^inbox\.sections\.showing/)).toBeNull()
+  })
+
+  it('después de «Listo» el folio vuelve en «Por entregar» como READY, con sólo «Entregado»', async () => {
+    getToPay.mockResolvedValueOnce(toPayRes([], [paid()])).mockResolvedValue(toPayRes([], [paid({ status: 'READY' })]))
+    markReady.mockResolvedValue({ status: 'READY' })
+    renderTab()
+    await userEvent.click(await screen.findByRole('button', { name: 'inbox.actions.ready' }))
+    await waitFor(() => expect(markReady).toHaveBeenCalledWith('venue-1', 'f1'))
+    const card = await screen.findByTestId('folio-f1')
+    expect(within(card).getByText('folio.readyChip')).toBeInTheDocument()
+    expect(within(card).queryByRole('button', { name: 'inbox.actions.ready' })).toBeNull()
+    expect(within(card).getByRole('button', { name: 'inbox.actions.delivered' })).toBeInTheDocument()
+  })
+})

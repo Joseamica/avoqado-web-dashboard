@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useToast } from '@/hooks/use-toast'
@@ -221,7 +222,12 @@ function FolioCard({ order, section, nowServer, stale, canAnswer, canCancel, bus
         </div>
         <div className="shrink-0 text-right">
           <p className="text-xl font-semibold">{Currency(section === 'toPay' ? order.remaining : order.total)}</p>
-          {section === 'toDeliver' && <p className="text-xs font-medium text-muted-foreground">{t('folio.paidTag')}</p>}
+          {section === 'toDeliver' && (
+            <p className="flex items-center justify-end gap-1.5 text-xs font-medium text-muted-foreground">
+              {order.status === 'READY' && <Badge variant="secondary">{t('folio.readyChip')}</Badge>}
+              {t('folio.paidTag')}
+            </p>
+          )}
         </div>
       </div>
       <p className="text-sm text-muted-foreground">
@@ -271,9 +277,11 @@ function FolioCard({ order, section, nowServer, stale, canAnswer, canCancel, bus
 
       {section === 'toDeliver' && canAnswer && (
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" className="flex-1" disabled={busy} onClick={() => onAct('ready')}>
-            {t('inbox.actions.ready')}
-          </Button>
+          {order.status !== 'READY' && (
+            <Button variant="outline" className="flex-1" disabled={busy} onClick={() => onAct('ready')}>
+              {t('inbox.actions.ready')}
+            </Button>
+          )}
           <Button className="flex-1" disabled={busy} onClick={() => onAct('delivered')}>
             {t('inbox.actions.delivered')}
           </Button>

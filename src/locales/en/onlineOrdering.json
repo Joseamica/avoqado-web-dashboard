@@ -348,6 +348,7 @@
     "retry": "Retry",
     "loadMoreFailed": "We couldn't load more folios. Try again.",
     "paidAt": "Paid at {{time}}",
-    "reloadInboxFirst": "Reload the Inbox first"
+    "reloadInboxFirst": "Reload the Inbox first",
+    "readyChip": "Ready"
   }
 }

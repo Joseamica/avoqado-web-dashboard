@@ -410,8 +410,15 @@ export function InboxTab() {
           // Los folios de «Nadie» ya están en «Por entregar»: no se repiten en «En preparación».
           const seen = new Set(data.orders.map(o => o.orderId))
           const all = [...data.orders, ...activeMore.items.filter(o => !seen.has(o.orderId))]
-          const list = all.filter(o => section.match(o.status) && !(section.key === 'accepted' && o.requiresAcceptance === false))
-          const total = section.key === 'accepted' ? (data.counts.acceptedTeam ?? data.counts.accepted) : data.counts[section.key]
+          // «En preparación» y «Listos» no repiten los folios de «Nadie» (R98): se ven una vez, en «Por entregar».
+          const isActive = section.key === 'accepted' || section.key === 'ready'
+          const isFolio = (o: InboxOrder) => isActive && o.requiresAcceptance === false
+          const list = all.filter(o => section.match(o.status) && !isFolio(o))
+          const excluded = all.filter(o => section.match(o.status) && isFolio(o)).length
+          const total =
+            section.key === 'accepted' && data.counts.acceptedTeam !== undefined
+              ? data.counts.acceptedTeam
+              : Math.max(0, data.counts[section.key] - excluded)
           return (
             <section key={section.key} className="space-y-2">
               <h2 className="text-base font-semibold">
