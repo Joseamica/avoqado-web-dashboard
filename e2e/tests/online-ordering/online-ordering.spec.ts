@@ -7,6 +7,8 @@
  * Los mocks son con ESTADO: la lista cambia sólo si la página re-lee después de la mutación (cazan una invalidación mal dirigida).
  * Se registran DESPUÉS de setupApiMocks (LIFO).
  */
+import { mkdirSync } from 'node:fs'
+
 import { expect, test, type Page } from '@playwright/test'
 
 import { setupApiMocks } from '../../fixtures/api-mocks'
@@ -223,7 +225,13 @@ test('el aviso de plan vencido se va solo, sin recargar, al reactivar el plan', 
 
 // ───────────── Tienda híbrida · «Nadie» confirma (folios que se pagan en caja) ─────────────
 // Las capturas van FUERA del repo (evidencia visual de D4): 1280 y 375 px, claro y oscuro.
-const SHOTS = '/Users/amieva/Documents/Programming/Avoqado/.superpowers/sdd/2026-11-05-tienda-hibrida-etapa-1/capturas-D4'
+// Capturas de revisión: sólo si se pide con CAPTURAS_D4=<carpeta>; en CI (o sin la variable) no se escribe ningún archivo.
+const shot = async (page: Page, file: string) => {
+  const dir = process.env.CAPTURAS_D4
+  if (!dir) return
+  mkdirSync(dir, { recursive: true })
+  await page.screenshot({ path: `${dir}/${file}`, fullPage: true })
+}
 const WEEK = Object.fromEntries(
   ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map(d => [
     d,
@@ -278,7 +286,9 @@ async function setupNadie(page: Page, opts: { settings?: Record<string, unknown>
   await setup(page)
   const theme = opts.theme ?? 'light'
   await page.addInitScript(t => window.localStorage.setItem('vite-ui-theme', t), theme)
-  await page.route('https://pedidos.avoqado.io/**', route => route.fulfill({ status: 200, contentType: 'text/html', body: '<p>tienda</p>' }))
+  await page.route('https://pedidos.avoqado.io/**', route =>
+    route.fulfill({ status: 200, contentType: 'text/html', body: '<p>tienda</p>' }),
+  )
   await page.route(`${BASE}/settings`, route => route.fulfill(json(nadieSettings(opts.settings))))
 }
 
@@ -315,10 +325,13 @@ async function mockToPay(page: Page, data: { toPay: unknown[]; toDeliver: unknow
 
 /** Foto en 1280 y 375 px. La app hace scroll dentro de su propio contenedor, así que se alarga la ventana para que `fullPage` enseñe todo. */
 async function shootBoth(page: Page, name: string, theme: string, ready: () => Promise<void>) {
-  for (const [label, width, height] of [['1280', 1280, 1600], ['375', 375, 2400]] as const) {
+  for (const [label, width, height] of [
+    ['1280', 1280, 1600],
+    ['375', 375, 2400],
+  ] as const) {
     await page.setViewportSize({ width, height })
     await ready()
-    await page.screenshot({ path: `${SHOTS}/${name}-${label}-${theme}.png`, fullPage: true })
+    await shot(page, `${name}-${label}-${theme}.png`)
   }
 }
 
@@ -344,7 +357,9 @@ for (const theme of ['light', 'dark'] as const) {
 }
 
 test('Nadie · Configuración: sin aparato la lista dice qué hacer y «Encender» no enciende', async ({ page }) => {
-  await setupNadie(page, { settings: { enabled: false, lastToPayPollAt: null, store: { status: 'DISABLED', reason: null, pausedUntil: null, manualPause: false } } })
+  await setupNadie(page, {
+    settings: { enabled: false, lastToPayPollAt: null, store: { status: 'DISABLED', reason: null, pausedUntil: null, manualPause: false } },
+  })
   await page.goto('/venues/venue-alpha/online-ordering#configuracion')
   const list = page.locator('[data-tour="online-ordering-no-one-checklist"]')
   await expect(list).toContainText('Ningún aparato puede cobrar folios todavía')
@@ -380,7 +395,13 @@ for (const theme of ['light', 'dark'] as const) {
         }),
       ],
       toDeliver: [
-        folio('f3', 'WB4M9', { status: 'ACCEPTED', paymentStatus: 'PAID', remaining: 0, customerName: 'Marta Ruiz', paidAt: new Date(Date.now() - 3 * 60_000).toISOString() }),
+        folio('f3', 'WB4M9', {
+          status: 'ACCEPTED',
+          paymentStatus: 'PAID',
+          remaining: 0,
+          customerName: 'Marta Ruiz',
+          paidAt: new Date(Date.now() - 3 * 60_000).toISOString(),
+        }),
         folio('f4', 'WC5P6', { status: 'ACCEPTED', paymentStatus: 'PAID', remaining: 0, customerName: 'Jorge Soto' }),
       ],
     })
@@ -431,7 +452,7 @@ for (const theme of ['light', 'dark'] as const) {
     await expect(soon).not.toHaveClass(/red|destructive/)
     await expect(later).not.toHaveClass(/amber|red|destructive/)
     await page.setViewportSize({ width: 1280, height: 1000 })
-    await page.screenshot({ path: `${SHOTS}/vence-en-1280-${theme}.png`, fullPage: true })
+    await shot(page, `vence-en-1280-${theme}.png`)
   })
 }
 
@@ -462,7 +483,14 @@ test('Nadie · Bandeja: «Cancelar folio» pide confirmar y el folio sale', asyn
   )
   await page.route(`${BASE}/orders?*`, route =>
     route.fulfill(
-      json({ serverTime: NOW(), counts: { pending: 0, accepted: 0, ready: 0, active: 0, done: 0 }, orders: [], truncated: false, nextCursor: null, store: { status: 'OPEN', reason: null, pausedUntil: null, manualPause: false } }),
+      json({
+        serverTime: NOW(),
+        counts: { pending: 0, accepted: 0, ready: 0, active: 0, done: 0 },
+        orders: [],
+        truncated: false,
+        nextCursor: null,
+        store: { status: 'OPEN', reason: null, pausedUntil: null, manualPause: false },
+      }),
     ),
   )
   await page.goto('/venues/venue-alpha/online-ordering#bandeja')
@@ -477,7 +505,7 @@ test('Nadie · Bandeja: «Cancelar folio» pide confirmar y el folio sale', asyn
   await page.getByTestId('folio-f1').getByRole('button', { name: 'Cancelar folio' }).click()
   await expect(page.getByRole('alertdialog')).toBeVisible()
   await page.waitForTimeout(500) // deja terminar la animación de entrada antes de la foto
-  await page.screenshot({ path: `${SHOTS}/dialogo-cancelar-folio-1280-light.png`, fullPage: true })
+  await shot(page, 'dialogo-cancelar-folio-1280-light.png')
   await page.getByRole('alertdialog').getByRole('button', { name: 'Sí, cancelar' }).click()
   await expect(page.getByTestId('folio-f1')).toHaveCount(0)
   expect(cancelCalls).toBe(1)
@@ -486,10 +514,14 @@ test('Nadie · Bandeja: «Cancelar folio» pide confirmar y el folio sale', asyn
 test('«Mi equipo» no muestra nada nuevo: ni nota, ni «Por pagar», ni «Por entregar»', async ({ page }) => {
   await setup(page)
   await page.route(`${BASE}/settings`, route =>
-    route.fulfill(json(nadieSettings({ requiresAcceptance: true, hasSavedSettings: true, suggestedRequiresAcceptance: true, lastToPayPollAt: null }))),
+    route.fulfill(
+      json(nadieSettings({ requiresAcceptance: true, hasSavedSettings: true, suggestedRequiresAcceptance: true, lastToPayPollAt: null })),
+    ),
   )
   // El panel de «Mi equipo» no tiene folios: el servidor puede contestar vacío o 403 y no debe notarse.
-  await page.route(`${BASE}/orders/to-pay*`, route => route.fulfill({ status: 403, contentType: 'application/json', body: JSON.stringify({ success: false }) }))
+  await page.route(`${BASE}/orders/to-pay*`, route =>
+    route.fulfill({ status: 403, contentType: 'application/json', body: JSON.stringify({ success: false }) }),
+  )
   await page.route(`${BASE}/orders?*`, route =>
     route.fulfill(
       json({
