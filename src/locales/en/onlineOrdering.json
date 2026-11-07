@@ -104,6 +104,46 @@
     "minOrderErrors": {
       "range": "Minimum order must be between $0 and $100,000",
       "decimals": "Use at most 2 decimals"
+    },
+    "unsaved": "Unsaved changes",
+    "confirm": {
+      "title": "Who confirms orders?",
+      "team": {
+        "label": "My team",
+        "help": "Someone accepts each order in the Inbox before it is prepared. It can be paid at the end.",
+        "path": "Orders → You accept → Prepared → Pays"
+      },
+      "noOne": {
+        "label": "No one",
+        "help": "The customer orders and pays at the register; once paid, it is prepared. If they do not pay within 30 min, it cancels itself. The Inbox does not need to be open.",
+        "path": "Orders → Pays at the register → Prepared"
+      },
+      "suggested": "Suggested for your business type",
+      "noOneNote": "With \"No one\", the customer pays before it is prepared. If your customers order and pay at the end, choose \"My team\".",
+      "checklistTitle": "To receive orders with “No one”",
+      "allWeek": "Monday to Sunday",
+      "hoursOk": "Ordering hours: {{days}}, {{open}}–{{close}}",
+      "hoursCustom": "Ordering hours: the ones you set below, in “Hours”",
+      "hoursMissing": "Set your hours: with \"No one\", unpaid orders are cancelled at closing",
+      "hoursLink": "Go to Hours",
+      "deviceOk": "A device that takes payment for order numbers connected {{minutes}} min ago",
+      "deviceOkHours": "A device that takes payment for order numbers connected {{hours}} h ago",
+      "deviceOkDays": "A device that takes payment for order numbers connected {{days}} days ago",
+      "deviceMissing": "No device can take payment for order numbers yet: update the terminal or the POS",
+      "deviceWhatToDo": "What to do: Open the terminal or the POS, already updated, with the cash register open. Once it connects, this will say “A device that takes payment for order numbers connected N min ago”. Meanwhile, you can save “No one” with the store turned off.",
+      "enableNoDevice": "A device that takes payment for order numbers is missing.",
+      "payNoOne": "With \"No one\", payment is at the register.",
+      "cardNoOne": "With \"No one\", payment is at the register. To charge online, choose \"My team\".",
+      "toPayNotice": {
+        "title_one": "You have {{count}} order awaiting payment",
+        "title_other": "You have {{count}} orders awaiting payment",
+        "body": "They stay in “Orders to pay” on the terminal and the POS until they are paid or expire. New orders will be accepted by your team in the Inbox."
+      },
+      "errors": {
+        "NO_FOLIO_DEVICE": "No device can take payment for order numbers yet: update the terminal or the POS, open it with the cash register open and try again.",
+        "HOURS_REQUIRED": "Set your hours: with \"No one\", unpaid orders are cancelled at closing.",
+        "PAY_AT_PICKUP_REQUIRED": "With \"No one\", payment is at the register, so “Pay at pickup” must stay on."
+      }
     }
   },
   "menu": {
@@ -149,7 +189,8 @@
     "viewOnly": "You can see the orders, but your account doesn't keep the store open.",
     "status": {
       "noPlan": "No plan: new orders aren't coming in",
-      "offlineNobody": "Nobody who can answer orders has the Tray open"
+      "offlineNobody": "Nobody who can answer orders has the Tray open",
+      "offlineNadie": "No device connected: the store takes orders while a terminal or POS with “Orders to pay” is connected and its register is open"
     },
     "sections": {
       "pending": "To accept",
@@ -157,7 +198,9 @@
       "ready": "Ready",
       "done": "Last 24 hours",
       "empty": "No orders for now",
-      "showing": "Showing {{shown}} of {{total}}"
+      "showing": "Showing {{shown}} of {{total}}",
+      "loadMore": "Load more",
+      "loadMoreFailed": "We couldn't load more orders. Try again."
     },
     "sound": {
       "toggle": "Turn on sound",
@@ -230,7 +273,8 @@
       "minutes": "{{minutes}} min",
       "resume": "Resume",
       "failed": "Couldn't change the pause. Try again."
-    }
+    },
+    "keepsOpenNadie": "With “No one”, your store stays open while a terminal or POS with “Orders to pay” is connected; this tab doesn't keep it open."
   },
   "cardRefund": {
     "open": "Refund to card",
@@ -270,5 +314,41 @@
       "confirmYes": "Yes, I returned it",
       "confirmNo": "Not yet"
     }
+  },
+  "folio": {
+    "note": "With “No one”, folios are paid at the register (terminal or POS). Here you can see them, cancel the fake ones and mark what was handed over.",
+    "sections": {
+      "toPay": "To pay",
+      "toDeliver": "To hand over"
+    },
+    "expiresIn": "Expires in {{minutes}} min",
+    "expiresAt": "Expires at {{time}}",
+    "expiring": "About to expire",
+    "missing": "{{remaining}} of {{total}} still due",
+    "alreadyPaid": "Already paid {{paid}}",
+    "collectAtRegister": "Paid at the register",
+    "orderedAt": "Ordered {{time}}",
+    "paidTag": "Paid",
+    "products_one": "{{count}} item",
+    "products_other": "{{count}} items",
+    "cancel": "Cancel folio",
+    "delivered": "{{folio}} handed to {{name}}",
+    "deliveredNoName": "{{folio}} handed over",
+    "cancelDialog": {
+      "title": "Cancel folio {{folio}}?",
+      "description": "{{name}} will see it cancelled on their phone and won't be able to pay it at the register.",
+      "descriptionNoName": "Whoever ordered will see it cancelled on their phone and won't be able to pay it at the register.",
+      "back": "No",
+      "confirm": "Yes, cancel"
+    },
+    "loadMore": "Load more",
+    "emptyToPay": "No folios waiting for payment. New orders from your store show up here until they are paid at the register.",
+    "emptyToDeliver": "When a folio is paid at the register, it shows up here so you can mark it ready and handed over.",
+    "loadFailed": "We couldn't load the folios. Check your connection and try again.",
+    "retry": "Retry",
+    "loadMoreFailed": "We couldn't load more folios. Try again.",
+    "paidAt": "Paid at {{time}}",
+    "reloadInboxFirst": "Reload the Inbox first",
+    "readyChip": "Ready"
   }
 }

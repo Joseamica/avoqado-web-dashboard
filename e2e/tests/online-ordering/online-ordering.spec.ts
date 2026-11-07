@@ -7,6 +7,8 @@
  * Los mocks son con ESTADO: la lista cambia sólo si la página re-lee después de la mutación (cazan una invalidación mal dirigida).
  * Se registran DESPUÉS de setupApiMocks (LIFO).
  */
+import { mkdirSync } from 'node:fs'
+
 import { expect, test, type Page } from '@playwright/test'
 
 import { setupApiMocks } from '../../fixtures/api-mocks'
@@ -21,7 +23,7 @@ test.beforeEach(async ({ page }) => {
 
 const VENUE = {
   ...VENUE_ALPHA,
-  permissions: [...VENUE_ALPHA.permissions, 'online-orders:manage', 'online-orders:pause'],
+  permissions: [...VENUE_ALPHA.permissions, 'online-orders:manage', 'online-orders:pause', 'orders:cancel-unpaid', 'orders:update'],
 }
 const PRO_PLAN = { hasPlan: true, state: 'active', planTier: 'PRO', grandfathered: false } as const
 const BASE = '**/api/v1/dashboard/venues/venue-alpha/online-ordering'
@@ -84,6 +86,8 @@ test('aceptar un pedido lo pasa a «En preparación» sin recargar', async ({ pa
 
   await page.goto('/venues/venue-alpha/online-ordering#bandeja')
   const card = page.getByTestId('order-ord-1')
+  // Arranque en frío del servidor de dev: Vite compila la página al primer pedido. Se espera la app (no se oculta nada: si nunca sale, falla).
+  await expect(page.getByRole('heading', { name: /Por aceptar/ })).toBeVisible({ timeout: 45_000 })
   await expect(page.getByRole('heading', { name: /Por aceptar/ })).toContainText('(1)')
   await expect(card).toBeVisible()
 
@@ -217,4 +221,327 @@ test('el aviso de plan vencido se va solo, sin recargar, al reactivar el plan', 
   tier = 'PRO'
   await expect(page.getByText('Tu plan no incluye Pedidos en línea')).toHaveCount(0, { timeout: 30_000 })
   await expect(page.locator('[data-testid="online-inbox"]')).toContainText('Abierta')
+})
+
+// ───────────── Tienda híbrida · «Nadie» confirma (folios que se pagan en caja) ─────────────
+// Las capturas van FUERA del repo (evidencia visual de D4): 1280 y 375 px, claro y oscuro.
+// Capturas de revisión: sólo si se pide con CAPTURAS_D4=<carpeta>; en CI (o sin la variable) no se escribe ningún archivo.
+const shot = async (page: Page, file: string) => {
+  const dir = process.env.CAPTURAS_D4
+  if (!dir) return
+  mkdirSync(dir, { recursive: true })
+  await page.screenshot({ path: `${dir}/${file}`, fullPage: true })
+}
+const WEEK = Object.fromEntries(
+  ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map(d => [
+    d,
+    { enabled: true, ranges: [{ open: '07:00', close: '21:00' }] },
+  ]),
+)
+const NOW = () => new Date().toISOString()
+
+function nadieSettings(over: Record<string, unknown> = {}) {
+  return {
+    enabled: true,
+    minOrderAmount: 0,
+    defaultPrepMinutes: 20,
+    acceptsPayAtPickup: true,
+    acceptsCardOnline: false,
+    manualPause: false,
+    pausedUntil: null,
+    hours: WEEK,
+    lastInboxPollAt: null,
+    requiresAcceptance: false,
+    hasSavedSettings: true,
+    suggestedRequiresAcceptance: false,
+    lastToPayPollAt: new Date(Date.now() - 5 * 60_000).toISOString(),
+    store: { status: 'OPEN', reason: null, pausedUntil: null, manualPause: false },
+    requirements: { address: true, phone: true, privacyNotice: true },
+    ...over,
+  }
+}
+
+const folio = (id: string, orderNumber: string, over: Record<string, unknown> = {}) => ({
+  orderId: id,
+  onlineOrderId: `oo-${id}`,
+  orderNumber,
+  status: 'PENDING_ACCEPTANCE',
+  paymentMode: 'PAY_AT_PICKUP',
+  customerName: 'Ana Pérez',
+  customerPhone: null,
+  note: null,
+  createdAt: NOW(),
+  acceptDeadlineAt: null,
+  estimatedReadyAt: null,
+  total: 206,
+  remaining: 206,
+  paymentStatus: 'PENDING',
+  needsPrint: false,
+  requiresAcceptance: false,
+  items: [{ name: 'Café americano', quantity: 2, note: null, modifiers: [] }],
+  ...over,
+})
+
+async function setupNadie(page: Page, opts: { settings?: Record<string, unknown>; theme?: 'light' | 'dark' } = {}) {
+  await setup(page)
+  const theme = opts.theme ?? 'light'
+  await page.addInitScript(t => window.localStorage.setItem('vite-ui-theme', t), theme)
+  await page.route('https://pedidos.avoqado.io/**', route =>
+    route.fulfill({ status: 200, contentType: 'text/html', body: '<p>tienda</p>' }),
+  )
+  await page.route(`${BASE}/settings`, route => route.fulfill(json(nadieSettings(opts.settings))))
+}
+
+async function mockToPay(page: Page, data: { toPay: unknown[]; toDeliver: unknown[]; requiresAcceptance?: boolean }) {
+  await page.route(`${BASE}/orders/to-pay*`, route =>
+    route.fulfill(
+      json({
+        serverTime: NOW(),
+        enabled: true,
+        requiresAcceptance: data.requiresAcceptance ?? false,
+        showTile: true,
+        pollSeconds: 10,
+        counts: { toPay: data.toPay.length, toDeliver: data.toDeliver.length },
+        toPay: data.toPay,
+        toDeliver: data.toDeliver,
+        nextCursors: { toPay: null, toDeliver: null },
+        store: { status: 'OPEN', reason: null, pausedUntil: null, manualPause: false },
+      }),
+    ),
+  )
+  await page.route(`${BASE}/orders?*`, route =>
+    route.fulfill(
+      json({
+        serverTime: NOW(),
+        counts: { pending: 0, accepted: 0, ready: 0, active: 0, done: 0, acceptedTeam: 0 },
+        orders: [],
+        truncated: false,
+        nextCursor: null,
+        store: { status: 'OPEN', reason: null, pausedUntil: null, manualPause: false },
+      }),
+    ),
+  )
+}
+
+/** Foto en 1280 y 375 px. La app hace scroll dentro de su propio contenedor, así que se alarga la ventana para que `fullPage` enseñe todo. */
+async function shootBoth(page: Page, name: string, theme: string, ready: () => Promise<void>) {
+  for (const [label, width, height] of [
+    ['1280', 1280, 1600],
+    ['375', 375, 2400],
+  ] as const) {
+    await page.setViewportSize({ width, height })
+    await ready()
+    await shot(page, `${name}-${label}-${theme}.png`)
+  }
+}
+
+for (const theme of ['light', 'dark'] as const) {
+  test(`Nadie · Configuración: «¿Quién confirma?» con aparato (${theme})`, async ({ page }) => {
+    await setupNadie(page, { theme })
+    await page.goto('/venues/venue-alpha/online-ordering#configuracion')
+    const card = page.getByRole('group', { name: '¿Quién confirma los pedidos?' })
+    await expect(card).toBeVisible()
+    await expect(page.getByRole('radio', { name: /Nadie/ })).toBeChecked()
+    await expect(page.getByText('Sugerido para tu giro')).toBeVisible()
+    await expect(page.getByText('Con "Nadie", la clienta paga antes de que se prepare', { exact: false })).toBeVisible()
+    const list = page.locator('[data-tour="online-ordering-no-one-checklist"]')
+    await expect(list).toContainText('Para recibir pedidos con «Nadie»')
+    await expect(list).toContainText('Horario de pedidos: lunes a domingo, 07:00–21:00')
+    await expect(list).toContainText('Un aparato que cobra folios se conectó hace 5 min')
+    await expect(list).not.toContainText('Qué hacer')
+    await expect(page.getByRole('switch', { name: 'Pagar al recoger' })).toBeDisabled()
+    await shootBoth(page, 'configuracion-nadie-con-aparato', theme, async () => {
+      await expect(card).toBeVisible()
+    })
+  })
+}
+
+test('Nadie · Configuración: sin aparato la lista dice qué hacer y «Encender» no enciende', async ({ page }) => {
+  await setupNadie(page, {
+    settings: { enabled: false, lastToPayPollAt: null, store: { status: 'DISABLED', reason: null, pausedUntil: null, manualPause: false } },
+  })
+  await page.goto('/venues/venue-alpha/online-ordering#configuracion')
+  const list = page.locator('[data-tour="online-ordering-no-one-checklist"]')
+  await expect(list).toContainText('Ningún aparato puede cobrar folios todavía')
+  await expect(list).toContainText('Qué hacer: Abre la terminal o el POS')
+  await expect(page.getByText('Falta un aparato que cobre folios.')).toBeVisible()
+  await expect(page.getByRole('switch', { name: 'Encender la tienda' })).toBeDisabled()
+  await expect(page.getByText('Todo listo', { exact: false })).toHaveCount(0)
+  await shootBoth(page, 'configuracion-nadie-sin-aparato', 'light', async () => {
+    await expect(list).toBeVisible()
+  })
+})
+
+test('Nadie · Configuración: sin horario la lista manda a «Horario»', async ({ page }) => {
+  await setupNadie(page, { settings: { hours: null } })
+  await page.goto('/venues/venue-alpha/online-ordering#configuracion')
+  const list = page.locator('[data-tour="online-ordering-no-one-checklist"]')
+  await expect(list).toContainText('Pon tu horario')
+  await expect(list.getByRole('link', { name: 'Ir a Horario' })).toHaveAttribute('href', '#oo-hours-card')
+})
+
+for (const theme of ['light', 'dark'] as const) {
+  test(`Nadie · Bandeja: «Por pagar» y «Por entregar» (${theme})`, async ({ page }) => {
+    await setupNadie(page, { theme })
+    await mockToPay(page, {
+      toPay: [
+        folio('f1', 'W7KQ2', { createdAt: new Date(Date.now() - 4 * 60_000).toISOString() }),
+        folio('f2', 'WH3N8', {
+          customerName: 'Luis Gómez',
+          total: 300,
+          remaining: 120,
+          paymentStatus: 'PARTIAL',
+          createdAt: new Date(Date.now() - 6 * 60_000).toISOString(),
+        }),
+      ],
+      toDeliver: [
+        folio('f3', 'WB4M9', {
+          status: 'ACCEPTED',
+          paymentStatus: 'PAID',
+          remaining: 0,
+          customerName: 'Marta Ruiz',
+          paidAt: new Date(Date.now() - 3 * 60_000).toISOString(),
+        }),
+        folio('f4', 'WC5P6', { status: 'ACCEPTED', paymentStatus: 'PAID', remaining: 0, customerName: 'Jorge Soto' }),
+      ],
+    })
+    await page.goto('/venues/venue-alpha/online-ordering#bandeja')
+    const toPay = page.locator('[data-tour="online-inbox-toPay"]')
+    const toDeliver = page.locator('[data-tour="online-inbox-toDeliver"]')
+    await expect(toPay.getByRole('heading', { name: /Por pagar/ })).toContainText('(2)')
+    await expect(toDeliver.getByRole('heading', { name: /Por entregar/ })).toContainText('(2)')
+    await expect(page.getByText('Con «Nadie», los folios se cobran en caja', { exact: false })).toBeVisible()
+
+    // Folio simple: «Cancelar folio»; con abono: «Falta» y «Se cobra en caja», SIN cancelar.
+    const f1 = page.getByTestId('folio-f1')
+    const f2 = page.getByTestId('folio-f2')
+    await expect(f1.getByRole('button', { name: 'Cancelar folio' })).toBeVisible()
+    await expect(f2).toContainText('Falta')
+    await expect(f2).toContainText('Ya pagó')
+    await expect(f2).toContainText('Se cobra en caja')
+    await expect(f2.getByRole('button', { name: 'Cancelar folio' })).toHaveCount(0)
+    await expect(f1.getByRole('button', { name: /Aceptar|Cobrar/ })).toHaveCount(0)
+
+    // Por entregar: con `paidAt` dice «Pagado a las…», sin él «Pidió…».
+    await expect(page.getByTestId('folio-f3')).toContainText('Pagado a las')
+    await expect(page.getByTestId('folio-f4')).not.toContainText('Pagado a las')
+    await expect(page.getByTestId('folio-f4')).toContainText('Pidió')
+    await expect(page.getByTestId('folio-f3').getByRole('button', { name: 'Entregado' })).toBeVisible()
+    await shootBoth(page, 'bandeja-nadie', theme, async () => {
+      await expect(toDeliver).toBeVisible()
+    })
+  })
+}
+
+for (const theme of ['light', 'dark'] as const) {
+  test(`Nadie · Bandeja: «Vence en N min» es ámbar con 5 min o menos, nunca rojo (${theme})`, async ({ page }) => {
+    await setupNadie(page, { theme })
+    await mockToPay(page, {
+      toPay: [
+        folio('f1', 'W7KQ2', { acceptDeadlineAt: new Date(Date.now() + 4 * 60_000).toISOString() }),
+        folio('f2', 'WH3N8', { customerName: 'Luis Gómez', acceptDeadlineAt: new Date(Date.now() + 20 * 60_000).toISOString() }),
+      ],
+      toDeliver: [],
+    })
+    await page.goto('/venues/venue-alpha/online-ordering#bandeja')
+    const soon = page.getByTestId('folio-f1').getByText(/^Vence en \d+ min$/)
+    const later = page.getByTestId('folio-f2').getByText(/^Vence en \d+ min$/)
+    await expect(soon).toHaveText('Vence en 4 min', { timeout: 45_000 })
+    await expect(later).toHaveText('Vence en 20 min')
+    await expect(soon).toHaveClass(/text-amber-/)
+    await expect(soon).not.toHaveClass(/red|destructive/)
+    await expect(later).not.toHaveClass(/amber|red|destructive/)
+    await page.setViewportSize({ width: 1280, height: 1000 })
+    await shot(page, `vence-en-1280-${theme}.png`)
+  })
+}
+
+test('Nadie · Bandeja: «Cancelar folio» pide confirmar y el folio sale', async ({ page }) => {
+  await setupNadie(page)
+  let cancelled = false
+  let cancelCalls = 0
+  await page.route(`${BASE}/orders/f1/cancel`, route => {
+    cancelCalls += 1
+    cancelled = true
+    return route.fulfill(json({ status: 'CANCELLED_BY_STAFF' }))
+  })
+  await page.route(`${BASE}/orders/to-pay*`, route =>
+    route.fulfill(
+      json({
+        serverTime: NOW(),
+        enabled: true,
+        requiresAcceptance: false,
+        showTile: true,
+        pollSeconds: 10,
+        counts: { toPay: cancelled ? 0 : 1, toDeliver: 0 },
+        toPay: cancelled ? [] : [folio('f1', 'W7KQ2')],
+        toDeliver: [],
+        nextCursors: { toPay: null, toDeliver: null },
+        store: { status: 'OPEN', reason: null, pausedUntil: null, manualPause: false },
+      }),
+    ),
+  )
+  await page.route(`${BASE}/orders?*`, route =>
+    route.fulfill(
+      json({
+        serverTime: NOW(),
+        counts: { pending: 0, accepted: 0, ready: 0, active: 0, done: 0 },
+        orders: [],
+        truncated: false,
+        nextCursor: null,
+        store: { status: 'OPEN', reason: null, pausedUntil: null, manualPause: false },
+      }),
+    ),
+  )
+  await page.goto('/venues/venue-alpha/online-ordering#bandeja')
+  await page.getByTestId('folio-f1').getByRole('button', { name: 'Cancelar folio' }).click()
+  const dialog = page.getByRole('alertdialog')
+  await expect(dialog).toContainText('¿Cancelar el folio')
+  await expect(dialog).toContainText('lo verá cancelado en su celular')
+  // «No» no cancela nada.
+  await dialog.getByRole('button', { name: 'No' }).click()
+  await expect(dialog).toHaveCount(0)
+  expect(cancelCalls).toBe(0)
+  await page.getByTestId('folio-f1').getByRole('button', { name: 'Cancelar folio' }).click()
+  await expect(page.getByRole('alertdialog')).toBeVisible()
+  await page.waitForTimeout(500) // deja terminar la animación de entrada antes de la foto
+  await shot(page, 'dialogo-cancelar-folio-1280-light.png')
+  await page.getByRole('alertdialog').getByRole('button', { name: 'Sí, cancelar' }).click()
+  await expect(page.getByTestId('folio-f1')).toHaveCount(0)
+  expect(cancelCalls).toBe(1)
+})
+
+test('«Mi equipo» no muestra nada nuevo: ni nota, ni «Por pagar», ni «Por entregar»', async ({ page }) => {
+  await setup(page)
+  await page.route(`${BASE}/settings`, route =>
+    route.fulfill(
+      json(nadieSettings({ requiresAcceptance: true, hasSavedSettings: true, suggestedRequiresAcceptance: true, lastToPayPollAt: null })),
+    ),
+  )
+  // El panel de «Mi equipo» no tiene folios: el servidor puede contestar vacío o 403 y no debe notarse.
+  await page.route(`${BASE}/orders/to-pay*`, route =>
+    route.fulfill({ status: 403, contentType: 'application/json', body: JSON.stringify({ success: false }) }),
+  )
+  await page.route(`${BASE}/orders?*`, route =>
+    route.fulfill(
+      json({
+        serverTime: NOW(),
+        counts: { pending: 0, accepted: 0, ready: 0, active: 0, done: 0 },
+        orders: [],
+        truncated: false,
+        nextCursor: null,
+        store: { status: 'OPEN', reason: null, pausedUntil: null, manualPause: false },
+      }),
+    ),
+  )
+  await page.goto('/venues/venue-alpha/online-ordering#bandeja')
+  await expect(page.getByRole('heading', { name: /Por aceptar/ })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /Por pagar/ })).toHaveCount(0)
+  await expect(page.getByRole('heading', { name: /Por entregar/ })).toHaveCount(0)
+  await expect(page.getByText('Con «Nadie», los folios se cobran en caja', { exact: false })).toHaveCount(0)
+  await expect(page.getByText('¡Ups!')).toHaveCount(0)
+
+  await page.goto('/venues/venue-alpha/online-ordering#configuracion')
+  await expect(page.getByRole('radio', { name: /Mi equipo/ })).toBeChecked()
+  await expect(page.locator('[data-tour="online-ordering-no-one-checklist"]')).toHaveCount(0)
 })

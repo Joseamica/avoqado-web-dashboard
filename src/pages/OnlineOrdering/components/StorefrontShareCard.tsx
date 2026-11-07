@@ -23,6 +23,8 @@ const canEmbedPreview = () =>
   FRAMEABLE_ORIGINS.includes(window.location.origin) || ['localhost', '127.0.0.1'].includes(window.location.hostname)
 
 const storefrontUrl = (slug: string) => `${ORDERING_URL}/${slug}`
+// El QR lleva `canal=qr` para que el pedido diga de dónde vino; la liga copiada y la vista previa no.
+const qrUrl = (url: string) => `${url}${url.includes('?') ? '&' : '?'}canal=qr`
 const widgetSnippet = (slug: string) =>
   `<script src="https://cdn.avoqado.io/widget.js" defer></script>\n<avoqado-order venue="${slug}"></avoqado-order>`
 
@@ -75,7 +77,7 @@ export function StorefrontShareCard({ slug }: { slug: string }) {
 
         <div className="flex flex-wrap items-center gap-4">
           <div ref={qrWrap} className="rounded-xl border border-border p-3" style={{ backgroundColor: '#ffffff' }}>
-            <QRCodeCanvas value={url} size={160} />
+            <QRCodeCanvas value={qrUrl(url)} size={160} />
           </div>
           <Button type="button" variant="outline" className="cursor-pointer" onClick={downloadQr}>
             <Download className="mr-2 h-4 w-4" />

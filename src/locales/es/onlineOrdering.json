@@ -104,6 +104,46 @@
     "minOrderErrors": {
       "range": "El pedido mínimo va de $0 a $100,000",
       "decimals": "Usa máximo 2 decimales"
+    },
+    "unsaved": "Cambios sin guardar",
+    "confirm": {
+      "title": "¿Quién confirma los pedidos?",
+      "team": {
+        "label": "Mi equipo",
+        "help": "Alguien acepta cada pedido en la Bandeja antes de prepararlo. Se puede cobrar al final.",
+        "path": "Pide → Lo aceptas → Se prepara → Paga"
+      },
+      "noOne": {
+        "label": "Nadie",
+        "help": "El cliente pide y paga en caja; al pagar, se prepara. Si no paga en 30 min, se cancela solo. No hace falta tener la Bandeja abierta.",
+        "path": "Pide → Paga en caja → Se prepara"
+      },
+      "suggested": "Sugerido para tu giro",
+      "noOneNote": "Con \"Nadie\", la clienta paga antes de que se prepare. Si tus clientes piden y pagan al final, elige \"Mi equipo\".",
+      "checklistTitle": "Para recibir pedidos con «Nadie»",
+      "allWeek": "lunes a domingo",
+      "hoursOk": "Horario de pedidos: {{days}}, {{open}}–{{close}}",
+      "hoursCustom": "Horario de pedidos: el que pusiste abajo, en «Horario»",
+      "hoursMissing": "Pon tu horario: con \"Nadie\", los folios se cancelan al cierre",
+      "hoursLink": "Ir a Horario",
+      "deviceOk": "Un aparato que cobra folios se conectó hace {{minutes}} min",
+      "deviceOkHours": "Un aparato que cobra folios se conectó hace {{hours}} h",
+      "deviceOkDays": "Un aparato que cobra folios se conectó hace {{days}} días",
+      "deviceMissing": "Ningún aparato puede cobrar folios todavía: actualiza la terminal o el POS",
+      "deviceWhatToDo": "Qué hacer: Abre la terminal o el POS, ya actualizados, con la caja abierta. Cuando se conecte, aquí dirá «Un aparato que cobra folios se conectó hace N min». Mientras, puedes guardar «Nadie» con la tienda apagada.",
+      "enableNoDevice": "Falta un aparato que cobre folios.",
+      "payNoOne": "Con \"Nadie\" se paga en caja.",
+      "cardNoOne": "Con \"Nadie\" se paga en caja. Para cobrar en línea elige \"Mi equipo\".",
+      "toPayNotice": {
+        "title_one": "Tienes {{count}} folio por pagar",
+        "title_other": "Tienes {{count}} folios por pagar",
+        "body": "Siguen en «Pedidos por pagar» de la terminal y del POS hasta que se cobren o venzan. Los pedidos nuevos los acepta tu equipo en la Bandeja."
+      },
+      "errors": {
+        "NO_FOLIO_DEVICE": "Ningún aparato puede cobrar folios todavía: actualiza la terminal o el POS, ábrelo con la caja abierta y vuelve a intentar.",
+        "HOURS_REQUIRED": "Pon tu horario: con \"Nadie\", los folios se cancelan al cierre.",
+        "PAY_AT_PICKUP_REQUIRED": "Con \"Nadie\" se paga en caja, así que «Pagar al recoger» debe quedar prendido."
+      }
     }
   },
   "menu": {
@@ -149,7 +189,8 @@
     "viewOnly": "Puedes ver los pedidos, pero tu cuenta no mantiene abierta la tienda.",
     "status": {
       "noPlan": "Sin plan: no llegan pedidos nuevos",
-      "offlineNobody": "Nadie con permiso de contestar tiene la Bandeja abierta"
+      "offlineNobody": "Nadie con permiso de contestar tiene la Bandeja abierta",
+      "offlineNadie": "Sin aparato conectado: la tienda recibe pedidos mientras una terminal o un POS con «Pedidos por pagar» esté conectado y con la caja abierta"
     },
     "sections": {
       "pending": "Por aceptar",
@@ -157,7 +198,9 @@
       "ready": "Listos",
       "done": "Últimas 24 horas",
       "empty": "Sin pedidos por ahora",
-      "showing": "Mostrando {{shown}} de {{total}}"
+      "showing": "Mostrando {{shown}} de {{total}}",
+      "loadMore": "Cargar más",
+      "loadMoreFailed": "No pudimos cargar más pedidos. Vuelve a intentar."
     },
     "sound": {
       "toggle": "Activar sonido",
@@ -230,7 +273,8 @@
       "minutes": "{{minutes}} min",
       "resume": "Reanudar",
       "failed": "No se pudo cambiar la pausa. Vuelve a intentar."
-    }
+    },
+    "keepsOpenNadie": "Con «Nadie», tu tienda sigue abierta mientras una terminal o un POS con «Pedidos por pagar» esté conectado; esta pestaña no la mantiene abierta."
   },
   "cardRefund": {
     "open": "Devolver a la tarjeta",
@@ -270,5 +314,41 @@
       "confirmYes": "Sí, ya se lo devolví",
       "confirmNo": "Todavía no"
     }
+  },
+  "folio": {
+    "note": "Con «Nadie», los folios se cobran en caja (terminal o POS). Aquí los ves, cancelas los falsos y marcas lo entregado.",
+    "sections": {
+      "toPay": "Por pagar",
+      "toDeliver": "Por entregar"
+    },
+    "expiresIn": "Vence en {{minutes}} min",
+    "expiresAt": "Vence a las {{time}}",
+    "expiring": "Está por vencer",
+    "missing": "Falta {{remaining}} de {{total}}",
+    "alreadyPaid": "Ya pagó {{paid}}",
+    "collectAtRegister": "Se cobra en caja",
+    "orderedAt": "Pidió {{time}}",
+    "paidTag": "Pagado",
+    "products_one": "{{count}} producto",
+    "products_other": "{{count}} productos",
+    "cancel": "Cancelar folio",
+    "delivered": "{{folio}} entregado a {{name}}",
+    "deliveredNoName": "{{folio}} entregado",
+    "cancelDialog": {
+      "title": "¿Cancelar el folio {{folio}}?",
+      "description": "{{name}} lo verá cancelado en su celular y ya no podrá pagarlo en caja.",
+      "descriptionNoName": "Quien lo pidió lo verá cancelado en su celular y ya no podrá pagarlo en caja.",
+      "back": "No",
+      "confirm": "Sí, cancelar"
+    },
+    "loadMore": "Cargar más",
+    "emptyToPay": "No hay folios esperando pago. Los pedidos nuevos de tu tienda aparecen aquí hasta que se cobren en caja.",
+    "emptyToDeliver": "Cuando se cobre un folio en caja, aparece aquí para que lo marques listo y entregado.",
+    "loadFailed": "No pudimos cargar los folios. Revisa tu conexión y vuelve a intentar.",
+    "retry": "Reintentar",
+    "loadMoreFailed": "No pudimos cargar más folios. Vuelve a intentar.",
+    "paidAt": "Pagado a las {{time}}",
+    "reloadInboxFirst": "Primero recarga la Bandeja",
+    "readyChip": "Listo"
   }
 }

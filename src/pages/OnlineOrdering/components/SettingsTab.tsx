@@ -10,12 +10,14 @@ import { z } from 'zod'
 import { AvisoDeCarga, BotonReintentar } from '@/components/AvisoDeCarga'
 import { PermissionGate } from '@/components/PermissionGate'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Switch } from '@/components/ui/switch'
 import { useAccess } from '@/hooks/use-access'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
@@ -23,7 +25,7 @@ import { useToast } from '@/hooks/use-toast'
 import { falloDeCarga } from '@/lib/falloDeCarga'
 import { PrivacyNoticeModal } from '@/pages/Customers/components/PrivacyNoticeModal'
 import { OperatingHoursEditor } from '@/pages/Reservations/components/OperatingHoursEditor'
-import { getSettings, onlineOrderingKeys, serverMessage, updateSettings } from '@/services/onlineOrdering.service'
+import { getSettings, getToPay, onlineOrderingKeys, serverMessage, updateSettings } from '@/services/onlineOrdering.service'
 import { StaffRole } from '@/types'
 import type { OnlineOrderingSettings, OnlineOrderingSettingsInput, StoreRequirement } from '@/types/onlineOrdering'
 import type { OperatingHours } from '@/types/reservation'
@@ -37,12 +39,16 @@ const PREP_OPTIONS = [10, 15, 20, 25, 30, 40, 45, 60, 90]
 const REQUIREMENTS: StoreRequirement[] = ['address', 'phone', 'privacyNotice']
 // El 4.º paso refleja la regla `NO_PAYMENT_MODE` del servidor: no se enciende (ni se queda encendida) sin un medio de pago VIVO:
 // «Pagar al recoger», o la tarjeta prendida con un Stripe que sí cobra (`card.merchantStatus === 'READY'`).
+// Mismo plazo que el servidor (`FOLIO_DEVICE_WINDOW_MS`): un aparato que cobra folios visto en los últimos 7 días cuenta como conectado.
+const FOLIO_DEVICE_WINDOW_MS = 7 * 24 * 60 * 60 * 1000
+const CONFIRM_ERROR_CODES = ['NO_FOLIO_DEVICE', 'HOURS_REQUIRED', 'PAY_AT_PICKUP_REQUIRED']
 const STEPS: (StoreRequirement | 'payment')[] = [...REQUIREMENTS, 'payment']
 
 const schema = z.object({
   enabled: z.boolean(),
   acceptsPayAtPickup: z.boolean(),
   acceptsCardOnline: z.boolean(),
+  requiresAcceptance: z.boolean(),
   manualPause: z.boolean(),
   minOrderAmount: z
     .number({ invalid_type_error: 'range' })
@@ -59,11 +65,23 @@ const toForm = (s: OnlineOrderingSettings): FormValues => ({
   enabled: s.enabled,
   acceptsPayAtPickup: s.acceptsPayAtPickup,
   acceptsCardOnline: !!s.acceptsCardOnline, // `!!`: un servidor sin fase 2 no lo manda y zod no deja guardar con undefined
+  requiresAcceptance: s.requiresAcceptance !== false, // sin el campo (servidor viejo) = «Mi equipo»
   manualPause: s.manualPause,
   minOrderAmount: s.minOrderAmount,
   defaultPrepMinutes: s.defaultPrepMinutes,
   hours: s.hours,
 })
+
+/** «lunes a domingo, 07:00–21:00» sólo si toda la semana abre igual; si no, el texto general. */
+const sameAllWeek = (h: OperatingHours | null) => {
+  const days = h ? Object.values(h) : []
+  const r = days[0]?.ranges?.[0]
+  return (
+    !!r &&
+    days.length === 7 &&
+    days.every(d => d.enabled && d.ranges.length === 1 && d.ranges[0].open === r.open && d.ranges[0].close === r.close)
+  )
+}
 
 /** Patch estricto: sólo lo que cambió. `minOrderAmount` vacío NO se manda (nunca 0 a escondidas). */
 function buildPatch(values: FormValues, saved: FormValues): Partial<OnlineOrderingSettingsInput> {
@@ -91,6 +109,7 @@ function RequirementsList({
   onWriteNotice,
   onEnable,
   enableDisabled,
+  waitingDevice,
 }: {
   missing: StoreRequirement[]
   /** Con el valor VIVO del formulario: apagar «Pagar al recoger» sin guardar ya quita el «Todo listo». */
@@ -102,9 +121,11 @@ function RequirementsList({
   onWriteNotice: () => void
   onEnable: () => void
   enableDisabled: boolean
+  /** Con «Nadie» y ningún aparato que cobre folios: aunque lo demás esté listo, todavía no se puede encender. */
+  waitingDevice: boolean
 }) {
   const { t } = useTranslation('onlineOrdering')
-  const allSet = missing.length === 0 && hasPayment
+  const allSet = missing.length === 0 && hasPayment && !waitingDevice
   return (
     // Destino estable del foco tras publicar (el botón que abrió el editor desaparece). `Alert` no reenvía `ref` en React 18.
     <div ref={focusRef} tabIndex={-1} className="outline-none">
@@ -199,21 +220,41 @@ export function SettingsTab() {
   const { data: settings } = settingsQuery
 
   const saved = useMemo(() => (settings ? toForm(settings) : undefined), [settings])
-  const form = useForm<FormValues>({ resolver: zodResolver(schema), values: saved })
+  // R37/R66: el servidor nunca pone «Nadie» solo. Sólo si el negocio NO tiene ajustes guardados (`hasSavedSettings === false`) el
+  // formulario ARRANCA en lo sugerido para su giro; como difiere de lo guardado, sale «Cambios sin guardar» hasta Guardar.
+  // Sin el campo (servidor viejo) o con true: se muestra lo guardado, sin preselección.
+  const preselectNoOne = !!settings && settings.hasSavedSettings === false && settings.suggestedRequiresAcceptance === false
+  const formValues = useMemo(() => (saved && preselectNoOne ? { ...saved, requiresAcceptance: false } : saved), [saved, preselectNoOne])
+  const form = useForm<FormValues>({ resolver: zodResolver(schema), values: formValues })
   const { control, watch, setValue, handleSubmit, reset, formState } = form
   const hours = watch('hours')
   const enabled = watch('enabled')
   const payAtPickup = !!watch('acceptsPayAtPickup')
   const cardOn = !!watch('acceptsCardOnline')
+  const noOne = watch('requiresAcceptance') === false
   const merchantStatus = settings?.card?.merchantStatus ?? 'NOT_CONNECTED'
   // Sólo con un Stripe que cobra se puede usar el switch; sin él va apagado y en gris (founder, 3-nov).
   const cardAvailable = merchantStatus === 'READY'
-  const hasPayment = payAtPickup || (cardOn && merchantStatus === 'READY')
+  // Con «Nadie» se paga en caja: el servidor fuerza «Pagar al recoger» prendido.
+  const hasPayment = noOne || payAtPickup || (cardOn && merchantStatus === 'READY')
 
   const watched = watch()
   const hasChanges = !!saved && Object.keys(buildPatch(watched, saved)).length > 0
   const hourErrors = validateWeek(hours)
   const notes = overnightNotes(hours)
+
+  const lastPoll = settings?.lastToPayPollAt ? new Date(settings.lastToPayPollAt).getTime() : null
+  const deviceAgeMs = lastPoll === null ? null : Math.max(0, Date.now() - lastPoll)
+  const deviceLive = deviceAgeMs !== null && deviceAgeMs <= FOLIO_DEVICE_WINDOW_MS
+
+  // Volver a «Mi equipo» desde «Nadie» guardado: cuántos folios siguen esperando pago (el panel no manda latido).
+  const backToTeam = settings?.requiresAcceptance === false && !noOne
+  const toPayQuery = useQuery({
+    queryKey: onlineOrderingKeys.toPay(venueId ?? ''),
+    queryFn: () => getToPay(venueId!),
+    enabled: !!venueId && backToTeam,
+  })
+  const foliosToPay = backToTeam ? (toPayQuery.data?.counts.toPay ?? 0) : 0
 
   const missing = REQUIREMENTS.filter(r => settings?.requirements?.[r] === false || serverMissing.includes(r))
 
@@ -239,6 +280,10 @@ export function SettingsTab() {
       if (data?.code === 'STORE_REQUIREMENTS_MISSING') {
         setServerMissing(data.details?.missing ?? [])
         setSaveError(null)
+        return
+      }
+      if (data?.code && CONFIRM_ERROR_CODES.includes(data.code)) {
+        setSaveError(t(`settings.confirm.errors.${data.code}`))
         return
       }
       setSaveError(serverMessage(error, t('settings.saveFailed')))
@@ -295,7 +340,8 @@ export function SettingsTab() {
 
   // «Encender» se bloquea, y su texto lo dice, sólo con la tienda GUARDADA apagada y algo pendiente: un dato del negocio o la forma de
   // cobro. Con ella encendida, apagarla sin guardar debe poder volverse a encender, y la lista que el texto señala ni se ve.
-  const enableBlocked = !settings.enabled && (missing.length > 0 || !hasPayment)
+  const waitingDevice = noOne && !deviceLive
+  const enableBlocked = !settings.enabled && (missing.length > 0 || !hasPayment || waitingDevice)
 
   const store = settings.store
   const pause = pauseLabel(store, formatTime)
@@ -315,9 +361,12 @@ export function SettingsTab() {
           <span className="text-muted-foreground">{t('settings.status.label')}: </span>
           <span className="font-medium">{statusText}</span>
         </div>
-        <Button type="submit" className="cursor-pointer" disabled={!hasChanges || hourErrors.length > 0 || mutation.isPending}>
-          {t('settings.save')}
-        </Button>
+        <div className="flex items-center gap-3">
+          {hasChanges && <span className="text-xs font-medium text-muted-foreground">{t('settings.unsaved')}</span>}
+          <Button type="submit" className="cursor-pointer" disabled={!hasChanges || hourErrors.length > 0 || mutation.isPending}>
+            {t('settings.save')}
+          </Button>
+        </div>
       </div>
 
       {saveError && (
@@ -340,6 +389,7 @@ export function SettingsTab() {
           onWriteNotice={() => setNoticeOpen(true)}
           onEnable={enableStore}
           enableDisabled={hourErrors.length > 0 || mutation.isPending}
+          waitingDevice={waitingDevice}
         />
       )}
 
@@ -353,7 +403,11 @@ export function SettingsTab() {
               <Label htmlFor="oo-enabled">{t('settings.enable')}</Label>
               {/* El texto y el interruptor usan la MISMA condición (`enableBlocked`, arriba): nunca se contradicen. */}
               <p className="text-xs text-muted-foreground">
-                {!enabled && enableBlocked ? t('settings.enableBlocked') : t('settings.enableHelp')}
+                {!enabled && enableBlocked
+                  ? missing.length === 0 && hasPayment && waitingDevice
+                    ? t('settings.confirm.enableNoDevice')
+                    : t('settings.enableBlocked')
+                  : t('settings.enableHelp')}
               </p>
             </div>
             <Controller
@@ -372,16 +426,137 @@ export function SettingsTab() {
             />
           </div>
 
+          <fieldset className="space-y-3" data-tour="online-ordering-confirm">
+            <legend id="oo-confirm-legend" className="text-sm font-medium">
+              {t('settings.confirm.title')}
+            </legend>
+            <Controller
+              control={control}
+              name="requiresAcceptance"
+              render={({ field }) => (
+                <RadioGroup
+                  aria-labelledby="oo-confirm-legend"
+                  value={field.value === false ? 'noOne' : 'team'}
+                  onValueChange={v => field.onChange(v === 'team')}
+                  className="grid gap-3 sm:grid-cols-2"
+                >
+                  {(['team', 'noOne'] as const).map(k => (
+                    <label
+                      key={k}
+                      htmlFor={`oo-confirm-${k}`}
+                      className="flex cursor-pointer gap-3 rounded-lg border border-input p-3 has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:bg-muted/50"
+                    >
+                      <RadioGroupItem
+                        id={`oo-confirm-${k}`}
+                        value={k}
+                        className="mt-1"
+                        aria-labelledby={`oo-confirm-${k}-label`}
+                        aria-describedby={`oo-confirm-${k}-help`}
+                      />
+                      <span className="min-w-0 space-y-1">
+                        <span className="flex flex-wrap items-center gap-2">
+                          <span id={`oo-confirm-${k}-label`} className="text-sm font-medium">
+                            {t(`settings.confirm.${k}.label`)}
+                          </span>
+                          {k === 'noOne' && settings.suggestedRequiresAcceptance === false && (
+                            <Badge variant="secondary">{t('settings.confirm.suggested')}</Badge>
+                          )}
+                        </span>
+                        <span id={`oo-confirm-${k}-help`} className="block text-xs text-muted-foreground">
+                          {t(`settings.confirm.${k}.help`)}
+                        </span>
+                        <span className="block text-xs font-medium">{t(`settings.confirm.${k}.path`)}</span>
+                      </span>
+                    </label>
+                  ))}
+                </RadioGroup>
+              )}
+            />
+            {noOne && (
+              <>
+                <p className="text-xs text-muted-foreground">{t('settings.confirm.noOneNote')}</p>
+                <Alert role="status" data-tour="online-ordering-no-one-checklist">
+                  <AlertDescription className="space-y-2">
+                    <p className="font-medium">{t('settings.confirm.checklistTitle')}</p>
+                    <ul role="list" className="space-y-2">
+                      <li className="flex items-start gap-2">
+                        {hours ? (
+                          <CheckCircle2 aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-(--success)" />
+                        ) : (
+                          <Circle aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                        )}
+                        <span className="min-w-0 flex-1">
+                          {hours ? (
+                            <>
+                              {sameAllWeek(hours)
+                                ? t('settings.confirm.hoursOk', {
+                                    days: t('settings.confirm.allWeek'),
+                                    open: Object.values(hours)[0].ranges[0].open,
+                                    close: Object.values(hours)[0].ranges[0].close,
+                                  })
+                                : t('settings.confirm.hoursCustom')}
+                            </>
+                          ) : (
+                            <>
+                              {t('settings.confirm.hoursMissing')}{' '}
+                              <a href="#oo-hours-card" className="text-primary underline underline-offset-2">
+                                {t('settings.confirm.hoursLink')}
+                              </a>
+                            </>
+                          )}
+                        </span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        {deviceLive ? (
+                          <CheckCircle2 aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-(--success)" />
+                        ) : (
+                          <Circle aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                        )}
+                        <span className="min-w-0 flex-1">
+                          {deviceLive && deviceAgeMs !== null
+                            ? deviceAgeMs < 3_600_000
+                              ? t('settings.confirm.deviceOk', { minutes: Math.floor(deviceAgeMs / 60_000) })
+                              : deviceAgeMs < 86_400_000
+                                ? t('settings.confirm.deviceOkHours', { hours: Math.floor(deviceAgeMs / 3_600_000) })
+                                : t('settings.confirm.deviceOkDays', { days: Math.floor(deviceAgeMs / 86_400_000) })
+                            : t('settings.confirm.deviceMissing')}
+                        </span>
+                      </li>
+                    </ul>
+                    {!deviceLive && <p className="text-muted-foreground">{t('settings.confirm.deviceWhatToDo')}</p>}
+                  </AlertDescription>
+                </Alert>
+              </>
+            )}
+            {foliosToPay > 0 && (
+              <Alert role="status" data-tour="online-ordering-to-pay-notice">
+                <AlertDescription className="space-y-1">
+                  <p className="font-medium">{t('settings.confirm.toPayNotice.title', { count: foliosToPay })}</p>
+                  <p className="text-muted-foreground">{t('settings.confirm.toPayNotice.body')}</p>
+                </AlertDescription>
+              </Alert>
+            )}
+          </fieldset>
+
           <div className="grid gap-3 sm:grid-cols-2">
-            <div className="flex items-center justify-between gap-4 rounded-lg border border-input p-3">
-              <Label htmlFor="oo-pay">{t('settings.payAtPickup')}</Label>
-              <Controller
-                control={control}
-                name="acceptsPayAtPickup"
-                render={({ field }) => (
-                  <Switch id="oo-pay" aria-label={t('settings.payAtPickup')} checked={!!field.value} onCheckedChange={field.onChange} />
-                )}
-              />
+            <div className="space-y-1.5 rounded-lg border border-input p-3">
+              <div className="flex items-center justify-between gap-4">
+                <Label htmlFor="oo-pay">{t('settings.payAtPickup')}</Label>
+                <Controller
+                  control={control}
+                  name="acceptsPayAtPickup"
+                  render={({ field }) => (
+                    <Switch
+                      id="oo-pay"
+                      aria-label={t('settings.payAtPickup')}
+                      checked={noOne || !!field.value}
+                      disabled={noOne}
+                      onCheckedChange={field.onChange}
+                    />
+                  )}
+                />
+              </div>
+              {noOne && <p className="text-xs text-muted-foreground">{t('settings.confirm.payNoOne')}</p>}
             </div>
             <div className="space-y-1.5 rounded-lg border border-input p-3">
               <div className="flex items-center justify-between gap-4">
@@ -394,28 +569,32 @@ export function SettingsTab() {
                     <Switch
                       id="oo-card"
                       aria-label={t('settings.cardOnline')}
-                      checked={cardAvailable && !!field.value}
-                      disabled={!cardAvailable}
+                      checked={!noOne && cardAvailable && !!field.value}
+                      disabled={!cardAvailable || noOne}
                       onCheckedChange={field.onChange}
                     />
                   )}
                 />
               </div>
               {/* Sin Stripe que cobre: la línea dice qué falta y que Mercado Pago viene después. Con Stripe: el valor VIVO del switch. */}
-              <p className="text-xs text-muted-foreground">
-                {!cardAvailable
-                  ? t(merchantStatus === 'NOT_CHARGEABLE' ? 'settings.card.notChargeable' : 'settings.card.notConnected')
-                  : cardOn
-                    ? t('settings.card.ready')
-                    : t('settings.card.off')}{' '}
-                {!cardAvailable && canOpenBusinessSettings && (
-                  // Integraciones es de ADMIN o más (la misma guardia que la configuración del negocio): sin ella, ni liga.
-                  <Link to={`${fullBasePath}/settings/integrations`} className="text-primary underline underline-offset-2">
-                    {t(merchantStatus === 'NOT_CHARGEABLE' ? 'settings.card.review' : 'settings.card.connect')}
-                  </Link>
-                )}
-                {!cardAvailable && <span className="block">{t('settings.card.mercadoPagoSoon')}</span>}
-              </p>
+              {noOne ? (
+                <p className="text-xs text-muted-foreground">{t('settings.confirm.cardNoOne')}</p>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  {!cardAvailable
+                    ? t(merchantStatus === 'NOT_CHARGEABLE' ? 'settings.card.notChargeable' : 'settings.card.notConnected')
+                    : cardOn
+                      ? t('settings.card.ready')
+                      : t('settings.card.off')}{' '}
+                  {!cardAvailable && canOpenBusinessSettings && (
+                    // Integraciones es de ADMIN o más (la misma guardia que la configuración del negocio): sin ella, ni liga.
+                    <Link to={`${fullBasePath}/settings/integrations`} className="text-primary underline underline-offset-2">
+                      {t(merchantStatus === 'NOT_CHARGEABLE' ? 'settings.card.review' : 'settings.card.connect')}
+                    </Link>
+                  )}
+                  {!cardAvailable && <span className="block">{t('settings.card.mercadoPagoSoon')}</span>}
+                </p>
+              )}
             </div>
           </div>
 
@@ -485,7 +664,7 @@ export function SettingsTab() {
         </CardContent>
       </Card>
 
-      <Card data-tour="online-ordering-hours">
+      <Card id="oo-hours-card" data-tour="online-ordering-hours">
         <CardHeader>
           <CardTitle>{t('settings.hours.title')}</CardTitle>
           <CardDescription>{hours ? t('settings.hours.onHelp') : t('settings.hours.offHelp')}</CardDescription>

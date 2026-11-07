@@ -36,6 +36,8 @@ vi.mock('../lib/chime', () => ({
 }))
 
 const getInbox = vi.fn()
+const getToPay = vi.fn()
+const getSettings = vi.fn()
 const acceptOrder = vi.fn()
 const rejectOrder = vi.fn()
 const markReady = vi.fn()
@@ -47,6 +49,8 @@ vi.mock('@/services/onlineOrdering.service', async importOriginal => {
   return {
     ...actual,
     getInbox: (...a: unknown[]) => getInbox(...a),
+    getToPay: (...a: unknown[]) => getToPay(...a),
+    getSettings: (...a: unknown[]) => getSettings(...a),
     acceptOrder: (...a: unknown[]) => acceptOrder(...a),
     rejectOrder: (...a: unknown[]) => rejectOrder(...a),
     markReady: (...a: unknown[]) => markReady(...a),
@@ -96,6 +100,39 @@ const inbox = (orders: ReturnType<typeof order>[], over: Record<string, unknown>
   ...over,
 })
 
+const folio = (over: Record<string, unknown> = {}) =>
+  order({
+    orderId: 'f1',
+    onlineOrderId: 'fo1',
+    orderNumber: 'W7KQ2',
+    customerName: 'Ana',
+    customerPhone: null,
+    requiresAcceptance: false,
+    channel: 'QR',
+    total: 134,
+    remaining: 134,
+    acceptDeadlineAt: '2026-10-17T18:22:00.000Z',
+    items: [{ name: 'Flautas', quantity: 2, note: null, modifiers: [] }],
+    ...over,
+  })
+const toPayRes = (
+  toPay: ReturnType<typeof folio>[] = [],
+  toDeliver: ReturnType<typeof folio>[] = [],
+  over: Record<string, unknown> = {},
+) => ({
+  serverTime: '2026-10-17T18:00:00.000Z',
+  enabled: true,
+  requiresAcceptance: toPay.length + toDeliver.length === 0 ? true : false,
+  showTile: toPay.length + toDeliver.length > 0,
+  pollSeconds: 30,
+  counts: { toPay: toPay.length, toDeliver: toDeliver.length },
+  toPay,
+  toDeliver,
+  nextCursors: { toPay: null, toDeliver: null },
+  store: OPEN,
+  ...over,
+})
+
 const status = (over: Record<string, unknown> = {}) => ({
   hasPlan: true,
   tierLoading: false,
@@ -134,9 +171,25 @@ const settleMutations = () => act(async () => void (await new Promise(r => setTi
 
 describe('InboxTab', () => {
   beforeEach(() => {
-    for (const f of [getInbox, acceptOrder, rejectOrder, markReady, markDelivered, cancelOrder, pauseOrdering, toast, unlock, play, mockStatus])
+    for (const f of [
+      getInbox,
+      getToPay,
+      getSettings,
+      acceptOrder,
+      rejectOrder,
+      markReady,
+      markDelivered,
+      cancelOrder,
+      pauseOrdering,
+      toast,
+      unlock,
+      play,
+      mockStatus,
+    ])
       f.mockReset()
     mockStatus.mockReturnValue(status())
+    getToPay.mockResolvedValue(toPayRes())
+    getSettings.mockResolvedValue({ requiresAcceptance: false })
     unlock.mockResolvedValue(true)
     chime.state = 'running'
     for (const k of Object.keys(storage)) delete storage[k]
@@ -465,14 +518,17 @@ describe('InboxTab', () => {
   })
 
   // ── Ronda final · D4: un pedido cerrado sin cobro no dice «Cobrar al recoger» ──
-  it.each(['CANCELLED_BY_CUSTOMER', 'CANCELLED_BY_STAFF', 'REJECTED', 'EXPIRED'])('🔴 %s no dice «Cobrar al recoger»: dice «Sin cobro»', async st => {
-    getInbox.mockResolvedValue(inbox([order({ status: st, remaining: 95, total: 95, acceptDeadlineAt: null })]))
-    renderTab()
-    const card = await screen.findByTestId('order-o1')
-    expect(within(card).getByText('inbox.card.noCharge')).toBeInTheDocument()
-    expect(within(card).queryByText(/^inbox\.card\.payAtPickup\|/)).toBeNull()
-    expect(within(card).queryByText('inbox.card.paid')).toBeNull()
-  })
+  it.each(['CANCELLED_BY_CUSTOMER', 'CANCELLED_BY_STAFF', 'REJECTED', 'EXPIRED'])(
+    '🔴 %s no dice «Cobrar al recoger»: dice «Sin cobro»',
+    async st => {
+      getInbox.mockResolvedValue(inbox([order({ status: st, remaining: 95, total: 95, acceptDeadlineAt: null })]))
+      renderTab()
+      const card = await screen.findByTestId('order-o1')
+      expect(within(card).getByText('inbox.card.noCharge')).toBeInTheDocument()
+      expect(within(card).queryByText(/^inbox\.card\.payAtPickup\|/)).toBeNull()
+      expect(within(card).queryByText('inbox.card.paid')).toBeNull()
+    },
+  )
 
   it('un pedido entregado y pagado sigue diciendo «Pagado»', async () => {
     getInbox.mockResolvedValue(inbox([order({ status: 'COMPLETED', remaining: 0, acceptDeadlineAt: null })]))
@@ -549,20 +605,63 @@ describe('InboxTab', () => {
       card: { status: 'AUTHORIZED', amount: 80, capturedAmount: null, authorizedAt: '2026-10-17T17:55:00.000Z', capturedAt: null },
       ...over,
     })
-  const captured = { status: 'CAPTURED', amount: 80, capturedAmount: 80, authorizedAt: '2026-10-17T17:55:00.000Z', capturedAt: '2026-10-17T18:00:00.000Z' }
+  const captured = {
+    status: 'CAPTURED',
+    amount: 80,
+    capturedAmount: 80,
+    authorizedAt: '2026-10-17T17:55:00.000Z',
+    capturedAt: '2026-10-17T18:00:00.000Z',
+  }
   const closedCard = (status: string, charge: string) =>
     cardOrder({ status, cardStatus: null, card: { ...captured, status: charge, capturedAmount: null }, acceptDeadlineAt: null })
   const moneyLine = (card: HTMLElement) => within(card).getByText(/^inbox\.card\.(card|payAtPickup|paid|noCharge)/)
 
   it.each([
     ['por aceptar (tarjeta apartada)', cardOrder(), 'inbox.card.cardAuthorized'],
-    ['cobrándose', cardOrder({ cardStatus: 'CONFIRMING', card: { ...captured, status: 'CAPTURING', capturedAmount: null } }), 'inbox.card.cardConfirming'],
-    ['aceptado y cobrado', cardOrder({ status: 'ACCEPTED', cardStatus: null, card: captured, paymentStatus: 'PAID', remaining: 0 }), 'inbox.card.cardPaid'],
-    ['entregado (remaining 0)', cardOrder({ status: 'COMPLETED', cardStatus: null, card: captured, paymentStatus: 'COMPLETED', remaining: 0, acceptDeadlineAt: null }), 'inbox.card.cardPaid'],
+    [
+      'cobrándose',
+      cardOrder({ cardStatus: 'CONFIRMING', card: { ...captured, status: 'CAPTURING', capturedAmount: null } }),
+      'inbox.card.cardConfirming',
+    ],
+    [
+      'aceptado y cobrado',
+      cardOrder({ status: 'ACCEPTED', cardStatus: null, card: captured, paymentStatus: 'PAID', remaining: 0 }),
+      'inbox.card.cardPaid',
+    ],
+    [
+      'entregado (remaining 0)',
+      cardOrder({
+        status: 'COMPLETED',
+        cardStatus: null,
+        card: captured,
+        paymentStatus: 'COMPLETED',
+        remaining: 0,
+        acceptDeadlineAt: null,
+      }),
+      'inbox.card.cardPaid',
+    ],
     // Codex iOS r1 #4: la cuenta se pagó por otro camino y la tarjeta se soltó: «Pagado», sin atribuírselo a la tarjeta.
-    ['pagado por otro camino, tarjeta liberada', cardOrder({ status: 'ACCEPTED', cardStatus: null, card: { ...captured, status: 'RELEASED', capturedAmount: null }, paymentStatus: 'PAID', remaining: 0 }), 'inbox.card.paid'],
-    ['pagado sin cargo conocido', cardOrder({ status: 'ACCEPTED', cardStatus: null, card: null, paymentStatus: 'PAID', remaining: 0 }), 'inbox.card.paid'],
-    ['rechazado con la tarjeta COBRADA', cardOrder({ status: 'REJECTED', cardStatus: null, card: captured, acceptDeadlineAt: null }), 'inbox.card.cardCapturedRefund'],
+    [
+      'pagado por otro camino, tarjeta liberada',
+      cardOrder({
+        status: 'ACCEPTED',
+        cardStatus: null,
+        card: { ...captured, status: 'RELEASED', capturedAmount: null },
+        paymentStatus: 'PAID',
+        remaining: 0,
+      }),
+      'inbox.card.paid',
+    ],
+    [
+      'pagado sin cargo conocido',
+      cardOrder({ status: 'ACCEPTED', cardStatus: null, card: null, paymentStatus: 'PAID', remaining: 0 }),
+      'inbox.card.paid',
+    ],
+    [
+      'rechazado con la tarjeta COBRADA',
+      cardOrder({ status: 'REJECTED', cardStatus: null, card: captured, acceptDeadlineAt: null }),
+      'inbox.card.cardCapturedRefund',
+    ],
     ['vencido con la tarjeta liberada', closedCard('EXPIRED', 'RELEASED'), 'inbox.card.cardNotCharged'],
     ['rechazado con el cargo abandonado', closedCard('REJECTED', 'ABANDONED'), 'inbox.card.cardNotCharged'],
     ['rechazado porque no se pudo cobrar', closedCard('REJECTED', 'CAPTURE_FAILED'), 'inbox.card.cardNotCharged'],
@@ -570,7 +669,11 @@ describe('InboxTab', () => {
     ['cancelado con la tarjeta liberándose', closedCard('CANCELLED_BY_CUSTOMER', 'RELEASING'), 'inbox.card.cardReleasing'],
     ['vencido con la tarjeta todavía apartada', closedCard('EXPIRED', 'AUTHORIZED'), 'inbox.card.cardReleasing'],
     ['cancelado con el cobro en curso', closedCard('CANCELLED_BY_STAFF', 'CAPTURING'), 'inbox.card.cardReleasing'],
-    ['cerrado sin cargo conocido', cardOrder({ status: 'EXPIRED', cardStatus: null, card: null, acceptDeadlineAt: null }), 'inbox.card.cardReleasing'],
+    [
+      'cerrado sin cargo conocido',
+      cardOrder({ status: 'EXPIRED', cardStatus: null, card: null, acceptDeadlineAt: null }),
+      'inbox.card.cardReleasing',
+    ],
   ])('🔴 tarjeta en línea %s ⇒ su texto de dinero, nunca «Cobrar al recoger»', async (_name, o, text) => {
     getInbox.mockResolvedValue(inbox([o]))
     renderTab()
@@ -611,7 +714,9 @@ describe('InboxTab', () => {
 
   it('🔴 409 ONLINE_ORDER_CONFIRMING_PAYMENT al aceptar ⇒ aviso NEUTRO con el texto del servidor y refresca la bandeja', async () => {
     getInbox.mockResolvedValue(inbox([cardOrder()]))
-    acceptOrder.mockRejectedValue(http(409, { message: 'Estamos confirmando el pago con la tarjeta', code: 'ONLINE_ORDER_CONFIRMING_PAYMENT' }))
+    acceptOrder.mockRejectedValue(
+      http(409, { message: 'Estamos confirmando el pago con la tarjeta', code: 'ONLINE_ORDER_CONFIRMING_PAYMENT' }),
+    )
     renderTab()
     await userEvent.click(await screen.findByRole('button', { name: 'inbox.actions.accept' }))
     await userEvent.click(await screen.findByRole('button', { name: 'inbox.accept.minutes|15' }))
@@ -624,7 +729,8 @@ describe('InboxTab', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'inbox.actions.accept' }))
     await userEvent.click(await screen.findByRole('button', { name: 'inbox.accept.minutes|15' }))
   }
-  const confirmingError = () => http(409, { message: 'Estamos confirmando el pago con la tarjeta', code: 'ONLINE_ORDER_CONFIRMING_PAYMENT' })
+  const confirmingError = () =>
+    http(409, { message: 'Estamos confirmando el pago con la tarjeta', code: 'ONLINE_ORDER_CONFIRMING_PAYMENT' })
 
   it('🔴 tras el 409 CONFIRMING, si la relectura FALLA, «Aceptar» sigue apagado aunque la tarjeta vieja diga «apartada»', async () => {
     getInbox.mockResolvedValueOnce(inbox([cardOrder()]))
@@ -698,5 +804,691 @@ describe('InboxTab', () => {
     // El sondeo reintenta una vez (retry: 1, ~1 s) antes de darse por caído.
     expect(await screen.findByText('inbox.offline', {}, { timeout: 4000 })).toBeInTheDocument()
     expect(screen.getByTestId('order-o1')).toBeInTheDocument()
+  })
+})
+
+describe('InboxTab · folios de «Nadie» (Por pagar / Por entregar)', () => {
+  beforeEach(() => {
+    for (const f of [getInbox, getToPay, markReady, markDelivered, cancelOrder, toast, mockStatus]) f.mockReset()
+    mockStatus.mockReturnValue(status())
+    getInbox.mockResolvedValue(inbox([]))
+    getToPay.mockResolvedValue(toPayRes())
+    getSettings.mockResolvedValue({ requiresAcceptance: false })
+  })
+
+  it('«Por pagar» lista el folio con «Vence en N min» y «Falta $X», sin Aceptar ni Cobrar', async () => {
+    getToPay.mockResolvedValue(toPayRes([folio()]))
+    renderTab()
+    const card = await screen.findByTestId('folio-f1')
+    expect(within(card).getByText('W7KQ2')).toBeInTheDocument()
+    expect(within(card).getByText('Ana')).toBeInTheDocument()
+    expect(within(card).getByText('folio.expiresIn|22')).toBeInTheDocument()
+    expect(within(card).getByRole('button', { name: 'folio.cancel' })).toBeInTheDocument()
+    expect(within(card).queryByRole('button', { name: 'inbox.actions.accept' })).toBeNull()
+    expect(within(card).queryByRole('button', { name: /collect|cobrar/i })).toBeNull()
+    expect(screen.getByText('folio.note')).toBeInTheDocument()
+  })
+
+  it('con abono: «Falta $X de $Y», «Ya pagó $Z», «Se cobra en caja» y sin «Cancelar folio»', async () => {
+    getToPay.mockResolvedValue(toPayRes([folio({ total: 185, remaining: 85, paymentStatus: 'PARTIAL' })]))
+    renderTab()
+    const card = await screen.findByTestId('folio-f1')
+    expect(within(card).getByText(/^folio\.missing\|/)).toBeInTheDocument()
+    expect(within(card).getByText(/^folio\.alreadyPaid\|/)).toBeInTheDocument()
+    expect(within(card).getByText('folio.collectAtRegister')).toBeInTheDocument()
+    expect(within(card).queryByRole('button', { name: 'folio.cancel' })).toBeNull()
+  })
+
+  it('con 5 min o menos el tiempo va en ámbar, nunca rojo', async () => {
+    getToPay.mockResolvedValue(toPayRes([folio({ acceptDeadlineAt: '2026-10-17T18:03:00.000Z' })]))
+    renderTab()
+    const el = await screen.findByText('folio.expiresIn|3')
+    expect(el.className).toMatch(/amber/)
+    expect(el.className).not.toMatch(/destructive|red/)
+  })
+
+  it('«Cancelar folio» pide confirmación y manda cancelOrder; el folio sale de la lista', async () => {
+    getToPay.mockResolvedValueOnce(toPayRes([folio()])).mockResolvedValue(toPayRes())
+    cancelOrder.mockResolvedValue({ status: 'CANCELLED_BY_STAFF' })
+    renderTab()
+    await userEvent.click(await screen.findByRole('button', { name: 'folio.cancel' }))
+    expect(cancelOrder).not.toHaveBeenCalled()
+    expect(await screen.findByText('folio.cancelDialog.title|W 7 K Q 2')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'folio.cancelDialog.confirm' }))
+    await waitFor(() => expect(cancelOrder).toHaveBeenCalledWith('venue-1', 'f1'))
+    await waitFor(() => expect(screen.queryByTestId('folio-f1')).toBeNull())
+  })
+
+  it('«Cancelar folio» no aparece sin orders:cancel-unpaid', async () => {
+    mockStatus.mockReturnValue(status({ canCancel: false }))
+    getToPay.mockResolvedValue(toPayRes([folio()]))
+    renderTab()
+    await screen.findByTestId('folio-f1')
+    expect(screen.queryByRole('button', { name: 'folio.cancel' })).toBeNull()
+  })
+
+  it('con dinero, el servidor contesta ORDER_HAS_PAYMENTS y sale el texto de hasPayments', async () => {
+    getToPay.mockResolvedValue(toPayRes([folio()]))
+    cancelOrder.mockRejectedValue(http(409, { code: 'ORDER_HAS_PAYMENTS' }))
+    renderTab()
+    await userEvent.click(await screen.findByRole('button', { name: 'folio.cancel' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'folio.cancelDialog.confirm' }))
+    await waitFor(() => expect(toast).toHaveBeenCalledWith({ title: 'inbox.outcome.hasPayments' }))
+  })
+
+  it('«Por entregar» lista folios pagados con «Listo» y «Entregado»; «Entregado» avisa y el folio sale', async () => {
+    getToPay
+      .mockResolvedValueOnce(toPayRes([], [folio({ status: 'ACCEPTED', paymentStatus: 'PAID', remaining: 0 })]))
+      .mockResolvedValue(toPayRes())
+    markDelivered.mockResolvedValue({ status: 'COMPLETED' })
+    renderTab()
+    const card = await screen.findByTestId('folio-f1')
+    expect(within(card).getByRole('button', { name: 'inbox.actions.ready' })).toBeInTheDocument()
+    await userEvent.click(within(card).getByRole('button', { name: 'inbox.actions.delivered' }))
+    await waitFor(() => expect(markDelivered).toHaveBeenCalledWith('venue-1', 'f1'))
+    await waitFor(() => expect(toast).toHaveBeenCalledWith({ title: 'folio.delivered|W 7 K Q 2,Ana' }))
+    await waitFor(() => expect(screen.queryByTestId('folio-f1')).toBeNull())
+  })
+
+  it('«Listo» manda markReady', async () => {
+    getToPay.mockResolvedValue(toPayRes([], [folio({ status: 'ACCEPTED', paymentStatus: 'PAID', remaining: 0 })]))
+    markReady.mockResolvedValue({ status: 'READY' })
+    renderTab()
+    await userEvent.click(await screen.findByRole('button', { name: 'inbox.actions.ready' }))
+    await waitFor(() => expect(markReady).toHaveBeenCalledWith('venue-1', 'f1'))
+  })
+
+  it('«Listo» y «Entregado» no existen sin orders:update', async () => {
+    mockStatus.mockReturnValue(status({ canAnswer: false }))
+    getToPay.mockResolvedValue(toPayRes([], [folio({ status: 'ACCEPTED', paymentStatus: 'PAID', remaining: 0 })]))
+    renderTab()
+    await screen.findByTestId('folio-f1')
+    expect(screen.queryByRole('button', { name: 'inbox.actions.ready' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'inbox.actions.delivered' })).toBeNull()
+  })
+
+  it('un folio no sale repetido en «En preparación»: la Bandeja filtra requiresAcceptance=false y cuenta acceptedTeam', async () => {
+    const paid = folio({ status: 'ACCEPTED', paymentStatus: 'PAID', remaining: 0 })
+    const team = order({ orderId: 'o9', orderNumber: '109', status: 'ACCEPTED', requiresAcceptance: true })
+    getInbox.mockResolvedValue(inbox([paid, team], { counts: { pending: 0, accepted: 2, acceptedTeam: 1, ready: 0, active: 2, done: 0 } }))
+    getToPay.mockResolvedValue(toPayRes([], [paid]))
+    renderTab()
+    await screen.findByTestId('order-o9')
+    expect(await screen.findByTestId('folio-f1')).toBeInTheDocument()
+    expect(screen.queryByTestId('order-f1')).toBeNull()
+    expect(screen.getByRole('heading', { name: /inbox\.sections\.accepted/ })).toHaveTextContent('(1)')
+  })
+
+  it('con 101 por entregar, «Cargar más» pide nextCursors.toDeliver con section=toDeliver y deja marcar el 101', async () => {
+    const first = Array.from({ length: 100 }, (_, i) =>
+      folio({ orderId: `d${i}`, onlineOrderId: `do${i}`, orderNumber: `W${i}`, status: 'ACCEPTED', paymentStatus: 'PAID', remaining: 0 }),
+    )
+    const last = folio({
+      orderId: 'd100',
+      onlineOrderId: 'do100',
+      orderNumber: 'W100',
+      customerName: 'Zoe',
+      status: 'ACCEPTED',
+      paymentStatus: 'PAID',
+      remaining: 0,
+    })
+    getToPay
+      .mockResolvedValueOnce(toPayRes([], first, { counts: { toPay: 0, toDeliver: 101 }, nextCursors: { toPay: null, toDeliver: 'CUR1' } }))
+      .mockResolvedValueOnce(toPayRes([], [last], { counts: { toPay: 0, toDeliver: 101 }, nextCursors: { toPay: null, toDeliver: null } }))
+      .mockResolvedValue(toPayRes([], first, { counts: { toPay: 0, toDeliver: 100 } }))
+    markDelivered.mockResolvedValue({ status: 'COMPLETED' })
+    renderTab()
+    await screen.findByTestId('folio-d99')
+    expect(screen.queryByTestId('folio-d100')).toBeNull()
+    await userEvent.click(screen.getByRole('button', { name: 'folio.loadMore' }))
+    expect(getToPay).toHaveBeenCalledWith('venue-1', { section: 'toDeliver', cursor: 'CUR1' })
+    const card = await screen.findByTestId('folio-d100')
+    await userEvent.click(within(card).getByRole('button', { name: 'inbox.actions.delivered' }))
+    await waitFor(() => expect(markDelivered).toHaveBeenCalledTimes(1))
+    expect(markDelivered).toHaveBeenCalledWith('venue-1', 'd100')
+    await waitFor(() => expect(screen.queryByTestId('folio-d100')).toBeNull())
+    expect(screen.getByTestId('folio-d0')).toBeInTheDocument()
+  })
+
+  it('«Cargar más» de «Por pagar» pide section=toPay', async () => {
+    getToPay
+      .mockResolvedValueOnce(toPayRes([folio()], [], { nextCursors: { toPay: 'CP', toDeliver: null }, counts: { toPay: 2, toDeliver: 0 } }))
+      .mockResolvedValueOnce(toPayRes([folio({ orderId: 'f2', orderNumber: 'W2' })], [], { counts: { toPay: 2, toDeliver: 0 } }))
+    renderTab()
+    await userEvent.click(await screen.findByRole('button', { name: 'folio.loadMore' }))
+    expect(getToPay).toHaveBeenCalledWith('venue-1', { section: 'toPay', cursor: 'CP' })
+    expect(await screen.findByTestId('folio-f2')).toBeInTheDocument()
+  })
+
+  it('estado vacío con su porqué', async () => {
+    getToPay.mockResolvedValue(toPayRes([], [], { showTile: true, requiresAcceptance: false }))
+    renderTab()
+    expect(await screen.findByText('folio.emptyToPay')).toBeInTheDocument()
+    expect(screen.getByText('folio.emptyToDeliver')).toBeInTheDocument()
+  })
+
+  it('cargando: esqueleto; error: «Reintentar» vuelve a pedir', async () => {
+    getToPay
+      .mockRejectedValueOnce(http(500, {}))
+      .mockRejectedValueOnce(http(500, {}))
+      .mockResolvedValue(toPayRes([folio()]))
+    renderTab()
+    expect(await screen.findByText('folio.loadFailed', {}, { timeout: 4000 })).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'folio.retry' }))
+    expect(await screen.findByTestId('folio-f1')).toBeInTheDocument()
+  })
+
+  it('un folio que cambió mientras estaba abierto: aviso «ya no está disponible» y se relee', async () => {
+    getToPay.mockResolvedValue(toPayRes([], [folio({ status: 'ACCEPTED', paymentStatus: 'PAID', remaining: 0 })]))
+    markReady.mockRejectedValue(http(409, { code: 'ORDER_STATE_CHANGED', status: 'COMPLETED' }))
+    renderTab()
+    await userEvent.click(await screen.findByRole('button', { name: 'inbox.actions.ready' }))
+    await waitFor(() => expect(toast).toHaveBeenCalledWith({ title: 'inbox.outcome.gone' }))
+    await waitFor(() => expect(getToPay.mock.calls.length).toBeGreaterThan(1))
+  })
+
+  it('«Mi equipo» con el endpoint fallando: no se ve esqueleto ni error de folios', async () => {
+    getSettings.mockResolvedValue({ requiresAcceptance: true })
+    getToPay.mockRejectedValue(http(403, {}))
+    renderTab()
+    await screen.findByTestId('online-inbox')
+    await new Promise(r => setTimeout(r, 1500))
+    expect(screen.queryByTestId('folio-error')).toBeNull()
+    expect(screen.queryByTestId('folio-loading')).toBeNull()
+    expect(screen.queryByText('folio.loadFailed')).toBeNull()
+  })
+
+  it('lo traído con «Cargar más» que cambió: ORDER_STATE_CHANGED lo quita y no repite el aviso', async () => {
+    const mk = (i: number) =>
+      folio({ orderId: `d${i}`, onlineOrderId: `do${i}`, orderNumber: `W${i}`, status: 'ACCEPTED', paymentStatus: 'PAID', remaining: 0 })
+    getToPay
+      .mockResolvedValueOnce(toPayRes([], [mk(0)], { counts: { toPay: 0, toDeliver: 2 }, nextCursors: { toPay: null, toDeliver: 'C' } }))
+      .mockResolvedValueOnce(toPayRes([], [mk(1)], { counts: { toPay: 0, toDeliver: 2 } }))
+      .mockResolvedValue(toPayRes([], [mk(0)], { counts: { toPay: 0, toDeliver: 2 }, nextCursors: { toPay: null, toDeliver: 'C' } }))
+    markReady.mockRejectedValue(http(409, { code: 'ORDER_STATE_CHANGED', status: 'COMPLETED' }))
+    renderTab()
+    await userEvent.click(await screen.findByRole('button', { name: 'folio.loadMore' }))
+    const card = await screen.findByTestId('folio-d1')
+    await userEvent.click(within(card).getByRole('button', { name: 'inbox.actions.ready' }))
+    await waitFor(() => expect(screen.queryByTestId('folio-d1')).toBeNull())
+    expect(toast).toHaveBeenCalledTimes(1)
+  })
+
+  it('un folio presente en las dos secciones sólo sale en «Por entregar»', async () => {
+    const f = folio({ status: 'ACCEPTED', paymentStatus: 'PAID', remaining: 0 })
+    getToPay.mockResolvedValue(toPayRes([folio()], [f], { counts: { toPay: 1, toDeliver: 1 } }))
+    renderTab()
+    await screen.findByTestId('folio-f1')
+    expect(screen.getAllByTestId('folio-f1')).toHaveLength(1)
+    expect(screen.getByRole('button', { name: 'inbox.actions.delivered' })).toBeInTheDocument()
+  })
+
+  it('«Por entregar» con paidAt dice «Pagado a las HH:MM»; sin paidAt, «Pidió»', async () => {
+    const base = { status: 'ACCEPTED', paymentStatus: 'PAID', remaining: 0 }
+    getToPay.mockResolvedValue(
+      toPayRes([], [folio({ ...base, paidAt: '2026-10-17T18:05:00.000Z' }), folio({ ...base, orderId: 'f2', orderNumber: 'W2' })]),
+    )
+    renderTab()
+    expect(await screen.findByText(/^folio\.paidAt\|T\(2026-10-17T18:05:00.000Z\)/)).toBeInTheDocument()
+    expect(within(screen.getByTestId('folio-f2')).getByText(/^folio\.orderedAt\|/)).toBeInTheDocument()
+  })
+
+  const mkD = (i: number, over: Record<string, unknown> = {}) =>
+    folio({
+      orderId: `d${i}`,
+      onlineOrderId: `do${i}`,
+      orderNumber: `W${i}`,
+      status: 'ACCEPTED',
+      paymentStatus: 'PAID',
+      remaining: 0,
+      ...over,
+    })
+  const page1 = (over: Record<string, unknown> = {}, items = [mkD(0), mkD(5)]) =>
+    toPayRes([], items, { counts: { toPay: 0, toDeliver: 3 }, nextCursors: { toPay: null, toDeliver: 'C' }, ...over })
+
+  it('en cada sondeo se RELEEN las páginas extra ya cargadas: una lectura igual las conserva', async () => {
+    getToPay
+      .mockResolvedValueOnce(page1())
+      .mockResolvedValueOnce(toPayRes([], [mkD(1)], { counts: { toPay: 0, toDeliver: 3 } }))
+      .mockImplementation(async (_v: string, p?: { cursor?: string }) =>
+        p?.cursor ? toPayRes([], [mkD(1)], { counts: { toPay: 0, toDeliver: 3 } }) : page1(),
+      )
+    markReady.mockRejectedValue(http(500, {}))
+    renderTab()
+    await userEvent.click(await screen.findByRole('button', { name: 'folio.loadMore' }))
+    await screen.findByTestId('folio-d1')
+    await userEvent.click(within(screen.getByTestId('folio-d0')).getByRole('button', { name: 'inbox.actions.ready' }))
+    await waitFor(() => expect(getToPay.mock.calls.filter(c => c[1]?.cursor === 'C').length).toBe(2))
+    expect(screen.getByTestId('folio-d1')).toBeInTheDocument()
+  })
+
+  it('un folio de «Cargar más» que cambió en otro aparato con movimientos que se compensan (mismos conteos, misma página 1) se actualiza en el sondeo', async () => {
+    getToPay
+      .mockResolvedValueOnce(page1())
+      .mockResolvedValueOnce(toPayRes([], [mkD(1)], { counts: { toPay: 0, toDeliver: 3 } }))
+      // d1 se entregó y entró d2: los conteos y la página 1 son idénticos; sólo cambia lo que hay tras el cursor.
+      .mockImplementation(async (_v: string, p?: { cursor?: string }) =>
+        p?.cursor ? toPayRes([], [mkD(2)], { counts: { toPay: 0, toDeliver: 3 } }) : page1(),
+      )
+    markReady.mockRejectedValue(http(500, {}))
+    renderTab()
+    await userEvent.click(await screen.findByRole('button', { name: 'folio.loadMore' }))
+    await screen.findByTestId('folio-d1')
+    await userEvent.click(within(screen.getByTestId('folio-d0')).getByRole('button', { name: 'inbox.actions.ready' }))
+    await waitFor(() => expect(screen.queryByTestId('folio-d1')).toBeNull())
+    expect(await screen.findByTestId('folio-d2')).toBeInTheDocument()
+  })
+
+  it('con más de 100 activos, «Cargar más» de «Listos» pide status=active con el nextCursor y deja marcar el 101', async () => {
+    const ready = (i: number) =>
+      order({ orderId: `r${i}`, orderNumber: `${200 + i}`, status: 'READY', remaining: 0, paymentStatus: 'PAID' })
+    getInbox
+      .mockResolvedValueOnce(inbox([ready(0)], { nextCursor: 'AC1', counts: { pending: 0, accepted: 0, ready: 2, active: 2, done: 0 } }))
+      .mockResolvedValueOnce(inbox([ready(100)], { nextCursor: null, counts: { pending: 0, accepted: 0, ready: 2, active: 2, done: 0 } }))
+      .mockImplementation(async (_v: string, o?: { cursor?: string }) =>
+        o?.cursor
+          ? inbox([ready(100)], { nextCursor: null, counts: { pending: 0, accepted: 0, ready: 2, active: 2, done: 0 } })
+          : inbox([ready(0)], { nextCursor: 'AC1', counts: { pending: 0, accepted: 0, ready: 2, active: 2, done: 0 } }),
+      )
+    markDelivered.mockResolvedValue({ status: 'COMPLETED' })
+    renderTab()
+    await screen.findByTestId('order-r0')
+    expect(screen.queryByTestId('order-r100')).toBeNull()
+    await userEvent.click(screen.getAllByRole('button', { name: 'inbox.sections.loadMore' })[0])
+    expect(getInbox).toHaveBeenCalledWith('venue-1', { tray: false, status: 'active', cursor: 'AC1' })
+    const card = await screen.findByTestId('order-r100')
+    await userEvent.click(within(card).getByRole('button', { name: 'inbox.actions.delivered' }))
+    await waitFor(() => expect(markDelivered).toHaveBeenCalledWith('venue-1', 'r100'))
+  })
+
+  it('«Mi equipo»: un evento de la Bandeja relee el inbox pero no vuelve a pedir to-pay', async () => {
+    getSettings.mockResolvedValue({ requiresAcceptance: true })
+    getInbox.mockResolvedValue(inbox([]))
+    renderTab()
+    await screen.findByTestId('online-inbox')
+    await waitFor(() => expect(getToPay).toHaveBeenCalledTimes(1))
+    const inboxCalls = getInbox.mock.calls.length
+    await act(async () => handlers['order_updated']?.({ onlineStatus: 'ACCEPTED', venueId: 'venue-1' }))
+    await waitFor(() => expect(getInbox.mock.calls.length).toBeGreaterThan(inboxCalls))
+    await settleMutations()
+    expect(getToPay).toHaveBeenCalledTimes(1)
+  })
+
+  it('«Mi equipo» que se vuelve «Nadie» desde otra computadora: un folio en la Bandeja enciende to-pay y sale en «Por entregar»', async () => {
+    getSettings.mockResolvedValue({ requiresAcceptance: true })
+    const paid = folio({ status: 'ACCEPTED', paymentStatus: 'PAID', remaining: 0 })
+    getInbox
+      .mockResolvedValueOnce(inbox([]))
+      .mockResolvedValue(inbox([paid], { counts: { pending: 0, accepted: 1, acceptedTeam: 0, ready: 0, active: 1, done: 0 } }))
+    getToPay.mockResolvedValueOnce(toPayRes()).mockResolvedValue(toPayRes([], [paid]))
+    renderTab()
+    await screen.findByTestId('online-inbox')
+    await waitFor(() => expect(getToPay).toHaveBeenCalledTimes(1))
+    await act(async () => handlers['order_updated']?.({ onlineStatus: 'ACCEPTED', venueId: 'venue-1' }))
+    expect(await screen.findByTestId('folio-f1')).toBeInTheDocument()
+    expect(getToPay).toHaveBeenCalledTimes(2)
+  })
+
+  it('relecturas lentas: no se encadenan ni se descartan; la página se aplica al llegar y corre una más al terminar', async () => {
+    let cursorCalls = 0
+    const slow = deferred<ReturnType<typeof toPayRes>>()
+    const slow2 = deferred<ReturnType<typeof toPayRes>>()
+    getToPay.mockImplementation(async (_v: string, p?: { cursor?: string }) => {
+      if (!p?.cursor) return page1()
+      cursorCalls++
+      if (cursorCalls === 1) return toPayRes([], [mkD(1)], { counts: { toPay: 0, toDeliver: 3 } })
+      if (cursorCalls === 2) return slow.promise
+      return slow2.promise
+    })
+    markReady.mockRejectedValue(http(500, {}))
+    renderTab()
+    await userEvent.click(await screen.findByRole('button', { name: 'folio.loadMore' }))
+    await screen.findByTestId('folio-d1')
+    await userEvent.click(within(screen.getByTestId('folio-d0')).getByRole('button', { name: 'inbox.actions.ready' }))
+    await waitFor(() => expect(cursorCalls).toBe(2))
+    // Otro sondeo con la relectura en vuelo: no se lanza otra (sigue en 2 llamadas).
+    await userEvent.click(within(screen.getByTestId('folio-d5')).getByRole('button', { name: 'inbox.actions.ready' }))
+    await settleMutations()
+    expect(cursorCalls).toBe(2)
+    await act(async () => slow.resolve(toPayRes([], [mkD(2)], { counts: { toPay: 0, toDeliver: 3 } })))
+    expect(await screen.findByTestId('folio-d2')).toBeInTheDocument()
+    // Y al terminar corre la que quedó anotada.
+    await waitFor(() => expect(cursorCalls).toBe(3))
+    await act(async () => slow2.resolve(toPayRes([], [mkD(3)], { counts: { toPay: 0, toDeliver: 3 } })))
+    expect(await screen.findByTestId('folio-d3')).toBeInTheDocument()
+    expect(screen.queryByTestId('folio-d2')).toBeNull()
+    expect(cursorCalls).toBe(3)
+  })
+
+  it('la página 2 ya no existe (otra caja entregó y todo cabe en la página 1): los extras se limpian y el conteo es el del servidor', async () => {
+    getToPay
+      .mockResolvedValueOnce(page1())
+      .mockResolvedValueOnce(toPayRes([], [mkD(1)], { counts: { toPay: 0, toDeliver: 3 } }))
+      // Otra caja entregó d1 y d5: queda sólo d0, sin cursor.
+      .mockImplementation(async () =>
+        toPayRes([], [mkD(0)], { counts: { toPay: 0, toDeliver: 1 }, nextCursors: { toPay: null, toDeliver: null } }),
+      )
+    markReady.mockRejectedValue(http(500, {}))
+    renderTab()
+    await userEvent.click(await screen.findByRole('button', { name: 'folio.loadMore' }))
+    await screen.findByTestId('folio-d1')
+    await userEvent.click(within(screen.getByTestId('folio-d0')).getByRole('button', { name: 'inbox.actions.ready' }))
+    await waitFor(() => expect(screen.queryByTestId('folio-d1')).toBeNull())
+    expect(screen.getByRole('heading', { name: /folio\.sections\.toDeliver/ })).toHaveTextContent('(1)')
+    expect(screen.queryByRole('button', { name: 'folio.loadMore' })).toBeNull()
+  })
+
+  it('un folio que cambió de página entre lecturas no sale dos veces', async () => {
+    getToPay.mockImplementation(async (_v: string, p?: { cursor?: string }) => {
+      if (!p?.cursor) return page1()
+      if (p.cursor === 'C')
+        return toPayRes([], [mkD(1)], { counts: { toPay: 0, toDeliver: 3 }, nextCursors: { toPay: null, toDeliver: 'C2' } })
+      return toPayRes([], [mkD(1), mkD(2)], { counts: { toPay: 0, toDeliver: 3 } })
+    })
+    renderTab()
+    await userEvent.click(await screen.findByRole('button', { name: 'folio.loadMore' }))
+    await screen.findByTestId('folio-d1')
+    await userEvent.click(screen.getByRole('button', { name: 'folio.loadMore' }))
+    await screen.findByTestId('folio-d2')
+    expect(screen.getAllByTestId('folio-d1')).toHaveLength(1)
+  })
+
+  it('con abono no hay «Vence en» ni «Está por vencer»: sólo «Se cobra en caja»', async () => {
+    getToPay.mockResolvedValue(toPayRes([folio({ total: 185, remaining: 85, paymentStatus: 'PARTIAL' })]))
+    renderTab()
+    const card = await screen.findByTestId('folio-f1')
+    expect(within(card).getByText('folio.collectAtRegister')).toBeInTheDocument()
+    expect(within(card).queryByText(/folio\.expiresIn|folio\.expiring|folio\.expiresAt/)).toBeNull()
+  })
+
+  it('«Vence en» urgente usa un ámbar con contraste (amber-700 en claro, amber-400 en oscuro)', async () => {
+    getToPay.mockResolvedValue(toPayRes([folio({ acceptDeadlineAt: '2026-10-17T18:03:00.000Z' })]))
+    renderTab()
+    const el = await screen.findByText('folio.expiresIn|3')
+    expect(el.className).toContain('text-amber-700')
+    expect(el.className).toContain('dark:text-amber-400')
+    expect(el.className).not.toContain('text-amber-600')
+  })
+
+  it('un folio quitado de «Por pagar» por estar en «Por entregar» no descuadra el número', async () => {
+    const f = folio({ status: 'ACCEPTED', paymentStatus: 'PAID', remaining: 0 })
+    getToPay.mockResolvedValue(toPayRes([folio()], [f], { counts: { toPay: 1, toDeliver: 1 } }))
+    renderTab()
+    await screen.findByTestId('folio-f1')
+    expect(screen.getByRole('heading', { name: /folio\.sections\.toPay/ })).toHaveTextContent('(0)')
+    expect(screen.getByText('folio.emptyToPay')).toBeInTheDocument()
+  })
+
+  it('R87 «Mi equipo» sin nada: no relee to-pay con eventos de la Bandeja ni a los 10 s, pero sí a los 120 s', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    try {
+      getSettings.mockResolvedValue({ requiresAcceptance: true })
+      renderTab()
+      await screen.findByTestId('online-inbox')
+      await act(async () => handlers['order_updated']?.({ onlineStatus: 'ACCEPTED', venueId: 'venue-1' }))
+      await act(async () => void (await vi.advanceTimersByTimeAsync(11_000)))
+      expect(getToPay).toHaveBeenCalledTimes(1)
+      await act(async () => void (await vi.advanceTimersByTimeAsync(115_000)))
+      expect(getToPay).toHaveBeenCalledTimes(2)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('R87 caso de Codex: un folio en toPay con counts 0 y showTile false se ve y la consulta sigue viva', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    try {
+      getSettings.mockResolvedValue({ requiresAcceptance: true })
+      getToPay.mockResolvedValue(toPayRes([folio()], [], { counts: { toPay: 0, toDeliver: 0 }, showTile: false }))
+      renderTab()
+      expect(await screen.findByTestId('folio-f1')).toBeInTheDocument()
+      await act(async () => void (await vi.advanceTimersByTimeAsync(11_000)))
+      expect(getToPay).toHaveBeenCalledTimes(2)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('control: con «Nadie» sí se vuelve a leer to-pay a los 10 s', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    try {
+      getSettings.mockResolvedValue({ requiresAcceptance: false })
+      getToPay.mockResolvedValue(toPayRes([], [], { showTile: true }))
+      renderTab()
+      await screen.findByTestId('online-inbox')
+      await act(async () => void (await vi.advanceTimersByTimeAsync(11_000)))
+      expect(getToPay).toHaveBeenCalledTimes(2)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('la nota de «Nadie» sale sólo con folios de «Nadie»', async () => {
+    getToPay.mockResolvedValue(toPayRes([folio()]))
+    renderTab()
+    await screen.findByTestId('folio-f1')
+    expect(screen.getByText('folio.note')).toBeInTheDocument()
+  })
+})
+
+describe('R93 · hallazgos de /full-testingv2 WEB', () => {
+  beforeEach(() => {
+    for (const f of [getInbox, getToPay, getSettings, markReady, markDelivered, cancelOrder, toast, mockStatus]) f.mockReset()
+    mockStatus.mockReturnValue(status())
+    getInbox.mockResolvedValue(inbox([]))
+    getSettings.mockResolvedValue({ requiresAcceptance: false })
+    getToPay.mockResolvedValue(toPayRes())
+  })
+
+  it('F1 · un folio cancelado desde el panel se oculta sólo hasta que el servidor lo confirme; si revive en «Por entregar» se ve con sus botones', async () => {
+    const pending = folio()
+    const revived = folio({ status: 'ACCEPTED', paymentStatus: 'PAID', remaining: 0 })
+    getToPay
+      .mockResolvedValueOnce(toPayRes([pending]))
+      // El servidor aún no refleja la cancelación: el folio sigue ahí y sigue oculto.
+      .mockResolvedValueOnce(toPayRes([pending]))
+      // Llegó el pago tardío de la cola sin red de la TPV: el folio revive en «Por entregar».
+      .mockResolvedValue(toPayRes([], [revived], { showTile: true }))
+    cancelOrder.mockResolvedValue({ status: 'CANCELLED_BY_STAFF' })
+    renderTab()
+    await userEvent.click(await screen.findByRole('button', { name: 'folio.cancel' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'folio.cancelDialog.confirm' }))
+    await waitFor(() => expect(cancelOrder).toHaveBeenCalled())
+    await waitFor(() => expect(getToPay.mock.calls.length).toBeGreaterThanOrEqual(2))
+    expect(screen.queryByTestId('folio-f1')).toBeNull()
+    await act(async () => handlers['order_updated']?.({ onlineStatus: 'ACCEPTED', venueId: 'venue-1' }))
+    const card = await screen.findByTestId('folio-f1')
+    expect(within(card).getByRole('button', { name: 'inbox.actions.delivered' })).toBeInTheDocument()
+  })
+
+  it('W2 · en «Nadie» el estado y la ayuda hablan del aparato (TPV/POS), no de la pestaña; «Mi equipo» queda igual', async () => {
+    const off = { status: 'OFFLINE', reason: null, pausedUntil: null, manualPause: false }
+    getInbox.mockResolvedValue(inbox([], { store: off }))
+    getToPay.mockResolvedValue(toPayRes([], [], { requiresAcceptance: false, showTile: true }))
+    renderTab()
+    expect(await screen.findByText('inbox.status.offlineNadie')).toBeInTheDocument()
+    expect(screen.getByText('inbox.keepsOpenNadie')).toBeInTheDocument()
+    expect(screen.queryByText('inbox.keepsOpen')).toBeNull()
+  })
+
+  it('W2 · «Mi equipo» conserva sus textos de siempre', async () => {
+    const off = { status: 'OFFLINE', reason: null, pausedUntil: null, manualPause: false }
+    getSettings.mockResolvedValue({ requiresAcceptance: true })
+    getInbox.mockResolvedValue(inbox([], { store: off }))
+    getToPay.mockResolvedValue(toPayRes([], [], { requiresAcceptance: true, showTile: false }))
+    renderTab()
+    expect(await screen.findByText('inbox.keepsOpen')).toBeInTheDocument()
+    expect(screen.queryByText('inbox.keepsOpenNadie')).toBeNull()
+    expect(screen.queryByText('inbox.status.offlineNadie')).toBeNull()
+  })
+
+  it('W4 · «Cancelar» no sale en un pedido con dinero (pagado o con abono) y sí en uno sin cobrar', async () => {
+    getInbox.mockResolvedValue(
+      inbox(
+        [
+          order({ orderId: 'paid', orderNumber: '1', status: 'READY', paymentStatus: 'PAID', remaining: 0 }),
+          order({ orderId: 'part', orderNumber: '2', status: 'ACCEPTED', paymentStatus: 'PARTIAL', remaining: 30, total: 80 }),
+          order({ orderId: 'free', orderNumber: '3', status: 'ACCEPTED', paymentStatus: 'PENDING', remaining: 80 }),
+        ],
+        { counts: { pending: 0, accepted: 2, ready: 1, active: 3, done: 0 } },
+      ),
+    )
+    renderTab()
+    await screen.findByTestId('order-free')
+    expect(within(screen.getByTestId('order-paid')).queryByRole('button', { name: 'inbox.actions.cancel' })).toBeNull()
+    expect(within(screen.getByTestId('order-part')).queryByRole('button', { name: 'inbox.actions.cancel' })).toBeNull()
+    expect(within(screen.getByTestId('order-free')).getByRole('button', { name: 'inbox.actions.cancel' })).toBeInTheDocument()
+  })
+
+  it('W5 · con un nombre largo el precio no se parte: nombre con puntos suspensivos y title, precio shrink-0', async () => {
+    const long = 'Maria Guadalupe Hernandez de la Cruz y Fernandez'
+    getToPay.mockResolvedValue(toPayRes([folio({ customerName: long })]))
+    renderTab()
+    const card = await screen.findByTestId('folio-f1')
+    const name = within(card).getByText(long)
+    expect(name.className).toContain('truncate')
+    expect(name).toHaveAttribute('title', long)
+    const price = within(card).getByText('$134.00')
+    expect((price.parentElement as HTMLElement).className).toContain('shrink-0')
+    expect((price.parentElement!.parentElement as HTMLElement).className).not.toContain('flex-wrap')
+  })
+
+  it('R95 W2 · «Nadie» (por los ajustes) con to-pay aún sin responder: ya no dice que esta pestaña mantiene abierta la tienda', async () => {
+    const off = { status: 'OFFLINE', reason: null, pausedUntil: null, manualPause: false }
+    getInbox.mockResolvedValue(inbox([], { store: off }))
+    getToPay.mockImplementation(() => new Promise(() => {}))
+    renderTab()
+    expect(await screen.findByText('inbox.keepsOpenNadie')).toBeInTheDocument()
+    expect(screen.getByText('inbox.status.offlineNadie')).toBeInTheDocument()
+    expect(screen.queryByText('inbox.keepsOpen')).toBeNull()
+  })
+
+  it('R95 W2 · «Nadie» (por los ajustes) con to-pay en error: tampoco', async () => {
+    const off = { status: 'OFFLINE', reason: null, pausedUntil: null, manualPause: false }
+    getInbox.mockResolvedValue(inbox([], { store: off }))
+    getToPay.mockRejectedValue(http(500, {}))
+    renderTab()
+    expect(await screen.findByText('inbox.keepsOpenNadie')).toBeInTheDocument()
+    expect(screen.queryByText('inbox.keepsOpen')).toBeNull()
+  })
+
+  it('R95 F1 · un folio cancelado que revive con un pago PARCIAL tardío (mismo estado, menos por pagar) se ve', async () => {
+    const pending = folio()
+    const partial = folio({ paymentStatus: 'PARTIAL', remaining: 34 })
+    getToPay
+      .mockResolvedValueOnce(toPayRes([pending]))
+      .mockResolvedValueOnce(toPayRes([pending]))
+      .mockResolvedValue(toPayRes([partial]))
+    cancelOrder.mockResolvedValue({ status: 'CANCELLED_BY_STAFF' })
+    renderTab()
+    await userEvent.click(await screen.findByRole('button', { name: 'folio.cancel' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'folio.cancelDialog.confirm' }))
+    await waitFor(() => expect(cancelOrder).toHaveBeenCalled())
+    await waitFor(() => expect(getToPay.mock.calls.length).toBeGreaterThanOrEqual(2))
+    expect(screen.queryByTestId('folio-f1')).toBeNull()
+    await act(async () => handlers['order_updated']?.({ onlineStatus: 'ACCEPTED', venueId: 'venue-1' }))
+    const card = await screen.findByTestId('folio-f1')
+    expect(within(card).getByText('folio.collectAtRegister')).toBeInTheDocument()
+  })
+
+  it('R95 poda · cuando el folio ya no está en ninguna lista, su ocultar se suelta (si vuelve igual, se ve)', async () => {
+    const pending = folio()
+    getToPay
+      .mockResolvedValueOnce(toPayRes([pending]))
+      .mockResolvedValueOnce(toPayRes([], [], { showTile: true }))
+      .mockResolvedValue(toPayRes([pending]))
+    cancelOrder.mockResolvedValue({ status: 'CANCELLED_BY_STAFF' })
+    renderTab()
+    await userEvent.click(await screen.findByRole('button', { name: 'folio.cancel' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'folio.cancelDialog.confirm' }))
+    await waitFor(() => expect(screen.queryByTestId('folio-f1')).toBeNull())
+    await waitFor(() => expect(getToPay.mock.calls.length).toBeGreaterThanOrEqual(2))
+    await act(async () => handlers['order_updated']?.({ onlineStatus: 'ACCEPTED', venueId: 'venue-1' }))
+    expect(await screen.findByTestId('folio-f1')).toBeInTheDocument()
+  })
+})
+
+describe('R98 · «Por entregar» = pagado y no entregado (ACCEPTED + READY)', () => {
+  beforeEach(() => {
+    for (const f of [getInbox, getToPay, getSettings, markReady, markDelivered, cancelOrder, toast, mockStatus]) f.mockReset()
+    mockStatus.mockReturnValue(status())
+    getInbox.mockResolvedValue(inbox([]))
+    getSettings.mockResolvedValue({ requiresAcceptance: false })
+    getToPay.mockResolvedValue(toPayRes())
+  })
+  const paid = (over: Record<string, unknown> = {}) => folio({ status: 'ACCEPTED', paymentStatus: 'PAID', remaining: 0, ...over })
+
+  it('un folio READY en «Por entregar» lleva el chip «Listo» y SÓLO «Entregado» (nunca «Cancelar»)', async () => {
+    getToPay.mockResolvedValue(toPayRes([], [paid({ status: 'READY' })]))
+    renderTab()
+    const card = await screen.findByTestId('folio-f1')
+    expect(within(card).getByText('folio.readyChip')).toBeInTheDocument()
+    expect(within(card).getByRole('button', { name: 'inbox.actions.delivered' })).toBeInTheDocument()
+    expect(within(card).queryByRole('button', { name: 'inbox.actions.ready' })).toBeNull()
+    expect(within(card).queryByRole('button', { name: /cancel/i })).toBeNull()
+  })
+
+  it('un folio ACCEPTED conserva «Listo» y «Entregado» y no lleva el chip', async () => {
+    getToPay.mockResolvedValue(toPayRes([], [paid()]))
+    renderTab()
+    const card = await screen.findByTestId('folio-f1')
+    expect(within(card).getByRole('button', { name: 'inbox.actions.ready' })).toBeInTheDocument()
+    expect(within(card).queryByText('folio.readyChip')).toBeNull()
+  })
+
+  it('«Listos» de la Bandeja excluye los folios de «Nadie» (sale una vez, en «Por entregar») y su conteo cuadra', async () => {
+    const f = paid({ status: 'READY' })
+    const team = order({ orderId: 'o9', orderNumber: '109', status: 'READY', requiresAcceptance: true })
+    getInbox.mockResolvedValue(inbox([f, team], { counts: { pending: 0, accepted: 0, ready: 2, active: 2, done: 0 } }))
+    getToPay.mockResolvedValue(toPayRes([], [f]))
+    renderTab()
+    await screen.findByTestId('order-o9')
+    await screen.findByTestId('folio-f1')
+    await waitFor(() => expect(screen.queryByTestId('order-f1')).toBeNull())
+    expect(screen.getByRole('heading', { name: /inbox\.sections\.ready/ })).toHaveTextContent('(1)')
+    expect(screen.queryByText(/^inbox\.sections\.showing/)).toBeNull()
+  })
+
+  it('después de «Listo» el folio vuelve en «Por entregar» como READY, con sólo «Entregado»', async () => {
+    getToPay.mockResolvedValueOnce(toPayRes([], [paid()])).mockResolvedValue(toPayRes([], [paid({ status: 'READY' })]))
+    markReady.mockResolvedValue({ status: 'READY' })
+    renderTab()
+    await userEvent.click(await screen.findByRole('button', { name: 'inbox.actions.ready' }))
+    await waitFor(() => expect(markReady).toHaveBeenCalledWith('venue-1', 'f1'))
+    const card = await screen.findByTestId('folio-f1')
+    expect(within(card).getByText('folio.readyChip')).toBeInTheDocument()
+    expect(within(card).queryByRole('button', { name: 'inbox.actions.ready' })).toBeNull()
+    expect(within(card).getByRole('button', { name: 'inbox.actions.delivered' })).toBeInTheDocument()
+  })
+
+  it('R99 · SERVIDOR viejo: un READY está en la Bandeja y NO en toDeliver ⇒ sigue en «Listos» con «Entregado», una sola vez, y el conteo cuadra', async () => {
+    const f = paid({ status: 'READY' })
+    getInbox.mockResolvedValue(inbox([f], { counts: { pending: 0, accepted: 0, ready: 1, active: 1, done: 0 } }))
+    getToPay.mockResolvedValue(toPayRes([], [], { showTile: true }))
+    renderTab()
+    const card = await screen.findByTestId('order-f1')
+    expect(within(card).getByRole('button', { name: 'inbox.actions.delivered' })).toBeInTheDocument()
+    expect(screen.queryByTestId('folio-f1')).toBeNull()
+    expect(screen.getByRole('heading', { name: /inbox\.sections\.ready/ })).toHaveTextContent('(1)')
+    expect(screen.queryByText(/^inbox\.sections\.showing/)).toBeNull()
+  })
+
+  it('R99 · SERVIDOR nuevo: el READY está en los dos ⇒ sólo en «Por entregar»; el conteo cuadra', async () => {
+    const f = paid({ status: 'READY' })
+    getInbox.mockResolvedValue(inbox([f], { counts: { pending: 0, accepted: 0, ready: 1, active: 1, done: 0 } }))
+    getToPay.mockResolvedValue(toPayRes([], [f], { counts: { toPay: 0, toDeliver: 1 } }))
+    renderTab()
+    await screen.findByTestId('folio-f1')
+    await waitFor(() => expect(screen.queryByTestId('order-f1')).toBeNull())
+    expect(screen.getByRole('heading', { name: /inbox\.sections\.ready/ })).toHaveTextContent('(0)')
+    expect(screen.queryByText(/^inbox\.sections\.showing/)).toBeNull()
+  })
+
+  it('R99 · un ACCEPTED de «Nadie» ausente de toDeliver tampoco desaparece de «En preparación»', async () => {
+    const f = paid()
+    getInbox.mockResolvedValue(inbox([f], { counts: { pending: 0, accepted: 1, ready: 0, active: 1, done: 0 } }))
+    getToPay.mockResolvedValue(toPayRes([], [], { showTile: true }))
+    renderTab()
+    expect(await screen.findByTestId('order-f1')).toBeInTheDocument()
   })
 })

@@ -4,6 +4,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useSocket } from '@/context/SocketContext'
 import { getInbox, onlineOrderingKeys } from '@/services/onlineOrdering.service'
 
+import { invalidateToPay } from '../lib/toPayLive'
+
 /**
  * El ÚNICO sondeo de la bandeja (cada 10 s, se detiene con la pestaña oculta) más el aviso en vivo del servidor.
  * 🔴 La cabecera de latido (`tray`) se decide EN CADA petición: también la que dispara un evento de socket con la pestaña
@@ -25,7 +27,10 @@ export function useOnlineOrdersInbox(venueId: string, opts: { trayActive: () => 
   useEffect(() => {
     if (!venueId || !socket) return
     joinVenueRoom(venueId)
-    const refresh = () => queryClient.invalidateQueries({ queryKey: onlineOrderingKeys.inbox(venueId) })
+    const refresh = () => {
+      void queryClient.invalidateQueries({ queryKey: onlineOrderingKeys.inbox(venueId) })
+      void invalidateToPay(queryClient, venueId)
+    }
     // Un evento de OTRO negocio (el socket puede estar en varios cuartos) no toca esta bandeja.
     const otherVenue = (e: { venueId?: string } | undefined) => !!e?.venueId && e.venueId !== venueId
     const onCreated = (e: { source?: string; venueId?: string } | undefined) => {

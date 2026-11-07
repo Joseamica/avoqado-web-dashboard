@@ -67,6 +67,8 @@ export function OrderCard({ order, skewMs, canAnswer, canCancel, busy, acceptLoc
   const owes = !isCard && !noCharge && order.remaining > 0
   // Tras un 409 CONFIRMING sin relectura buena (`acceptLocked`), el servidor ya está cobrando: botón y texto lo dicen.
   const confirming = order.cardStatus === 'CONFIRMING' || acceptLocked
+  // Con dinero (pagado o con abono) el servidor siempre contesta «cancélalo desde el POS»: el botón no se ofrece (igual que «Por pagar»).
+  const hasMoney = order.paymentStatus === 'PAID' || order.paymentStatus === 'PARTIAL' || order.remaining < order.total
   const isPending = order.status === 'PENDING_ACCEPTANCE'
   const isActive = order.status === 'ACCEPTED' || order.status === 'READY'
   const isDone = !isPending && !isActive
@@ -163,7 +165,7 @@ export function OrderCard({ order, skewMs, canAnswer, canCancel, busy, acceptLoc
               {t('inbox.actions.delivered')}
             </Button>
           )}
-          {canCancel && (
+          {canCancel && !hasMoney && (
             <Button variant="ghost" disabled={busy} onClick={() => onAction('cancel')}>
               {t('inbox.actions.cancel')}
             </Button>

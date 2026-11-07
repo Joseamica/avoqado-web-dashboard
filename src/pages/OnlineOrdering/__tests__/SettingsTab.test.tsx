@@ -37,9 +37,15 @@ vi.mock('@/pages/Customers/components/PrivacyNoticeModal', () => ({
 
 const getSettings = vi.fn()
 const updateSettings = vi.fn()
+const getToPay = vi.fn()
 vi.mock('@/services/onlineOrdering.service', async importOriginal => {
   const actual = await importOriginal<typeof import('@/services/onlineOrdering.service')>()
-  return { ...actual, getSettings: (...a: unknown[]) => getSettings(...a), updateSettings: (...a: unknown[]) => updateSettings(...a) }
+  return {
+    ...actual,
+    getSettings: (...a: unknown[]) => getSettings(...a),
+    updateSettings: (...a: unknown[]) => updateSettings(...a),
+    getToPay: (...a: unknown[]) => getToPay(...a),
+  }
 })
 
 import { SettingsTab } from '../components/SettingsTab'
@@ -95,6 +101,7 @@ describe('SettingsTab', () => {
   beforeEach(() => {
     getSettings.mockReset()
     updateSettings.mockReset()
+    getToPay.mockReset()
     toast.mockReset()
     access.denied = []
     access.role = 'ADMIN'
@@ -766,12 +773,24 @@ describe('SettingsTab', () => {
     await formularioCargado()
     const link = 'https://pedidos.avoqado.io/taqueria'
     expect(await screen.findByDisplayValue(link)).toBeInTheDocument()
-    expect(screen.getByTestId('qr')).toHaveAttribute('data-value', link)
+    expect(screen.getByTestId('qr')).toHaveAttribute('data-value', `${link}?canal=qr`)
     const snippet = screen.getByTestId('widget-snippet').textContent ?? ''
     expect(snippet).toContain('<script src="https://cdn.avoqado.io/widget.js" defer></script>')
     expect(snippet).toContain('<avoqado-order venue="taqueria"></avoqado-order>')
     expect(snippet).not.toContain('<iframe')
     expect(screen.getByTitle('settings.share.previewTitle')).toHaveAttribute('src', link)
+  })
+
+  it('el QR codifica <url>?canal=qr; la liga copiada no lo lleva', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true })
+    getSettings.mockResolvedValue(base())
+    renderTab()
+    await formularioCargado()
+    const link = 'https://pedidos.avoqado.io/taqueria'
+    expect(screen.getByTestId('qr')).toHaveAttribute('data-value', `${link}?canal=qr`)
+    await userEvent.click(screen.getByRole('button', { name: 'settings.share.copy' }))
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith(link))
   })
 
   // ── Ronda final · D3 (+ ronda 1): la vista previa sólo en los orígenes que la tienda deja enmarcar ──
@@ -830,5 +849,183 @@ describe('SettingsTab', () => {
     getSettings.mockRejectedValue(new Error('Network Error'))
     renderTab()
     expect(await screen.findByText('settings.loadFailed')).toBeInTheDocument()
+  })
+
+  // ── Tienda híbrida · D1: «¿Quién confirma los pedidos?» ──
+  describe('¿Quién confirma los pedidos?', () => {
+    const ago = (min: number) => new Date(Date.now() - min * 60_000).toISOString()
+    const week = Object.fromEntries(
+      ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map(d => [
+        d,
+        { enabled: true, ranges: [{ open: '07:00', close: '21:00' }] },
+      ]),
+    )
+    const nadie = (over: Record<string, unknown> = {}) => base({ requiresAcceptance: false, ...over })
+    const radio = (k: 'team' | 'noOne') => screen.getByRole('radio', { name: `settings.confirm.${k}.label` })
+
+    it('elegir «Nadie» manda sólo requiresAcceptance:false', async () => {
+      getSettings.mockResolvedValue(base({ requiresAcceptance: true }))
+      updateSettings.mockResolvedValue(nadie())
+      renderTab()
+      await formularioCargado()
+      expect(radio('team')).toBeChecked()
+      await userEvent.click(radio('noOne'))
+      await userEvent.click(screen.getByRole('button', { name: 'settings.save' }))
+      await waitFor(() => expect(updateSettings).toHaveBeenCalledWith('venue-1', { requiresAcceptance: false }))
+    })
+
+    it('cada opción trae su ayuda y su caminito', async () => {
+      getSettings.mockResolvedValue(base())
+      renderTab()
+      await formularioCargado()
+      for (const k of ['team', 'noOne']) {
+        expect(screen.getByText(`settings.confirm.${k}.help`)).toBeInTheDocument()
+        expect(screen.getByText(`settings.confirm.${k}.path`)).toBeInTheDocument()
+      }
+      expect(screen.queryByText('settings.confirm.noOneNote')).toBeNull()
+    })
+
+    it('R66 (a): sin ajustes guardados y el giro sugiere «Nadie»: viene marcado, «Sugerido para tu giro» y «Cambios sin guardar» hasta Guardar', async () => {
+      getSettings.mockResolvedValue(base({ requiresAcceptance: true, suggestedRequiresAcceptance: false, hasSavedSettings: false }))
+      updateSettings.mockResolvedValue(nadie({ suggestedRequiresAcceptance: false, hasSavedSettings: true }))
+      renderTab()
+      await formularioCargado()
+      await waitFor(() => expect(radio('noOne')).toBeChecked())
+      expect(screen.getByText('settings.confirm.suggested')).toBeInTheDocument()
+      expect(screen.getByText('settings.unsaved')).toBeInTheDocument()
+      await userEvent.click(screen.getByRole('button', { name: 'settings.save' }))
+      await waitFor(() => expect(updateSettings).toHaveBeenCalledWith('venue-1', { requiresAcceptance: false }))
+    })
+
+    it.each([[true], [undefined]])(
+      'R66 (b): hasSavedSettings=%s con «Mi equipo» guardado: se queda en «Mi equipo», sin «Cambios sin guardar», y guardar otro campo no manda requiresAcceptance',
+      async has => {
+        getSettings.mockResolvedValue(base({ requiresAcceptance: true, suggestedRequiresAcceptance: false, hasSavedSettings: has }))
+        updateSettings.mockResolvedValue(base({ minOrderAmount: 80 }))
+        renderTab()
+        await formularioCargado()
+        expect(radio('team')).toBeChecked()
+        expect(screen.queryByText('settings.unsaved')).toBeNull()
+        fireEvent.change(screen.getByLabelText('settings.minOrder'), { target: { value: '80' } })
+        await userEvent.click(screen.getByRole('button', { name: 'settings.save' }))
+        await waitFor(() => expect(updateSettings).toHaveBeenCalledWith('venue-1', { minOrderAmount: 80 }))
+      },
+    )
+
+    it('R66 (c): hasSavedSettings=true con «Nadie» guardado: «Nadie» marcado, sin marca de preselección', async () => {
+      getSettings.mockResolvedValue(nadie({ hasSavedSettings: true, suggestedRequiresAcceptance: true }))
+      renderTab()
+      await formularioCargado()
+      expect(radio('noOne')).toBeChecked()
+      expect(screen.queryByText('settings.unsaved')).toBeNull()
+      expect(screen.queryByText('settings.confirm.suggested')).toBeNull()
+    })
+
+    it('bajo «Nadie»: la nota de R51, «Pagar en caja» prendido y en gris, y la tarjeta en gris con su razón', async () => {
+      getSettings.mockResolvedValue(
+        nadie({ acceptsPayAtPickup: false, acceptsCardOnline: true, card: { enabled: true, merchantStatus: 'READY' } }),
+      )
+      renderTab()
+      await formularioCargado()
+      expect(screen.getByText('settings.confirm.noOneNote')).toBeInTheDocument()
+      const pay = screen.getByRole('switch', { name: 'settings.payAtPickup' })
+      expect(pay).toBeChecked()
+      expect(pay).toBeDisabled()
+      expect(screen.getByText('settings.confirm.payNoOne')).toBeInTheDocument()
+      const card = screen.getByRole('switch', { name: 'settings.cardOnline' })
+      expect(card).not.toBeChecked()
+      expect(card).toBeDisabled()
+      expect(screen.getByText('settings.confirm.cardNoOne')).toBeInTheDocument()
+    })
+
+    it('lista «Para recibir pedidos con Nadie»: horario y «Un aparato que cobra folios se conectó hace N min»', async () => {
+      getSettings.mockResolvedValue(nadie({ hours: week, lastToPayPollAt: ago(3) }))
+      renderTab()
+      await formularioCargado()
+      expect(screen.getByText('settings.confirm.checklistTitle')).toBeInTheDocument()
+      expect(screen.getByText('settings.confirm.hoursOk|settings.confirm.allWeek,07:00,21:00')).toBeInTheDocument()
+      expect(screen.getByText('settings.confirm.deviceOk|3')).toBeInTheDocument()
+      expect(screen.queryByText('settings.confirm.deviceMissing')).toBeNull()
+    })
+
+    it('sin aparato que cobre folios: avisa, dice qué hacer y «Encender la tienda» sale en gris con su razón', async () => {
+      getSettings.mockResolvedValue(nadie({ hours: week, lastToPayPollAt: null }))
+      renderTab()
+      await formularioCargado()
+      expect(screen.getByText('settings.confirm.deviceMissing')).toBeInTheDocument()
+      expect(screen.getByText('settings.confirm.deviceWhatToDo')).toBeInTheDocument()
+      expect(screen.getByRole('switch', { name: 'settings.enable' })).toBeDisabled()
+      expect(screen.getByText('settings.confirm.enableNoDevice')).toBeInTheDocument()
+      expect(screen.queryByText('settings.requirements.allSet')).toBeNull()
+    })
+
+    it('un aparato visto hace más de 7 días cuenta como ninguno', async () => {
+      getSettings.mockResolvedValue(nadie({ hours: week, lastToPayPollAt: ago(8 * 24 * 60) }))
+      renderTab()
+      await formularioCargado()
+      expect(screen.getByText('settings.confirm.deviceMissing')).toBeInTheDocument()
+    })
+
+    it('con aparato, «Encender» queda libre', async () => {
+      getSettings.mockResolvedValue(nadie({ hours: week, lastToPayPollAt: ago(1) }))
+      renderTab()
+      await formularioCargado()
+      expect(screen.getByRole('switch', { name: 'settings.enable' })).toBeEnabled()
+    })
+
+    it('sin horario, el renglón del horario pide ponerlo y liga al apartado de Horario', async () => {
+      getSettings.mockResolvedValue(nadie({ hours: null, lastToPayPollAt: ago(1) }))
+      renderTab()
+      await formularioCargado()
+      expect(screen.getByText('settings.confirm.hoursMissing')).toBeInTheDocument()
+      expect(screen.getByRole('link', { name: 'settings.confirm.hoursLink' })).toHaveAttribute('href', '#oo-hours-card')
+    })
+
+    it.each([
+      ['NO_FOLIO_DEVICE', 'settings.confirm.errors.NO_FOLIO_DEVICE'],
+      ['HOURS_REQUIRED', 'settings.confirm.errors.HOURS_REQUIRED'],
+      ['PAY_AT_PICKUP_REQUIRED', 'settings.confirm.errors.PAY_AT_PICKUP_REQUIRED'],
+    ])('el código %s muestra su texto traducido (no el del servidor)', async (code, text) => {
+      getSettings.mockResolvedValue(base())
+      updateSettings.mockRejectedValue({ response: { status: 409, data: { code, message: 'texto crudo del servidor' } } })
+      renderTab()
+      await formularioCargado()
+      await userEvent.click(radio('noOne'))
+      await userEvent.click(screen.getByRole('button', { name: 'settings.save' }))
+      expect(await screen.findByText(text)).toBeInTheDocument()
+      expect(screen.queryByText('texto crudo del servidor')).toBeNull()
+    })
+
+    it('volver a «Mi equipo» con folios por pagar avisa cuántos y que siguen en la terminal y el POS', async () => {
+      getSettings.mockResolvedValue(nadie({ hours: week, lastToPayPollAt: ago(1) }))
+      getToPay.mockResolvedValue({
+        counts: { toPay: 3, toDeliver: 0 },
+        toPay: [],
+        toDeliver: [],
+        nextCursors: { toPay: null, toDeliver: null },
+      })
+      renderTab()
+      await formularioCargado()
+      expect(screen.queryByText('settings.confirm.toPayNotice.title|3')).toBeNull()
+      await userEvent.click(radio('team'))
+      expect(await screen.findByText('settings.confirm.toPayNotice.title|3')).toBeInTheDocument()
+      expect(screen.getByText('settings.confirm.toPayNotice.body')).toBeInTheDocument()
+      expect(getToPay).toHaveBeenCalledWith('venue-1')
+    })
+
+    it('volver a «Mi equipo» sin folios por pagar no avisa nada', async () => {
+      getSettings.mockResolvedValue(nadie({ hours: week, lastToPayPollAt: ago(1) }))
+      getToPay.mockResolvedValue({
+        counts: { toPay: 0, toDeliver: 2 },
+        toPay: [],
+        toDeliver: [],
+        nextCursors: { toPay: null, toDeliver: null },
+      })
+      renderTab()
+      await formularioCargado()
+      await userEvent.click(radio('team'))
+      await waitFor(() => expect(getToPay).toHaveBeenCalled())
+      expect(screen.queryByText('settings.confirm.toPayNotice.body')).toBeNull()
+    })
   })
 })
