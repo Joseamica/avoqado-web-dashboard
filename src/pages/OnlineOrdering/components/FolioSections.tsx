@@ -34,6 +34,8 @@ interface Props {
   /** Ids que ve la Bandeja (para podar ocultos de folios que ya no están en ninguna lista); sin ella no se poda. */
   inboxIds?: string[]
   onPrune?: (ids: string[]) => void
+  /** Ids presentes en «Por entregar» (to-pay y sus extras, sin contar ocultos): la Bandeja sólo oculta de «Listos» lo que sí se ve aquí. */
+  onDeliverIds?: (ids: string[]) => void
   onAct: (order: FolioOrder, action: FolioAction) => void
 }
 
@@ -48,6 +50,7 @@ export function FolioSections({
   actionsLocked = false,
   inboxIds,
   onPrune,
+  onDeliverIds,
   onAct,
 }: Props) {
   const { t } = useTranslation('onlineOrdering')
@@ -97,6 +100,13 @@ export function FolioSections({
     return () => clearInterval(id)
   }, [])
 
+  const deliverKey = [...(data?.toDeliver ?? []), ...more.toDeliver.items]
+    .map(o => o.orderId)
+    .sort()
+    .join('|')
+  useEffect(() => {
+    onDeliverIds?.(deliverKey ? deliverKey.split('|') : [])
+  }, [deliverKey, onDeliverIds])
   // Poda: un ocultar cuyo folio ya no está en NINGUNA lista (to-pay, sus extras ni la Bandeja) se suelta. Sin lectura buena no se poda.
   const prunable = !isError && data !== undefined && inboxIds !== undefined
   useEffect(() => {

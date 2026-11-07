@@ -99,6 +99,9 @@ export function InboxTab() {
   // 409) lo traiga sin `cardStatus: 'CONFIRMING'`. Una relectura fallida no mueve `dataUpdatedAt`: sigue apagado.
   const [confirmingSince, setConfirmingSince] = useState<Record<string, number>>({})
   // Folios de «Nadie» ya tocados con éxito: salen de «Por pagar»/«Por entregar» sin esperar al sondeo.
+  // Folios presentes en «Por entregar» (los reporta FolioSections): sólo esos salen de «En preparación» y «Listos» (R99).
+  const [deliverIds, setDeliverIds] = useState<ReadonlySet<string>>(new Set())
+  const reportDeliverIds = useCallback((ids: string[]) => setDeliverIds(new Set(ids)), [])
   const [touched, setTouched] = useState<ReadonlyMap<string, FolioHide>>(new Map())
   const [soundOn, setSoundOn] = useState(readSoundPref)
   const [, rerender] = useReducer((n: number) => n + 1, 0)
@@ -305,6 +308,7 @@ export function InboxTab() {
       busy={action.isPending}
       hidden={touched}
       actionsLocked={isError}
+      onDeliverIds={reportDeliverIds}
       inboxIds={data ? [...data.orders, ...activeMore.items].map(o => o.orderId) : undefined}
       onPrune={ids =>
         setTouched(m => {
@@ -412,7 +416,7 @@ export function InboxTab() {
           const all = [...data.orders, ...activeMore.items.filter(o => !seen.has(o.orderId))]
           // «En preparación» y «Listos» no repiten los folios de «Nadie» (R98): se ven una vez, en «Por entregar».
           const isActive = section.key === 'accepted' || section.key === 'ready'
-          const isFolio = (o: InboxOrder) => isActive && o.requiresAcceptance === false
+          const isFolio = (o: InboxOrder) => isActive && o.requiresAcceptance === false && deliverIds.has(o.orderId)
           const list = all.filter(o => section.match(o.status) && !isFolio(o))
           const excluded = all.filter(o => section.match(o.status) && isFolio(o)).length
           const total =
