@@ -89,6 +89,8 @@ import { getDisplayModeRefetchInterval } from './components/DisplayModeRequestCo
 import { MessagesTab } from './components/MessagesTab'
 import { RemoteCommandPanel } from './components/RemoteCommandPanel'
 import { CustomerDisplaySection } from './customer-display/CustomerDisplaySection'
+import { DeviceRoleSummary, type DeviceMenusDeLaFicha } from './components/DeviceRoleSummary'
+import { papelDelAparato, type AreaDeLaFicha } from './papelDelAparato'
 import { canActivate, canConfigurePayments, canSendCommand, getDeviceActionPolicy } from './deviceCapabilities'
 import { DeviceBatteryCell, DeviceIcon, DeviceIdCell, DeviceStatusPill, DeviceSystemCell } from './components/DeviceListCells'
 import { useDeviceSubtitle } from './components/useDeviceListLabels'
@@ -140,6 +142,13 @@ interface TpvData {
   capabilities: EffectiveDeviceCapabilities
   customerDisplayRequest?: DisplayModeRequest | null
   selfRegistered?: boolean
+  // Aparatos claros (Paso 1): qué hace en un negocio con vales y qué menú muestra. Un SERVIDOR viejo no los manda.
+  canIssueAreaTickets?: boolean
+  canCheckoutAreaTickets?: boolean
+  defaultWorkspace?: string
+  fulfillmentArea?: AreaDeLaFicha | null
+  areaTicketsEnabled?: boolean
+  deviceMenus?: DeviceMenusDeLaFicha
   systemInfo?: {
     platform?: string
     memory?: {
@@ -321,6 +330,7 @@ function TpvIdContent() {
   const isError = falloDeCarga(tpvQuery)
 
   const actionPolicy = getDeviceActionPolicy(tpv?.capabilities, tpv?.activatedAt, tpv?.type)
+  const papel = tpv ? papelDelAparato(tpv) : null
 
   useEffect(() => {
     if (!tpv) return
@@ -983,6 +993,8 @@ function TpvIdContent() {
             )}
           </div>
 
+          <DeviceRoleSummary papel={papel} deviceMenus={tpv.deviceMenus} fullBasePath={fullBasePath} />
+
           <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
             <div className="flex items-center gap-6 border-b border-border">
               <button onClick={() => handleTabChange('info')} className={tabClass('info')}>
@@ -1036,6 +1048,7 @@ function TpvIdContent() {
                       customerDisplayRequest={tpv.customerDisplayRequest}
                       canUpdateDevice={canUpdate}
                       lastHeartbeat={tpv.lastHeartbeat ?? null}
+                      noCobra={papel?.noCobra ?? false}
                     />
                   )}
 

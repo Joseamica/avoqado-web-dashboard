@@ -196,6 +196,13 @@
       "selected": "Selected: {{name}}",
       "productLabel": "Product {{index}}",
       "removeProduct": "Remove product {{index}}"
+    },
+    "soloVale": {
+      "note_one": "{{areas}} only prints the voucher (no kitchen ticket): its categories don’t need a kitchen printer.",
+      "note_other": "{{areas}} only print the voucher (no kitchen ticket): their categories don’t need a kitchen printer.",
+      "change": "Change in Area tickets",
+      "badge": "Voucher only · no kitchen ticket",
+      "crossSale": "If one of these products is charged without a voucher (from Tables, when splitting a check or on another device), its kitchen ticket goes to the product’s or its category’s station; if neither has one, it prints marked SIN ESTACIÓN."
     }
   },
   "kitchenDisplay": {

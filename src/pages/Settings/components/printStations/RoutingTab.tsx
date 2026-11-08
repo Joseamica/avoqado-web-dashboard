@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { AlertTriangle, ChevronDown, ChevronRight, Loader2, Save } from 'lucide-react'
+import { AlertTriangle, ChevronDown, ChevronRight, Loader2, Save, TicketCheck } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -12,8 +13,12 @@ import { falloDeCarga } from '@/lib/falloDeCarga'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useToast } from '@/hooks/use-toast'
 import { useTerminology } from '@/hooks/use-terminology'
+import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { useAccess } from '@/hooks/use-access'
+import { lista } from '@/pages/StaffPay/cuenta'
 import { getPrintStations, getRouting, updateRouting, type PrintStation, type RoutingPagination } from '@/services/printStations.service'
 import { RoutingSimulator } from './RoutingSimulator'
+import { muestraSoloVale, resumenDelRuteo } from './soloVale'
 
 const NULL_OPT = '__null__'
 type Draft = Record<string, { original: string | null; value: string | null }>
@@ -177,7 +182,9 @@ export function RoutingTab({ venueId }: { venueId: string }) {
   return <RoutingEditor key={venueId} venueId={venueId} />
 }
 function RoutingEditor({ venueId }: { venueId: string }) {
-  const { t } = useTranslation('printStations')
+  const { t, i18n } = useTranslation('printStations')
+  const { fullBasePath } = useCurrentVenue()
+  const { can } = useAccess()
   const { term } = useTerminology()
   const { toast } = useToast()
   const qc = useQueryClient()
@@ -193,6 +200,8 @@ function RoutingEditor({ venueId }: { venueId: string }) {
     enabled: !!venueId,
     placeholderData: keepPreviousData,
     ...queryOptions,
+    // «Sólo vale» depende de áreas, aparatos y menús que se cambian en otras pantallas: al abrir el Ruteo se relee (Codex r1 #3).
+    refetchOnMount: 'always',
   })
   const stationQuery = useQuery({
     queryKey: ['printStations', venueId],
@@ -220,6 +229,11 @@ function RoutingEditor({ venueId }: { venueId: string }) {
       toast({ title: t('errors.title'), description: e?.response?.data?.message ?? t('errors.generic'), variant: 'destructive' }),
   })
   const data = query.data
+  const resumen = useMemo(() => (data ? resumenDelRuteo(data) : null), [data])
+  const listaDeAreas = useMemo(
+    () => lista((resumen?.areas ?? []).map(a => a.name), i18n.language),
+    [resumen, i18n.language],
+  )
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">{t('routing.intro', { menu: term('menu') })}</p>
@@ -234,12 +248,29 @@ function RoutingEditor({ venueId }: { venueId: string }) {
           setExpanded(null)
         }}
       />
-      {data && (
+      {data && resumen && (
         <>
-          <Badge variant={data.unroutedCategories > 0 ? 'outline' : 'secondary'}>
-            {data.unroutedCategories > 0 ? t('routing.unroutedBadge', { count: data.unroutedCategories }) : t('routing.allRouted')}
+          <Badge variant={resumen.sinRuta > 0 ? 'outline' : 'secondary'}>
+            {/* Con «Sólo vale» no se dice «todas tienen ruta»: las de esas áreas no la tienen, ni la necesitan. */}
+            {resumen.sinRuta > 0 || resumen.conSoloVale
+              ? t('routing.unroutedBadge', { count: resumen.sinRuta })
+              : t('routing.allRouted')}
           </Badge>
-          {!data.hasDefault && (
+          {resumen.conSoloVale && (
+            <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground" data-tour="print-routing-solo-vale-note">
+              <TicketCheck className="h-4 w-4 shrink-0" aria-hidden="true" />
+              <span>{t('routing.soloVale.note', { areas: listaDeAreas, count: resumen.areas.length })}</span>
+              {can('area-tickets:configure') && (
+                <Link to={`${fullBasePath}/settings/area-tickets#areas`} className="font-medium text-foreground underline underline-offset-4">
+                  {t('routing.soloVale.change')}
+                </Link>
+              )}
+              {/* Codex r1 #1: el menú del aparato sólo filtra la cuadrícula; buscar o escanear vende todo. Se dice, sin alarmar, y
+                  sólo sin estación por defecto: con ella esa comanda va a la estación por defecto (Codex r2 #4). */}
+              {!data.hasDefault && <span className="basis-full pl-6 text-xs">{t('routing.soloVale.crossSale')}</span>}
+            </p>
+          )}
+          {resumen.avisoSinDefault && (
             <div className="flex items-start gap-3 rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 text-sm">
               <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" />
               <div>
@@ -295,11 +326,17 @@ function RoutingEditor({ venueId }: { venueId: string }) {
                         {t('routing.lists.productsTotal', { count: category.productCount ?? 0 })}
                       </span>
                     </div>
-                    <StationSelect
-                      stations={stations}
-                      value={category.id in catDraft ? catDraft[category.id].value : category.printStationId}
-                      onChange={value => setCatDraft(s => edit(s, category.id, category.printStationId, value))}
-                    />
+                    {muestraSoloVale(category) ? (
+                      <Badge variant="secondary" className="h-9 w-56 justify-center rounded-md font-normal" data-tour="print-routing-solo-vale">
+                        {t('routing.soloVale.badge')}
+                      </Badge>
+                    ) : (
+                      <StationSelect
+                        stations={stations}
+                        value={category.id in catDraft ? catDraft[category.id].value : category.printStationId}
+                        onChange={value => setCatDraft(s => edit(s, category.id, category.printStationId, value))}
+                      />
+                    )}
                   </div>
                   {expanded === category.id && (
                     <CategoryProducts

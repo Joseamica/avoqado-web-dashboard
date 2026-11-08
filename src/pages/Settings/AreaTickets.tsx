@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { AlertTriangle, ArrowRight, Loader2, Plus, Scale, ScanBarcode, TicketCheck } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 
 import { AvisoDeCarga, BotonReintentar } from '@/components/AvisoDeCarga'
 import { falloDeCarga } from '@/lib/falloDeCarga'
@@ -99,16 +99,28 @@ function SettingRow({
   )
 }
 
+// Las pestañas viven en el hash (ui-patterns.md): la ficha del aparato y el Ruteo enlazan directo a #terminals y #areas.
+const PESTANAS = ['flow', 'areas', 'terminals', 'scales', 'operations'] as const
+
 export default function AreaTickets() {
   const { t } = useTranslation('settings')
   const { venueId, fullBasePath } = useCurrentVenue()
+  const location = useLocation()
+  const navigateTab = useNavigate()
+  const delHash = location.hash.replace('#', '')
+  const pestana = (PESTANAS as readonly string[]).includes(delHash) ? delHash : 'flow'
   const queryClient = useQueryClient()
   const overviewQuery = useQuery({
     queryKey: ['area-ticket-overview', venueId],
     queryFn: () => getAreaTicketOverview(venueId!),
     enabled: Boolean(venueId),
   })
-  const refresh = () => queryClient.invalidateQueries({ queryKey: ['area-ticket-overview', venueId] })
+  const refresh = () => {
+    // Aparatos claros: la ficha de cada aparato dice su papel y su comanda, y el Ruteo cuenta «Sólo vale» con estos datos.
+    void queryClient.invalidateQueries({ queryKey: ['tpv', venueId] })
+    void queryClient.invalidateQueries({ queryKey: ['printRouting', venueId] })
+    return queryClient.invalidateQueries({ queryKey: ['area-ticket-overview', venueId] })
+  }
 
   if (!venueId) return null
   if (overviewQuery.isLoading) {
@@ -153,7 +165,7 @@ export default function AreaTickets() {
         </div>
       </div>
 
-      <Tabs defaultValue="flow">
+      <Tabs value={pestana} onValueChange={v => navigateTab(`${location.pathname}#${v}`, { replace: true })}>
         <TabsList className="inline-flex h-auto flex-wrap items-center justify-start rounded-full border border-border bg-muted/60 p-1 text-muted-foreground">
           <TabsTrigger value="flow" className={tabTriggerClass}>
             Flujo

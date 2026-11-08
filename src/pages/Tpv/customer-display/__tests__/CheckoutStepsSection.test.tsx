@@ -261,3 +261,28 @@ describe('CheckoutStepsSection', () => {
     expect(await screen.findByText('steps.receiptNeedsUpdate')).toBeInTheDocument()
   })
 })
+
+describe('Aparatos claros: un aparato que no cobra', () => {
+  it('los pasos se ven en gris con el aviso, y se pueden seguir cambiando', async () => {
+    permisos.add('tpv-settings:read').add('tpv-settings:update')
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
+    const user = userEvent.setup()
+    render(
+      <QueryClientProvider client={qc}>
+        <CheckoutStepsSection tpvId="t1" deviceType="POS_ANDROID" versionName={null} noCobra />
+      </QueryClientProvider>,
+    )
+    expect(screen.getByText('steps.notCharging')).toBeInTheDocument()
+    expect(screen.getByTestId('checkout-steps-dimmed')).toHaveClass('opacity-60')
+    await user.click(await screen.findByRole('switch', { name: 'steps.tip' }))
+    await waitFor(() => expect(servicio.updateSettings).toHaveBeenCalledWith('t1', { showTipScreen: false }))
+  })
+
+  it('un aparato que cobra no lleva aviso ni gris', async () => {
+    permisos.add('tpv-settings:read')
+    pintar()
+    await screen.findByRole('switch', { name: 'steps.tip' })
+    expect(screen.queryByText('steps.notCharging')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('checkout-steps-dimmed')).not.toBeInTheDocument()
+  })
+})
