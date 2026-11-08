@@ -22,6 +22,9 @@ vi.mock('@/services/printStations.service', async original => ({
 }))
 vi.mock('@/hooks/use-tier-feature-access', () => ({ useTierFeatureAccess: () => ({ hasAccess: true }) }))
 vi.mock('@/hooks/use-terminology', () => ({ useTerminology: () => ({ term: (k: string) => k }) }))
+// Aparatos claros: la nota «Sólo vale» enlaza a Vales por área (necesita la ruta del negocio y el permiso).
+vi.mock('@/hooks/use-current-venue', () => ({ useCurrentVenue: () => ({ fullBasePath: '/venues/v1' }) }))
+vi.mock('@/hooks/use-access', () => ({ useAccess: () => ({ can: () => true }) }))
 beforeAll(async () => {
   Element.prototype.hasPointerCapture = () => false
   Element.prototype.releasePointerCapture = () => {}

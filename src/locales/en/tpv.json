@@ -1064,7 +1064,25 @@
     "activateWithoutCode": "Activate without code",
     "activateWithoutCodeHint": "Pending: once turned on it will go in without asking for a code.",
     "activatedWithoutCode": "Terminal activated",
-    "activatedWithoutCodeDesc": "It will go in without a code when it's turned on with internet."
+    "activatedWithoutCodeDesc": "It will go in without a code when it's turned on with internet.",
+    "role": {
+      "issues": "Issues tickets",
+      "issuesArea": "for {{area}}",
+      "charges": "Charges",
+      "comandaOff": "No kitchen ticket",
+      "comandaOffDetail": "when issuing, only the voucher prints",
+      "comandaOn": "Sends kitchen ticket",
+      "comandaOnDetail": "to the kitchen, besides the voucher",
+      "menu": "Menu",
+      "allMenus": "All menus",
+      "menuNeedsUpdate": "Applies once this device updates its app.",
+      "change": "Change",
+      "emitirSinEfecto": {
+        "sinArea": "«Issue tickets» is on, but it has no area: today it charges like a regular POS.",
+        "areaApagada": "«Issue tickets» is on, but its area is turned off: today it charges like a regular POS.",
+        "sinPantallaDeVales": "«Issue tickets» is on, but it doesn’t open on the tickets screen: today it charges like a regular POS."
+      }
+    }
   },
   "newTerminal": {
     "title": "New terminal",

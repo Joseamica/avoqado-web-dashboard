@@ -191,6 +191,7 @@
     "saveError": "No se pudo guardar el cambio.",
     "uncertainTitle": "No sabemos si se guardó",
     "uncertain": "No sabemos si el cambio se guardó: estamos revisando lo que quedó guardado.",
-    "unconfirmed": "Sin confirmar"
+    "unconfirmed": "Sin confirmar",
+    "notCharging": "Este aparato emite vales: lo normal es que el vale lo cobre la caja. Estos pasos sólo se usan si se cobra aquí mismo (por ejemplo, al dividir una cuenta o desde Mesas)."
   }
 }

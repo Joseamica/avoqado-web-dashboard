@@ -191,6 +191,7 @@
     "saveError": "The change couldn't be saved.",
     "uncertainTitle": "We don't know if it was saved",
     "uncertain": "We don't know if the change was saved: checking what was actually saved.",
-    "unconfirmed": "Unconfirmed"
+    "unconfirmed": "Unconfirmed",
+    "notCharging": "This device issues tickets: normally the register charges them. These steps are only used if you charge here (for example, when splitting a check or from Tables)."
   }
 }

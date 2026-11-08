@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { AlertTriangle, Loader2, Plus, X } from 'lucide-react'
+import { AlertTriangle, Info, Loader2, Plus, X } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Badge } from '@/components/ui/badge'
@@ -32,6 +32,8 @@ export interface CheckoutStepsSectionProps {
   tpvId: string
   deviceType: string | undefined
   versionName: string | null
+  /** Aparatos claros: el aparato sólo emite vales, así que estos pasos hoy no se usan. Se ven en gris y se pueden cambiar igual. */
+  noCobra?: boolean
 }
 
 /**
@@ -42,7 +44,7 @@ export interface CheckoutStepsSectionProps {
  * no se adivina: se olvida lo supuesto, cada paso se ve «sin confirmar» y se relee lo que el server tiene.
  * La clave de caché es A PROPÓSITO la de `TpvSettingsForm` (`['tpvSettings', id]`): las dos pantallas leen la misma ficha.
  */
-export function CheckoutStepsSection({ tpvId, deviceType, versionName }: CheckoutStepsSectionProps) {
+export function CheckoutStepsSection({ tpvId, deviceType, versionName, noCobra = false }: CheckoutStepsSectionProps) {
   const { t } = useTranslation('customerDisplay')
   const { can } = useAccess()
   const { toast } = useToast()
@@ -122,6 +124,16 @@ export function CheckoutStepsSection({ tpvId, deviceType, versionName }: Checkou
   return (
     <div data-tour="customer-display-steps" className="space-y-3">
       <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t('steps.title')}</h3>
+      {noCobra && (
+        <p
+          className="flex items-start gap-2 rounded-lg border border-(--info-border) bg-(--info-muted) px-3 py-2 text-sm text-(--info-foreground)"
+          data-tour="customer-display-steps-not-charging"
+        >
+          <Info className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+          {t('steps.notCharging')}
+        </p>
+      )}
+      <div className={noCobra ? 'space-y-3 opacity-60' : 'space-y-3'} data-testid={noCobra ? 'checkout-steps-dimmed' : undefined}>
       {!puedeVer ? (
         <p className="text-sm text-muted-foreground">{t('steps.noReadPermission')}</p>
       ) : sinConfirmar ? (
@@ -253,6 +265,7 @@ export function CheckoutStepsSection({ tpvId, deviceType, versionName }: Checkou
           <p className="text-xs text-muted-foreground">{t(puedeCambiar ? 'steps.footer' : 'steps.readOnly')}</p>
         </>
       )}
+      </div>
     </div>
   )
 }

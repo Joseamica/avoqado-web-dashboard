@@ -1085,7 +1085,25 @@
     "activateWithoutCode": "Activar sin código",
     "activateWithoutCodeHint": "Pendiente: al encenderla entrará sin pedir código.",
     "activatedWithoutCode": "Terminal activada",
-    "activatedWithoutCodeDesc": "Entrará sin pedir código cuando se encienda y tenga internet."
+    "activatedWithoutCodeDesc": "Entrará sin pedir código cuando se encienda y tenga internet.",
+    "role": {
+      "issues": "Emite vales",
+      "issuesArea": "de {{area}}",
+      "charges": "Cobra",
+      "comandaOff": "Sin comanda",
+      "comandaOffDetail": "al emitir, sale sólo el vale",
+      "comandaOn": "Manda comanda",
+      "comandaOnDetail": "a cocina, además del vale",
+      "menu": "Menú",
+      "allMenus": "Todos los menús",
+      "menuNeedsUpdate": "Se aplica al actualizar la app de este aparato.",
+      "change": "Cambiar",
+      "emitirSinEfecto": {
+        "sinArea": "Tiene «Emitir vales» prendido, pero sin área: hoy cobra como un punto de venta normal.",
+        "areaApagada": "Tiene «Emitir vales» prendido, pero su área está apagada: hoy cobra como un punto de venta normal.",
+        "sinPantallaDeVales": "Tiene «Emitir vales» prendido, pero no abre en la pantalla de vales: hoy cobra como un punto de venta normal."
+      }
+    }
   },
   "newTerminal": {
     "title": "Nueva terminal",

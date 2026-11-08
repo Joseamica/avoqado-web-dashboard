@@ -73,6 +73,8 @@ export interface RoutingCategory {
   id: string
   name: string
   printStationId: string | null
+  /** Aparatos claros: sus productos los vende una PC de un área de vales SIN comanda (sólo sacan vale). Un SERVIDOR viejo no lo manda. */
+  areaTicketOnly?: boolean
 }
 
 export interface RoutingProduct {
@@ -91,6 +93,10 @@ export interface RoutingData {
   products: RoutingProduct[]
   unroutedCategories: number
   hasDefault: boolean
+  /** Aparatos claros: de las `unroutedCategories`, cuántas son «Sólo vale». Sólo viene si el negocio tiene alguna. */
+  areaTicketOnlyUnrouted?: number
+  /** Aparatos claros: las áreas sin comanda que dejan categorías «Sólo vale», por nombre. */
+  areasWithoutComanda?: Array<{ id: string; name: string }>
 }
 
 export interface PreviewPlan {

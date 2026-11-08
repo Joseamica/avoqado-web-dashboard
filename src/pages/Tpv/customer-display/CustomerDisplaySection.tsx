@@ -20,6 +20,8 @@ export interface CustomerDisplaySectionProps {
   canUpdateDevice: boolean
   /** El latido de la página (el del encabezado, refrescado por socket): la tarjeta lo usa en vez de su foto (Codex #3). */
   lastHeartbeat?: string | null
+  /** Aparatos claros: el aparato sólo emite vales; sus pasos del cobro se ven en gris con el aviso (se pueden cambiar igual). */
+  noCobra?: boolean
 }
 
 /**
@@ -60,7 +62,12 @@ export function CustomerDisplaySection(props: CustomerDisplaySectionProps) {
       {superficie !== 'ninguna' && (
         <>
           <Separator />
-          <CheckoutStepsSection tpvId={props.terminalId} deviceType={props.deviceType} versionName={props.versionName} />
+          <CheckoutStepsSection
+            tpvId={props.terminalId}
+            deviceType={props.deviceType}
+            versionName={props.versionName}
+            noCobra={props.noCobra}
+          />
         </>
       )}
 

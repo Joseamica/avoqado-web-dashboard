@@ -292,6 +292,9 @@ function DeviceMenusRow({
       )
       // Sin `return`: si se esperara la relectura, el selector seguiría bloqueado hasta que contestara.
       queryClient.invalidateQueries({ queryKey: ['device-menus', venueId] })
+      // Aparatos claros: la ficha de este aparato dice su menú y el Ruteo cuenta «Sólo vale» por el menú de cada PC.
+      queryClient.invalidateQueries({ queryKey: ['tpv', venueId, row.id] })
+      queryClient.invalidateQueries({ queryKey: ['printRouting', venueId] })
       toast({ title: t('deviceMenus.guardado') })
     },
     onError: (error: any) => {

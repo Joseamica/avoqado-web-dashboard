@@ -196,6 +196,13 @@
       "selected": "Seleccionado: {{name}}",
       "productLabel": "Producto {{index}}",
       "removeProduct": "Quitar producto {{index}}"
+    },
+    "soloVale": {
+      "note_one": "{{areas}} sólo saca vale (sin comanda): sus categorías no necesitan impresora de cocina.",
+      "note_other": "{{areas}} sólo sacan vale (sin comanda): sus categorías no necesitan impresora de cocina.",
+      "change": "Cambiar en Vales por área",
+      "badge": "Sólo vale · sin comanda",
+      "crossSale": "Si uno de estos productos se cobra sin vale (desde Mesas, al dividir una cuenta o en otro aparato), su comanda va a la estación del producto o, si no tiene, sale marcada SIN ESTACIÓN."
     }
   },
   "kitchenDisplay": {
