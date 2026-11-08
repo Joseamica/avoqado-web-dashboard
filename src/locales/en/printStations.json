@@ -202,7 +202,7 @@
       "note_other": "{{areas}} only print the voucher (no kitchen ticket): their categories don’t need a kitchen printer.",
       "change": "Change in Area tickets",
       "badge": "Voucher only · no kitchen ticket",
-      "crossSale": "If one of these products is charged without a voucher (from Tables, when splitting a check or on another device), its kitchen ticket goes to the product’s station or, if it has none, prints marked SIN ESTACIÓN."
+      "crossSale": "If one of these products is charged without a voucher (from Tables, when splitting a check or on another device), its kitchen ticket goes to the product’s or its category’s station; if neither has one, it prints marked SIN ESTACIÓN."
     }
   },
   "kitchenDisplay": {

@@ -64,7 +64,7 @@ describe('Ruteo con «Sólo vale»', () => {
     expect(screen.getByText('0 categorías sin ruta')).toBeInTheDocument()
     expect(screen.queryByText('Sin estación por defecto')).toBeNull()
     expect(screen.getByText(/Cremería y Panadería sólo sacan vale/)).toBeInTheDocument()
-    expect(screen.getByText(/se cobra sin vale .*si no tiene, sale marcada SIN ESTACIÓN/)).toBeInTheDocument()
+    expect(screen.getByText(/se cobra sin vale .*estación del producto o de su categoría; si ninguna tiene, sale marcada SIN ESTACIÓN/)).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Cambiar en Vales por área' })).toHaveAttribute('href', '/venues/galeterie/settings/area-tickets#areas')
   })
 
