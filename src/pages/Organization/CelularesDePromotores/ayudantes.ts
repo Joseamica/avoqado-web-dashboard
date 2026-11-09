@@ -30,9 +30,25 @@ export function useUnaALaVez() {
   }, [])
 }
 
-/** En la sucursal el PIN es de UNA sucursal: la de la pantalla si la persona está ahí; si no, la primera suya. */
+/**
+ * En la sucursal el PIN es de UNA sucursal: la de la pantalla, y si la persona no la tiene no hay dónde ponerlo (undefined).
+ * En la organización (sin `venueIdInicial`) basta con la primera suya.
+ */
 export function sucursalDelPin(fila: FilaDePromotor, venueIdInicial?: string): SucursalDelPromotor | undefined {
-  return fila.sucursales.find(s => s.venueId === venueIdInicial) ?? fila.sucursales[0]
+  return venueIdInicial ? fila.sucursales.find(s => s.venueId === venueIdInicial) : fila.sucursales[0]
+}
+
+/**
+ * Un 422 `NO_SE_PUDO_APLICAR` trae el rechazo en `details.rechazo` (`{ code, message }`) o, si la persona ya no tiene
+ * asignación, `details.motivo = PERSONA_SIN_ASIGNACION`. Devuelve el mensaje en llano y si hay que sugerir reactivar.
+ */
+export function rechazoDeAplicar(err: unknown): { message: string; sinAsignacion: boolean } | null {
+  const data = (err as { response?: { data?: { code?: string; message?: string; details?: Record<string, unknown> } } } | null)?.response
+    ?.data
+  if (data?.code !== 'NO_SE_PUDO_APLICAR') return null
+  const rechazo = data.details?.rechazo as { code?: string; message?: string } | undefined
+  const sinAsignacion = rechazo?.code === 'PERSONA_SIN_ASIGNACION' || data.details?.motivo === 'PERSONA_SIN_ASIGNACION'
+  return { message: rechazo?.message ?? data.message ?? '', sinAsignacion }
 }
 
 /** «Cambiar PIN» si ya tiene uno donde se va a poner; en la organización, si tiene uno en alguna sucursal. */

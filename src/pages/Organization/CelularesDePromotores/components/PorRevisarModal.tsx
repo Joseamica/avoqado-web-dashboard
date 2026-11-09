@@ -29,7 +29,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import type { ColumnDef, PaginationState } from '@tanstack/react-table'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { mensajeDelServidor, useUnaALaVez } from '../ayudantes'
+import { mensajeDelServidor, rechazoDeAplicar, useUnaALaVez } from '../ayudantes'
 
 const PAGE_SIZE = 20
 const ESTADOS: EstadoDelRetenido[] = ['PENDIENTE', 'APLICANDO', 'APLICADO', 'DESCARTADO']
@@ -56,9 +56,7 @@ export function PorRevisarModal({ orgId, open, onClose, venueId }: PorRevisarMod
   // Arranca en «Sin resolver» (PENDIENTE y APLICANDO), lo mismo que cuenta el botón; null = todos.
   const [estado, setEstado] = useState<string | null>(SIN_RESOLVER)
   const etiquetaDeEstado = (v: string) =>
-    v === SIN_RESOLVER
-      ? t('celulares.porRevisar.sinResolver', { defaultValue: 'Sin resolver' })
-      : t(`celulares.porRevisar.estado.${v}`)
+    v === SIN_RESOLVER ? t('celulares.porRevisar.sinResolver', { defaultValue: 'Sin resolver' }) : t(`celulares.porRevisar.estado.${v}`)
 
   const params = { venueId, estado: estado ?? undefined, page: pagination.pageIndex + 1, pageSize: PAGE_SIZE }
   const retenidosQuery = useQuery({
@@ -90,10 +88,18 @@ export function PorRevisarModal({ orgId, open, onClose, venueId }: PorRevisarMod
     onError: err => {
       // 409/422 traen su razón en llano (p. ej. «Vuelve a tocar Aplicar para terminarla»).
       queryClient.invalidateQueries({ queryKey: ['celulares-de-campo', orgId, 'retenidos'] })
+      const rechazo = rechazoDeAplicar(err)
       toast({
         variant: 'destructive',
         title: t('celulares.porRevisar.error', { defaultValue: 'No se pudo resolver' }),
-        description: mensajeDelServidor(err),
+        description: rechazo
+          ? [
+              rechazo.message,
+              rechazo.sinAsignacion && t('celulares.porRevisar.reactivar', { defaultValue: 'Reactívala en esa sucursal o descártalo.' }),
+            ]
+              .filter(Boolean)
+              .join(' ')
+          : mensajeDelServidor(err),
       })
     },
   })
@@ -116,7 +122,9 @@ export function PorRevisarModal({ orgId, open, onClose, venueId }: PorRevisarMod
         header: t('celulares.porRevisar.columnas.que', { defaultValue: 'Qué es' }),
         cell: ({ row }) => (
           <div>
-            <p className="text-sm font-medium">{t(`celulares.porRevisar.tipo.${row.original.tipo}`, { defaultValue: row.original.tipo })}</p>
+            <p className="text-sm font-medium">
+              {t(`celulares.porRevisar.tipo.${row.original.tipo}`, { defaultValue: row.original.tipo })}
+            </p>
             <p className="text-xs text-muted-foreground">{row.original.resumen}</p>
             <p className="text-xs text-muted-foreground">{formatDateTime(row.original.createdAt)}</p>
           </div>

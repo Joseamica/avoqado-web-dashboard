@@ -1694,7 +1694,8 @@
       "sinPromotores": "Todavía no hay promotores",
       "sinPromotoresTexto": "Aparecen aquí las personas que venden en las sucursales con inventario serializado.",
       "sinResultados": "Nadie coincide con los filtros",
-      "quitarFiltros": "Quitar filtros"
+      "quitarFiltros": "Quitar filtros",
+      "sinPromotoresSucursal": "Todavía no hay promotores en esta sucursal"
     },
     "codigo": {
       "titulo": "Código de {{nombre}}",
@@ -1732,7 +1733,10 @@
       "descripcion": "¿Desvincular el celular de {{nombre}}? El celular deja de vender y checar en este momento. Lo que tenga por subir ({{n}}) se acepta durante 24 horas; lo demás queda en «Por revisar».",
       "hecho": "Celular desvinculado",
       "yaEstaba": "Ese celular ya estaba desvinculado",
-      "error": "No se pudo desvincular"
+      "error": "No se pudo desvincular",
+      "perdido": "Lo perdió o se lo robaron (no se acepta nada solo)",
+      "descripcionPerdido": "Todo lo que llegue de ese celular queda en «Por revisar».",
+      "descripcionPerdidoIntro": "¿Desvincular el celular de {{nombre}}? El celular deja de vender y checar en este momento."
     },
     "porRevisar": {
       "boton": "Por revisar ({{n}})",
@@ -1766,7 +1770,8 @@
         "NO_REPORTADA": "El celular no la había reportado antes de desvincularse.",
         "SIN_PERMISO": "La persona no tiene permiso para esto en esa sucursal.",
         "RECHAZADO": "No se pudo aplicar sola:",
-        "APLICADO_EN_GRACIA": "Se aplicó solo durante las 24 h"
+        "APLICADO_EN_GRACIA": "Se aplicó solo durante las 24 h",
+        "CELULAR_PERDIDO": "El celular se reportó perdido o robado"
       },
       "estado": {
         "PENDIENTE": "Por revisar",
@@ -1775,7 +1780,8 @@
         "DESCARTADO": "Descartado"
       },
       "vacioConFiltro": "No hay nada con ese estado.",
-      "sinResolver": "Sin resolver"
+      "sinResolver": "Sin resolver",
+      "reactivar": "Reactívala en esa sucursal o descártalo."
     }
   }
 }

@@ -10,7 +10,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import commonEs from '@/locales/es/common.json'
 import organizationEs from '@/locales/es/organization.json'
-import type { CelularesDeCampo, CodigosGenerados, FilaDePromotor } from '@/services/celularesDeCampo.service'
+import type { CelularesDeCampo, CodigosGenerados, FilaDePromotor, RetenidoDeCampo } from '@/services/celularesDeCampo.service'
 
 // `mockReset: true` borra los vi.fn() entre pruebas: el estado vive en variables y las fábricas son funciones planas.
 type Llamada = unknown[]
@@ -21,6 +21,10 @@ let llamadasGenerar: Llamada[] = []
 let llamadasDesvincular: Llamada[] = []
 let llamadasPinOrg: Llamada[] = []
 let llamadasPinSucursal: Llamada[] = []
+let llamadasResolver: Llamada[] = []
+let respuestaRetenidos: () => Promise<{ items: RetenidoDeCampo[]; total: number }> = () => Promise.resolve({ items: [], total: 0 })
+let respuestaResolver: () => Promise<unknown> = () => Promise.resolve({ estado: 'APLICADO', repetida: false })
+let toasts: { title?: string; description?: string }[] = []
 let venueActual: { id: string } | undefined
 
 vi.mock('@/services/celularesDeCampo.service', () => ({
@@ -36,8 +40,11 @@ vi.mock('@/services/celularesDeCampo.service', () => ({
     llamadasDesvincular.push(a)
     return Promise.resolve({ desvinculadoAt: '', graciaHasta: '', porSubir: 0, huellasReportadas: 0, yaEstaba: false })
   },
-  getRetenidosDeCampo: () => Promise.resolve({ items: [], total: 0 }),
-  resolverRetenidoDeCampo: () => Promise.resolve({ estado: 'APLICADO', repetida: false }),
+  getRetenidosDeCampo: () => respuestaRetenidos(),
+  resolverRetenidoDeCampo: (...a: Llamada) => {
+    llamadasResolver.push(a)
+    return respuestaResolver()
+  },
 }))
 
 vi.mock('@/services/organizationConfig.service', () => ({
@@ -69,11 +76,11 @@ vi.mock('@/hooks/use-current-venue', () => ({
 }))
 
 vi.mock('@/hooks/use-toast', () => ({
-  useToast: () => ({ toast: () => undefined }),
+  useToast: () => ({ toast: (t: { title?: string; description?: string }) => void toasts.push(t) }),
 }))
 
 vi.mock('@/utils/datetime', () => ({
-  useVenueDateTime: () => ({ formatDate: (v: string) => `F:${v.slice(0, 10)}` }),
+  useVenueDateTime: () => ({ formatDate: (v: string) => `F:${v.slice(0, 10)}`, formatDateTime: (v: string) => `FH:${v}` }),
 }))
 
 // Los textos salen de los archivos de idioma reales: la prueba ve lo mismo que el usuario.
@@ -93,6 +100,8 @@ vi.mock('react-i18next', () => ({
 }))
 
 import CelularesDePromotores, { CelularesDePromotoresVista } from '../CelularesDePromotores'
+import { rechazoDeAplicar } from '../ayudantes'
+import { PorRevisarModal } from '../components/PorRevisarModal'
 
 // ─── Datos ─────────────────────────────────────────────────────
 
@@ -167,6 +176,10 @@ beforeEach(() => {
   llamadasDesvincular = []
   llamadasPinOrg = []
   llamadasPinSucursal = []
+  llamadasResolver = []
+  toasts = []
+  respuestaRetenidos = () => Promise.resolve({ items: [], total: 0 })
+  respuestaResolver = () => Promise.resolve({ estado: 'APLICADO', repetida: false })
   venueActual = { id: 'v1' }
   respuestaLista = () => Promise.resolve(listaCon([sinCelular, conCodigo, activo]))
   respuestaGenerar = () => Promise.resolve({ generados: [], omitidos: [], restantes: 0 })
@@ -303,7 +316,87 @@ describe('CelularesDePromotores', () => {
     expect(llamadasDesvincular).toHaveLength(0)
 
     fireEvent.click(within(dialogo).getByRole('button', { name: 'Desvincular' }))
-    await waitFor(() => expect(llamadasDesvincular).toEqual([['o1', 'cel1']]))
+    await waitFor(() => expect(llamadasDesvincular).toEqual([['o1', 'cel1', { perdidoORobado: false }]]))
+  })
+
+  it('«Lo perdió o se lo robaron» manda perdidoORobado: true y avisa que nada se acepta solo', async () => {
+    conProveedores(<CelularesDePromotoresVista orgId="o1" />)
+    await screen.findByText('Carla Activa')
+    fireEvent.click(within(filaDe('Carla Activa')).getByRole('button', { name: 'Desvincular' }))
+
+    const dialogo = await screen.findByRole('alertdialog')
+    expect(within(dialogo).getByText(/se acepta durante 24 horas/)).toBeInTheDocument()
+    fireEvent.click(within(dialogo).getByRole('checkbox', { name: /Lo perdió o se lo robaron/ }))
+    expect(within(dialogo).getByText('Todo lo que llegue de ese celular queda en «Por revisar».')).toBeInTheDocument()
+    expect(within(dialogo).queryByText(/se acepta durante 24 horas/)).not.toBeInTheDocument()
+
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Desvincular' }))
+    await waitFor(() => expect(llamadasDesvincular).toEqual([['o1', 'cel1', { perdidoORobado: true }]]))
+  })
+
+  it('montada en una sucursal, quien no la tiene no muestra «Poner PIN»', async () => {
+    const otraSucursal = fila({
+      staffId: 's9',
+      nombre: 'Dani Otra Sucursal',
+      estado: 'SIN_CELULAR',
+      sucursales: [{ venueId: 'v2', staffVenueId: 'sv-s9', nombre: 'Sucursal Sur', tienePin: false }],
+    })
+    respuestaLista = () => Promise.resolve(listaCon([sinCelular, otraSucursal]))
+    conProveedores(<CelularesDePromotoresVista orgId="o1" venueIdInicial="v1" />)
+    await screen.findByText('Dani Otra Sucursal')
+    expect(within(filaDe('Ana Sin Celular')).getByRole('button', { name: 'Poner PIN' })).toBeInTheDocument()
+    expect(within(filaDe('Dani Otra Sucursal')).queryByRole('button', { name: /PIN/ })).not.toBeInTheDocument()
+  })
+
+  describe('«Por revisar»: un 422 NO_SE_PUDO_APLICAR dice su razón', () => {
+    const retenido: RetenidoDeCampo = {
+      id: 'r1',
+      staffId: 's3',
+      nombre: 'Carla Activa',
+      venueId: 'v1',
+      sucursal: 'Sucursal Norte',
+      tipo: 'VENTA',
+      motivo: 'CELULAR_PERDIDO',
+      rechazo: null,
+      resumen: '1 SIM',
+      createdAt: '2026-11-01T12:00:00.000Z',
+      estado: 'PENDIENTE',
+    }
+    const error422 = (details: Record<string, unknown>) => ({
+      response: {
+        status: 422,
+        data: { message: 'No se pudo aplicar. Revisa el motivo y vuelve a intentar.', code: 'NO_SE_PUDO_APLICAR', details },
+      },
+    })
+
+    it('el motivo CELULAR_PERDIDO sale en llano', async () => {
+      respuestaRetenidos = () => Promise.resolve({ items: [retenido], total: 1 })
+      conProveedores(<PorRevisarModal orgId="o1" open onClose={() => undefined} />)
+      expect(await screen.findByText('El celular se reportó perdido o robado')).toBeInTheDocument()
+    })
+
+    it('PERSONA_SIN_ASIGNACION enseña el rechazo y «Reactívala en esa sucursal o descártalo.»', async () => {
+      respuestaRetenidos = () => Promise.resolve({ items: [retenido], total: 1 })
+      respuestaResolver = () =>
+        Promise.reject(
+          error422({ rechazo: { code: 'PERSONA_SIN_ASIGNACION', message: 'La persona ya no tiene asignación activa en esa sucursal.' } }),
+        )
+      conProveedores(<PorRevisarModal orgId="o1" open onClose={() => undefined} />)
+      fireEvent.click(await screen.findByRole('button', { name: 'Aplicar' }))
+      await waitFor(() => expect(toasts).toHaveLength(1))
+      expect(toasts[0].description).toBe(
+        'La persona ya no tiene asignación activa en esa sucursal. Reactívala en esa sucursal o descártalo.',
+      )
+    })
+
+    it('rechazoDeAplicar: otro rechazo trae sólo su mensaje; otro código no aplica', () => {
+      expect(rechazoDeAplicar(error422({ rechazo: { code: 'X', message: 'Ya está vendida.' } }))).toEqual({
+        message: 'Ya está vendida.',
+        sinAsignacion: false,
+      })
+      expect(rechazoDeAplicar(error422({ motivo: 'PERSONA_SIN_ASIGNACION' }))?.sinAsignacion).toBe(true)
+      expect(rechazoDeAplicar({ response: { data: { code: 'RETENIDO_EN_PROCESO', message: 'm' } } })).toBeNull()
+    })
   })
 
   describe('los cuatro estados de carga se distinguen', () => {
@@ -331,12 +424,23 @@ describe('CelularesDePromotores', () => {
       expect(screen.queryByText('Nadie coincide con los filtros')).not.toBeInTheDocument()
     })
 
-    it('sin resultados: con un filtro activo y su «Quitar filtros»', async () => {
+    it('sin resultados: con una búsqueda puesta y su «Quitar filtros»', async () => {
+      conProveedores(<CelularesDePromotoresVista orgId="o1" />)
+      await screen.findByText('Ana Sin Celular')
       respuestaLista = () => Promise.resolve(listaCon([], { conteos: { SIN_CELULAR: 0, CODIGO_SIN_USAR: 0, ACTIVO: 0 } }))
-      conProveedores(<CelularesDePromotoresVista orgId="o1" venueIdInicial="v1" />)
+      fireEvent.click(screen.getByRole('button', { name: 'Buscar promotor' }))
+      fireEvent.change(await screen.findByPlaceholderText('Buscar promotor'), { target: { value: 'zzz' } })
       expect(await screen.findByText('Nadie coincide con los filtros')).toBeInTheDocument()
       expect(screen.getByRole('button', { name: 'Quitar filtros' })).toBeInTheDocument()
       expect(screen.queryByText('Todavía no hay promotores')).not.toBeInTheDocument()
+    })
+
+    it('sucursal sin promotores, sin otro filtro: «Todavía no hay promotores en esta sucursal»', async () => {
+      respuestaLista = () => Promise.resolve(listaCon([], { conteos: { SIN_CELULAR: 0, CODIGO_SIN_USAR: 0, ACTIVO: 0 } }))
+      conProveedores(<CelularesDePromotoresVista orgId="o1" venueIdInicial="v1" />)
+      expect(await screen.findByText('Todavía no hay promotores en esta sucursal')).toBeInTheDocument()
+      expect(screen.queryByText('Nadie coincide con los filtros')).not.toBeInTheDocument()
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument()
     })
 
     it('sin inventario serializado: lo explica', async () => {

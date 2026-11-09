@@ -11,7 +11,7 @@ import { Copy, KeyRound, MessageCircle, RefreshCw, Smartphone, Unlink } from 'lu
 import type { Dispatch, SetStateAction } from 'react'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { tienePin, useMandarCodigo } from '../ayudantes'
+import { sucursalDelPin, tienePin, useMandarCodigo } from '../ayudantes'
 
 interface TablaDeCelularesProps {
   query: EstadoDeCarga
@@ -95,9 +95,7 @@ export function TablaDeCelulares({
               </Badge>
             )
           }
-          return (
-            <Badge variant="secondary">{t('celulares.estado.SIN_CELULAR', { defaultValue: 'Sin celular' })}</Badge>
-          )
+          return <Badge variant="secondary">{t('celulares.estado.SIN_CELULAR', { defaultValue: 'Sin celular' })}</Badge>
         },
       },
       {
@@ -165,28 +163,21 @@ export function TablaDeCelulares({
                   </Button>
                 </>
               )}
-              <Button
-                variant="ghost"
-                size="sm"
-                className="cursor-pointer"
-                disabled={generandoCodigo}
-                onClick={() => onGenerarCodigo(f)}
-              >
-                {f.estado === 'SIN_CELULAR' ? (
-                  <Smartphone className="h-3.5 w-3.5 mr-1" />
-                ) : (
-                  <RefreshCw className="h-3.5 w-3.5 mr-1" />
-                )}
+              <Button variant="ghost" size="sm" className="cursor-pointer" disabled={generandoCodigo} onClick={() => onGenerarCodigo(f)}>
+                {f.estado === 'SIN_CELULAR' ? <Smartphone className="h-3.5 w-3.5 mr-1" /> : <RefreshCw className="h-3.5 w-3.5 mr-1" />}
                 {f.estado === 'SIN_CELULAR'
                   ? t('celulares.acciones.generar', { defaultValue: 'Generar código' })
                   : t('celulares.acciones.generarOtro', { defaultValue: 'Generar otro' })}
               </Button>
-              <Button variant="ghost" size="sm" className="cursor-pointer" onClick={() => onPin(f)}>
-                <KeyRound className="h-3.5 w-3.5 mr-1" />
-                {tienePin(f, venueIdInicial)
-                  ? t('celulares.acciones.cambiarPin', { defaultValue: 'Cambiar PIN' })
-                  : t('celulares.acciones.ponerPin', { defaultValue: 'Poner PIN' })}
-              </Button>
+              {/* Montada en una sucursal, el PIN es de ESA sucursal: si la persona no la tiene, no hay dónde ponerlo. */}
+              {(!venueIdInicial || sucursalDelPin(f, venueIdInicial)) && (
+                <Button variant="ghost" size="sm" className="cursor-pointer" onClick={() => onPin(f)}>
+                  <KeyRound className="h-3.5 w-3.5 mr-1" />
+                  {tienePin(f, venueIdInicial)
+                    ? t('celulares.acciones.cambiarPin', { defaultValue: 'Cambiar PIN' })
+                    : t('celulares.acciones.ponerPin', { defaultValue: 'Poner PIN' })}
+                </Button>
+              )}
               {f.celular && (
                 <Button
                   variant="ghost"

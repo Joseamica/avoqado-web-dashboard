@@ -77,7 +77,7 @@ export interface CelularDesvinculado {
 }
 
 export type TipoDeEnvio = 'VENTA' | 'ENTRADA' | 'SALIDA' | 'CUSTODIA_ACEPTAR' | 'CUSTODIA_RECHAZAR' | 'EVIDENCIA'
-export type MotivoDeRetencion = 'PERSONA_DADA_DE_BAJA' | 'FUERA_DE_PLAZO' | 'NO_REPORTADA' | 'SIN_PERMISO' | 'RECHAZADO' | 'APLICADO_EN_GRACIA'
+export type MotivoDeRetencion = 'PERSONA_DADA_DE_BAJA' | 'FUERA_DE_PLAZO' | 'NO_REPORTADA' | 'SIN_PERMISO' | 'RECHAZADO' | 'APLICADO_EN_GRACIA' | 'CELULAR_PERDIDO'
 export type EstadoDelRetenido = 'PENDIENTE' | 'APLICANDO' | 'APLICADO' | 'DESCARTADO'
 
 export interface RetenidoDeCampo {
@@ -121,8 +121,13 @@ export const generarCodigosDeCelular = async (orgId: string, body: PedirCodigos)
   return response.data.data
 }
 
-export const desvincularCelularDeCampo = async (orgId: string, celularId: string): Promise<CelularDesvinculado> => {
-  const response = await api.post(`${base(orgId)}/${celularId}/desvincular`)
+/** `perdidoORobado`: la gracia no acepta nada solo; todo lo que llegue queda en «Por revisar» (motivo `CELULAR_PERDIDO`). */
+export const desvincularCelularDeCampo = async (
+  orgId: string,
+  celularId: string,
+  opciones: { perdidoORobado?: boolean } = {},
+): Promise<CelularDesvinculado> => {
+  const response = await api.post(`${base(orgId)}/${celularId}/desvincular`, opciones.perdidoORobado ? { perdidoORobado: true } : {})
   return response.data.data
 }
 

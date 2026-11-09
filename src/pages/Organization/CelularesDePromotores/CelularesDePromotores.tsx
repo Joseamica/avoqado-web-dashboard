@@ -156,10 +156,7 @@ export function CelularesDePromotoresVista({ orgId, venueIdInicial }: { orgId: s
   })
 
   const { mutateAsync: generarUnoAsync } = generarUno
-  const onGenerarCodigo = useCallback(
-    (fila: FilaDePromotor) => void unaALaVez(() => generarUnoAsync(fila)),
-    [unaALaVez, generarUnoAsync],
-  )
+  const onGenerarCodigo = useCallback((fila: FilaDePromotor) => void unaALaVez(() => generarUnoAsync(fila)), [unaALaVez, generarUnoAsync])
 
   const quitarFiltros = () => {
     setSearchTerm('')
@@ -170,6 +167,8 @@ export function CelularesDePromotoresVista({ orgId, venueIdInicial }: { orgId: s
 
   const leido = data !== undefined
   const hayFiltros = !!debouncedSearch.trim() || !!estado || !!venueId
+  // Sólo la sucursal puesta (sin búsqueda ni estado): vacía significa que ahí no hay promotores, no que «nadie coincide».
+  const soloSucursal = !!venueId && !debouncedSearch.trim() && !estado
   const sinCelular = data?.conteos.SIN_CELULAR ?? 0
   const porRevisar = data?.porRevisar ?? 0
   const nombreSucursal = venueId ? (sucursalOptions.find(o => o.value === venueId)?.label ?? null) : null
@@ -304,10 +303,16 @@ export function CelularesDePromotoresVista({ orgId, venueIdInicial }: { orgId: s
         <GlassCard className="p-0 overflow-hidden">
           {filas.length === 0 ? (
             <div className="py-16 text-center">
-              <p className="text-sm font-medium">{t('celulares.vacio.sinResultados', { defaultValue: 'Nadie coincide con los filtros' })}</p>
-              <Button variant="outline" size="sm" className="mt-4 cursor-pointer" onClick={quitarFiltros}>
-                {t('celulares.vacio.quitarFiltros', { defaultValue: 'Quitar filtros' })}
-              </Button>
+              <p className="text-sm font-medium">
+                {soloSucursal
+                  ? t('celulares.vacio.sinPromotoresSucursal', { defaultValue: 'Todavía no hay promotores en esta sucursal' })
+                  : t('celulares.vacio.sinResultados', { defaultValue: 'Nadie coincide con los filtros' })}
+              </p>
+              {!(soloSucursal && venueId === venueIdInicial) && (
+                <Button variant="outline" size="sm" className="mt-4 cursor-pointer" onClick={quitarFiltros}>
+                  {t('celulares.vacio.quitarFiltros', { defaultValue: 'Quitar filtros' })}
+                </Button>
+              )}
             </div>
           ) : (
             <TablaDeCelulares
@@ -394,12 +399,7 @@ export function CelularesDePromotoresVista({ orgId, venueIdInicial }: { orgId: s
       <CodigoDialog codigo={codigoAbierto} onClose={() => setCodigoAbierto(null)} />
       <PinModal orgId={orgId} venueIdInicial={venueIdInicial} fila={filaPin} onClose={() => setFilaPin(null)} />
       <DesvincularDialog orgId={orgId} fila={filaDesvincular} onClose={() => setFilaDesvincular(null)} />
-      <PorRevisarModal
-        orgId={orgId}
-        open={porRevisarAbierto}
-        onClose={() => setPorRevisarAbierto(false)}
-        venueId={venueId ?? undefined}
-      />
+      <PorRevisarModal orgId={orgId} open={porRevisarAbierto} onClose={() => setPorRevisarAbierto(false)} venueId={venueId ?? undefined} />
     </div>
   )
 }
