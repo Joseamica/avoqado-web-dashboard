@@ -40,3 +40,51 @@ export function papelDelAparato(t: {
   if (t.defaultWorkspace !== 'AREA_OPERATIONS') return cobra('sinPantallaDeVales')
   return { tipo: 'emite', area: t.fulfillmentArea, noCobra: true, emitirSinEfecto: null }
 }
+
+/** Aparatos claros, Paso 2: texto corto del papel para la lista. Gana la primera regla que aplica. */
+export type PapelCorto = {
+  clave: 'terminalDeCobro' | 'puntoDeVenta' | 'emite' | 'cobraVales' | 'entregaVales' | 'sinElegir'
+  area?: string
+  aviso: EmitirSinEfecto | null
+}
+
+export function papelCorto(
+  d: {
+    type: string
+    canIssueAreaTickets?: boolean
+    canCheckoutAreaTickets?: boolean
+    canDeliverAreaTickets?: boolean
+    defaultWorkspace?: string
+    fulfillmentArea?: AreaDeLaFicha | null
+  },
+  areaTicketsEnabled: boolean | undefined,
+): PapelCorto {
+  if (d.type === 'TPV_ANDROID' || d.type === 'TPV_IOS') return { clave: 'terminalDeCobro', aviso: null }
+  if (areaTicketsEnabled !== true) return { clave: 'puntoDeVenta', aviso: null }
+  const papel = papelDelAparato({ ...d, areaTicketsEnabled })
+  if (papel?.tipo === 'emite') return { clave: 'emite', area: papel.area?.name, aviso: null }
+  if (d.canIssueAreaTickets) return { clave: 'puntoDeVenta', aviso: papel?.emitirSinEfecto ?? null }
+  if (d.canCheckoutAreaTickets) return { clave: 'cobraVales', aviso: null }
+  if (d.canDeliverAreaTickets) {
+    if (!d.fulfillmentArea) return { clave: 'sinElegir', aviso: 'sinArea' }
+    if (!d.fulfillmentArea.active) return { clave: 'sinElegir', aviso: 'areaApagada' }
+    return { clave: 'entregaVales', area: d.fulfillmentArea.name, aviso: null }
+  }
+  return { clave: 'sinElegir', aviso: null }
+}
+
+/** `true` sólo si el nombre es el que puso el SERVIDOR al registrar el aparato (`deviceRegistry.service.ts:97-103`). */
+export function esNombreDeFabrica(d: { name: string; model?: string | null; selfRegistered?: boolean }): boolean {
+  if (!d.selfRegistered || !d.model) return false
+  const m = d.model.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  return new RegExp(`^${m}( \\(\\d+\\))?$`).test(d.name)
+}
+
+const TIPOS_POS = ['POS_ANDROID', 'POS_IOS', 'POS_DESKTOP']
+
+export function necesitaConfigurar(
+  d: { type: string; selfRegistered?: boolean; areaRoleChosenAt?: string | null },
+  vales: { enabled: boolean; activeAreaCount: number } | undefined,
+): boolean {
+  return !!vales?.enabled && vales.activeAreaCount >= 1 && TIPOS_POS.includes(d.type) && d.selfRegistered === true && !d.areaRoleChosenAt
+}

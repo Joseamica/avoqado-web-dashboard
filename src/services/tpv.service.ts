@@ -1,5 +1,6 @@
 import api from '@/api'
 import type { Terminal } from '@/types'
+import type { AreaDeLaFicha } from '@/pages/Tpv/papelDelAparato'
 import { SendCommandRequest, TpvCommand, TpvCommandPayload, TpvCommandPriority, TpvCommandType } from '@/types/tpv-commands'
 
 export type CapabilityState = 'SUPPORTED' | 'UNSUPPORTED' | 'UNKNOWN'
@@ -82,6 +83,12 @@ export interface TpvListDevice extends Terminal {
   osVersion?: string | null
   version?: string | null
   selfRegistered?: boolean
+  fulfillmentArea?: AreaDeLaFicha | null
+  canIssueAreaTickets?: boolean
+  canCheckoutAreaTickets?: boolean
+  canDeliverAreaTickets?: boolean
+  defaultWorkspace?: string
+  areaRoleChosenAt?: string | null
   todayPaymentCount?: number
   todayPaymentTotal?: number
 }
@@ -90,6 +97,7 @@ export interface TpvListResponse {
   data: TpvListDevice[]
   /** Compatibility with the legacy message-target response shape. */
   terminals?: TpvListDevice[]
+  areaTickets?: { enabled: boolean; activeAreaCount: number }
   meta?: { total?: number; page?: number; pageSize?: number; totalPages?: number }
 }
 
