@@ -1118,7 +1118,8 @@
       "emite": "Emite · {{area}}",
       "cobraVales": "Cobra vales",
       "entregaVales": "Entrega vales",
-      "sinElegir": "Sin elegir"
+      "sinElegir": "Sin elegir",
+      "noAplica": "No aplica a este tipo de aparato"
     },
     "setup": {
       "title": "Qué hace este aparato",
@@ -1130,7 +1131,7 @@
       "changeInAreas": "Cambiar en Vales › Áreas",
       "menuPlanInvite": "Disponible en el plan {{tier}}",
       "stepsNone": "Cobra directo, sin pasos extra",
-      "appliesOnReconnect": "El aparato toma los cambios al reconectarse.",
+      "appliesOnReconnect": "El aparato lo toma en su siguiente sincronización; si está sin internet, al reconectarse.",
       "papelEditorTitle": "Qué hace {{name}}",
       "menuEditorTitle": "Menú de {{name}}",
       "loadError": "No se pudo cargar.",
@@ -1217,6 +1218,7 @@
     "reintentar": "Reintentar",
     "guardado": "Guardado",
     "errorAlGuardar": "No se pudo guardar",
+    "errorAlReleer": "No se pudo confirmar qué menús quedaron guardados.",
     "rango": "{{desde}}–{{hasta}} de {{total}}",
     "anterior": "Anterior",
     "siguiente": "Siguiente",

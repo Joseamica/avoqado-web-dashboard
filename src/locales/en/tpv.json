@@ -1097,7 +1097,8 @@
       "emite": "Issues · {{area}}",
       "cobraVales": "Charges tickets",
       "entregaVales": "Delivers tickets",
-      "sinElegir": "Not chosen"
+      "sinElegir": "Not chosen",
+      "noAplica": "Not applicable to this type of device"
     },
     "setup": {
       "title": "What this device does",
@@ -1109,7 +1110,7 @@
       "changeInAreas": "Change in Tickets › Areas",
       "menuPlanInvite": "Available on the {{tier}} plan",
       "stepsNone": "Charges directly, no extra steps",
-      "appliesOnReconnect": "The device picks up changes when it reconnects.",
+      "appliesOnReconnect": "The device picks it up on its next sync; if it is offline, when it reconnects.",
       "papelEditorTitle": "What {{name}} does",
       "menuEditorTitle": "Menu for {{name}}",
       "loadError": "Could not load.",
@@ -1196,6 +1197,7 @@
     "reintentar": "Retry",
     "guardado": "Saved",
     "errorAlGuardar": "Could not save",
+    "errorAlReleer": "Couldn't confirm which menus were saved.",
     "rango": "{{desde}}–{{hasta}} of {{total}}",
     "anterior": "Previous",
     "siguiente": "Next",

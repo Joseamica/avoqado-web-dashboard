@@ -16,8 +16,22 @@ interface RenameDeviceDialogProps {
   onOpenChange: (open: boolean) => void
 }
 
-/** Cambiar el nombre de un aparato: manda sólo `{ name }`, sin tocar serie ni config. */
+/**
+ * Cambiar el nombre de un aparato: manda sólo `{ name }`, sin tocar serie ni config.
+ * El formulario vive DENTRO del contenido del diálogo, que Radix desmonta al cerrar: cada vez que se abre arranca con el
+ * nombre actual y sin el error de antes, aunque el diálogo siga montado en la ficha (Codex final #5).
+ */
 export function RenameDeviceDialog({ venueId, device, open, onOpenChange }: RenameDeviceDialogProps) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent aria-describedby={undefined}>
+        <RenameForm venueId={venueId} device={device} onOpenChange={onOpenChange} />
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function RenameForm({ venueId, device, onOpenChange }: Omit<RenameDeviceDialogProps, 'open'>) {
   const { t } = useTranslation('tpv')
   const { toast } = useToast()
   const queryClient = useQueryClient()
@@ -45,37 +59,33 @@ export function RenameDeviceDialog({ venueId, device, open, onOpenChange }: Rena
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent aria-describedby={undefined}>
-        <form
-          onSubmit={e => {
-            e.preventDefault()
-            save()
-          }}
-          className="space-y-4"
-        >
-          <DialogHeader>
-            <DialogTitle>{t('device.rename.title')}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-2">
-            <Label htmlFor="rename-device-name">{t('device.rename.label')}</Label>
-            <Input id="rename-device-name" value={name} onChange={e => setName(e.target.value)} autoFocus />
-            {rename.isError && (
-              <p role="alert" className="text-sm text-destructive">
-                {t('device.rename.error')}
-              </p>
-            )}
-          </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              {t('device.rename.cancel')}
-            </Button>
-            <Button type="submit" disabled={!trimmed || rename.isPending}>
-              {t('device.rename.save')}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+    <form
+      onSubmit={e => {
+        e.preventDefault()
+        save()
+      }}
+      className="space-y-4"
+    >
+      <DialogHeader>
+        <DialogTitle>{t('device.rename.title')}</DialogTitle>
+      </DialogHeader>
+      <div className="space-y-2">
+        <Label htmlFor="rename-device-name">{t('device.rename.label')}</Label>
+        <Input id="rename-device-name" value={name} onChange={e => setName(e.target.value)} autoFocus />
+        {rename.isError && (
+          <p role="alert" className="text-sm text-destructive">
+            {t('device.rename.error')}
+          </p>
+        )}
+      </div>
+      <DialogFooter>
+        <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+          {t('device.rename.cancel')}
+        </Button>
+        <Button type="submit" disabled={!trimmed || rename.isPending}>
+          {t('device.rename.save')}
+        </Button>
+      </DialogFooter>
+    </form>
   )
 }

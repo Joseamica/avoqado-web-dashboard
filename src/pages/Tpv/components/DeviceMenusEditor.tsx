@@ -1,5 +1,5 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { notifyManager, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { MultiSelectCombobox } from '@/components/multi-select-combobox'
@@ -20,7 +20,9 @@ type MenuRef = { id: string; name: string }
  * El selector de «Menú del aparato» y su guardado, compartido por la pestaña Menús y la ficha del aparato.
  * 🔴 Guarda su propia selección: al terminar un guardado la toma de la respuesta ANTES de desbloquear (la siguiente elección
  * parte de lo guardado, no de la relectura que aún no llega); sin guardado en curso sigue a `menus` cuando cambia; con uno en
- * curso ignora las props. Opciones: las que le pase la pestaña o, si no, las pide él con búsqueda y paginación del servidor (la ficha no tiene pestaña).
+ * curso ignora las props. 🔴 Tras CUALQUIER error (Codex final #1) suelta su selección, relee la fila y la ficha y queda bloqueado
+ * hasta que la relectura llega; entonces toma las props aunque se vean iguales: con la respuesta perdida el servidor pudo
+ * guardar, y una elección hecha sobre la selección vieja borraría lo guardado. Opciones: las que le pase la pestaña o, si no, las pide él con búsqueda y paginación del servidor (la ficha no tiene pestaña).
  */
 export function DeviceMenusEditor({
   terminalId,
@@ -47,9 +49,28 @@ export function DeviceMenusEditor({
 
   const [seleccion, setSeleccion] = useState<MenuRef[]>(menus)
   const guardando = useRef(false)
+  // 'releyendo' = esperando la relectura tras un error; 'fallo' = la relectura también falló (sigue bloqueado, con reintento).
+  const [resync, setResync] = useState<'no' | 'releyendo' | 'fallo'>('no')
+  const ultimas = useRef(menus)
+  ultimas.current = menus
   useEffect(() => {
-    if (!guardando.current) setSeleccion(menus)
-  }, [menus])
+    // Al terminar la relectura (`resync` vuelve a 'no') se toman las props aunque sean la misma referencia.
+    if (!guardando.current && resync === 'no') setSeleccion(menus)
+  }, [menus, resync])
+
+  const releer = useCallback(() => {
+    setSeleccion(ultimas.current)
+    setResync('releyendo')
+    const lecturas = [
+      ['device-menus', venueId],
+      ['tpv', venueId, terminalId],
+    ].map(queryKey => queryClient.invalidateQueries({ queryKey }, { throwOnError: true }))
+    Promise.all(lecturas).then(
+      // `schedule`: detrás de los avisos pendientes de TanStack, así el padre ya trae las props nuevas al desbloquear.
+      () => notifyManager.schedule(() => setResync('no')),
+      () => setResync('fallo'),
+    )
+  }, [queryClient, venueId, terminalId])
 
   // Sin `options` de la pestaña, el editor pide las suyas con la misma búsqueda y paginación del servidor.
   const propio = !options
@@ -78,10 +99,11 @@ export function DeviceMenusEditor({
     },
     onError: (error: any) => {
       guardando.current = false
-      // El 400 suele ser un menú que ya no está (se apagó o se borró en «Menús»): se relee la fila y las opciones.
-      queryClient.invalidateQueries({ queryKey: ['device-menus', venueId] })
+      // El 400 suele ser un menú que ya no está (se apagó o se borró en «Menús»); y sin respuesta, el servidor pudo guardar:
+      // se relee la fila, la ficha y las opciones antes de dejar elegir otra vez.
+      releer()
       queryClient.invalidateQueries({ queryKey: ['device-menu-options', venueId] })
-            toast({
+      toast({
         title: t('deviceMenus.errorAlGuardar'),
         description: error?.response?.data?.message ?? error?.message,
         variant: 'destructive',
@@ -105,14 +127,32 @@ export function DeviceMenusEditor({
       })}
       emptyText={t('deviceMenus.sinResultadosMenus')}
       isLoading={(optionsLoading ?? (propio && propias.isFetching)) && opciones.length === 0}
-      disabled={!canEdit || save.isPending}
+      disabled={!canEdit || save.isPending || resync !== 'no'}
     />
   )
 
-  if (!propio) return combobox
+  const falloAlReleer = resync === 'fallo' && (
+    <div className="flex items-center gap-3 text-sm text-muted-foreground">
+      <span>{t('deviceMenus.errorAlReleer')}</span>
+      <Button size="sm" variant="outline" onClick={releer}>
+        {t('deviceMenus.reintentar')}
+      </Button>
+    </div>
+  )
+
+  if (!propio)
+    return falloAlReleer ? (
+      <div className="space-y-2">
+        {combobox}
+        {falloAlReleer}
+      </div>
+    ) : (
+      combobox
+    )
   return (
     <div className="space-y-2">
       {combobox}
+      {falloAlReleer}
       {falloDeCarga(propias) && (
         <div className="flex items-center gap-3 text-sm text-muted-foreground">
           <span>{t('deviceMenus.errorMenus')}</span>

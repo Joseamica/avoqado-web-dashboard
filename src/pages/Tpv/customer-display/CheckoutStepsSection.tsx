@@ -123,7 +123,7 @@ export function CheckoutStepsSection({ tpvId, deviceType, versionName, noCobra =
   }
 
   return (
-    <div id={idDeLaSeccion('checkout-steps')} tabIndex={-1} data-tour="customer-display-steps" className="scroll-mt-4 space-y-3 outline-none">
+    <div id={idDeLaSeccion('checkout-steps')} tabIndex={-1} data-tour="customer-display-steps" className="scroll-mt-4 space-y-3 rounded-lg outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
       <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t('steps.title')}</h3>
       {noCobra && (
         <p

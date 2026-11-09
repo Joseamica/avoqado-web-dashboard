@@ -27,7 +27,6 @@ import {
   getAreaTicketOverview,
   updateAreaTicketSettings,
   toUpdateAreaTicketSettingsInput,
-  updateAreaTicketTerminal,
   updateFulfillmentArea,
   updateScaleProfile,
   updateScaleSettings,

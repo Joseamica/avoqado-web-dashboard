@@ -43,7 +43,7 @@ export function CustomerDisplaySection(props: CustomerDisplaySectionProps) {
       id={idDeLaSeccion('customer-display')}
       tabIndex={-1}
       data-tour="customer-display-section"
-      className="scroll-mt-4 space-y-4 rounded-2xl border border-input bg-card p-5 outline-none"
+      className="scroll-mt-4 space-y-4 rounded-2xl border border-input bg-card p-5 outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
     >
       <div className="flex items-center gap-2">
         <h2 className="text-base font-semibold">{t('tpv:device.sections.customerDisplay')}</h2>

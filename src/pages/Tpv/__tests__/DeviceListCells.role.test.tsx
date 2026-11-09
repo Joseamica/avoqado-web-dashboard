@@ -51,6 +51,18 @@ describe('DeviceRoleCell', () => {
   })
 })
 
+describe('DeviceRoleCell · Codex final #4 y #7', () => {
+  it.each(['PRINTER_RECEIPT', 'PRINTER_KITCHEN', 'KDS'])('%s: la columna dice «—», sin papel ni Sin configurar', type => {
+    const { container } = role(pos({ type: type as TpvListDevice['type'], canDeliverAreaTickets: true }), vales)
+    expect(container.textContent).toBe('—')
+    expect(screen.queryByText('list.unconfigured')).toBeNull()
+  })
+  it('el aviso ámbar es una imagen con nombre accesible', () => {
+    role(pos({ canIssueAreaTickets: true, fulfillmentArea: null, areaRoleChosenAt: 'x' }), vales)
+    expect(screen.getByRole('img', { name: 'device.role.emitirSinEfecto.sinArea' })).toBeTruthy()
+  })
+})
+
 describe('DeviceNameCell · Nombre de fábrica', () => {
   const nombre = (d: TpvListDevice, onRename?: () => void) => render(<DeviceNameCell device={d} name={d.name} onRename={onRename} />)
   it('sólo si el nombre es el de fábrica; Cambiar llama onRename', () => {

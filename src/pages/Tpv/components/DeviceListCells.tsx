@@ -96,16 +96,34 @@ export function DeviceNameCell({ device, name, onRename }: { device: TpvListDevi
 }
 
 /** Columna «Qué hace» + marca «Sin configurar» (Link a la ficha; en la lista móvil la tarjeta ya es el enlace: `linkTo` vacío). */
-export function DeviceRoleCell({ device, vales, linkTo, linkState }: { device: TpvListDevice; vales: Vales; linkTo?: string; linkState?: Record<string, unknown> }) {
+export function DeviceRoleCell({
+  device,
+  vales,
+  linkTo,
+  linkState,
+}: {
+  device: TpvListDevice
+  vales: Vales
+  linkTo?: string
+  linkState?: Record<string, unknown>
+}) {
   const { t } = useTranslation('tpv')
   const papel = papelCorto(device, vales?.enabled)
   const sinConfigurar = necesitaConfigurar(device, vales)
-  const aviso = papel.aviso ? t(papel.clave === 'sinElegir' ? `device.setup.entregarSinEfecto.${papel.aviso}` : `device.role.emitirSinEfecto.${papel.aviso}`) : null
+  const aviso = papel.aviso
+    ? t(papel.clave === 'sinElegir' ? `device.setup.entregarSinEfecto.${papel.aviso}` : `device.role.emitirSinEfecto.${papel.aviso}`)
+    : null
   const marca = <Badge variant="outline">{t('list.unconfigured')}</Badge>
+  if (papel.clave === 'noAplica') return <span className="text-sm text-muted-foreground">—</span>
   return (
     <span className="inline-flex flex-wrap items-center gap-1.5 text-sm">
       <span className="whitespace-nowrap">{t(`device.papel.${papel.clave}`, { area: papel.area })}</span>
-      {aviso && <AlertTriangle className="size-3.5 text-warning" aria-label={aviso} />}
+      {aviso && (
+        // lucide pone `aria-hidden` al ícono: el aviso se nombra en un contenedor con rol de imagen (Codex final #7).
+        <span role="img" aria-label={aviso} title={aviso} className="inline-flex">
+          <AlertTriangle className="size-3.5 text-warning" aria-hidden="true" />
+        </span>
+      )}
       {sinConfigurar &&
         (linkTo ? (
           <Link to={linkTo} state={linkState} onClick={e => e.stopPropagation()}>

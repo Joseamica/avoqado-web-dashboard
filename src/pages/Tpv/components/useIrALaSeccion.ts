@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from 'react'
 
 export type SeccionDeLaFicha = 'checkout-steps' | 'customer-display'
 
+const MAX_CUADROS = 60 // ~1 s
+
 /** El `id` del ancla de cada sección de la ficha (`CheckoutStepsSection`, `CustomerDisplaySection`). */
 export const idDeLaSeccion = (s: SeccionDeLaFicha) => `ficha-${s}`
 
@@ -15,11 +17,21 @@ export function useIrALaSeccion(activeTab: string, irAInformacion: () => void) {
 
   useEffect(() => {
     if (!pendiente || activeTab !== 'info') return
-    const el = document.getElementById(idDeLaSeccion(pendiente))
-    if (!el) return
-    el.scrollIntoView?.({ behavior: 'smooth', block: 'start' })
-    el.focus({ preventScroll: true })
-    setPendiente(null)
+    // Radix monta el contenido de la pestaña un render después del cambio (Codex final #2): se busca cada cuadro, con tope,
+    // y se suelta el pendiente al llegar o al agotarlo para que nunca salte después por sorpresa.
+    let cuadro = 0
+    let intentos = 0
+    const intentar = () => {
+      const el = document.getElementById(idDeLaSeccion(pendiente))
+      if (el) {
+        el.scrollIntoView?.({ behavior: 'smooth', block: 'start' })
+        el.focus({ preventScroll: true })
+      }
+      if (el || ++intentos >= MAX_CUADROS) setPendiente(null)
+      else cuadro = requestAnimationFrame(intentar)
+    }
+    intentar()
+    return () => cancelAnimationFrame(cuadro)
   }, [pendiente, activeTab])
 
   return useCallback(

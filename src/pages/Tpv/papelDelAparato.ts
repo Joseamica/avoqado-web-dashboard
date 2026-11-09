@@ -33,7 +33,12 @@ export function papelDelAparato(t: {
   fulfillmentArea?: AreaDeLaFicha | null
 }): PapelDelAparato | null {
   if (t.areaTicketsEnabled !== true) return null
-  const cobra = (emitirSinEfecto: EmitirSinEfecto | null): PapelDelAparato => ({ tipo: 'cobra', area: null, noCobra: false, emitirSinEfecto })
+  const cobra = (emitirSinEfecto: EmitirSinEfecto | null): PapelDelAparato => ({
+    tipo: 'cobra',
+    area: null,
+    noCobra: false,
+    emitirSinEfecto,
+  })
   if (!t.canIssueAreaTickets) return cobra(null)
   if (!t.fulfillmentArea) return cobra('sinArea')
   if (!t.fulfillmentArea.active) return cobra('areaApagada')
@@ -41,9 +46,11 @@ export function papelDelAparato(t: {
   return { tipo: 'emite', area: t.fulfillmentArea, noCobra: true, emitirSinEfecto: null }
 }
 
+const TIPOS_POS = ['POS_ANDROID', 'POS_IOS', 'POS_DESKTOP']
+
 /** Aparatos claros, Paso 2: texto corto del papel para la lista. Gana la primera regla que aplica. */
 export type PapelCorto = {
-  clave: 'terminalDeCobro' | 'puntoDeVenta' | 'emite' | 'cobraVales' | 'entregaVales' | 'sinElegir'
+  clave: 'terminalDeCobro' | 'noAplica' | 'puntoDeVenta' | 'emite' | 'cobraVales' | 'entregaVales' | 'sinElegir'
   area?: string
   aviso: EmitirSinEfecto | null
 }
@@ -60,6 +67,8 @@ export function papelCorto(
   areaTicketsEnabled: boolean | undefined,
 ): PapelCorto {
   if (d.type === 'TPV_ANDROID' || d.type === 'TPV_IOS') return { clave: 'terminalDeCobro', aviso: null }
+  // Impresoras, pantallas de cocina y tipos desconocidos no venden: las reglas de POS no aplican (Codex final #4).
+  if (!TIPOS_POS.includes(d.type)) return { clave: 'noAplica', aviso: null }
   if (areaTicketsEnabled !== true) return { clave: 'puntoDeVenta', aviso: null }
   const papel = papelDelAparato({ ...d, areaTicketsEnabled })
   if (papel?.tipo === 'emite') return { clave: 'emite', area: papel.area?.name, aviso: null }
@@ -79,8 +88,6 @@ export function esNombreDeFabrica(d: { name: string; model?: string | null; self
   const m = d.model.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
   return new RegExp(`^${m}( \\(\\d+\\))?$`).test(d.name)
 }
-
-const TIPOS_POS = ['POS_ANDROID', 'POS_IOS', 'POS_DESKTOP']
 
 export function necesitaConfigurar(
   d: { type: string; selfRegistered?: boolean; areaRoleChosenAt?: string | null },

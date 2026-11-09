@@ -108,3 +108,17 @@ describe('necesitaConfigurar', () => {
     expect(necesitaConfigurar(ok, undefined)).toBe(false)
   })
 })
+
+describe('papelCorto · tipos que no son POS ni TPV (Codex final #4)', () => {
+  it.each(['PRINTER_RECEIPT', 'PRINTER_KITCHEN', 'KDS', 'ALGO_NUEVO', ''])('%j: no aplica, sin aviso, con o sin vales', type => {
+    expect(papelCorto({ type, canIssueAreaTickets: true, canDeliverAreaTickets: true }, true)).toEqual({ clave: 'noAplica', aviso: null })
+    expect(papelCorto({ type }, false)).toEqual({ clave: 'noAplica', aviso: null })
+  })
+  it('la regla de terminal de cobro sigue ganando', () => {
+    expect(papelCorto({ type: 'TPV_IOS' }, true)).toEqual({ clave: 'terminalDeCobro', aviso: null })
+  })
+  it('necesitaConfigurar es false para impresoras y pantallas de cocina', () => {
+    const vales = { enabled: true, activeAreaCount: 2 }
+    for (const type of ['PRINTER_RECEIPT', 'PRINTER_KITCHEN', 'KDS']) expect(necesitaConfigurar({ type, selfRegistered: true, areaRoleChosenAt: null }, vales)).toBe(false)
+  })
+})

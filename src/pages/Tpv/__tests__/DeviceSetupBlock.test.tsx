@@ -3,7 +3,7 @@
  * (`DeviceRoleSummary`), con sus mismas reglas, y lo nuevo: «Cambiar» en sitio.
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, render, renderHook, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useState } from 'react'
 import { MemoryRouter, useLocation } from 'react-router-dom'
@@ -13,7 +13,8 @@ const h = vi.hoisted(() => ({
   permisos: [] as string[],
   plan: { hasAccess: true, isResolved: true, requiredTier: 'PRO', isLoading: false },
   overview: vi.fn(),
-  pasos: { data: undefined as Record<string, boolean> | undefined, isLoading: false },
+  pasos: { data: undefined as Record<string, boolean> | undefined, isLoading: false, isError: false },
+  pantalla: { data: undefined as { design: unknown } | undefined, isLoading: false, isError: false },
 }))
 vi.mock('@/hooks/use-access', () => ({ useAccess: () => ({ can: (p: string) => h.permisos.includes(p) }) }))
 vi.mock('@/hooks/use-tier-feature-access', () => ({ useTierFeatureAccess: () => h.plan }))
@@ -29,9 +30,10 @@ vi.mock('@/pages/Settings/components/areaTickets/TerminalAreaTicketEditor', () =
 vi.mock('../components/DeviceMenusEditor', () => ({ DeviceMenusEditor: () => <div data-testid="editor-de-menus" /> }))
 vi.mock('../customer-display/queries', () => ({
   usePasosDelCobro: () => h.pasos,
-  useCustomerDisplay: () => ({ isLoading: false, data: undefined }),
+  useCustomerDisplay: () => h.pantalla,
 }))
 
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { DeviceSetupBlock, type FichaDelBloque } from '../components/DeviceSetupBlock'
 import { useIrALaSeccion } from '../components/useIrALaSeccion'
 
@@ -57,7 +59,8 @@ const renglon = (tour: string) => document.querySelector(`[data-tour="${tour}"]`
 beforeEach(() => {
   h.permisos = ['area-tickets:configure', 'tpv:update', 'tpv-settings:read', 'tpv-settings:update']
   h.plan = { hasAccess: true, isResolved: true, requiredTier: 'PRO', isLoading: false }
-  h.pasos = { data: undefined, isLoading: false }
+  h.pasos = { data: undefined, isLoading: false, isError: false }
+  h.pantalla = { data: undefined, isLoading: false, isError: false }
   h.overview.mockReset()
   h.overview.mockResolvedValue({
     terminals: [{ id: 't1', name: 'Caja 1' }],
@@ -161,7 +164,7 @@ describe('DeviceSetupBlock (Paso 2: cambiar en sitio)', () => {
   })
 
   it('sin Pro el menú dice Todos los menús y no hay botón Cambiar ni con teclado', async () => {
-    h.plan = { hasAccess: false, isResolved: true, requiredTier: 'PRO', isLoading: false }
+    h.plan = { hasAccess: false, isResolved: true, requiredTier: 'PRO', isLoading: false, isError: false }
     pintar(pc({ areaTicketsEnabled: false, deviceMenus: { menus: [], needsAppUpdate: false } }))
     const menu = renglon('device-setup-menu')
     expect(within(menu).getByText('device.role.allMenus')).toBeInTheDocument()
@@ -189,7 +192,7 @@ describe('DeviceSetupBlock (Paso 2: cambiar en sitio)', () => {
   })
 
   it('¿Cómo cobra? dice los pasos prendidos; en gris con el aviso si sólo emite', () => {
-    h.pasos = { data: { showTipScreen: true, showReviewScreen: false, showReceiptScreen: true }, isLoading: false }
+    h.pasos = { data: { showTipScreen: true, showReviewScreen: false, showReceiptScreen: true }, isLoading: false, isError: false }
     pintar({ ...emitePanaderia, type: 'POS_ANDROID' })
     const cobro = renglon('device-setup-cobro')
     expect(within(cobro).getByText('customerDisplay:steps.tip · customerDisplay:steps.receipt')).toBeInTheDocument()
@@ -204,7 +207,7 @@ describe('DeviceSetupBlock (Paso 2: cambiar en sitio)', () => {
   })
 
   it('Cambiar de ¿Cómo cobra? lleva a la sección de pasos del cobro', () => {
-    h.pasos = { data: { showTipScreen: false, showReviewScreen: false, showReceiptScreen: false }, isLoading: false }
+    h.pasos = { data: { showTipScreen: false, showReviewScreen: false, showReceiptScreen: false }, isLoading: false, isError: false }
     const onGoTo = vi.fn()
     pintar(pc({ type: 'POS_IOS' }), onGoTo)
     expect(within(renglon('device-setup-cobro')).getByText('device.setup.stepsNone')).toBeInTheDocument()
@@ -213,7 +216,7 @@ describe('DeviceSetupBlock (Paso 2: cambiar en sitio)', () => {
   })
 
   it('Cambiar de ¿Cómo cobra? desde la pestaña Comandos cambia a Información y llega a la sección', async () => {
-    h.pasos = { data: { showTipScreen: true, showReviewScreen: false, showReceiptScreen: false }, isLoading: false }
+    h.pasos = { data: { showTipScreen: true, showReviewScreen: false, showReceiptScreen: false }, isLoading: false, isError: false }
     const scroll = vi.fn()
     Element.prototype.scrollIntoView = scroll
     function Ficha() {
@@ -239,5 +242,89 @@ describe('DeviceSetupBlock (Paso 2: cambiar en sitio)', () => {
     await waitFor(() => expect(document.activeElement).toBe(screen.getByTestId('seccion-de-pasos')))
     expect(screen.getByTestId('pestana')).toHaveTextContent('info')
     expect(scroll).toHaveBeenCalled()
+  })
+
+  it('con las pestañas reales (Radix), Cambiar desde Comandos llega a la sección aunque se monte después (Codex final #2)', async () => {
+    h.pasos = { data: { showTipScreen: true, showReviewScreen: false, showReceiptScreen: false }, isLoading: false, isError: false }
+    const scroll = vi.fn()
+    Element.prototype.scrollIntoView = scroll
+    function Ficha() {
+      const [tab, setTab] = useState('commands')
+      const irA = useIrALaSeccion(tab, () => setTab('info'))
+      return (
+        <>
+          <DeviceSetupBlock venueId="v1" tpv={pc({ type: 'POS_ANDROID' })} fullBasePath={BASE} onGoTo={irA} />
+          <Tabs value={tab} onValueChange={setTab}>
+            <TabsList>
+              <TabsTrigger value="info">info</TabsTrigger>
+              <TabsTrigger value="commands">commands</TabsTrigger>
+            </TabsList>
+            <TabsContent value="info">
+              <div id="ficha-checkout-steps" tabIndex={-1} data-testid="seccion-de-pasos" />
+            </TabsContent>
+            <TabsContent value="commands">comandos</TabsContent>
+          </Tabs>
+        </>
+      )
+    }
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <MemoryRouter>
+          <Ficha />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    )
+    expect(screen.queryByTestId('seccion-de-pasos')).toBeNull()
+    fireEvent.click(within(renglon('device-setup-cobro')).getByRole('button', { name: 'device.setup.change' }))
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByTestId('seccion-de-pasos')))
+    expect(scroll).toHaveBeenCalledTimes(1)
+  })
+
+  it('si la sección no aparece en ~60 cuadros, suelta el pendiente y no salta después por sorpresa', async () => {
+    const scroll = vi.fn()
+    Element.prototype.scrollIntoView = scroll
+    const { result, rerender } = renderHook(({ tab }) => useIrALaSeccion(tab, () => {}), { initialProps: { tab: 'info' } })
+    const cuadros = vi.spyOn(window, 'requestAnimationFrame')
+    act(() => result.current('checkout-steps'))
+    // 1 intento inmediato + 59 cuadros = 60, y ya no pide más.
+    await waitFor(() => expect(cuadros).toHaveBeenCalledTimes(59), { timeout: 10_000 })
+    await act(() => new Promise(r => setTimeout(r, 50)))
+    expect(cuadros).toHaveBeenCalledTimes(59)
+    cuadros.mockRestore()
+    const el = document.createElement('div')
+    el.id = 'ficha-checkout-steps'
+    el.tabIndex = -1
+    document.body.appendChild(el)
+    rerender({ tab: 'commands' })
+    rerender({ tab: 'info' })
+    await act(() => new Promise(r => setTimeout(r, 100)))
+    expect(scroll).not.toHaveBeenCalled()
+    expect(document.activeElement).not.toBe(el)
+    el.remove()
+  })
+
+  it('¿Cómo cobra? con datos viejos en caché y la relectura fallida dice el error, no los pasos viejos (Codex final #3)', () => {
+    h.pasos = { data: { showTipScreen: true, showReviewScreen: false, showReceiptScreen: false }, isLoading: false, isError: true }
+    pintar(pc({ type: 'POS_ANDROID' }))
+    const cobro = renglon('device-setup-cobro')
+    expect(within(cobro).getByText('device.setup.loadError')).toBeInTheDocument()
+    expect(within(cobro).queryByText('customerDisplay:steps.tip')).toBeNull()
+  })
+
+  it('Pantalla del cliente con datos viejos y la relectura fallida dice el error, no el diseño viejo', () => {
+    h.permisos = [...h.permisos, 'customer-display:read']
+    h.pantalla = { data: { design: null }, isLoading: false, isError: true }
+    pintar(pc({ type: 'POS_ANDROID' }))
+    const pantalla = renglon('device-setup-pantalla')
+    expect(within(pantalla).getByText('device.setup.loadError')).toBeInTheDocument()
+    expect(within(pantalla).queryByText(/customerDisplay:card\.design/)).toBeNull()
+  })
+
+  it.each(['PRINTER_RECEIPT', 'PRINTER_KITCHEN', 'KDS'])('%s: «¿Qué hace?» dice que no aplica, sin Cambiar ni aviso (Codex final #4)', type => {
+    pintar(pc({ type, canDeliverAreaTickets: true, fulfillmentArea: null }))
+    const papel = renglon('device-setup-papel')
+    expect(within(papel).getByText('device.papel.noAplica')).toBeInTheDocument()
+    expect(within(papel).queryByRole('button')).toBeNull()
+    expect(within(papel).queryByText(/SinEfecto/)).toBeNull()
   })
 })

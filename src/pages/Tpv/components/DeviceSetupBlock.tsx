@@ -124,7 +124,7 @@ function RenglonDelPapel({ venueId, tpv, fullBasePath }: { venueId: string; tpv:
   const area = papel?.tipo === 'emite' ? papel.area : null
   // Codex r3 #2 (Paso 1): con «Preparar después de pagar» la comanda no sale al emitir: no se promete «Manda comanda».
   const comandaCierta = area && !(area.sendsComanda && area.fulfillmentMode === 'PREPARE_ON_PAID')
-  const puedeCambiar = tpv.areaTicketsEnabled === true && vales && corto.clave !== 'terminalDeCobro'
+  const puedeCambiar = tpv.areaTicketsEnabled === true && vales && corto.clave !== 'terminalDeCobro' && corto.clave !== 'noAplica'
 
   return (
     <Renglon
@@ -132,9 +132,13 @@ function RenglonDelPapel({ venueId, tpv, fullBasePath }: { venueId: string; tpv:
       tour="device-setup-papel"
       action={puedeCambiar && <BotonCambiar onClick={() => setEditando(true)} tour="device-setup-papel-change" />}
     >
-      <p className="font-medium">{t(`device.papel.${corto.clave}`, corto.area ? { area: corto.area } : undefined)}</p>
+      <p className={corto.clave === 'noAplica' ? 'text-muted-foreground' : 'font-medium'}>
+        {t(`device.papel.${corto.clave}`, corto.area ? { area: corto.area } : undefined)}
+      </p>
       {corto.aviso && (
-        <Aviso>{t(corto.clave === 'sinElegir' ? `device.setup.entregarSinEfecto.${corto.aviso}` : `device.role.emitirSinEfecto.${corto.aviso}`)}</Aviso>
+        <Aviso>
+          {t(corto.clave === 'sinElegir' ? `device.setup.entregarSinEfecto.${corto.aviso}` : `device.role.emitirSinEfecto.${corto.aviso}`)}
+        </Aviso>
       )}
       {area && comandaCierta && (
         <p className="text-muted-foreground" data-tour="device-setup-comanda">
@@ -192,7 +196,15 @@ function EditorDelPapel({ venueId, tpv, onClose }: { venueId: string; tpv: Ficha
   )
 }
 
-function RenglonDelMenu({ tpv, deviceMenus, fullBasePath }: { tpv: FichaDelBloque; deviceMenus: DeviceMenusDeLaFicha; fullBasePath: string }) {
+function RenglonDelMenu({
+  tpv,
+  deviceMenus,
+  fullBasePath,
+}: {
+  tpv: FichaDelBloque
+  deviceMenus: DeviceMenusDeLaFicha
+  fullBasePath: string
+}) {
   const { t } = useTranslation('tpv')
   const { can } = useAccess()
   const plan = useTierFeatureAccess('DEVICE_MENUS')
@@ -256,7 +268,8 @@ function RenglonDelCobro({ tpv, noCobra, onGoTo }: { tpv: FichaDelBloque; noCobr
           <p className="text-muted-foreground">{t('customerDisplay:steps.noReadPermission')}</p>
         ) : pasos.isLoading ? (
           <Skeleton className="h-5 w-40" />
-        ) : !prendidos ? (
+        ) : pasos.isError || !prendidos ? (
+          // Con error NO se enseñan los pasos viejos de la caché, igual que `CheckoutStepsSection` (Codex final #3).
           <p className="text-muted-foreground">{t('device.setup.loadError')}</p>
         ) : (
           <p className="font-medium">{prendidos.length ? prendidos.join(' · ') : t('device.setup.stepsNone')}</p>
@@ -277,14 +290,18 @@ function RenglonDeLaPantalla({ venueId, tpv, onGoTo }: { venueId: string; tpv: F
     <Renglon
       label={t('device.setup.display')}
       tour="device-setup-pantalla"
-      action={can('customer-display:update') && <BotonCambiar onClick={() => onGoTo('customer-display')} tour="device-setup-pantalla-change" />}
+      action={
+        can('customer-display:update') && <BotonCambiar onClick={() => onGoTo('customer-display')} tour="device-setup-pantalla-change" />
+      }
     >
       {pantalla.isLoading ? (
         <Skeleton className="h-5 w-32" />
-      ) : !pantalla.data ? (
+      ) : pantalla.isError || !pantalla.data ? (
         <p className="text-muted-foreground">{t('device.setup.loadError')}</p>
       ) : (
-        <p className="font-medium">{t(esDisenoDeFabrica(pantalla.data.design) ? 'customerDisplay:card.designFactory' : 'customerDisplay:card.designOwn')}</p>
+        <p className="font-medium">
+          {t(esDisenoDeFabrica(pantalla.data.design) ? 'customerDisplay:card.designFactory' : 'customerDisplay:card.designOwn')}
+        </p>
       )}
     </Renglon>
   )

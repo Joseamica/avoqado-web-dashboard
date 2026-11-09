@@ -71,4 +71,27 @@ describe('RenameDeviceDialog', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('device.rename.error')
     expect(onOpenChange).not.toHaveBeenCalledWith(false)
   })
+
+  it('cancelar y volver a abrir enseña el nombre actual y sin el error de antes (Codex final #5)', async () => {
+    apiPut.mockRejectedValue(new Error('boom'))
+    const queryClient = new QueryClient({ defaultOptions: { mutations: { retry: false } } })
+    const ui = (open: boolean, name = 'Caja 1') => (
+      <QueryClientProvider client={queryClient}>
+        <RenameDeviceDialog venueId="v1" device={{ id: 'd1', name }} open={open} onOpenChange={onOpenChange} />
+      </QueryClientProvider>
+    )
+    const { rerender } = render(ui(true))
+    fireEvent.change(input(), { target: { value: 'Borrador' } })
+    fireEvent.click(save())
+    expect(await screen.findByRole('alert')).toHaveTextContent('device.rename.error')
+    fireEvent.click(screen.getByRole('button', { name: 'device.rename.cancel' }))
+    expect(onOpenChange).toHaveBeenCalledWith(false)
+    rerender(ui(false))
+    rerender(ui(true, 'Caja norte'))
+    expect(input()).toHaveValue('Caja norte')
+    expect(screen.queryByRole('alert')).toBeNull()
+    apiPut.mockResolvedValue({ data: {} })
+    fireEvent.click(save())
+    await waitFor(() => expect(apiPut).toHaveBeenLastCalledWith('/api/v1/dashboard/venues/v1/tpv/d1', { name: 'Caja norte' }))
+  })
 })
