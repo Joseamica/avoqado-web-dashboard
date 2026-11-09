@@ -5,8 +5,9 @@ import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { TpvListDevice } from '@/services/tpv.service'
+import { esNombreDeFabrica } from '../papelDelAparato'
 import { getDeviceIdentifier } from '../deviceListPresentation'
-import { DeviceAppVersionCell, DeviceBatteryCell, DeviceIcon, DeviceStatusPill, DeviceSystemCell, DeviceTodaySalesCell } from './DeviceListCells'
+import { DeviceAppVersionCell, DeviceBatteryCell, DeviceIcon, DeviceRoleCell, DeviceStatusPill, DeviceSystemCell, DeviceTodaySalesCell } from './DeviceListCells'
 
 interface DeviceMobileListProps {
   devices: TpvListDevice[]
@@ -15,6 +16,7 @@ interface DeviceMobileListProps {
   pageIndex: number
   pageSize: number
   onPageChange: (pageIndex: number) => void
+  vales?: { enabled: boolean; activeAreaCount: number }
   linkState?: Record<string, unknown>
   emptyMessage: string
 }
@@ -24,7 +26,7 @@ interface DeviceMobileListProps {
  * se partía en dos renglones y escondía batería, versión e ID. Aquí cada tarjeta enseña lo
  * mismo que la fila, sin scroll de lado.
  */
-export function DeviceMobileList({ devices, isLoading, total, pageIndex, pageSize, onPageChange, linkState, emptyMessage }: DeviceMobileListProps) {
+export function DeviceMobileList({ devices, isLoading, total, pageIndex, pageSize, onPageChange, vales, linkState, emptyMessage }: DeviceMobileListProps) {
   const { t } = useTranslation('tpv')
   const pageCount = Math.max(1, Math.ceil(total / pageSize))
 
@@ -56,7 +58,10 @@ export function DeviceMobileList({ devices, isLoading, total, pageIndex, pageSiz
             <div className="flex items-start gap-3">
               <DeviceIcon device={device} />
               <div className="min-w-0 flex-1">
-                <p className="truncate font-medium">{device.name}</p>
+                <p className="truncate font-medium">
+                  {device.name}
+                  {esNombreDeFabrica(device) && <span className="ml-2 text-xs font-normal text-muted-foreground">{t('list.factoryName')}</span>}
+                </p>
                 <p className="truncate text-xs text-muted-foreground">
                   {[device.model, id?.display].filter(Boolean).join(' · ')}
                 </p>
@@ -64,6 +69,7 @@ export function DeviceMobileList({ devices, isLoading, total, pageIndex, pageSiz
               <DeviceStatusPill device={device} className="shrink-0" />
             </div>
             <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 border-t border-border pt-3">
+              <DeviceRoleCell device={device} vales={vales} />
               <DeviceBatteryCell device={device} />
               <DeviceSystemCell device={device} />
               <DeviceAppVersionCell device={device} />

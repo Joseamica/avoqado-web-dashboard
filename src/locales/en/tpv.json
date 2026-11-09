@@ -933,11 +933,15 @@
     "maintenance": "Maintenance"
   },
   "list": {
+    "factoryName": "Factory name",
+    "factoryNameChange": "Change",
+    "unconfigured": "Not set up",
     "subtitle": "Payment terminals, phones, tablets and computers where your team sells.",
     "count_one": "{{count}} device",
     "count_other": "{{count}} devices",
     "searchPlaceholder": "Search by name or serial",
     "columns": {
+      "role": "Role",
       "device": "Device",
       "status": "Status",
       "system": "System",
