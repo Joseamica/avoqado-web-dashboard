@@ -93,6 +93,7 @@ import { DeviceRoleSummary, type DeviceMenusDeLaFicha } from './components/Devic
 import { papelDelAparato, type AreaDeLaFicha } from './papelDelAparato'
 import { canActivate, canConfigurePayments, canSendCommand, getDeviceActionPolicy } from './deviceCapabilities'
 import { DeviceBatteryCell, DeviceIcon, DeviceIdCell, DeviceStatusPill, DeviceSystemCell } from './components/DeviceListCells'
+import { RenameDeviceDialog } from './components/RenameDeviceDialog'
 import { useDeviceSubtitle } from './components/useDeviceListLabels'
 import { cuentasAlQuitar, cuentasAlVincular, getAppVersion, getDeviceIdentifier, getDeviceRole, type DeviceListInput } from './deviceListPresentation'
 
@@ -103,12 +104,11 @@ type TabValue = (typeof VALID_TABS)[number]
 // Type for the form values
 type TpvFormValues = {
   name: string
-  serialNumber: string
+  serialNumber?: string
   type?: string
   brand?: string
   model?: string
   status?: string
-  config?: string
 }
 
 interface TpvCommandMutationVariables {
@@ -253,6 +253,7 @@ function TpvIdContent() {
   }, [socket, venueId, tpvId, queryClient, joinVenueRoom, leaveVenueRoom])
 
   const [activationDialogOpen, setActivationDialogOpen] = useState(false)
+  const [renameOpen, setRenameOpen] = useState(false)
   const [activationData, setActivationData] = useState<{
     activationCode: string
     expiresAt: string
@@ -265,12 +266,11 @@ function TpvIdContent() {
 
   const tpvFormSchema = z.object({
     name: z.string().min(1, { message: t('detail.validation.nameRequired') }),
-    serialNumber: z.string().min(1, { message: t('detail.validation.serialRequired') }),
+    serialNumber: z.string().optional(),
     type: z.string().optional(),
     brand: z.string().optional(),
     model: z.string().optional(),
     status: z.string().optional(),
-    config: z.string().optional(),
   })
 
   // Initialize form with react-hook-form
@@ -283,7 +283,6 @@ function TpvIdContent() {
       brand: '',
       model: '',
       status: '',
-      config: '',
     },
   })
 
@@ -517,7 +516,6 @@ function TpvIdContent() {
         brand: tpv.brand || '',
         model: tpv.model || '',
         status: tpv.status || '',
-        config: tpv.config ? JSON.stringify(tpv.config, null, 2) : '',
       })
     }
   }, [tpv, form])
@@ -528,7 +526,10 @@ function TpvIdContent() {
       if (!venueId || !tpvId) {
         throw new Error(t('detail.errors.venueOrTpvUndefined'))
       }
-      const response = await api.put(`/api/v1/dashboard/venues/${venueId}/tpv/${tpvId}`, updatedData)
+      // Sin `config` (el formulario ya no lo edita) y sin serie vacía: el SERVIDOR lo toma como «sin cambio».
+      const { serialNumber, ...rest } = updatedData
+      const body = serialNumber?.trim() ? { ...rest, serialNumber } : rest
+      const response = await api.put(`/api/v1/dashboard/venues/${venueId}/tpv/${tpvId}`, body)
       return response.data
     },
     onSuccess: () => {
@@ -696,7 +697,6 @@ function TpvIdContent() {
         brand: tpv.brand || '',
         model: tpv.model || '',
         status: tpv.status || '',
-        config: tpv.config ? JSON.stringify(tpv.config, null, 2) : '',
       })
     }
     setIsEditing(false)
@@ -869,6 +869,17 @@ function TpvIdContent() {
               <div className="min-w-0 flex-1 space-y-1">
                 <div className="flex flex-wrap items-center gap-3">
                   <h1 className="text-2xl font-semibold tracking-tight text-foreground">{tpv.name || t('detail.terminal')}</h1>
+                  {canUpdate && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="size-8 cursor-pointer"
+                      aria-label={t('device.menu.rename')}
+                      onClick={() => setRenameOpen(true)}
+                    >
+                      <PencilIcon className="size-4" />
+                    </Button>
+                  )}
                   <DeviceStatusPill device={deviceForCells} />
                 </div>
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
@@ -1589,6 +1600,10 @@ function TpvIdContent() {
           )}
         </div>
       </div>
+
+      {venueId && tpv && (
+        <RenameDeviceDialog venueId={venueId} device={{ id: tpv.id, name: tpv.name }} open={renameOpen} onOpenChange={setRenameOpen} />
+      )}
 
       {/* Activation Code Dialog */}
       <ActivationCodeDialog open={activationDialogOpen} onOpenChange={setActivationDialogOpen} activationData={activationData} />

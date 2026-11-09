@@ -1020,7 +1020,8 @@
     "menu": {
       "lock": "Lock terminal",
       "unlock": "Unlock terminal",
-      "edit": "Edit details"
+      "edit": "Edit details",
+      "rename": "Rename"
     },
     "banner": {
       "maintenance": "In maintenance: this terminal can't take payments until it leaves maintenance.",
@@ -1082,6 +1083,14 @@
         "areaApagada": "«Issue tickets» is on, but its area is turned off: today it charges like a regular POS.",
         "sinPantallaDeVales": "«Issue tickets» is on, but it doesn’t open on the tickets screen: today it charges like a regular POS."
       }
+    },
+    "rename": {
+      "title": "Rename",
+      "label": "Device name",
+      "save": "Save",
+      "cancel": "Cancel",
+      "saved": "Name updated",
+      "error": "Couldn't rename the device. Try again."
     }
   },
   "newTerminal": {

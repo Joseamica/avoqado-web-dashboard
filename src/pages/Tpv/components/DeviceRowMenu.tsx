@@ -1,4 +1,4 @@
-import { CheckCircle2, Eye, KeyRound, MoreHorizontal, RotateCw, Trash2, Wrench } from 'lucide-react'
+import { CheckCircle2, Eye, KeyRound, MoreHorizontal, Pencil, RotateCw, Trash2, Wrench } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 
@@ -24,6 +24,7 @@ interface DeviceRowMenuProps {
   onRestart: (device: TpvListDevice) => void
   onCommand: (device: TpvListDevice, command: TpvCommandType) => void
   onDelete: (device: TpvListDevice) => void
+  onRename: (device: TpvListDevice) => void
 }
 
 /**
@@ -34,7 +35,7 @@ interface DeviceRowMenuProps {
  * Cada opción respeta los mismos permisos y capacidades que antes (`tpv:update`,
  * `tpv:command`, `tpv:delete` + lo que el aparato dice soportar).
  */
-export function DeviceRowMenu({ device, detailTo, detailState, onActivate, onRestart, onCommand, onDelete }: DeviceRowMenuProps) {
+export function DeviceRowMenu({ device, detailTo, detailState, onActivate, onRestart, onCommand, onDelete, onRename }: DeviceRowMenuProps) {
   const { t } = useTranslation('tpv')
   const { can } = useAccess()
   const navigate = useNavigate()
@@ -48,6 +49,7 @@ export function DeviceRowMenu({ device, detailTo, detailState, onActivate, onRes
   const canRestart = canCommand && canSendCommand(device.capabilities, TpvCommandType.RESTART)
   const canEnterMaintenance = canCommand && !inMaintenance && canSendCommand(device.capabilities, TpvCommandType.MAINTENANCE_MODE)
   const canExitMaintenance = canCommand && inMaintenance && canSendCommand(device.capabilities, TpvCommandType.EXIT_MAINTENANCE)
+  const canRename = can('tpv:update')
   const canDelete = policy.activationPending && can('tpv:delete')
   const hasDeviceActions = canActivate || canRestart || canEnterMaintenance || canExitMaintenance
 
@@ -66,6 +68,13 @@ export function DeviceRowMenu({ device, detailTo, detailState, onActivate, onRes
             <Eye className="size-4" />
             {t('list.menu.viewDetail')}
           </DropdownMenuItem>
+
+          {canRename && (
+            <DropdownMenuItem onSelect={() => onRename(device)}>
+              <Pencil className="size-4" />
+              {t('device.menu.rename')}
+            </DropdownMenuItem>
+          )}
 
           {hasDeviceActions && <DropdownMenuSeparator />}
 

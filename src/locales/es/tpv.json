@@ -1041,7 +1041,8 @@
     "menu": {
       "lock": "Bloquear terminal",
       "unlock": "Desbloquear terminal",
-      "edit": "Editar datos"
+      "edit": "Editar datos",
+      "rename": "Cambiar nombre"
     },
     "banner": {
       "maintenance": "En mantenimiento: esta terminal no cobra hasta que salga de mantenimiento.",
@@ -1103,6 +1104,14 @@
         "areaApagada": "Tiene «Emitir vales» prendido, pero su área está apagada: hoy cobra como un punto de venta normal.",
         "sinPantallaDeVales": "Tiene «Emitir vales» prendido, pero no abre en la pantalla de vales: hoy cobra como un punto de venta normal."
       }
+    },
+    "rename": {
+      "title": "Cambiar nombre",
+      "label": "Nombre del dispositivo",
+      "save": "Guardar",
+      "cancel": "Cancelar",
+      "saved": "Nombre actualizado",
+      "error": "No se pudo cambiar el nombre. Intenta de nuevo."
     }
   },
   "newTerminal": {

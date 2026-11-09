@@ -137,6 +137,12 @@ export const updateTpv = async (venueId: string, tpvId: string, data: { name?: s
  * Delete a terminal (only non-activated terminals can be deleted)
  * Activated terminals should be RETIRED instead
  */
+/** Renombrar: el body es EXACTAMENTE `{ name }` (el SERVIDOR acepta el PUT parcial). */
+export const renameTpv = async (venueId: string, tpvId: string, name: string) => {
+  const response = await api.put(`/api/v1/dashboard/venues/${venueId}/tpv/${tpvId}`, { name })
+  return response.data
+}
+
 export const deleteTpv = async (venueId: string, tpvId: string) => {
   const response = await api.delete(`/api/v1/dashboard/venues/${venueId}/tpv/${tpvId}`)
   return response.data

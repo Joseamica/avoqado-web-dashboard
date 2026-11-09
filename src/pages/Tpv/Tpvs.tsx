@@ -64,6 +64,7 @@ import {
 } from './components/DeviceListCells'
 import { DeviceMobileList } from './components/DeviceMobileList'
 import { DeviceRowMenu } from './components/DeviceRowMenu'
+import { RenameDeviceDialog } from './components/RenameDeviceDialog'
 import { TerminalPurchaseWizard } from './components/purchase-wizard/TerminalPurchaseWizard'
 import { SuperadminTerminalDialog } from './components/SuperadminTerminalDialog'
 import { TerminalOrdersTab } from './components/TerminalOrdersTab'
@@ -151,6 +152,7 @@ export default function Tpvs() {
   const [selectedTerminalForActivation, setSelectedTerminalForActivation] = useState<string | null>(null)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [terminalToDelete, setTerminalToDelete] = useState<{ id: string; name: string } | null>(null)
+  const [terminalToRename, setTerminalToRename] = useState<{ id: string; name: string } | null>(null)
   const [terminalToRestart, setTerminalToRestart] = useState<TpvListDevice | null>(null)
   const [connectionFilter, setConnectionFilter] = useState<string[]>([])
   const [activationFilter, setActivationFilter] = useState<string[]>([])
@@ -724,6 +726,7 @@ export default function Tpvs() {
           }}
           onRestart={setTerminalToRestart}
           onCommand={sendTpvCommand}
+          onRename={device => setTerminalToRename({ id: device.id, name: device.name })}
           onDelete={device => {
             setTerminalToDelete({ id: device.id, name: device.name })
             setDeleteDialogOpen(true)
@@ -738,6 +741,15 @@ export default function Tpvs() {
 
   return (
     <TooltipProvider>
+      {venueId && terminalToRename && (
+        <RenameDeviceDialog
+          key={terminalToRename.id}
+          venueId={venueId}
+          device={terminalToRename}
+          open
+          onOpenChange={open => !open && setTerminalToRename(null)}
+        />
+      )}
       <div className="p-4 md:p-6 bg-background text-foreground max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex flex-wrap items-start justify-between gap-4">
