@@ -3,6 +3,7 @@ import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 
 import type { TpvListDevice } from '@/services/tpv.service'
+import { TerminalType } from '@/types'
 import { DeviceNameCell, DeviceRoleCell } from '../components/DeviceListCells'
 
 vi.mock('react-i18next', () => ({
@@ -46,14 +47,14 @@ describe('DeviceRoleCell', () => {
     expect(screen.queryByText('list.unconfigured')).toBeNull()
   })
   it('terminal de cobro', () => {
-    role(pos({ type: 'TPV_ANDROID' }), vales)
+    role(pos({ type: TerminalType.TPV_ANDROID }), vales)
     expect(screen.getByText('device.papel.terminalDeCobro')).toBeTruthy()
   })
 })
 
 describe('DeviceRoleCell · Codex final #4 y #7', () => {
   it.each(['PRINTER_RECEIPT', 'PRINTER_KITCHEN', 'KDS'])('%s: la columna dice «—», sin papel ni Sin configurar', type => {
-    const { container } = role(pos({ type: type as TpvListDevice['type'], canDeliverAreaTickets: true }), vales)
+    const { container } = role(pos({ type: type as TerminalType, canDeliverAreaTickets: true }), vales)
     expect(container.textContent).toBe('—')
     expect(screen.queryByText('list.unconfigured')).toBeNull()
   })

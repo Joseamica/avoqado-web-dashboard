@@ -164,7 +164,7 @@ describe('DeviceSetupBlock (Paso 2: cambiar en sitio)', () => {
   })
 
   it('sin Pro el menú dice Todos los menús y no hay botón Cambiar ni con teclado', async () => {
-    h.plan = { hasAccess: false, isResolved: true, requiredTier: 'PRO', isLoading: false, isError: false }
+    h.plan = { hasAccess: false, isResolved: true, requiredTier: 'PRO', isLoading: false }
     pintar(pc({ areaTicketsEnabled: false, deviceMenus: { menus: [], needsAppUpdate: false } }))
     const menu = renglon('device-setup-menu')
     expect(within(menu).getByText('device.role.allMenus')).toBeInTheDocument()
