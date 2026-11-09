@@ -31,6 +31,7 @@ vi.mock('@/services/organization.service', () => ({
   updateOrganization: (...args: unknown[]) => actualizar(...args),
 }))
 
+import es from '@/locales/es/organization.json'
 import OrganizationSettings from '@/pages/Organization/OrganizationSettings'
 
 const DUENO_DE_TIENDA = { role: 'OWNER', organizationMemberships: [{ organizationId: 'org-1', role: 'MEMBER' }] }
@@ -75,6 +76,27 @@ describe('pestaña General de la organización — sólo el dueño de la org la 
     fireEvent.click(guardar())
 
     await waitFor(() => expect(actualizar).toHaveBeenCalledWith('org-1', expect.objectContaining({ name: 'Org Uno Nueva' })))
+  })
+
+  it('🔴 los avisos del formulario salen traducidos, no en inglés a mano (D12)', async () => {
+    auth.user = DUENO_DE_LA_ORG
+    pintar()
+
+    fireEvent.change(await campoNombre(), { target: { value: '' } })
+    fireEvent.change(await screen.findByDisplayValue('hola@orguno.mx'), { target: { value: 'no-es-correo' } })
+    fireEvent.change(await screen.findByDisplayValue('5551234567'), { target: { value: '' } })
+    await waitFor(() => expect(guardar()).toBeEnabled())
+    fireEvent.click(guardar())
+
+    expect(await screen.findByText('settings.validation.nameRequired')).toBeInTheDocument()
+    expect(screen.getByText('settings.validation.emailInvalid')).toBeInTheDocument()
+    expect(screen.getByText('settings.validation.phoneRequired')).toBeInTheDocument()
+    expect(es.settings.validation).toEqual({
+      nameRequired: 'El nombre es requerido',
+      emailInvalid: 'Ingresa un correo electrónico válido',
+      phoneRequired: 'El teléfono es requerido',
+    })
+    expect(actualizar).not.toHaveBeenCalled()
   })
 
   it('🔴 un 4xx del servidor sale en el toast con SU mensaje', async () => {

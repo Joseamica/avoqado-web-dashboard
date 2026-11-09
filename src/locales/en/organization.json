@@ -401,7 +401,12 @@
     "updateError": "Failed to update organization",
     "generalSoloDuenoOrg": "Only the organization owner can change this information. If you need a change, ask the organization owner.",
     "tpvSoloDuenoOrg": "Only the organization owner can change these settings, because they apply to every terminal in every store. If you need a change, ask the organization owner.",
-    "tpvLoadError": "The saved settings could not be loaded. Reload the page before changing them, so you do not replace them with the factory values."
+    "tpvLoadError": "The saved settings could not be loaded. Reload the page before changing them, so you do not replace them with the factory values.",
+    "validation": {
+      "nameRequired": "Name is required",
+      "emailInvalid": "Invalid email address",
+      "phoneRequired": "Phone is required"
+    }
   },
   "terminals": {
     "title": "Devices",

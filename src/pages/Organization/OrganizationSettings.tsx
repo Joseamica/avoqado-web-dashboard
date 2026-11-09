@@ -28,15 +28,16 @@ import { z } from 'zod'
 import OrgCommissionConfigSection from '@/pages/Commissions/components/OrgCommissionConfigSection'
 import OrgPayoutConfigSection from '@/pages/Commissions/components/OrgPayoutConfigSection'
 
-const organizationSchema = z.object({
-  name: z.string().min(1, 'Name is required'),
-  email: z.string().email('Invalid email address'),
-  phone: z.string().min(1, 'Phone is required'),
-  taxId: z.string().nullable(),
-  billingEmail: z.string().email('Invalid email').nullable().or(z.literal('')),
-})
+const createOrganizationSchema = (t: (key: string) => string) =>
+  z.object({
+    name: z.string().min(1, t('settings.validation.nameRequired')),
+    email: z.string().email(t('settings.validation.emailInvalid')),
+    phone: z.string().min(1, t('settings.validation.phoneRequired')),
+    taxId: z.string().nullable(),
+    billingEmail: z.string().email(t('settings.validation.emailInvalid')).nullable().or(z.literal('')),
+  })
 
-type OrganizationFormData = z.infer<typeof organizationSchema>
+type OrganizationFormData = z.infer<ReturnType<typeof createOrganizationSchema>>
 
 const OrganizationSettings: React.FC = () => {
   const { t } = useTranslation('organization')
@@ -57,7 +58,7 @@ const OrganizationSettings: React.FC = () => {
   const { data: organization, isLoading } = organizationQuery
 
   const form = useForm<OrganizationFormData>({
-    resolver: zodResolver(organizationSchema),
+    resolver: zodResolver(createOrganizationSchema(t)),
     values: organization
       ? {
           name: organization.name,
