@@ -33,6 +33,8 @@ import { mensajeDelServidor, useUnaALaVez } from '../ayudantes'
 
 const PAGE_SIZE = 20
 const ESTADOS: EstadoDelRetenido[] = ['PENDIENTE', 'APLICANDO', 'APLICADO', 'DESCARTADO']
+/** Lo mismo que cuenta el «Por revisar (n)» de la pantalla. */
+const SIN_RESOLVER = 'PENDIENTE,APLICANDO'
 
 interface PorRevisarModalProps {
   orgId: string
@@ -51,9 +53,12 @@ export function PorRevisarModal({ orgId, open, onClose, venueId }: PorRevisarMod
   const [pagination, setPagination] = useState<PaginationState>({ pageIndex: 0, pageSize: PAGE_SIZE })
   const [porDescartar, setPorDescartar] = useState<RetenidoDeCampo | null>(null)
   const [nota, setNota] = useState('')
-  // Arranca en PENDIENTE, como el «Por revisar (n)» del botón. El servidor filtra por UN estado: «A medias» (APLICANDO) y los
-  // resueltos se eligen en el filtro; null = todos.
-  const [estado, setEstado] = useState<EstadoDelRetenido | null>('PENDIENTE')
+  // Arranca en «Sin resolver» (PENDIENTE y APLICANDO), lo mismo que cuenta el botón; null = todos.
+  const [estado, setEstado] = useState<string | null>(SIN_RESOLVER)
+  const etiquetaDeEstado = (v: string) =>
+    v === SIN_RESOLVER
+      ? t('celulares.porRevisar.sinResolver', { defaultValue: 'Sin resolver' })
+      : t(`celulares.porRevisar.estado.${v}`)
 
   const params = { venueId, estado: estado ?? undefined, page: pagination.pageIndex + 1, pageSize: PAGE_SIZE }
   const retenidosQuery = useQuery({
@@ -190,7 +195,7 @@ export function PorRevisarModal({ orgId, open, onClose, venueId }: PorRevisarMod
         </p>
         <FilterPill
           label={t('celulares.filtros.estado', { defaultValue: 'Estado' })}
-          activeLabel={estado ? t(`celulares.porRevisar.estado.${estado}`) : null}
+          activeLabel={estado ? etiquetaDeEstado(estado) : null}
           onClear={() => {
             setEstado(null)
             setPagination(p => ({ ...p, pageIndex: 0 }))
@@ -198,10 +203,10 @@ export function PorRevisarModal({ orgId, open, onClose, venueId }: PorRevisarMod
         >
           <SingleSelectFilterContent
             title={t('celulares.filtros.estado', { defaultValue: 'Estado' })}
-            options={ESTADOS.map(e => ({ value: e, label: t(`celulares.porRevisar.estado.${e}`) }))}
+            options={[SIN_RESOLVER, ...ESTADOS].map(e => ({ value: e, label: etiquetaDeEstado(e) }))}
             selectedValue={estado}
             onSelect={v => {
-              setEstado(v as EstadoDelRetenido)
+              setEstado(v)
               setPagination(p => ({ ...p, pageIndex: 0 }))
             }}
           />
@@ -211,7 +216,7 @@ export function PorRevisarModal({ orgId, open, onClose, venueId }: PorRevisarMod
           !falloDeCarga(retenidosQuery) && <Skeleton className="h-48 w-full rounded-xl" />
         ) : total === 0 ? (
           <div className="rounded-2xl border border-border/50 bg-card p-10 text-center text-sm text-muted-foreground">
-            {estado === 'PENDIENTE'
+            {estado === SIN_RESOLVER
               ? t('celulares.porRevisar.vacio', { defaultValue: 'No hay nada por revisar.' })
               : t('celulares.porRevisar.vacioConFiltro', { defaultValue: 'No hay nada con ese estado.' })}
           </div>

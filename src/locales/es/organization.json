@@ -1773,7 +1773,8 @@
         "APLICADO": "Aplicado",
         "DESCARTADO": "Descartado"
       },
-      "vacioConFiltro": "No hay nada con ese estado."
+      "vacioConFiltro": "No hay nada con ese estado.",
+      "sinResolver": "Sin resolver"
     }
   }
 }

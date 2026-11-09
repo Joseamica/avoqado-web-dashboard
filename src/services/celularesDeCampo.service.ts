@@ -97,7 +97,8 @@ export interface RetenidoDeCampo {
 export interface FiltrosDeRetenidos {
   staffId?: string
   venueId?: string
-  estado?: EstadoDelRetenido
+  /** Un estado o varios separados por coma (`PENDIENTE,APLICANDO` = sin resolver). */
+  estado?: string
   page: number
   pageSize: number
 }

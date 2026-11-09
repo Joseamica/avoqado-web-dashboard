@@ -1773,7 +1773,8 @@
         "APLICADO": "Applied",
         "DESCARTADO": "Discarded"
       },
-      "vacioConFiltro": "Nothing with that status."
+      "vacioConFiltro": "Nothing with that status.",
+      "sinResolver": "Unresolved"
     }
   }
 }
