@@ -77,7 +77,7 @@ export interface CelularDesvinculado {
 }
 
 export type TipoDeEnvio = 'VENTA' | 'ENTRADA' | 'SALIDA' | 'CUSTODIA_ACEPTAR' | 'CUSTODIA_RECHAZAR' | 'EVIDENCIA'
-export type MotivoDeRetencion = 'PERSONA_DADA_DE_BAJA' | 'FUERA_DE_PLAZO' | 'NO_REPORTADA' | 'SIN_PERMISO' | 'RECHAZADO'
+export type MotivoDeRetencion = 'PERSONA_DADA_DE_BAJA' | 'FUERA_DE_PLAZO' | 'NO_REPORTADA' | 'SIN_PERMISO' | 'RECHAZADO' | 'APLICADO_EN_GRACIA'
 export type EstadoDelRetenido = 'PENDIENTE' | 'APLICANDO' | 'APLICADO' | 'DESCARTADO'
 
 export interface RetenidoDeCampo {
@@ -88,7 +88,7 @@ export interface RetenidoDeCampo {
   sucursal: string
   tipo: TipoDeEnvio
   motivo: MotivoDeRetencion
-  rechazo: { code: string; message: string } | null
+  rechazo: { code: string; message: string; detalle?: unknown } | null
   resumen: string
   createdAt: string
   estado: EstadoDelRetenido

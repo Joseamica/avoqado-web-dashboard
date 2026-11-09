@@ -1765,7 +1765,8 @@
         "FUERA_DE_PLAZO": "Llegó después de las 24 horas de gracia.",
         "NO_REPORTADA": "El celular no la había reportado antes de desvincularse.",
         "SIN_PERMISO": "La persona no tiene permiso para esto en esa sucursal.",
-        "RECHAZADO": "No se pudo aplicar sola:"
+        "RECHAZADO": "No se pudo aplicar sola:",
+        "APLICADO_EN_GRACIA": "Se aplicó solo durante las 24 h"
       },
       "estado": {
         "PENDIENTE": "Por revisar",

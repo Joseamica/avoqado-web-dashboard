@@ -1765,7 +1765,8 @@
         "FUERA_DE_PLAZO": "It arrived after the 24-hour grace period.",
         "NO_REPORTADA": "The phone hadn't reported it before being unlinked.",
         "SIN_PERMISO": "The person isn't allowed to do this at that location.",
-        "RECHAZADO": "It couldn't be applied on its own:"
+        "RECHAZADO": "It couldn't be applied on its own:",
+        "APLICADO_EN_GRACIA": "Applied automatically during the 24 h"
       },
       "estado": {
         "PENDIENTE": "To review",
