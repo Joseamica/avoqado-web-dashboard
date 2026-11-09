@@ -63,7 +63,7 @@ describe('DeviceMenusEditor', () => {
     pintar()
     await user.click(selector())
     await opcion(/Comidas/)
-    expect(svc.getDeviceMenuOptions).toHaveBeenCalledWith('v1', { page: 1, pageSize: 100 })
+    expect(svc.getDeviceMenuOptions).toHaveBeenCalledWith('v1', { search: undefined, page: 1, pageSize: 100 })
   })
 
   it('al guardar invalida tpvs, la ficha, la lista y el ruteo', async () => {
@@ -93,6 +93,28 @@ describe('DeviceMenusEditor', () => {
     await waitFor(() => expect(selector()).toBeEnabled())
     await user.click(await opcion(/Comidas/))
     await waitFor(() => expect(svc.setTerminalMenus).toHaveBeenLastCalledWith('v1', 't1', ['m1', 'm2']))
+  })
+
+  it('con más de 100 menús, la búsqueda del servidor encuentra uno fuera de la primera página', async () => {
+    const lejano = { id: 'm9', name: 'Cenas', appliesToOnline: true, categoryCount: 1 }
+    svc.getDeviceMenuOptions.mockImplementation((_v: string, p: { search?: string }) =>
+      Promise.resolve(p.search === 'Cen' ? { menus: [lejano], total: 1, page: 1, pageSize: 100 } : { menus: [m('m1')], total: 250, page: 1, pageSize: 100 }),
+    )
+    const user = userEvent.setup()
+    pintar()
+    const buscador = await screen.findByLabelText('deviceMenus.buscarMenus')
+    await user.type(buscador, 'Cen')
+    await waitFor(() => expect(svc.getDeviceMenuOptions).toHaveBeenCalledWith('v1', { search: 'Cen', page: 1, pageSize: 100 }))
+    await user.click(selector())
+    await user.click(await opcion(/Cenas/))
+    await waitFor(() => expect(svc.setTerminalMenus).toHaveBeenCalledWith('v1', 't1', ['m9']))
+  })
+
+  it('si no cargan las opciones, lo dice y deja reintentar', async () => {
+    svc.getDeviceMenuOptions.mockRejectedValue(new Error('boom'))
+    pintar()
+    expect(await screen.findByText('deviceMenus.errorMenus')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'deviceMenus.reintentar' })).toBeInTheDocument()
   })
 
   it('una relectura con otra elección, sin guardado en curso, cambia lo que se ve', () => {

@@ -1,6 +1,6 @@
-import { keepPreviousData, useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Monitor, Plus, Search, Tablet } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useInRouterContext } from 'react-router-dom'
 
@@ -16,13 +16,13 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useDebounce } from '@/hooks/useDebounce'
 import { MenuWizardDialog } from '@/pages/Menu/Menus/components/MenuWizardDialog'
 import {
-  getDeviceMenuOptions,
   getDeviceMenus,
   type DeviceMenusCounts,
   type DeviceMenusPage,
   type DeviceMenusTerminalRow,
 } from '@/services/deviceMenus.service'
 import { DeviceMenusEditor } from './DeviceMenusEditor'
+import { OPTIONS_PAGE_SIZE, useDeviceMenuOptions, type DeviceMenuChoice } from './useDeviceMenuOptions'
 import { getDeviceSystem } from '../deviceListPresentation'
 
 /**
@@ -32,10 +32,9 @@ import { getDeviceSystem } from '../deviceListPresentation'
  * Contrato: `deviceMenus.service.ts`. `sees` es lo de HOY y `seesAfterUpdate` lo que verá al actualizar la app (Ruling 11).
  */
 const PAGE_SIZE = 50
-const OPTIONS_PAGE_SIZE = 100
 const NEW_MENU_DEFAULTS = { appliesToDevices: true, appliesToOnline: false }
 
-type Option = { value: string; label: string; description?: string }
+type Option = DeviceMenuChoice
 
 export default function DeviceMenusTab() {
   return (
@@ -76,41 +75,10 @@ function DeviceMenusContent() {
     enabled: !!venueId,
   })
 
-  const menuOptions = useInfiniteQuery({
-    queryKey: ['device-menu-options', venueId, debouncedMenuSearch],
-    queryFn: ({ pageParam }) =>
-      getDeviceMenuOptions(venueId, { search: debouncedMenuSearch || undefined, page: pageParam, pageSize: OPTIONS_PAGE_SIZE }),
-    initialPageParam: 1,
-    // Sin `last.menus.length` una página vacía (se borraron menús) pediría «más» para siempre.
-    getNextPageParam: (last, all) =>
-      last.menus.length > 0 && all.reduce((n, p) => n + p.menus.length, 0) < last.total ? all.length + 1 : undefined,
-    // La búsqueda va en la llave: sin esto cada tecla vacía las opciones (bounded-data-and-query-load.md).
-    placeholderData: keepPreviousData,
-    staleTime: 30_000,
-    retry: 1,
-    refetchOnWindowFocus: false,
-    refetchOnMount: 'always',
-    enabled: !!venueId,
-  })
-
-  const options = useMemo<Option[]>(() => {
-    // Por id: si un menú se movió de página entre una lectura y otra, no sale dos veces.
-    const vistos = new Set<string>()
-    return (menuOptions.data?.pages ?? [])
-      .flatMap(p => p.menus)
-      .filter(m => !vistos.has(m.id) && !!vistos.add(m.id))
-      .map(m => ({
-        value: m.id,
-        label: m.name,
-        // Categorías DIRECTAS del menú: no es la cuenta de «En su pantalla ve» (ésa suma subcategorías con productos).
-        description: t('deviceMenus.categoriasDelMenu', { count: m.categoryCount }),
-      }))
-  }, [menuOptions.data, t])
+  const { query: menuOptions, options, total: optionsTotal } = useDeviceMenuOptions(venueId, debouncedMenuSearch)
 
   const canEdit = can('tpv:update')
   const canCreateMenu = can('menu:create')
-  const optionsPages = menuOptions.data?.pages ?? []
-  const optionsTotal = optionsPages[optionsPages.length - 1]?.total ?? 0
   // Visible si no cupieron en una página, o si ya hay una búsqueda (si no, al filtrar se escondería a sí mismo).
   const showMenuSearch = menuSearch !== '' || optionsTotal > OPTIONS_PAGE_SIZE
 
