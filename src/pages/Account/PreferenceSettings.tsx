@@ -14,6 +14,9 @@ export default function PreferenceSettings() {
           {t('preferences.title')}
         </h1>
         <p className="text-muted-foreground mt-2">{t('preferences.subtitle')}</p>
+        <p className="text-xs text-muted-foreground mt-1" data-testid="banco-web-ayuda">
+          {t('preferences.bancoWebHelp')}
+        </p>
       </div>
 
       <div className="rounded-lg border border-input divide-y divide-border">

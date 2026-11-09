@@ -32,6 +32,7 @@
   "preferences": {
     "title": "Preferences",
     "subtitle": "Language and appearance. These only apply to your account.",
+    "bancoWebHelp": "Banco web: prueba A",
     "language": {
       "label": "Language",
       "help": "The language of the dashboard for you."
