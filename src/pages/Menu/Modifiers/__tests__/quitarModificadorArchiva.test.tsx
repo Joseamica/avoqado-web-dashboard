@@ -14,6 +14,7 @@ const server = vi.hoisted(() => ({
   modifiers: [] as Array<Record<string, unknown>>,
   calls: [] as Array<{ method: string; url: string; body?: unknown }>,
   permissions: null as string[] | null,
+  group: { required: false, minSelections: 0 as number | null },
 }))
 
 vi.mock('@/api', () => {
@@ -21,9 +22,8 @@ vi.mock('@/api', () => {
     id: 'group-1',
     name: 'Extras',
     description: '',
-    required: false,
+    ...server.group,
     allowMultiple: false,
-    minSelections: 0,
     maxSelections: 1,
     modifiers: server.modifiers.map(m => ({ ...m })),
     url,
@@ -102,6 +102,32 @@ describe('Quitar un modificador lo archiva', () => {
     server.modifiers = []
     server.calls.length = 0
     server.permissions = null
+    server.group = { required: false, minSelections: 0 }
+  })
+
+  it('un grupo obligatorio no se queda con menos opciones de las que pide', async () => {
+    server.group = { required: true, minSelections: 2 }
+    server.modifiers = [extra('mod-1', 'Queso', true), extra('mod-2', 'Tocino', true)]
+    const user = userEvent.setup()
+    renderDialog()
+
+    await user.click(within(await fila('Queso')).getByRole('button', { name: 'Eliminar' }))
+
+    const confirmacion = await screen.findByRole('alertdialog')
+    expect(confirmacion).toHaveTextContent('pide al menos 2 opciones activas')
+    expect(within(confirmacion).getByRole('button', { name: 'Eliminar' })).toBeDisabled()
+    expect(server.calls).toHaveLength(0)
+  })
+
+  it('un grupo obligatorio deja quitar mientras queden las que pide', async () => {
+    server.group = { required: true, minSelections: 1 }
+    server.modifiers = [extra('mod-1', 'Queso', true), extra('mod-2', 'Tocino', true)]
+    const user = userEvent.setup()
+    renderDialog()
+
+    await user.click(within(await fila('Queso')).getByRole('button', { name: 'Eliminar' }))
+
+    expect(within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Eliminar' })).toBeEnabled()
   })
 
   it('confirmar manda sólo PATCH {active:false}, nunca DELETE, y avisa que se puede reactivar', async () => {

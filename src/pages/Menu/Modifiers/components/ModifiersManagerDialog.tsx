@@ -201,6 +201,11 @@ export function ModifiersManagerDialog({ venueId, modifierGroupId, onClose }: Mo
     },
   })
 
+  // La caja exige ese mínimo y sólo ofrece los activos: quitar de más dejaría el producto imposible de vender.
+  const activos = group?.modifiers?.filter(m => m.active !== false).length ?? 0
+  const minimoDelGrupo = group?.required ? (group.minSelections ?? 1) : 0
+  const noAlcanzaElMinimo = activos - 1 < minimoDelGrupo
+
   const archiveModifierMutation = useMutation({
     mutationFn: (modifierId: string) => archiveModifier(venueId, modifierGroupId!, modifierId),
     onSuccess: () => {
@@ -516,14 +521,16 @@ export function ModifiersManagerDialog({ venueId, modifierGroupId, onClose }: Mo
           <AlertDialogHeader>
             <AlertDialogTitle>{t('modifiers.editor.deleteTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
-              {t('modifiers.editor.deleteDescription', { name: modifierToDelete?.name ?? '' })}
+              {noAlcanzaElMinimo
+                ? t('modifiers.editor.deleteBlockedByMinimum', { count: minimoDelGrupo })
+                : t('modifiers.editor.deleteDescription', { name: modifierToDelete?.name ?? '' })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>{tCommon('cancel')}</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              disabled={archiveModifierMutation.isPending}
+              disabled={archiveModifierMutation.isPending || noAlcanzaElMinimo}
               onClick={() => modifierToDelete && archiveModifierMutation.mutate(modifierToDelete.id)}
             >
               {archiveModifierMutation.isPending ? t('modifiers.dialogs.delete.deleting') : t('modifiers.dialogs.delete.delete')}
