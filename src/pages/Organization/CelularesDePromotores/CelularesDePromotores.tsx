@@ -131,7 +131,8 @@ export function CelularesDePromotoresVista({ orgId, venueIdInicial }: { orgId: s
   })
 
   const generarTodos = useMutation({
-    mutationFn: () => generarCodigosDeCelular(orgId, { todosLosSinCelular: true }),
+    // El mismo filtro de sucursal que da el conteo del botón: se generan exactamente esos N.
+    mutationFn: (venue?: string) => generarCodigosDeCelular(orgId, { todosLosSinCelular: true, venueId: venue }),
     onSuccess: res => {
       invalidar()
       toast({
@@ -171,6 +172,7 @@ export function CelularesDePromotoresVista({ orgId, venueIdInicial }: { orgId: s
   const hayFiltros = !!debouncedSearch.trim() || !!estado || !!venueId
   const sinCelular = data?.conteos.SIN_CELULAR ?? 0
   const porRevisar = data?.porRevisar ?? 0
+  const nombreSucursal = venueId ? (sucursalOptions.find(o => o.value === venueId)?.label ?? null) : null
 
   const titulo = (
     <div>
@@ -359,7 +361,13 @@ export function CelularesDePromotoresVista({ orgId, venueIdInicial }: { orgId: s
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {t('celulares.generarTodos.titulo', { n: sinCelular, defaultValue: '¿Generar códigos para los {{n}} sin celular?' })}
+              {nombreSucursal
+                ? t('celulares.generarTodos.tituloSucursal', {
+                    n: sinCelular,
+                    sucursal: nombreSucursal,
+                    defaultValue: '¿Generar códigos para los {{n}} sin celular de {{sucursal}}?',
+                  })
+                : t('celulares.generarTodos.titulo', { n: sinCelular, defaultValue: '¿Generar códigos para los {{n}} sin celular?' })}
             </AlertDialogTitle>
             <AlertDialogDescription>
               {t('celulares.generarTodos.descripcion', {
@@ -374,7 +382,7 @@ export function CelularesDePromotoresVista({ orgId, venueIdInicial }: { orgId: s
               disabled={generarTodos.isPending}
               onClick={e => {
                 e.preventDefault()
-                void unaALaVez(() => generarTodos.mutateAsync())
+                void unaALaVez(() => generarTodos.mutateAsync(venueId ?? undefined))
               }}
             >
               {t('celulares.generarTodos.confirmar', { defaultValue: 'Generar códigos' })}

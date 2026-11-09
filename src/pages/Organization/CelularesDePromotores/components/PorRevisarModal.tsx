@@ -12,12 +12,18 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { FilterPill, SingleSelectFilterContent } from '@/components/filters'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/hooks/use-toast'
 import { falloDeCarga } from '@/lib/falloDeCarga'
-import { getRetenidosDeCampo, resolverRetenidoDeCampo, type RetenidoDeCampo } from '@/services/celularesDeCampo.service'
+import {
+  getRetenidosDeCampo,
+  resolverRetenidoDeCampo,
+  type EstadoDelRetenido,
+  type RetenidoDeCampo,
+} from '@/services/celularesDeCampo.service'
 import { useVenueDateTime } from '@/utils/datetime'
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { ColumnDef, PaginationState } from '@tanstack/react-table'
@@ -26,6 +32,7 @@ import { useTranslation } from 'react-i18next'
 import { mensajeDelServidor, useUnaALaVez } from '../ayudantes'
 
 const PAGE_SIZE = 20
+const ESTADOS: EstadoDelRetenido[] = ['PENDIENTE', 'APLICANDO', 'APLICADO', 'DESCARTADO']
 
 interface PorRevisarModalProps {
   orgId: string
@@ -44,9 +51,11 @@ export function PorRevisarModal({ orgId, open, onClose, venueId }: PorRevisarMod
   const [pagination, setPagination] = useState<PaginationState>({ pageIndex: 0, pageSize: PAGE_SIZE })
   const [porDescartar, setPorDescartar] = useState<RetenidoDeCampo | null>(null)
   const [nota, setNota] = useState('')
+  // Arranca en PENDIENTE, como el «Por revisar (n)» del botón. El servidor filtra por UN estado: «A medias» (APLICANDO) y los
+  // resueltos se eligen en el filtro; null = todos.
+  const [estado, setEstado] = useState<EstadoDelRetenido | null>('PENDIENTE')
 
-  // ponytail: sin filtro de estado, se ven también los ya resueltos (con su estado); filtrar si la lista crece.
-  const params = { venueId, page: pagination.pageIndex + 1, pageSize: PAGE_SIZE }
+  const params = { venueId, estado: estado ?? undefined, page: pagination.pageIndex + 1, pageSize: PAGE_SIZE }
   const retenidosQuery = useQuery({
     queryKey: ['celulares-de-campo', orgId, 'retenidos', params],
     queryFn: () => getRetenidosDeCampo(orgId, params),
@@ -84,6 +93,7 @@ export function PorRevisarModal({ orgId, open, onClose, venueId }: PorRevisarMod
     },
   })
 
+  const { isPending, mutateAsync } = mutation
   const columns = useMemo<ColumnDef<RetenidoDeCampo>[]>(
     () => [
       {
@@ -135,8 +145,8 @@ export function PorRevisarModal({ orgId, open, onClose, venueId }: PorRevisarMod
               <Button
                 size="sm"
                 className="cursor-pointer"
-                disabled={mutation.isPending}
-                onClick={() => void unaALaVez(() => mutation.mutateAsync({ id: r.id, accion: 'APLICAR' }))}
+                disabled={isPending}
+                onClick={() => void unaALaVez(() => mutateAsync({ id: r.id, accion: 'APLICAR' }))}
               >
                 {t('celulares.porRevisar.aplicar', { defaultValue: 'Aplicar' })}
               </Button>
@@ -145,7 +155,7 @@ export function PorRevisarModal({ orgId, open, onClose, venueId }: PorRevisarMod
                   size="sm"
                   variant="outline"
                   className="cursor-pointer"
-                  disabled={mutation.isPending}
+                  disabled={isPending}
                   onClick={() => {
                     setNota('')
                     setPorDescartar(r)
@@ -159,7 +169,7 @@ export function PorRevisarModal({ orgId, open, onClose, venueId }: PorRevisarMod
         },
       },
     ],
-    [t, formatDateTime, mutation, unaALaVez],
+    [t, formatDateTime, isPending, mutateAsync, unaALaVez],
   )
 
   const total = data?.total ?? 0
@@ -178,12 +188,32 @@ export function PorRevisarModal({ orgId, open, onClose, venueId }: PorRevisarMod
               'Lo que un celular subió después de desvincularse y no se pudo aceptar solo. «Aplicar» lo registra a nombre de quien lo hizo; «Descartar» lo deja fuera.',
           })}
         </p>
+        <FilterPill
+          label={t('celulares.filtros.estado', { defaultValue: 'Estado' })}
+          activeLabel={estado ? t(`celulares.porRevisar.estado.${estado}`) : null}
+          onClear={() => {
+            setEstado(null)
+            setPagination(p => ({ ...p, pageIndex: 0 }))
+          }}
+        >
+          <SingleSelectFilterContent
+            title={t('celulares.filtros.estado', { defaultValue: 'Estado' })}
+            options={ESTADOS.map(e => ({ value: e, label: t(`celulares.porRevisar.estado.${e}`) }))}
+            selectedValue={estado}
+            onSelect={v => {
+              setEstado(v as EstadoDelRetenido)
+              setPagination(p => ({ ...p, pageIndex: 0 }))
+            }}
+          />
+        </FilterPill>
         <AvisoDeCarga query={retenidosQuery} hayDatos={data !== undefined} />
         {data === undefined ? (
           !falloDeCarga(retenidosQuery) && <Skeleton className="h-48 w-full rounded-xl" />
         ) : total === 0 ? (
           <div className="rounded-2xl border border-border/50 bg-card p-10 text-center text-sm text-muted-foreground">
-            {t('celulares.porRevisar.vacio', { defaultValue: 'No hay nada por revisar.' })}
+            {estado === 'PENDIENTE'
+              ? t('celulares.porRevisar.vacio', { defaultValue: 'No hay nada por revisar.' })
+              : t('celulares.porRevisar.vacioConFiltro', { defaultValue: 'No hay nada con ese estado.' })}
           </div>
         ) : (
           <div className="rounded-2xl border border-border/50 bg-card overflow-hidden">

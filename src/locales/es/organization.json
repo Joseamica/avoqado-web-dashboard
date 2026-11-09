@@ -1711,7 +1711,8 @@
       "descripcion": "Cada promotor sin celular ni código vivo recibe un código que vence en 7 días. Después los ves en «Código sin usar», cada uno con su «Copiar» y su WhatsApp.",
       "confirmar": "Generar códigos",
       "hecho": "Se generaron {{n}} códigos",
-      "faltan": "Faltan {{n}}: vuelve a tocar el botón."
+      "faltan": "Faltan {{n}}: vuelve a tocar el botón.",
+      "tituloSucursal": "¿Generar códigos para los {{n}} sin celular de {{sucursal}}?"
     },
     "pin": {
       "label": "PIN de 4 a 6 dígitos",
@@ -1771,7 +1772,8 @@
         "APLICANDO": "A medias: toca «Aplicar» otra vez",
         "APLICADO": "Aplicado",
         "DESCARTADO": "Descartado"
-      }
+      },
+      "vacioConFiltro": "No hay nada con ese estado."
     }
   }
 }

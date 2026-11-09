@@ -1711,7 +1711,8 @@
       "descripcion": "Each promoter with no phone and no live code gets a code that expires in 7 days. Then you'll see them under «Unused code», each with its «Copy» and WhatsApp.",
       "confirmar": "Generate codes",
       "hecho": "{{n}} codes generated",
-      "faltan": "{{n}} left: tap the button again."
+      "faltan": "{{n}} left: tap the button again.",
+      "tituloSucursal": "Generate codes for the {{n}} without a phone at {{sucursal}}?"
     },
     "pin": {
       "label": "PIN, 4 to 6 digits",
@@ -1771,7 +1772,8 @@
         "APLICANDO": "Half done: tap «Apply» again",
         "APLICADO": "Applied",
         "DESCARTADO": "Discarded"
-      }
+      },
+      "vacioConFiltro": "Nothing with that status."
     }
   }
 }

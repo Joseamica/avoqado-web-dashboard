@@ -65,7 +65,8 @@ export interface CodigosGenerados {
   restantes: number
 }
 
-export type PedirCodigos = { staffIds: string[] } | { todosLosSinCelular: true }
+/** `venueId`: sólo los de esa sucursal, para generar exactamente los N que enseña `conteos.SIN_CELULAR` del filtro activo. */
+export type PedirCodigos = { staffIds: string[] } | { todosLosSinCelular: true; venueId?: string }
 
 export interface CelularDesvinculado {
   desvinculadoAt: string
