@@ -243,7 +243,8 @@
     "reports": "Reports",
     "managers": "Supervisors",
     "liveLocation": "Terminal Location",
-    "serviceCourses": "Service courses"
+    "serviceCourses": "Service courses",
+    "celulares": "Promoter phones"
   },
   "header": {
     "backToVenue": "Back to Venue"
@@ -1643,5 +1644,134 @@
   "notYourOrganization": "You do not have access to this organization.",
   "liveLocation": {
     "title": "Terminal Location"
+  },
+  "celulares": {
+    "titulo": "Promoter phones",
+    "subtitulo": "Who already activated the field app on their phone, and their code if not yet.",
+    "buscar": "Search promoter",
+    "cerrarBusqueda": "Close search",
+    "cerrar": "Close",
+    "cancelar": "Cancel",
+    "sinTelefono": "No phone number",
+    "noDisponible": "This screen appears when the organization has serialized inventory.",
+    "omitido": "{{nombre}} is no longer a field promoter",
+    "visto": "Seen {{hace}}",
+    "checoConUbicacion": "Clocked in with location",
+    "checoSinUbicacion": "Clocked in without location",
+    "porSubir": "To upload: {{n}}",
+    "columnas": {
+      "promotor": "Promoter",
+      "sucursal": "Location",
+      "estado": "Status",
+      "visto": "Last contact",
+      "checada": "Clock-in",
+      "porSubir": "To upload"
+    },
+    "estado": {
+      "SIN_CELULAR": "No phone",
+      "CODIGO_SIN_USAR": "Unused code · expires {{fecha}}",
+      "ACTIVO": "Activated · {{marca}} {{modelo}}"
+    },
+    "estadoFiltro": {
+      "SIN_CELULAR": "No phone",
+      "CODIGO_SIN_USAR": "Unused code",
+      "ACTIVO": "Activated"
+    },
+    "filtros": {
+      "estado": "Status",
+      "sucursal": "Location"
+    },
+    "acciones": {
+      "generar": "Generate code",
+      "generarOtro": "Generate another",
+      "copiar": "Copy",
+      "whatsapp": "Send via WhatsApp",
+      "ponerPin": "Set PIN",
+      "cambiarPin": "Change PIN",
+      "desvincular": "Unlink"
+    },
+    "vacio": {
+      "sinPromotores": "No promoters yet",
+      "sinPromotoresTexto": "People who sell at locations with serialized inventory show up here.",
+      "sinResultados": "Nobody matches the filters",
+      "quitarFiltros": "Clear filters"
+    },
+    "codigo": {
+      "titulo": "Code for {{nombre}}",
+      "descripcion": "The person types it in the field app along with their PIN. It works only once.",
+      "vence": "Expires on {{fecha}}",
+      "copiado": "Code copied",
+      "errorCopiar": "Couldn't copy. Select it and copy it by hand.",
+      "error": "Couldn't generate the code",
+      "whatsappTexto": "Hi {{nombre}}, your code to activate the Avoqado field app is {{codigo}}. It expires on {{fecha}}. Type it in the app along with your PIN."
+    },
+    "generarTodos": {
+      "boton": "Generate codes for the {{n}} without a phone",
+      "titulo": "Generate codes for the {{n}} without a phone?",
+      "descripcion": "Each promoter with no phone and no live code gets a code that expires in 7 days. Then you'll see them under «Unused code», each with its «Copy» and WhatsApp.",
+      "confirmar": "Generate codes",
+      "hecho": "{{n}} codes generated",
+      "faltan": "{{n}} left: tap the button again."
+    },
+    "pin": {
+      "label": "PIN, 4 to 6 digits",
+      "sucursal": "Each location has its own PIN. Which one?",
+      "sinSucursal": "This person has no location.",
+      "ayuda": "With this PIN the person opens the field app at all their locations.",
+      "ayudaSucursal": "With this PIN the person opens the field app at {{sucursal}}.",
+      "mostrar": "Show PIN",
+      "ocultar": "Hide PIN",
+      "guardar": "Save PIN",
+      "guardado": "PIN saved",
+      "guardadoConAviso": "PIN saved, with a warning:",
+      "error": "Couldn't save the PIN"
+    },
+    "desvincular": {
+      "titulo": "Unlink phone",
+      "descripcion": "Unlink {{nombre}}'s phone? The phone stops selling and clocking in right now. What it has left to upload ({{n}}) is accepted for 24 hours; anything else goes to «To review».",
+      "hecho": "Phone unlinked",
+      "yaEstaba": "That phone was already unlinked",
+      "error": "Couldn't unlink"
+    },
+    "porRevisar": {
+      "boton": "To review ({{n}})",
+      "titulo": "To review",
+      "explicacion": "What a phone uploaded after being unlinked and couldn't be accepted on its own. «Apply» records it under the person who did it; «Discard» leaves it out.",
+      "vacio": "Nothing to review.",
+      "aplicar": "Apply",
+      "descartar": "Discard",
+      "aplicado": "Applied",
+      "descartado": "Discarded",
+      "error": "Couldn't resolve",
+      "nota": "Note (optional)",
+      "confirmarDescartar": "Discard?",
+      "confirmarDescartarTexto": "It won't be recorded. It stays in the activity log with your name and the note.",
+      "columnas": {
+        "quien": "Promoter and location",
+        "que": "What it is",
+        "motivo": "Why it's here"
+      },
+      "tipo": {
+        "VENTA": "Sale",
+        "ENTRADA": "Clock-in",
+        "SALIDA": "Clock-out",
+        "CUSTODIA_ACEPTAR": "Accept SIMs",
+        "CUSTODIA_RECHAZAR": "Reject SIMs",
+        "EVIDENCIA": "Sale photos"
+      },
+      "motivo": {
+        "PERSONA_DADA_DE_BAJA": "The person has already been deactivated.",
+        "FUERA_DE_PLAZO": "It arrived after the 24-hour grace period.",
+        "NO_REPORTADA": "The phone hadn't reported it before being unlinked.",
+        "SIN_PERMISO": "The person isn't allowed to do this at that location.",
+        "RECHAZADO": "It couldn't be applied on its own:"
+      },
+      "estado": {
+        "PENDIENTE": "To review",
+        "APLICANDO": "Half done: tap «Apply» again",
+        "APLICADO": "Applied",
+        "DESCARTADO": "Discarded"
+      }
+    }
   }
 }

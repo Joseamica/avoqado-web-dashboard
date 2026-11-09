@@ -282,6 +282,9 @@ export const WLManagersDashboard = lazyWithRetry(() => import('@/pages/organizat
 export const WLSalesExecutive = lazyWithRetry(() => import('@/pages/organizations/SalesExecutive/SalesExecutive'))
 export const WLSalesDetail = lazyWithRetry(() => import('@/pages/organizations/SalesDetail/SalesDetail'))
 export const WLLiveLocation = lazyWithRetry(() => import('@/pages/organizations/LiveLocation/LiveLocation'))
+export const CelularesDePromotores = lazyWithRetry(
+  () => import('@/pages/Organization/CelularesDePromotores/CelularesDePromotores'),
+)
 
 // Bancos hub (banca en vivo, PRO)
 export const BancosResumen = lazyWithRetry(() => import('@/pages/Bancos/BancosResumen'))

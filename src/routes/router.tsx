@@ -120,6 +120,7 @@ import {
   WLTiendasList,
   WLManagersDashboard,
   WLLiveLocation,
+  CelularesDePromotores,
 } from './lazyComponents'
 
 import Root from '@/root'
@@ -609,6 +610,7 @@ const router = createBrowserRouter(
                     { path: 'comisiones', element: <PlayTelecomOrgComisiones /> },
                     { path: 'ventas-externas', element: <PlayTelecomManualSalesUpload /> },
                     { path: 'ubicacion-tpvs', element: <WLLiveLocation /> },
+                    { path: 'celulares-de-promotores', element: <CelularesDePromotores /> },
                     // PlayTelecom / Walmart back-office sale-verification approval (cross-venue)
                     { path: 'sales', element: <WLSalesExecutive /> },
                     { path: 'sales/detail', element: <WLSalesDetail /> },
@@ -734,6 +736,16 @@ const router = createBrowserRouter(
                           ),
                           children: [{ index: true, element: <PlayTelecomReporte /> }],
                         },
+                        {
+                          path: 'celulares-de-promotores',
+                          element: (
+                            <ModuleProtectedRoute
+                              requiredModule="SERIALIZED_INVENTORY"
+                              allowedRoles={[StaffRole.MANAGER, StaffRole.ADMIN, StaffRole.OWNER, StaffRole.SUPERADMIN]}
+                            />
+                          ),
+                          children: [{ index: true, element: <CelularesDePromotores /> }],
+                        },
                       ],
                     },
                   ],
@@ -802,6 +814,7 @@ const router = createBrowserRouter(
                     { path: 'venues', element: <WLTiendasList /> },
                     { path: 'managers', element: <WLManagersDashboard /> },
                     { path: 'live-location', element: <WLLiveLocation /> },
+                    { path: 'celulares-de-promotores', element: <CelularesDePromotores /> },
                     { path: 'sales', element: <WLSalesExecutive /> },
                     { path: 'sales/detail', element: <WLSalesDetail /> },
                     { path: 'reports', element: <ComingSoon feature="Cross-Store Reports" /> },
@@ -889,6 +902,17 @@ const router = createBrowserRouter(
                         />
                       ),
                       children: [{ index: true, element: <PlayTelecomComisiones /> }],
+                    },
+                    {
+                      // Celulares de promotores (A7): mismo candado que Comisiones, para que el supervisor la vea sin ser dueño.
+                      path: 'celulares-de-promotores',
+                      element: (
+                        <ModuleProtectedRoute
+                          requiredModule="SERIALIZED_INVENTORY"
+                          allowedRoles={[StaffRole.MANAGER, StaffRole.ADMIN, StaffRole.OWNER, StaffRole.SUPERADMIN]}
+                        />
+                      ),
+                      children: [{ index: true, element: <CelularesDePromotores /> }],
                     },
                   ],
                 },

@@ -33,6 +33,7 @@ const ROUTE_TITLE_MAP: Record<string, string> = {
   supervisor: 'supervisor',
   reporte: 'reporte',
   comisiones: 'comisiones',
+  'celulares-de-promotores': 'celulares',
 }
 
 export default function PlayTelecomLayout() {

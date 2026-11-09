@@ -303,6 +303,15 @@ export function AppSidebar({
           locked: false,
           isAvoqadoCore: false,
         })
+        // Celulares de promotores (A7): mismo candado que Comisiones (router.tsx).
+        whiteLabelModuleItems.push({
+          title: t('organization:celulares.titulo', { defaultValue: 'Celulares de promotores' }),
+          url: `${wlBasePath}/celulares-de-promotores`,
+          icon: getIconComponent('Smartphone'),
+          isActive: true,
+          locked: false,
+          isAvoqadoCore: false,
+        })
       }
     }
 
