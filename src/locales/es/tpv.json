@@ -1110,7 +1110,8 @@
       "save": "Guardar",
       "cancel": "Cancelar",
       "saved": "Nombre actualizado",
-      "error": "No se pudo cambiar el nombre. Intenta de nuevo."
+      "error": "No se pudo cambiar el nombre. Intenta de nuevo.",
+      "saving": "Guardando…"
     },
     "papel": {
       "terminalDeCobro": "Terminal de cobro",
@@ -1219,6 +1220,7 @@
     "guardado": "Guardado",
     "errorAlGuardar": "No se pudo guardar",
     "errorAlReleer": "No se pudo confirmar qué menús quedaron guardados.",
+    "sinConexionReleyendo": "Sin conexión: se actualiza al volver la red.",
     "rango": "{{desde}}–{{hasta}} de {{total}}",
     "anterior": "Anterior",
     "siguiente": "Siguiente",

@@ -1089,7 +1089,8 @@
       "save": "Save",
       "cancel": "Cancel",
       "saved": "Name updated",
-      "error": "Couldn't rename the device. Try again."
+      "error": "Couldn't rename the device. Try again.",
+      "saving": "Saving…"
     },
     "papel": {
       "terminalDeCobro": "Payment terminal",
@@ -1198,6 +1199,7 @@
     "guardado": "Saved",
     "errorAlGuardar": "Could not save",
     "errorAlReleer": "Couldn't confirm which menus were saved.",
+    "sinConexionReleyendo": "Offline: it updates when the connection is back.",
     "rango": "{{desde}}–{{hasta}} of {{total}}",
     "anterior": "Previous",
     "siguiente": "Next",

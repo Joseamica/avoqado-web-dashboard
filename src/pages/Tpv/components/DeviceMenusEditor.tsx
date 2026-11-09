@@ -1,5 +1,5 @@
-import { notifyManager, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { onlineManager, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { MultiSelectCombobox } from '@/components/multi-select-combobox'
@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast'
 import { useDebounce } from '@/hooks/useDebounce'
 import { falloDeCarga } from '@/lib/falloDeCarga'
 import { setTerminalMenus, type DeviceMenusTerminalRow } from '@/services/deviceMenus.service'
+import { getTpvById } from '@/services/tpv.service'
 
 import { OPTIONS_PAGE_SIZE, useDeviceMenuOptions, type DeviceMenuChoice } from './useDeviceMenuOptions'
 
@@ -49,27 +50,42 @@ export function DeviceMenusEditor({
 
   const [seleccion, setSeleccion] = useState<MenuRef[]>(menus)
   const guardando = useRef(false)
-  // 'releyendo' = esperando la relectura tras un error; 'fallo' = la relectura también falló (sigue bloqueado, con reintento).
+  // 'releyendo' = leyendo del servidor tras un error; 'fallo' = esa lectura falló (sigue bloqueado, con «Reintentar»).
   const [resync, setResync] = useState<'no' | 'releyendo' | 'fallo'>('no')
+  const bloqueado = useRef(false)
   const ultimas = useRef(menus)
   ultimas.current = menus
   useEffect(() => {
-    // Al terminar la relectura (`resync` vuelve a 'no') se toman las props aunque sean la misma referencia.
-    if (!guardando.current && resync === 'no') setSeleccion(menus)
-  }, [menus, resync])
+    // Sin guardado ni recuperación en curso, sigue a las props.
+    if (!guardando.current && !bloqueado.current) setSeleccion(menus)
+  }, [menus])
+  const enLinea = useSyncExternalStore(onlineManager.subscribe, () => onlineManager.isOnline())
 
+  /**
+   * 🔴 Tras CUALQUIER error del guardado (Codex final #1, r2): el servidor pudo guardar sin que llegara la respuesta. El editor
+   * queda bloqueado y lee ÉL la fila de este aparato (la ficha, `['tpv', venue, id]`); sólo con ese dato leído de verdad toma la
+   * selección y se desbloquea. No toma las props, y una lectura pausada sin red sigue pendiente (no se confunde con terminada).
+   */
   const releer = useCallback(() => {
+    bloqueado.current = true
     setSeleccion(ultimas.current)
     setResync('releyendo')
-    const lecturas = [
-      ['device-menus', venueId],
-      ['tpv', venueId, terminalId],
-    ].map(queryKey => queryClient.invalidateQueries({ queryKey }, { throwOnError: true }))
-    Promise.all(lecturas).then(
-      // `schedule`: detrás de los avisos pendientes de TanStack, así el padre ya trae las props nuevas al desbloquear.
-      () => notifyManager.schedule(() => setResync('no')),
-      () => setResync('fallo'),
-    )
+    const ficha = ['tpv', venueId, terminalId]
+    queryClient.invalidateQueries({ queryKey: ['device-menus', venueId] })
+    queryClient.invalidateQueries({ queryKey: ['tpvs', venueId] })
+    // Invalidar cancela la lectura en vuelo (pudo salir antes de que el servidor guardara) y, si la ficha está abierta, lee de
+    // nuevo; `fetchQuery` se suma a esa lectura o hace la suya.
+    queryClient.invalidateQueries({ queryKey: ficha, exact: true })
+    queryClient
+      .fetchQuery({ queryKey: ficha, queryFn: () => getTpvById(venueId, terminalId), staleTime: 0 })
+      .then((tpv: { deviceMenus?: { menus?: MenuRef[] } }) => {
+        const leidos = tpv?.deviceMenus?.menus
+        if (!leidos) throw new Error('La ficha no trae el menú del aparato')
+        setSeleccion(leidos)
+        bloqueado.current = false
+        setResync('no')
+      })
+      .catch(() => setResync('fallo'))
   }, [queryClient, venueId, terminalId])
 
   // Sin `options` de la pestaña, el editor pide las suyas con la misma búsqueda y paginación del servidor.
@@ -118,7 +134,10 @@ export function DeviceMenusEditor({
     <MultiSelectCombobox
       options={opciones}
       selected={selected}
-      onChange={next => save.mutate(next.map(o => o.value))}
+      onChange={next => {
+        // Nunca se elige sobre una selección que el servidor quizá no tiene.
+        if (!bloqueado.current) save.mutate(next.map(o => o.value))
+      }}
       placeholder={t('deviceMenus.todosLosMenus')}
       searchPlaceholder={t('deviceMenus.buscarMenus')}
       ariaLabel={t('deviceMenus.menusDelAparato', {
@@ -131,14 +150,17 @@ export function DeviceMenusEditor({
     />
   )
 
-  const falloAlReleer = resync === 'fallo' && (
-    <div className="flex items-center gap-3 text-sm text-muted-foreground">
-      <span>{t('deviceMenus.errorAlReleer')}</span>
-      <Button size="sm" variant="outline" onClick={releer}>
-        {t('deviceMenus.reintentar')}
-      </Button>
-    </div>
-  )
+  const falloAlReleer =
+    resync === 'fallo' ? (
+      <div className="flex items-center gap-3 text-sm text-muted-foreground">
+        <span>{t('deviceMenus.errorAlReleer')}</span>
+        <Button size="sm" variant="outline" onClick={releer}>
+          {t('deviceMenus.reintentar')}
+        </Button>
+      </div>
+    ) : resync === 'releyendo' && !enLinea ? (
+      <p className="text-sm text-muted-foreground">{t('deviceMenus.sinConexionReleyendo')}</p>
+    ) : null
 
   if (!propio)
     return falloAlReleer ? (

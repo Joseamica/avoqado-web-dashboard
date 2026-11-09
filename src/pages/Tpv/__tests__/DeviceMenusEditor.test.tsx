@@ -3,14 +3,16 @@
  * 🔴 Lo que importa: la elección siguiente parte de lo guardado aunque la relectura no llegue, y sin guardado en curso
  * el selector sigue a las props.
  */
-import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query'
+import { onlineManager, QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query'
 import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const svc = vi.hoisted(() => ({ getDeviceMenuOptions: vi.fn(), setTerminalMenus: vi.fn() }))
 const avisos = vi.hoisted(() => ({ toast: vi.fn() }))
+const tpvSvc = vi.hoisted(() => ({ getTpvById: vi.fn() }))
 vi.mock('@/services/deviceMenus.service', () => svc)
+vi.mock('@/services/tpv.service', () => tpvSvc)
 vi.mock('@/hooks/use-current-venue', () => ({ useCurrentVenue: () => ({ venueId: 'v1' }) }))
 vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: avisos.toast }) }))
 vi.mock('react-i18next', () => ({
@@ -74,7 +76,12 @@ describe('DeviceMenusEditor', () => {
     await user.click(await opcion(/Desayunos/))
     await waitFor(() => expect(avisos.toast).toHaveBeenCalled())
     const llaves = spy.mock.calls.map(c => JSON.stringify((c[0] as { queryKey: unknown[] }).queryKey))
-    for (const k of [['tpvs', 'v1'], ['device-menus', 'v1'], ['tpv', 'v1', 't1'], ['printRouting', 'v1']])
+    for (const k of [
+      ['tpvs', 'v1'],
+      ['device-menus', 'v1'],
+      ['tpv', 'v1', 't1'],
+      ['printRouting', 'v1'],
+    ])
       expect(llaves).toContain(JSON.stringify(k))
   })
 
@@ -98,7 +105,11 @@ describe('DeviceMenusEditor', () => {
   it('con más de 100 menús, la búsqueda del servidor encuentra uno fuera de la primera página', async () => {
     const lejano = { id: 'm9', name: 'Cenas', appliesToOnline: true, categoryCount: 1 }
     svc.getDeviceMenuOptions.mockImplementation((_v: string, p: { search?: string }) =>
-      Promise.resolve(p.search === 'Cen' ? { menus: [lejano], total: 1, page: 1, pageSize: 100 } : { menus: [m('m1')], total: 250, page: 1, pageSize: 100 }),
+      Promise.resolve(
+        p.search === 'Cen'
+          ? { menus: [lejano], total: 1, page: 1, pageSize: 100 }
+          : { menus: [m('m1')], total: 250, page: 1, pageSize: 100 },
+      ),
     )
     const user = userEvent.setup()
     pintar()
@@ -136,22 +147,25 @@ describe('DeviceMenusEditor', () => {
     expect(selector()).not.toHaveTextContent('Cenas')
   })
 
-  describe('tras un error, se resincroniza con el servidor (Codex final #1)', () => {
-    // La ficha de verdad: el editor recibe `menus` de una consulta ['tpv', v1, t1] que lee lo que tiene el «servidor».
+  describe('tras un error, lee del servidor la fila de este aparato antes de dejar elegir (Codex final #1, r2)', () => {
+    // La ficha de verdad: `['tpv', v1, t1]` con la misma lectura (`getTpvById`) que usa el editor para recuperarse.
     let servidor: string[]
     let lecturaPendiente: (() => void) | null
     let retenerLectura: boolean
     let lecturaFalla: boolean
     const leer = () => {
       if (lecturaFalla) return Promise.reject(new Error('sin red'))
-      const copia = [...servidor]
-      const lista = copia.map(id => ({ id, name: NOMBRES[id] }))
-      if (!retenerLectura) return Promise.resolve(lista)
-      return new Promise<typeof lista>(r => (lecturaPendiente = () => r(lista)))
+      const ficha = {
+        id: 't1',
+        name: 'Caja',
+        deviceMenus: { menus: servidor.map(id => ({ id, name: NOMBRES[id] })), needsAppUpdate: false },
+      }
+      if (!retenerLectura) return Promise.resolve(ficha)
+      return new Promise<typeof ficha>(r => (lecturaPendiente = () => r(ficha)))
     }
     function Ficha() {
-      const q = useQuery({ queryKey: ['tpv', 'v1', 't1'], queryFn: leer, retry: false })
-      return q.data ? <DeviceMenusEditor terminalId="t1" menus={q.data} canEdit deviceName="Caja" /> : null
+      const q = useQuery({ queryKey: ['tpv', 'v1', 't1'], queryFn: () => tpvSvc.getTpvById('v1', 't1'), retry: false })
+      return q.data ? <DeviceMenusEditor terminalId="t1" menus={q.data.deviceMenus.menus} canEdit deviceName="Caja" /> : null
     }
     const pintarFicha = async () => {
       render(
@@ -166,9 +180,41 @@ describe('DeviceMenusEditor', () => {
       lecturaPendiente = null
       retenerLectura = false
       lecturaFalla = false
+      tpvSvc.getTpvById.mockReset()
+      tpvSvc.getTpvById.mockImplementation(leer)
+    })
+    afterEach(() => onlineManager.setOnline(true))
+
+    it('sin red: la lectura se pausa, sigue bloqueado y lo dice; no sale otro guardado hasta leer de verdad', async () => {
+      svc.setTerminalMenus.mockImplementation((_v: string, _id: string, ids: string[]) => {
+        servidor = ids
+        onlineManager.setOnline(false) // la red se cae justo cuando el servidor ya guardó
+        return Promise.reject(new Error('Network Error'))
+      })
+      await pintarFicha()
+      const lecturasAntes = tpvSvc.getTpvById.mock.calls.length
+      const user = userEvent.setup()
+      await user.click(selector())
+      await user.click(await opcion(/Desayunos/))
+      expect(await screen.findByText('deviceMenus.sinConexionReleyendo')).toBeInTheDocument()
+      // Se queda así: la lectura pausada no cuenta como terminada.
+      await act(() => new Promise(r => setTimeout(r, 100)))
+      expect(selector()).toBeDisabled()
+      expect(tpvSvc.getTpvById).toHaveBeenCalledTimes(lecturasAntes)
+      await user.click(await opcion(/Comidas/))
+      expect(svc.setTerminalMenus).toHaveBeenCalledTimes(1)
+      // Vuelve la red: la lectura sigue, trae [m1] y sólo entonces se puede elegir, sumando a lo guardado.
+      svc.setTerminalMenus.mockImplementation((_v: string, _id: string, ids: string[]) => Promise.resolve(fila(ids)))
+      act(() => onlineManager.setOnline(true))
+      await waitFor(() => expect(selector()).toBeEnabled())
+      expect(selector()).toHaveTextContent('Desayunos')
+      expect(screen.queryByText('deviceMenus.sinConexionReleyendo')).toBeNull()
+      await user.click(await opcion(/Comidas/))
+      await waitFor(() => expect(svc.setTerminalMenus).toHaveBeenLastCalledWith('v1', 't1', ['m1', 'm2']))
+      expect(svc.setTerminalMenus).toHaveBeenCalledTimes(2)
     })
 
-    it('respuesta perdida: el servidor guardó [m1]; tras releer, la siguiente elección suma m2 y no borra m1', async () => {
+    it('respuesta perdida: el servidor guardó [m1]; lo leído se toma y la siguiente elección suma m2 y no borra m1', async () => {
       svc.setTerminalMenus.mockImplementation((_v: string, _id: string, ids: string[]) => {
         servidor = ids
         return Promise.reject(new Error('Network Error'))
@@ -179,7 +225,6 @@ describe('DeviceMenusEditor', () => {
       await user.click(selector())
       await user.click(await opcion(/Desayunos/))
       await waitFor(() => expect(lecturaPendiente).not.toBeNull())
-      // Mientras la relectura no llega, no se puede elegir sobre la selección vieja.
       expect(selector()).toBeDisabled()
       await act(async () => lecturaPendiente!())
       await waitFor(() => expect(selector()).toBeEnabled())
@@ -189,7 +234,7 @@ describe('DeviceMenusEditor', () => {
       await waitFor(() => expect(svc.setTerminalMenus).toHaveBeenLastCalledWith('v1', 't1', ['m1', 'm2']))
     })
 
-    it('una relectura que llega mientras guarda y luego falla el guardado: toma lo del servidor aunque se vea igual', async () => {
+    it('una relectura que llega mientras guarda y luego falla el guardado: toma lo leído aunque se vea igual', async () => {
       servidor = ['m1']
       let fallar: (e: Error) => void = () => {}
       svc.setTerminalMenus.mockImplementation(() => new Promise((_r, rej) => (fallar = rej)))
@@ -199,21 +244,25 @@ describe('DeviceMenusEditor', () => {
       await user.click(selector())
       await user.click(await opcion(/Comidas/))
       await waitFor(() => expect(selector()).toBeDisabled())
-      // Otro aparato cambió a [m3] y la relectura llega con el guardado en curso: se ignora.
       servidor = ['m3']
       await act(() => qc.refetchQueries({ queryKey: ['tpv', 'v1', 't1'] }))
       expect(selector()).not.toHaveTextContent('Cenas')
       const invalidar = vi.spyOn(qc, 'invalidateQueries')
       await act(async () => fallar(new Error('boom')))
-      // La relectura de después trae lo mismo ([m3]): la consulta conserva la referencia y aun así se toma.
       await waitFor(() => expect(selector()).toBeEnabled())
       expect(selector()).toHaveTextContent('Cenas')
       expect(selector()).not.toHaveTextContent('Desayunos')
       const llaves = invalidar.mock.calls.map(c => JSON.stringify((c[0] as { queryKey: unknown[] }).queryKey))
-      for (const k of [['device-menus', 'v1'], ['tpv', 'v1', 't1'], ['device-menu-options', 'v1']]) expect(llaves).toContain(JSON.stringify(k))
+      for (const k of [
+        ['device-menus', 'v1'],
+        ['tpv', 'v1', 't1'],
+        ['tpvs', 'v1'],
+        ['device-menu-options', 'v1'],
+      ])
+        expect(llaves).toContain(JSON.stringify(k))
     })
 
-    it('si la relectura también falla, sigue bloqueado y deja reintentar', async () => {
+    it('si la lectura falla, sigue bloqueado y «Reintentar» vuelve a leer', async () => {
       svc.setTerminalMenus.mockImplementation((_v: string, _id: string, ids: string[]) => {
         servidor = ids
         return Promise.reject(new Error('boom'))

@@ -94,4 +94,30 @@ describe('RenameDeviceDialog', () => {
     fireEvent.click(save())
     await waitFor(() => expect(apiPut).toHaveBeenLastCalledWith('/api/v1/dashboard/venues/v1/tpv/d1', { name: 'Caja norte' }))
   })
+
+  it('guardar, cancelar con el guardado en vuelo y reabrir: «Guardar» sigue apagado y sale una sola petición (Codex r2)', async () => {
+    let terminar: (v: unknown) => void = () => {}
+    apiPut.mockImplementation(() => new Promise(r => (terminar = r)))
+    const queryClient = new QueryClient({ defaultOptions: { mutations: { retry: false } } })
+    const ui = (open: boolean) => (
+      <QueryClientProvider client={queryClient}>
+        <RenameDeviceDialog venueId="v1" device={{ id: 'd1', name: 'Caja 1' }} open={open} onOpenChange={onOpenChange} />
+      </QueryClientProvider>
+    )
+    const { rerender } = render(ui(true))
+    fireEvent.change(input(), { target: { value: 'Nombre primero' } })
+    fireEvent.click(save())
+    await waitFor(() => expect(apiPut).toHaveBeenCalledTimes(1))
+    fireEvent.click(screen.getByRole('button', { name: 'device.rename.cancel' }))
+    rerender(ui(false))
+    rerender(ui(true))
+    fireEvent.change(input(), { target: { value: 'Nombre segundo' } })
+    expect(save()).toBeDisabled()
+    expect(screen.getByText('device.rename.saving')).toBeInTheDocument()
+    fireEvent.click(save())
+    fireEvent.submit(input().closest('form')!)
+    expect(apiPut).toHaveBeenCalledTimes(1)
+    await act(async () => terminar({ data: {} }))
+    await waitFor(() => expect(screen.queryByText('device.rename.saving')).toBeNull())
+  })
 })

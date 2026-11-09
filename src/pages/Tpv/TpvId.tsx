@@ -40,7 +40,7 @@ import { cn } from '@/lib/utils'
 import { TpvSettingsForm } from '@/pages/Settings/components/TpvSettingsForm'
 import { paymentProviderAPI, type MerchantAccount } from '@/services/paymentProvider.service'
 import { terminalAPI, TerminalStatus, type BlockingTerminalPaymentRequest } from '@/services/superadmin-terminals.service'
-import { generateActivationCode, type DisplayModeRequest, type EffectiveDeviceCapabilities } from '@/services/tpv.service'
+import { generateActivationCode, getTpvById, type DisplayModeRequest, type EffectiveDeviceCapabilities } from '@/services/tpv.service'
 import { StaffRole } from '@/types'
 import { type TpvCommandPayload, TpvCommandType } from '@/types/tpv-commands'
 import { getIntlLocale } from '@/utils/i18n-locale'
@@ -313,10 +313,8 @@ function TpvIdContent() {
   // Fetch the device data. A pending durable display request polls until its canonical resolution.
   const tpvQuery = useQuery<TpvData>({
     queryKey: ['tpv', venueId, tpvId],
-    queryFn: async () => {
-      const response = await api.get(`/api/v1/dashboard/venues/${venueId}/tpv/${tpvId}`)
-      return response.data
-    },
+    // La misma lectura que usa el editor de menús para recuperarse tras un error (`DeviceMenusEditor`).
+    queryFn: () => getTpvById(venueId!, tpvId!),
     enabled: Boolean(venueId && tpvId),
     refetchInterval: query => getDisplayModeRefetchInterval(query.state.data?.customerDisplayRequest),
     retry: (failureCount, error: any) => {

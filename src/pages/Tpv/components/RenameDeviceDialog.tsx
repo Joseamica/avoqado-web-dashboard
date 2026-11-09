@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useIsMutating, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -38,8 +38,13 @@ function RenameForm({ venueId, device, onOpenChange }: Omit<RenameDeviceDialogPr
   const [name, setName] = useState(device.name)
   const trimmed = name.trim()
   const sending = useRef(false) // isPending tarda un render: dos clics en el mismo instante pasarían los dos
+  // El guardado sobrevive a cerrar el diálogo: al reabrir, la llave dice si sigue en vuelo, para no mandar dos a la vez y que el
+  // primero, si llega al final, regrese el nombre viejo (Codex r2).
+  const mutationKey = ['rename-tpv', venueId, device.id]
+  const enVuelo = useIsMutating({ mutationKey }) > 0
 
   const rename = useMutation({
+    mutationKey,
     mutationFn: () => renameTpv(venueId, device.id, trimmed),
     onSettled: () => {
       sending.current = false
@@ -53,7 +58,7 @@ function RenameForm({ venueId, device, onOpenChange }: Omit<RenameDeviceDialogPr
   })
 
   const save = () => {
-    if (!trimmed || sending.current) return
+    if (!trimmed || sending.current || enVuelo) return
     sending.current = true
     rename.mutate()
   }
@@ -72,6 +77,7 @@ function RenameForm({ venueId, device, onOpenChange }: Omit<RenameDeviceDialogPr
       <div className="space-y-2">
         <Label htmlFor="rename-device-name">{t('device.rename.label')}</Label>
         <Input id="rename-device-name" value={name} onChange={e => setName(e.target.value)} autoFocus />
+        {enVuelo && <p className="text-sm text-muted-foreground">{t('device.rename.saving')}</p>}
         {rename.isError && (
           <p role="alert" className="text-sm text-destructive">
             {t('device.rename.error')}
@@ -82,7 +88,7 @@ function RenameForm({ venueId, device, onOpenChange }: Omit<RenameDeviceDialogPr
         <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
           {t('device.rename.cancel')}
         </Button>
-        <Button type="submit" disabled={!trimmed || rename.isPending}>
+        <Button type="submit" disabled={!trimmed || rename.isPending || enVuelo}>
           {t('device.rename.save')}
         </Button>
       </DialogFooter>
