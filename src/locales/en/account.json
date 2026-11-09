@@ -1,6 +1,7 @@
 {
   "title": "Account",
   "subtitle": "Manage your account settings and preferences",
+  "webBankHelp": "Banco web: prueba B",
   "accountInfo": {
     "title": "Account Information",
     "description": "Your account details and membership information",
