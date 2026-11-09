@@ -362,10 +362,14 @@ describe('CelularesDePromotores', () => {
       createdAt: '2026-11-01T12:00:00.000Z',
       estado: 'PENDIENTE',
     }
-    const error422 = (details: Record<string, unknown>) => ({
+    const error422 = (cuerpo: Record<string, unknown>, anidado = false) => ({
       response: {
         status: 422,
-        data: { message: 'No se pudo aplicar. Revisa el motivo y vuelve a intentar.', code: 'NO_SE_PUDO_APLICAR', details },
+        data: {
+          message: 'No se pudo aplicar. Revisa el motivo y vuelve a intentar.',
+          code: 'NO_SE_PUDO_APLICAR',
+          ...(anidado ? { details: cuerpo } : cuerpo),
+        },
       },
     })
 
@@ -395,6 +399,7 @@ describe('CelularesDePromotores', () => {
         sinAsignacion: false,
       })
       expect(rechazoDeAplicar(error422({ motivo: 'PERSONA_SIN_ASIGNACION' }))?.sinAsignacion).toBe(true)
+      expect(rechazoDeAplicar(error422({ motivo: 'PERSONA_SIN_ASIGNACION' }, true))?.sinAsignacion).toBe(true) // anidado en details
       expect(rechazoDeAplicar({ response: { data: { code: 'RETENIDO_EN_PROCESO', message: 'm' } } })).toBeNull()
     })
   })

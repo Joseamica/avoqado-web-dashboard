@@ -39,15 +39,22 @@ export function sucursalDelPin(fila: FilaDePromotor, venueIdInicial?: string): S
 }
 
 /**
- * Un 422 `NO_SE_PUDO_APLICAR` trae el rechazo en `details.rechazo` (`{ code, message }`) o, si la persona ya no tiene
- * asignación, `details.motivo = PERSONA_SIN_ASIGNACION`. Devuelve el mensaje en llano y si hay que sugerir reactivar.
+ * Un 422 `NO_SE_PUDO_APLICAR` trae el rechazo en la raíz (`rechazo { code, message }`, `motivo`; o bajo `details`). Devuelve el mensaje en llano y si hay que sugerir reactivar.
  */
 export function rechazoDeAplicar(err: unknown): { message: string; sinAsignacion: boolean } | null {
-  const data = (err as { response?: { data?: { code?: string; message?: string; details?: Record<string, unknown> } } } | null)?.response
-    ?.data
+  type Rechazo = { code?: string; message?: string }
+  const data = (
+    err as {
+      response?: {
+        data?: { code?: string; message?: string; motivo?: string; rechazo?: Rechazo; details?: { motivo?: string; rechazo?: Rechazo } }
+      }
+    } | null
+  )?.response?.data
   if (data?.code !== 'NO_SE_PUDO_APLICAR') return null
-  const rechazo = data.details?.rechazo as { code?: string; message?: string } | undefined
-  const sinAsignacion = rechazo?.code === 'PERSONA_SIN_ASIGNACION' || data.details?.motivo === 'PERSONA_SIN_ASIGNACION'
+  // El servidor los manda en la raíz del cuerpo; `details` queda por si algún día los anida.
+  const rechazo = data.rechazo ?? data.details?.rechazo
+  const motivo = data.motivo ?? data.details?.motivo
+  const sinAsignacion = rechazo?.code === 'PERSONA_SIN_ASIGNACION' || motivo === 'PERSONA_SIN_ASIGNACION'
   return { message: rechazo?.message ?? data.message ?? '', sinAsignacion }
 }
 
