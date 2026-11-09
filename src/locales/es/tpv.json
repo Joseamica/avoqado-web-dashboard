@@ -1161,6 +1161,7 @@
     }
   },
   "deviceMenus": {
+    "verFicha": "Ver ficha",
     "subtitulo": "Elige qué menús muestra cada aparato en Cobrar y Mesas. La búsqueda y la pistola siempre encuentran todo.",
     "columnas": {
       "aparato": "Aparato",

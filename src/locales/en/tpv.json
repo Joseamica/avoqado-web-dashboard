@@ -1140,6 +1140,7 @@
     }
   },
   "deviceMenus": {
+    "verFicha": "View details",
     "subtitulo": "Choose which menus each device shows in Charge and Tables. Search and the scanner always find everything.",
     "columnas": {
       "aparato": "Device",
