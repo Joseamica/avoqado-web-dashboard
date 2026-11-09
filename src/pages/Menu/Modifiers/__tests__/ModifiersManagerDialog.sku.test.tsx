@@ -37,7 +37,7 @@ vi.mock('@/services/menu.service', () => ({
   }),
   getProducts: async () => [],
   updateModifierGroup: async () => ({}),
-  deleteModifier: async () => {},
+  archiveModifier: async () => {},
   assignModifierGroupToProduct: async () => ({}),
   removeModifierGroupFromProduct: async () => {},
   createModifier: async () => ({}),

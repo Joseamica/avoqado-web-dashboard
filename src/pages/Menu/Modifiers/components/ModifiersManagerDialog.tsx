@@ -28,7 +28,7 @@ import {
   getModifierGroup,
   getProducts,
   updateModifierGroup,
-  deleteModifier,
+  archiveModifier,
   assignModifierGroupToProduct,
   removeModifierGroupFromProduct,
 } from '@/services/menu.service'
@@ -201,8 +201,8 @@ export function ModifiersManagerDialog({ venueId, modifierGroupId, onClose }: Mo
     },
   })
 
-  const deleteModifierMutation = useMutation({
-    mutationFn: (modifierId: string) => deleteModifier(venueId, modifierGroupId!, modifierId),
+  const archiveModifierMutation = useMutation({
+    mutationFn: (modifierId: string) => archiveModifier(venueId, modifierGroupId!, modifierId),
     onSuccess: () => {
       toast({ title: t('modifiers.editor.deleted'), description: t('modifiers.editor.deletedDesc') })
       invalidate()
@@ -455,17 +455,20 @@ export function ModifiersManagerDialog({ venueId, modifierGroupId, onClose }: Mo
                             <Pencil className="h-4 w-4" />
                           </Button>
                         </PermissionGate>
-                        <PermissionGate permission="menu:delete">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="cursor-pointer text-destructive hover:text-destructive"
-                            aria-label={t('modifiers.actions.delete')}
-                            onClick={() => setModifierToDelete(modifier)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </PermissionGate>
+                        {/* Archivar es `menu:update` en el SERVIDOR. Uno ya archivado se reactiva desde su detalle. */}
+                        {modifier.active && (
+                          <PermissionGate permission="menu:update">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="cursor-pointer text-destructive hover:text-destructive"
+                              aria-label={t('modifiers.actions.delete')}
+                              onClick={() => setModifierToDelete(modifier)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </PermissionGate>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -520,10 +523,10 @@ export function ModifiersManagerDialog({ venueId, modifierGroupId, onClose }: Mo
             <AlertDialogCancel>{tCommon('cancel')}</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              disabled={deleteModifierMutation.isPending}
-              onClick={() => modifierToDelete && deleteModifierMutation.mutate(modifierToDelete.id)}
+              disabled={archiveModifierMutation.isPending}
+              onClick={() => modifierToDelete && archiveModifierMutation.mutate(modifierToDelete.id)}
             >
-              {deleteModifierMutation.isPending ? t('modifiers.dialogs.delete.deleting') : t('modifiers.dialogs.delete.delete')}
+              {archiveModifierMutation.isPending ? t('modifiers.dialogs.delete.deleting') : t('modifiers.dialogs.delete.delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

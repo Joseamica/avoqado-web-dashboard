@@ -44,6 +44,7 @@ const MOCK_GROUP = {
 
 interface Capture {
   modifierPuts: any[]
+  modifierPatches: any[]
   groupPuts: any[]
   deleted: string[]
 }
@@ -56,6 +57,10 @@ async function setupModifierMocks(page: Page, capture: Capture): Promise<void> {
       const method = route.request().method()
       if (method === 'PUT') {
         capture.modifierPuts.push(route.request().postDataJSON())
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ id: 'mod-1' }) })
+      }
+      if (method === 'PATCH') {
+        capture.modifierPatches.push({ id: route.request().url().split('/').pop(), body: route.request().postDataJSON() })
         return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ id: 'mod-1' }) })
       }
       if (method === 'DELETE') {
@@ -97,7 +102,7 @@ async function openEditorViaRowClick(page: Page): Promise<void> {
 }
 
 function newCapture(): Capture {
-  return { modifierPuts: [], groupPuts: [], deleted: [] }
+  return { modifierPuts: [], modifierPatches: [], groupPuts: [], deleted: [] }
 }
 
 test.describe('Consolidated modifier group editor', () => {
@@ -167,7 +172,7 @@ test.describe('Consolidated modifier group editor', () => {
     expect(capture.modifierPuts[0]).toMatchObject({ name: 'Gel', price: 65 })
   })
 
-  test('deleting a modifier asks for confirmation and calls DELETE', async ({ page }) => {
+  test('removing a modifier asks for confirmation and archives it, never DELETE', async ({ page }) => {
     const capture = newCapture()
     await setupApiMocks(page, { userRole: StaffRole.OWNER, venues: [VENUE] })
     await setupModifierMocks(page, capture)
@@ -182,8 +187,9 @@ test.describe('Consolidated modifier group editor', () => {
     await expect(page.getByRole('alertdialog')).toBeVisible()
     await page.getByRole('alertdialog').getByRole('button', { name: /Eliminar|Delete/ }).click()
 
-    await expect.poll(() => capture.deleted.length, { timeout: 10_000 }).toBeGreaterThan(0)
-    expect(capture.deleted[0]).toBe('mod-1')
+    await expect.poll(() => capture.modifierPatches.length, { timeout: 10_000 }).toBeGreaterThan(0)
+    expect(capture.modifierPatches[0]).toEqual({ id: 'mod-1', body: { active: false } })
+    expect(capture.deleted).toEqual([])
   })
 
   test('row menu has a single "Editar grupo" action (wizard is creation-only)', async ({ page }) => {

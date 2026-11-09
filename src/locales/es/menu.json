@@ -407,10 +407,10 @@
       "empty": "Este grupo no tiene modificadores todavía. Usa \"Agregar modificador\" para crear el primero.",
       "inactive": "Inactivo",
       "free": "Sin costo extra",
-      "deleted": "Modificador eliminado",
-      "deletedDesc": "El modificador se eliminó del grupo.",
+      "deleted": "Modificador desactivado",
+      "deletedDesc": "Ya no se ofrecerá al vender. Puedes volver a activarlo desde esta lista.",
       "deleteTitle": "¿Eliminar modificador?",
-      "deleteDescription": "Se eliminará \"{{name}}\" de este grupo. Esta acción no se puede deshacer.",
+      "deleteDescription": "\"{{name}}\" ya no se ofrecerá al vender. Las ventas y los reportes anteriores no cambian. Puedes volver a activarlo desde esta lista.",
       "groupSection": "Información del grupo"
     }
   },
