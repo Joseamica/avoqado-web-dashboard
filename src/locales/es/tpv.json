@@ -1088,17 +1088,12 @@
     "activatedWithoutCode": "Terminal activada",
     "activatedWithoutCodeDesc": "Entrará sin pedir código cuando se encienda y tenga internet.",
     "role": {
-      "issues": "Emite vales",
-      "issuesArea": "de {{area}}",
-      "charges": "Cobra",
       "comandaOff": "Sin comanda",
       "comandaOffDetail": "al emitir, sale sólo el vale",
       "comandaOn": "Manda comanda",
       "comandaOnDetail": "a cocina, además del vale",
-      "menu": "Menú",
       "allMenus": "Todos los menús",
       "menuNeedsUpdate": "Se aplica al actualizar la app de este aparato.",
-      "change": "Cambiar",
       "emitirSinEfecto": {
         "sinArea": "Tiene «Emitir vales» prendido, pero sin área: hoy cobra como un punto de venta normal.",
         "areaApagada": "Tiene «Emitir vales» prendido, pero su área está apagada: hoy cobra como un punto de venta normal.",
@@ -1112,6 +1107,35 @@
       "cancel": "Cancelar",
       "saved": "Nombre actualizado",
       "error": "No se pudo cambiar el nombre. Intenta de nuevo."
+    },
+    "papel": {
+      "terminalDeCobro": "Terminal de cobro",
+      "puntoDeVenta": "Punto de venta",
+      "emite": "Emite · {{area}}",
+      "cobraVales": "Cobra vales",
+      "entregaVales": "Entrega vales",
+      "sinElegir": "Sin elegir"
+    },
+    "setup": {
+      "title": "Qué hace este aparato",
+      "what": "¿Qué hace?",
+      "menu": "¿Qué menú ve?",
+      "checkout": "¿Cómo cobra?",
+      "display": "Pantalla del cliente",
+      "change": "Cambiar",
+      "changeInAreas": "Cambiar en Vales › Áreas",
+      "menuPlanInvite": "Disponible en el plan {{tier}}",
+      "stepsNone": "Cobra directo, sin pasos extra",
+      "appliesOnReconnect": "El aparato toma los cambios al reconectarse.",
+      "papelEditorTitle": "Qué hace {{name}}",
+      "menuEditorTitle": "Menú de {{name}}",
+      "loadError": "No se pudo cargar.",
+      "retry": "Reintentar",
+      "notInOverview": "Este aparato no aparece en Vales por área.",
+      "entregarSinEfecto": {
+        "sinArea": "Tiene «Entregar» prendido, pero sin área: hoy no entrega vales.",
+        "areaApagada": "Tiene «Entregar» prendido, pero su área está apagada: hoy no entrega vales."
+      }
     }
   },
   "newTerminal": {

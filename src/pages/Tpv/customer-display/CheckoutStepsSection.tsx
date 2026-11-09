@@ -21,6 +21,7 @@ import {
   type PasoConInterruptor,
 } from './model'
 import { clavesDeLaPantalla, usePasosDelCobro } from './queries'
+import { idDeLaSeccion } from '../components/useIrALaSeccion'
 
 const FILAS: { clave: PasoConInterruptor; etiqueta: string; tour: string }[] = [
   { clave: 'showTipScreen', etiqueta: 'steps.tip', tour: 'customer-display-step-tip' },
@@ -122,7 +123,7 @@ export function CheckoutStepsSection({ tpvId, deviceType, versionName, noCobra =
   }
 
   return (
-    <div data-tour="customer-display-steps" className="space-y-3">
+    <div id={idDeLaSeccion('checkout-steps')} tabIndex={-1} data-tour="customer-display-steps" className="scroll-mt-4 space-y-3 outline-none">
       <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t('steps.title')}</h3>
       {noCobra && (
         <p

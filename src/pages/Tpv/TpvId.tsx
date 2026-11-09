@@ -89,7 +89,8 @@ import { getDisplayModeRefetchInterval } from './components/DisplayModeRequestCo
 import { MessagesTab } from './components/MessagesTab'
 import { RemoteCommandPanel } from './components/RemoteCommandPanel'
 import { CustomerDisplaySection } from './customer-display/CustomerDisplaySection'
-import { DeviceRoleSummary, type DeviceMenusDeLaFicha } from './components/DeviceRoleSummary'
+import { DeviceSetupBlock, type DeviceMenusDeLaFicha } from './components/DeviceSetupBlock'
+import { useIrALaSeccion } from './components/useIrALaSeccion'
 import { papelDelAparato, type AreaDeLaFicha } from './papelDelAparato'
 import { canActivate, canConfigurePayments, canSendCommand, getDeviceActionPolicy } from './deviceCapabilities'
 import { DeviceBatteryCell, DeviceIcon, DeviceIdCell, DeviceStatusPill, DeviceSystemCell } from './components/DeviceListCells'
@@ -145,6 +146,7 @@ interface TpvData {
   // Aparatos claros (Paso 1): qué hace en un negocio con vales y qué menú muestra. Un SERVIDOR viejo no los manda.
   canIssueAreaTickets?: boolean
   canCheckoutAreaTickets?: boolean
+  canDeliverAreaTickets?: boolean
   defaultWorkspace?: string
   fulfillmentArea?: AreaDeLaFicha | null
   areaTicketsEnabled?: boolean
@@ -215,6 +217,8 @@ function TpvIdContent() {
     setActiveTab(tab)
     window.history.replaceState(null, '', `#${tab}`)
   }, [])
+  const irAInformacion = useCallback(() => handleTabChange('info'), [handleTabChange])
+  const irALaSeccion = useIrALaSeccion(activeTab, irAInformacion)
 
   // Socket.IO listeners for real-time updates (Toast/Square pattern)
   // Commands are delivered via HTTP polling, but status updates come via Socket.IO
@@ -1004,7 +1008,7 @@ function TpvIdContent() {
             )}
           </div>
 
-          <DeviceRoleSummary papel={papel} deviceMenus={tpv.deviceMenus} fullBasePath={fullBasePath} />
+          {venueId && <DeviceSetupBlock venueId={venueId} tpv={tpv} fullBasePath={fullBasePath} onGoTo={irALaSeccion} />}
 
           <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
             <div className="flex items-center gap-6 border-b border-border">
