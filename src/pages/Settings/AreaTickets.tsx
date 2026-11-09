@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { AlertTriangle, ArrowRight, Loader2, Plus, Scale, ScanBarcode, TicketCheck } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 
 import { AvisoDeCarga, BotonReintentar } from '@/components/AvisoDeCarga'
 import { falloDeCarga } from '@/lib/falloDeCarga'
@@ -40,9 +40,8 @@ import {
   type ScaleProfile,
   type ScaleSettings as ScaleSettingsData,
 } from '@/services/areaTickets.service'
-import { CapacidadDeVales, cambioDeCapacidad, tieneEmitirYCobrar } from './areaTicketTerminalCapabilities'
+import { TerminalAreaTicketEditor } from './components/areaTickets/TerminalAreaTicketEditor'
 
-const NONE = '__none__'
 const panelClass = 'border-border/50 shadow-sm'
 const tabTriggerClass =
   'group rounded-full border border-transparent px-4 py-2 text-sm font-medium transition-colors hover:bg-muted/80 hover:text-foreground data-[state=active]:border-foreground data-[state=active]:bg-foreground data-[state=active]:text-background'
@@ -197,6 +196,7 @@ export default function AreaTickets() {
             areas={data.areas}
             profiles={data.scaleProfiles}
             onSaved={refresh}
+            fullBasePath={fullBasePath}
           />
         </TabsContent>
         <TabsContent value="scales" className="mt-6">
@@ -531,46 +531,17 @@ export function TerminalSettings({
   areas,
   profiles,
   onSaved,
+  fullBasePath,
 }: {
   venueId: string
   terminals: AreaTicketTerminal[]
   areas: FulfillmentArea[]
   profiles: ScaleProfile[]
   onSaved: () => void
+  /** Si viene, cada fila trae «Ver ficha» al detalle del aparato. */
+  fullBasePath?: string
 }) {
   const { t } = useTranslation('settings')
-  const { toast } = useToast()
-  const mutation = useMutation({
-    mutationFn: ({
-      terminalId,
-      input,
-    }: {
-      terminalId: string
-      input: Parameters<typeof updateAreaTicketTerminal>[2]
-      apagada?: CapacidadDeVales | null
-    }) => updateAreaTicketTerminal(venueId, terminalId, input),
-    onSuccess: (_data, { apagada }) => {
-      // D5-A: si prender una casilla apagó la otra, se dice por qué.
-      if (apagada) {
-        toast({
-          title: t('areaTickets.terminals.issueOrCheckoutTitle'),
-          description: t(
-            apagada === 'canCheckoutAreaTickets' ? 'areaTickets.terminals.turnedOffCheckout' : 'areaTickets.terminals.turnedOffIssue',
-          ),
-        })
-      }
-      onSaved()
-    },
-    onError: error => toast({ title: 'No se pudo actualizar', description: apiError(error, 'Intenta de nuevo.'), variant: 'destructive' }),
-  })
-  // Dos toques en el mismo cuadro llegan antes de que `isPending` deshabilite los interruptores: el segundo saldría con
-  // los datos viejos. El candado es síncrono (full-testingv2 del 2-nov vio 2 PUT y 2 avisos con un doble clic).
-  const guardando = useRef(false)
-  const guardar = (vars: Parameters<typeof mutation.mutate>[0]) => {
-    if (guardando.current) return
-    guardando.current = true
-    mutation.mutate(vars, { onSettled: () => (guardando.current = false) })
-  }
 
   return (
     <Card className={panelClass}>
@@ -591,73 +562,20 @@ export function TerminalSettings({
                   {[terminal.brand, terminal.model, terminal.status].filter(Boolean).join(' · ')}
                 </p>
               </div>
-              <Select
-                value={terminal.fulfillmentAreaId ?? NONE}
-                disabled={mutation.isPending}
-                onValueChange={value => guardar({ terminalId: terminal.id, input: { fulfillmentAreaId: value === NONE ? null : value } })}
-              >
-                <SelectTrigger className="w-56">
-                  <SelectValue placeholder="Sin área" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={NONE}>Sin área / caja</SelectItem>
-                  {areas
-                    .filter(area => area.active)
-                    .map(area => (
-                      <SelectItem key={area.id} value={area.id}>
-                        {area.name}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
+              {fullBasePath && (
+                <Button asChild variant="link" size="sm">
+                  <Link to={`${fullBasePath}/devices/${terminal.id}`}>{t('areaTickets.terminals.viewDetail')}</Link>
+                </Button>
+              )}
             </div>
-            {tieneEmitirYCobrar(terminal) && (
-              <p
-                className="mb-3 rounded-lg border border-warning-border bg-warning-muted px-3 py-2 text-sm text-warning-foreground"
-                data-tour="area-terminal-issue-and-checkout"
-              >
-                {t('areaTickets.terminals.bothOnWarning')}
-              </p>
-            )}
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              {[
-                ['canIssueAreaTickets', 'Emitir vales'],
-                ['canCheckoutAreaTickets', 'Cobrar vales'],
-                ['canDeliverAreaTickets', 'Entregar'],
-              ].map(([key, label]) => (
-                <label key={key} className="flex min-h-10 items-center justify-between gap-2 rounded-lg bg-muted/40 px-3 py-2 text-sm">
-                  {label}
-                  <Switch
-                    checked={Boolean(terminal[key as keyof AreaTicketTerminal])}
-                    // D5 (Codex final #3): mientras se guarda un cambio, no se manda otro con datos viejos.
-                    disabled={mutation.isPending}
-                    onCheckedChange={checked => {
-                      const { input, apagada } = cambioDeCapacidad(terminal, key as CapacidadDeVales, checked)
-                      guardar({ terminalId: terminal.id, input, apagada })
-                    }}
-                  />
-                </label>
-              ))}
-              <Select
-                value={terminal.scaleProfileId ?? NONE}
-                disabled={mutation.isPending}
-                onValueChange={value => guardar({ terminalId: terminal.id, input: { scaleProfileId: value === NONE ? null : value } })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Sin báscula" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={NONE}>Sin báscula</SelectItem>
-                  {profiles
-                    .filter(profile => profile.active)
-                    .map(profile => (
-                      <SelectItem key={profile.id} value={profile.id}>
-                        {profile.name}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <TerminalAreaTicketEditor
+              venueId={venueId}
+              terminal={terminal}
+              areas={areas}
+              profiles={profiles}
+              showScale
+              onSaved={() => onSaved()}
+            />
           </div>
         ))}
         {terminals.length === 0 && <p className="py-8 text-center text-muted-foreground">No hay terminales registradas.</p>}

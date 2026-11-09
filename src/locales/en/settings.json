@@ -883,7 +883,8 @@
       "issueOrCheckoutTitle": "A device either issues or charges tickets",
       "turnedOffCheckout": "«Charge tickets» was turned off: a device either issues tickets or charges them, not both. Use the register to charge tickets.",
       "turnedOffIssue": "«Issue tickets» was turned off: a device either issues tickets or charges them, not both.",
-      "bothOnWarning": "This device has both «Issue tickets» and «Charge tickets». It only issues: turn one of them off. Use the register to charge tickets."
+      "bothOnWarning": "This device has both «Issue tickets» and «Charge tickets». It only issues: turn one of them off. Use the register to charge tickets.",
+      "viewDetail": "View details"
     },
     "areas": {
       "comandaHeader": "Kitchen ticket",
