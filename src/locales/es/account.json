@@ -1,6 +1,7 @@
 {
   "title": "Cuenta",
   "subtitle": "Gestiona la configuración y preferencias de tu cuenta",
+  "webBankHelp": "Banco web: prueba C",
   "bankWebHelp": "Banco web: prueba D",
   "accountInfo": {
     "title": "Información de la cuenta",
