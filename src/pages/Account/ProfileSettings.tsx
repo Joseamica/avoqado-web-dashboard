@@ -96,7 +96,6 @@ export default function ProfileSettings() {
           })}
         />
         <p className="text-muted-foreground mt-2">{t('subtitle')}</p>
-        <p className="text-sm text-muted-foreground mt-2">{t('webBankHelp')}</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
