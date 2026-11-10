@@ -76,7 +76,17 @@ function RenameForm({ venueId, device, onOpenChange }: Omit<RenameDeviceDialogPr
       </DialogHeader>
       <div className="space-y-2">
         <Label htmlFor="rename-device-name">{t('device.rename.label')}</Label>
-        <Input id="rename-device-name" value={name} onChange={e => setName(e.target.value)} autoFocus />
+        {/* Con un guardado de este aparato en vuelo no se escribe: su respuesta cierra el diálogo y se perdería el borrador (Codex r3). */}
+        <Input
+          id="rename-device-name"
+          value={name}
+          onChange={e => {
+            if (!enVuelo) setName(e.target.value)
+          }}
+          disabled={enVuelo}
+          readOnly={enVuelo}
+          autoFocus
+        />
         {enVuelo && <p className="text-sm text-muted-foreground">{t('device.rename.saving')}</p>}
         {rename.isError && (
           <p role="alert" className="text-sm text-destructive">

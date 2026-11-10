@@ -111,7 +111,11 @@ describe('RenameDeviceDialog', () => {
     fireEvent.click(screen.getByRole('button', { name: 'device.rename.cancel' }))
     rerender(ui(false))
     rerender(ui(true))
+    // Codex r3: con el guardado en vuelo tampoco se escribe (su respuesta cerraría el diálogo y se perdería el borrador).
+    expect(input()).toBeDisabled()
+    expect(input()).toHaveAttribute('readonly')
     fireEvent.change(input(), { target: { value: 'Nombre segundo' } })
+    expect(input()).toHaveValue('Caja 1')
     expect(save()).toBeDisabled()
     expect(screen.getByText('device.rename.saving')).toBeInTheDocument()
     fireEvent.click(save())
