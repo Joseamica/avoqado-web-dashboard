@@ -1,7 +1,8 @@
 import { useToast } from '@/hooks/use-toast'
 import type { FilaDePromotor, SucursalDelPromotor } from '@/services/celularesDeCampo.service'
 import { useVenueDateTime } from '@/utils/datetime'
-import { useCallback, useRef } from 'react'
+import type { PaginationState } from '@tanstack/react-table'
+import { useCallback, useRef, useState, type Dispatch, type SetStateAction } from 'react'
 import { useTranslation } from 'react-i18next'
 
 /**
@@ -136,4 +137,21 @@ export function useMandarCodigo() {
   )
 
   return { copiar, mandarPorWhatsApp }
+}
+
+/** Lo más que pide una página el SERVIDOR (`pageSize` ≤ 100); el selector de «Filas por página» también ofrece 200. */
+export const TOPE_DE_PAGINA = 100
+
+/** La paginación de una tabla de esta página: arranca en 20 y nunca pasa del tope del SERVIDOR (si eligen 200, son 100). */
+export function usePaginacion(): [PaginationState, Dispatch<SetStateAction<PaginationState>>] {
+  const [pagination, set] = useState<PaginationState>({ pageIndex: 0, pageSize: 20 })
+  const setPagination = useCallback<Dispatch<SetStateAction<PaginationState>>>(
+    u =>
+      set(p => {
+        const n = typeof u === 'function' ? u(p) : u
+        return { ...n, pageSize: Math.min(n.pageSize, TOPE_DE_PAGINA) }
+      }),
+    [],
+  )
+  return [pagination, setPagination]
 }

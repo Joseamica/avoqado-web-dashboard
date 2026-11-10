@@ -26,12 +26,11 @@ import {
 } from '@/services/celularesDeCampo.service'
 import { useVenueDateTime } from '@/utils/datetime'
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import type { ColumnDef, PaginationState } from '@tanstack/react-table'
+import type { ColumnDef } from '@tanstack/react-table'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { esAplicacionEnCurso, rechazoDeAplicar, useMensajeDeError, useUnaALaVez } from '../ayudantes'
+import { esAplicacionEnCurso, rechazoDeAplicar, useMensajeDeError, usePaginacion, useUnaALaVez } from '../ayudantes'
 
-const PAGE_SIZE = 20
 const ESTADOS: EstadoDelRetenido[] = ['PENDIENTE', 'APLICANDO', 'APLICADO', 'DESCARTADO']
 /** Lo mismo que cuenta el «Por revisar (n)» de la pantalla. */
 const SIN_RESOLVER = 'PENDIENTE,APLICANDO'
@@ -51,7 +50,7 @@ export function PorRevisarModal({ orgId, open, onClose, venueId }: PorRevisarMod
   const { formatDateTime } = useVenueDateTime()
   const queryClient = useQueryClient()
   const unaALaVez = useUnaALaVez()
-  const [pagination, setPagination] = useState<PaginationState>({ pageIndex: 0, pageSize: PAGE_SIZE })
+  const [pagination, setPagination] = usePaginacion()
   const [porDescartar, setPorDescartar] = useState<RetenidoDeCampo | null>(null)
   const [nota, setNota] = useState('')
   // Arranca en «Sin resolver» (PENDIENTE y APLICANDO), lo mismo que cuenta el botón; null = todos.
@@ -59,7 +58,7 @@ export function PorRevisarModal({ orgId, open, onClose, venueId }: PorRevisarMod
   const etiquetaDeEstado = (v: string) =>
     v === SIN_RESOLVER ? t('celulares.porRevisar.sinResolver', { defaultValue: 'Sin resolver' }) : t(`celulares.porRevisar.estado.${v}`)
 
-  const params = { venueId, estado: estado ?? undefined, page: pagination.pageIndex + 1, pageSize: PAGE_SIZE }
+  const params = { venueId, estado: estado ?? undefined, page: pagination.pageIndex + 1, pageSize: pagination.pageSize }
   const retenidosQuery = useQuery({
     queryKey: ['celulares-de-campo', orgId, 'retenidos', params],
     queryFn: () => getRetenidosDeCampo(orgId, params),

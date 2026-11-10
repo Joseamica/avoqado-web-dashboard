@@ -28,19 +28,17 @@ import {
   type FiltrosDeCelulares,
 } from '@/services/celularesDeCampo.service'
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import type { PaginationState } from '@tanstack/react-table'
 import { ClipboardList, Search, Smartphone, X } from 'lucide-react'
 import { useCallback, useMemo, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useLocation, useParams } from 'react-router-dom'
-import { useMensajeDeError, useUnaALaVez, type CodigoParaMandar } from './ayudantes'
+import { useMensajeDeError, usePaginacion, useUnaALaVez, type CodigoParaMandar } from './ayudantes'
 import { CodigoDialog } from './components/CodigoDialog'
 import { DesvincularDialog } from './components/DesvincularDialog'
 import { PinModal } from './components/PinModal'
 import { PorRevisarModal } from './components/PorRevisarModal'
 import { TablaDeCelulares } from './components/TablaDeCelulares'
 
-const PAGE_SIZE = 20
 const ESTADOS: EstadoDelPromotor[] = ['SIN_CELULAR', 'CODIGO_SIN_USAR', 'ACTIVO']
 
 /**
@@ -88,7 +86,7 @@ export function CelularesDePromotoresVista({
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [estado, setEstado] = useState<EstadoDelPromotor | null>(null)
   const [venueId, setVenueId] = useState<string | null>(venueIdInicial ?? null)
-  const [pagination, setPagination] = useState<PaginationState>({ pageIndex: 0, pageSize: PAGE_SIZE })
+  const [pagination, setPagination] = usePaginacion()
   const debouncedSearch = useDebounce(searchTerm, 300)
 
   const [codigoAbierto, setCodigoAbierto] = useState<CodigoParaMandar | null>(null)
@@ -105,9 +103,9 @@ export function CelularesDePromotoresVista({
       venueId: venueId ?? undefined,
       estado: estado ?? undefined,
       page: pagination.pageIndex + 1,
-      pageSize: PAGE_SIZE,
+      pageSize: pagination.pageSize,
     }),
-    [debouncedSearch, venueId, estado, pagination.pageIndex],
+    [debouncedSearch, venueId, estado, pagination.pageIndex, pagination.pageSize],
   )
 
   const listQuery = useQuery({
