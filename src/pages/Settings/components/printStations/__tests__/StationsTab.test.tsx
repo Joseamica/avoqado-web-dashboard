@@ -12,6 +12,9 @@ const h = vi.hoisted(() => ({
   role: 'OWNER' as string,
   hasAccess: true,
   setMock: vi.fn(),
+  createMock: vi.fn(),
+  updateMock: vi.fn(),
+  toast: vi.fn(),
   configShouldError: false,
 }))
 
@@ -20,6 +23,8 @@ vi.mock('@/services/printStations.service', async importOriginal => ({
   getPrintStationsConfig: () => (h.configShouldError ? Promise.reject(new Error('network')) : Promise.resolve(h.config)),
   getPrinters: () => Promise.resolve([]),
   setPrintStationKitchenDisplay: (...a: unknown[]) => h.setMock(...a),
+  createPrintStation: (...a: unknown[]) => h.createMock(...a),
+  updatePrintStation: (...a: unknown[]) => h.updateMock(...a),
   getRouting: () =>
     Promise.resolve({
       categories: [],
@@ -36,6 +41,7 @@ vi.mock('@/hooks/use-tier-feature-access', () => ({
 }))
 vi.mock('@/hooks/use-current-venue', () => ({ useCurrentVenue: () => ({ venueId: 'v1', fullBasePath: '/venues/alpha' }) }))
 vi.mock('@/hooks/use-terminology', () => ({ useTerminology: () => ({ term: (k: string) => k }) }))
+vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: h.toast }), toast: h.toast }))
 
 const cocina: PrintStation = {
   id: 's1',
@@ -51,6 +57,8 @@ const cocina: PrintStation = {
   printer: { id: 'p1', name: 'Epson Cocina', active: true, lastStatus: null },
 }
 const barra: PrintStation = { ...cocina, id: 's2', name: 'Barra', printerId: null, printer: null, isDefault: false, displayOrder: 1 }
+const tienda: PrintStation = { ...barra, id: 's3', name: 'Tienda', sendsComanda: false, displayOrder: 2 }
+const AVISO_CAJAS_VIEJAS = /Las cajas sin actualizar siguen mandando la comanda de estos productos\./
 
 beforeAll(async () => {
   Element.prototype.hasPointerCapture = () => false
@@ -63,6 +71,11 @@ beforeEach(() => {
   h.role = 'OWNER'
   h.hasAccess = true
   h.setMock.mockReset()
+  h.createMock.mockReset()
+  h.createMock.mockResolvedValue({})
+  h.updateMock.mockReset()
+  h.updateMock.mockResolvedValue({})
+  h.toast.mockReset()
   h.configShouldError = false
 })
 
@@ -189,5 +202,136 @@ describe('StationsTab — tarjetas por estación (diseño A)', () => {
     const boton = screen.getByRole('button', { name: 'Probar' })
     expect(boton).toBeDisabled()
     expect(boton).toHaveAttribute('title', 'Crea una estación primero')
+  })
+})
+
+describe('StationsTab — estación «No lleva comanda»', () => {
+  const abrirAlta = async () => {
+    pintar()
+    await screen.findByTestId('station-card-s1')
+    await userEvent.click(screen.getByRole('button', { name: /Agregar estación/ }))
+    await screen.findByRole('heading', { name: 'Nueva estación' })
+  }
+  const abrirEdicion = async (id: string) => {
+    pintar()
+    const tarjeta = await screen.findByTestId(`station-card-${id}`)
+    await userEvent.click(within(tarjeta).getByRole('button', { name: 'Editar' }))
+    await screen.findByRole('heading', { name: 'Editar estación' })
+  }
+  const camposDeComanda = () => [
+    screen.queryByText('Impresora'),
+    screen.queryByLabelText('Copias por comanda'),
+    screen.queryByText('Estación por defecto'),
+    screen.queryByText('Aquí se empaca'),
+  ]
+
+  it('crear_no_lleva_comanda_esconde_campos_y_manda_false', async () => {
+    await abrirAlta()
+    await userEvent.type(screen.getByLabelText('Nombre de la estación'), 'Tienda')
+    camposDeComanda().forEach(campo => expect(campo).toBeInTheDocument())
+
+    await userEvent.click(screen.getByRole('switch', { name: 'No lleva comanda' }))
+    camposDeComanda().forEach(campo => expect(campo).not.toBeInTheDocument())
+    expect(screen.queryByText('Guarda la estación para poder prender su pantalla de cocina.')).not.toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar' }))
+    await waitFor(() => expect(h.createMock).toHaveBeenCalledTimes(1))
+    // Exacto: sin printerId, copies, isPacking ni isDefault (el servidor responde 400 si llegan).
+    expect(h.createMock.mock.calls[0]).toStrictEqual(['v1', { name: 'Tienda', sendsComanda: false }])
+  })
+
+  it('crear una estación normal no manda sendsComanda (un servidor viejo lo rechazaría)', async () => {
+    await abrirAlta()
+    await userEvent.type(screen.getByLabelText('Nombre de la estación'), 'Cocina fría')
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar' }))
+    await waitFor(() => expect(h.createMock).toHaveBeenCalledTimes(1))
+    expect(h.createMock.mock.calls[0][1]).toStrictEqual({
+      name: 'Cocina fría',
+      printerId: null,
+      copies: 1,
+      isDefault: false,
+      isPacking: false,
+    })
+  })
+
+  it('editar_sin_comanda_no_ofrece_impresora_ni_cambia_tipo', async () => {
+    h.config = { stations: [cocina, barra, tienda], kitchenDisplayOpenToClients: true }
+    await abrirEdicion('s3')
+    expect(screen.getByText('Sin comanda · el tipo no se cambia; para quitarla, bórrala')).toBeInTheDocument()
+    expect(screen.queryByRole('switch', { name: 'No lleva comanda', hidden: true })).not.toBeInTheDocument()
+    camposDeComanda().forEach(campo => expect(campo).not.toBeInTheDocument())
+    // Ni en el formulario ni en la tarjeta: una estación sin comanda no tiene pantalla de cocina.
+    expect(screen.queryByRole('switch', { name: 'Pantalla de cocina de Tienda', hidden: true })).not.toBeInTheDocument()
+
+    const nombre = screen.getByLabelText('Nombre de la estación')
+    await userEvent.clear(nombre)
+    await userEvent.type(nombre, 'Abarrotes')
+    await userEvent.click(screen.getByRole('switch', { name: 'Estación activa' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar' }))
+    await waitFor(() => expect(h.updateMock).toHaveBeenCalledTimes(1))
+    expect(h.updateMock.mock.calls[0]).toStrictEqual(['v1', 's3', { name: 'Abarrotes', active: false }])
+  })
+
+  it('editar_normal_no_muestra_interruptor', async () => {
+    await abrirEdicion('s1')
+    expect(screen.queryByRole('switch', { name: 'No lleva comanda' })).not.toBeInTheDocument()
+    expect(screen.queryByText('Sin comanda · el tipo no se cambia; para quitarla, bórrala')).not.toBeInTheDocument()
+    camposDeComanda().forEach(campo => expect(campo).toBeInTheDocument())
+
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar' }))
+    await waitFor(() => expect(h.updateMock).toHaveBeenCalledTimes(1))
+    expect(h.updateMock.mock.calls[0][2]).toStrictEqual({
+      name: 'Cocina',
+      printerId: 'p1',
+      copies: 1,
+      isDefault: true,
+      isPacking: false,
+      active: true,
+    })
+  })
+
+  it('estacion_sin_comanda_insignia_y_sin_pantalla', async () => {
+    h.config = { stations: [cocina, tienda], kitchenDisplayOpenToClients: true }
+    pintar()
+    const tarjeta = await screen.findByTestId('station-card-s3')
+    expect(within(tarjeta).getByText('Sin comanda')).toBeInTheDocument()
+    expect(within(tarjeta).queryByRole('switch', { name: /Pantalla de cocina de/ })).not.toBeInTheDocument()
+    // La tarjeta no promete papel en la caja ni un destino que no existe.
+    expect(within(tarjeta).queryByText(/Sin impresora propia/)).not.toBeInTheDocument()
+    expect(within(tarjeta).queryByText(/Llega a:/)).not.toBeInTheDocument()
+    // La estación normal sigue igual.
+    const normal = screen.getByTestId('station-card-s1')
+    expect(within(normal).getByRole('switch', { name: 'Pantalla de cocina de Cocina' })).toBeInTheDocument()
+    expect(within(normal).queryByText('Sin comanda')).not.toBeInTheDocument()
+  })
+
+  it('muestra_aviso_de_cajas_sin_actualizar', async () => {
+    h.config = { stations: [cocina, barra, tienda], kitchenDisplayOpenToClients: true }
+    await abrirAlta()
+    expect(screen.getByText(AVISO_CAJAS_VIEJAS)).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Cerrar' }))
+
+    const tarjeta = await screen.findByTestId('station-card-s3')
+    await userEvent.click(within(tarjeta).getByRole('button', { name: 'Editar' }))
+    await screen.findByRole('heading', { name: 'Editar estación' })
+    expect(screen.getByText(AVISO_CAJAS_VIEJAS)).toBeInTheDocument()
+  })
+
+  it('un 400 ESTACION_SIN_COMANDA_INCOMPATIBLE se muestra con el mensaje del servidor', async () => {
+    h.createMock.mockRejectedValue({
+      response: {
+        status: 400,
+        data: { code: 'ESTACION_SIN_COMANDA_INCOMPATIBLE', message: 'Una estación sin comanda no lleva impresora.' },
+      },
+    })
+    await abrirAlta()
+    await userEvent.type(screen.getByLabelText('Nombre de la estación'), 'Tienda')
+    await userEvent.click(screen.getByRole('switch', { name: 'No lleva comanda' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar' }))
+    await waitFor(() =>
+      expect(h.toast).toHaveBeenCalledWith(
+        expect.objectContaining({ description: 'Una estación sin comanda no lleva impresora.', variant: 'destructive' }),
+      ),
+    )
   })
 })

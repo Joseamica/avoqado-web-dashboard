@@ -39,6 +39,11 @@ export interface PrintStation {
   hasKitchenDisplay: boolean
   /** Desde cuándo la pantalla de esta estación enseña comandas: el servidor lo sella al prenderla (etapa 3). */
   kitchenDisplaySince?: string | null
+  /**
+   * `false` = «No lleva comanda»: lo ruteado aquí no imprime, no sale en pantalla y no avisa. Se elige AL CREAR y nunca
+   * cambia; nunca lleva impresora, pantalla, empaque ni «por defecto». Un SERVIDOR viejo no lo manda ⇒ se lee como `true`.
+   */
+  sendsComanda?: boolean
   active: boolean
   displayOrder: number
   printer?: { id: string; name: string; active: boolean; lastStatus: string | null } | null
@@ -103,6 +108,8 @@ export interface PreviewPlan {
   stationId: string | null
   stationName: string | null
   unrouted: boolean
+  /** `false` = la estación «No lleva comanda»: el simulador lo dice en vez de un destino. */
+  sendsComanda?: boolean
   lines: { productName: string; quantity: number }[]
 }
 
@@ -133,8 +140,10 @@ export interface CreateStationInput {
   isDefault?: boolean
   isPacking?: boolean
   displayOrder?: number
+  /** Sólo al crear, y sólo `false` (sin impresora, empaque ni «por defecto»): el servidor no deja cambiar el tipo. */
+  sendsComanda?: false
 }
-export type UpdateStationInput = Partial<CreateStationInput> & { active?: boolean }
+export type UpdateStationInput = Partial<Omit<CreateStationInput, 'sendsComanda'>> & { active?: boolean }
 
 export interface UpdateGatewayInput {
   terminalId: string

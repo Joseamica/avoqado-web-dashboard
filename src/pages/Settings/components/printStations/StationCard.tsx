@@ -29,6 +29,8 @@ export function StationCard({
 }) {
   const { t } = useTranslation('printStations')
   const destino = destinoDeComanda(station, station.hasKitchenDisplay && tieneAccesoPro)
+  // «No lleva comanda»: ni impresora, ni pantalla, ni destino que prometer; la insignia lo dice.
+  const sinComanda = station.sendsComanda === false
 
   return (
     <Card className="border-input" data-testid={`station-card-${station.id}`}>
@@ -36,6 +38,7 @@ export function StationCard({
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 flex-wrap items-center gap-2">
             <span className="font-medium">{station.name}</span>
+            {sinComanda && <Badge variant="secondary">{t('stations.noComandaBadge')}</Badge>}
             {station.isDefault && <Badge variant="secondary">{t('stations.defaultBadge')}</Badge>}
             {station.isPacking && <Badge variant="outline">{t('stations.packingBadge')}</Badge>}
             {!station.active && <Badge variant="outline">{t('stations.statusInactive')}</Badge>}
@@ -56,21 +59,25 @@ export function StationCard({
           </div>
         </div>
 
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <PrinterIcon className="h-4 w-4 shrink-0" aria-hidden="true" />
-          <span>
-            {station.printer
-              ? t('stations.printerLine', { printer: station.printer.name })
-              : t(destino === 'PANTALLA' ? 'stations.printerFallbackScreen' : 'stations.printerFallback')}
-            {station.printer && station.copies > 1 && <> · {t('stations.copiesSuffix', { count: station.copies })}</>}
-          </span>
-        </div>
+        {!sinComanda && (
+          <>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <PrinterIcon className="h-4 w-4 shrink-0" aria-hidden="true" />
+              <span>
+                {station.printer
+                  ? t('stations.printerLine', { printer: station.printer.name })
+                  : t(destino === 'PANTALLA' ? 'stations.printerFallbackScreen' : 'stations.printerFallback')}
+                {station.printer && station.copies > 1 && <> · {t('stations.copiesSuffix', { count: station.copies })}</>}
+              </span>
+            </div>
 
-        <KitchenDisplayToggle venueId={venueId} station={station} abiertaAClientes={abiertaAClientes} />
+            <KitchenDisplayToggle venueId={venueId} station={station} abiertaAClientes={abiertaAClientes} />
 
-        <p className="text-xs text-muted-foreground">
-          {station.active ? t('stations.destinationLine', { destino: t(`destino.${destino}`) }) : t('stations.destinationInactive')}
-        </p>
+            <p className="text-xs text-muted-foreground">
+              {station.active ? t('stations.destinationLine', { destino: t(`destino.${destino}`) }) : t('stations.destinationInactive')}
+            </p>
+          </>
+        )}
       </CardContent>
     </Card>
   )

@@ -47,6 +47,8 @@
     "defaultBadge": "Por defecto",
     "packingBadge": "Empaque",
     "statusInactive": "Inactiva",
+    "noComandaBadge": "Sin comanda",
+    "noComandaLocked": "Sin comanda · el tipo no se cambia; para quitarla, bórrala",
     "fields": {
       "name": "Nombre de la estación",
       "namePlaceholder": "Ej. Cocina caliente",
@@ -57,6 +59,8 @@
       "isPacking": "Aquí se empaca",
       "isDefaultHint": "La estación por defecto recibe los productos sin ruta asignada.",
       "isPackingHint": "Recibe un ticket con el pedido completo, para quien arma la bolsa de reparto. Solo una estación por negocio.",
+      "noComanda": "No lleva comanda",
+      "noComandaHint": "Para productos que no van a cocina (tienda, abarrotes). No imprimen comanda, no salen en la pantalla de cocina y no avisan. Asígnale sus categorías en la pestaña Ruteo. El tipo no se cambia después. Las cajas sin actualizar siguen mandando la comanda de estos productos.",
       "active": "Estación activa"
     },
     "saved": "Estación guardada",
@@ -175,6 +179,7 @@
       "selectProduct": "Elige un producto",
       "noItems": "Agrega al menos un producto para simular.",
       "unroutedStation": "SIN ESTACIÓN",
+      "noComanda": "No lleva comanda",
       "lineFormat": "{{quantity}}x {{name}}",
       "unroutedNote": "Algunos productos no tienen estación y saldrían en una comanda marcada SIN ESTACIÓN."
     },
