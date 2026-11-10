@@ -42,6 +42,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useAuth } from '@/context/AuthContext'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { useAccess } from '@/hooks/use-access'
 import { canMoveMoney } from '@/lib/kyc-utils'
 import { isTerminalOnline } from '@/lib/terminal-status'
 import { useDebounce } from '@/hooks/useDebounce'
@@ -58,12 +59,14 @@ import {
   DeviceBatteryCell,
   DeviceIdCell,
   DeviceNameCell,
+  DeviceRoleCell,
   DeviceStatusPill,
   DeviceSystemCell,
   DeviceTodaySalesCell,
 } from './components/DeviceListCells'
 import { DeviceMobileList } from './components/DeviceMobileList'
 import { DeviceRowMenu } from './components/DeviceRowMenu'
+import { RenameDeviceDialog } from './components/RenameDeviceDialog'
 import { TerminalPurchaseWizard } from './components/purchase-wizard/TerminalPurchaseWizard'
 import { SuperadminTerminalDialog } from './components/SuperadminTerminalDialog'
 import { TerminalOrdersTab } from './components/TerminalOrdersTab'
@@ -83,6 +86,7 @@ import { canConfigurePayments, canSendCommand } from './deviceCapabilities'
 // contenido es angosto. Tablero: https://claude.ai/artifact/SruhLk2YJhKTcrHxjSCyim
 export default function Tpvs() {
   const { venueId, venue } = useCurrentVenue()
+  const { can } = useAccess()
   const { user } = useAuth()
   const location = useLocation()
   const { t } = useTranslation()
@@ -151,6 +155,7 @@ export default function Tpvs() {
   const [selectedTerminalForActivation, setSelectedTerminalForActivation] = useState<string | null>(null)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [terminalToDelete, setTerminalToDelete] = useState<{ id: string; name: string } | null>(null)
+  const [terminalToRename, setTerminalToRename] = useState<{ id: string; name: string } | null>(null)
   const [terminalToRestart, setTerminalToRestart] = useState<TpvListDevice | null>(null)
   const [connectionFilter, setConnectionFilter] = useState<string[]>([])
   const [activationFilter, setActivationFilter] = useState<string[]>([])
@@ -506,7 +511,19 @@ export default function Tpvs() {
       accessorKey: 'name',
       meta: { label: tTpv('list.columns.device') },
       header: tTpv('list.columns.device'),
-      cell: ({ row }) => <DeviceNameCell device={row.original} name={row.original.name} />,
+      cell: ({ row }) => (
+        <DeviceNameCell
+          device={row.original}
+          name={row.original.name}
+          onRename={can('tpv:update') ? device => setTerminalToRename({ id: device.id, name: device.name }) : undefined}
+        />
+      ),
+    },
+    {
+      id: 'role',
+      meta: { label: tTpv('list.columns.role') },
+      header: tTpv('list.columns.role'),
+      cell: ({ row }) => <DeviceRoleCell device={row.original} vales={data?.areaTickets} linkTo={row.original.id} linkState={rowLinkState} />,
     },
     {
       id: 'status',
@@ -724,6 +741,7 @@ export default function Tpvs() {
           }}
           onRestart={setTerminalToRestart}
           onCommand={sendTpvCommand}
+          onRename={device => setTerminalToRename({ id: device.id, name: device.name })}
           onDelete={device => {
             setTerminalToDelete({ id: device.id, name: device.name })
             setDeleteDialogOpen(true)
@@ -738,6 +756,15 @@ export default function Tpvs() {
 
   return (
     <TooltipProvider>
+      {venueId && terminalToRename && (
+        <RenameDeviceDialog
+          key={terminalToRename.id}
+          venueId={venueId}
+          device={terminalToRename}
+          open
+          onOpenChange={open => !open && setTerminalToRename(null)}
+        />
+      )}
       <div className="p-4 md:p-6 bg-background text-foreground max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex flex-wrap items-start justify-between gap-4">
@@ -1033,6 +1060,7 @@ export default function Tpvs() {
                     pageIndex={pagination.pageIndex}
                     pageSize={pagination.pageSize}
                     onPageChange={pageIndex => setPagination(prev => ({ ...prev, pageIndex }))}
+                    vales={data?.areaTickets}
                     linkState={rowLinkState}
                     emptyMessage={emptyMessage}
                   />

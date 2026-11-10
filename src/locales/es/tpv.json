@@ -954,11 +954,15 @@
     "maintenance": "Mantenimiento"
   },
   "list": {
+    "factoryName": "Nombre de fábrica",
+    "factoryNameChange": "Cambiar",
+    "unconfigured": "Sin configurar",
     "subtitle": "Terminales de cobro, celulares, tablets y computadoras donde tu equipo vende.",
     "count_one": "{{count}} dispositivo",
     "count_other": "{{count}} dispositivos",
     "searchPlaceholder": "Buscar por nombre o serie",
     "columns": {
+      "role": "Qué hace",
       "device": "Dispositivo",
       "status": "Estado",
       "system": "Sistema",
@@ -1041,7 +1045,8 @@
     "menu": {
       "lock": "Bloquear terminal",
       "unlock": "Desbloquear terminal",
-      "edit": "Editar datos"
+      "edit": "Editar datos",
+      "rename": "Cambiar nombre"
     },
     "banner": {
       "maintenance": "En mantenimiento: esta terminal no cobra hasta que salga de mantenimiento.",
@@ -1087,21 +1092,55 @@
     "activatedWithoutCode": "Terminal activada",
     "activatedWithoutCodeDesc": "Entrará sin pedir código cuando se encienda y tenga internet.",
     "role": {
-      "issues": "Emite vales",
-      "issuesArea": "de {{area}}",
-      "charges": "Cobra",
       "comandaOff": "Sin comanda",
       "comandaOffDetail": "al emitir, sale sólo el vale",
       "comandaOn": "Manda comanda",
       "comandaOnDetail": "a cocina, además del vale",
-      "menu": "Menú",
       "allMenus": "Todos los menús",
       "menuNeedsUpdate": "Se aplica al actualizar la app de este aparato.",
-      "change": "Cambiar",
       "emitirSinEfecto": {
         "sinArea": "Tiene «Emitir vales» prendido, pero sin área: hoy cobra como un punto de venta normal.",
         "areaApagada": "Tiene «Emitir vales» prendido, pero su área está apagada: hoy cobra como un punto de venta normal.",
         "sinPantallaDeVales": "Tiene «Emitir vales» prendido, pero no abre en la pantalla de vales: hoy cobra como un punto de venta normal."
+      }
+    },
+    "rename": {
+      "title": "Cambiar nombre",
+      "label": "Nombre del dispositivo",
+      "save": "Guardar",
+      "cancel": "Cancelar",
+      "saved": "Nombre actualizado",
+      "error": "No se pudo cambiar el nombre. Intenta de nuevo.",
+      "saving": "Guardando…"
+    },
+    "papel": {
+      "terminalDeCobro": "Terminal de cobro",
+      "puntoDeVenta": "Punto de venta",
+      "emite": "Emite · {{area}}",
+      "cobraVales": "Cobra vales",
+      "entregaVales": "Entrega vales",
+      "sinElegir": "Sin elegir",
+      "noAplica": "No aplica a este tipo de aparato"
+    },
+    "setup": {
+      "title": "Qué hace este aparato",
+      "what": "¿Qué hace?",
+      "menu": "¿Qué menú ve?",
+      "checkout": "¿Cómo cobra?",
+      "display": "Pantalla del cliente",
+      "change": "Cambiar",
+      "changeInAreas": "Cambiar en Vales › Áreas",
+      "menuPlanInvite": "Disponible en el plan {{tier}}",
+      "stepsNone": "Cobra directo, sin pasos extra",
+      "appliesOnReconnect": "El aparato lo toma en su siguiente sincronización; si está sin internet, al reconectarse.",
+      "papelEditorTitle": "Qué hace {{name}}",
+      "menuEditorTitle": "Menú de {{name}}",
+      "loadError": "No se pudo cargar.",
+      "retry": "Reintentar",
+      "notInOverview": "Este aparato no aparece en Vales por área.",
+      "entregarSinEfecto": {
+        "sinArea": "Tiene «Entregar» prendido, pero sin área: hoy no entrega vales.",
+        "areaApagada": "Tiene «Entregar» prendido, pero su área está apagada: hoy no entrega vales."
       }
     }
   },
@@ -1152,6 +1191,7 @@
     }
   },
   "deviceMenus": {
+    "verFicha": "Ver ficha",
     "subtitulo": "Elige qué menús muestra cada aparato en Cobrar y Mesas. La búsqueda y la pistola siempre encuentran todo.",
     "columnas": {
       "aparato": "Aparato",
@@ -1179,6 +1219,8 @@
     "reintentar": "Reintentar",
     "guardado": "Guardado",
     "errorAlGuardar": "No se pudo guardar",
+    "errorAlReleer": "No se pudo confirmar qué menús quedaron guardados.",
+    "sinConexionReleyendo": "Sin conexión: se actualiza al volver la red.",
     "rango": "{{desde}}–{{hasta}} de {{total}}",
     "anterior": "Anterior",
     "siguiente": "Siguiente",

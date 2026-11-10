@@ -365,7 +365,8 @@ test.describe('Dispositivos — detalle E', () => {
     // Un dueño no ve lo de superadmin.
     await expect(page.getByText('Solo superadmin')).toHaveCount(0)
 
-    await expect(page.locator('dl').getByText('Terminal de cobro', { exact: true })).toBeVisible()
+    // «Terminal de cobro» sale dos veces a propósito: en «Qué hace este aparato» y en los datos (pestaña).
+    await expect(page.getByRole('tabpanel').locator('dl').getByText('Terminal de cobro', { exact: true })).toBeVisible()
 
     if (SCREENSHOT_DIR) await page.screenshot({ path: `${SCREENSHOT_DIR}/detalle-claro.png`, fullPage: true })
   })

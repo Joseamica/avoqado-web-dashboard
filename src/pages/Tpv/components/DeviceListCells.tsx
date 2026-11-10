@@ -1,6 +1,10 @@
-import { BatteryCharging, BatteryFull, BatteryLow, BatteryMedium, Check, Copy } from 'lucide-react'
+import { AlertTriangle, BatteryCharging, BatteryFull, BatteryLow, BatteryMedium, Check, Copy } from 'lucide-react'
 import { useState, type MouseEvent } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Link } from 'react-router-dom'
+
+import { Badge } from '@/components/ui/badge'
+import type { TpvListDevice } from '@/services/tpv.service'
 
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { getDeviceKindIcon } from '@/lib/device-kind'
@@ -16,6 +20,7 @@ import {
   type DeviceListInput,
   type DeviceListStatus,
 } from '../deviceListPresentation'
+import { esNombreDeFabrica, necesitaConfigurar, papelCorto } from '../papelDelAparato'
 import { useDeviceStatusLabel, useDeviceSubtitle } from './useDeviceListLabels'
 
 /**
@@ -53,16 +58,81 @@ export function DeviceIcon({ device, className }: { device: DeviceListInput; cla
   )
 }
 
-export function DeviceNameCell({ device, name }: { device: DeviceListInput; name: string }) {
+type Vales = { enabled: boolean; activeAreaCount: number } | undefined
+
+/** «Nombre de fábrica»: etiqueta gris que sólo depende de la fila (no es alerta). «Cambiar» sólo si se pasa `onRename`. */
+export function DeviceNameCell({ device, name, onRename }: { device: TpvListDevice; name: string; onRename?: (d: TpvListDevice) => void }) {
   const subtitle = useDeviceSubtitle()
+  const { t } = useTranslation('tpv')
+  const deFabrica = esNombreDeFabrica(device)
   return (
     <div className="flex min-w-0 items-center gap-3">
       <DeviceIcon device={device} />
       <div className="flex min-w-0 flex-col">
-        <span className="truncate font-medium underline decoration-muted-foreground/40 underline-offset-4">{name}</span>
+        <span className="flex min-w-0 items-center gap-2">
+          <span className="truncate font-medium underline decoration-muted-foreground/40 underline-offset-4">{name}</span>
+          {deFabrica && (
+            <span className="inline-flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
+              {t('list.factoryName')}
+              {onRename && (
+                <button
+                  type="button"
+                  className="cursor-pointer underline underline-offset-2 hover:text-foreground"
+                  onClick={e => {
+                    e.stopPropagation()
+                    onRename(device)
+                  }}
+                >
+                  {t('list.factoryNameChange')}
+                </button>
+              )}
+            </span>
+          )}
+        </span>
         <span className="truncate text-xs text-muted-foreground">{subtitle(device)}</span>
       </div>
     </div>
+  )
+}
+
+/** Columna «Qué hace» + marca «Sin configurar» (Link a la ficha; en la lista móvil la tarjeta ya es el enlace: `linkTo` vacío). */
+export function DeviceRoleCell({
+  device,
+  vales,
+  linkTo,
+  linkState,
+}: {
+  device: TpvListDevice
+  vales: Vales
+  linkTo?: string
+  linkState?: Record<string, unknown>
+}) {
+  const { t } = useTranslation('tpv')
+  const papel = papelCorto(device, vales?.enabled)
+  const sinConfigurar = necesitaConfigurar(device, vales)
+  const aviso = papel.aviso
+    ? t(papel.clave === 'sinElegir' ? `device.setup.entregarSinEfecto.${papel.aviso}` : `device.role.emitirSinEfecto.${papel.aviso}`)
+    : null
+  const marca = <Badge variant="outline">{t('list.unconfigured')}</Badge>
+  if (papel.clave === 'noAplica') return <span className="text-sm text-muted-foreground">—</span>
+  return (
+    <span className="inline-flex flex-wrap items-center gap-1.5 text-sm">
+      <span className="whitespace-nowrap">{t(`device.papel.${papel.clave}`, { area: papel.area })}</span>
+      {aviso && (
+        // lucide pone `aria-hidden` al ícono: el aviso se nombra en un contenedor con rol de imagen (Codex final #7).
+        <span role="img" aria-label={aviso} title={aviso} className="inline-flex">
+          <AlertTriangle className="size-3.5 text-warning" aria-hidden="true" />
+        </span>
+      )}
+      {sinConfigurar &&
+        (linkTo ? (
+          <Link to={linkTo} state={linkState} onClick={e => e.stopPropagation()}>
+            {marca}
+          </Link>
+        ) : (
+          marca
+        ))}
+    </span>
   )
 }
 

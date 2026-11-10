@@ -40,7 +40,7 @@ import { cn } from '@/lib/utils'
 import { TpvSettingsForm } from '@/pages/Settings/components/TpvSettingsForm'
 import { paymentProviderAPI, type MerchantAccount } from '@/services/paymentProvider.service'
 import { terminalAPI, TerminalStatus, type BlockingTerminalPaymentRequest } from '@/services/superadmin-terminals.service'
-import { generateActivationCode, type DisplayModeRequest, type EffectiveDeviceCapabilities } from '@/services/tpv.service'
+import { generateActivationCode, getTpvById, type DisplayModeRequest, type EffectiveDeviceCapabilities } from '@/services/tpv.service'
 import { StaffRole } from '@/types'
 import { type TpvCommandPayload, TpvCommandType } from '@/types/tpv-commands'
 import { getIntlLocale } from '@/utils/i18n-locale'
@@ -89,10 +89,12 @@ import { getDisplayModeRefetchInterval } from './components/DisplayModeRequestCo
 import { MessagesTab } from './components/MessagesTab'
 import { RemoteCommandPanel } from './components/RemoteCommandPanel'
 import { CustomerDisplaySection } from './customer-display/CustomerDisplaySection'
-import { DeviceRoleSummary, type DeviceMenusDeLaFicha } from './components/DeviceRoleSummary'
+import { DeviceSetupBlock, type DeviceMenusDeLaFicha } from './components/DeviceSetupBlock'
+import { useIrALaSeccion } from './components/useIrALaSeccion'
 import { papelDelAparato, type AreaDeLaFicha } from './papelDelAparato'
 import { canActivate, canConfigurePayments, canSendCommand, getDeviceActionPolicy } from './deviceCapabilities'
 import { DeviceBatteryCell, DeviceIcon, DeviceIdCell, DeviceStatusPill, DeviceSystemCell } from './components/DeviceListCells'
+import { RenameDeviceDialog } from './components/RenameDeviceDialog'
 import { useDeviceSubtitle } from './components/useDeviceListLabels'
 import { cuentasAlQuitar, cuentasAlVincular, getAppVersion, getDeviceIdentifier, getDeviceRole, type DeviceListInput } from './deviceListPresentation'
 
@@ -103,12 +105,11 @@ type TabValue = (typeof VALID_TABS)[number]
 // Type for the form values
 type TpvFormValues = {
   name: string
-  serialNumber: string
+  serialNumber?: string
   type?: string
   brand?: string
   model?: string
   status?: string
-  config?: string
 }
 
 interface TpvCommandMutationVariables {
@@ -145,6 +146,7 @@ interface TpvData {
   // Aparatos claros (Paso 1): qué hace en un negocio con vales y qué menú muestra. Un SERVIDOR viejo no los manda.
   canIssueAreaTickets?: boolean
   canCheckoutAreaTickets?: boolean
+  canDeliverAreaTickets?: boolean
   defaultWorkspace?: string
   fulfillmentArea?: AreaDeLaFicha | null
   areaTicketsEnabled?: boolean
@@ -215,6 +217,8 @@ function TpvIdContent() {
     setActiveTab(tab)
     window.history.replaceState(null, '', `#${tab}`)
   }, [])
+  const irAInformacion = useCallback(() => handleTabChange('info'), [handleTabChange])
+  const irALaSeccion = useIrALaSeccion(activeTab, irAInformacion)
 
   // Socket.IO listeners for real-time updates (Toast/Square pattern)
   // Commands are delivered via HTTP polling, but status updates come via Socket.IO
@@ -253,6 +257,7 @@ function TpvIdContent() {
   }, [socket, venueId, tpvId, queryClient, joinVenueRoom, leaveVenueRoom])
 
   const [activationDialogOpen, setActivationDialogOpen] = useState(false)
+  const [renameOpen, setRenameOpen] = useState(false)
   const [activationData, setActivationData] = useState<{
     activationCode: string
     expiresAt: string
@@ -265,12 +270,11 @@ function TpvIdContent() {
 
   const tpvFormSchema = z.object({
     name: z.string().min(1, { message: t('detail.validation.nameRequired') }),
-    serialNumber: z.string().min(1, { message: t('detail.validation.serialRequired') }),
+    serialNumber: z.string().optional(),
     type: z.string().optional(),
     brand: z.string().optional(),
     model: z.string().optional(),
     status: z.string().optional(),
-    config: z.string().optional(),
   })
 
   // Initialize form with react-hook-form
@@ -283,7 +287,6 @@ function TpvIdContent() {
       brand: '',
       model: '',
       status: '',
-      config: '',
     },
   })
 
@@ -310,10 +313,8 @@ function TpvIdContent() {
   // Fetch the device data. A pending durable display request polls until its canonical resolution.
   const tpvQuery = useQuery<TpvData>({
     queryKey: ['tpv', venueId, tpvId],
-    queryFn: async () => {
-      const response = await api.get(`/api/v1/dashboard/venues/${venueId}/tpv/${tpvId}`)
-      return response.data
-    },
+    // La misma lectura que usa el editor de menús para recuperarse tras un error (`DeviceMenusEditor`).
+    queryFn: () => getTpvById(venueId!, tpvId!),
     enabled: Boolean(venueId && tpvId),
     refetchInterval: query => getDisplayModeRefetchInterval(query.state.data?.customerDisplayRequest),
     retry: (failureCount, error: any) => {
@@ -517,7 +518,6 @@ function TpvIdContent() {
         brand: tpv.brand || '',
         model: tpv.model || '',
         status: tpv.status || '',
-        config: tpv.config ? JSON.stringify(tpv.config, null, 2) : '',
       })
     }
   }, [tpv, form])
@@ -528,7 +528,10 @@ function TpvIdContent() {
       if (!venueId || !tpvId) {
         throw new Error(t('detail.errors.venueOrTpvUndefined'))
       }
-      const response = await api.put(`/api/v1/dashboard/venues/${venueId}/tpv/${tpvId}`, updatedData)
+      // Sin `config` (el formulario ya no lo edita) y sin serie vacía: el SERVIDOR lo toma como «sin cambio».
+      const { serialNumber, ...rest } = updatedData
+      const body = serialNumber?.trim() ? { ...rest, serialNumber } : rest
+      const response = await api.put(`/api/v1/dashboard/venues/${venueId}/tpv/${tpvId}`, body)
       return response.data
     },
     onSuccess: () => {
@@ -696,7 +699,6 @@ function TpvIdContent() {
         brand: tpv.brand || '',
         model: tpv.model || '',
         status: tpv.status || '',
-        config: tpv.config ? JSON.stringify(tpv.config, null, 2) : '',
       })
     }
     setIsEditing(false)
@@ -869,6 +871,17 @@ function TpvIdContent() {
               <div className="min-w-0 flex-1 space-y-1">
                 <div className="flex flex-wrap items-center gap-3">
                   <h1 className="text-2xl font-semibold tracking-tight text-foreground">{tpv.name || t('detail.terminal')}</h1>
+                  {canUpdate && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="size-8 cursor-pointer"
+                      aria-label={t('device.menu.rename')}
+                      onClick={() => setRenameOpen(true)}
+                    >
+                      <PencilIcon className="size-4" />
+                    </Button>
+                  )}
                   <DeviceStatusPill device={deviceForCells} />
                 </div>
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
@@ -993,7 +1006,7 @@ function TpvIdContent() {
             )}
           </div>
 
-          <DeviceRoleSummary papel={papel} deviceMenus={tpv.deviceMenus} fullBasePath={fullBasePath} />
+          {venueId && <DeviceSetupBlock venueId={venueId} tpv={tpv} fullBasePath={fullBasePath} onGoTo={irALaSeccion} />}
 
           <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
             <div className="flex items-center gap-6 border-b border-border">
@@ -1589,6 +1602,10 @@ function TpvIdContent() {
           )}
         </div>
       </div>
+
+      {venueId && tpv && (
+        <RenameDeviceDialog venueId={venueId} device={{ id: tpv.id, name: tpv.name }} open={renameOpen} onOpenChange={setRenameOpen} />
+      )}
 
       {/* Activation Code Dialog */}
       <ActivationCodeDialog open={activationDialogOpen} onOpenChange={setActivationDialogOpen} activationData={activationData} />

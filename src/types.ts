@@ -372,6 +372,10 @@ export enum TerminalType {
   PRINTER_RECEIPT = 'PRINTER_RECEIPT',
   PRINTER_KITCHEN = 'PRINTER_KITCHEN',
   KDS = 'KDS',
+  // La app POS en hardware genérico (no cobra con tarjeta); el SERVIDOR ya los manda (`schema.prisma`, enum TerminalType).
+  POS_ANDROID = 'POS_ANDROID',
+  POS_IOS = 'POS_IOS',
+  POS_DESKTOP = 'POS_DESKTOP',
 }
 
 export enum TerminalStatus {

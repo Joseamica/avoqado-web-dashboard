@@ -933,11 +933,15 @@
     "maintenance": "Maintenance"
   },
   "list": {
+    "factoryName": "Factory name",
+    "factoryNameChange": "Change",
+    "unconfigured": "Not set up",
     "subtitle": "Payment terminals, phones, tablets and computers where your team sells.",
     "count_one": "{{count}} device",
     "count_other": "{{count}} devices",
     "searchPlaceholder": "Search by name or serial",
     "columns": {
+      "role": "Role",
       "device": "Device",
       "status": "Status",
       "system": "System",
@@ -1020,7 +1024,8 @@
     "menu": {
       "lock": "Lock terminal",
       "unlock": "Unlock terminal",
-      "edit": "Edit details"
+      "edit": "Edit details",
+      "rename": "Rename"
     },
     "banner": {
       "maintenance": "In maintenance: this terminal can't take payments until it leaves maintenance.",
@@ -1066,21 +1071,55 @@
     "activatedWithoutCode": "Terminal activated",
     "activatedWithoutCodeDesc": "It will go in without a code when it's turned on with internet.",
     "role": {
-      "issues": "Issues tickets",
-      "issuesArea": "for {{area}}",
-      "charges": "Charges",
       "comandaOff": "No kitchen ticket",
       "comandaOffDetail": "when issuing, only the voucher prints",
       "comandaOn": "Sends kitchen ticket",
       "comandaOnDetail": "to the kitchen, besides the voucher",
-      "menu": "Menu",
       "allMenus": "All menus",
       "menuNeedsUpdate": "Applies once this device updates its app.",
-      "change": "Change",
       "emitirSinEfecto": {
         "sinArea": "«Issue tickets» is on, but it has no area: today it charges like a regular POS.",
         "areaApagada": "«Issue tickets» is on, but its area is turned off: today it charges like a regular POS.",
         "sinPantallaDeVales": "«Issue tickets» is on, but it doesn’t open on the tickets screen: today it charges like a regular POS."
+      }
+    },
+    "rename": {
+      "title": "Rename",
+      "label": "Device name",
+      "save": "Save",
+      "cancel": "Cancel",
+      "saved": "Name updated",
+      "error": "Couldn't rename the device. Try again.",
+      "saving": "Saving…"
+    },
+    "papel": {
+      "terminalDeCobro": "Payment terminal",
+      "puntoDeVenta": "Point of sale",
+      "emite": "Issues · {{area}}",
+      "cobraVales": "Charges tickets",
+      "entregaVales": "Delivers tickets",
+      "sinElegir": "Not chosen",
+      "noAplica": "Not applicable to this type of device"
+    },
+    "setup": {
+      "title": "What this device does",
+      "what": "What does it do?",
+      "menu": "Which menu does it show?",
+      "checkout": "How does it charge?",
+      "display": "Customer display",
+      "change": "Change",
+      "changeInAreas": "Change in Tickets › Areas",
+      "menuPlanInvite": "Available on the {{tier}} plan",
+      "stepsNone": "Charges directly, no extra steps",
+      "appliesOnReconnect": "The device picks it up on its next sync; if it is offline, when it reconnects.",
+      "papelEditorTitle": "What {{name}} does",
+      "menuEditorTitle": "Menu for {{name}}",
+      "loadError": "Could not load.",
+      "retry": "Retry",
+      "notInOverview": "This device does not appear in Tickets by area.",
+      "entregarSinEfecto": {
+        "sinArea": "«Deliver» is on, but it has no area: today it doesn’t deliver tickets.",
+        "areaApagada": "«Deliver» is on, but its area is turned off: today it doesn’t deliver tickets."
       }
     }
   },
@@ -1131,6 +1170,7 @@
     }
   },
   "deviceMenus": {
+    "verFicha": "View details",
     "subtitulo": "Choose which menus each device shows in Charge and Tables. Search and the scanner always find everything.",
     "columnas": {
       "aparato": "Device",
@@ -1158,6 +1198,8 @@
     "reintentar": "Retry",
     "guardado": "Saved",
     "errorAlGuardar": "Could not save",
+    "errorAlReleer": "Couldn't confirm which menus were saved.",
+    "sinConexionReleyendo": "Offline: it updates when the connection is back.",
     "rango": "{{desde}}–{{hasta}} of {{total}}",
     "anterior": "Previous",
     "siguiente": "Next",

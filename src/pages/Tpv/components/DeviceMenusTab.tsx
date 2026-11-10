@@ -1,29 +1,28 @@
-import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Monitor, Plus, Search, Tablet } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Link, useInRouterContext } from 'react-router-dom'
 
 import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { falloDeCarga } from '@/lib/falloDeCarga'
 import { FeatureGate } from '@/components/billing/FeatureGate'
-import { MultiSelectCombobox } from '@/components/multi-select-combobox'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { useAccess } from '@/hooks/use-access'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
-import { useToast } from '@/hooks/use-toast'
 import { useDebounce } from '@/hooks/useDebounce'
 import { MenuWizardDialog } from '@/pages/Menu/Menus/components/MenuWizardDialog'
 import {
-  getDeviceMenuOptions,
   getDeviceMenus,
-  setTerminalMenus,
   type DeviceMenusCounts,
   type DeviceMenusPage,
   type DeviceMenusTerminalRow,
 } from '@/services/deviceMenus.service'
+import { DeviceMenusEditor } from './DeviceMenusEditor'
+import { OPTIONS_PAGE_SIZE, useDeviceMenuOptions, type DeviceMenuChoice } from './useDeviceMenuOptions'
 import { getDeviceSystem } from '../deviceListPresentation'
 
 /**
@@ -33,10 +32,9 @@ import { getDeviceSystem } from '../deviceListPresentation'
  * Contrato: `deviceMenus.service.ts`. `sees` es lo de HOY y `seesAfterUpdate` lo que verá al actualizar la app (Ruling 11).
  */
 const PAGE_SIZE = 50
-const OPTIONS_PAGE_SIZE = 100
 const NEW_MENU_DEFAULTS = { appliesToDevices: true, appliesToOnline: false }
 
-type Option = { value: string; label: string; description?: string }
+type Option = DeviceMenuChoice
 
 export default function DeviceMenusTab() {
   return (
@@ -77,41 +75,10 @@ function DeviceMenusContent() {
     enabled: !!venueId,
   })
 
-  const menuOptions = useInfiniteQuery({
-    queryKey: ['device-menu-options', venueId, debouncedMenuSearch],
-    queryFn: ({ pageParam }) =>
-      getDeviceMenuOptions(venueId, { search: debouncedMenuSearch || undefined, page: pageParam, pageSize: OPTIONS_PAGE_SIZE }),
-    initialPageParam: 1,
-    // Sin `last.menus.length` una página vacía (se borraron menús) pediría «más» para siempre.
-    getNextPageParam: (last, all) =>
-      last.menus.length > 0 && all.reduce((n, p) => n + p.menus.length, 0) < last.total ? all.length + 1 : undefined,
-    // La búsqueda va en la llave: sin esto cada tecla vacía las opciones (bounded-data-and-query-load.md).
-    placeholderData: keepPreviousData,
-    staleTime: 30_000,
-    retry: 1,
-    refetchOnWindowFocus: false,
-    refetchOnMount: 'always',
-    enabled: !!venueId,
-  })
-
-  const options = useMemo<Option[]>(() => {
-    // Por id: si un menú se movió de página entre una lectura y otra, no sale dos veces.
-    const vistos = new Set<string>()
-    return (menuOptions.data?.pages ?? [])
-      .flatMap(p => p.menus)
-      .filter(m => !vistos.has(m.id) && !!vistos.add(m.id))
-      .map(m => ({
-        value: m.id,
-        label: m.name,
-        // Categorías DIRECTAS del menú: no es la cuenta de «En su pantalla ve» (ésa suma subcategorías con productos).
-        description: t('deviceMenus.categoriasDelMenu', { count: m.categoryCount }),
-      }))
-  }, [menuOptions.data, t])
+  const { query: menuOptions, options, total: optionsTotal } = useDeviceMenuOptions(venueId, debouncedMenuSearch)
 
   const canEdit = can('tpv:update')
   const canCreateMenu = can('menu:create')
-  const optionsPages = menuOptions.data?.pages ?? []
-  const optionsTotal = optionsPages[optionsPages.length - 1]?.total ?? 0
   // Visible si no cupieron en una página, o si ya hay una búsqueda (si no, al filtrar se escondería a sí mismo).
   const showMenuSearch = menuSearch !== '' || optionsTotal > OPTIONS_PAGE_SIZE
 
@@ -220,7 +187,6 @@ function DeviceMenusContent() {
                 <DeviceMenusRow
                   key={row.id}
                   row={row}
-                  page={page}
                   options={options}
                   optionsLoading={menuOptions.isFetching}
                   // Con la página pedida aún en camino, estas filas son de la anterior: no se editan (Codex r1 #1).
@@ -260,54 +226,29 @@ function DeviceMenusContent() {
 
 function DeviceMenusRow({
   row,
-  page,
   options,
   optionsLoading,
   canEdit,
 }: {
   row: DeviceMenusTerminalRow
-  page: number
   options: Option[]
   optionsLoading: boolean
   canEdit: boolean
 }) {
   const { t } = useTranslation('tpv')
-  const { venueId } = useCurrentVenue()
-  const { toast } = useToast()
+  const { venueId, fullBasePath } = useCurrentVenue()
   const queryClient = useQueryClient()
+  const enRouter = useInRouterContext()
+  const fichaHref = `${fullBasePath}/devices/${row.id}`
   const cuenta = useCuenta()
   const system = getDeviceSystem(row)
   const SystemIcon = system.system === 'windows' ? Monitor : Tablet
 
-  // Los chips salen de la fila (con su nombre), aunque el menú no esté en la página de opciones.
-  const selected = useMemo<Option[]>(() => row.menus.map(m => ({ value: m.id, label: m.name })), [row.menus])
-
-  const save = useMutation({
-    // `page` viaja con la elección: si el dueño cambió de página mientras guardaba, lo guardado va a la página de la fila.
-    mutationFn: ({ menuIds }: { menuIds: string[]; page: number }) => setTerminalMenus(venueId, row.id, menuIds),
-    onSuccess: (saved, { page: paginaDeLaFila }) => {
-      // 🔴 ANTES de desbloquear: la siguiente elección parte de lo guardado, no de la relectura que todavía no llega (Codex r2-2).
-      queryClient.setQueryData<DeviceMenusPage>(['device-menus', venueId, paginaDeLaFila], old =>
-        old ? { ...old, terminals: old.terminals.map(r => (r.id === saved.id ? saved : r)) } : old,
-      )
-      // Sin `return`: si se esperara la relectura, el selector seguiría bloqueado hasta que contestara.
-      queryClient.invalidateQueries({ queryKey: ['device-menus', venueId] })
-      // Aparatos claros: la ficha de este aparato dice su menú y el Ruteo cuenta «Sólo vale» por el menú de cada PC.
-      queryClient.invalidateQueries({ queryKey: ['tpv', venueId, row.id] })
-      queryClient.invalidateQueries({ queryKey: ['printRouting', venueId] })
-      toast({ title: t('deviceMenus.guardado') })
-    },
-    onError: (error: any) => {
-      // El 400 suele ser un menú que ya no está (se apagó o se borró en «Menús»): se relee la fila y las opciones.
-      queryClient.invalidateQueries({ queryKey: ['device-menus', venueId] })
-      queryClient.invalidateQueries({ queryKey: ['device-menu-options', venueId] })
-      toast({
-        title: t('deviceMenus.errorAlGuardar'),
-        description: error?.response?.data?.message ?? error?.message,
-        variant: 'destructive',
-      })
-    },
-  })
+  // La fila de la página en caché cambia con lo guardado (todas las páginas: si el dueño cambió de página guardando, también se ve).
+  const alGuardar = (saved: DeviceMenusTerminalRow) =>
+    queryClient.setQueriesData<DeviceMenusPage>({ queryKey: ['device-menus', venueId] }, old =>
+      old?.terminals ? { ...old, terminals: old.terminals.map(r => (r.id === saved.id ? saved : r)) } : old,
+    )
 
   return (
     <TableRow data-testid={`device-menus-row-${row.id}`}>
@@ -323,24 +264,29 @@ function DeviceMenusRow({
             {row.needsAppUpdate && row.menus.length > 0 && (
               <span className="text-xs text-muted-foreground">{t('deviceMenus.actualizaLaApp')}</span>
             )}
+            {/* Fuera de un Router (las pruebas de la pestaña) cae a un ancla simple. */}
+            {enRouter ? (
+              <Link to={fichaHref} className="text-xs text-primary hover:underline">
+                {t('deviceMenus.verFicha')}
+              </Link>
+            ) : (
+              <a href={fichaHref} className="text-xs text-primary hover:underline">
+                {t('deviceMenus.verFicha')}
+              </a>
+            )}
           </div>
         </div>
       </TableCell>
       <TableCell className="text-sm">{row.areaName ?? '—'}</TableCell>
       <TableCell data-tour="device-menus-selector">
-        <MultiSelectCombobox
+        <DeviceMenusEditor
+          terminalId={row.id}
+          menus={row.menus}
+          deviceName={row.name}
+          canEdit={canEdit}
           options={options}
-          selected={selected}
-          onChange={next => save.mutate({ menuIds: next.map(o => o.value), page })}
-          placeholder={t('deviceMenus.todosLosMenus')}
-          searchPlaceholder={t('deviceMenus.buscarMenus')}
-          ariaLabel={t('deviceMenus.menusDelAparato', {
-            aparato: row.name,
-            menus: selected.length > 0 ? selected.map(o => o.label).join(', ') : t('deviceMenus.todosLosMenus'),
-          })}
-          emptyText={t('deviceMenus.sinResultadosMenus')}
-          isLoading={optionsLoading && options.length === 0}
-          disabled={!canEdit || save.isPending}
+          optionsLoading={optionsLoading}
+          onSaved={alGuardar}
         />
       </TableCell>
       <TableCell className="text-sm">
