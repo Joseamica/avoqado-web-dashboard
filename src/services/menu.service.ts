@@ -239,7 +239,8 @@ export const reorderProducts = async (venueId: string, products: { id: string; d
  */
 export const getModifierGroups = async (venueId: string): Promise<ModifierGroup[]> => {
   const response = await api.get(`/api/v1/dashboard/venues/${venueId}/modifier-groups`)
-  return response.data
+  // Los extras archivados no se ofrecen en ningún selector, conteo ni exportación. Sólo `getModifierGroup` los trae, para reactivarlos.
+  return (response.data as ModifierGroup[]).map(group => ({ ...group, modifiers: group.modifiers?.filter(m => m.active !== false) }))
 }
 
 /**
@@ -318,10 +319,11 @@ export const updateModifier = async (
 }
 
 /**
- * Delete a modifier
+ * Quitar un extra lo archiva, nunca lo borra: el borrado real le cambia el precio a las ligas ya enviadas,
+ * se lo quita al reporte y rechaza las ventas sin red que lo traen (founder, 9-nov-2026).
  */
-export const deleteModifier = async (venueId: string, modifierGroupId: string, modifierId: string): Promise<void> => {
-  await api.delete(`/api/v1/dashboard/venues/${venueId}/modifier-groups/${modifierGroupId}/modifiers/${modifierId}`)
+export const archiveModifier = async (venueId: string, modifierGroupId: string, modifierId: string): Promise<void> => {
+  await api.patch(`/api/v1/dashboard/venues/${venueId}/modifier-groups/${modifierGroupId}/modifiers/${modifierId}`, { active: false })
 }
 
 // ===========================

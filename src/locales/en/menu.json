@@ -418,10 +418,12 @@
       "empty": "This group has no modifiers yet. Use \"Add modifier\" to create the first one.",
       "inactive": "Inactive",
       "free": "No extra charge",
-      "deleted": "Modifier deleted",
-      "deletedDesc": "The modifier was removed from the group.",
+      "deleted": "Modifier deactivated",
+      "deletedDesc": "It will no longer be offered at checkout. You can reactivate it from this list.",
       "deleteTitle": "Delete modifier?",
-      "deleteDescription": "\"{{name}}\" will be removed from this group. This action cannot be undone.",
+      "deleteBlockedByMinimum_one": "This group is required and needs at least {{count}} active option. Add another or lower the minimum before removing this one.",
+      "deleteBlockedByMinimum_other": "This group is required and needs at least {{count}} active options. Add another or lower the minimum before removing this one.",
+      "deleteDescription": "\"{{name}}\" will no longer be offered at checkout. Past sales and reports stay the same. You can reactivate it from this list.",
       "groupSection": "Group information"
     }
   },
