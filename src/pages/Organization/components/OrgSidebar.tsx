@@ -67,7 +67,7 @@ const OrgSidebar: React.FC<OrgSidebarProps> = ({ catalogOnly = false, ...props }
   const { t } = useTranslation('organization')
   const navigate = useNavigate()
   const { orgId } = useParams<{ orgId: string }>()
-  const { organization, isOwner: _isOwner } = useCurrentOrganization({ includeVenues: false })
+  const { organization, isOwner: _isOwner, hasSerializedInventory } = useCurrentOrganization({ includeVenues: false })
   const { user, allVenues } = useAuth()
   const { venue: _activeVenue, venueSlug: _venueSlug } = useCurrentVenue()
   const { isMobile } = useSidebar()
@@ -189,6 +189,15 @@ const OrgSidebar: React.FC<OrgSidebarProps> = ({ catalogOnly = false, ...props }
                 { name: t('sidebar.venues'), href: `/organizations/${orgId}/venues`, icon: Store },
                 { name: t('sidebar.team'), href: `/organizations/${orgId}/team`, icon: Users },
                 { name: t('sidebar.terminals'), href: `/organizations/${orgId}/terminals`, icon: Smartphone },
+                ...(hasSerializedInventory
+                  ? [
+                      {
+                        name: t('sidebar.celulares', { defaultValue: 'Celulares de promotores' }),
+                        href: `/organizations/${orgId}/celulares-de-promotores`,
+                        icon: Smartphone,
+                      },
+                    ]
+                  : []),
                 { name: t('sidebar.activityLog'), href: `/organizations/${orgId}/activity-log`, icon: ScrollText },
               ],
             },
@@ -260,7 +269,7 @@ const OrgSidebar: React.FC<OrgSidebarProps> = ({ catalogOnly = false, ...props }
                 ]
               : []),
           ],
-    [t, orgId, isWhiteLabelOrg, catalogOnly],
+    [t, orgId, isWhiteLabelOrg, catalogOnly, hasSerializedInventory],
   )
 
   const handleVenueClick = (slug: string) => {

@@ -7,7 +7,7 @@
 
 import React, { useMemo } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, Building2, Store, Users, BarChart3, ChevronsUpDown, ChevronRight, Receipt, MapPin, Clock } from 'lucide-react'
+import { LayoutDashboard, Building2, Store, Users, BarChart3, ChevronsUpDown, ChevronRight, Receipt, MapPin, Clock, Smartphone } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useCurrentOrganization } from '@/hooks/use-current-organization'
 import { useAuth } from '@/context/AuthContext'
@@ -42,7 +42,7 @@ type WLOrgSidebarProps = React.ComponentProps<typeof Sidebar>
 const WLOrgSidebar: React.FC<WLOrgSidebarProps> = props => {
   const { t } = useTranslation(['organization', 'common'])
   const navigate = useNavigate()
-  const { organization, basePath, venues } = useCurrentOrganization()
+  const { organization, basePath, venues, hasSerializedInventory } = useCurrentOrganization()
   const { user } = useAuth()
   const { isMobile } = useSidebar()
 
@@ -90,6 +90,15 @@ const WLOrgSidebar: React.FC<WLOrgSidebarProps> = props => {
             href: `${basePath}/live-location`,
             icon: MapPin,
           },
+          ...(hasSerializedInventory
+            ? [
+                {
+                  name: t('organization:sidebar.celulares', { defaultValue: 'Celulares de promotores' }),
+                  href: `${basePath}/celulares-de-promotores`,
+                  icon: Smartphone,
+                },
+              ]
+            : []),
         ],
       },
       {
@@ -97,7 +106,7 @@ const WLOrgSidebar: React.FC<WLOrgSidebarProps> = props => {
         items: [{ name: t('organization:sidebar.serviceCourses'), href: `${basePath}/settings/service-courses`, icon: Clock }],
       },
     ],
-    [t, basePath],
+    [t, basePath, hasSerializedInventory],
   )
 
   // Navigate to venue in white-label mode

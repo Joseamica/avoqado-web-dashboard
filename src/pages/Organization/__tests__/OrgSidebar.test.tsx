@@ -199,4 +199,35 @@ describe('OrgSidebar', () => {
     expect(screen.queryByText('Configuración TPV')).not.toBeInTheDocument()
     expect(screen.queryByText('Asignación de Personal')).not.toBeInTheDocument()
   })
+
+  it('muestra «Celulares de promotores» sólo si la organización tiene inventario serializado', () => {
+    mockedUseAuth.mockReturnValue({
+      user: { role: 'OWNER', firstName: 'Test', lastName: 'User', email: 'test@test.com' },
+      allVenues: [makeNonWLVenue(ORG_ID)],
+      isAuthenticated: true,
+    } as any)
+
+    // El beforeEach la deja sin inventario serializado.
+    const sin = renderSidebar()
+    expect(screen.queryByText('Celulares de promotores')).not.toBeInTheDocument()
+    sin.unmount()
+
+    mockedUseCurrentOrganization.mockReturnValue({
+      organization: { name: 'Test Organization' } as any,
+      orgId: ORG_ID,
+      orgSlug: ORG_ID,
+      basePath: `/organizations/${ORG_ID}`,
+      venues: [],
+      venuesQuery: { data: [], isError: false, isFetching: false, isPaused: false, error: null, refetch: () => undefined },
+      hasSerializedInventory: true,
+      isLoading: false,
+      isOwner: true,
+      error: null,
+    })
+    renderSidebar()
+    expect(screen.getByRole('link', { name: /Celulares de promotores/i })).toHaveAttribute(
+      'href',
+      `/organizations/${ORG_ID}/celulares-de-promotores`,
+    )
+  })
 })

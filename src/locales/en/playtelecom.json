@@ -652,5 +652,8 @@
     "edit": "Edit",
     "delete": "Delete",
     "viewAll": "View All"
+  },
+  "celulares": {
+    "title": "Promoter phones"
   }
 }

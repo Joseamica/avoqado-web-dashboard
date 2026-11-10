@@ -652,5 +652,8 @@
     "edit": "Editar",
     "delete": "Eliminar",
     "viewAll": "Ver Todo"
+  },
+  "celulares": {
+    "title": "Celulares de promotores"
   }
 }

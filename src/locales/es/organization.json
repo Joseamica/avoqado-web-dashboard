@@ -243,7 +243,8 @@
     "reports": "Reportes",
     "managers": "Supervisores",
     "liveLocation": "Ubicación de TPVs",
-    "serviceCourses": "Tiempos de servicio"
+    "serviceCourses": "Tiempos de servicio",
+    "celulares": "Celulares de promotores"
   },
   "header": {
     "backToVenue": "Volver a Sucursal"
@@ -1648,5 +1649,145 @@
   "notYourOrganization": "No tienes acceso a esta organización.",
   "liveLocation": {
     "title": "Ubicación de TPVs"
+  },
+  "celulares": {
+    "titulo": "Celulares de promotores",
+    "subtitulo": "Quién ya activó la app de campo en su celular, y su código si todavía no.",
+    "buscar": "Buscar promotor",
+    "cerrarBusqueda": "Cerrar búsqueda",
+    "cerrar": "Cerrar",
+    "cancelar": "Cancelar",
+    "sinTelefono": "Sin teléfono",
+    "noDisponible": "Esta pantalla aparece cuando la organización tiene inventario serializado.",
+    "omitido": "{{nombre}} ya no es promotor de campo",
+    "visto": "Visto {{hace}}",
+    "checoConUbicacion": "Checó con ubicación",
+    "checoSinUbicacion": "Checó sin ubicación",
+    "porSubir": "Por subir: {{n}}",
+    "columnas": {
+      "promotor": "Promotor",
+      "sucursal": "Sucursal",
+      "estado": "Estado",
+      "visto": "Último contacto",
+      "checada": "Checada",
+      "porSubir": "Por subir"
+    },
+    "estado": {
+      "SIN_CELULAR": "Sin celular"
+    },
+    "estadoFiltro": {
+      "SIN_CELULAR": "Sin celular",
+      "CODIGO_SIN_USAR": "Código sin usar",
+      "ACTIVO": "Activado"
+    },
+    "filtros": {
+      "estado": "Estado",
+      "sucursal": "Sucursal"
+    },
+    "acciones": {
+      "generar": "Generar código",
+      "generarOtro": "Generar otro",
+      "copiar": "Copiar",
+      "whatsapp": "Mandar por WhatsApp",
+      "ponerPin": "Poner PIN",
+      "cambiarPin": "Cambiar PIN",
+      "desvincular": "Desvincular"
+    },
+    "vacio": {
+      "sinPromotores": "Todavía no hay promotores",
+      "sinPromotoresTexto": "Aparecen aquí las personas que venden en las sucursales con inventario serializado.",
+      "sinResultados": "Nadie coincide con los filtros",
+      "quitarFiltros": "Quitar filtros",
+      "sinPromotoresSucursal": "Todavía no hay promotores en esta sucursal"
+    },
+    "codigo": {
+      "titulo": "Código de {{nombre}}",
+      "descripcion": "La persona lo escribe en la app de campo junto con su PIN. Sirve una sola vez.",
+      "vence": "Vence el {{fecha}}",
+      "copiado": "Código copiado",
+      "errorCopiar": "No se pudo copiar. Selecciónalo y cópialo a mano.",
+      "error": "No se pudo generar el código",
+      "whatsappTexto": "Hola {{nombre}}, tu código para activar la app de campo de Avoqado es {{codigo}}. Vence el {{fecha}}. Escríbelo en la app junto con tu PIN."
+    },
+    "generarTodos": {
+      "boton": "Generar códigos para los {{n}} sin celular",
+      "titulo": "¿Generar códigos para los {{n}} sin celular?",
+      "descripcion": "Cada promotor sin celular ni código vivo recibe un código que vence en 7 días. Después los ves en «Código sin usar», cada uno con su «Copiar» y su WhatsApp.",
+      "confirmar": "Generar códigos",
+      "hecho": "Se generaron {{n}} códigos",
+      "faltan": "Faltan {{n}}: vuelve a tocar el botón.",
+      "tituloSucursal": "¿Generar códigos para los {{n}} sin celular de {{sucursal}}?"
+    },
+    "pin": {
+      "label": "PIN de 4 a 6 dígitos",
+      "sucursal": "Cada sucursal tiene su PIN. ¿En cuál?",
+      "sinSucursal": "Esta persona no tiene sucursal.",
+      "ayuda": "Con este PIN la persona abre la app de campo en todas sus sucursales.",
+      "ayudaSucursal": "Con este PIN la persona abre la app de campo en {{sucursal}}.",
+      "mostrar": "Mostrar PIN",
+      "ocultar": "Ocultar PIN",
+      "guardar": "Guardar PIN",
+      "guardado": "PIN guardado",
+      "guardadoConAviso": "PIN guardado, con un aviso:",
+      "error": "No se pudo guardar el PIN"
+    },
+    "desvincular": {
+      "titulo": "Desvincular celular",
+      "descripcion": "¿Desvincular el celular de {{nombre}}? El celular deja de vender y checar en este momento. Lo que tenga por subir ({{n}}) se acepta durante 24 horas; lo demás queda en «Por revisar».",
+      "hecho": "Celular desvinculado",
+      "yaEstaba": "Ese celular ya estaba desvinculado",
+      "error": "No se pudo desvincular",
+      "perdido": "Lo perdió o se lo robaron (no se acepta nada solo)",
+      "descripcionPerdido": "Todo lo que llegue de ese celular queda en «Por revisar».",
+      "descripcionPerdidoIntro": "¿Desvincular el celular de {{nombre}}? El celular deja de vender y checar en este momento."
+    },
+    "porRevisar": {
+      "boton": "Por revisar ({{n}})",
+      "titulo": "Por revisar",
+      "explicacion": "Lo que un celular subió después de desvincularse y no se pudo aceptar solo. «Aplicar» lo registra a nombre de quien lo hizo; «Descartar» lo deja fuera.",
+      "vacio": "No hay nada por revisar.",
+      "aplicar": "Aplicar",
+      "descartar": "Descartar",
+      "aplicado": "Aplicado",
+      "descartado": "Descartado",
+      "error": "No se pudo resolver",
+      "nota": "Nota (opcional)",
+      "confirmarDescartar": "¿Descartar?",
+      "confirmarDescartarTexto": "No se registra. Queda en la bitácora con tu nombre y la nota.",
+      "columnas": {
+        "quien": "Promotor y sucursal",
+        "que": "Qué es",
+        "motivo": "Por qué quedó aquí"
+      },
+      "tipo": {
+        "VENTA": "Venta",
+        "ENTRADA": "Entrada",
+        "SALIDA": "Salida",
+        "CUSTODIA_ACEPTAR": "Aceptar SIMs",
+        "CUSTODIA_RECHAZAR": "Rechazar SIMs",
+        "EVIDENCIA": "Fotos de la venta"
+      },
+      "motivo": {
+        "PERSONA_DADA_DE_BAJA": "La persona ya está dada de baja.",
+        "FUERA_DE_PLAZO": "Llegó después de las 24 horas de gracia.",
+        "NO_REPORTADA": "El celular no la había reportado antes de desvincularse.",
+        "SIN_PERMISO": "La persona no tiene permiso para esto en esa sucursal.",
+        "RECHAZADO": "No se pudo aplicar sola:",
+        "APLICADO_EN_GRACIA": "Se aplicó solo durante las 24 h",
+        "CELULAR_PERDIDO": "El celular se reportó perdido o robado"
+      },
+      "estado": {
+        "PENDIENTE": "Por revisar",
+        "APLICANDO": "A medias: toca «Aplicar» otra vez",
+        "APLICADO": "Aplicado",
+        "DESCARTADO": "Descartado"
+      },
+      "vacioConFiltro": "No hay nada con ese estado.",
+      "sinResolver": "Sin resolver",
+      "reactivar": "Reactívala en esa sucursal o descártalo.",
+      "yaEstabaHecho": "Ya estaba registrado: no se descartó.",
+      "queSeDescarta": "{{tipo}} · {{resumen}} · de {{nombre}}"
+    },
+    "sinRespuesta": "No hubo respuesta del servidor. Intenta de nuevo."
   }
 }

@@ -57,6 +57,7 @@ const OrganizationLayout: React.FC<OrganizationLayoutProps> = ({ catalogOnly = f
       'org-categories': 'Categorías',
       'org-messages': 'Mensajes',
       users: 'Usuarios',
+      'celulares-de-promotores': t('celulares.titulo'),
     }
     return routeMap[segment.toLowerCase()] || segment
   }
