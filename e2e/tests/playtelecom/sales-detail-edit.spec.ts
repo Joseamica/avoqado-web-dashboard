@@ -115,7 +115,9 @@ test.describe('SalesDetail — admin edit', () => {
     await expect(page.getByRole('heading', { name: 'Editar venta' })).toBeVisible()
     await page.getByLabel('Monto (MXN)').fill('100')
     await page.getByLabel('Motivo del cambio *').fill('era un ESIM $100, no gratis')
-    await page.getByRole('button', { name: 'Guardar' }).click({ force: true })
+    // Sin force (D18): la ventana sube desde abajo en 300 ms y, con force, en un CI lento el clic caía donde estaba
+    // «Guardar» un instante antes y el PATCH nunca salía. Sin force, Playwright espera a que el botón quede quieto.
+    await page.getByRole('button', { name: 'Guardar' }).click()
 
     await expect.poll(() => patchBody).not.toBeNull()
     expect(patchBody.amount).toBe(100)
