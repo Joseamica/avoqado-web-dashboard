@@ -9,7 +9,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { AlertTriangle, Eye, EyeOff, KeyRound } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { mensajeDelServidor, sucursalDelPin, tienePin, useUnaALaVez } from '../ayudantes'
+import { useMensajeDeError, sucursalDelPin, tienePin, useUnaALaVez } from '../ayudantes'
 
 const PIN_VALIDO = /^\d{4,6}$/
 
@@ -24,6 +24,7 @@ interface PinModalProps {
 export function PinModal({ orgId, venueIdInicial, fila, onClose }: PinModalProps) {
   const { t } = useTranslation('organization')
   const { toast } = useToast()
+  const mensajeDeError = useMensajeDeError()
   const queryClient = useQueryClient()
   const unaALaVez = useUnaALaVez()
   const [pin, setPin] = useState('')
@@ -66,7 +67,7 @@ export function PinModal({ orgId, venueIdInicial, fila, onClose }: PinModalProps
       toast({
         variant: 'destructive',
         title: t('celulares.pin.error', { defaultValue: 'No se pudo guardar el PIN' }),
-        description: mensajeDelServidor(err),
+        description: mensajeDeError(err),
       })
     },
   })

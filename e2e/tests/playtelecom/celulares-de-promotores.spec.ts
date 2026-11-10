@@ -133,7 +133,7 @@ test.describe('Celulares de promotores — organización', () => {
     )
 
     const fila = page.getByRole('row', { name: /Carla Activa/ })
-    await expect(fila.getByText('Activado · Samsung A15')).toBeVisible({ timeout: 20_000 })
+    await expect(fila.getByText('Samsung A15', { exact: true })).toBeVisible({ timeout: 20_000 })
     // Si la página se recarga, esta marca desaparece.
     await page.evaluate(() => ((window as unknown as { __sinRecargar: boolean }).__sinRecargar = true))
 
@@ -142,7 +142,7 @@ test.describe('Celulares de promotores — organización', () => {
 
     // 🔴 La prueba es la fila, no el toast: una invalidación mal dirigida deja «Activado» a la vista.
     await expect(fila.getByText('Sin celular')).toBeVisible({ timeout: 15_000 })
-    await expect(page.getByText('Activado · Samsung A15')).toHaveCount(0)
+    await expect(page.getByText('Samsung A15', { exact: true })).toHaveCount(0)
     expect(await page.evaluate(() => (window as unknown as { __sinRecargar?: boolean }).__sinRecargar)).toBe(true)
   })
 

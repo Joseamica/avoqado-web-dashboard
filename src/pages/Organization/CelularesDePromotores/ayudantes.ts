@@ -4,11 +4,29 @@ import { useVenueDateTime } from '@/utils/datetime'
 import { useCallback, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 
-/** El SERVIDOR contesta los errores como `{ code, message }`: se enseña su `message`, que ya viene en llano. */
+/**
+ * El SERVIDOR contesta los errores como `{ code, message }`: se enseña su `message`, que ya viene en llano. Sin él (404 sin
+ * cuerpo, 502, «Network Error») no hay texto: el de axios va en inglés y no le dice nada a quien usa la pantalla.
+ */
 export function mensajeDelServidor(err: unknown): string | undefined {
-  const e = err as { response?: { data?: { message?: string } }; message?: string } | null
-  return e?.response?.data?.message ?? e?.message
+  const data = (err as { response?: { data?: unknown } } | null)?.response?.data
+  const message = data && typeof data === 'object' ? (data as { message?: unknown }).message : undefined
+  return typeof message === 'string' && message.trim() ? message : undefined
 }
+
+/** El texto de un error para un aviso: el del servidor, o «No hubo respuesta del servidor…» si no trajo uno. */
+export function useMensajeDeError() {
+  const { t } = useTranslation('organization')
+  return useCallback(
+    (err: unknown) =>
+      mensajeDelServidor(err) ?? t('celulares.sinRespuesta', { defaultValue: 'No hubo respuesta del servidor. Intenta de nuevo.' }),
+    [t],
+  )
+}
+
+/** El SERVIDOR ya está aplicando ese retenido (otro clic u otra persona): se avisa y se suelta el diálogo. */
+export const esAplicacionEnCurso = (err: unknown) =>
+  (err as { response?: { data?: { code?: unknown } } } | null)?.response?.data?.code === 'APLICACION_EN_CURSO'
 
 /**
  * Candado contra el doble clic: `disabled={isPending}` no basta, porque TanStack avisa `isPending` en el siguiente tick y dos

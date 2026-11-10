@@ -14,7 +14,7 @@ import { desvincularCelularDeCampo, type FilaDePromotor } from '@/services/celul
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { mensajeDelServidor, useUnaALaVez } from '../ayudantes'
+import { useMensajeDeError, useUnaALaVez } from '../ayudantes'
 
 interface DesvincularDialogProps {
   orgId: string
@@ -25,6 +25,7 @@ interface DesvincularDialogProps {
 export function DesvincularDialog({ orgId, fila, onClose }: DesvincularDialogProps) {
   const { t } = useTranslation('organization')
   const { toast } = useToast()
+  const mensajeDeError = useMensajeDeError()
   const queryClient = useQueryClient()
   const unaALaVez = useUnaALaVez()
   const [perdido, setPerdido] = useState(false)
@@ -45,7 +46,7 @@ export function DesvincularDialog({ orgId, fila, onClose }: DesvincularDialogPro
       toast({
         variant: 'destructive',
         title: t('celulares.desvincular.error', { defaultValue: 'No se pudo desvincular' }),
-        description: mensajeDelServidor(err),
+        description: mensajeDeError(err),
       })
     },
   })

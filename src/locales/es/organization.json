@@ -1673,9 +1673,7 @@
       "porSubir": "Por subir"
     },
     "estado": {
-      "SIN_CELULAR": "Sin celular",
-      "CODIGO_SIN_USAR": "Código sin usar · vence {{fecha}}",
-      "ACTIVO": "Activado · {{marca}} {{modelo}}"
+      "SIN_CELULAR": "Sin celular"
     },
     "estadoFiltro": {
       "SIN_CELULAR": "Sin celular",
@@ -1786,7 +1784,10 @@
       },
       "vacioConFiltro": "No hay nada con ese estado.",
       "sinResolver": "Sin resolver",
-      "reactivar": "Reactívala en esa sucursal o descártalo."
-    }
+      "reactivar": "Reactívala en esa sucursal o descártalo.",
+      "yaEstabaHecho": "Ya estaba registrado: no se descartó.",
+      "queSeDescarta": "{{tipo}} · {{resumen}} · de {{nombre}}"
+    },
+    "sinRespuesta": "No hubo respuesta del servidor. Intenta de nuevo."
   }
 }

@@ -32,8 +32,8 @@ import type { PaginationState } from '@tanstack/react-table'
 import { ClipboardList, Search, Smartphone, X } from 'lucide-react'
 import { useCallback, useMemo, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useParams } from 'react-router-dom'
-import { mensajeDelServidor, useUnaALaVez, type CodigoParaMandar } from './ayudantes'
+import { useLocation, useParams } from 'react-router-dom'
+import { useMensajeDeError, useUnaALaVez, type CodigoParaMandar } from './ayudantes'
 import { CodigoDialog } from './components/CodigoDialog'
 import { DesvincularDialog } from './components/DesvincularDialog'
 import { PinModal } from './components/PinModal'
@@ -50,17 +50,36 @@ const ESTADOS: EstadoDelPromotor[] = ['SIN_CELULAR', 'CODIGO_SIN_USAR', 'ACTIVO'
  */
 export default function CelularesDePromotores() {
   const { slug } = useParams<{ slug?: string }>()
+  // `/venues/:slug/playtelecom/…` vive dentro de PlayTelecomLayout, que ya pone el título y el margen (como las demás páginas de ahí).
+  const dentroDePlayTelecom = useLocation().pathname.split('/').includes('playtelecom')
   const { venue } = useCurrentVenue()
   const { orgId } = useCurrentOrganization({ includeVenues: false, fetchStats: false })
   const venueIdInicial = slug ? venue?.id : undefined
 
   if (!orgId || (slug && !venueIdInicial)) return <Skeleton className="m-6 h-96 rounded-xl" />
-  return <CelularesDePromotoresVista key={venueIdInicial ?? orgId} orgId={orgId} venueIdInicial={venueIdInicial} />
+  return (
+    <CelularesDePromotoresVista
+      key={venueIdInicial ?? orgId}
+      orgId={orgId}
+      venueIdInicial={venueIdInicial}
+      sinTitulo={dentroDePlayTelecom}
+    />
+  )
 }
 
-export function CelularesDePromotoresVista({ orgId, venueIdInicial }: { orgId: string; venueIdInicial?: string }) {
+export function CelularesDePromotoresVista({
+  orgId,
+  venueIdInicial,
+  sinTitulo = false,
+}: {
+  orgId: string
+  venueIdInicial?: string
+  /** Dentro de un layout que ya pone el título y el margen: sólo queda la explicación. */
+  sinTitulo?: boolean
+}) {
   const { t } = useTranslation('organization')
   const { toast } = useToast()
+  const mensajeDeError = useMensajeDeError()
   const queryClient = useQueryClient()
   const { allVenues } = useAuth()
   const unaALaVez = useUnaALaVez()
@@ -126,7 +145,7 @@ export function CelularesDePromotoresVista({ orgId, venueIdInicial }: { orgId: s
       toast({
         variant: 'destructive',
         title: t('celulares.codigo.error', { defaultValue: 'No se pudo generar el código' }),
-        description: mensajeDelServidor(err),
+        description: mensajeDeError(err),
       }),
   })
 
@@ -151,7 +170,7 @@ export function CelularesDePromotoresVista({ orgId, venueIdInicial }: { orgId: s
       toast({
         variant: 'destructive',
         title: t('celulares.codigo.error', { defaultValue: 'No se pudo generar el código' }),
-        description: mensajeDelServidor(err),
+        description: mensajeDeError(err),
       }),
   })
 
@@ -175,7 +194,9 @@ export function CelularesDePromotoresVista({ orgId, venueIdInicial }: { orgId: s
 
   const titulo = (
     <div>
-      <h1 className="text-2xl font-bold text-foreground">{t('celulares.titulo', { defaultValue: 'Celulares de promotores' })}</h1>
+      {!sinTitulo && (
+        <h1 className="text-2xl font-bold text-foreground">{t('celulares.titulo', { defaultValue: 'Celulares de promotores' })}</h1>
+      )}
       <p className="text-sm text-muted-foreground mt-0.5">
         {t('celulares.subtitulo', { defaultValue: 'Quién ya activó la app de campo en su celular, y su código si todavía no.' })}
       </p>
@@ -335,7 +356,7 @@ export function CelularesDePromotoresVista({ orgId, venueIdInicial }: { orgId: s
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className={sinTitulo ? 'space-y-6' : 'p-6 space-y-6'}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         {titulo}
         {leido && data.disponible && (

@@ -107,6 +107,8 @@ export interface RetenidoResuelto {
   estado: 'APLICADO' | 'DESCARTADO'
   resultado?: unknown
   repetida: boolean
+  /** «Descartar» que encontró el efecto ya hecho: queda APLICADO, no se descartó. */
+  yaEstabaHecho?: true
 }
 
 const base = (orgId: string) => `/api/v1/dashboard/organizations/${orgId}/celulares-de-campo`

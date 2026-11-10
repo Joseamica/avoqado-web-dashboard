@@ -69,33 +69,37 @@ export function TablaDeCelulares({
       {
         id: 'estado',
         header: t('celulares.columnas.estado', { defaultValue: 'Estado' }),
+        // La píldora nunca se parte (`whitespace-nowrap`): el estado va solo y el dato largo (aparato o vencimiento) debajo.
         cell: ({ row }) => {
           const f = row.original
           if (f.estado === 'ACTIVO') {
             const aparato = [f.celular?.marca, f.celular?.modelo].filter(Boolean).join(' ')
             return (
-              <Badge variant="outline" className="border-input">
-                {aparato
-                  ? t('celulares.estado.ACTIVO', {
-                      marca: f.celular?.marca ?? '',
-                      modelo: f.celular?.modelo ?? '',
-                      defaultValue: 'Activado · {{marca}} {{modelo}}',
-                    }).trim()
-                  : t('celulares.estadoFiltro.ACTIVO', { defaultValue: 'Activado' })}
-              </Badge>
+              <div>
+                <Badge variant="outline" className="border-input whitespace-nowrap">
+                  {t('celulares.estadoFiltro.ACTIVO', { defaultValue: 'Activado' })}
+                </Badge>
+                {aparato && <p className="mt-1 text-xs text-muted-foreground">{aparato}</p>}
+              </div>
             )
           }
           if (f.estado === 'CODIGO_SIN_USAR' && f.codigo) {
             return (
-              <Badge variant="outline" className="border-input">
-                {t('celulares.estado.CODIGO_SIN_USAR', {
-                  fecha: formatDate(f.codigo.expiraAt),
-                  defaultValue: 'Código sin usar · vence {{fecha}}',
-                })}
-              </Badge>
+              <div>
+                <Badge variant="outline" className="border-input whitespace-nowrap">
+                  {t('celulares.estadoFiltro.CODIGO_SIN_USAR', { defaultValue: 'Código sin usar' })}
+                </Badge>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {t('celulares.codigo.vence', { fecha: formatDate(f.codigo.expiraAt), defaultValue: 'Vence el {{fecha}}' })}
+                </p>
+              </div>
             )
           }
-          return <Badge variant="secondary">{t('celulares.estado.SIN_CELULAR', { defaultValue: 'Sin celular' })}</Badge>
+          return (
+            <Badge variant="secondary" className="whitespace-nowrap">
+              {t('celulares.estado.SIN_CELULAR', { defaultValue: 'Sin celular' })}
+            </Badge>
+          )
         },
       },
       {

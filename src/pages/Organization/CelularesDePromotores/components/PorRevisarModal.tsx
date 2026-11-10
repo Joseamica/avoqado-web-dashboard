@@ -29,7 +29,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import type { ColumnDef, PaginationState } from '@tanstack/react-table'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { mensajeDelServidor, rechazoDeAplicar, useUnaALaVez } from '../ayudantes'
+import { esAplicacionEnCurso, rechazoDeAplicar, useMensajeDeError, useUnaALaVez } from '../ayudantes'
 
 const PAGE_SIZE = 20
 const ESTADOS: EstadoDelRetenido[] = ['PENDIENTE', 'APLICANDO', 'APLICADO', 'DESCARTADO']
@@ -47,6 +47,7 @@ interface PorRevisarModalProps {
 export function PorRevisarModal({ orgId, open, onClose, venueId }: PorRevisarModalProps) {
   const { t } = useTranslation('organization')
   const { toast } = useToast()
+  const mensajeDeError = useMensajeDeError()
   const { formatDateTime } = useVenueDateTime()
   const queryClient = useQueryClient()
   const unaALaVez = useUnaALaVez()
@@ -77,8 +78,10 @@ export function PorRevisarModal({ orgId, open, onClose, venueId }: PorRevisarMod
     onSuccess: res => {
       queryClient.invalidateQueries({ queryKey: ['celulares-de-campo', orgId] })
       toast({
-        title:
-          res.estado === 'APLICADO'
+        // «Descartar» que encontró el efecto ya hecho: el SERVIDOR lo deja aplicado; nunca se dice «no se registra».
+        title: res.yaEstabaHecho
+          ? t('celulares.porRevisar.yaEstabaHecho', { defaultValue: 'Ya estaba registrado: no se descartó.' })
+          : res.estado === 'APLICADO'
             ? t('celulares.porRevisar.aplicado', { defaultValue: 'Aplicado' })
             : t('celulares.porRevisar.descartado', { defaultValue: 'Descartado' }),
       })
@@ -89,6 +92,8 @@ export function PorRevisarModal({ orgId, open, onClose, venueId }: PorRevisarMod
       // 409/422 traen su razón en llano (p. ej. «Vuelve a tocar Aplicar para terminarla»).
       queryClient.invalidateQueries({ queryKey: ['celulares-de-campo', orgId, 'retenidos'] })
       const rechazo = rechazoDeAplicar(err)
+      // Otro ya la está aplicando: el diálogo no sirve de nada abierto; al refrescar se ve cómo quedó.
+      if (esAplicacionEnCurso(err)) setPorDescartar(null)
       toast({
         variant: 'destructive',
         title: t('celulares.porRevisar.error', { defaultValue: 'No se pudo resolver' }),
@@ -99,7 +104,7 @@ export function PorRevisarModal({ orgId, open, onClose, venueId }: PorRevisarMod
             ]
               .filter(Boolean)
               .join(' ')
-          : mensajeDelServidor(err),
+          : mensajeDeError(err),
       })
     },
   })
@@ -250,6 +255,16 @@ export function PorRevisarModal({ orgId, open, onClose, venueId }: PorRevisarMod
           <AlertDialogHeader>
             <AlertDialogTitle>{t('celulares.porRevisar.confirmarDescartar', { defaultValue: '¿Descartar?' })}</AlertDialogTitle>
             <AlertDialogDescription>
+              {porDescartar && (
+                <span className="block font-medium text-foreground">
+                  {t('celulares.porRevisar.queSeDescarta', {
+                    tipo: t(`celulares.porRevisar.tipo.${porDescartar.tipo}`, { defaultValue: porDescartar.tipo }),
+                    resumen: porDescartar.resumen,
+                    nombre: porDescartar.nombre,
+                    defaultValue: '{{tipo}} · {{resumen}} · de {{nombre}}',
+                  })}
+                </span>
+              )}
               {t('celulares.porRevisar.confirmarDescartarTexto', {
                 defaultValue: 'No se registra. Queda en la bitácora con tu nombre y la nota.',
               })}
@@ -265,6 +280,7 @@ export function PorRevisarModal({ orgId, open, onClose, venueId }: PorRevisarMod
           <AlertDialogFooter>
             <AlertDialogCancel disabled={mutation.isPending}>{t('celulares.cancelar', { defaultValue: 'Cancelar' })}</AlertDialogCancel>
             <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               disabled={mutation.isPending}
               onClick={e => {
                 e.preventDefault()

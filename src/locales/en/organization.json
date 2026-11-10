@@ -1673,9 +1673,7 @@
       "porSubir": "To upload"
     },
     "estado": {
-      "SIN_CELULAR": "No phone",
-      "CODIGO_SIN_USAR": "Unused code · expires {{fecha}}",
-      "ACTIVO": "Activated · {{marca}} {{modelo}}"
+      "SIN_CELULAR": "No phone"
     },
     "estadoFiltro": {
       "SIN_CELULAR": "No phone",
@@ -1786,7 +1784,10 @@
       },
       "vacioConFiltro": "Nothing with that status.",
       "sinResolver": "Unresolved",
-      "reactivar": "Reactivate them at that location or discard it."
-    }
+      "reactivar": "Reactivate them at that location or discard it.",
+      "yaEstabaHecho": "It was already recorded: it wasn't discarded.",
+      "queSeDescarta": "{{tipo}} · {{resumen}} · by {{nombre}}"
+    },
+    "sinRespuesta": "The server didn't respond. Try again."
   }
 }

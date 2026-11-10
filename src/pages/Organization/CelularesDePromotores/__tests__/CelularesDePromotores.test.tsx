@@ -100,7 +100,7 @@ vi.mock('react-i18next', () => ({
 }))
 
 import CelularesDePromotores, { CelularesDePromotoresVista } from '../CelularesDePromotores'
-import { rechazoDeAplicar } from '../ayudantes'
+import { mensajeDelServidor, rechazoDeAplicar } from '../ayudantes'
 import { PorRevisarModal } from '../components/PorRevisarModal'
 
 // ─── Datos ─────────────────────────────────────────────────────
@@ -200,13 +200,17 @@ describe('CelularesDePromotores', () => {
     expect(a.queryByRole('button', { name: 'Desvincular' })).not.toBeInTheDocument()
 
     const b = within(filaDe('Beto Con Codigo'))
-    expect(b.getByText('Código sin usar · vence F:2026-11-16')).toBeInTheDocument()
+    // La píldora no se parte: el estado va solo y la fecha debajo, fuera de ella.
+    expect(b.getByText('Código sin usar')).toHaveClass('whitespace-nowrap')
+    expect(b.getByText('Vence el F:2026-11-16')).toBeInTheDocument()
+    expect(a.getByText('Sin celular')).toHaveClass('whitespace-nowrap')
     expect(b.getByRole('button', { name: 'Copiar' })).toBeInTheDocument()
     expect(b.getByRole('button', { name: 'Mandar por WhatsApp' })).toBeInTheDocument()
     expect(b.getByRole('button', { name: 'Generar otro' })).toBeInTheDocument()
 
     const c = within(filaDe('Carla Activa'))
-    expect(c.getByText('Activado · Samsung A15')).toBeInTheDocument()
+    expect(c.getByText('Activado')).toHaveClass('whitespace-nowrap')
+    expect(c.getByText('Samsung A15')).toBeInTheDocument()
     expect(c.getByText(/^Visto /)).toBeInTheDocument()
     expect(c.getByText('Checó con ubicación')).toBeInTheDocument()
     expect(c.getByText('Por subir: 4')).toBeInTheDocument()
@@ -239,6 +243,14 @@ describe('CelularesDePromotores', () => {
     conProveedores(<CelularesDePromotores />, '/venues/norte/playtelecom/celulares-de-promotores')
     await screen.findByText('Ana Sin Celular')
     expect(llamadasLista[0]).toEqual(['o1', expect.objectContaining({ venueId: 'v1' })])
+    // Dentro de PlayTelecomLayout el título ya lo pone el layout: no sale dos veces.
+    expect(screen.queryByRole('heading', { name: 'Celulares de promotores' })).not.toBeInTheDocument()
+  })
+
+  it('montada fuera de PlayTelecomLayout enseña su propio título', async () => {
+    conProveedores(<CelularesDePromotoresVista orgId="o1" />)
+    await screen.findByText('Ana Sin Celular')
+    expect(screen.getByRole('heading', { name: 'Celulares de promotores' })).toBeInTheDocument()
   })
 
   it('montada en la organización no filtra y el PIN usa la ruta de la organización', async () => {
@@ -391,6 +403,79 @@ describe('CelularesDePromotores', () => {
       expect(toasts[0].description).toBe(
         'La persona ya no tiene asignación activa en esa sucursal. Reactívala en esa sucursal o descártalo.',
       )
+    })
+
+    const enCurso = {
+      response: {
+        status: 409,
+        data: { code: 'APLICACION_EN_CURSO', message: 'Se está aplicando en este momento. Vuelve a intentar en unos minutos.' },
+      },
+    }
+
+    it('«Descartar» que contesta APLICADO yaEstabaHecho avisa «Ya estaba registrado: no se descartó.» y la fila sale aplicada', async () => {
+      respuestaRetenidos = () => Promise.resolve({ items: [retenido], total: 1 })
+      respuestaResolver = () => Promise.resolve({ estado: 'APLICADO', repetida: false, yaEstabaHecho: true })
+      conProveedores(<PorRevisarModal orgId="o1" open onClose={() => undefined} />)
+      fireEvent.click(await screen.findByRole('button', { name: 'Descartar' }))
+      const dialogo = await screen.findByRole('alertdialog')
+      respuestaRetenidos = () => Promise.resolve({ items: [{ ...retenido, estado: 'APLICADO' }], total: 1 })
+      fireEvent.click(within(dialogo).getByRole('button', { name: 'Descartar' }))
+
+      await waitFor(() => expect(toasts).toHaveLength(1))
+      expect(toasts[0].title).toBe('Ya estaba registrado: no se descartó.')
+      expect(llamadasResolver).toEqual([['o1', 'r1', { accion: 'DESCARTAR', nota: undefined }]])
+      await waitFor(() => expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument())
+      expect(await screen.findByText('Aplicado')).toBeInTheDocument() // el refetch la trae aplicada
+      expect(screen.queryByRole('button', { name: 'Aplicar' })).not.toBeInTheDocument()
+    })
+
+    it('409 APLICACION_EN_CURSO en «Aplicar» dice el mensaje del servidor y el botón vuelve', async () => {
+      respuestaRetenidos = () => Promise.resolve({ items: [retenido], total: 1 })
+      respuestaResolver = () => Promise.reject(enCurso)
+      conProveedores(<PorRevisarModal orgId="o1" open onClose={() => undefined} />)
+      fireEvent.click(await screen.findByRole('button', { name: 'Aplicar' }))
+      await waitFor(() => expect(toasts).toHaveLength(1))
+      expect(toasts[0].description).toBe('Se está aplicando en este momento. Vuelve a intentar en unos minutos.')
+      await waitFor(() => expect(screen.getByRole('button', { name: 'Aplicar' })).toBeEnabled())
+    })
+
+    it('409 APLICACION_EN_CURSO en «Descartar» dice el mensaje del servidor y cierra el diálogo', async () => {
+      respuestaRetenidos = () => Promise.resolve({ items: [retenido], total: 1 })
+      respuestaResolver = () => Promise.reject(enCurso)
+      conProveedores(<PorRevisarModal orgId="o1" open onClose={() => undefined} />)
+      fireEvent.click(await screen.findByRole('button', { name: 'Descartar' }))
+      fireEvent.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Descartar' }))
+      await waitFor(() => expect(toasts).toHaveLength(1))
+      expect(toasts[0].description).toBe('Se está aplicando en este momento. Vuelve a intentar en unos minutos.')
+      await waitFor(() => expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument())
+    })
+
+    it('«¿Descartar?» dice qué se descarta (tipo, resumen y persona) y el botón es destructivo', async () => {
+      respuestaRetenidos = () => Promise.resolve({ items: [retenido], total: 1 })
+      conProveedores(<PorRevisarModal orgId="o1" open onClose={() => undefined} />)
+      fireEvent.click(await screen.findByRole('button', { name: 'Descartar' }))
+      const dialogo = await screen.findByRole('alertdialog')
+      expect(within(dialogo).getByText(/Venta · 1 SIM · de Carla Activa/)).toBeInTheDocument()
+      expect(within(dialogo).getByRole('button', { name: 'Descartar' })).toHaveClass('bg-destructive')
+    })
+
+    it('sin respuesta del servidor (Network Error) el aviso va en español, nunca el texto de axios', async () => {
+      respuestaRetenidos = () => Promise.resolve({ items: [retenido], total: 1 })
+      respuestaResolver = () => Promise.reject(Object.assign(new Error('Network Error'), { code: 'ERR_NETWORK' }))
+      conProveedores(<PorRevisarModal orgId="o1" open onClose={() => undefined} />)
+      fireEvent.click(await screen.findByRole('button', { name: 'Aplicar' }))
+      await waitFor(() => expect(toasts).toHaveLength(1))
+      expect(toasts[0].description).toBe('No hubo respuesta del servidor. Intenta de nuevo.')
+    })
+
+    it('mensajeDelServidor: sólo el message del servidor; 404 sin cuerpo, 502 o Network Error no traen texto', () => {
+      expect(mensajeDelServidor({ response: { status: 400, data: { message: 'El PIN ya lo usa otra persona.' } } })).toBe(
+        'El PIN ya lo usa otra persona.',
+      )
+      expect(mensajeDelServidor({ response: { status: 404 }, message: 'Request failed with status code 404' })).toBeUndefined()
+      expect(mensajeDelServidor({ response: { status: 502, data: '<html>Bad Gateway</html>' } })).toBeUndefined()
+      expect(mensajeDelServidor(new Error('Network Error'))).toBeUndefined()
+      expect(mensajeDelServidor(null)).toBeUndefined()
     })
 
     it('rechazoDeAplicar: otro rechazo trae sólo su mensaje; otro código no aplica', () => {
