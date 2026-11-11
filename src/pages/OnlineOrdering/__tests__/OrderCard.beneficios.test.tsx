@@ -82,13 +82,30 @@ const renglones = () =>
     .map(li => li.textContent)
 
 describe('OrderCard: de quién es y qué beneficio lleva', () => {
-  it('con cliente y beneficios muestra «Con cuenta: Ana L.» y «Premio de sellos −$45.00» en verde (token, sin colores fijos)', () => {
+  it('con cliente y beneficios muestra «Con cuenta: Ana L.» y «Premio de sellos −$45.00» en verde, con su versión oscura', () => {
     card(order(conCuenta))
     expect(screen.getByText('Con cuenta: Ana L.')).toBeInTheDocument()
     expect(renglones()).toEqual(['Premio de sellos −$45.00'])
     const caja = screen.getByTestId('beneficios')
-    expect(caja.className).toMatch(/--success/)
-    expect(caja.className).not.toMatch(/emerald|green-|lime-/)
+    // W1: el color cambia con el tema (clase `dark:`) y no es un color suelto.
+    expect(caja.className).toMatch(/\bdark:text-/)
+    expect(caja.className).not.toMatch(/\[#/)
+  })
+
+  it('W2: con un nombre largo, el nombre se dobla en su columna y el monto se queda a la derecha', () => {
+    card(
+      order({
+        beneficios: [{ nombre: 'Premio de sellos con un nombre muy largo que no cabe en un renglón', monto: 45 }],
+        beneficiosTotal: 1,
+      }),
+    )
+    const renglon = within(screen.getByTestId('beneficios')).getByRole('listitem')
+    const [nombre, monto] = Array.from(renglon.querySelectorAll(':scope > span'))
+    expect(renglon.className).not.toMatch(/flex-wrap/)
+    expect(nombre.className).toMatch(/\bmin-w-0\b/)
+    expect(nombre.className).toMatch(/\bflex-1\b/)
+    expect(monto.className).toMatch(/\bshrink-0\b/)
+    expect(monto.textContent).toBe('−$45.00')
   })
 
   it('sin los campos (SERVIDOR viejo) no muestra nada y no truena', () => {

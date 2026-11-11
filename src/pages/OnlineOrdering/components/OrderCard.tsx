@@ -58,17 +58,16 @@ export function Beneficios({ order }: { order: InboxOrder }) {
   const list = order.beneficios ?? []
   if (list.length === 0) return null
   const more = (order.beneficiosTotal ?? 0) - list.length
-  // `--success*` de index.css (claro y oscuro): `text-success` no se genera porque el @theme no registra `--color-success`.
+  // Renglones verdes sin caja (mockup v2). Mismo par claro/oscuro que el «Vence pronto» ámbar del folio: el 700 se lee sobre
+  // blanco y el 400 sobre la tarjeta oscura. Los `--success*` de index.css son de insignias rellenas: en oscuro dejaban un hueco negro (W1).
   return (
-    <div
-      data-testid="beneficios"
-      className="space-y-0.5 rounded-lg border border-(--success-border) bg-(--success-muted) p-2 text-sm text-(--success-foreground)"
-    >
+    <div data-testid="beneficios" className="space-y-0.5 text-sm text-emerald-700 dark:text-emerald-400">
       <ul className="space-y-0.5">
         {list.map((b, i) => (
-          <li key={i} className="flex flex-wrap justify-between gap-x-2">
-            <span className="min-w-0 break-words">{b.nombre}</span>{' '}
-            <span className="shrink-0 tabular-nums">{t('inbox.card.benefitAmount', { amount: Currency(b.monto) })}</span>
+          // W2: el nombre largo se dobla en su columna y el monto nunca cae abajo a la izquierda.
+          <li key={i} className="flex justify-between gap-x-2">
+            <span className="min-w-0 flex-1 break-words">{b.nombre}</span>{' '}
+            <span className="shrink-0 text-right tabular-nums">{t('inbox.card.benefitAmount', { amount: Currency(b.monto) })}</span>
           </li>
         ))}
       </ul>
