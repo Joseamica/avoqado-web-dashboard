@@ -31,6 +31,7 @@ import {
   superadminAPI,
   type AppUpdate,
   type AppEnvironment,
+  type AppPlatform,
   type AppUpdateUpdateInput,
   type AppUpdateTargetType,
 } from '@/services/superadmin.service'
@@ -101,6 +102,41 @@ function formatDate(dateString: string): string {
     hour: '2-digit',
     minute: '2-digit',
   })
+}
+
+// ============================================================================
+// PLATAFORMA (carril de versiones: la terminal o la app de campo del promotor)
+// ============================================================================
+
+const PLATAFORMAS: { valor: AppPlatform; texto: string }[] = [
+  { valor: 'ANDROID_TPV', texto: 'Terminal (TPV)' },
+  { valor: 'ANDROID_CAMPO', texto: 'App de campo' },
+]
+
+function SelectorDePlataforma({ value, onChange }: { value: AppPlatform; onChange: (p: AppPlatform) => void }) {
+  return (
+    <div
+      role="radiogroup"
+      aria-label="Plataforma"
+      className="inline-flex h-10 items-center rounded-full bg-muted/60 px-1 py-1 text-muted-foreground border border-border"
+    >
+      {PLATAFORMAS.map(p => (
+        <button
+          key={p.valor}
+          type="button"
+          role="radio"
+          aria-checked={value === p.valor}
+          onClick={() => onChange(p.valor)}
+          className={cn(
+            'rounded-full px-4 py-1.5 text-sm font-medium transition-colors cursor-pointer',
+            value === p.valor ? 'bg-foreground text-background' : 'hover:bg-muted/80 hover:text-foreground',
+          )}
+        >
+          {p.texto}
+        </button>
+      ))}
+    </div>
+  )
 }
 
 // ============================================================================
@@ -231,9 +267,12 @@ interface UploadDialogProps {
   isOpen: boolean
   onClose: () => void
   onSuccess: () => void
+  /** El mismo selector de la página: lo que se sube es del carril que se está viendo, y el APK lo corrige al leerse. */
+  platform: AppPlatform
+  onPlatformChange: (p: AppPlatform) => void
 }
 
-function UploadDialog({ isOpen, onClose, onSuccess }: UploadDialogProps) {
+function UploadDialog({ isOpen, onClose, onSuccess, platform, onPlatformChange }: UploadDialogProps) {
   const { toast } = useToast()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [isUploading, setIsUploading] = useState(false)
@@ -250,6 +289,8 @@ function UploadDialog({ isOpen, onClose, onSuccess }: UploadDialogProps) {
   })
   const [targetType, setTargetType] = useState<AppUpdateTargetType>('ALL')
   const [targetVenueIds, setTargetVenueIds] = useState<string[]>([])
+  // En la app de campo la versión y el ambiente son los del APK: el SERVIDOR rechaza otros, así que no se ofrecen a mano.
+  const esCampo = platform === 'ANDROID_CAMPO'
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -273,6 +314,7 @@ function UploadDialog({ isOpen, onClose, onSuccess }: UploadDialogProps) {
           minAndroidSdk: preview.minSdkVersion.toString(),
           environment: preview.detectedEnvironment || prev.environment,
         }))
+        if (preview.detectedPlatform) onPlatformChange(preview.detectedPlatform)
 
         toast({
           title: 'APK analizado',
@@ -325,9 +367,10 @@ function UploadDialog({ isOpen, onClose, onSuccess }: UploadDialogProps) {
     try {
       const apkBase64 = apkBase64Cache
       const result = await superadminAPI.createAppUpdate({
-        ...(formData.versionName && { versionName: formData.versionName }),
-        ...(formData.versionCode && { versionCode: parseInt(formData.versionCode, 10) }),
+        ...(!esCampo && formData.versionName && { versionName: formData.versionName }),
+        ...(!esCampo && formData.versionCode && { versionCode: parseInt(formData.versionCode, 10) }),
         environment: formData.environment,
+        platform,
         releaseNotes: formData.releaseNotes || undefined,
         updateMode: formData.updateMode,
         ...(formData.minAndroidSdk && { minAndroidSdk: parseInt(formData.minAndroidSdk, 10) }),
@@ -462,6 +505,13 @@ function UploadDialog({ isOpen, onClose, onSuccess }: UploadDialogProps) {
           </div>
 
           <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Plataforma</Label>
+              <div>
+                <SelectorDePlataforma value={platform} onChange={onPlatformChange} />
+              </div>
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="versionName">
@@ -472,6 +522,7 @@ function UploadDialog({ isOpen, onClose, onSuccess }: UploadDialogProps) {
                   id="versionName"
                   className="h-12 text-base"
                   placeholder="Auto-detectado"
+                  disabled={esCampo}
                   value={formData.versionName}
                   onChange={e => setFormData(prev => ({ ...prev, versionName: e.target.value }))}
                 />
@@ -486,6 +537,7 @@ function UploadDialog({ isOpen, onClose, onSuccess }: UploadDialogProps) {
                   className="h-12 text-base"
                   type="number"
                   placeholder="Auto-detectado"
+                  disabled={esCampo}
                   value={formData.versionCode}
                   onChange={e => setFormData(prev => ({ ...prev, versionCode: e.target.value }))}
                 />
@@ -497,6 +549,7 @@ function UploadDialog({ isOpen, onClose, onSuccess }: UploadDialogProps) {
               <Select
                 value={formData.environment}
                 onValueChange={(value: AppEnvironment) => setFormData(prev => ({ ...prev, environment: value }))}
+                disabled={esCampo && !!selectedFile}
               >
                 <SelectTrigger className="h-12 text-base">
                   <SelectValue />
@@ -542,8 +595,9 @@ function UploadDialog({ isOpen, onClose, onSuccess }: UploadDialogProps) {
                 <Package className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
               </div>
               <p className="text-xs text-muted-foreground">
-                Los campos de version se auto-detectan del APK. Solo ingresalos manualmente si deseas sobrescribir los valores del
-                AndroidManifest.
+                {esCampo
+                  ? 'En la app de campo la version y el ambiente salen del APK (-sandbox = Sandbox) y no se pueden cambiar.'
+                  : 'Los campos de version se auto-detectan del APK. Solo ingresalos manualmente si deseas sobrescribir los valores del AndroidManifest.'}
               </p>
             </div>
           </div>
@@ -1064,25 +1118,26 @@ function UpdatesTable({
 export default function TpvUpdates() {
   const queryClient = useQueryClient()
   const [activeTab, setActiveTab] = useState<AppEnvironment>('PRODUCTION')
+  const [plataforma, setPlataforma] = useState<AppPlatform>('ANDROID_TPV')
   const [isUploadOpen, setIsUploadOpen] = useState(false)
   const [editingUpdate, setEditingUpdate] = useState<AppUpdate | null>(null)
   const [deletingUpdate, setDeletingUpdate] = useState<AppUpdate | null>(null)
 
   const updatesQuery = useQuery({
-    queryKey: ['superadmin', 'app-updates', activeTab],
-    queryFn: () => superadminAPI.getAppUpdates({ environment: activeTab }),
+    queryKey: ['superadmin', 'app-updates', plataforma, activeTab],
+    queryFn: () => superadminAPI.getAppUpdates({ environment: activeTab, platform: plataforma }),
   })
   const { data: updates = [], isLoading, isFetching } = updatesQuery
 
   const latestSandboxQuery = useQuery({
-    queryKey: ['superadmin', 'app-updates', 'latest', 'SANDBOX'],
-    queryFn: () => superadminAPI.getLatestAppUpdate('SANDBOX'),
+    queryKey: ['superadmin', 'app-updates', 'latest', plataforma, 'SANDBOX'],
+    queryFn: () => superadminAPI.getLatestAppUpdate('SANDBOX', plataforma),
   })
   const { data: latestSandbox } = latestSandboxQuery
 
   const latestProductionQuery = useQuery({
-    queryKey: ['superadmin', 'app-updates', 'latest', 'PRODUCTION'],
-    queryFn: () => superadminAPI.getLatestAppUpdate('PRODUCTION'),
+    queryKey: ['superadmin', 'app-updates', 'latest', plataforma, 'PRODUCTION'],
+    queryFn: () => superadminAPI.getLatestAppUpdate('PRODUCTION', plataforma),
   })
   const { data: latestProduction } = latestProductionQuery
 
@@ -1100,10 +1155,13 @@ export default function TpvUpdates() {
           </div>
           <div>
             <h1 className="text-2xl font-bold tracking-tight">TPV Updates</h1>
-            <p className="text-sm text-muted-foreground mt-1">Gestiona las versiones del APK TPV distribuidas via Avoqado</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              Gestiona las versiones de la terminal (TPV) y de la app de campo distribuidas via Avoqado
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <SelectorDePlataforma value={plataforma} onChange={setPlataforma} />
           <Button
             variant="outline"
             size="icon"
@@ -1121,21 +1179,23 @@ export default function TpvUpdates() {
         </div>
       </div>
 
-      {/* Info Banner */}
-      <GlassCard className="p-4 border-blue-500/20 bg-blue-500/5">
-        <div className="flex items-start gap-3">
-          <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-500/5">
-            <Shield className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+      {/* Info Banner (sólo de las terminales: la app de campo no tiene a Blumon) */}
+      {plataforma === 'ANDROID_TPV' && (
+        <GlassCard className="p-4 border-blue-500/20 bg-blue-500/5">
+          <div className="flex items-start gap-3">
+            <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-500/5">
+              <Shield className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-blue-600 dark:text-blue-400">Sistema Dual de Actualizaciones</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Las terminales TPV tienen dos fuentes de actualizacion: <strong>Blumon (Proveedor)</strong> para actualizaciones oficiales
+                firmadas por PAX, y <strong>Avoqado (Interno)</strong> para distribucion rapida de versiones.
+              </p>
+            </div>
           </div>
-          <div>
-            <p className="text-sm font-medium text-blue-600 dark:text-blue-400">Sistema Dual de Actualizaciones</p>
-            <p className="text-xs text-muted-foreground mt-1">
-              Las terminales TPV tienen dos fuentes de actualizacion: <strong>Blumon (Proveedor)</strong> para actualizaciones oficiales
-              firmadas por PAX, y <strong>Avoqado (Interno)</strong> para distribucion rapida de versiones.
-            </p>
-          </div>
-        </div>
-      </GlassCard>
+        </GlassCard>
+      )}
 
       {/* Latest Versions Summary */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1253,7 +1313,13 @@ export default function TpvUpdates() {
       </GlassCard>
 
       {/* Dialogs */}
-      <UploadDialog isOpen={isUploadOpen} onClose={() => setIsUploadOpen(false)} onSuccess={handleRefresh} />
+      <UploadDialog
+        isOpen={isUploadOpen}
+        onClose={() => setIsUploadOpen(false)}
+        onSuccess={handleRefresh}
+        platform={plataforma}
+        onPlatformChange={setPlataforma}
+      />
       <EditDialog update={editingUpdate} isOpen={!!editingUpdate} onClose={() => setEditingUpdate(null)} onSuccess={handleRefresh} />
       <DeleteDialog update={deletingUpdate} isOpen={!!deletingUpdate} onClose={() => setDeletingUpdate(null)} onSuccess={handleRefresh} />
     </div>

@@ -1708,7 +1708,8 @@
       "copiado": "Código copiado",
       "errorCopiar": "No se pudo copiar. Selecciónalo y cópialo a mano.",
       "error": "No se pudo generar el código",
-      "whatsappTexto": "Hola {{nombre}}, tu código para activar la app de campo de Avoqado es {{codigo}}. Vence el {{fecha}}. Escríbelo en la app junto con tu PIN."
+      "whatsappTexto": "Hola {{nombre}}, tu código para activar la app de campo de Avoqado es {{codigo}}. Vence el {{fecha}}. Escríbelo en la app junto con tu PIN. Si todavía no tienes la app, bájala aquí: {{liga}}",
+      "instalar": "¿Aún no tiene la app? Que escanee este código para instalarla"
     },
     "generarTodos": {
       "boton": "Generar códigos para los {{n}} sin celular",
