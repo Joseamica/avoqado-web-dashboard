@@ -14,6 +14,7 @@ import { useVenueDateTime } from '@/utils/datetime'
 
 import { useExtraPages } from '../hooks/useExtraPages'
 import { toPayModeIsLive } from '../lib/toPayLive'
+import { Beneficios, ConCuenta } from './OrderCard'
 
 /** Un folio tocado se oculta SÓLO mientras siga en la sección y con el estado que tenía al tocarlo; cuando el servidor lo mueve o lo cambia, se suelta. */
 export type FolioHide = { section: 'toPay' | 'toDeliver'; status: string; remainingCents: number }
@@ -229,6 +230,7 @@ function FolioCard({ order, section, nowServer, stale, canAnswer, canCancel, bus
               {order.customerName}
             </p>
           )}
+          <ConCuenta order={order} />
         </div>
         <div className="shrink-0 text-right">
           <p className="text-xl font-semibold">{Currency(section === 'toPay' ? order.remaining : order.total)}</p>
@@ -254,6 +256,7 @@ function FolioCard({ order, section, nowServer, stale, canAnswer, canCancel, bus
         ))}
       </ul>
       {order.note && <p className="break-words rounded-lg bg-muted/50 p-2 text-sm">{order.note}</p>}
+      <Beneficios order={order} />
 
       {section === 'toPay' && (
         <div className="space-y-1 text-sm">

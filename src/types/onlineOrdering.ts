@@ -129,6 +129,13 @@ export interface InboxOrder {
   rejectReason?: RejectReason | 'PAYMENT_FAILED' | null
   /** `false` = folio de «Nadie» (se cobra en caja); ausente en servidores viejos. */
   requiresAcceptance?: boolean
+  // Tienda híbrida parte 2 (S14). Opcionales: el servidor publicado puede no traerlos.
+  /** De qué clienta es la cuenta: su id y su nombre corto («Ana L.»); `null` sin cuenta. Nunca su contacto. */
+  cliente?: { id: string; nombre: string } | null
+  /** Las filas de descuento de la cuenta (hasta 10, en el orden en que se aplicaron), en PESOS. */
+  beneficios?: Array<{ nombre: string; monto: number }>
+  /** Cuántas filas de descuento tiene la cuenta; si pasa de `beneficios.length`, se dice «y N más». */
+  beneficiosTotal?: number
 }
 
 export type CardChargeStatus =

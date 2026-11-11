@@ -223,6 +223,10 @@
       "collectFirst": "Falta cobrarlo",
       "deadline": "Quedan {{time}} para aceptar",
       "expired": "Se acabó el tiempo para aceptar",
+      "folio": "Folio {{folio}}",
+      "withAccount": "Con cuenta: {{name}}",
+      "benefitAmount": "−{{amount}}",
+      "benefitsMore": "y {{count}} más",
       "status": {
         "COMPLETED": "Entregado",
         "REJECTED": "Rechazado",
