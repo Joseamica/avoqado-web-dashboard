@@ -1,15 +1,33 @@
+import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Currency } from '@/utils/currency'
+import { useVenueDateTime } from '@/utils/datetime'
 import { Banknote, CheckCircle2, CircleMinus, TriangleAlert } from 'lucide-react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 interface CashReconciliationSummaryProps {
   cashDeclared: number | null
   cashDifference: number | null
+  countCorrection?: { allowed: boolean; blockedReason: string | null }
+  countCorrections?: Array<{ id: string; createdAt: string; staffName: string | null; countedBefore: number; reason: string }>
+  canCorrect?: boolean
+  onCorrect?: () => void
 }
 
-export function CashReconciliationSummary({ cashDeclared, cashDifference }: CashReconciliationSummaryProps) {
+const VISIBLE_CORRECTIONS = 3
+
+export function CashReconciliationSummary({
+  cashDeclared,
+  cashDifference,
+  countCorrection,
+  countCorrections = [],
+  canCorrect,
+  onCorrect,
+}: CashReconciliationSummaryProps) {
   const { t } = useTranslation('shifts')
+  const { formatDateTime } = useVenueDateTime()
+  const [showAll, setShowAll] = useState(false)
 
   if (cashDeclared === null && cashDifference === null) return null
 
@@ -77,6 +95,40 @@ export function CashReconciliationSummary({ cashDeclared, cashDifference }: Cash
           <div className="flex items-center justify-between gap-3 border-t border-border pt-2 text-xs">
             <span className="text-muted-foreground">{t('detail.cashReconciliation.difference')}</span>
             <span className="font-semibold tabular-nums text-foreground">{Currency(cashDifference)}</span>
+          </div>
+        )}
+
+        {countCorrections.length > 0 && (
+          <ul className="space-y-1.5 border-t border-border pt-2 text-xs text-muted-foreground">
+            {(showAll ? countCorrections : countCorrections.slice(0, VISIBLE_CORRECTIONS)).map(c => (
+              <li key={c.id}>
+                <p>
+                  ✎{' '}
+                  {t('detail.correctCount.correctedBy', { name: c.staffName ?? '—', date: formatDateTime(c.createdAt) })}
+                </p>
+                <p>
+                  {t('detail.correctCount.before', { amount: Currency(c.countedBefore) })} · «{c.reason}»
+                </p>
+              </li>
+            ))}
+            {!showAll && countCorrections.length > VISIBLE_CORRECTIONS && (
+              <li>
+                <Button variant="link" size="sm" className="h-auto p-0 text-xs" onClick={() => setShowAll(true)}>
+                  {t('detail.correctCount.showOlder', { count: countCorrections.length - VISIBLE_CORRECTIONS })}
+                </Button>
+              </li>
+            )}
+          </ul>
+        )}
+
+        {canCorrect && cashDeclared !== null && (
+          <div className="space-y-1 border-t border-border pt-2">
+            <Button variant="outline" size="sm" disabled={!countCorrection?.allowed} onClick={onCorrect}>
+              {t('detail.correctCount.button')}
+            </Button>
+            {!countCorrection?.allowed && countCorrection?.blockedReason && (
+              <p className="text-xs text-muted-foreground">{t('detail.correctCount.blocked.' + countCorrection.blockedReason)}</p>
+            )}
           </div>
         )}
       </CardContent>

@@ -1062,6 +1062,7 @@
       "AUTO_REORDER_PO_CREATED": "Auto reorder created",
       "AUTO_REORDER_RUN": "Auto-reorder run",
       "CASH_CLOSEOUT_CREATED": "Cash closeout created",
+      "CASH_COUNT_CORRECTED": "Cash count corrected",
       "CASH_DEPOSIT_APPROVED": "Cash deposit approved",
       "CASH_DEPOSIT_REJECTED": "Cash deposit rejected",
       "CASH_DRAWER_ADJUSTED_AFTER_CLOSE": "Cash drawer adjusted after close",

@@ -165,6 +165,34 @@
       "deleteErrorDesc": "Could not delete the shift",
       "updatedDesc": "The shift has been successfully updated",
       "updateErrorDesc": "Could not update the shift"
+    },
+    "correctCount": {
+      "button": "Correct count",
+      "title": "Correct the closeout count",
+      "amount": "Counted amount",
+      "reason": "Reason",
+      "reasonPlaceholder": "E.g. typo: $20,000 entered instead of $2,000",
+      "preview": "The result changes from {{before}} to {{after}}",
+      "balanced": "Balanced",
+      "over": "Over {{amount}}",
+      "short": "Short {{amount}}",
+      "sameAmount": "It is the same amount the closeout already has",
+      "save": "Save correction",
+      "saved": "Count corrected",
+      "changed": "Someone changed this count while you were correcting it; reload the page",
+      "correctedBy": "Corrected by {{name}} · {{date}}",
+      "before": "before {{amount}}",
+      "showOlder": "Show {{count}} older",
+      "blocked": {
+        "SHIFT_NOT_CLOSED": "The closeout is not closed yet",
+        "EXTERNAL_POS": "This closeout comes from another system (such as SoftRestaurant); its count cannot be corrected from Avoqado",
+        "NOT_COUNTED": "This closeout was closed without a count; there is no count to correct",
+        "NO_LINKED_DRAWER": "This closeout has no linked cash drawer (it predates Sep 3 or used no drawer); ask support to correct it",
+        "DRAWER_NOT_CLOSED": "This closeout's cash drawer is still open or was closed without a count",
+        "NO_SIGNED_DIFFERENCE": "This closeout has no signed difference to correct",
+        "COUNT_MISMATCH": "The drawer and the shift do not match; tell support",
+        "TOO_MANY": "This closeout already has 50 corrections; ask support for help"
+      }
     }
   },
   "notifications": {

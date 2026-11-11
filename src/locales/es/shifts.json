@@ -165,6 +165,34 @@
       "deleteErrorDesc": "No se pudo eliminar el turno",
       "updatedDesc": "El turno ha sido actualizado exitosamente",
       "updateErrorDesc": "No se pudo actualizar el turno"
+    },
+    "correctCount": {
+      "button": "Corregir conteo",
+      "title": "Corregir el conteo del corte",
+      "amount": "Monto contado",
+      "reason": "Motivo",
+      "reasonPlaceholder": "Ej. error de dedo: se tecleó $20,000 en vez de $2,000",
+      "preview": "El resultado pasa de {{before}} a {{after}}",
+      "balanced": "Cuadró",
+      "over": "Sobrante {{amount}}",
+      "short": "Faltante {{amount}}",
+      "sameAmount": "Es el mismo monto que ya tiene el corte",
+      "save": "Guardar corrección",
+      "saved": "Conteo corregido",
+      "changed": "Alguien cambió este conteo mientras lo corregías; recarga la página",
+      "correctedBy": "Corregido por {{name}} · {{date}}",
+      "before": "antes {{amount}}",
+      "showOlder": "Ver las {{count}} anteriores",
+      "blocked": {
+        "SHIFT_NOT_CLOSED": "El corte todavía no está cerrado",
+        "EXTERNAL_POS": "Este corte viene de otro sistema (como SoftRestaurant); su conteo no se corrige desde Avoqado",
+        "NOT_COUNTED": "Este corte se cerró sin contar; no hay conteo que corregir",
+        "NO_LINKED_DRAWER": "Este corte no tiene caja ligada (es anterior al 3-sep o no usó caja); pídele la corrección a soporte",
+        "DRAWER_NOT_CLOSED": "La caja de este corte sigue abierta o se cerró sin contar",
+        "NO_SIGNED_DIFFERENCE": "Este corte no tiene una diferencia firmada que corregir",
+        "COUNT_MISMATCH": "La caja y el turno no coinciden; avisa a soporte",
+        "TOO_MANY": "Este corte ya tiene 50 correcciones; pide ayuda a soporte"
+      }
     }
   },
   "notifications": {

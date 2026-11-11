@@ -1,12 +1,12 @@
 // Full-testing v2 · FAIL #2 (R3): un turno de sólo tarjetas de regalo tiene 0 órdenes de venta. El API ya decía
 // `stats.totalOrders: 0`, pero el respaldo `stats.totalOrders || orders.length` lo tomaba como «no vino» y pintaba «1 Órdenes».
 // 0 es un número válido: sólo se cae a la lista cuando el server no lo manda.
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 
-const m = vi.hoisted(() => ({ turno: {} as Record<string, unknown> }))
+const m = vi.hoisted(() => ({ turno: {} as Record<string, unknown>, dialogo: null as null | Record<string, unknown> }))
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (k: string) => k, i18n: { language: 'es' } }),
@@ -20,7 +20,15 @@ vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: () => {} }) }))
 vi.mock('@/context/BreadcrumbContext', () => ({ useBreadcrumb: () => ({ setCustomSegment: () => {}, clearCustomSegment: () => {} }) }))
 vi.mock('@/hooks/use-shift-socket-events', () => ({ useShiftSocketEvents: () => {} }))
 vi.mock('@/hooks/use-payment-socket-events', () => ({ usePaymentSocketEvents: () => {} }))
-vi.mock('./components/CashReconciliationSummary', () => ({ CashReconciliationSummary: () => null }))
+vi.mock('./components/CashReconciliationSummary', () => ({
+  CashReconciliationSummary: (p: { onCorrect?: () => void }) => <button data-testid="abrir-corregir" onClick={p.onCorrect} />,
+}))
+vi.mock('./components/CorrectCashCountDialog', () => ({
+  CorrectCashCountDialog: (p: Record<string, unknown>) => {
+    m.dialogo = p
+    return null
+  },
+}))
 vi.mock('./components/ShiftCashDrawerCard', () => ({ ShiftCashDrawerCard: () => null }))
 
 import ShiftId from './ShiftId'
@@ -86,5 +94,33 @@ describe('ShiftId · barra de arriba', () => {
     }
     pintar()
     expect(await ordenesDeLaBarra()).toBe('1')
+  })
+})
+
+describe('ShiftId · «Corregir conteo»', () => {
+  it('🔴 la ventana recibe el número de correcciones del SERVIDOR, no el largo de la lista (que omite filas mal formadas)', async () => {
+    m.dialogo = null
+    m.turno = {
+      id: 's1',
+      turnId: 7,
+      status: 'CLOSED',
+      totalSales: 0,
+      totalTips: 0,
+      stats: {},
+      payments: [],
+      orders: [],
+      topProducts: [],
+      staffBreakdown: [],
+      paymentMethodBreakdown: [],
+      cardBrandBreakdown: [],
+      cashDeclared: 20000,
+      cashDifference: 18000,
+      cashDrawer: { expectedAmount: 2000 },
+      countCorrection: { allowed: true, blockedReason: null, correctionCount: 4 },
+      countCorrections: [{ id: 'c1', createdAt: '2026-11-10T15:00:00.000Z', staffName: 'Ana', countedBefore: 1, reason: 'x' }],
+    }
+    pintar()
+    fireEvent.click(await screen.findByTestId('abrir-corregir'))
+    expect(m.dialogo).toMatchObject({ countedCash: 20000, cashDifference: 18000, expectedAmount: 2000, correctionCount: 4 })
   })
 })
