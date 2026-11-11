@@ -64,6 +64,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { CashReconciliationSummary } from './components/CashReconciliationSummary'
+import { CorrectCashCountDialog } from './components/CorrectCashCountDialog'
 import { ShiftCashDrawerCard } from './components/ShiftCashDrawerCard'
 
 // ========== TYPES & INTERFACES ==========
@@ -562,6 +563,7 @@ export default function ShiftId() {
     details: false,
   })
   const [isEditing, setIsEditing] = useState(false)
+  const [correctOpen, setCorrectOpen] = useState(false)
   const [editedValues, setEditedValues] = useState<{ totalSales: number; totalTips: number }>({
     totalSales: 0,
     totalTips: 0,
@@ -1059,8 +1061,28 @@ export default function ShiftId() {
                 <CashReconciliationSummary
                   cashDeclared={shift.cashDeclared ?? null}
                   cashDifference={shift.cashDifference ?? null}
+                  countCorrection={shift.countCorrection}
+                  countCorrections={shift.countCorrections}
+                  canCorrect={canEdit}
+                  onCorrect={() => setCorrectOpen(true)}
                 />
               )}
+
+              {correctOpen &&
+                shift.cashDeclared != null &&
+                shift.cashDifference != null &&
+                shift.cashDrawer?.expectedAmount != null && (
+                  <CorrectCashCountDialog
+                    open
+                    onOpenChange={setCorrectOpen}
+                    venueId={venueId}
+                    shiftId={shift.id}
+                    countedCash={shift.cashDeclared}
+                    cashDifference={shift.cashDifference}
+                    expectedAmount={shift.cashDrawer.expectedAmount}
+                    correctionCount={shift.countCorrections?.length ?? 0}
+                  />
+                )}
 
               {/* Fase 5: el arqueo del cajón físico que cubrió este turno (aditivo: null ⇒ no se pinta) */}
               <ShiftCashDrawerCard drawer={shift.cashDrawer ?? null} />

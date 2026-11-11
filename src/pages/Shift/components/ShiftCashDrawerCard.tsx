@@ -26,6 +26,7 @@ export interface ShiftCashDrawer {
   counted: boolean
   actualAmount: number | null
   overShort: number | null
+  linkedToShift?: boolean
 }
 
 export function ShiftCashDrawerCard({ drawer }: { drawer: ShiftCashDrawer | null | undefined }) {
