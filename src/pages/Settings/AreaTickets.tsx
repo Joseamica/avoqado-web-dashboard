@@ -172,7 +172,7 @@ export default function AreaTickets() {
             Áreas
           </TabsTrigger>
           <TabsTrigger value="terminals" className={tabTriggerClass}>
-            Terminales
+            Dispositivos
           </TabsTrigger>
           <TabsTrigger value="scales" className={tabTriggerClass}>
             Básculas
@@ -244,7 +244,7 @@ function FlowSettings({
     <Card className={panelClass}>
       <CardHeader>
         <CardTitle>Comportamiento del local</CardTitle>
-        <CardDescription>Se aplica sólo a las terminales que habilites en la pestaña Terminales.</CardDescription>
+        <CardDescription>Se aplica sólo a los dispositivos que habilites en la pestaña Dispositivos.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {!entitled && (
@@ -440,7 +440,7 @@ export function AreasSettings({
                     <span className="block text-xs font-normal text-muted-foreground">{t('areaTickets.areas.comandaHint')}</span>
                   </TableHead>
                 )}
-                <TableHead>Terminales</TableHead>
+                <TableHead>Dispositivos</TableHead>
                 <TableHead>Estado</TableHead>
               </TableRow>
             </TableHeader>
@@ -545,9 +545,9 @@ export function TerminalSettings({
   return (
     <Card className={panelClass}>
       <CardHeader>
-        <CardTitle>Capacidades por terminal</CardTitle>
+        <CardTitle>Capacidades por dispositivo</CardTitle>
         <CardDescription>
-          Una terminal sólo ve las funciones marcadas. Caja, área y CEDIS pueden usar configuraciones distintas.{' '}
+          Un dispositivo sólo ve las funciones marcadas. Caja, área y CEDIS pueden usar configuraciones distintas.{' '}
           {t('areaTickets.terminals.ruleHint')}
         </CardDescription>
       </CardHeader>
@@ -577,7 +577,7 @@ export function TerminalSettings({
             />
           </div>
         ))}
-        {terminals.length === 0 && <p className="py-8 text-center text-muted-foreground">No hay terminales registradas.</p>}
+        {terminals.length === 0 && <p className="py-8 text-center text-muted-foreground">No hay dispositivos registrados.</p>}
       </CardContent>
     </Card>
   )
@@ -726,7 +726,7 @@ function ScaleSettings({
             <Scale className="h-5 w-5" /> Nuevo perfil
           </CardTitle>
           <CardDescription>
-            Usa perfiles separados por terminal. Los valores seriales del modelo certificado se cargan automáticamente.
+            Usa perfiles separados por dispositivo. Los valores seriales del modelo certificado se cargan automáticamente.
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-3 md:grid-cols-2 lg:grid-cols-5">
