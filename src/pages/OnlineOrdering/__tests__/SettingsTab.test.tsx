@@ -48,6 +48,9 @@ vi.mock('@/services/onlineOrdering.service', async importOriginal => {
   }
 })
 
+import enOnline from '@/locales/en/onlineOrdering.json'
+import esOnline from '@/locales/es/onlineOrdering.json'
+
 import { SettingsTab } from '../components/SettingsTab'
 
 const base = (over: Record<string, unknown> = {}) => ({
@@ -1011,6 +1014,19 @@ describe('SettingsTab', () => {
       expect(await screen.findByText('settings.confirm.toPayNotice.title|3')).toBeInTheDocument()
       expect(screen.getByText('settings.confirm.toPayNotice.body')).toBeInTheDocument()
       expect(getToPay).toHaveBeenCalledWith('venue-1')
+    })
+
+    it('R36: con «Nadie» no hay aviso de que los beneficios «todavía no se suman ni se canjean» (la parte 2 ya los liga a la clienta)', async () => {
+      getSettings.mockResolvedValue(nadie({ hours: week, lastToPayPollAt: ago(1) }))
+      renderTab()
+      await formularioCargado()
+      expect(radio('noOne')).toBeChecked()
+      // `t` devuelve la llave: ni una llave ni un texto de beneficios, lealtad o sellos en la pantalla.
+      expect(document.body.textContent).not.toMatch(/benefi|lealtad|loyalty|sello|stamp|canje|redeem/i)
+      // Y ningún texto de Configuración lo trae, en ningún idioma.
+      for (const settings of [esOnline.settings, enOnline.settings]) {
+        expect(JSON.stringify(settings)).not.toMatch(/todavía no se suman|no se canjean|benefi|aren't added|redeem/i)
+      }
     })
 
     it('volver a «Mi equipo» sin folios por pagar no avisa nada', async () => {

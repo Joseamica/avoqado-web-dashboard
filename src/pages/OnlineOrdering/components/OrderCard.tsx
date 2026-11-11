@@ -45,6 +45,38 @@ function Countdown({ deadline, skewMs }: { deadline: string; skewMs: number }) {
   return <span className="font-medium tabular-nums">{t('inbox.card.deadline', { time: `${minutes}:${seconds}` })}</span>
 }
 
+/** Parte 2 (D1): de qué clienta es la cuenta. Sin `cliente` (sin cuenta o SERVIDOR viejo) no dice nada; nunca su contacto. */
+export function ConCuenta({ order }: { order: InboxOrder }) {
+  const { t } = useTranslation('onlineOrdering')
+  if (!order.cliente) return null
+  return <p className="break-words text-sm text-muted-foreground">{t('inbox.card.withAccount', { name: order.cliente.nombre })}</p>
+}
+
+/** Parte 2 (D1): el desglose de beneficios de la cuenta, en verde. R1: si trae más de los publicados, «y N más» (nunca se esconden). */
+export function Beneficios({ order }: { order: InboxOrder }) {
+  const { t } = useTranslation('onlineOrdering')
+  const list = order.beneficios ?? []
+  if (list.length === 0) return null
+  const more = (order.beneficiosTotal ?? 0) - list.length
+  // `--success*` de index.css (claro y oscuro): `text-success` no se genera porque el @theme no registra `--color-success`.
+  return (
+    <div
+      data-testid="beneficios"
+      className="space-y-0.5 rounded-lg border border-(--success-border) bg-(--success-muted) p-2 text-sm text-(--success-foreground)"
+    >
+      <ul className="space-y-0.5">
+        {list.map((b, i) => (
+          <li key={i} className="flex flex-wrap justify-between gap-x-2">
+            <span className="min-w-0 break-words">{b.nombre}</span>{' '}
+            <span className="shrink-0 tabular-nums">{t('inbox.card.benefitAmount', { amount: Currency(b.monto) })}</span>
+          </li>
+        ))}
+      </ul>
+      {more > 0 && <p className="text-xs">{t('inbox.card.benefitsMore', { count: more })}</p>}
+    </div>
+  )
+}
+
 interface Props {
   order: InboxOrder
   skewMs: number
@@ -77,14 +109,18 @@ export function OrderCard({ order, skewMs, canAnswer, canCancel, busy, acceptLoc
     <div data-testid={`order-${order.orderId}`} className="space-y-3 rounded-xl border border-input bg-card p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <span className="text-lg font-semibold">#{order.orderNumber}</span>
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Vocabulario de «Nadie»: «folio», nunca «pedido #». */}
+            <span className="text-lg font-semibold">
+              {order.requiresAcceptance === false ? t('inbox.card.folio', { folio: order.orderNumber }) : `#${order.orderNumber}`}
+            </span>
             <Badge variant="outline" className="whitespace-nowrap">
               {t('inbox.card.pickup')}
             </Badge>
           </div>
           {order.customerName && <p className="truncate text-sm font-medium">{order.customerName}</p>}
           {order.customerPhone && <p className="text-sm text-muted-foreground">{order.customerPhone}</p>}
+          <ConCuenta order={order} />
         </div>
         <div className="shrink-0 text-right text-sm text-muted-foreground">
           <p>{formatTime(order.createdAt)}</p>
@@ -118,6 +154,7 @@ export function OrderCard({ order, skewMs, canAnswer, canCancel, busy, acceptLoc
       </ul>
 
       {order.note && <p className="break-words rounded-lg bg-muted/50 p-2 text-sm">{order.note}</p>}
+      <Beneficios order={order} />
 
       <div className="flex items-center justify-between text-sm">
         <span className="text-muted-foreground">{t('inbox.card.total')}</span>

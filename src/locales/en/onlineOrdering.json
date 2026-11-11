@@ -223,6 +223,10 @@
       "collectFirst": "Payment still due",
       "deadline": "{{time}} left to accept",
       "expired": "Time to accept is up",
+      "folio": "Folio {{folio}}",
+      "withAccount": "Customer account: {{name}}",
+      "benefitAmount": "−{{amount}}",
+      "benefitsMore": "and {{count}} more",
       "status": {
         "COMPLETED": "Delivered",
         "REJECTED": "Rejected",
