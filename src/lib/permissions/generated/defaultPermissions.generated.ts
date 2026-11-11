@@ -20,12 +20,13 @@ import { StaffRole } from '@/types'
  * Se guarda la lista LITERAL, comodines incluidos: un `scale:*` intacto sigue concediendo lo
  * que la plataforma agregue mañana bajo ese recurso. Expandirlo congelaría al dashboard.
  *
- * 9 roles · huella 9b1a9a3a20886e06.
- * ADMIN 118 · CASHIER 44 · HOST 18 · KITCHEN 9 · MANAGER 141 · OWNER 122 · SUPERADMIN 5 · VIEWER 16 · WAITER 44
+ * 9 roles · huella d3aa30fc9b4649cf.
+ * ADMIN 119 · CASHIER 44 · HOST 18 · KITCHEN 9 · MANAGER 142 · OWNER 123 · SUPERADMIN 5 · VIEWER 16 · WAITER 44
  */
 export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
   ADMIN: [
     'cash-drawer:view-expected',
+    'cash-drawer:pay-out',
     'class-sessions:read-assigned',
     'self-service:check-in',
     'attendance:read',
@@ -224,6 +225,7 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
   MANAGER: [
     'inventory:log-waste',
     'cash-drawer:view-expected',
+    'cash-drawer:pay-out',
     'class-sessions:read-assigned',
     'self-service:check-in',
     'attendance:read',
@@ -366,6 +368,7 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
   ],
   OWNER: [
     'cash-drawer:view-expected',
+    'cash-drawer:pay-out',
     'class-sessions:read-assigned',
     'self-service:check-in',
     'attendance:read',
@@ -561,4 +564,4 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
   ],
 } as Record<StaffRole, string[]>
 
-export const DEFAULT_PERMISSIONS_DIGEST = '9b1a9a3a20886e06'
+export const DEFAULT_PERMISSIONS_DIGEST = 'd3aa30fc9b4649cf'
