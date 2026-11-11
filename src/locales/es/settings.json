@@ -656,6 +656,7 @@
       "self-service_check-in": "Hacer check-in en el kiosco",
       "customers_approve": "Aprobar clientes nuevos",
       "cash-drawer_view-expected": "Ver el efectivo esperado del cajón (sin conteo ciego)",
+      "cash-drawer_pay-out": "Retirar efectivo de la caja",
       "marketing_read": "Ver el aviso de privacidad",
       "marketing_manage": "Editar el aviso de privacidad",
       "marketing_send": "Enviar campañas de correo"
@@ -681,7 +682,8 @@
       "loyalty_redeem": "Permite canjear puntos acumulados al momento de cobrar.",
       "shifts_close": "Genera el corte de caja con el resumen de ventas del turno.",
       "orders_merge": "Permite juntar dos cuentas abiertas en una sola y cerrar la de origen. No se puede deshacer.",
-      "cash-drawer_view-expected": "Durante el día ve cuánto debería haber en el cajón físico. Sin este permiso el cajero cuenta a ciegas y ve el resultado al cerrar."
+      "cash-drawer_view-expected": "Durante el día ve cuánto debería haber en el cajón físico. Sin este permiso el cajero cuenta a ciegas y ve el resultado al cerrar.",
+      "cash-drawer_pay-out": "Sacar dinero del cajón a media jornada (bajadas, pagos). Sin este permiso, el cajero necesita el PIN de un gerente."
     },
     "resources": {
       "home": "Inicio",
