@@ -106,7 +106,9 @@ export function RoutingSimulator({ venueId, stations }: { venueId: string; stati
             )}
             <div className="grid gap-3 sm:grid-cols-2">
               {result.plans.map((plan, i) => {
-                const destino = destinoDelPlan(plan, stations, tieneAccesoPro)
+                // «No lleva comanda» lo dice el plan del servidor: por la estación sola saldría «Papel en la caja».
+                const sinComanda = plan.sendsComanda === false
+                const destino = sinComanda ? null : destinoDelPlan(plan, stations, tieneAccesoPro)
                 return (
                   <div key={plan.stationId ?? `unrouted-${i}`} className="rounded-lg border border-input p-4">
                     <div className="mb-2 flex flex-wrap items-center gap-2 font-medium">
@@ -117,6 +119,7 @@ export function RoutingSimulator({ venueId, stations }: { venueId: string; stati
                       ) : (
                         <span>{plan.stationName}</span>
                       )}
+                      {sinComanda && <Badge variant="secondary">{t('routing.simulator.noComanda')}</Badge>}
                       {destino && <Badge variant="secondary">{t(`destino.${destino}`)}</Badge>}
                     </div>
                     <ul className="space-y-1 text-sm text-muted-foreground">

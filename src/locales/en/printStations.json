@@ -47,6 +47,8 @@
     "defaultBadge": "Default",
     "packingBadge": "Packing",
     "statusInactive": "Inactive",
+    "noComandaBadge": "No ticket",
+    "noComandaLocked": "No ticket · the type can't be changed; to remove it, delete it",
     "fields": {
       "name": "Station name",
       "namePlaceholder": "e.g. Hot kitchen",
@@ -57,6 +59,8 @@
       "isPacking": "Packing happens here",
       "isDefaultHint": "The default station receives products that have no route assigned.",
       "isPackingHint": "Gets one ticket with the whole order, for whoever bags it for delivery. Only one station per venue.",
+      "noComanda": "No kitchen ticket",
+      "noComandaHint": "For items that don't go to the kitchen (shop, groceries). They don't print a kitchen ticket, don't show on the kitchen display and don't alert. Assign its categories in the Routing tab. The type can't be changed later. Registers that haven't been updated keep sending the kitchen ticket for these items.",
       "active": "Station active"
     },
     "saved": "Station saved",
@@ -175,6 +179,7 @@
       "selectProduct": "Pick a product",
       "noItems": "Add at least one product to simulate.",
       "unroutedStation": "NO STATION",
+      "noComanda": "No kitchen ticket",
       "lineFormat": "{{quantity}}x {{name}}",
       "unroutedNote": "Some products have no station and would come out on a ticket marked NO STATION."
     },

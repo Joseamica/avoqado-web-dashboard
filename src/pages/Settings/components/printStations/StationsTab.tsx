@@ -153,6 +153,7 @@ const stationSchema = z.object({
   isDefault: z.boolean(),
   isPacking: z.boolean(),
   active: z.boolean(),
+  sendsComanda: z.boolean(),
 })
 type StationForm = z.infer<typeof stationSchema>
 
@@ -194,6 +195,7 @@ function StationFormModal({
       isDefault: station?.isDefault ?? false,
       isPacking: station?.isPacking ?? false,
       active: station?.active ?? true,
+      sendsComanda: station?.sendsComanda !== false,
     },
   })
 
@@ -202,11 +204,20 @@ function StationFormModal({
   const isPacking = watch('isPacking')
   const active = watch('active')
   const copies = watch('copies')
+  // «No lleva comanda»: se elige al crear y nunca cambia. Sin impresora, copias, empaque, «por defecto» ni pantalla.
+  const sinComanda = !watch('sendsComanda')
 
   const mutation = useMutation({
     mutationFn: (values: StationForm) => {
+      const name = values.name.trim()
+      // El tipo nunca viaja en un update; una estación normal tampoco lo manda al crear (un servidor viejo lo rechaza).
+      if (!values.sendsComanda) {
+        return station
+          ? updatePrintStation(venueId, station.id, { name, active: values.active })
+          : createPrintStation(venueId, { name, sendsComanda: false })
+      }
       const body = {
-        name: values.name.trim(),
+        name,
         printerId: values.printerId,
         copies: values.copies ?? 1,
         isDefault: values.isDefault,
@@ -250,74 +261,104 @@ function StationFormModal({
             {errors.name && <p className="text-xs text-destructive">{t('stations.validation.nameRequired')}</p>}
           </div>
 
-          <div className="space-y-2">
-            <Label>{t('stations.fields.printer')}</Label>
-            <Select value={printerId ?? NONE} onValueChange={v => setValue('printerId', v === NONE ? null : v, { shouldDirty: true })}>
-              <SelectTrigger className="h-12 text-base">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={NONE}>{t('stations.fields.printerNone')}</SelectItem>
-                {printers?.map(p => (
-                  <SelectItem key={p.id} value={p.id}>
-                    {p.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="station-copies">{t('stations.fields.copies')}</Label>
-            <Input
-              id="station-copies"
-              type="number"
-              min={1}
-              className="h-12 w-32 text-base"
-              value={copies ?? ''}
-              onChange={e => {
-                const raw = e.target.value
-                setValue('copies', raw === '' ? undefined : parseInt(raw, 10), { shouldDirty: true })
-              }}
-            />
-          </div>
-
-          <div className="flex items-start justify-between gap-4 rounded-lg border border-input p-3">
-            <div>
-              <p className="text-sm font-medium">{t('stations.fields.isDefault')}</p>
-              <p className="text-xs text-muted-foreground">{t('stations.fields.isDefaultHint')}</p>
-            </div>
-            <Switch checked={isDefault} onCheckedChange={v => setValue('isDefault', v, { shouldDirty: true })} />
-          </div>
-
-          {/* El ticket de EMPAQUE no es una comanda más: lleva el pedido completo en una hoja
-              para quien mete todo en la bolsa. Va aparte de "estación por default" a
-              propósito — mandarlo ahí haría que la cocina reciba DOS papeles del mismo
-              pedido, que es el doble-impreso clásico de los pedidos en línea. */}
-          <div className="flex items-center justify-between gap-4 rounded-lg border border-input p-4">
-            <div>
-              <p className="text-sm font-medium">{t('stations.fields.isPacking')}</p>
-              <p className="text-xs text-muted-foreground">{t('stations.fields.isPackingHint')}</p>
-            </div>
-            <Switch
-              data-tour="print-station-packing"
-              checked={isPacking}
-              onCheckedChange={v => setValue('isPacking', v, { shouldDirty: true })}
-            />
-          </div>
-
-          {/* Pantalla de cocina (etapa 3): se prende/apaga al momento, con su propia confirmación; no espera a «Guardar».
-              Una estación nueva no existe todavía en el servidor: primero se guarda. */}
           {station ? (
-            <KitchenDisplayToggle venueId={venueId} station={station} abiertaAClientes={abiertaAClientes} />
-          ) : abiertaAClientes || esSuperadmin ? (
-            <p className="text-xs text-muted-foreground">{t('kitchenDisplay.saveFirst')}</p>
-          ) : null}
+            sinComanda && (
+              <div className="space-y-1 rounded-lg border border-input p-3">
+                <p className="text-sm font-medium">{t('stations.noComandaLocked')}</p>
+                <p className="text-xs text-muted-foreground">{t('stations.fields.noComandaHint')}</p>
+              </div>
+            )
+          ) : (
+            <div className="flex items-start justify-between gap-4 rounded-lg border border-input p-3">
+              <div>
+                <p className="text-sm font-medium">{t('stations.fields.noComanda')}</p>
+                <p className="text-xs text-muted-foreground">{t('stations.fields.noComandaHint')}</p>
+              </div>
+              <Switch
+                data-tour="print-station-no-comanda"
+                aria-label={t('stations.fields.noComanda')}
+                checked={sinComanda}
+                onCheckedChange={v => setValue('sendsComanda', !v, { shouldDirty: true })}
+              />
+            </div>
+          )}
+
+          {!sinComanda && (
+            <>
+              <div className="space-y-2">
+                <Label>{t('stations.fields.printer')}</Label>
+                <Select value={printerId ?? NONE} onValueChange={v => setValue('printerId', v === NONE ? null : v, { shouldDirty: true })}>
+                  <SelectTrigger className="h-12 text-base">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={NONE}>{t('stations.fields.printerNone')}</SelectItem>
+                    {printers?.map(p => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="station-copies">{t('stations.fields.copies')}</Label>
+                <Input
+                  id="station-copies"
+                  type="number"
+                  min={1}
+                  className="h-12 w-32 text-base"
+                  value={copies ?? ''}
+                  onChange={e => {
+                    const raw = e.target.value
+                    setValue('copies', raw === '' ? undefined : parseInt(raw, 10), { shouldDirty: true })
+                  }}
+                />
+              </div>
+
+              <div className="flex items-start justify-between gap-4 rounded-lg border border-input p-3">
+                <div>
+                  <p className="text-sm font-medium">{t('stations.fields.isDefault')}</p>
+                  <p className="text-xs text-muted-foreground">{t('stations.fields.isDefaultHint')}</p>
+                </div>
+                <Switch checked={isDefault} onCheckedChange={v => setValue('isDefault', v, { shouldDirty: true })} />
+              </div>
+
+              {/* El ticket de EMPAQUE no es una comanda más: lleva el pedido completo en una hoja
+                  para quien mete todo en la bolsa. Va aparte de "estación por default" a
+                  propósito — mandarlo ahí haría que la cocina reciba DOS papeles del mismo
+                  pedido, que es el doble-impreso clásico de los pedidos en línea. */}
+              <div className="flex items-center justify-between gap-4 rounded-lg border border-input p-4">
+                <div>
+                  <p className="text-sm font-medium">{t('stations.fields.isPacking')}</p>
+                  <p className="text-xs text-muted-foreground">{t('stations.fields.isPackingHint')}</p>
+                </div>
+                <Switch
+                  data-tour="print-station-packing"
+                  checked={isPacking}
+                  onCheckedChange={v => setValue('isPacking', v, { shouldDirty: true })}
+                />
+              </div>
+
+              {/* Pantalla de cocina (etapa 3): se prende/apaga al momento, con su propia confirmación; no espera a «Guardar».
+                  Una estación nueva no existe todavía en el servidor: primero se guarda. */}
+              {station ? (
+                <KitchenDisplayToggle venueId={venueId} station={station} abiertaAClientes={abiertaAClientes} />
+              ) : abiertaAClientes || esSuperadmin ? (
+                <p className="text-xs text-muted-foreground">{t('kitchenDisplay.saveFirst')}</p>
+              ) : null}
+            </>
+          )}
 
           {station && (
             <div className="flex items-center justify-between gap-4 rounded-lg border border-input p-3">
               <p className="text-sm font-medium">{t('stations.fields.active')}</p>
-              <Switch checked={active} onCheckedChange={v => setValue('active', v, { shouldDirty: true })} />
+              <Switch
+                aria-label={t('stations.fields.active')}
+                checked={active}
+                onCheckedChange={v => setValue('active', v, { shouldDirty: true })}
+              />
             </div>
           )}
         </div>

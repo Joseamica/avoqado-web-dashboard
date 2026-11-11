@@ -36,12 +36,12 @@ beforeEach(() => {
 
 const estaciones: PrintStation[] = []
 
-function pintar() {
+function pintar(stations: PrintStation[] = estaciones) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
     <QueryClientProvider client={qc}>
       <MemoryRouter>
-        <ProbarRuteoModal venueId="v1" stations={estaciones} onClose={() => {}} />
+        <ProbarRuteoModal venueId="v1" stations={stations} onClose={() => {}} />
       </MemoryRouter>
     </QueryClientProvider>,
   )
@@ -129,5 +129,31 @@ describe('ProbarRuteoModal', () => {
     expect(screen.getByRole('spinbutton', { name: 'Cantidad' })).toHaveValue(7)
     await user.click(screen.getByRole('button', { name: 'Simular' }))
     await waitFor(() => expect(h.preview).toHaveBeenCalledWith('v1', { items: [{ productId: 'pr2', quantity: 7 }] }))
+  })
+
+  it('simulador_dice_no_lleva_comanda', async () => {
+    const base = { venueId: 'v1', copies: 1, isDefault: false, isPacking: false, hasKitchenDisplay: false, active: true }
+    const stations: PrintStation[] = [
+      { ...base, id: 's1', name: 'Barra', printerId: 'p1', displayOrder: 0 },
+      // Sin impresora: por la estación sola, el simulador diría «Papel en la caja». Manda el plan del servidor.
+      { ...base, id: 's3', name: 'Tienda', printerId: null, displayOrder: 1, sendsComanda: false },
+    ]
+    h.preview.mockResolvedValue({
+      plans: [
+        { stationId: 's1', stationName: 'Barra', unrouted: false, sendsComanda: true, lines: [{ productName: 'Café', quantity: 1 }] },
+        { stationId: 's3', stationName: 'Tienda', unrouted: false, sendsComanda: false, lines: [{ productName: 'Takis', quantity: 2 }] },
+      ],
+      unrouted: false,
+    })
+    const user = userEvent.setup()
+    pintar(stations)
+    await user.click(screen.getByRole('button', { name: 'Agregar producto' }))
+    await user.click(screen.getByRole('combobox', { name: 'Producto 1' }))
+    await user.click(await screen.findByRole('option', { name: 'Taco' }))
+    await user.click(screen.getByRole('button', { name: 'Simular' }))
+
+    expect(await screen.findByText('No lleva comanda')).toBeInTheDocument()
+    expect(screen.getByText('Papel')).toBeInTheDocument()
+    expect(screen.queryByText('Papel en la caja')).not.toBeInTheDocument()
   })
 })
