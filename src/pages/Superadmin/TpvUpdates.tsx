@@ -374,8 +374,8 @@ function UploadDialog({ isOpen, onClose, onSuccess, platform, onPlatformChange }
         releaseNotes: formData.releaseNotes || undefined,
         updateMode: formData.updateMode,
         ...(formData.minAndroidSdk && { minAndroidSdk: parseInt(formData.minAndroidSdk, 10) }),
-        targetType,
-        targetVenueIds: targetType === 'VENUES' ? targetVenueIds : [],
+        targetType: esCampo ? 'ALL' : targetType,
+        targetVenueIds: !esCampo && targetType === 'VENUES' ? targetVenueIds : [],
         apkBase64,
       })
 
@@ -650,12 +650,20 @@ function UploadDialog({ isOpen, onClose, onSuccess, platform, onPlatformChange }
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-                {formData.updateMode === 'NONE' && 'Sin notificacion, usuario debe buscar manualmente'}
-                {formData.updateMode === 'BANNER' && 'Banner persistente, usuario puede ignorar'}
-                {formData.updateMode === 'FORCE' && 'Bloquea la app hasta actualizar (critico)'}
+                {esCampo
+                  ? formData.updateMode === 'FORCE'
+                    ? 'Obligatoria: el promotor no puede empezar ventas nuevas hasta actualizar (lo que ya hizo sigue subiendo)'
+                    : 'Aviso «Hay una versión nueva» en el inicio del celular'
+                  : null}
+                {!esCampo && formData.updateMode === 'NONE' && 'Sin notificacion, usuario debe buscar manualmente'}
+                {!esCampo && formData.updateMode === 'BANNER' && 'Banner persistente, usuario puede ignorar'}
+                {!esCampo && formData.updateMode === 'FORCE' && 'Bloquea la app hasta actualizar (critico)'}
               </p>
             </div>
 
+            {/* La app de campo no reporta sucursal al buscar versiones: una versión «sólo para ciertas sucursales» nunca le
+                llegaría. Su carril es siempre para todos los celulares (el SERVIDOR también lo fuerza). */}
+            {!esCampo && (
             <TargetingSection
               targetType={targetType}
               onTargetTypeChange={setTargetType}
@@ -664,6 +672,7 @@ function UploadDialog({ isOpen, onClose, onSuccess, platform, onPlatformChange }
                 setTargetVenueIds(prev => (prev.includes(venueId) ? prev.filter(id => id !== venueId) : [...prev, venueId]))
               }
             />
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="releaseNotes">Notas de Version</Label>

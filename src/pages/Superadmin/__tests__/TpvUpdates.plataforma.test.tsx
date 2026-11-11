@@ -165,12 +165,14 @@ describe('TpvUpdates · plataforma', () => {
     expect(within(dialogo).getByLabelText(/Version Code/)).toBeDisabled()
     expect(within(dialogo).getByLabelText(/Version Name/)).toBeDisabled()
     expect(within(dialogo).getByLabelText(/Version Code/)).toHaveValue(5)
+    // El celular no reporta sucursal: «Aplica a» no se ofrece para la app de campo.
+    expect(within(dialogo).queryByText('Aplica a')).toBeNull()
 
     fireEvent.click(within(dialogo).getByRole('button', { name: /Subir APK/ }))
 
     await waitFor(() => expect(red.posts.some(([url]) => url === '/api/v1/superadmin/app-updates')).toBe(true))
     const [, cuerpo] = red.posts.find(([url]) => url === '/api/v1/superadmin/app-updates')!
-    expect(cuerpo).toMatchObject({ platform: 'ANDROID_CAMPO', environment: 'PRODUCTION' })
+    expect(cuerpo).toMatchObject({ platform: 'ANDROID_CAMPO', environment: 'PRODUCTION', targetType: 'ALL', targetVenueIds: [] })
     expect(cuerpo).not.toHaveProperty('versionCode')
     expect(cuerpo).not.toHaveProperty('versionName')
 
