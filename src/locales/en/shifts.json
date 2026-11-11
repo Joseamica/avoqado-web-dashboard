@@ -190,7 +190,8 @@
         "NO_LINKED_DRAWER": "This closeout has no linked cash drawer (it predates Sep 3 or used no drawer); ask support to correct it",
         "DRAWER_NOT_CLOSED": "This closeout's cash drawer is still open or was closed without a count",
         "NO_SIGNED_DIFFERENCE": "This closeout has no signed difference to correct",
-        "COUNT_MISMATCH": "The drawer and the shift do not match; tell support"
+        "COUNT_MISMATCH": "The drawer and the shift do not match; tell support",
+        "TOO_MANY": "This closeout already has 50 corrections; ask support for help"
       }
     }
   },

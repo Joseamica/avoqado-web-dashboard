@@ -21,6 +21,19 @@ interface Props {
   correctionCount: number
 }
 
+const MAX_REASON = 300
+/** Los bloqueos del servidor (`CASH_COUNT_<código>`) que tienen su texto en `detail.correctCount.blocked`. */
+const BLOCK_CODES = new Set([
+  'SHIFT_NOT_CLOSED',
+  'EXTERNAL_POS',
+  'NOT_COUNTED',
+  'NO_LINKED_DRAWER',
+  'DRAWER_NOT_CLOSED',
+  'NO_SIGNED_DIFFERENCE',
+  'COUNT_MISMATCH',
+  'TOO_MANY',
+])
+
 /** Diferencia firmada en centavos enteros (evita 1000.1 - 1000.3 = -0.1999...). */
 export function differenceAfterCorrection(expectedAmount: number, newCount: number): number {
   return (Math.round(newCount * 100) - Math.round(expectedAmount * 100)) / 100
@@ -39,6 +52,9 @@ export function CorrectCashCountDialog({
   const { t } = useTranslation('shifts')
   const { toast } = useToast()
   const queryClient = useQueryClient()
+  // Lo que el gerente vio al abrir. El detalle se recarga debajo (foco, socket, cobros): si la ventana leyera los props, la
+  // vista previa y la llave «nadie lo cambió» se moverían a la corrección de otro gerente y la pisarían sin «recarga».
+  const [seen] = useState(() => ({ countedCash, cashDifference, expectedAmount, correctionCount }))
   const [amountText, setAmountText] = useState(String(countedCash))
   const [reason, setReason] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -47,7 +63,8 @@ export function CorrectCashCountDialog({
   const amount = amountText.trim() === '' ? NaN : Number(amountText)
   const validAmount =
     Number.isFinite(amount) && amount >= 0 && amount <= 99999999.99 && Math.abs(amount * 100 - Math.round(amount * 100)) < 1e-6
-  const sameAmount = validAmount && Math.round(amount * 100) === Math.round(countedCash * 100)
+  const sameAmount = validAmount && Math.round(amount * 100) === Math.round(seen.countedCash * 100)
+  const trimmedReason = reason.trim()
 
   const describe = (diff: number) =>
     diff === 0
@@ -60,10 +77,10 @@ export function CorrectCashCountDialog({
     mutationFn: async () => {
       const res = await api.post(`/api/v1/dashboard/venues/${venueId}/shifts/${shiftId}/cash-count-correction`, {
         countedCash: amount,
-        reason: reason.trim(),
-        expectedCurrentCount: countedCash,
-        expectedResultingDifference: differenceAfterCorrection(expectedAmount, amount),
-        expectedCorrectionCount: correctionCount,
+        reason: trimmedReason,
+        expectedCurrentCount: seen.countedCash,
+        expectedResultingDifference: differenceAfterCorrection(seen.expectedAmount, amount),
+        expectedCorrectionCount: seen.correctionCount,
       })
       return res.data
     },
@@ -80,11 +97,19 @@ export function CorrectCashCountDialog({
     },
     onError: (e: any) => {
       const data = e?.response?.data
-      setError(data?.code === 'CASH_COUNT_CHANGED' ? t('detail.correctCount.changed') : data?.message || e?.message || '')
+      const block = typeof data?.code === 'string' && data.code.startsWith('CASH_COUNT_') ? data.code.slice('CASH_COUNT_'.length) : ''
+      setError(
+        data?.code === 'CASH_COUNT_CHANGED'
+          ? t('detail.correctCount.changed')
+          : BLOCK_CODES.has(block)
+            ? t(`detail.correctCount.blocked.${block}`)
+            : data?.message || e?.message || '',
+      )
     },
   })
 
-  const canSave = validAmount && !sameAmount && reason.trim().length >= 3 && !mutation.isPending
+  const saving = mutation.isPending
+  const canSave = validAmount && !sameAmount && trimmedReason.length >= 3 && trimmedReason.length <= MAX_REASON && !saving
 
   const submit = () => {
     if (!canSave || inFlight.current) return
@@ -94,7 +119,7 @@ export function CorrectCashCountDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={o => !saving && onOpenChange(o)}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{t('detail.correctCount.title')}</DialogTitle>
@@ -110,6 +135,7 @@ export function CorrectCashCountDialog({
               min={0}
               step="0.01"
               value={amountText}
+              disabled={saving}
               onChange={e => setAmountText(e.target.value)}
             />
             {sameAmount && <p className="text-sm text-muted-foreground">{t('detail.correctCount.sameAmount')}</p>}
@@ -119,6 +145,8 @@ export function CorrectCashCountDialog({
             <Textarea
               id="correct-count-reason"
               value={reason}
+              maxLength={MAX_REASON}
+              disabled={saving}
               placeholder={t('detail.correctCount.reasonPlaceholder')}
               onChange={e => setReason(e.target.value)}
             />
@@ -126,8 +154,8 @@ export function CorrectCashCountDialog({
           {validAmount && (
             <p className="text-sm text-muted-foreground">
               {t('detail.correctCount.preview', {
-                before: describe(cashDifference),
-                after: describe(differenceAfterCorrection(expectedAmount, amount)),
+                before: describe(seen.cashDifference),
+                after: describe(differenceAfterCorrection(seen.expectedAmount, amount)),
               })}
             </p>
           )}

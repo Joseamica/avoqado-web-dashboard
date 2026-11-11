@@ -18,10 +18,13 @@ vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: vi.fn() }) }))
 
 import { CorrectCashCountDialog, differenceAfterCorrection } from './CorrectCashCountDialog'
 
-function setup(props: Partial<React.ComponentProps<typeof CorrectCashCountDialog>> = {}) {
+type DialogProps = Partial<React.ComponentProps<typeof CorrectCashCountDialog>>
+
+function setup(props: DialogProps = {}) {
   const onOpenChange = vi.fn()
-  render(
-    <QueryClientProvider client={new QueryClient()}>
+  const client = new QueryClient()
+  const ui = (p: DialogProps) => (
+    <QueryClientProvider client={client}>
       <CorrectCashCountDialog
         open
         onOpenChange={onOpenChange}
@@ -31,12 +34,18 @@ function setup(props: Partial<React.ComponentProps<typeof CorrectCashCountDialog
         cashDifference={18000}
         expectedAmount={2000}
         correctionCount={0}
-        {...props}
+        {...p}
       />
-    </QueryClientProvider>,
+    </QueryClientProvider>
   )
-  return { onOpenChange }
+  const { rerender } = render(ui(props))
+  return { onOpenChange, rerender: (p: DialogProps) => rerender(ui({ ...props, ...p })) }
 }
+
+const rejectWith =
+  (code: string, message = 'mensaje del servidor') =>
+  () =>
+    Promise.reject(Object.assign(new Error('409'), { response: { status: 409, data: { code, message } } }))
 
 const amount = () => screen.getByLabelText('detail.correctCount.amount')
 const reason = () => screen.getByLabelText('detail.correctCount.reason')
@@ -98,6 +107,54 @@ describe('CorrectCashCountDialog', () => {
         expectedCorrectionCount: 0,
       },
     ])
+  })
+
+  it('🔴 keeps what the manager saw when the detail refetches underneath (another manager corrected)', async () => {
+    const { rerender } = setup()
+    fireEvent.change(amount(), { target: { value: '2000' } })
+    fireEvent.change(reason(), { target: { value: 'error de dedo' } })
+    // El detalle se recarga (foco de la ventana, socket, cobro): otro gerente ya dejó el corte en $2,000.
+    rerender({ countedCash: 2000, cashDifference: 0, expectedAmount: 2000, correctionCount: 1 })
+    expect(document.body.textContent).toContain('detail.correctCount.over')
+
+    fireEvent.click(save())
+    await waitFor(() => expect(h.calls).toHaveLength(1))
+    expect(h.calls[0][1]).toMatchObject({ expectedCurrentCount: 20000, expectedCorrectionCount: 0, expectedResultingDifference: 0 })
+  })
+
+  it('freezes the form and the close while saving', async () => {
+    h.impl = () => new Promise(() => {})
+    const { onOpenChange } = setup()
+    fireEvent.change(amount(), { target: { value: '2000' } })
+    fireEvent.change(reason(), { target: { value: 'error de dedo' } })
+    fireEvent.click(save())
+    await waitFor(() => expect(amount()).toBeDisabled())
+    expect(reason()).toBeDisabled()
+    fireEvent.click(screen.getByRole('button', { name: 'common:close' }))
+    expect(onOpenChange).not.toHaveBeenCalled()
+  })
+
+  it('disables save for a reason over 300 characters', () => {
+    setup()
+    fireEvent.change(amount(), { target: { value: '2000' } })
+    fireEvent.change(reason(), { target: { value: 'a'.repeat(301) } })
+    expect(save()).toBeDisabled()
+    fireEvent.change(reason(), { target: { value: 'a'.repeat(300) } })
+    expect(save()).toBeEnabled()
+    expect(reason()).toHaveAttribute('maxLength', '300')
+  })
+
+  it.each([
+    ['CASH_COUNT_NO_LINKED_DRAWER', 'detail.correctCount.blocked.NO_LINKED_DRAWER'],
+    ['CASH_COUNT_TOO_MANY', 'detail.correctCount.blocked.TOO_MANY'],
+    ['CASH_COUNT_INVALID_REASON', 'mensaje del servidor'],
+  ])('a 409 %s shows %s', async (code, text) => {
+    h.impl = rejectWith(code)
+    setup()
+    fireEvent.change(amount(), { target: { value: '2000' } })
+    fireEvent.change(reason(), { target: { value: 'error de dedo' } })
+    fireEvent.click(save())
+    expect(await screen.findByRole('alert')).toHaveTextContent(text)
   })
 
   it('shows the changed message on CASH_COUNT_CHANGED and stays open', async () => {

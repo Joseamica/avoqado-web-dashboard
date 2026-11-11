@@ -1062,6 +1062,7 @@
       "AUTO_REORDER_PO_CREATED": "Reorden automático creado",
       "AUTO_REORDER_RUN": "Reorden automático ejecutado",
       "CASH_CLOSEOUT_CREATED": "Corte de caja creado",
+      "CASH_COUNT_CORRECTED": "Conteo de corte corregido",
       "CASH_DEPOSIT_APPROVED": "Depósito de efectivo aprobado",
       "CASH_DEPOSIT_REJECTED": "Depósito de efectivo rechazado",
       "CASH_DRAWER_ADJUSTED_AFTER_CLOSE": "Caja ajustada después del cierre",

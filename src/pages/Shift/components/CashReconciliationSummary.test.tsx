@@ -48,6 +48,12 @@ describe('CashReconciliationSummary', () => {
       expect(screen.getByText('detail.correctCount.blocked.NO_LINKED_DRAWER')).toBeInTheDocument()
     })
 
+    it('50 correcciones (TOO_MANY): deshabilitado con su razón', () => {
+      render(<CashReconciliationSummary {...base} canCorrect countCorrection={{ allowed: false, blockedReason: 'TOO_MANY' }} />)
+      expect(screen.getByRole('button', { name: 'detail.correctCount.button' })).toBeDisabled()
+      expect(screen.getByText('detail.correctCount.blocked.TOO_MANY')).toBeInTheDocument()
+    })
+
     it('sin canCorrect o sin conteo no hay botón', () => {
       const { rerender } = render(<CashReconciliationSummary {...base} countCorrection={{ allowed: true, blockedReason: null }} />)
       expect(screen.queryByRole('button')).toBeNull()

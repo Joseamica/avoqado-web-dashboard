@@ -190,7 +190,8 @@
         "NO_LINKED_DRAWER": "Este corte no tiene caja ligada (es anterior al 3-sep o no usó caja); pídele la corrección a soporte",
         "DRAWER_NOT_CLOSED": "La caja de este corte sigue abierta o se cerró sin contar",
         "NO_SIGNED_DIFFERENCE": "Este corte no tiene una diferencia firmada que corregir",
-        "COUNT_MISMATCH": "La caja y el turno no coinciden; avisa a soporte"
+        "COUNT_MISMATCH": "La caja y el turno no coinciden; avisa a soporte",
+        "TOO_MANY": "Este corte ya tiene 50 correcciones; pide ayuda a soporte"
       }
     }
   },

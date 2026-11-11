@@ -1081,7 +1081,7 @@ export default function ShiftId() {
                     countedCash={shift.cashDeclared}
                     cashDifference={shift.cashDifference}
                     expectedAmount={shift.cashDrawer.expectedAmount}
-                    correctionCount={shift.countCorrections?.length ?? 0}
+                    correctionCount={shift.countCorrection?.correctionCount ?? shift.countCorrections?.length ?? 0}
                   />
                 )}
 
