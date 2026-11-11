@@ -173,7 +173,7 @@ export function TargetingSection({
     <div className="space-y-3">
       <div className="space-y-2">
         <Label htmlFor="targetType">Aplica a</Label>
-        <Select value={targetType} onValueChange={(v: AppUpdateTargetType) => onTargetTypeChange(v)}>
+        <Select name="targetType" value={targetType} onValueChange={(v: AppUpdateTargetType) => onTargetTypeChange(v)}>
           <SelectTrigger className="h-12 text-base">
             <SelectValue />
           </SelectTrigger>
@@ -353,7 +353,8 @@ function UploadDialog({ isOpen, onClose, onSuccess, platform, onPlatformChange }
       return
     }
 
-    if (targetType === 'VENUES' && targetVenueIds.length === 0) {
+    // La app de campo no usa «Aplica a» (va oculto y se manda ALL): un VENUES que quedó de antes no la frena.
+    if (!esCampo && targetType === 'VENUES' && targetVenueIds.length === 0) {
       toast({
         title: 'Selecciona al menos una sucursal',
         description: 'Elegiste "Solo ciertas sucursales" pero no marcaste ninguna.',

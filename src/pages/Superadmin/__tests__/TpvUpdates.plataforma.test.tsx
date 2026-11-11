@@ -57,6 +57,8 @@ vi.mock('@/api', () => {
   }
 })
 
+// Radix no abre su menú en jsdom: los selectores van como <select> nativos (ver el propio sustituto).
+vi.mock('@/components/ui/select', () => import('@/test/nativeSelectShim'))
 vi.mock('react-i18next', async original => ({
   ...(await original<typeof import('react-i18next')>()),
   useTranslation: () => ({ t: (k: string) => k, i18n: { language: 'es', changeLanguage: () => {} } }),
@@ -178,6 +180,32 @@ describe('TpvUpdates · plataforma', () => {
 
     await waitFor(() => expect(textoDeLaTabla()).toContain('v0.3.0 (3)'))
     expect(textoDeLaTabla()).not.toContain('2.9.0')
+  })
+
+  it('«Sólo ciertas sucursales» elegido antes no frena un APK de campo: se oculta y se manda ALL (Codex código r1 #3)', async () => {
+    red.preview = {
+      versionCode: 5,
+      versionName: '0.3.0',
+      packageName: 'com.jaac.avoqado_tpv.campo',
+      minSdkVersion: 27,
+      detectedEnvironment: 'PRODUCTION',
+      detectedPlatform: 'ANDROID_CAMPO',
+    }
+    pintar()
+    await waitFor(() => expect(enTarjeta('v2.9.0')).toBe(true))
+
+    fireEvent.click(screen.getByRole('button', { name: /Subir APK/ }))
+    const dialogo = await screen.findByRole('dialog')
+    fireEvent.change(within(dialogo).getByRole('combobox', { name: 'targetType' }), { target: { value: 'VENUES' } })
+    const archivo = dialogo.querySelector('input[type="file"]') as HTMLInputElement
+    fireEvent.change(archivo, { target: { files: [new File(['apk'], 'campo.apk')] } })
+    await waitFor(() => expect(within(dialogo).getByRole('radio', { name: 'App de campo' })).toHaveAttribute('aria-checked', 'true'))
+
+    fireEvent.click(within(dialogo).getByRole('button', { name: /Subir APK/ }))
+
+    await waitFor(() => expect(red.posts.some(([url]) => url === '/api/v1/superadmin/app-updates')).toBe(true))
+    const [, cuerpo] = red.posts.find(([url]) => url === '/api/v1/superadmin/app-updates')!
+    expect(cuerpo).toMatchObject({ platform: 'ANDROID_CAMPO', targetType: 'ALL', targetVenueIds: [] })
   })
 
   it('subir un APK de la TPV sigue como hoy: platform ANDROID_TPV y la versión detectada', async () => {
