@@ -725,6 +725,8 @@ export type UpdateMode = 'NONE' | 'BANNER' | 'FORCE'
 // How a version is targeted: ALL = todas las TPV, VENUES = solo ciertas sucursales,
 // TERMINALS = solo terminales por serie (requiere próximo APK que mande la serie)
 export type AppUpdateTargetType = 'ALL' | 'VENUES' | 'TERMINALS'
+// Carril de versiones: la terminal (TPV) o la app de campo del promotor. Sin plataforma, el SERVIDOR entiende la TPV.
+export type AppPlatform = 'ANDROID_TPV' | 'ANDROID_CAMPO'
 
 export interface AppUpdate {
   id: string
@@ -763,6 +765,7 @@ export interface AppUpdateCreateInput {
   targetVenueIds?: string[]
   targetTerminalIds?: string[]
   apkBase64: string
+  platform?: AppPlatform
 }
 
 // Response includes auto-detection info
@@ -797,7 +800,11 @@ export interface AppUpdateUpdateInput {
 /**
  * Get all app updates
  */
-export async function getAppUpdates(params?: { environment?: AppEnvironment; isActive?: boolean }): Promise<AppUpdate[]> {
+export async function getAppUpdates(params?: {
+  environment?: AppEnvironment
+  isActive?: boolean
+  platform?: AppPlatform
+}): Promise<AppUpdate[]> {
   const response = await api.get('/api/v1/superadmin/app-updates', { params })
   return response.data.data
 }
@@ -813,8 +820,8 @@ export async function getAppUpdateById(id: string): Promise<AppUpdate> {
 /**
  * Get latest app update for an environment
  */
-export async function getLatestAppUpdate(environment: AppEnvironment): Promise<AppUpdate | null> {
-  const response = await api.get(`/api/v1/superadmin/app-updates/latest/${environment}`)
+export async function getLatestAppUpdate(environment: AppEnvironment, platform?: AppPlatform): Promise<AppUpdate | null> {
+  const response = await api.get(`/api/v1/superadmin/app-updates/latest/${environment}`, { params: { platform } })
   return response.data.data
 }
 
@@ -837,6 +844,7 @@ export async function createAppUpdate(data: AppUpdateCreateInput): Promise<AppUp
   if (data.targetType !== undefined) payload.targetType = data.targetType
   if (data.targetVenueIds !== undefined) payload.targetVenueIds = data.targetVenueIds
   if (data.targetTerminalIds !== undefined) payload.targetTerminalIds = data.targetTerminalIds
+  if (data.platform !== undefined) payload.platform = data.platform
 
   const response = await api.post('/api/v1/superadmin/app-updates', payload)
   return {
@@ -856,6 +864,7 @@ export interface ApkPreviewResponse {
   packageName: string
   minSdkVersion: number
   detectedEnvironment: 'SANDBOX' | 'PRODUCTION' | null
+  detectedPlatform?: AppPlatform
 }
 
 export async function previewApkMetadata(apkBase64: string): Promise<ApkPreviewResponse> {
@@ -1066,14 +1075,14 @@ export const superadminAPI = {
     return await getMasterTotpSetup()
   },
   // App Updates
-  getAppUpdates: async (params?: { environment?: AppEnvironment; isActive?: boolean }): Promise<AppUpdate[]> => {
+  getAppUpdates: async (params?: { environment?: AppEnvironment; isActive?: boolean; platform?: AppPlatform }): Promise<AppUpdate[]> => {
     return await getAppUpdates(params)
   },
   getAppUpdateById: async (id: string): Promise<AppUpdate> => {
     return await getAppUpdateById(id)
   },
-  getLatestAppUpdate: async (environment: AppEnvironment): Promise<AppUpdate | null> => {
-    return await getLatestAppUpdate(environment)
+  getLatestAppUpdate: async (environment: AppEnvironment, platform?: AppPlatform): Promise<AppUpdate | null> => {
+    return await getLatestAppUpdate(environment, platform)
   },
   previewApkMetadata: async (apkBase64: string): Promise<ApkPreviewResponse> => {
     return await previewApkMetadata(apkBase64)

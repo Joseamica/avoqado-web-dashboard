@@ -1,3 +1,4 @@
+import api from '@/api'
 import { useToast } from '@/hooks/use-toast'
 import type { FilaDePromotor, SucursalDelPromotor } from '@/services/celularesDeCampo.service'
 import { useVenueDateTime } from '@/utils/datetime'
@@ -101,6 +102,14 @@ export function enlaceDeWhatsApp(telefono: string | null, texto: string): string
   return `https://wa.me/${numero}?text=${encodeURIComponent(texto)}`
 }
 
+/**
+ * La liga pública que baja la app de campo más nueva (el SERVIDOR redirige al APK de producción). Sale de la misma base que usa
+ * la API (`VITE_API_URL` no trae `/api/v1`; si algún día lo trae, no se repite).
+ */
+export function ligaDeDescargaDeCampo(base: string = api.defaults.baseURL ?? ''): string {
+  return `${base.replace(/\/+$/, '').replace(/\/api\/v1$/, '')}/api/v1/public/campo/descargar`
+}
+
 /** Copiar y mandar por WhatsApp: lo usan el diálogo y cada fila de la tabla. Nunca manda nada solo. */
 export function useMandarCodigo() {
   const { t } = useTranslation('organization')
@@ -128,8 +137,9 @@ export function useMandarCodigo() {
         nombre: c.nombre,
         codigo: c.codigo,
         fecha: formatDate(c.expiraAt),
+        liga: ligaDeDescargaDeCampo(),
         defaultValue:
-          'Hola {{nombre}}, tu código para activar la app de campo de Avoqado es {{codigo}}. Vence el {{fecha}}. Escríbelo en la app junto con tu PIN.',
+          'Hola {{nombre}}, tu código para activar la app de campo de Avoqado es {{codigo}}. Vence el {{fecha}}. Escríbelo en la app junto con tu PIN. Si todavía no tienes la app, bájala aquí: {{liga}}',
       })
       window.open(enlaceDeWhatsApp(c.telefono, texto), '_blank', 'noopener,noreferrer')
     },

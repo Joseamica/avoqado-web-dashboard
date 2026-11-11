@@ -1708,7 +1708,8 @@
       "copiado": "Code copied",
       "errorCopiar": "Couldn't copy. Select it and copy it by hand.",
       "error": "Couldn't generate the code",
-      "whatsappTexto": "Hi {{nombre}}, your code to activate the Avoqado field app is {{codigo}}. It expires on {{fecha}}. Type it in the app along with your PIN."
+      "whatsappTexto": "Hi {{nombre}}, your code to activate the Avoqado field app is {{codigo}}. It expires on {{fecha}}. Type it in the app along with your PIN. If you don't have the app yet, download it here: {{liga}}",
+      "instalar": "Don't have the app yet? Have them scan this code to install it"
     },
     "generarTodos": {
       "boton": "Generate codes for the {{n}} without a phone",

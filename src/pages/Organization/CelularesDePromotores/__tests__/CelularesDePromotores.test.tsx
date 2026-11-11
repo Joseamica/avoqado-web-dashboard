@@ -99,8 +99,11 @@ vi.mock('react-i18next', () => ({
   },
 }))
 
+// El QR se pinta como un <svg> con su valor a la vista: la prueba lee qué liga trae.
+vi.mock('qrcode.react', () => ({ QRCodeSVG: ({ value }: { value: string }) => <svg data-testid="qr-de-descarga" data-value={value} /> }))
+
 import CelularesDePromotores, { CelularesDePromotoresVista } from '../CelularesDePromotores'
-import { mensajeDelServidor, rechazoDeAplicar } from '../ayudantes'
+import { ligaDeDescargaDeCampo, mensajeDelServidor, rechazoDeAplicar } from '../ayudantes'
 import { PorRevisarModal } from '../components/PorRevisarModal'
 
 // ─── Datos ─────────────────────────────────────────────────────
@@ -282,6 +285,30 @@ describe('CelularesDePromotores', () => {
     expect(llamadasGenerar).toEqual([['o1', { staffIds: ['s1'] }]])
   })
 
+  it('el diálogo del código muestra el QR con la liga de descarga de la app', async () => {
+    respuestaGenerar = () =>
+      Promise.resolve({
+        generados: [{ staffId: 's1', nombre: 'Ana Sin Celular', telefono: '5512345678', codigo: 'ZZ99YY88', expiraAt: EN_7_DIAS }],
+        omitidos: [],
+        restantes: 0,
+      })
+    conProveedores(<CelularesDePromotoresVista orgId="o1" />)
+    await screen.findByText('Ana Sin Celular')
+    fireEvent.click(within(filaDe('Ana Sin Celular')).getByRole('button', { name: 'Generar código' }))
+
+    const dialogo = await screen.findByRole('dialog')
+    const qr = within(dialogo).getByTestId('qr-de-descarga')
+    expect(qr).toHaveAttribute('data-value', ligaDeDescargaDeCampo())
+    expect(ligaDeDescargaDeCampo()).toMatch(/\/api\/v1\/public\/campo\/descargar$/)
+    expect(within(dialogo).getByText('¿Aún no tiene la app? Que escanee este código para instalarla')).toBeInTheDocument()
+  })
+
+  it('la liga de descarga sale de la base de la API sin repetir /api/v1 ni la diagonal', () => {
+    expect(ligaDeDescargaDeCampo('https://api.avoqado.io')).toBe('https://api.avoqado.io/api/v1/public/campo/descargar')
+    expect(ligaDeDescargaDeCampo('https://api.avoqado.io/')).toBe('https://api.avoqado.io/api/v1/public/campo/descargar')
+    expect(ligaDeDescargaDeCampo('https://api.avoqado.io/api/v1/')).toBe('https://api.avoqado.io/api/v1/public/campo/descargar')
+  })
+
   it('doble clic en «Generar código» manda UNA sola llamada', async () => {
     let soltar: (v: CodigosGenerados) => void = () => undefined
     respuestaGenerar = () => new Promise<CodigosGenerados>(r => (soltar = r))
@@ -311,7 +338,7 @@ describe('CelularesDePromotores', () => {
     const [url, destino, rasgos] = abrir.mock.calls[0]
     expect(String(url).startsWith('https://wa.me/525512345678?text=')).toBe(true)
     expect(decodeURIComponent(String(url).split('text=')[1])).toBe(
-      'Hola Beto Con Codigo, tu código para activar la app de campo de Avoqado es AB12CD34. Vence el F:2026-11-16. Escríbelo en la app junto con tu PIN.',
+      `Hola Beto Con Codigo, tu código para activar la app de campo de Avoqado es AB12CD34. Vence el F:2026-11-16. Escríbelo en la app junto con tu PIN. Si todavía no tienes la app, bájala aquí: ${ligaDeDescargaDeCampo()}`,
     )
     expect(destino).toBe('_blank')
     expect(rasgos).toBe('noopener,noreferrer')

@@ -2,8 +2,9 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useVenueDateTime } from '@/utils/datetime'
 import { Copy, MessageCircle, Smartphone } from 'lucide-react'
+import { QRCodeSVG } from 'qrcode.react'
 import { useTranslation } from 'react-i18next'
-import { useMandarCodigo, type CodigoParaMandar } from '../ayudantes'
+import { ligaDeDescargaDeCampo, useMandarCodigo, type CodigoParaMandar } from '../ayudantes'
 
 interface CodigoDialogProps {
   codigo: CodigoParaMandar | null
@@ -49,6 +50,18 @@ export function CodigoDialog({ codigo, onClose }: CodigoDialogProps) {
             <p className="text-sm text-muted-foreground">
               {t('celulares.codigo.vence', { fecha: formatDate(codigo.expiraAt), defaultValue: 'Vence el {{fecha}}' })}
             </p>
+
+            <div className="flex items-center gap-4 rounded-lg border border-input p-4">
+              {/* Los QR van negro sobre blanco para que cualquier cámara los lea: colores fijos a propósito */}
+              <div className="shrink-0 rounded-md p-2" style={{ backgroundColor: '#ffffff' }}>
+                <QRCodeSVG value={ligaDeDescargaDeCampo()} size={112} level="M" bgColor="#ffffff" fgColor="#000000" />
+              </div>
+              <p className="text-sm text-muted-foreground">
+                {t('celulares.codigo.instalar', {
+                  defaultValue: '¿Aún no tiene la app? Que escanee este código para instalarla',
+                })}
+              </p>
+            </div>
 
             <DialogFooter className="gap-2 sm:justify-between">
               <Button variant="outline" onClick={onClose}>
