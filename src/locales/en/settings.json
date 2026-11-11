@@ -651,6 +651,7 @@
       "self-service_check-in": "Check in at the kiosk",
       "customers_approve": "Approve new customers",
       "cash-drawer_view-expected": "See expected drawer cash (not a blind count)",
+      "cash-drawer_pay-out": "Withdraw cash from the drawer",
       "marketing_read": "View the privacy notice",
       "marketing_manage": "Edit the privacy notice",
       "marketing_send": "Send email campaigns"
@@ -676,7 +677,8 @@
       "loyalty_redeem": "Allows redeeming accumulated points at checkout.",
       "shifts_close": "Generates the cash register cut with the shift's sales summary.",
       "orders_merge": "Allows combining two open checks into one and closing the source check. This cannot be undone.",
-      "cash-drawer_view-expected": "Sees during the day how much cash should be in the physical drawer. Without it the cashier counts blind and sees the result on close."
+      "cash-drawer_view-expected": "Sees during the day how much cash should be in the physical drawer. Without it the cashier counts blind and sees the result on close.",
+      "cash-drawer_pay-out": "Take cash out of the drawer mid-shift (drops, payouts). Without it, the cashier needs a manager PIN."
     },
     "resources": {
       "home": "Home",
