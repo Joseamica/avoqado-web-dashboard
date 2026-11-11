@@ -1069,6 +1069,7 @@ export default function ShiftId() {
               )}
 
               {correctOpen &&
+                venueId &&
                 shift.cashDeclared != null &&
                 shift.cashDifference != null &&
                 shift.cashDrawer?.expectedAmount != null && (
