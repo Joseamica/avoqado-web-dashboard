@@ -151,6 +151,9 @@ const PaymentRow = ({ p, venueTimezone }: { p: Payment; venueTimezone: string })
   )
 }
 
+/** Estados con los que la cuenta ya no se cobra. `DELETED` existe en el SERVIDOR aunque el enum del panel no lo traiga. */
+const ESTADOS_CERRADOS = new Set(['COMPLETED', 'CANCELLED', 'DELETED'])
+
 export function PaymentsSection({ order, venueTimezone }: Props) {
   const { t } = useTranslation('orders')
   const payments = order.payments ?? []
@@ -160,10 +163,13 @@ export function PaymentsSection({ order, venueTimezone }: Props) {
   const refundState = order.refundState ?? 'NONE'
   const refundedAmount = Number(order.refundedAmount ?? 0)
   const isRefunded = refundState !== 'NONE'
-  // 🔴 Devuelta ≠ por cobrar. Un reembolso reabre el saldo de la venta, y sin este
-  // guard la pantalla invitaba a "cobrar" un dinero que el negocio YA regresó.
+  // 🔴 Devuelta ≠ por cobrar. En una venta CERRADA (completada, cancelada o borrada) un reembolso no se vuelve a cobrar (18-ago),
+  // aunque una fila vieja guarde saldo por el defecto de antes de esa regla: con reembolso, ahí no se invita a «cobrar».
+  // D19 (SERVIDOR PR #394, 12-nov): en una cuenta todavía ABIERTA, el abono devuelto vuelve a deberse y el SERVIDOR guarda lo que
+  // de verdad falta (`remainingBalance`): se enseña también con reembolso. Cuenta $100, abono $50 devuelto ⇒ «Pendiente $100».
+  const cuentaCerrada = ESTADOS_CERRADOS.has(String(order.status))
   const hasPendingBalance =
-    !isRefunded && remainingBalance > 0 && (order.paymentStatus === 'PENDING' || order.paymentStatus === 'PARTIAL')
+    (!isRefunded || !cuentaCerrada) && remainingBalance > 0 && (order.paymentStatus === 'PENDING' || order.paymentStatus === 'PARTIAL')
 
   return (
     <section>
