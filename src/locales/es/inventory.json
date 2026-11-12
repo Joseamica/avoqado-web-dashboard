@@ -1588,6 +1588,28 @@
       "unrecorded": "+{{quantity}} sin existencia",
       "reason": "Motivo",
       "unrecordedLabel": "Sin existencia"
+    },
+    "export": {
+      "button": "Exportar",
+      "title": "Exportar historial",
+      "columns": {
+        "category": "Producto o insumo",
+        "unit": "Unidad",
+        "previousStock": "Existencia anterior",
+        "newStock": "Existencia nueva",
+        "unitCost": "Coste unitario",
+        "reason": "Motivo",
+        "reference": "Referencia",
+        "staff": "Responsable",
+        "wasteReport": "Folio de merma",
+        "wasteReason": "Código de motivo",
+        "wasteUnrecorded": "Sin existencia"
+      },
+      "filters": {
+        "search": "Búsqueda",
+        "severalTypes": "Varios tipos",
+        "notApplied": "No se aplican al archivo"
+      }
     }
   },
   "wasteReports": {
