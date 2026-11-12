@@ -276,6 +276,10 @@ const resolveVenueTitle = ({ sidebarT, commonT, menuT }: RouteTitleTranslators, 
     return resolveInventoryTitle([subsection], sidebarT)
   }
 
+  if (section === 'loyalty' && subsection === 'promotions') {
+    return sidebarT('customersMenu.loyaltyPromotions', { defaultValue: 'Loyalty promotions' })
+  }
+
   if (section === 'customers' && subsection === 'groups') {
     return sidebarT('customersMenu.groups', { defaultValue: 'Customer Groups' })
   }
