@@ -80,14 +80,20 @@ export interface DetailRow {
 export function toDetailRows(data: unknown, labelOf: (key: string) => string | null, word: WordFn): DetailRow[] {
   if (!data || typeof data !== 'object' || Array.isArray(data)) return []
   const safe = redactSensitive(data) as Record<string, unknown>
-  return Object.entries(safe).map(([key, value]) => ({
-    key,
-    // Sin traducción se muestra el nombre crudo del campo, nunca la clave i18n
-    // ("detailKeys.loQueSea"). Quién decide eso es el llamador, que es el único
-    // que sabe bajo qué prefijo vive la clave.
-    label: labelOf(key) ?? key,
-    value: formatDetailValue(value, word),
-  }))
+  return Object.entries(safe).map(([key, value]) => {
+    const label = labelOf(key)
+    return {
+      key,
+      // Sin traducción se muestra el nombre crudo del campo, nunca la clave i18n
+      // ("detailKeys.loQueSea"). Quién decide eso es el llamador, que es el único
+      // que sabe bajo qué prefijo vive la clave.
+      label: label ?? key,
+      // `…Cents` llega en centavos (convención del servidor). Con etiqueta, ésta
+      // dice «(MXN)» y el valor va en pesos; sin etiqueta se queda crudo, porque
+      // el nombre del campo que se ve sigue diciendo «Cents».
+      value: label && /Cents$/.test(key) && typeof value === 'number' ? (value / 100).toFixed(2) : formatDetailValue(value, word),
+    }
+  })
 }
 
 // ── Agrupación por día ────────────────────────────────────────────────────────
@@ -142,7 +148,9 @@ export function actionTone(action: string): ActionTone {
   // por encima de las reglas normales; algo atorado que alguien debe destrabar,
   // y el dinero cobrado de más o por fuera (tarjeta en línea) que hay que devolver,
   // o un cobro sin internet cuyo saldo no coincidió con el del servidor.
-  if (/(COMPED|VOIDED|OVERRIDE|REVERSED|REVERSAL|CLAWBACK|REFUND|DISCREPANC|VARIANCE|WENT_NEGATIVE|OVERPAY|SOBREPAGO|CON_DIFERENCIA|SUSPENDED|QUARANTINED|STUCK|CAPTURED_OUTSIDE|DOUBLE_PAYMENT)/.test(a)) {
+  // `VENTA_SIN_RED_*`: una venta sin internet (dinero ya cobrado) llegó con un
+  // problema y el servidor ya le avisó al dueño; no se perdió, hay que revisarla.
+  if (/(COMPED|VOIDED|OVERRIDE|REVERSED|REVERSAL|CLAWBACK|REFUND|DISCREPANC|VARIANCE|WENT_NEGATIVE|OVERPAY|SOBREPAGO|CON_DIFERENCIA|VENTA_SIN_RED_|SUSPENDED|QUARANTINED|STUCK|CAPTURED_OUTSIDE|DOUBLE_PAYMENT)/.test(a)) {
     return 'attention'
   }
   if (/(CREATED|ADDED|ISSUED|APPROVED|CONFIRMED|COMPLETED|ACTIVATED|ENABLED|GRANTED|PUBLISHED|RECEIVED|ACCEPTED|REACTIVATED|UNLOCKED|GENERATED)/.test(a)) {
