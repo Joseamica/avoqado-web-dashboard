@@ -97,4 +97,15 @@ describe('describirPromo', () => {
       'From Nov 13 to 17, on Tuesdays from 16:00 to 18:00, every visit gives 2 stamps instead of 1 and double points.',
     )
   })
+
+  it('si empieza hoy (con `hoy`) dice que arranca al guardarla: «Desde ahora y hasta el 17 de nov.»', () => {
+    const hoy = { ...buenFin, startDate: '2026-11-12', hoy: '2026-11-12' }
+    expect(describirPromo(hoy, ambos, tEs())).toBe('Desde ahora y hasta el 17 de nov., cada visita da 2 sellos en vez de 1 y el doble de puntos.')
+    expect(describirPromo(hoy, ambos, tEn())).toContain('Starting now through Nov 17,')
+    expect(describirPromo({ ...hoy, endDate: null }, ambos, tEs())).toMatch(/^Desde ahora, cada visita/)
+    expect(describirPromo({ ...hoy, endDate: '2026-11-12' }, ambos, tEs())).toMatch(/^Hoy, desde ahora, cada visita/)
+    // Otro día, o sin `hoy` (la lista de promos ya guardadas), se queda como antes.
+    expect(describirPromo({ ...buenFin, hoy: '2026-11-12' }, ambos, tEs())).toMatch(/^Del 13 al 17 de nov\./)
+    expect(describirPromo({ ...buenFin, startDate: '2026-11-12' }, ambos, tEs())).toMatch(/^Del 12 al 17 de nov\./)
+  })
 })

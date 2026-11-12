@@ -140,15 +140,16 @@ export function erroresDelBorrador(b: Borrador, programa: ProgramaPrendido, hoy:
   return e
 }
 
-/** El cuerpo completo (alta o promo programada). Lo que el negocio no tiene prendido no se manda. */
-function cuerpoDelBorrador(b: Borrador, programa: ProgramaPrendido): LoyaltyPromotionInput {
+/** El cuerpo completo (alta o promo programada). */
+function cuerpoDelBorrador(b: Borrador): LoyaltyPromotionInput {
   const suma = b.kind === 'ADD'
   return {
     name: b.name.trim(),
     kind: b.kind,
     multiplier: suma ? null : (b.multiplier ?? null),
-    extraStamps: suma && programa.sellos ? (b.extraStamps ?? null) : null,
-    extraPoints: suma && programa.puntos ? (b.extraPoints ?? null) : null,
+    // Un extra guardado que el negocio apagó después NO se borra en silencio al editar: viaja tal cual (el servidor ya lo aceptó).
+    extraStamps: suma ? (b.extraStamps ?? null) : null,
+    extraPoints: suma ? (b.extraPoints ?? null) : null,
     startDate: b.startDate,
     endDate: b.sinFin ? null : b.endDate,
     daysOfWeek: [...b.daysOfWeek].sort((x, y) => x - y),
@@ -243,6 +244,7 @@ export function LoyaltyPromotionDialog({ open, onClose, promo, programa, hoy, ve
       categoryNames: b.alcance === 'CATEGORIES' ? b.categoryIds.flatMap(id => nombres.get(id) ?? []) : [],
       minSpend: b.minSpend ?? null,
       limit: b.limit,
+      hoy,
     },
     programa,
     t,
@@ -257,7 +259,7 @@ export function LoyaltyPromotionDialog({ open, onClose, promo, programa, hoy, ve
       return
     }
     enviando.current = true
-    void onSave(soloFin ? { endDate: b.sinFin ? null : b.endDate } : cuerpoDelBorrador(b, programa)).finally(() => {
+    void onSave(soloFin ? { endDate: b.sinFin ? null : b.endDate } : cuerpoDelBorrador(b)).finally(() => {
       enviando.current = false
     })
   }

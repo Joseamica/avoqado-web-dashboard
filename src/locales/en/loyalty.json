@@ -209,7 +209,7 @@
       "requiredHint": "Between 2 and 50. Each visit adds one stamp; a loyalty promotion can add more.",
       "maxPerDay": "Stamped visits per customer per day",
       "maxPerDayUnlimited": "No limit",
-      "maxPerDayHint": "Between 1 and 10 per day. \"No limit\" stamps every visit.",
+      "maxPerDayHint": "At least 1 per day. \"No limit\" stamps every visit.",
       "rewardLabel": "How the reward reads",
       "rewardLabelPlaceholder": "A free coffee",
       "rewardLabelHint": "This is the text your customer sees on the card.",
@@ -223,7 +223,8 @@
       "fixedAmountHint": "How much is taken off the check.",
       "percentageHint": "What percentage is taken off the check (1 to 100).",
       "save": "Save program",
-      "saved": "Stamp program saved"
+      "saved": "Stamp program saved",
+      "maxPerDayRequired": "Enter how many visits per day, or turn on \"No limit\"."
     },
     "poster": {
       "title": "Counter poster",
@@ -332,7 +333,7 @@
       "categoriesPlaceholder": "Choose categories",
       "noResults": "No results",
       "minSpend": "Minimum sale amount",
-      "minSpendHint": "Leave it empty if there's no minimum.",
+      "minSpendHint": "Minimum on the sale amount, not counting the tip. Leave it empty if there's no minimum.",
       "limit": "Each customer earns it",
       "limitNONE": "No limit",
       "limitONCE_PER_DAY": "Once a day",
@@ -405,7 +406,10 @@
       "extraPoints_other": "{{count}} extra points",
       "nothing": "gives nothing extra with your current program",
       "limitONCE_PER_DAY": "Each customer earns it once a day.",
-      "limitONCE_PER_PROMOTION": "Each customer earns it only once."
+      "limitONCE_PER_PROMOTION": "Each customer earns it only once.",
+      "fromNow": "Starting now",
+      "fromNowToday": "Today, starting now",
+      "fromNowUntil": "Starting now through {{date}}"
     }
   }
 }

@@ -64,4 +64,27 @@ describe('Tope diario de sellos', () => {
     await pintar(0)
     expect(screen.getByRole('switch', { name: 'Sin límite' })).toBeChecked()
   })
+
+  it('escribir 0 no lo vuelve «Sin límite»: se queda en 1 (sólo el interruptor da sin límite)', async () => {
+    const campo = await pintar(3)
+    fireEvent.change(campo, { target: { value: '0' } })
+    expect(campo.value).toBe('1')
+    expect(screen.getByRole('switch', { name: 'Sin límite' })).not.toBeChecked()
+  })
+
+  it('vaciar el campo no guarda en silencio: avisa y bloquea «Guardar programa»', async () => {
+    const campo = await pintar(3)
+    fireEvent.change(campo, { target: { value: '' } })
+    expect(screen.getByText(/Escribe cuántas visitas al día/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Guardar programa' })).toBeDisabled()
+    expect(m.put).not.toHaveBeenCalled()
+  })
+
+  it('un 15 guardado por el MCP se ve y se conserva al guardar', async () => {
+    const campo = await pintar(15)
+    expect(campo.value).toBe('15')
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar programa' }))
+    await waitFor(() => expect(m.put).toHaveBeenCalled())
+    expect(m.put.mock.calls[0][1]).toMatchObject({ maxStampsPerDay: 15 })
+  })
 })

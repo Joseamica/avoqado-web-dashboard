@@ -209,7 +209,7 @@
       "requiredHint": "Entre 2 y 50. Cada visita suma un sello; con una promoción de lealtad puede sumar más.",
       "maxPerDay": "Visitas con sello por cliente al día",
       "maxPerDayUnlimited": "Sin límite",
-      "maxPerDayHint": "Entre 1 y 10 por día. «Sin límite» sella en cada visita.",
+      "maxPerDayHint": "Al menos 1 por día. «Sin límite» sella en cada visita.",
       "rewardLabel": "Cómo se lee el premio",
       "rewardLabelPlaceholder": "Un café gratis",
       "rewardLabelHint": "Es el texto que ve el cliente en su tarjeta.",
@@ -223,7 +223,8 @@
       "fixedAmountHint": "Cuánto se descuenta de la cuenta, en pesos.",
       "percentageHint": "Qué porcentaje se descuenta de la cuenta (de 1 a 100).",
       "save": "Guardar programa",
-      "saved": "Programa de sellos guardado"
+      "saved": "Programa de sellos guardado",
+      "maxPerDayRequired": "Escribe cuántas visitas al día, o activa «Sin límite»."
     },
     "poster": {
       "title": "Cartel para el mostrador",
@@ -332,7 +333,7 @@
       "categoriesPlaceholder": "Elige categorías",
       "noResults": "Sin resultados",
       "minSpend": "Gasto mínimo de la venta",
-      "minSpendHint": "Déjalo vacío si no hay mínimo.",
+      "minSpendHint": "Mínimo sobre el monto de la venta, sin contar la propina. Déjalo vacío si no hay mínimo.",
       "limit": "Cada cliente la gana",
       "limitNONE": "Sin límite",
       "limitONCE_PER_DAY": "1 vez al día",
@@ -405,7 +406,10 @@
       "extraPoints_other": "{{count}} puntos extra",
       "nothing": "no da nada extra con tu programa actual",
       "limitONCE_PER_DAY": "Cada cliente la gana 1 vez al día.",
-      "limitONCE_PER_PROMOTION": "Cada cliente la gana 1 sola vez."
+      "limitONCE_PER_PROMOTION": "Cada cliente la gana 1 sola vez.",
+      "fromNow": "Desde ahora",
+      "fromNowToday": "Hoy, desde ahora",
+      "fromNowUntil": "Desde ahora y hasta el {{date}}"
     }
   }
 }

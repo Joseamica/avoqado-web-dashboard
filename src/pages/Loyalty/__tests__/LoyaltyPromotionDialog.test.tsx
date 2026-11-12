@@ -24,7 +24,7 @@ vi.mock('@/services/menu.service', () => ({
 const HOY = '2026-11-12'
 const ambos = { sellos: true, puntos: true }
 
-type Props = { promo?: LoyaltyPromotion | null; onSave: (body: unknown) => Promise<unknown>; hoy?: string }
+type Props = { promo?: LoyaltyPromotion | null; onSave: (body: unknown) => Promise<unknown>; hoy?: string; programa?: { sellos: boolean; puntos: boolean } }
 
 async function pintar(props: Props) {
   const i18n = i18next.createInstance()
@@ -43,7 +43,7 @@ async function pintar(props: Props) {
           open
           onClose={() => {}}
           promo={p.promo ?? null}
-          programa={ambos}
+          programa={p.programa ?? ambos}
           hoy={p.hoy ?? HOY}
           venueId="cvenue000000000000000000"
           saving={false}
@@ -182,6 +182,44 @@ describe('LoyaltyPromotionDialog', () => {
     fireEvent.change(screen.getByLabelText('Hasta'), { target: { value: '2026-11-20' } })
     fireEvent.click(screen.getByRole('button', { name: 'Guardar' }))
     expect(onSave).toHaveBeenCalledWith({ endDate: '2026-11-20' })
+  })
+
+  it('editar una programada de suma con los sellos apagados conserva sus sellos extra guardados', async () => {
+    const onSave = vi.fn(enVuelo)
+    const programada: LoyaltyPromotion = {
+      id: 'cpromo00000000000000000001',
+      name: 'Suma',
+      kind: 'ADD',
+      multiplier: null,
+      extraStamps: 2,
+      extraPoints: 50,
+      status: 'SCHEDULED',
+      startsAt: '2026-11-20T06:00:00.000Z',
+      endsAt: null,
+      endedAt: null,
+      startDate: '2026-11-20',
+      endDate: null,
+      daysOfWeek: [],
+      timeFrom: null,
+      timeUntil: null,
+      productIds: [],
+      categoryIds: [],
+      products: [],
+      categories: [],
+      minSpend: null,
+      limit: 'NONE',
+      createdAt: '2026-11-09T18:00:00.000Z',
+      updatedAt: '2026-11-09T18:00:00.000Z',
+    }
+    await pintar({ promo: programada, onSave, programa: { sellos: false, puntos: true } })
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }))
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ extraStamps: 2, extraPoints: 50 }))
+  })
+
+  it('el gasto mínimo aclara que es sobre la venta sin propina', async () => {
+    await pintar({ onSave: vi.fn(enVuelo) })
+    fireEvent.click(screen.getByText('Más opciones'))
+    expect(screen.getByText(/sin contar la propina/)).toBeInTheDocument()
   })
 
   it('dos clics en el mismo instante en «Crear» mandan UNA promo', async () => {

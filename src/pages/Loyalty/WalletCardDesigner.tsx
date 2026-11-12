@@ -365,13 +365,13 @@ export default function WalletCardDesigner() {
                         id="max-stamps-per-day"
                         type="number"
                         min={1}
-                        max={10}
                         className="w-24"
                         disabled={programa.maxStampsPerDay === 0}
                         value={programa.maxStampsPerDay === 0 ? '' : (programa.maxStampsPerDay ?? '')}
                         onChange={e => {
-                          const raw = e.target.value
-                          setPrograma(p => ({ ...p, maxStampsPerDay: raw === '' ? undefined : parseInt(raw, 10) }))
+                          // 0 es «Sin límite» y eso sólo lo da el interruptor: lo escrito se queda en 1 o más. Vacío = sin valor (no guarda).
+                          const n = parseInt(e.target.value, 10)
+                          setPrograma(p => ({ ...p, maxStampsPerDay: Number.isNaN(n) ? undefined : Math.max(1, n) }))
                         }}
                       />
                       <div className="flex items-center gap-2">
@@ -387,6 +387,9 @@ export default function WalletCardDesigner() {
                       </div>
                     </div>
                     <p className="text-xs text-muted-foreground">{t('card.program.maxPerDayHint')}</p>
+                    {programa.maxStampsPerDay === undefined && (
+                      <p className="text-xs text-destructive">{t('card.program.maxPerDayRequired')}</p>
+                    )}
                   </div>
 
                   <div className="mt-4 space-y-2">
@@ -431,7 +434,11 @@ export default function WalletCardDesigner() {
                   </div>
 
                   <div className="mt-5 flex justify-end">
-                    <Button size="sm" onClick={() => guardarPrograma.mutate()} disabled={guardarPrograma.isPending}>
+                    <Button
+                      size="sm"
+                      onClick={() => guardarPrograma.mutate()}
+                      disabled={guardarPrograma.isPending || programa.maxStampsPerDay === undefined}
+                    >
                       {guardarPrograma.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                       {t('card.program.save')}
                     </Button>

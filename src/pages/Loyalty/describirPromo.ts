@@ -20,6 +20,8 @@ export interface PromoParaDescribir {
   /** Pesos. */
   minSpend: number | null
   limit: LoyaltyPromotionLimit
+  /** Hoy en el negocio. Sólo el diálogo lo manda: una promo que empieza hoy arranca en el instante en que se guarda. */
+  hoy?: string
 }
 
 /** Lo que el negocio tiene prendido: la frase sólo habla de eso. */
@@ -52,6 +54,10 @@ function cuando(p: PromoParaDescribir, t: TFunction): string {
   const fecha = (f: { d: number; m: number; y: number }, conAnio: boolean) =>
     t(`${P}${conAnio ? 'dateYear' : 'date'}`, { d: f.d, month: meses[f.m], y: f.y })
   const fin = dia(p.endDate)
+  if (p.hoy && p.startDate === p.hoy) {
+    if (!fin) return t(`${P}fromNow`)
+    return p.endDate === p.startDate ? t(`${P}fromNowToday`) : t(`${P}fromNowUntil`, { date: fecha(fin, fin.y !== ini.y) })
+  }
   if (!fin) return t(`${P}since`, { date: fecha(ini, false) })
   if (fin.y === ini.y && fin.m === ini.m) {
     if (fin.d === ini.d) return t(`${P}oneDay`, { date: fecha(ini, false) })
