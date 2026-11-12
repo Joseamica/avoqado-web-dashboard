@@ -120,7 +120,7 @@ describe('LoyaltyPromotionDialog', () => {
     expect(onSave).not.toHaveBeenCalled()
     expect(screen.getByText('Ponle un nombre (hasta 80 letras).')).toBeInTheDocument()
     expect(screen.getByText('Elige desde cuándo.')).toBeInTheDocument()
-  })
+  }, 15_000) // primera prueba del archivo: paga la importación en frío
 
   it('crea con el cuerpo que espera el servidor, y la vista previa sale del borrador', async () => {
     const onSave = vi.fn(enVuelo)
