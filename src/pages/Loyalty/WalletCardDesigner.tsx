@@ -171,12 +171,14 @@ export default function WalletCardDesigner() {
     stampRewardType: TipoPremio
     stampRewardValue: number | undefined
     stampRewardLabel: string
+    maxStampsPerDay: number | undefined // 0 = sin límite
   }>({
     stampsEnabled: false,
     stampsRequired: 10,
     stampRewardType: 'FREE_PRODUCT',
     stampRewardValue: undefined,
     stampRewardLabel: '',
+    maxStampsPerDay: 1,
   })
 
   useEffect(() => {
@@ -187,6 +189,7 @@ export default function WalletCardDesigner() {
       stampRewardType: (config.stampRewardType as TipoPremio) ?? 'FREE_PRODUCT',
       stampRewardValue: config.stampRewardValue == null ? undefined : Number(config.stampRewardValue),
       stampRewardLabel: config.stampRewardLabel ?? '',
+      maxStampsPerDay: config.maxStampsPerDay ?? 1,
     })
   }, [config])
 
@@ -196,6 +199,7 @@ export default function WalletCardDesigner() {
         stampsEnabled: programa.stampsEnabled,
         stampsRequired: programa.stampsRequired,
         stampRewardType: programa.stampRewardType,
+        ...(programa.maxStampsPerDay === undefined ? {} : { maxStampsPerDay: programa.maxStampsPerDay }),
         // El monto sólo viaja cuando el tipo lo usa: mandarlo con FREE_PRODUCT
         // guardaría un número que nadie lee y confunde al leer la configuración.
         ...(programa.stampRewardType === 'FREE_PRODUCT' ? {} : { stampRewardValue: programa.stampRewardValue }),
@@ -350,6 +354,39 @@ export default function WalletCardDesigner() {
                       />
                       <p className="text-xs text-muted-foreground">{t('card.program.rewardLabelHint')}</p>
                     </div>
+                  </div>
+
+                  <div className="mt-4 space-y-2">
+                    <Label htmlFor="max-stamps-per-day" className="text-sm">
+                      {t('card.program.maxPerDay')}
+                    </Label>
+                    <div className="flex items-center gap-4">
+                      <Input
+                        id="max-stamps-per-day"
+                        type="number"
+                        min={1}
+                        max={10}
+                        className="w-24"
+                        disabled={programa.maxStampsPerDay === 0}
+                        value={programa.maxStampsPerDay === 0 ? '' : (programa.maxStampsPerDay ?? '')}
+                        onChange={e => {
+                          const raw = e.target.value
+                          setPrograma(p => ({ ...p, maxStampsPerDay: raw === '' ? undefined : parseInt(raw, 10) }))
+                        }}
+                      />
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          id="max-stamps-unlimited"
+                          checked={programa.maxStampsPerDay === 0}
+                          onCheckedChange={v => setPrograma(p => ({ ...p, maxStampsPerDay: v ? 0 : 1 }))}
+                          aria-label={t('card.program.maxPerDayUnlimited')}
+                        />
+                        <Label htmlFor="max-stamps-unlimited" className="text-sm">
+                          {t('card.program.maxPerDayUnlimited')}
+                        </Label>
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground">{t('card.program.maxPerDayHint')}</p>
                   </div>
 
                   <div className="mt-4 space-y-2">
