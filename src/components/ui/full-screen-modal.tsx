@@ -38,8 +38,8 @@ interface FullScreenModalProps {
   /** `data-testid` del botón de cerrar (para pruebas: «Cerrar» por nombre choca con el de un aviso abierto). */
   closeButtonTestId?: string
   /**
-   * Clases del bloque del título. Sin ellas, un título largo puede encimarse con las acciones en un celular: pasa un ancho máximo que
-   * deje libre lo que ocupan la X y las acciones, y `*:truncate` para que se recorte con «…».
+   * Clases del bloque del título. En un celular el título ya va en el flujo y se recorta solo; desde `sm` va centrado encima del header,
+   * y ahí un título largo con muchas acciones puede encimarse: pasa un ancho máximo y `*:truncate`.
    */
   titleClassName?: string
 }
@@ -86,7 +86,7 @@ export function FullScreenModal({
               <Button
                 variant="secondary"
                 size="icon"
-                className="h-12 w-12 rounded-full"
+                className="h-12 w-12 shrink-0 rounded-full"
                 data-tour="bundle-editor-close"
                 data-testid={closeButtonTestId}
               >
@@ -95,8 +95,15 @@ export function FullScreenModal({
               </Button>
             </DialogPrimitive.Close>
 
-            {/* Center - Title */}
-            <div className={cn('absolute left-1/2 -translate-x-1/2 text-center', titleClassName)}>
+            {/* Center - Title. En un celular (< sm) va junto a la X, en el flujo y recortado con «…»: centrado encima del header se
+                encimaba con las acciones (a 375 px, «Exportar historial» quedaba debajo del botón «Exportar», 12-nov). Desde sm, centrado. */}
+            <div
+              className={cn(
+                'min-w-0 flex-1 px-3 text-left max-sm:*:truncate',
+                'sm:absolute sm:left-1/2 sm:flex-none sm:-translate-x-1/2 sm:px-0 sm:text-center',
+                titleClassName
+              )}
+            >
               {subtitle && (
                 <p className="text-xs text-muted-foreground leading-tight">{subtitle}</p>
               )}
@@ -111,7 +118,7 @@ export function FullScreenModal({
             </DialogPrimitive.Description>
 
             {/* Right - Actions */}
-            <div className="flex items-center gap-2">
+            <div className="flex shrink-0 items-center gap-2">
               {actions}
             </div>
           </header>
