@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { keepPreviousData, useMutation, useQueries, useQuery, useQueryClient, type UseQueryResult } from '@tanstack/react-query'
 import { DateTime } from 'luxon'
 import { useTranslation } from 'react-i18next'
@@ -43,7 +43,9 @@ export default function LoyaltyPromotions() {
   const { toast } = useToast()
   const queryClient = useQueryClient()
 
-  const [dialogo, setDialogo] = useState<{ promo: LoyaltyPromotion | null } | null>(null)
+  // `hoy` se fija al abrir: un redibujo después de la medianoche no le cambia el día al borrador abierto.
+  const [dialogo, setDialogo] = useState<{ promo: LoyaltyPromotion | null; hoy: string } | null>(null)
+  const abrir = (promo: LoyaltyPromotion | null) => setDialogo({ promo, hoy: DateTime.now().setZone(venueTimezone).toISODate() ?? '' })
   const [porTerminar, setPorTerminar] = useState<LoyaltyPromotion | null>(null)
   const [paginas, setPaginas] = useState<Record<LoyaltyPromotionStatus, number>>({ ACTIVE: 1, SCHEDULED: 1, ENDED: 1 })
   const cambiarPagina = useCallback((status: LoyaltyPromotionStatus, page: number) => setPaginas(p => ({ ...p, [status]: page })), [])
@@ -84,8 +86,8 @@ export default function LoyaltyPromotions() {
   const todoVacio = consultas.every(q => q.isSuccess && q.data.total === 0)
 
   const refrescar = () => queryClient.invalidateQueries({ queryKey: ['loyalty-promotions', venueId] })
-  const avisarError = (error: any) =>
-    toast({ variant: 'destructive', title: t('promotions.toasts.error'), description: error?.response?.data?.message })
+  const avisarError = (titulo: string, error: any) =>
+    toast({ variant: 'destructive', title: titulo, description: error?.response?.data?.message })
 
   const guardar = useMutation({
     mutationFn: ({ id, body }: { id: string | null; body: LoyaltyPromotionInput | LoyaltyPromotionEndDatePatch }) =>
@@ -97,7 +99,7 @@ export default function LoyaltyPromotions() {
     },
     // El diálogo sigue abierto con lo escrito. Se refresca la lista: un 409 suele ser que la promo cambió de estado (empezó).
     onError: error => {
-      avisarError(error)
+      avisarError(t('promotions.toasts.error'), error)
       refrescar()
     },
   })
@@ -109,12 +111,24 @@ export default function LoyaltyPromotions() {
       refrescar()
     },
     onError: error => {
-      avisarError(error)
+      avisarError(t('promotions.toasts.endError'), error)
       refrescar()
     },
   })
-
-  const hoy = DateTime.now().setZone(venueTimezone).toISODate() ?? ''
+  // Candado: el «Terminar ahora» de la confirmación sigue vivo hasta el redibujo; dos clics del mismo instante mandarían dos.
+  const terminando = useRef(false)
+  const confirmarTerminar = () => {
+    if (!porTerminar || terminando.current) return
+    terminando.current = true
+    terminar
+      .mutateAsync(porTerminar.id)
+      .catch(() => undefined)
+      .finally(() => {
+        terminando.current = false
+      })
+  }
+  // Con el programa entero apagado, los dos botones van a Lealtad, donde está su interruptor; los sellos se prenden en la tarjeta.
+  const rutaSellos = config?.active ? `${fullBasePath}/loyalty/card` : `${fullBasePath}/loyalty`
 
   return (
     <FeatureGate feature="LOYALTY_PROGRAM">
@@ -126,12 +140,7 @@ export default function LoyaltyPromotions() {
           </div>
           {config && !sinPrograma && (
             <PermissionGate permission="loyalty:update">
-              <Button
-                onClick={() => setDialogo({ promo: null })}
-                disabled={lleno}
-                className="cursor-pointer"
-                data-tour="loyalty-promo-new-btn"
-              >
+              <Button onClick={() => abrir(null)} disabled={lleno} className="cursor-pointer" data-tour="loyalty-promo-new-btn">
                 <Plus className="mr-2 h-4 w-4" />
                 {t('promotions.new')}
               </Button>
@@ -154,7 +163,7 @@ export default function LoyaltyPromotions() {
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <Button asChild variant="outline" size="sm">
-                    <Link to={`${fullBasePath}/loyalty/card`}>{t('promotions.programOff.stamps')}</Link>
+                    <Link to={rutaSellos}>{t('promotions.programOff.stamps')}</Link>
                   </Button>
                   <Button asChild variant="outline" size="sm">
                     <Link to={`${fullBasePath}/loyalty`}>{t('promotions.programOff.points')}</Link>
@@ -169,7 +178,11 @@ export default function LoyaltyPromotions() {
           <div className="rounded-2xl border border-dashed border-input p-10 text-center">
             <Gift className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
             <h3 className="font-semibold">{t('promotions.empty.title')}</h3>
-            <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">{t('promotions.empty.description')}</p>
+            <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
+              <PermissionGate permission="loyalty:update" fallback={t('promotions.empty.readOnly')}>
+                {t('promotions.empty.description')}
+              </PermissionGate>
+            </p>
           </div>
         )}
 
@@ -182,8 +195,9 @@ export default function LoyaltyPromotions() {
             onPage={cambiarPagina}
             programa={programa}
             formatDate={formatDate}
-            onEdit={promo => setDialogo({ promo })}
+            onEdit={abrir}
             onEnd={setPorTerminar}
+            terminando={terminar.isPending}
           />
         ))}
       </div>
@@ -194,10 +208,10 @@ export default function LoyaltyPromotions() {
           onClose={() => setDialogo(null)}
           promo={dialogo.promo}
           programa={programa}
-          hoy={hoy}
+          hoy={dialogo.hoy}
           venueId={venueId}
           saving={guardar.isPending}
-          onSave={body => guardar.mutate({ id: dialogo.promo?.id ?? null, body })}
+          onSave={body => guardar.mutateAsync({ id: dialogo.promo?.id ?? null, body }).catch(() => undefined)}
         />
       )}
 
@@ -209,7 +223,7 @@ export default function LoyaltyPromotions() {
         confirmText={t('promotions.confirmEnd.confirm')}
         cancelText={t('promotions.confirmEnd.cancel')}
         variant="destructive"
-        onConfirm={() => porTerminar && terminar.mutate(porTerminar.id)}
+        onConfirm={confirmarTerminar}
       />
     </FeatureGate>
   )
@@ -224,6 +238,7 @@ function Grupo({
   formatDate,
   onEdit,
   onEnd,
+  terminando,
 }: {
   status: LoyaltyPromotionStatus
   query: UseQueryResult<PaginatedLoyaltyPromotions>
@@ -233,6 +248,7 @@ function Grupo({
   formatDate: (d: string) => string
   onEdit: (p: LoyaltyPromotion) => void
   onEnd: (p: LoyaltyPromotion) => void
+  terminando: boolean
 }) {
   const { t } = useTranslation('loyalty')
   const datos = query.data
@@ -278,7 +294,7 @@ function Grupo({
                 <Button variant="outline" size="sm" className="cursor-pointer" onClick={() => onEdit(p)}>
                   {t('promotions.actions.edit')}
                 </Button>
-                <Button variant="outline" size="sm" className="cursor-pointer" onClick={() => onEnd(p)}>
+                <Button variant="outline" size="sm" className="cursor-pointer" disabled={terminando} onClick={() => onEnd(p)}>
                   {t('promotions.actions.end')}
                 </Button>
               </div>

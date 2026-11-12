@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { CalendarDays, ChevronDown, Info, SlidersHorizontal, Sparkles } from 'lucide-react'
@@ -174,12 +174,16 @@ interface Props {
   hoy: string
   venueId: string
   saving: boolean
-  onSave: (body: LoyaltyPromotionInput | LoyaltyPromotionEndDatePatch) => void
+  /** Termina cuando termina el envío (con éxito o no): mientras tanto, otro «Crear»/«Guardar» no manda nada. */
+  onSave: (body: LoyaltyPromotionInput | LoyaltyPromotionEndDatePatch) => Promise<unknown>
 }
 
 /**
  * Crear o editar una promoción de lealtad (spec §4.1). Lo básico a la vista (nombre, qué da, fechas); lo demás en «Más opciones»,
  * cerrado. La vista previa sale del BORRADOR, no de lo guardado: el dueño lee qué va a pasar antes de crearla.
+ *
+ * Se monta al abrir: el borrador nace del `promo` y del `hoy` de ese momento y ningún redibujo lo vuelve a sembrar (pasada la
+ * medianoche, una relectura de la lista o un `hoy` nuevo no borran lo que el dueño ya escribió).
  */
 export function LoyaltyPromotionDialog({ open, onClose, promo, programa, hoy, venueId, saving, onSave }: Props) {
   const { t } = useTranslation('loyalty')
@@ -187,26 +191,20 @@ export function LoyaltyPromotionDialog({ open, onClose, promo, programa, hoy, ve
   const [b, setB] = useState<Borrador>(() => (promo ? borradorDe(promo) : borradorNuevo(hoy)))
   const [intento, setIntento] = useState(false)
   const [mas, setMas] = useState(() => tieneMasOpciones(b))
+  // Candado del envío: `saving` llega hasta el siguiente redibujo y dos clics del mismo instante pasarían los dos.
+  const enviando = useRef(false)
 
-  useEffect(() => {
-    if (!open) return
-    const nuevo = promo ? borradorDe(promo) : borradorNuevo(hoy)
-    setB(nuevo)
-    setIntento(false)
-    setMas(tieneMasOpciones(nuevo))
-  }, [open, promo, hoy])
-
-  // Los selectores sólo se piden al abrir «Más opciones». Mismas llaves que los descuentos: comparten caché.
+  // El catálogo sólo se pide cuando su selector está a la vista. Mismas llaves que los descuentos: comparten caché.
   const productosQuery = useQuery({
     queryKey: ['products', venueId, 'orderBy:name'],
     queryFn: () => getProducts(venueId, { orderBy: 'name', includeRecipe: false, includeModifiers: false }),
-    enabled: open && mas,
+    enabled: open && mas && b.alcance === 'PRODUCTS',
     staleTime: 30_000,
   })
   const categoriasQuery = useQuery({
     queryKey: ['categories', venueId],
     queryFn: () => getMenuCategories(venueId),
-    enabled: open && mas,
+    enabled: open && mas && b.alcance === 'CATEGORIES',
     staleTime: 30_000,
   })
   const productos = useMemo(() => productosQuery.data ?? [], [productosQuery.data])
@@ -251,13 +249,17 @@ export function LoyaltyPromotionDialog({ open, onClose, promo, programa, hoy, ve
   )
 
   const guardar = () => {
+    if (saving || enviando.current) return
     setIntento(true)
     const campos = Object.keys(errores) as Campo[]
     if (campos.length > 0) {
       if (campos.some(c => DE_MAS_OPCIONES.includes(c))) setMas(true)
       return
     }
-    onSave(soloFin ? { endDate: b.sinFin ? null : b.endDate } : cuerpoDelBorrador(b, programa))
+    enviando.current = true
+    void onSave(soloFin ? { endDate: b.sinFin ? null : b.endDate } : cuerpoDelBorrador(b, programa)).finally(() => {
+      enviando.current = false
+    })
   }
 
   const dias = t('promotions.dialog.dayShort', { returnObjects: true }) as unknown as string[]

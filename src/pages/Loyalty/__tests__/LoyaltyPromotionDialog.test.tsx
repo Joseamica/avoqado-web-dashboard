@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import i18next from 'i18next'
 import { I18nextProvider, initReactI18next } from 'react-i18next'
@@ -9,15 +9,24 @@ import type { LoyaltyPromotion } from '@/types/customer'
 import { LoyaltyPromotionDialog, borradorNuevo, erroresDelBorrador, type Borrador } from '../components/LoyaltyPromotionDialog'
 
 // Funciones normales y no `vi.fn()`: la config trae `mockReset: true` y borraría su implementación antes de cada prueba.
+const pedidos = vi.hoisted(() => ({ productos: 0, categorias: 0 }))
 vi.mock('@/services/menu.service', () => ({
-  getProducts: async () => [],
-  getMenuCategories: async () => [],
+  getProducts: async () => {
+    pedidos.productos++
+    return []
+  },
+  getMenuCategories: async () => {
+    pedidos.categorias++
+    return []
+  },
 }))
 
 const HOY = '2026-11-12'
 const ambos = { sellos: true, puntos: true }
 
-async function pintar(props: { promo?: LoyaltyPromotion | null; onSave: (body: unknown) => void }) {
+type Props = { promo?: LoyaltyPromotion | null; onSave: (body: unknown) => Promise<unknown>; hoy?: string }
+
+async function pintar(props: Props) {
   const i18n = i18next.createInstance()
   await i18n.use(initReactI18next).init({
     lng: 'es',
@@ -26,23 +35,28 @@ async function pintar(props: { promo?: LoyaltyPromotion | null; onSave: (body: u
     resources: { es: { loyalty: loyaltyEs, common: commonEs } },
     interpolation: { escapeValue: false },
   })
-  render(
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  const arbol = (p: Props) => (
     <I18nextProvider i18n={i18n}>
-      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+      <QueryClientProvider client={client}>
         <LoyaltyPromotionDialog
           open
           onClose={() => {}}
-          promo={props.promo ?? null}
+          promo={p.promo ?? null}
           programa={ambos}
-          hoy={HOY}
+          hoy={p.hoy ?? HOY}
           venueId="cvenue000000000000000000"
           saving={false}
-          onSave={props.onSave}
+          onSave={p.onSave}
         />
       </QueryClientProvider>
-    </I18nextProvider>,
+    </I18nextProvider>
   )
+  const r = render(arbol(props))
+  return { rerender: (p: Props) => r.rerender(arbol(p)) }
 }
+/** Nunca termina: el envío sigue «en vuelo» durante toda la prueba. */
+const enVuelo = () => new Promise(() => {})
 
 const valido = (cambios: Partial<Borrador> = {}): Borrador => ({
   ...borradorNuevo(HOY),
@@ -99,7 +113,7 @@ describe('erroresDelBorrador', () => {
 
 describe('LoyaltyPromotionDialog', () => {
   it('el diálogo no deja crear sin nombre ni fecha', async () => {
-    const onSave = vi.fn()
+    const onSave = vi.fn(enVuelo)
     await pintar({ onSave })
     fireEvent.change(screen.getByLabelText('Desde'), { target: { value: '' } })
     fireEvent.click(screen.getByRole('button', { name: 'Crear' }))
@@ -109,7 +123,7 @@ describe('LoyaltyPromotionDialog', () => {
   })
 
   it('crea con el cuerpo que espera el servidor, y la vista previa sale del borrador', async () => {
-    const onSave = vi.fn()
+    const onSave = vi.fn(enVuelo)
     await pintar({ onSave })
     fireEvent.change(screen.getByLabelText('Nombre'), { target: { value: '  Buen Fin sello doble ' } })
     fireEvent.change(screen.getByLabelText('Desde'), { target: { value: '2026-11-13' } })
@@ -137,7 +151,7 @@ describe('LoyaltyPromotionDialog', () => {
   })
 
   it('una activa manda SÓLO la fecha de fin (el servidor rechaza cualquier otra llave)', async () => {
-    const onSave = vi.fn()
+    const onSave = vi.fn(enVuelo)
     const activa: LoyaltyPromotion = {
       id: 'cpromo00000000000000000000',
       name: 'Buen Fin',
@@ -168,5 +182,41 @@ describe('LoyaltyPromotionDialog', () => {
     fireEvent.change(screen.getByLabelText('Hasta'), { target: { value: '2026-11-20' } })
     fireEvent.click(screen.getByRole('button', { name: 'Guardar' }))
     expect(onSave).toHaveBeenCalledWith({ endDate: '2026-11-20' })
+  })
+
+  it('dos clics en el mismo instante en «Crear» mandan UNA promo', async () => {
+    const onSave = vi.fn(enVuelo)
+    await pintar({ onSave })
+    fireEvent.change(screen.getByLabelText('Nombre'), { target: { value: 'Buen Fin' } })
+    fireEvent.click(screen.getByLabelText('Sin fin'))
+    const crear = screen.getByRole('button', { name: 'Crear' })
+    act(() => {
+      crear.click()
+      crear.click()
+    })
+    expect(onSave).toHaveBeenCalledTimes(1)
+  })
+
+  it('«Más opciones» no pide el catálogo: productos sólo con «Estos productos», categorías sólo con «Estas categorías»', async () => {
+    pedidos.productos = 0
+    pedidos.categorias = 0
+    await pintar({ onSave: vi.fn(enVuelo) })
+    fireEvent.click(screen.getByRole('button', { name: /Más opciones/ }))
+    await screen.findByText('Sólo si la venta lleva')
+    await new Promise(r => setTimeout(r, 20))
+    expect(pedidos).toEqual({ productos: 0, categorias: 0 })
+    fireEvent.click(screen.getByLabelText('Estos productos'))
+    await waitFor(() => expect(pedidos.productos).toBe(1))
+    expect(pedidos.categorias).toBe(0)
+    fireEvent.click(screen.getByLabelText('Estas categorías'))
+    await waitFor(() => expect(pedidos.categorias).toBe(1))
+  })
+
+  it('un redibujo con otro «hoy» (pasó la medianoche) no borra lo escrito', async () => {
+    const onSave = vi.fn(enVuelo)
+    const { rerender } = await pintar({ onSave })
+    fireEvent.change(screen.getByLabelText('Nombre'), { target: { value: 'Buen Fin' } })
+    rerender({ onSave, hoy: '2026-11-13' })
+    expect(screen.getByLabelText('Nombre')).toHaveValue('Buen Fin')
   })
 })

@@ -249,7 +249,8 @@
     },
     "empty": {
       "title": "Aún no tienes promociones de lealtad",
-      "description": "Crea una para dar el doble de sellos o de puntos en un fin de semana, un día de la semana o una hora tranquila."
+      "description": "Crea una para dar el doble de sellos o de puntos en un fin de semana, un día de la semana o una hora tranquila.",
+      "readOnly": "Cuando alguien con permiso cree una, aparecerá aquí."
     },
     "programOff": {
       "title": "Primero prende tu programa de lealtad",
@@ -279,7 +280,8 @@
       "created": "Promoción creada",
       "updated": "Promoción guardada",
       "ended": "Promoción terminada",
-      "error": "No se pudo guardar la promoción"
+      "error": "No se pudo guardar la promoción",
+      "endError": "No se pudo terminar la promoción"
     },
     "dialog": {
       "createTitle": "Nueva promoción de lealtad",

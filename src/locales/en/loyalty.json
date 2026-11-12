@@ -249,7 +249,8 @@
     },
     "empty": {
       "title": "You don't have loyalty promotions yet",
-      "description": "Create one to give double stamps or points on a weekend, a day of the week or a quiet hour."
+      "description": "Create one to give double stamps or points on a weekend, a day of the week or a quiet hour.",
+      "readOnly": "When someone with permission creates one, it will show up here."
     },
     "programOff": {
       "title": "Turn on your loyalty program first",
@@ -279,7 +280,8 @@
       "created": "Promotion created",
       "updated": "Promotion saved",
       "ended": "Promotion ended",
-      "error": "The promotion couldn't be saved"
+      "error": "The promotion couldn't be saved",
+      "endError": "The promotion couldn't be ended"
     },
     "dialog": {
       "createTitle": "New loyalty promotion",
