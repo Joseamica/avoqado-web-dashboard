@@ -1588,6 +1588,28 @@
       "unrecorded": "+{{quantity}} not in stock",
       "reason": "Reason",
       "unrecordedLabel": "Not in stock"
+    },
+    "export": {
+      "button": "Export",
+      "title": "Export history",
+      "columns": {
+        "category": "Product or ingredient",
+        "unit": "Unit",
+        "previousStock": "Previous stock",
+        "newStock": "New stock",
+        "unitCost": "Unit cost",
+        "reason": "Reason",
+        "reference": "Reference",
+        "staff": "Done by",
+        "wasteReport": "Waste report",
+        "wasteReason": "Reason code",
+        "wasteUnrecorded": "Not in stock"
+      },
+      "filters": {
+        "search": "Search",
+        "severalTypes": "Several types",
+        "notApplied": "Not applied to the file"
+      }
     }
   },
   "wasteReports": {

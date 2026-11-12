@@ -53,7 +53,11 @@ export interface ExportDialogProps {
    * barra, campanita y correo. Sin esta prop (Órdenes) el diálogo hace el GET de siempre. El PDF siempre va por el GET.
    */
   segundoPlano?: { venueId: string; kind: string }
+  /** Formatos que se ofrecen (por omisión los tres). Un exporte sin GET viejo, como el Historial de inventario, no tiene PDF. */
+  formatos?: ExportFormat[]
 }
+
+const TODOS_LOS_FORMATOS: ExportFormat[] = ['csv', 'xlsx', 'pdf']
 
 /**
  * Stripe-style export dialog.
@@ -77,6 +81,7 @@ export function ExportDialog({
   filenameStem,
   activeFilterSummary,
   segundoPlano,
+  formatos = TODOS_LOS_FORMATOS,
 }: ExportDialogProps) {
   const { t } = useTranslation()
   const { toast } = useToast()
@@ -343,61 +348,67 @@ export function ExportDialog({
               {t('exportDialog.sections.formatHint', { defaultValue: 'Selecciona cómo quieres recibir el archivo' })}
             </p>
           </header>
-          <RadioGroup value={format} onValueChange={v => setFormat(v as ExportFormat)} className="grid gap-3 sm:grid-cols-3">
-            <label
-              className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition-colors ${
-                format === 'csv' ? 'border-primary bg-primary/5' : 'border-input bg-background hover:bg-muted/40'
-              }`}
-            >
-              <RadioGroupItem value="csv" id="fmt-csv" className="mt-1" />
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <FileText className="h-4 w-4 text-muted-foreground" />
-                  <Label htmlFor="fmt-csv" className="cursor-pointer font-semibold">
-                    CSV
-                  </Label>
+          <RadioGroup value={format} onValueChange={v => setFormat(v as ExportFormat)} className={`grid gap-3 ${formatos.length >= 3 ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}>
+            {formatos.includes('csv') && (
+              <label
+                className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition-colors ${
+                  format === 'csv' ? 'border-primary bg-primary/5' : 'border-input bg-background hover:bg-muted/40'
+                }`}
+              >
+                <RadioGroupItem value="csv" id="fmt-csv" className="mt-1" />
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-muted-foreground" />
+                    <Label htmlFor="fmt-csv" className="cursor-pointer font-semibold">
+                      CSV
+                    </Label>
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {t('exportDialog.formats.csvHint', { defaultValue: 'Ligero. Compatible con Excel, Google Sheets.' })}
+                  </p>
                 </div>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {t('exportDialog.formats.csvHint', { defaultValue: 'Ligero. Compatible con Excel, Google Sheets.' })}
-                </p>
-              </div>
-            </label>
-            <label
-              className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition-colors ${
-                format === 'xlsx' ? 'border-primary bg-primary/5' : 'border-input bg-background hover:bg-muted/40'
-              }`}
-            >
-              <RadioGroupItem value="xlsx" id="fmt-xlsx" className="mt-1" />
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <FileSpreadsheet className="h-4 w-4 text-muted-foreground" />
-                  <Label htmlFor="fmt-xlsx" className="cursor-pointer font-semibold">
-                    Excel
-                  </Label>
+              </label>
+            )}
+            {formatos.includes('xlsx') && (
+              <label
+                className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition-colors ${
+                  format === 'xlsx' ? 'border-primary bg-primary/5' : 'border-input bg-background hover:bg-muted/40'
+                }`}
+              >
+                <RadioGroupItem value="xlsx" id="fmt-xlsx" className="mt-1" />
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <FileSpreadsheet className="h-4 w-4 text-muted-foreground" />
+                    <Label htmlFor="fmt-xlsx" className="cursor-pointer font-semibold">
+                      Excel
+                    </Label>
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {t('exportDialog.formats.xlsxHint', { defaultValue: 'Con formato, ideal para contabilidad.' })}
+                  </p>
                 </div>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {t('exportDialog.formats.xlsxHint', { defaultValue: 'Con formato, ideal para contabilidad.' })}
-                </p>
-              </div>
-            </label>
-            <label
-              className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition-colors ${
-                format === 'pdf' ? 'border-primary bg-primary/5' : 'border-input bg-background hover:bg-muted/40'
-              }`}
-            >
-              <RadioGroupItem value="pdf" id="fmt-pdf" className="mt-1" />
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <FileType2 className="h-4 w-4 text-muted-foreground" />
-                  <Label htmlFor="fmt-pdf" className="cursor-pointer font-semibold">
-                    PDF
-                  </Label>
+              </label>
+            )}
+            {formatos.includes('pdf') && (
+              <label
+                className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition-colors ${
+                  format === 'pdf' ? 'border-primary bg-primary/5' : 'border-input bg-background hover:bg-muted/40'
+                }`}
+              >
+                <RadioGroupItem value="pdf" id="fmt-pdf" className="mt-1" />
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <FileType2 className="h-4 w-4 text-muted-foreground" />
+                    <Label htmlFor="fmt-pdf" className="cursor-pointer font-semibold">
+                      PDF
+                    </Label>
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {t('exportDialog.formats.pdfHint', { defaultValue: 'Imprimible. Límite de 1,000 filas.' })}
+                  </p>
                 </div>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {t('exportDialog.formats.pdfHint', { defaultValue: 'Imprimible. Límite de 1,000 filas.' })}
-                </p>
-              </div>
-            </label>
+              </label>
+            )}
           </RadioGroup>
           {showPdfWarning && (
             <p className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-900/40 dark:bg-amber-900/20 dark:text-amber-200">

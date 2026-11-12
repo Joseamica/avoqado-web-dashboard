@@ -13,7 +13,7 @@ import { ColumnDef, PaginationState } from '@tanstack/react-table'
 import { useDebounce } from '@/hooks/useDebounce'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { ArrowDown, ArrowUp, Search, X, Info, HelpCircle } from 'lucide-react'
+import { ArrowDown, ArrowUp, Search, X, Info, HelpCircle, Download } from 'lucide-react'
 import { useHistoryReviewTour } from '@/hooks/useHistoryReviewTour'
 import { TourDiscoveryBanner } from '@/components/onboarding/TourDiscoveryBanner'
 import { useEffect, useMemo, useState } from 'react'
@@ -25,6 +25,8 @@ import { AmountFilterContent, DateFilterContent, type AmountFilter, type DateFil
 import { Currency } from '@/utils/currency'
 import { isFolioWaste, wasteCostDisplay, wasteUnrecordedOf } from './historyWaste'
 import { wasteReasonLabelKey } from '@/lib/inventoryWaste'
+import { ExportDialog, type ExportColumnOption } from '@/components/export-dialog'
+import { filtrosQueNoLleganAlArchivo, rangoInicialDelExporte } from './historyExport'
 
 /**
  * Translate common inventory adjustment reasons from English to Spanish
@@ -140,6 +142,9 @@ export default function InventoryHistory() {
   const [providerFilter, setProviderFilter] = useState<string[]>([])
   const [totalCostFilter, setTotalCostFilter] = useState<AmountFilter | null>(null)
   const [typeFilter, setTypeFilter] = useState<string[]>([])
+
+  // Exportar: el archivo se arma en el SERVIDOR (carril en segundo plano), con búsqueda, un tipo y fechas.
+  const [exportOpen, setExportOpen] = useState(false)
 
   // Column visibility state
   const [visibleColumns, setVisibleColumns] = useState<string[]>(['createdAt', 'name', 'sku', 'provider', 'totalCost', 'adjustment'])
@@ -561,6 +566,87 @@ export default function InventoryHistory() {
     [t, visibleColumns],
   )
 
+  // ── Exportar ────────────────────────────────────────────────────────────
+  // Columnas del archivo: los ids los resuelve el SERVIDOR (exportador `historial-inventario`).
+  const exportColumns = useMemo<ExportColumnOption[]>(
+    () => [
+      { id: 'createdAt', label: t('history.date', { defaultValue: 'Fecha' }), required: true },
+      { id: 'itemName', label: t('history.name', { defaultValue: 'Nombre' }), required: true },
+      { id: 'category', label: t('history.export.columns.category', { defaultValue: 'Producto o insumo' }) },
+      { id: 'sku', label: t('history.sku', { defaultValue: 'SKU' }) },
+      { id: 'type', label: t('history.type', { defaultValue: 'Tipo' }) },
+      { id: 'quantity', label: t('history.adjustment', { defaultValue: 'Ajuste' }) },
+      { id: 'unit', label: t('history.export.columns.unit', { defaultValue: 'Unidad' }) },
+      { id: 'previousStock', label: t('history.export.columns.previousStock', { defaultValue: 'Existencia anterior' }) },
+      { id: 'newStock', label: t('history.export.columns.newStock', { defaultValue: 'Existencia nueva' }) },
+      { id: 'cost', label: t('history.export.columns.unitCost', { defaultValue: 'Coste unitario' }) },
+      { id: 'totalCost', label: t('history.totalCost', { defaultValue: 'Coste total' }) },
+      { id: 'supplierName', label: t('history.provider', { defaultValue: 'Proveedor' }) },
+      { id: 'reason', label: t('history.export.columns.reason', { defaultValue: 'Motivo' }) },
+      { id: 'reference', label: t('history.export.columns.reference', { defaultValue: 'Referencia' }) },
+      { id: 'staffName', label: t('history.export.columns.staff', { defaultValue: 'Responsable' }) },
+      {
+        id: 'wasteReportId',
+        label: t('history.export.columns.wasteReport', { defaultValue: 'Folio de merma' }),
+        defaultSelected: false,
+      },
+      {
+        id: 'wasteReasonCode',
+        label: t('history.export.columns.wasteReason', { defaultValue: 'Código de motivo' }),
+        defaultSelected: false,
+      },
+      {
+        id: 'wasteUnrecorded',
+        label: t('history.export.columns.wasteUnrecorded', { defaultValue: 'Sin existencia' }),
+        defaultSelected: false,
+      },
+      { id: 'movementId', label: 'ID', defaultSelected: false },
+    ],
+    [t],
+  )
+
+  // Lo que el servidor sabe filtrar: la búsqueda y UN tipo (las fechas las pone el diálogo).
+  const exportBaseParams = useMemo(
+    () => ({
+      ...(debouncedSearch ? { search: debouncedSearch } : {}),
+      ...(serverTypeFilter ? { type: serverTypeFilter } : {}),
+    }),
+    [debouncedSearch, serverTypeFilter],
+  )
+
+  // Rango con el que abre el diálogo: el filtro de fecha de la página, o los últimos 30 días. El diálogo se monta
+  // al abrirlo, así que toma el filtro (y la hora) de ese momento; un exporte que ya se arma lo retoma solo.
+  const exportRange = exportOpen ? rangoInicialDelExporte(dateFilter) : null
+
+  const exportFilterSummary = useMemo(() => {
+    const resumen: Array<{ label: string; value: string }> = []
+    if (debouncedSearch) {
+      resumen.push({ label: t('history.export.filters.search', { defaultValue: 'Búsqueda' }), value: debouncedSearch })
+    }
+    if (serverTypeFilter) {
+      resumen.push({ label: t('history.type', { defaultValue: 'Tipo' }), value: movementTypeLabel(serverTypeFilter) })
+    }
+    const fuera = filtrosQueNoLleganAlArchivo({
+      sku: skuFilter,
+      proveedor: providerFilter,
+      costeTotal: totalCostFilter,
+      tipos: typeFilter,
+    })
+    if (fuera.length > 0) {
+      const nombres: Record<(typeof fuera)[number], string> = {
+        sku: t('history.sku', { defaultValue: 'SKU' }),
+        provider: t('history.provider', { defaultValue: 'Proveedor' }),
+        totalCost: t('history.totalCost', { defaultValue: 'Coste total' }),
+        type: t('history.export.filters.severalTypes', { defaultValue: 'Varios tipos' }),
+      }
+      resumen.push({
+        label: t('history.export.filters.notApplied', { defaultValue: 'No se aplican al archivo' }),
+        value: fuera.map(f => nombres[f]).join(', '),
+      })
+    }
+    return resumen
+  }, [debouncedSearch, serverTypeFilter, skuFilter, providerFilter, totalCostFilter, typeFilter, t])
+
   // Filter columns based on visibility
   const filteredColumns = useMemo(() => columns.filter(col => visibleColumns.includes(col.id as string)), [columns, visibleColumns])
 
@@ -736,6 +822,17 @@ export default function InventoryHistory() {
 
           {/* Action Buttons - Right Side */}
           <div className="ml-auto flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setExportOpen(true)}
+              className="gap-1.5"
+              data-tour="history-export-btn"
+              disabled={!venueId}
+            >
+              <Download className="h-4 w-4" />
+              {t('history.export.button', { defaultValue: 'Exportar' })}
+            </Button>
             <ColumnCustomizer columns={columnOptions} onApply={setVisibleColumns} />
           </div>
         </div>
@@ -914,6 +1011,25 @@ export default function InventoryHistory() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Exportar: lo chico baja al momento; lo grande se arma en el servidor con barra y aviso en la campanita. */}
+      {venueId && exportRange && (
+        <ExportDialog
+          open={exportOpen}
+          onClose={() => setExportOpen(false)}
+          title={t('history.export.title', { defaultValue: 'Exportar historial' })}
+          // Sin PDF (`formatos`), el diálogo nunca usa el GET: todo va por el carril en segundo plano.
+          endpoint={`/api/v1/dashboard/venues/${venueId}/inventory/movements`}
+          baseParams={exportBaseParams}
+          columns={exportColumns}
+          initialDateFrom={exportRange.from}
+          initialDateTo={exportRange.to}
+          filenameStem="historial-inventario"
+          segundoPlano={{ venueId, kind: 'historial-inventario' }}
+          formatos={['csv', 'xlsx']}
+          activeFilterSummary={exportFilterSummary}
+        />
+      )}
     </div>
   )
 }
