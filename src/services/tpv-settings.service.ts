@@ -189,8 +189,9 @@ export const tpvSettingsService = {
    * @permission tpv-settings:update (ADMIN+)
    */
   async updateSettings(tpvId: string, settings: TpvSettingsUpdate): Promise<TpvSettings> {
-    // D6: valores fijos, repetirlo da lo mismo; la pantalla de pasos del cobro cuenta con este reenvío tras un corte de red.
-    const response = await api.put(`/api/v1/dashboard/tpv/${tpvId}/settings`, settings, { repetible: true })
+    // D6 (Codex r4): NO va marcado `repetible`. El servidor no deduplica este PUT; un reenvío automático podía deshacer un cambio
+    // que otra pestaña hizo en medio. Sin respuesta, la pantalla lo trata como incierto y relee.
+    const response = await api.put(`/api/v1/dashboard/tpv/${tpvId}/settings`, settings)
     return response.data
   },
 
