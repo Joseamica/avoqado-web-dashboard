@@ -875,20 +875,24 @@ const CreateVenueWizard: React.FC<CreateVenueWizardProps> = ({ open, onOpenChang
         </div>
 
         {/* ═══ Step Content ═══ */}
+        {/* Fuera del área con scroll: el paso de Cobros es largo y el aviso quedaba escondido arriba. */}
+        {createdVenue && (
+          <div className="border-b border-border/50 bg-card/50">
+            <div
+              data-tour="create-venue-already-created"
+              className="mx-auto my-3 max-w-2xl rounded-2xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-foreground"
+            >
+              <p className="font-medium">«{createdVenue.venueName}» ya se creó, pero falló la cuenta de cobro.</p>
+              <p className="mt-1 text-muted-foreground">
+                «Reintentar cobros» sólo repite ese paso; no crea otro venue. Los pasos anteriores ya no se pueden cambiar aquí: edítalos en
+                el venue. Si cierras, el venue queda sin cuenta de cobro.
+              </p>
+            </div>
+          </div>
+        )}
+
         <div className="flex-1 overflow-y-auto">
           <div className="mx-auto max-w-2xl px-6 py-8">
-            {createdVenue && (
-              <div
-                data-tour="create-venue-already-created"
-                className="mb-6 rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-foreground"
-              >
-                <p className="font-medium">«{createdVenue.venueName}» ya se creó.</p>
-                <p className="mt-1 text-muted-foreground">
-                  Falló la cuenta de cobro. «Reintentar cobros» sólo repite ese paso; no crea otro venue. Los pasos anteriores ya no se
-                  pueden cambiar aquí: edítalos en el venue. Si cierras, el venue queda sin cuenta de cobro.
-                </p>
-              </div>
-            )}
             {currentStep === 0 && (
               <StepOrganization
                 organizations={filteredOrgs}
