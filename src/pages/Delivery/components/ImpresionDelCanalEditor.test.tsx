@@ -157,6 +157,26 @@ describe('ImpresionDelCanalEditor', () => {
     expect(screen.getByRole('radio', { name: /Como en el salón/ }).getAttribute('aria-checked')).toBe('true')
   })
 
+  it('estación guardada que se apaga y se REACTIVA: se vuelve a ver y no queda nada pendiente (Codex c3 #1)', async () => {
+    const pendiente = vi.fn()
+    mockGetStations.mockResolvedValue(ESTACIONES.map(e => (e.id === 'barra' ? { ...e, active: false } : e)))
+    const { qc } = renderEditor(
+      channel({ config: { impresion: { comanda: 'UNA_ESTACION', estacionId: 'barra', empaque: 'NEGOCIO' } } }),
+      true,
+      pendiente,
+    )
+    expect(await screen.findByText('La estación elegida ya no existe o está apagada: se imprime como en el salón')).toBeTruthy()
+
+    mockGetStations.mockResolvedValue(ESTACIONES)
+    await act(async () => {
+      await qc.refetchQueries({ queryKey: ['printStations', 'venue-1'], exact: true })
+      await new Promise(r => setTimeout(r, 20))
+    })
+    expect(screen.getByRole('radio', { name: /Todo junto en: Barra/ }).getAttribute('aria-checked')).toBe('true')
+    expect(screen.queryByText(/ya no existe o está apagada/)).toBeNull()
+    expect(pendiente).toHaveBeenLastCalledWith(null)
+  })
+
   it('si la otra puerta guarda otra cosa, el editor muestra lo nuevo', async () => {
     const { rerenderCon } = renderEditor(channel())
     expect((await screen.findByRole('radio', { name: /Como en el salón/ })).getAttribute('aria-checked')).toBe('true')

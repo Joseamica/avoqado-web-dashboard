@@ -67,8 +67,6 @@ export function ImpresionDelCanalEditor({ venueId, channel, canEdit, onPendiente
   const empaqueNegocio = (stationsQ.data ?? []).find(s => s.isPacking && s.active)
 
   const guardado = channel.config?.impresion
-  const [comanda, setComanda] = useState<string>(SALON)
-  const [empaque, setEmpaque] = useState<string>(NEGOCIO)
 
   // Sin saber las impresoras no se puede avisar nada honesto: se espera a las dos consultas. «Cargado» = YA hay datos,
   // no «la última consulta salió bien»: un refresco que falla después (p. ej. al volver a la pestaña) deja `isSuccess` en
@@ -88,25 +86,27 @@ export function ImpresionDelCanalEditor({ venueId, channel, canEdit, onPendiente
         ? est(guardado.empaqueEstacionId!)
         : NEGOCIO
 
-  // Se relee cuando cambia lo guardado de IMPRESIÓN (p. ej. desde la otra puerta) o las estaciones. No con todo
-  // `config`: con Rappi la lista se refresca cada 30 s y el sistema escribe ahí agotados y avisos del menú; depender
-  // de `config` regresaba lo recién elegido a lo guardado y se podía guardar lo viejo con «Impresión guardada».
-  // Tampoco con cada refresco de estaciones: traen el estado de su impresora (`printer.lastStatus`), que cambia solo.
-  const guardadoKey = JSON.stringify(guardado ?? null)
-  useEffect(() => {
-    if (!cargado) return
-    setComanda(comandaGuardada)
-    setEmpaque(empaqueGuardado)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cargado, channel.id, guardadoKey])
-  // Lo que sí importa de un refresco de estaciones: si la elegida (guardada o no) dejó de servir, cae al default.
-  const idsElegibles = elegibles.map(e => e.id).join('|')
-  useEffect(() => {
-    if (!cargado) return
-    setComanda(c => (c !== SALON && !porId(c.slice(2)) ? SALON : c))
-    setEmpaque(e => (e !== NO && e !== NEGOCIO && !porId(e.slice(2)) ? NEGOCIO : e))
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cargado, idsElegibles])
+  // 🔴 Rediseño (regla de parada tras Codex c1-c3: la familia «lo elegido se pierde o se regresa» reaparecía con cada
+  // parche de sincronización). Lo que se ve = el BORRADOR del dueño (sólo lo que tocó) o, si no tocó nada, lo GUARDADO
+  // resuelto EN CADA RENDER contra las estaciones vigentes. Nada se copia a un estado que haya que re-sincronizar con
+  // efectos, así que ningún refresco (canales cada 30 s, estaciones con su `printer.lastStatus`, impresoras; bien o
+  // fallido) borra el borrador, y sin borrador siempre se ve lo guardado (una estación que se reactiva vuelve a verse).
+  const [borrador, setBorrador] = useState<{ comanda?: string; empaque?: string }>({})
+  // El borrador se descarta sólo cuando cambia lo GUARDADO de impresión (lo guardó esta puerta o la otra): ajuste de
+  // estado durante el render, sin esperar a un efecto.
+  const llaveGuardado = `${channel.id}|${JSON.stringify(guardado ?? null)}`
+  const [borradorDe, setBorradorDe] = useState(llaveGuardado)
+  if (borradorDe !== llaveGuardado) {
+    setBorradorDe(llaveGuardado)
+    setBorrador({})
+  }
+  // Un borrador que dejó de servir (estación apagada o borrada) no se muestra: se ve lo guardado.
+  const comandaValida = (v?: string) => v === SALON || (!!v && v.startsWith('E:') && !!porId(v.slice(2)))
+  const empaqueValido = (v?: string) => v === NO || v === NEGOCIO || (!!v && v.startsWith('E:') && !!porId(v.slice(2)))
+  const comanda = comandaValida(borrador.comanda) ? borrador.comanda! : comandaGuardada
+  const empaque = empaqueValido(borrador.empaque) ? borrador.empaque! : empaqueGuardado
+  const setComanda = (v: string) => setBorrador(b => ({ ...b, comanda: v }))
+  const setEmpaque = (v: string) => setBorrador(b => ({ ...b, empaque: v }))
 
   const impresion: ImpresionDelCanal = {
     comanda: comanda === SALON ? 'SALON' : 'UNA_ESTACION',

@@ -25,7 +25,10 @@ export interface DeliveryStatus {
   channels: DeliveryChannelLink[]
   activationRequest: DeliveryActivationRequest | null
   isLoading: boolean
-  /** La lista de canales falló al cargar (red, 403 sin `delivery-channels:read`…): no es lo mismo que «no hay canales». */
+  /**
+   * La lista de canales NUNCA se pudo cargar (red, 403 sin `delivery-channels:read`…): no es lo mismo que «no hay canales».
+   * Un refresco que falla CON datos de antes no cuenta: se siguen mostrando (y los editores abiertos no se desmontan).
+   */
   channelsError: boolean
   retryChannels: () => void
 }
@@ -52,9 +55,9 @@ export function useDeliveryStatus(venueId: string | undefined): DeliveryStatus {
   const enabled = !!venueId && hasFeature && !tierLoading
 
   const {
-    data: channels = [],
+    data: channelsData,
     isLoading: chLoading,
-    isError: channelsError,
+    isError: chError,
     refetch: refetchChannels,
   } = useQuery({
     queryKey: ['deliveryChannels', venueId],
@@ -69,6 +72,8 @@ export function useDeliveryStatus(venueId: string | undefined): DeliveryStatus {
     refetchInterval: query => intervaloDeRappi(query.state.data),
     refetchOnWindowFocus: 'always',
   })
+  const channels = channelsData ?? []
+  const channelsError = chError && channelsData === undefined
   const { data: activationRequest = null, isLoading: reqLoading } = useQuery({
     queryKey: ['deliveryActivation', venueId],
     queryFn: () => getActivationRequest(venueId!),

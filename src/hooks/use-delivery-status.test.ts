@@ -263,3 +263,28 @@ describe('useDeliveryStatus', () => {
     expect(result.current.isLoading).toBe(false)
   })
 })
+
+describe('useDeliveryStatus · channelsError', () => {
+  const conCanales = (data: DeliveryChannelLink[] | undefined, isError: boolean) =>
+    mockUseQuery.mockImplementation((queryOpts: MockQueryOptions) => {
+      const key = queryOpts.queryKey[0]
+      if (key === 'deliveryChannels') return { data, isLoading: false, isError, refetch: vi.fn() }
+      return { data: null, isLoading: false }
+    })
+
+  it('nunca cargó y falló ⇒ channelsError', () => {
+    mockUseVenueTier.mockReturnValue({ hasFeatureAccess: () => true, isLoading: false })
+    conCanales(undefined, true)
+    const { result } = renderHook(() => useDeliveryStatus('venue-1'), { wrapper })
+    expect(result.current.channelsError).toBe(true)
+    expect(result.current.channels).toEqual([])
+  })
+
+  it('un refresco que falla CON datos de antes no es error: se siguen mostrando (no desmonta editores abiertos)', () => {
+    mockUseVenueTier.mockReturnValue({ hasFeatureAccess: () => true, isLoading: false })
+    conCanales([activeChannel()], true)
+    const { result } = renderHook(() => useDeliveryStatus('venue-1'), { wrapper })
+    expect(result.current.channelsError).toBe(false)
+    expect(result.current.channels).toHaveLength(1)
+  })
+})
