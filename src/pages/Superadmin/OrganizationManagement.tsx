@@ -183,7 +183,8 @@ const OrganizationCard: React.FC<OrganizationCardProps> = ({
             <MoreHorizontal className="w-4 h-4" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
+        {/* El menú vive en un portal, pero sus clics suben por React hasta la fila, que abre el Wizard de Pagos (A1, 13-nov). */}
+        <DropdownMenuContent align="end" onClick={e => e.stopPropagation()}>
           <DropdownMenuItem onClick={() => onEdit(organization)} className="cursor-pointer">
             <Edit3 className="w-4 h-4 mr-2" />
             Editar

@@ -181,6 +181,89 @@ export const DEFAULT_PRICING: PricingData = {
   monthlyServiceFee: 0,
 }
 
+// ===== D18: guardar sólo lo que cambió =====
+
+const round4 = (n: number) => Math.round(n * 10000) / 10000
+
+/** La fila que rige ahora, con la regla del cobro (`getEffectivePricingForSlot` del SERVIDOR): de las activas, que el resumen
+ *  entrega de la más nueva a la más vieja, la primera que ya empezó y no ha terminado. */
+function vigente<T extends { effectiveFrom: string; effectiveTo?: string | null }>(filas: T[], ahora = Date.now()): T | undefined {
+  return filas.find(f => Date.parse(f.effectiveFrom) <= ahora && (!f.effectiveTo || Date.parse(f.effectiveTo) >= ahora))
+}
+
+/** Una tarifa guardada (fracciones) como la edita el asistente (porcentaje), con su IVA. `taxRate` no se edita aquí: no se
+ *  manda y el SERVIDOR conserva el que tenía. */
+function tarifaDe(p: any): PricingData {
+  return {
+    debitRate: round4(Number(p.debitRate) * 100),
+    creditRate: round4(Number(p.creditRate) * 100),
+    amexRate: round4(Number(p.amexRate) * 100),
+    internationalRate: round4(Number(p.internationalRate) * 100),
+    includesTax: p.includesTax ?? null,
+    fixedFeePerTransaction: Number(p.fixedFeePerTransaction || 0),
+    monthlyServiceFee: Number(p.monthlyServiceFee || 0),
+  }
+}
+
+const LLAVES_DE_TARIFA = [
+  'debitRate',
+  'creditRate',
+  'amexRate',
+  'internationalRate',
+  'includesTax',
+  'taxRate',
+  'fixedFeePerTransaction',
+  'monthlyServiceFee',
+] as const
+const LLAVES_DE_COSTO = [
+  'debitRate',
+  'creditRate',
+  'amexRate',
+  'internationalRate',
+  'includesTax',
+  'taxRate',
+  'fixedCostPerTransaction',
+  'monthlyFee',
+] as const
+const LLAVES_DE_PLAZO = [
+  'dayType',
+  'cutoffTime',
+  'cutoffTimezone',
+  'debitDays',
+  'creditDays',
+  'amexDays',
+  'internationalDays',
+  'otherDays',
+] as const
+
+function iguales<T>(a: T | undefined, b: T | undefined, llaves: readonly (keyof T)[]): boolean {
+  return !!a && !!b && llaves.every(k => (a[k] ?? null) === (b[k] ?? null))
+}
+
+/** ¿Misma tarifa? El IVA cuenta: «sin definir» (`null`) no es «incluido» (`true`) ni «más IVA» (`false`). */
+export const mismaTarifa = (a?: PricingData, b?: PricingData) => iguales(a, b, LLAVES_DE_TARIFA)
+
+/** Lo que siembra «Costos» cuando la cuenta no tiene costo: no es un costo real, así que no se guarda si nadie lo cambia. */
+const COSTO_SEMBRADO: CostStructureData = {
+  mode: 'new',
+  debitRate: 0,
+  creditRate: 0,
+  amexRate: 0,
+  internationalRate: 0,
+  includesTax: null,
+  fixedCostPerTransaction: 0,
+  monthlyFee: 0,
+}
+
+/** Lo que el asistente leyó del servidor al abrirse (y lo que ya guardó): «Guardar» sólo escribe lo que difiere de esto. */
+interface Cargado {
+  costo: Record<string, CostStructureData>
+  tarifaOrg?: PricingData
+  liquidacion?: SettlementData
+  sucursales: Record<string, { pricing: PricingData; id: string }>
+}
+const nadaCargado = (): Cargado => ({ costo: {}, sucursales: {} })
+
 const initialState: WizardState = {
   currentStep: 0,
   merchants: { primary: null, secondary: null, tertiary: null },
@@ -343,6 +426,14 @@ export const PaymentSetupWizard: React.FC<PaymentSetupWizardProps> = ({ open, on
 
   // Pre-fill wizard with existing data when reopening
   const prefilled = useRef(false)
+  const cargado = useRef<Cargado>(nadaCargado())
+  // D18: pasos que la persona abrió. Lo que NO existe en el servidor (tarifa o plazos de default) sólo se crea si los vio.
+  const vistos = useRef(new Set<string>())
+  useEffect(() => {
+    if (open) vistos.current.add(STEPS[state.currentStep].key)
+    else vistos.current.clear()
+  }, [open, state.currentStep])
+  const vio = (paso: string) => vistos.current.has(paso) || vistos.current.has('summary')
   // Candado de posiciones (Codex p12-r4 #5): las cuentas «vistas» son las de la PRIMERA lectura con la que se llenó el
   // formulario, no las de una recarga posterior (al volver a la pestaña) que el formulario no muestra.
   const seenAtFill = useRef<SeenAccounts | undefined>(undefined)
@@ -358,6 +449,7 @@ export const PaymentSetupWizard: React.FC<PaymentSetupWizardProps> = ({ open, on
   useEffect(() => {
     if (!open) {
       prefilled.current = false
+      cargado.current = nadaCargado()
       return
     }
     if (prefilled.current || !existingSummary?.config || allMerchants.length === 0) return
@@ -399,8 +491,10 @@ export const PaymentSetupWizard: React.FC<PaymentSetupWizardProps> = ({ open, on
       dispatch({ type: 'SET_TERMINAL_ASSIGNMENTS', merchantId, terminalIds })
     }
 
+    // D18: lo que se carga aquí es la foto contra la que «Guardar» decide qué cambió (sólo eso se escribe).
+    const foto: Cargado = { costo: {}, sucursales: {} }
+
     // Pre-fill cost structures from nested merchant data
-    const round4 = (n: number) => Math.round(n * 10000) / 10000
     const accounts = [
       { account: config.primaryAccount, merchantIdKey: 'primaryAccountId' },
       { account: config.secondaryAccount, merchantIdKey: 'secondaryAccountId' },
@@ -409,20 +503,20 @@ export const PaymentSetupWizard: React.FC<PaymentSetupWizardProps> = ({ open, on
     for (const { account } of accounts) {
       if (!account?.costStructures?.length) continue
       const cs = account.costStructures[0] // Most recent active
-      dispatch({
-        type: 'SET_COST_STRUCTURE',
-        merchantId: account.id,
-        data: {
-          mode: 'existing',
-          existingId: cs.id,
-          debitRate: round4(Number(cs.debitRate) * 100),
-          creditRate: round4(Number(cs.creditRate) * 100),
-          amexRate: round4(Number(cs.amexRate) * 100),
-          internationalRate: round4(Number(cs.internationalRate) * 100),
-          fixedCostPerTransaction: Number(cs.fixedCostPerTransaction || 0),
-          monthlyFee: Number(cs.monthlyFee || 0),
-        },
-      })
+      const data: CostStructureData = {
+        mode: 'existing',
+        existingId: cs.id,
+        debitRate: round4(Number(cs.debitRate) * 100),
+        creditRate: round4(Number(cs.creditRate) * 100),
+        amexRate: round4(Number(cs.amexRate) * 100),
+        internationalRate: round4(Number(cs.internationalRate) * 100),
+        // D18: sin esto, «Guardar» mandaba `includesTax: null` y borraba el «más IVA» del costo.
+        includesTax: cs.includesTax ?? null,
+        fixedCostPerTransaction: Number(cs.fixedCostPerTransaction || 0),
+        monthlyFee: Number(cs.monthlyFee || 0),
+      }
+      dispatch({ type: 'SET_COST_STRUCTURE', merchantId: account.id, data })
+      foto.costo[account.id] = data
     }
 
     // Pre-fill settlement from primary account's settlement configs
@@ -442,79 +536,54 @@ export const PaymentSetupWizard: React.FC<PaymentSetupWizardProps> = ({ open, on
       const intl = find('INTERNATIONAL')
       const other = find('OTHER')
       if (debit) {
-        dispatch({
-          type: 'SET_SETTLEMENT',
-          data: {
-            dayType: (debit.settlementDayType as 'BUSINESS_DAYS' | 'CALENDAR_DAYS') || 'BUSINESS_DAYS',
-            cutoffTime: debit.cutoffTime || '23:00',
-            cutoffTimezone: debit.cutoffTimezone || 'America/Mexico_City',
-            debitDays: debit.settlementDays,
-            creditDays: credit?.settlementDays ?? 1,
-            amexDays: amex?.settlementDays ?? 3,
-            internationalDays: intl?.settlementDays ?? 3,
-            otherDays: other?.settlementDays ?? 2,
-          },
-        })
+        const data: SettlementData = {
+          dayType: (debit.settlementDayType as 'BUSINESS_DAYS' | 'CALENDAR_DAYS') || 'BUSINESS_DAYS',
+          cutoffTime: debit.cutoffTime || '23:00',
+          cutoffTimezone: debit.cutoffTimezone || 'America/Mexico_City',
+          debitDays: debit.settlementDays,
+          creditDays: credit?.settlementDays ?? 1,
+          amexDays: amex?.settlementDays ?? 3,
+          internationalDays: intl?.settlementDays ?? 3,
+          otherDays: other?.settlementDays ?? 2,
+        }
+        dispatch({ type: 'SET_SETTLEMENT', data })
+        foto.liquidacion = data
       }
     }
 
-    // Pre-fill pricing from existing org pricing structures
+    // Pre-fill pricing from existing org pricing structures: la VIGENTE de cada posición (antes ganaba la más vieja activa).
     const pricingStructures = existingSummary.pricingStructures || []
-    for (const ps of pricingStructures) {
-      const slot = ps.accountType as 'PRIMARY' | 'SECONDARY' | 'TERTIARY'
-      dispatch({
-        type: 'SET_PRICING',
-        slot,
-        data: {
-          debitRate: round4(Number(ps.debitRate) * 100),
-          creditRate: round4(Number(ps.creditRate) * 100),
-          amexRate: round4(Number(ps.amexRate) * 100),
-          internationalRate: round4(Number(ps.internationalRate) * 100),
-          fixedFeePerTransaction: Number(ps.fixedFeePerTransaction || 0),
-          monthlyServiceFee: Number(ps.monthlyServiceFee || 0),
-        },
-      })
+    for (const slot of ['PRIMARY', 'SECONDARY', 'TERTIARY'] as const) {
+      const ps = vigente(pricingStructures.filter((p: any) => p.accountType === slot))
+      if (!ps) continue
+      const data = tarifaDe(ps)
+      dispatch({ type: 'SET_PRICING', slot, data })
+      if (slot === 'PRIMARY') foto.tarifaOrg = data
     }
 
     // Pre-fill venue overrides from existing venue pricing structures
     const summaryVenues = existingSummary.venues || []
     const venuePricingList = existingSummary.venuePricingStructures || []
     if (summaryVenues.length > 0) {
-      // Group venue pricing by venueId (take most recent per venue)
-      const venuePricingMap: Record<string, any> = {}
-      for (const vps of venuePricingList) {
-        // First one per venue is most recent (ordered by effectiveFrom desc)
-        if (!venuePricingMap[vps.venueId]) {
-          venuePricingMap[vps.venueId] = vps
-        }
-      }
-
       // Init all venues, enable those with existing pricing
       dispatch({
         type: 'INIT_VENUE_OVERRIDES',
         venues: summaryVenues.map((v: any) => ({ id: v.id, name: v.name, slug: v.slug })),
       })
 
-      for (const [venueId, vps] of Object.entries(venuePricingMap)) {
-        const venue = summaryVenues.find((v: any) => v.id === venueId)
-        if (!venue) continue
+      for (const venue of summaryVenues) {
+        // D18: el asistente sólo maneja la tarifa PRIMARY de la sucursal (así la crea); antes tomaba la más reciente de
+        // CUALQUIER posición y podía reescribir o desactivar la SECONDARY.
+        const vps = vigente(venuePricingList.filter((p: any) => p.venueId === venue.id && p.accountType === 'PRIMARY'))
+        if (!vps) continue
+        const data = tarifaDe(vps)
         // Enable the override and set its pricing (with existing ID for upsert)
-        dispatch({ type: 'TOGGLE_VENUE_OVERRIDE', venueId })
-        dispatch({
-          type: 'SET_VENUE_PRICING',
-          venueId,
-          data: {
-            debitRate: round4(Number((vps as any).debitRate) * 100),
-            creditRate: round4(Number((vps as any).creditRate) * 100),
-            amexRate: round4(Number((vps as any).amexRate) * 100),
-            internationalRate: round4(Number((vps as any).internationalRate) * 100),
-            fixedFeePerTransaction: Number((vps as any).fixedFeePerTransaction || 0),
-            monthlyServiceFee: Number((vps as any).monthlyServiceFee || 0),
-          },
-          existingPricingId: (vps as any).id,
-        })
+        dispatch({ type: 'TOGGLE_VENUE_OVERRIDE', venueId: venue.id })
+        dispatch({ type: 'SET_VENUE_PRICING', venueId: venue.id, data, existingPricingId: vps.id })
+        foto.sucursales[venue.id] = { pricing: data, id: vps.id }
       }
     }
+    cargado.current = foto
   }, [open, existingSummary, allMerchants])
 
   const handleClose = useCallback(() => {
@@ -669,9 +738,9 @@ export const PaymentSetupWizard: React.FC<PaymentSetupWizardProps> = ({ open, on
           }
         }
 
-        // 3. Create/update cost structure if provided
+        // 3. Create/update cost structure — sólo si cambió contra lo cargado (D18); el sembrado en ceros nunca.
         const costData = state.costStructures[primary.merchantId]
-        if (costData) {
+        if (costData && !iguales(costData, cargado.current.costo[primary.merchantId] ?? COSTO_SEMBRADO, LLAVES_DE_COSTO)) {
           if (costData.mode === 'existing' && costData.existingId) {
             // Update existing cost structure
             await paymentProviderAPI.updateProviderCostStructure(costData.existingId, {
@@ -684,6 +753,7 @@ export const PaymentSetupWizard: React.FC<PaymentSetupWizardProps> = ({ open, on
               fixedCostPerTransaction: costData.fixedCostPerTransaction,
               monthlyFee: costData.monthlyFee,
             } as any)
+            cargado.current.costo[primary.merchantId] = costData
           } else {
             // Create new cost structure — capture ID for subsequent saves
             const createdCS = await paymentProviderAPI.createProviderCostStructure({
@@ -699,17 +769,17 @@ export const PaymentSetupWizard: React.FC<PaymentSetupWizardProps> = ({ open, on
               effectiveFrom: new Date().toISOString(),
             } as any)
             // Update state so a second save uses update instead of create
-            dispatch({
-              type: 'SET_COST_STRUCTURE',
-              merchantId: primary.merchantId,
-              data: { ...costData, mode: 'existing', existingId: createdCS.id },
-            })
+            const guardado: CostStructureData = { ...costData, mode: 'existing', existingId: createdCS.id }
+            dispatch({ type: 'SET_COST_STRUCTURE', merchantId: primary.merchantId, data: guardado })
+            cargado.current.costo[primary.merchantId] = guardado
           }
         }
 
-        // 4. Create org-level pricing structure
+        // 4. Create org-level pricing structure — sólo si cambió contra la vigente cargada; si no había, sólo si la persona vio
+        // el paso (D18: antes se cerraba y se volvía a crear idéntica en cada «Guardar», o nacía la de default sin que nadie la viera).
         const pricingData = state.pricing.PRIMARY
-        if (pricingData) {
+        const tarifaAntes = cargado.current.tarifaOrg
+        if (pricingData && (tarifaAntes ? !mismaTarifa(pricingData, tarifaAntes) : vio('pricing'))) {
           await setOrganizationPricing(context.organizationId, {
             accountType: 'PRIMARY',
             debitRate: pricingData.debitRate / 100,
@@ -725,20 +795,25 @@ export const PaymentSetupWizard: React.FC<PaymentSetupWizardProps> = ({ open, on
             monthlyServiceFee: pricingData.monthlyServiceFee,
             effectiveFrom: new Date().toISOString(),
           } as any)
+          cargado.current.tarifaOrg = pricingData
         }
 
-        // 5. Create settlement configs
-        await bulkCreateSettlementConfigurations({
-          merchantAccountId: primary.merchantId,
-          configs: [
-            { cardType: 'DEBIT', settlementDays: state.settlement.debitDays, settlementDayType: state.settlement.dayType, cutoffTime: state.settlement.cutoffTime, cutoffTimezone: state.settlement.cutoffTimezone },
-            { cardType: 'CREDIT', settlementDays: state.settlement.creditDays, settlementDayType: state.settlement.dayType, cutoffTime: state.settlement.cutoffTime, cutoffTimezone: state.settlement.cutoffTimezone },
-            { cardType: 'AMEX', settlementDays: state.settlement.amexDays, settlementDayType: state.settlement.dayType, cutoffTime: state.settlement.cutoffTime, cutoffTimezone: state.settlement.cutoffTimezone },
-            { cardType: 'INTERNATIONAL', settlementDays: state.settlement.internationalDays, settlementDayType: state.settlement.dayType, cutoffTime: state.settlement.cutoffTime, cutoffTimezone: state.settlement.cutoffTimezone },
-            { cardType: 'OTHER', settlementDays: state.settlement.otherDays, settlementDayType: state.settlement.dayType, cutoffTime: state.settlement.cutoffTime, cutoffTimezone: state.settlement.cutoffTimezone },
-          ],
-          effectiveFrom: new Date().toISOString(),
-        })
+        // 5. Create settlement configs — misma regla (D18).
+        const plazoAntes = cargado.current.liquidacion
+        if (plazoAntes ? !iguales(state.settlement, plazoAntes, LLAVES_DE_PLAZO) : vio('settlement')) {
+          await bulkCreateSettlementConfigurations({
+            merchantAccountId: primary.merchantId,
+            configs: [
+              { cardType: 'DEBIT', settlementDays: state.settlement.debitDays, settlementDayType: state.settlement.dayType, cutoffTime: state.settlement.cutoffTime, cutoffTimezone: state.settlement.cutoffTimezone },
+              { cardType: 'CREDIT', settlementDays: state.settlement.creditDays, settlementDayType: state.settlement.dayType, cutoffTime: state.settlement.cutoffTime, cutoffTimezone: state.settlement.cutoffTimezone },
+              { cardType: 'AMEX', settlementDays: state.settlement.amexDays, settlementDayType: state.settlement.dayType, cutoffTime: state.settlement.cutoffTime, cutoffTimezone: state.settlement.cutoffTimezone },
+              { cardType: 'INTERNATIONAL', settlementDays: state.settlement.internationalDays, settlementDayType: state.settlement.dayType, cutoffTime: state.settlement.cutoffTime, cutoffTimezone: state.settlement.cutoffTimezone },
+              { cardType: 'OTHER', settlementDays: state.settlement.otherDays, settlementDayType: state.settlement.dayType, cutoffTime: state.settlement.cutoffTime, cutoffTimezone: state.settlement.cutoffTimezone },
+            ],
+            effectiveFrom: new Date().toISOString(),
+          })
+          cargado.current.liquidacion = state.settlement
+        }
 
         // 6. Handle venue-level pricing overrides
         // NOTE: VenuePaymentConfig is NOT created — venues inherit merchant accounts from org.
@@ -752,6 +827,7 @@ export const PaymentSetupWizard: React.FC<PaymentSetupWizardProps> = ({ open, on
               await paymentProviderAPI.deactivateVenuePricingStructure(override.existingPricingId)
               // Clear stale ID so re-saving won't try to update a deactivated record
               dispatch({ type: 'SET_VENUE_EXISTING_PRICING_ID', venueId: override.venueId, existingPricingId: null })
+              delete cargado.current.sucursales[override.venueId]
             }
             continue
           }
@@ -759,21 +835,21 @@ export const PaymentSetupWizard: React.FC<PaymentSetupWizardProps> = ({ open, on
           // Toggle ON: check if pricing actually differs from org
           if (!override.pricing) continue
 
+          // D18: sin cambios contra lo cargado no se toca (antes se reescribía, o se desactivaba si igualaba a la de la organización).
+          const antes = cargado.current.sucursales[override.venueId]
+          if (antes && override.existingPricingId === antes.id && mismaTarifa(override.pricing, antes.pricing)) continue
+
           const orgP = pricingData
           const vP = override.pricing
-          const isIdentical = orgP &&
-            vP.debitRate === orgP.debitRate &&
-            vP.creditRate === orgP.creditRate &&
-            vP.amexRate === orgP.amexRate &&
-            vP.internationalRate === orgP.internationalRate &&
-            (vP.fixedFeePerTransaction || 0) === (orgP.fixedFeePerTransaction || 0) &&
-            (vP.monthlyServiceFee || 0) === (orgP.monthlyServiceFee || 0)
+          // D18 (Codex r1 #3): el IVA también cuenta; 2.5 % «más IVA» no es la misma tarifa que 2.5 % final.
+          const isIdentical = mismaTarifa(vP, orgP)
 
           if (isIdentical && override.existingPricingId) {
             // Same as org — deactivate existing override (cleanup)
             await paymentProviderAPI.deactivateVenuePricingStructure(override.existingPricingId)
             // Clear stale ID so re-saving won't try to update a deactivated record
             dispatch({ type: 'SET_VENUE_EXISTING_PRICING_ID', venueId: override.venueId, existingPricingId: null })
+            delete cargado.current.sucursales[override.venueId]
           } else if (!isIdentical) {
             if (override.existingPricingId) {
               await paymentProviderAPI.updateVenuePricingStructure(override.existingPricingId, {
@@ -786,6 +862,7 @@ export const PaymentSetupWizard: React.FC<PaymentSetupWizardProps> = ({ open, on
                 fixedFeePerTransaction: vP.fixedFeePerTransaction,
                 monthlyServiceFee: vP.monthlyServiceFee,
               } as any)
+              cargado.current.sucursales[override.venueId] = { pricing: vP, id: override.existingPricingId }
             } else {
               // Create new — capture the returned ID for subsequent saves
               const created = await paymentProviderAPI.createVenuePricingStructure({
@@ -803,6 +880,7 @@ export const PaymentSetupWizard: React.FC<PaymentSetupWizardProps> = ({ open, on
               } as any)
               // Store the new ID so a second save uses update instead of create
               dispatch({ type: 'SET_VENUE_EXISTING_PRICING_ID', venueId: override.venueId, existingPricingId: created.id })
+              cargado.current.sucursales[override.venueId] = { pricing: vP, id: created.id }
             }
           }
         }
@@ -861,6 +939,7 @@ export const PaymentSetupWizard: React.FC<PaymentSetupWizardProps> = ({ open, on
           <TerminalStep
             state={state}
             dispatch={dispatch}
+            terminals={existingSummary?.terminals}
           />
         )
       case 2:
