@@ -3,16 +3,17 @@
  * la tarifa de la organización y creaba otra idéntica, volvía a escribir la del negocio y, como el prellenado no traía el IVA,
  * lo mandaba en `null`). Promesa: `docs/audit/2026-11-13-d17-d18-d20/promesa.md` del workspace.
  * Ahora: sólo se escribe lo que cambió contra lo que se cargó; lo que no existía sólo si la persona vio ese paso.
- * El asistente y TanStack son de verdad; se fingen los servicios y los pasos.
+ * El asistente, TanStack y el paso «Costos» son de verdad (lee el costo del servidor por su cuenta); se fingen los servicios
+ * y los demás pasos (con botones que hacen lo que haría la persona).
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { useEffect } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const red = vi.hoisted(() => ({
   llamadas: [] as Array<[string, ...unknown[]]>,
   resumen: null as unknown,
+  costos: {} as Record<string, unknown[]>,
   avisos: [] as Array<{ title?: string }>,
 }))
 
@@ -27,7 +28,11 @@ vi.mock('@/services/paymentProvider.service', () => {
   return {
     paymentProviderAPI: {
       getPaymentSetupSummary: async () => red.resumen,
-      getMerchantAccountsList: async () => [{ id: 'acc-1', displayName: 'Cuenta 1' }],
+      getMerchantAccountsList: async () => [
+        { id: 'acc-1', displayName: 'Cuenta 1' },
+        { id: 'acc-2', displayName: 'Cuenta 2' },
+      ],
+      getProviderCostStructures: async ({ merchantAccountId }: { merchantAccountId: string }) => red.costos[merchantAccountId] ?? [],
       batchAssignTerminals: anota('batchAssignTerminals'),
       removeMerchantFromTerminal: anota('removeMerchantFromTerminal'),
       updateProviderCostStructure: anota('updateProviderCostStructure'),
@@ -54,33 +59,18 @@ vi.mock('@/services/settlementConfiguration.service', () => ({
     return []
   },
 }))
-vi.mock('../wizard-steps/MerchantStep', () => ({ MerchantStep: () => null }))
-vi.mock('../wizard-steps/TerminalStep', () => ({ TerminalStep: () => null }))
-// Como el de verdad: al abrirse sin costo guardado, siembra una estructura nueva en ceros.
-vi.mock('../wizard-steps/CostStructureStep', () => ({
-  CostStructureStep: ({ state, dispatch }: any) => {
-    const id = state.merchants.primary?.merchantId
-    useEffect(() => {
-      if (id && !state.costStructures[id]) {
-        dispatch({
-          type: 'SET_COST_STRUCTURE',
-          merchantId: id,
-          data: {
-            mode: 'new',
-            debitRate: 0,
-            creditRate: 0,
-            amexRate: 0,
-            internationalRate: 0,
-            includesTax: null,
-            fixedCostPerTransaction: 0,
-            monthlyFee: 0,
-          },
-        })
-      }
-    }, []) // eslint-disable-line react-hooks/exhaustive-deps
-    return null
-  },
+vi.mock('../wizard-steps/MerchantStep', () => ({
+  MerchantStep: ({ dispatch, allMerchants }: any) =>
+    allMerchants.map((m: any) => (
+      <button
+        key={m.id}
+        onClick={() => dispatch({ type: 'SET_PRIMARY_MERCHANT', merchant: { mode: 'existing', merchantId: m.id, merchant: m } })}
+      >
+        principal {m.id}
+      </button>
+    )),
 }))
+vi.mock('../wizard-steps/TerminalStep', () => ({ TerminalStep: () => null }))
 vi.mock('../wizard-steps/VenuePricingStep', () => ({
   VenuePricingStep: ({ state, dispatch }: any) => (
     <button onClick={() => dispatch({ type: 'SET_PRICING', slot: 'PRIMARY', data: { ...state.pricing.PRIMARY, creditRate: 2.6 } })}>
@@ -89,7 +79,20 @@ vi.mock('../wizard-steps/VenuePricingStep', () => ({
   ),
 }))
 vi.mock('../wizard-steps/SettlementStep', () => ({ SettlementStep: () => null }))
-vi.mock('../wizard-steps/VenueOverridesStep', () => ({ VenueOverridesStep: () => null }))
+vi.mock('../wizard-steps/VenueOverridesStep', () => ({
+  // Iguala las tasas de la sucursal A a las de la organización (sin tocar su IVA).
+  VenueOverridesStep: ({ state, dispatch }: any) => (
+    <button
+      onClick={() => {
+        const org = state.pricing.PRIMARY
+        const a = state.venueOverrides['v-a'].pricing
+        dispatch({ type: 'SET_VENUE_PRICING', venueId: 'v-a', data: { ...a, debitRate: org.debitRate, creditRate: org.creditRate } })
+      }}
+    >
+      igualar A
+    </button>
+  ),
+}))
 vi.mock('../wizard-steps/SummaryStep', () => ({ SummaryStep: () => null }))
 
 import { PaymentSetupWizard, mismaTarifa, DEFAULT_PRICING } from '../PaymentSetupWizard'
@@ -176,7 +179,7 @@ const sinNada = () => ({
   venuePricingStructures: [],
 })
 
-async function abrir() {
+async function abrir({ esperarGuardar = true } = {}) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   render(
     <QueryClientProvider client={client}>
@@ -184,8 +187,10 @@ async function abrir() {
     </QueryClientProvider>,
   )
   const guardar = await screen.findByRole('button', { name: /Guardar/ })
-  await waitFor(() => expect(guardar).not.toBeDisabled())
+  if (esperarGuardar) await waitFor(() => expect(guardar).not.toBeDisabled())
 }
+/** El costo de la cuenta 1 tal como lo devuelve el servidor (el mismo que trae el resumen de `configurada`). */
+const costoDeLaCuenta1 = () => configurada().config.primaryAccount.costStructures
 async function guardar() {
   const antes = red.avisos.length
   await act(async () => {
@@ -215,6 +220,7 @@ describe('PaymentSetupWizard · guardar sin cambios', () => {
   beforeEach(() => {
     red.llamadas.length = 0
     red.avisos.length = 0
+    red.costos = { 'acc-1': costoDeLaCuenta1() }
   })
 
   it('organización configurada: «Guardar» sin cambios no escribe ninguna tarifa, costo ni plazo (tampoco tras ver todos los pasos)', async () => {
@@ -244,9 +250,8 @@ describe('PaymentSetupWizard · guardar sin cambios', () => {
       amexRate: expect.closeTo(0.035, 10),
       internationalRate: expect.closeTo(0.038, 10),
       includesTax: false,
+      taxRate: 0.16,
     })
-    // `taxRate` no se edita en el asistente: no se manda y el SERVIDOR conserva el de la vigente.
-    expect(tarifasEscritas()[0][2]).not.toHaveProperty('taxRate')
 
     await guardar()
     expect(tarifasEscritas()).toHaveLength(1)
@@ -254,6 +259,7 @@ describe('PaymentSetupWizard · guardar sin cambios', () => {
 
   it('sin nada guardado: no crea costo en ceros, ni tarifa ni plazos de default que la persona no vio', async () => {
     red.resumen = sinNada()
+    red.costos = {}
     await abrir()
     await ir('Costos')
     await guardar()
@@ -262,11 +268,59 @@ describe('PaymentSetupWizard · guardar sin cambios', () => {
 
   it('sin nada guardado: si la persona vio la tarifa y los plazos, «Guardar» los crea como hoy', async () => {
     red.resumen = sinNada()
+    red.costos = {}
     await abrir()
     await ir('Pricing')
     await ir('Liquidación')
     await guardar()
     expect(tarifasEscritas().map(([n]) => n)).toEqual(['setOrganizationPricing', 'bulkCreateSettlementConfigurations'])
+  })
+})
+
+describe('PaymentSetupWizard · lo cargado es de la cuenta y la tarifa correctas (Codex r2)', () => {
+  beforeEach(() => {
+    red.llamadas.length = 0
+    red.avisos.length = 0
+    red.costos = { 'acc-1': costoDeLaCuenta1() }
+  })
+
+  it('sin configuración de cuentas: elegir la cuenta y ver Costos y Pricing no reescribe el costo ni la tarifa que ya existían', async () => {
+    red.resumen = { ...configurada(), config: null, venues: [], venuePricingStructures: [] }
+    await abrir({ esperarGuardar: false })
+    fireEvent.click(await screen.findByRole('button', { name: 'principal acc-1' }))
+    await ir('Costos')
+    await screen.findByText('1 estructura') // el paso leyó el costo del servidor
+    await ir('Pricing')
+    await guardar()
+    expect(tarifasEscritas()).toEqual([])
+  })
+
+  it('si la persona cambia la cuenta principal, los plazos que vio se crean para la NUEVA cuenta', async () => {
+    red.resumen = configurada()
+    await abrir()
+    fireEvent.click(screen.getByRole('button', { name: 'principal acc-2' }))
+    await ir('Liquidación')
+    await guardar()
+    expect(tarifasEscritas().map(([n]) => n)).toEqual(['bulkCreateSettlementConfigurations'])
+    expect(tarifasEscritas()[0][1]).toMatchObject({ merchantAccountId: 'acc-2' })
+  })
+
+  it('una sucursal «más IVA 8 %» con las mismas tasas que la organización «más IVA 16 %» no se desactiva: se actualiza con su IVA', async () => {
+    const r = configurada()
+    r.venuePricingStructures = r.venuePricingStructures.map(p =>
+      p.id === 'vp-a' ? { ...p, includesTax: false, taxRate: '0.08' } : p,
+    ) as typeof r.venuePricingStructures
+    red.resumen = r
+    await abrir()
+    await ir('Sucursales')
+    fireEvent.click(screen.getByRole('button', { name: 'igualar A' }))
+    await guardar()
+    expect(tarifasEscritas().map(([n]) => n)).toEqual(['updateVenuePricingStructure'])
+    expect(tarifasEscritas()[0]).toEqual([
+      'updateVenuePricingStructure',
+      'vp-a',
+      expect.objectContaining({ creditRate: expect.closeTo(0.025, 10), includesTax: false, taxRate: 0.08 }),
+    ])
   })
 })
 

@@ -191,8 +191,7 @@ function vigente<T extends { effectiveFrom: string; effectiveTo?: string | null 
   return filas.find(f => Date.parse(f.effectiveFrom) <= ahora && (!f.effectiveTo || Date.parse(f.effectiveTo) >= ahora))
 }
 
-/** Una tarifa guardada (fracciones) como la edita el asistente (porcentaje), con su IVA. `taxRate` no se edita aquí: no se
- *  manda y el SERVIDOR conserva el que tenía. */
+/** Una tarifa guardada (fracciones) como la edita el asistente (porcentaje), con su IVA (`includesTax` y `taxRate`). */
 function tarifaDe(p: any): PricingData {
   return {
     debitRate: round4(Number(p.debitRate) * 100),
@@ -200,6 +199,7 @@ function tarifaDe(p: any): PricingData {
     amexRate: round4(Number(p.amexRate) * 100),
     internationalRate: round4(Number(p.internationalRate) * 100),
     includesTax: p.includesTax ?? null,
+    taxRate: p.taxRate != null ? Number(p.taxRate) : undefined,
     fixedFeePerTransaction: Number(p.fixedFeePerTransaction || 0),
     monthlyServiceFee: Number(p.monthlyServiceFee || 0),
   }
@@ -236,8 +236,10 @@ const LLAVES_DE_PLAZO = [
   'otherDays',
 ] as const
 
+// `taxRate` sin dato es el default de la columna (0.16); lo demás sin dato es null.
+const valor = (o: any, k: PropertyKey) => o[k] ?? (k === 'taxRate' ? 0.16 : null)
 function iguales<T>(a: T | undefined, b: T | undefined, llaves: readonly (keyof T)[]): boolean {
-  return !!a && !!b && llaves.every(k => (a[k] ?? null) === (b[k] ?? null))
+  return !!a && !!b && llaves.every(k => valor(a, k) === valor(b, k))
 }
 
 /** ¿Misma tarifa? El IVA cuenta: «sin definir» (`null`) no es «incluido» (`true`) ni «más IVA» (`false`). */
@@ -259,7 +261,7 @@ const COSTO_SEMBRADO: CostStructureData = {
 interface Cargado {
   costo: Record<string, CostStructureData>
   tarifaOrg?: PricingData
-  liquidacion?: SettlementData
+  liquidacion?: { merchantId: string; data: SettlementData } // los plazos son de UNA cuenta
   sucursales: Record<string, { pricing: PricingData; id: string }>
 }
 const nadaCargado = (): Cargado => ({ costo: {}, sucursales: {} })
@@ -452,10 +454,12 @@ export const PaymentSetupWizard: React.FC<PaymentSetupWizardProps> = ({ open, on
       cargado.current = nadaCargado()
       return
     }
-    if (prefilled.current || !existingSummary?.config || allMerchants.length === 0) return
+    if (prefilled.current || !existingSummary || allMerchants.length === 0) return
     prefilled.current = true
 
-    const config = existingSummary.config
+    // D18 (Codex r2 #2): sin configuración de cuentas igual se cargan las tarifas que existan (antes se mostraban las de
+    // default y podían reemplazarlas).
+    const config = existingSummary.config ?? {}
 
     // Pre-select merchants
     if (config.primaryAccountId) {
@@ -512,6 +516,7 @@ export const PaymentSetupWizard: React.FC<PaymentSetupWizardProps> = ({ open, on
         internationalRate: round4(Number(cs.internationalRate) * 100),
         // D18: sin esto, «Guardar» mandaba `includesTax: null` y borraba el «más IVA» del costo.
         includesTax: cs.includesTax ?? null,
+        taxRate: cs.taxRate != null ? Number(cs.taxRate) : undefined,
         fixedCostPerTransaction: Number(cs.fixedCostPerTransaction || 0),
         monthlyFee: Number(cs.monthlyFee || 0),
       }
@@ -547,7 +552,7 @@ export const PaymentSetupWizard: React.FC<PaymentSetupWizardProps> = ({ open, on
           otherDays: other?.settlementDays ?? 2,
         }
         dispatch({ type: 'SET_SETTLEMENT', data })
-        foto.liquidacion = data
+        foto.liquidacion = { merchantId: primaryAccount.id, data }
       }
     }
 
@@ -799,7 +804,9 @@ export const PaymentSetupWizard: React.FC<PaymentSetupWizardProps> = ({ open, on
         }
 
         // 5. Create settlement configs — misma regla (D18).
-        const plazoAntes = cargado.current.liquidacion
+        // Codex r2 #3: los plazos cargados son de la cuenta que era la principal; si la persona eligió otra, no cuentan.
+        const plazoAntes =
+          cargado.current.liquidacion?.merchantId === primary.merchantId ? cargado.current.liquidacion.data : undefined
         if (plazoAntes ? !iguales(state.settlement, plazoAntes, LLAVES_DE_PLAZO) : vio('settlement')) {
           await bulkCreateSettlementConfigurations({
             merchantAccountId: primary.merchantId,
@@ -812,7 +819,7 @@ export const PaymentSetupWizard: React.FC<PaymentSetupWizardProps> = ({ open, on
             ],
             effectiveFrom: new Date().toISOString(),
           })
-          cargado.current.liquidacion = state.settlement
+          cargado.current.liquidacion = { merchantId: primary.merchantId, data: state.settlement }
         }
 
         // 6. Handle venue-level pricing overrides
@@ -947,6 +954,10 @@ export const PaymentSetupWizard: React.FC<PaymentSetupWizardProps> = ({ open, on
           <CostStructureStep
             state={state}
             dispatch={dispatch}
+            alCargar={(merchantId, data) => {
+              // D18 (Codex r2 #2): el costo que el paso lee del servidor también es «lo cargado».
+              cargado.current.costo[merchantId] = data
+            }}
           />
         )
       case 3:
