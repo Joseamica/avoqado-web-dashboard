@@ -138,6 +138,11 @@ describe('ImpresionDelCanalEditor', () => {
     expect(await screen.findByText('Se aplica en los POS con la versión 2.25.44 o más nueva')).toBeTruthy()
   })
 
+  it('avisa que en iPad e iPhone todavía no se aplica', async () => {
+    renderEditor()
+    expect(await screen.findByText('En iPad e iPhone todavía no se aplica: ahí el pedido se imprime como hoy')).toBeTruthy()
+  })
+
   it('canEdit=false: controles deshabilitados', async () => {
     renderEditor(channel(), false)
     await screen.findByRole('radio', { name: /Todo junto en: Barra/ })

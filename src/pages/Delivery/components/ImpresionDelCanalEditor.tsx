@@ -196,6 +196,8 @@ export function ImpresionDelCanalEditor({ venueId, channel, canEdit }: Props) {
       )}
 
       <p className="text-xs text-muted-foreground">{t('impresion.versionMinima', { version: VERSION_MINIMA_POS_IMPRESION_REPARTO })}</p>
+      {/* iOS va después (docs/proyectos/ios-por-hacer.md, «Mientras iOS espera» 6): la pantalla dice que ahí no aplica. */}
+      <p className="text-xs text-muted-foreground">{t('impresion.iosTodaviaNo')}</p>
 
       <Button disabled={!canEdit || !cargado || mutation.isPending} onClick={() => {
           if (guardando.current) return
