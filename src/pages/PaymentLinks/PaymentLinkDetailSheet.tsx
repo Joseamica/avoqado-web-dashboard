@@ -55,7 +55,11 @@ export function PaymentLinkDetailSheet({ link, open, onOpenChange, onEdit, onCop
             <SheetTitle className="text-lg">{link.title}</SheetTitle>
             <Badge variant={varianteDelEstado(link)}>{t(etiquetaDelEstado(link))}</Badge>
           </div>
-          {link.description && <SheetDescription>{link.description}</SheetDescription>}
+          {link.productGroup ? (
+            <SheetDescription>{t('list.garment', { name: link.productGroup.name })}</SheetDescription>
+          ) : (
+            link.description && <SheetDescription>{link.description}</SheetDescription>
+          )}
         </SheetHeader>
 
         <div className="flex-1 space-y-6 overflow-y-auto p-6">

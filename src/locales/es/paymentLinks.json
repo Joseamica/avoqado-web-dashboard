@@ -13,6 +13,7 @@
     "setupStripe": "Conectar Stripe ahora"
   },
   "list": {
+    "garment": "Prenda: {{name}} · la clienta elige talla",
     "columns": {
       "title": "Título",
       "amount": "Monto",
@@ -187,6 +188,14 @@
     "selectProduct": "Selecciona o crea un artículo nuevo",
     "searchProducts": "Buscar artículos...",
     "noProducts": "No se encontraron artículos",
+    "sizeChoice": "La clienta elige talla",
+    "groupNote": "En una liga por prenda la clienta escoge la talla; no lleva descuento ni extras",
+    "groupReusable": "Reutilizable",
+    "groupReusableHint": "Una liga por prenda se puede pagar varias veces",
+    "groupRemove": "Quitar prenda",
+    "groupLocked": "Liga por prenda · plan Pro",
+    "groupLockedHint": "La clienta elige la talla al pagar. Sube a Pro para usarla.",
+    "groupNeedsStripe": "Las ligas por prenda sólo funcionan con Stripe",
     "paymentProcess": "Proceso de pago",
     "customFields": "Campos personalizados",
     "customFieldTitle": "Título del campo personalizado",

@@ -13,6 +13,7 @@
     "setupStripe": "Connect Stripe now"
   },
   "list": {
+    "garment": "Garment: {{name}} · customer picks the size",
     "columns": {
       "title": "Title",
       "amount": "Amount",
@@ -186,6 +187,14 @@
     "articleHint": "Details are saved in your item collection and shared across all points of sale",
     "selectProduct": "Select or create a new item",
     "searchProducts": "Search items...",
+    "sizeChoice": "Customer picks the size",
+    "groupNote": "In a per-garment link the customer picks the size; it has no discount or extras",
+    "groupReusable": "Reusable",
+    "groupReusableHint": "A per-garment link can be paid several times",
+    "groupRemove": "Remove garment",
+    "groupLocked": "Per-garment link · Pro plan",
+    "groupLockedHint": "The customer picks the size at checkout. Upgrade to Pro to use it.",
+    "groupNeedsStripe": "Per-garment links only work with Stripe",
     "noProducts": "No items found",
     "paymentProcess": "Payment process",
     "customFields": "Custom fields",
