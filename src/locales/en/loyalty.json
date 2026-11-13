@@ -402,6 +402,7 @@
       "pointsTriple": "triple points",
       "pointsTimes": "{{count}}× points",
       "pointsScoped": "{{points}} on those products",
+      "pointsScopedCategories": "{{points}} on those categories",
       "extraPoints_one": "{{count}} extra point",
       "extraPoints_other": "{{count}} extra points",
       "nothing": "gives nothing extra with your current program",

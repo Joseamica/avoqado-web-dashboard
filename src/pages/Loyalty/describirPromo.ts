@@ -93,7 +93,7 @@ function nombres(lista: string[], t: TFunction): string {
   return unir(visibles, t(`${P}or`))
 }
 
-function queDa(p: PromoParaDescribir, programa: ProgramaPrendido, conFiltro: boolean, t: TFunction): string | null {
+function queDa(p: PromoParaDescribir, programa: ProgramaPrendido, filtro: 'products' | 'categories' | null, t: TFunction): string | null {
   const partes: string[] = []
   if (p.kind === 'MULTIPLY') {
     const m = p.multiplier
@@ -102,7 +102,13 @@ function queDa(p: PromoParaDescribir, programa: ProgramaPrendido, conFiltro: boo
     if (programa.puntos) {
       const puntos = m === 2 ? t(`${P}pointsDouble`) : m === 3 ? t(`${P}pointsTriple`) : t(`${P}pointsTimes`, { count: m })
       // Regla 4: con productos o categorías, sólo se multiplica la parte de la venta que califica.
-      partes.push(conFiltro ? t(`${P}pointsScoped`, { points: puntos }) : puntos)
+      partes.push(
+        filtro === 'products'
+          ? t(`${P}pointsScoped`, { points: puntos })
+          : filtro === 'categories'
+            ? t(`${P}pointsScopedCategories`, { points: puntos })
+            : puntos,
+      )
     }
   } else {
     if (programa.sellos && p.extraStamps) partes.push(t(`${P}stamps`, { count: 1 + p.extraStamps }))
@@ -116,7 +122,8 @@ function queDa(p: PromoParaDescribir, programa: ProgramaPrendido, conFiltro: boo
  * Sólo menciona sellos si el negocio da sellos y puntos si da puntos; si lo que configuró no toca nada de eso, lo dice.
  */
 export function describirPromo(p: PromoParaDescribir, programa: ProgramaPrendido, t: TFunction): string {
-  const conFiltro = p.productNames.length > 0 || p.categoryNames.length > 0
+  // Igual que la frase del sujeto y el MCP del servidor: si hay productos, manda «productos»; si no, «categorías».
+  const filtro = p.productNames.length > 0 ? 'products' : p.categoryNames.length > 0 ? 'categories' : null
   const sujeto = [
     t(`${P}visit`),
     p.minSpend ? t(`${P}minSpend`, { amount: pesos.format(p.minSpend) }) : '',
@@ -128,7 +135,7 @@ export function describirPromo(p: PromoParaDescribir, programa: ProgramaPrendido
   ]
     .filter(Boolean)
     .join(' ')
-  const que = queDa(p, programa, conFiltro, t)
+  const que = queDa(p, programa, filtro, t)
   const predicado = que ? t(`${P}gives`, { what: que }) : t(`${P}nothing`)
   const frase = [cuando(p, t), horario(p, t), `${sujeto} ${predicado}`].filter(Boolean).join(', ')
   const limite = p.limit === 'NONE' ? '' : ` ${t(`${P}limit${p.limit}`)}`

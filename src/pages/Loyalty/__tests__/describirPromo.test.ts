@@ -65,6 +65,13 @@ describe('describirPromo', () => {
     expect(texto).toBe('Del 13 al 17 de nov., cada visita da 2 sellos en vez de 1 y 50 puntos extra.')
   })
 
+  it('con filtro por categoría dice «en esas categorías»', () => {
+    const texto = describirPromo({ ...buenFin, categoryNames: ['Bebidas'] }, ambos, tEs())
+    expect(texto).toContain('el doble de puntos en esas categorías')
+    expect(texto).not.toContain('esos productos')
+    expect(describirPromo({ ...buenFin, categoryNames: ['Drinks'] }, ambos, tEn())).toContain('on those categories')
+  })
+
   it('sin fin, con gasto mínimo, productos y límite por cliente', () => {
     const texto = describirPromo(
       { ...buenFin, endDate: null, minSpend: 500, productNames: ['Café', 'Pan dulce'], limit: 'ONCE_PER_DAY' },

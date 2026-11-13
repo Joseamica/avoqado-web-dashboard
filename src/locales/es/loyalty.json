@@ -402,6 +402,7 @@
       "pointsTriple": "el triple de puntos",
       "pointsTimes": "{{count}} veces los puntos",
       "pointsScoped": "{{points}} por esos productos",
+      "pointsScopedCategories": "{{points}} en esas categorías",
       "extraPoints_one": "{{count}} punto extra",
       "extraPoints_other": "{{count}} puntos extra",
       "nothing": "no da nada extra con tu programa actual",
