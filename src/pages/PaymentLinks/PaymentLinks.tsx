@@ -352,7 +352,11 @@ export default function PaymentLinks() {
               </div>
               <div>
                 <div className="font-medium">{row.original.title}</div>
-                {row.original.description && (
+                {row.original.productGroup ? (
+                  <div className="text-sm text-muted-foreground truncate max-w-[200px]">
+                    {t('list.garment', { name: row.original.productGroup.name })}
+                  </div>
+                ) : row.original.description && (
                   <div className="text-sm text-muted-foreground truncate max-w-[200px]">{row.original.description}</div>
                 )}
               </div>

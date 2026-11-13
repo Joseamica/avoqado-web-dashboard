@@ -115,6 +115,8 @@ function PaymentLinkForm({ open, onClose, editingLinkId }: CreatePaymentLinkDial
   // its own quantity. Single-product is just length=1. The total customer pays
   // is sum(quantity × product.price). Empty array = no items selected.
   const [selectedItems, setSelectedItems] = useState<BundleItem[]>([])
+  // Liga por prenda: la clienta escoge la talla. Excluye items, descuento y extras; siempre reutilizable.
+  const [selectedGroup, setSelectedGroup] = useState<{ id: string; name: string } | null>(null)
   const [customFields, setCustomFields] = useState<CustomFieldDefinition[]>([])
   const [customFieldsEnabled, setCustomFieldsEnabled] = useState(false)
   const [tippingConfig, setTippingConfig] = useState<TippingConfig | null>(null)
@@ -178,6 +180,25 @@ function PaymentLinkForm({ open, onClose, editingLinkId }: CreatePaymentLinkDial
   })
 
   const showMerchantPicker = usableMerchants.length > 1
+  // Las ligas por prenda sólo funcionan con Stripe: si el comercio elegido es otro, la opción se ve en gris.
+  const chosenMerchant = usableMerchants.find(m => m.id === selectedMerchantId)
+  const groupsNeedStripe = !!chosenMerchant && chosenMerchant.provider?.code !== 'STRIPE_CONNECT'
+  useEffect(() => {
+    if (groupsNeedStripe && selectedGroup) {
+      setSelectedGroup(null)
+      setIsReusable(false)
+    }
+  }, [groupsNeedStripe, selectedGroup])
+
+  const handleGroupChange = (group: { id: string; name: string } | null) => {
+    setSelectedGroup(group)
+    setIsReusable(!!group) // el servidor la fuerza reutilizable
+    if (group) {
+      setDiscount({ mode: 'NONE' })
+      setDiscountTouched(false)
+      setExpiresAt(null)
+    }
+  }
 
   // Auto-select the only usable merchant so the user never has to pick when
   // there's no real choice. Reruns if the underlying list changes.
@@ -233,6 +254,7 @@ function PaymentLinkForm({ open, onClose, editingLinkId }: CreatePaymentLinkDial
 
       // Restore bundle line items + modifiers for ITEM links. Empty for
       // PAYMENT/DONATION. The dialog supports re-editing the full bundle.
+      setSelectedGroup(link.productGroup ?? null)
       if (link.purpose === 'ITEM' && Array.isArray(link.items)) {
         setSelectedItems(
           link.items.map(it => ({
@@ -339,14 +361,22 @@ function PaymentLinkForm({ open, onClose, editingLinkId }: CreatePaymentLinkDial
     // Total = sum(qty × price). The backend recomputes this too as a guard.
     const effectiveTitle =
       selectedPurpose === 'item'
-        ? selectedItems.length === 1
+        ? selectedGroup
+          ? selectedGroup.name
+          : selectedItems.length === 1
           ? selectedItems[0].product.name
           : selectedItems.length > 1
             ? title.trim() || `Bundle (${selectedItems.length} artículos)`
             : ''
         : title.trim()
     const effectiveAmount =
-      selectedPurpose === 'item' && selectedItems.length > 0 ? bundleSubtotal : amount ? parseFloat(amount) : undefined
+      selectedPurpose === 'item' && selectedGroup
+        ? undefined // cada talla trae su precio: no hay monto de la liga
+        : selectedPurpose === 'item' && selectedItems.length > 0
+          ? bundleSubtotal
+          : amount
+            ? parseFloat(amount)
+            : undefined
     const effectiveDescription =
       selectedPurpose === 'item' && selectedItems.length === 1 ? selectedItems[0].product.description || '' : description.trim()
 
@@ -377,7 +407,7 @@ function PaymentLinkForm({ open, onClose, editingLinkId }: CreatePaymentLinkDial
       isReusable,
       ...(customFieldsEnabled && sanitizedFields.length > 0 ? { customFields: sanitizedFields } : { customFields: null }),
       ...(tippingConfig ? { tippingConfig } : { tippingConfig: null }),
-      ...(selectedPurpose === 'donation' ? {} : discountPayload(discount, discountTouched)),
+      ...(selectedPurpose === 'donation' || selectedGroup ? {} : discountPayload(discount, discountTouched)),
       ...(expiresAt ? { expiresAt } : {}),
     }
 
@@ -390,15 +420,17 @@ function PaymentLinkForm({ open, onClose, editingLinkId }: CreatePaymentLinkDial
           // Explicitly null when disabled so backend clears existing value
           redirectUrl: redirectEnabled && redirectUrl.trim() ? redirectUrl.trim() : null,
           // Replace bundle items list for ITEM links (incl. their modifiers)
-          ...(selectedPurpose === 'item'
-            ? {
-                items: selectedItems.map(it => ({
-                  productId: it.product.id,
-                  quantity: it.quantity,
-                  modifiers: it.modifiers.map(m => ({ modifierId: m.modifierId, quantity: m.quantity })),
-                })),
-              }
-            : {}),
+          ...(selectedPurpose === 'item' && selectedGroup
+            ? { productGroupId: selectedGroup.id }
+            : selectedPurpose === 'item'
+              ? {
+                  items: selectedItems.map(it => ({
+                    productId: it.product.id,
+                    quantity: it.quantity,
+                    modifiers: it.modifiers.map(m => ({ modifierId: m.modifierId, quantity: m.quantity })),
+                  })),
+                }
+              : {}),
         }
         // Sólo AGREGAR a una liga que no tenía cliente; una que ya tiene nunca lo manda (founder, 23-oct).
         if (!existingLink?.data.customer && selectedCustomer) updateData.customerId = selectedCustomer.id
@@ -412,15 +444,17 @@ function PaymentLinkForm({ open, onClose, editingLinkId }: CreatePaymentLinkDial
           ...baseData,
           ...(redirectEnabled && redirectUrl.trim() ? { redirectUrl: redirectUrl.trim() } : {}),
           purpose: selectedPurpose ? purposeMap[selectedPurpose] : 'PAYMENT',
-          ...(selectedPurpose === 'item'
-            ? {
-                items: selectedItems.map(it => ({
-                  productId: it.product.id,
-                  quantity: it.quantity,
-                  modifiers: it.modifiers.map(m => ({ modifierId: m.modifierId, quantity: m.quantity })),
-                })),
-              }
-            : {}),
+          ...(selectedPurpose === 'item' && selectedGroup
+            ? { productGroupId: selectedGroup.id }
+            : selectedPurpose === 'item'
+              ? {
+                  items: selectedItems.map(it => ({
+                    productId: it.product.id,
+                    quantity: it.quantity,
+                    modifiers: it.modifiers.map(m => ({ modifierId: m.modifierId, quantity: m.quantity })),
+                  })),
+                }
+              : {}),
           // Pin to selected channel when set. Only matters with >1 active
           // merchants — for the 1-channel case it's still set, harmlessly.
           ...(selectedMerchantId ? { ecommerceMerchantId: selectedMerchantId } : {}),
@@ -458,7 +492,7 @@ function PaymentLinkForm({ open, onClose, editingLinkId }: CreatePaymentLinkDial
     !lecturaPendiente &&
     (selectedPurpose === 'donation' || !discountError(discount)) &&
     (selectedPurpose === 'item'
-      ? selectedItems.length > 0
+      ? selectedItems.length > 0 || !!selectedGroup
       : title.trim().length > 0 && (amountType === 'OPEN' || (amountType === 'FIXED' && parseFloat(amount) > 0)))
 
   const handleClose = () => {
@@ -697,6 +731,9 @@ function PaymentLinkForm({ open, onClose, editingLinkId }: CreatePaymentLinkDial
                   onRedirectUrlChange={setRedirectUrl}
                   redirectEnabled={redirectEnabled}
                   onRedirectEnabledChange={setRedirectEnabled}
+                  selectedGroup={selectedGroup}
+                  onGroupChange={handleGroupChange}
+                  groupsNeedStripe={groupsNeedStripe}
                 />
               ) : (
                 /* Default payment/donation form — flat sections (Square-style) */
@@ -1004,7 +1041,7 @@ function PaymentLinkForm({ open, onClose, editingLinkId }: CreatePaymentLinkDial
               )}
 
               {/* Las donaciones no llevan descuento (el SERVIDOR lo rechaza). */}
-              {selectedPurpose !== 'donation' && (
+              {selectedPurpose !== 'donation' && !selectedGroup && (
                 <>
                   <hr className="border-border my-6" />
                   <PaymentLinkDiscountSection
@@ -1166,6 +1203,7 @@ function PaymentLinkForm({ open, onClose, editingLinkId }: CreatePaymentLinkDial
                 {selectedPurpose === 'item' ? (
                   <ItemPreview
                     items={selectedItems}
+                    groupName={selectedGroup?.name}
                     redirectEnabled={redirectEnabled}
                     redirectUrl={redirectUrl}
                     customFields={customFieldsEnabled ? customFields : undefined}
