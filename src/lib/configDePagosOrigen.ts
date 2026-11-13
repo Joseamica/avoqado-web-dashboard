@@ -80,6 +80,9 @@ const LECTURAS_POR_CUENTA = [
   'venue-configs-by-merchant',
   'merchant-account-configs',
   'all-venue-configs',
+  // El asistente de pagos (por negocio u organización). Ojo: al reabrirlo llena su formulario con la caché antes de que
+  // llegue la lectura nueva; esto la marca vieja, pero el llenado temprano es un pendiente aparte (Codex r5, pizarrón).
+  'payment-setup-summary',
 ] as const
 
 export function refrescarLecturasDeConfigDePagos(
