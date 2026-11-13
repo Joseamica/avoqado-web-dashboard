@@ -150,7 +150,9 @@ export function actionTone(action: string): ActionTone {
   // o un cobro sin internet cuyo saldo no coincidió con el del servidor.
   // `VENTA_SIN_RED_*`: una venta sin internet (dinero ya cobrado) llegó con un
   // problema y el servidor ya le avisó al dueño; no se perdió, hay que revisarla.
-  if (/(COMPED|VOIDED|OVERRIDE|REVERSED|REVERSAL|CLAWBACK|REFUND|DISCREPANC|VARIANCE|WENT_NEGATIVE|OVERPAY|SOBREPAGO|CON_DIFERENCIA|VENTA_SIN_RED_|SUSPENDED|QUARANTINED|STUCK|CAPTURED_OUTSIDE|DOUBLE_PAYMENT)/.test(a)) {
+  // `MASTER_LOGIN` (entrar con la clave maestra) y `ROLE_CHANGED`: la bitácora de
+  // la organización ya los resaltaba como lo que un auditor viene a buscar.
+  if (/(COMPED|VOIDED|OVERRIDE|REVERSED|REVERSAL|CLAWBACK|REFUND|DISCREPANC|VARIANCE|WENT_NEGATIVE|OVERPAY|SOBREPAGO|CON_DIFERENCIA|VENTA_SIN_RED_|SUSPENDED|QUARANTINED|STUCK|CAPTURED_OUTSIDE|DOUBLE_PAYMENT|MASTER_LOGIN|ROLE_CHANGED)/.test(a)) {
     return 'attention'
   }
   if (/(CREATED|ADDED|ISSUED|APPROVED|CONFIRMED|COMPLETED|ACTIVATED|ENABLED|GRANTED|PUBLISHED|RECEIVED|ACCEPTED|REACTIVATED|UNLOCKED|GENERATED)/.test(a)) {
@@ -162,6 +164,14 @@ export function actionTone(action: string): ActionTone {
 /** Fallback legible para acciones históricas o nuevas sin llave i18n. */
 export function formatActionFallback(action: string): string {
   return action.replace(/_/g, ' ').toLowerCase().replace(/^./, c => c.toUpperCase())
+}
+
+/**
+ * El texto de una acción, igual en la bitácora del negocio y en la de la organización: su llave i18n o, si no
+ * tiene, el respaldo sin MAYÚSCULAS ("PERMISSION DENIED" → "Permission denied").
+ */
+export function actionLabel(action: string, t: (key: string, opts?: Record<string, unknown>) => string): string {
+  return t(`activityLog.actions.${action}`, { defaultValue: formatActionFallback(action) })
 }
 
 // ── Filtro de fecha (pill de Stripe) → rango que entiende el servidor ─────────

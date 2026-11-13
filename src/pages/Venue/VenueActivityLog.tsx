@@ -19,84 +19,11 @@ import {
 } from '@/services/venueActivity.service'
 import { useVenueDateTime } from '@/utils/datetime'
 import { useQuery } from '@tanstack/react-query'
-import {
-  AlertTriangle,
-  Ban,
-  Banknote,
-  Boxes,
-  CalendarClock,
-  ChevronDown,
-  ChevronLeft,
-  ChevronRight,
-  CircleCheck,
-  FileText,
-  LogIn,
-  Pencil,
-  Plus,
-  Printer,
-  ScrollText,
-  Search,
-  Shield,
-  ShoppingCart,
-  Smartphone,
-  Store,
-  Trash2,
-  User,
-  Tag,
-} from 'lucide-react'
+import { AlertTriangle, ChevronDown, ChevronLeft, ChevronRight, ScrollText, Search } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import {
-  actionTone,
-  dateFilterToRange,
-  formatActionFallback,
-  formatEntityId,
-  groupByDay,
-  toDetailRows,
-  type ActionTone,
-} from './activity-log/formatActivity'
-
-// ── Presentación de la acción ─────────────────────────────────────────────────
-
-/** Colores por tono. Cada uno lleva su variante dark explícita. */
-const TONE_STYLES: Record<ActionTone, { icon: string; dot: string }> = {
-  destructive: { icon: 'text-red-600 dark:text-red-400', dot: 'bg-red-500' },
-  attention: { icon: 'text-amber-600 dark:text-amber-400', dot: 'bg-amber-500' },
-  positive: { icon: 'text-emerald-600 dark:text-emerald-400', dot: 'bg-emerald-500' },
-  neutral: { icon: 'text-muted-foreground', dot: 'bg-muted-foreground/40' },
-}
-
-/**
- * Icono por FAMILIA de acción, no por código exacto.
- * El servidor emite más de 500 códigos: un mapa uno a uno se queda atrás y la
- * acción nueva sale sin icono. Se evalúa en orden — gana la primera que casa.
- */
-const ICON_RULES: Array<[RegExp, React.ElementType]> = [
-  [/PERMISSION|ROLE|KYC|OVERRIDE/, Shield],
-  [/LOGIN|LOGOUT|SESSION|INVIT|PIN_/, LogIn],
-  [/PAYMENT|REFUND|CASH|SETTLEMENT|COMMISSION|PAYOUT|MERCHANT|CFDI|LEDGER|JOURNAL|EXPENSE|PAYROLL|CREDIT|RATE_|REVENUE|FINANCIAL|TOKENS/, Banknote],
-  [/STOCK|INVENTORY|RAW_MATERIAL|RECIPE|BATCH|TRANSFER|SERIALIZED|SIM_/, Boxes],
-  [/PURCHASE_ORDER|SUPPLIER|PURCHASE_INVOICE/, ShoppingCart],
-  [/MENU|PRODUCT|MODIFIER|CATEGORY|CATALOG|PROMOTION|DISCOUNT|COUPON|UPSELL/, Tag],
-  [/TERMINAL|TPV|DEVICE|DISPLAY_MODE|SCALE/, Smartphone],
-  [/PRINT/, Printer],
-  [/STAFF|TEAM|EMPLOYEE|USER_|CUSTOMER|WAITLIST/, User],
-  [/SHIFT|SCHEDULE|OVERTIME|TIME_ENTRY|ATTENDANCE|RESERVATION|CLASS_SESSION/, CalendarClock],
-  [/VENUE|ORGANIZATION|ORG_|SETTINGS|CONFIG|FEATURE|PLAN_|ZONE|TABLE|FLOOR/, Store],
-  [/DENIED|REJECTED|FAILED|BLOCKED|LOCKED/, Ban],
-  [/DELETED|REMOVED|CANCELLED|VOIDED/, Trash2],
-  [/CREATED|ADDED|ISSUED|GENERATED/, Plus],
-  [/APPROVED|CONFIRMED|COMPLETED|RESOLVED/, CircleCheck],
-  [/UPDATED|CHANGED|_SET$|REORDERED|EDIT/, Pencil],
-]
-
-function iconFor(action: string): React.ElementType {
-  // Lo negado manda sobre el sustantivo: PERMISSION_DENIED debe leerse como un
-  // bloqueo, no como "algo de permisos".
-  if (/DENIED|REJECTED|FAILED|LOCKED|INSUFFICIENT/.test(action)) return Ban
-  for (const [re, Icon] of ICON_RULES) if (re.test(action)) return Icon
-  return FileText
-}
+import { iconFor, TONE_STYLES } from './activity-log/actionDisplay'
+import { actionLabel, actionTone, dateFilterToRange, formatEntityId, groupByDay, toDetailRows } from './activity-log/formatActivity'
 
 // ── Pantalla ──────────────────────────────────────────────────────────────────
 
@@ -163,7 +90,7 @@ function VenueActivityLog() {
   const actionOptions = useMemo(
     () =>
       (availableActions ?? [])
-        .map(action => ({ value: action, label: labelForAction(action, t) }))
+        .map(action => ({ value: action, label: actionLabel(action, t) }))
         .sort((a, b) => a.label.localeCompare(b.label)),
     [availableActions, t],
   )
@@ -229,7 +156,7 @@ function VenueActivityLog() {
             >
             <FilterPill
               label={t('activityLog.filters.action')}
-              activeLabel={actionFilter ? labelForAction(actionFilter, t) : null}
+              activeLabel={actionFilter ? actionLabel(actionFilter, t) : null}
               onClear={() => resetPage(setActionFilter)(null)}
             >
               <SingleSelectFilterContent
@@ -348,13 +275,6 @@ function VenueActivityLog() {
 
 // ── Piezas ────────────────────────────────────────────────────────────────────
 
-function labelForAction(action: string, t: (key: string, opts?: Record<string, unknown>) => string): string {
-  return t(`activityLog.actions.${action}`, {
-    // El fallback deja de gritar en MAYÚSCULAS: "PERMISSION DENIED" → "Permission denied".
-    defaultValue: formatActionFallback(action),
-  })
-}
-
 function DayHeading({ day, timezone }: { day: string; timezone: string }) {
   const { t } = useTranslation('organization')
   // 🔴 `formatCalendarDate` y NO `formatDate`: `day` es una fecha CIVIL
@@ -421,7 +341,7 @@ function ActivityRow({ log }: { log: VenueActivityLogEntry }) {
 
         {/* Qué pasó */}
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium text-foreground">{labelForAction(log.action, t)}</p>
+          <p className="truncate text-sm font-medium text-foreground">{actionLabel(log.action, t)}</p>
           <p className="mt-0.5 truncate text-xs text-muted-foreground">
             {/* En móvil la columna «Quién» no cabe: el nombre viaja aquí para
                 que la fila nunca se quede sin decir quién lo hizo. */}
