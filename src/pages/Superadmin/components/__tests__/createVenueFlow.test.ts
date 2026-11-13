@@ -1,7 +1,9 @@
 import { describe, expect, it, vi } from 'vitest'
-import { runCreateVenueFlow, type CreatedVenue } from '../createVenueFlow'
+import { runCreateVenueFlow, type CreatedVenue, type CreateVenueFlowDeps } from '../createVenueFlow'
 
-function deps(overrides: Partial<Parameters<typeof runCreateVenueFlow>[0]> = {}) {
+type Pago = { paymentSkipped: boolean }
+
+function deps(overrides: Partial<CreateVenueFlowDeps<Pago>> = {}): CreateVenueFlowDeps<Pago> {
   return {
     alreadyCreated: null as CreatedVenue | null,
     createVenue: vi.fn(async () => ({ venueId: 'cv1', venueName: 'Tienda' })),
