@@ -13,6 +13,8 @@ import {
   setOrganizationPricing,
 } from '@/services/superadmin-organizations.service'
 import { bulkCreateSettlementConfigurations } from '@/services/settlementConfiguration.service'
+import { usePositionConfirm } from '../position-lock/PositionConfirmDialog'
+import { isPositionConfirmCancel, isStalePosition, seenFromConfig, serverMessage } from '../position-lock/positionLock'
 import {
   Building2,
   CheckCircle2,
@@ -317,6 +319,7 @@ export const PaymentSetupWizard: React.FC<PaymentSetupWizardProps> = ({ open, on
   const queryClient = useQueryClient()
   const [state, dispatch] = useReducer(wizardReducer, initialState)
   const [saving, setSaving] = useState(false)
+  const { run, dialog: positionConfirmDialog } = usePositionConfirm()
 
   // Fetch existing config for pre-fill
   const { data: existingSummary } = useQuery({
@@ -602,7 +605,21 @@ export const PaymentSetupWizard: React.FC<PaymentSetupWizardProps> = ({ open, on
       const primary = state.merchants.primary
 
       if (primary.mode === 'existing') {
-        // 1. Batch assign terminals for ALL configured merchants + reconcile orphans
+        // 1. Create/update OrganizationPaymentConfig FIRST, through the position lock (tarifa al comercio, paso 1): if the
+        // server asks to confirm and the operator cancels (or it fails), NOTHING else is written — no terminal is touched.
+        await run(
+          pc =>
+            setOrganizationPaymentConfig(context.organizationId, {
+              primaryAccountId: primary.merchantId,
+              secondaryAccountId: state.merchants.secondary?.merchantId,
+              tertiaryAccountId: state.merchants.tertiary?.merchantId,
+              positionConfirmations: pc,
+            }),
+          // The accounts this screen shows are the org config it loaded (`undefined` while unread: assert none).
+          existingSummary === undefined ? undefined : seenFromConfig(existingSummary.config ?? null),
+        )
+
+        // 2. Batch assign terminals for ALL configured merchants + reconcile orphans
         const configuredMerchants = [
           state.merchants.primary,
           state.merchants.secondary,
@@ -633,13 +650,6 @@ export const PaymentSetupWizard: React.FC<PaymentSetupWizardProps> = ({ open, on
             }
           }
         }
-
-        // 2. Create/update OrganizationPaymentConfig
-        await setOrganizationPaymentConfig(context.organizationId, {
-          primaryAccountId: primary.merchantId,
-          secondaryAccountId: state.merchants.secondary?.merchantId,
-          tertiaryAccountId: state.merchants.tertiary?.merchantId,
-        })
 
         // 3. Create/update cost structure if provided
         const costData = state.costStructures[primary.merchantId]
@@ -793,12 +803,17 @@ export const PaymentSetupWizard: React.FC<PaymentSetupWizardProps> = ({ open, on
       queryClient.invalidateQueries({ queryKey: ['superadmin-organizations'] })
       queryClient.invalidateQueries({ queryKey: ['org-payment-config'] })
       queryClient.invalidateQueries({ queryKey: ['cost-structures'] })
-    } catch (error: any) {
+    } catch (error: unknown) {
+      if (isPositionConfirmCancel(error)) return
       console.error('Save error:', error)
+      if (isStalePosition(error)) {
+        queryClient.invalidateQueries({ queryKey: ['payment-setup-summary'] })
+        queryClient.invalidateQueries({ queryKey: ['org-payment-config'] })
+      }
       toast({
         variant: 'destructive',
         title: 'Error al guardar',
-        description: error.response?.data?.message || error.message || 'Error desconocido',
+        description: serverMessage(error, 'Error desconocido'),
       })
     } finally {
       setSaving(false)
@@ -979,6 +994,7 @@ export const PaymentSetupWizard: React.FC<PaymentSetupWizardProps> = ({ open, on
           </div>
         </div>
       </div>
+      {positionConfirmDialog}
     </FullScreenModal>
   )
 }

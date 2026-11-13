@@ -23,6 +23,8 @@ import {
 } from '@/services/superadmin-organizations.service'
 import { getMerchantAccountsList, autoFetchBlumonCredentials } from '@/services/paymentProvider.service'
 import { PaymentSetupWizard } from './components/merchant-accounts/PaymentSetupWizard'
+import { usePositionConfirm } from './components/position-lock/PositionConfirmDialog'
+import { isPositionConfirmCancel, isStalePosition, seenFromConfig, serverMessage } from './components/position-lock/positionLock'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   AlertTriangle,
@@ -784,36 +786,36 @@ export const PaymentConfigDialog: React.FC<PaymentConfigDialogProps> = ({ open, 
     }
   }, [paymentData])
 
+  // Candado de posiciones (tarifa al comercio, paso 1): cambiar o quitar una cuenta de la organización pide confirmar la
+  // tarifa que queda y las terminales que heredan. Las cuentas que se ven son las de la configuración que se leyó. La tarifa
+  // se cambia en la pestaña «Tarifas» de este mismo diálogo (sin liga).
+  const { run, dialog: positionConfirmDialog } = usePositionConfirm()
+  const seenOrgAccounts = seenFromConfig(paymentData === undefined ? undefined : paymentData.paymentConfig)
+  const configErrorToast = (title: string, error: unknown) => {
+    if (isPositionConfirmCancel(error)) return
+    if (isStalePosition(error)) queryClient.invalidateQueries({ queryKey: ['org-payment-config', organization?.id] })
+    toast({ title, description: serverMessage(error, 'Error desconocido'), variant: 'destructive' })
+  }
+
   // Save payment config mutation
   const saveConfigMutation = useMutation({
-    mutationFn: (data: SetOrgPaymentConfigData) => organizationAPI.setOrganizationPaymentConfig(organization!.id, data),
+    mutationFn: (data: SetOrgPaymentConfigData) =>
+      run(pc => organizationAPI.setOrganizationPaymentConfig(organization!.id, { ...data, positionConfirmations: pc }), seenOrgAccounts),
     onSuccess: () => {
       toast({ title: 'Configuracion de pago guardada' })
       queryClient.invalidateQueries({ queryKey: ['org-payment-config', organization?.id] })
     },
-    onError: (error: any) => {
-      toast({
-        title: 'Error al guardar configuracion',
-        description: error?.response?.data?.error || error.message,
-        variant: 'destructive',
-      })
-    },
+    onError: error => configErrorToast('Error al guardar configuracion', error),
   })
 
   // Delete payment config mutation
   const deleteConfigMutation = useMutation({
-    mutationFn: () => organizationAPI.deleteOrganizationPaymentConfig(organization!.id),
+    mutationFn: () => run(pc => organizationAPI.deleteOrganizationPaymentConfig(organization!.id, pc), seenOrgAccounts),
     onSuccess: () => {
       toast({ title: 'Configuracion de pago eliminada' })
       queryClient.invalidateQueries({ queryKey: ['org-payment-config', organization?.id] })
     },
-    onError: (error: any) => {
-      toast({
-        title: 'Error al eliminar configuracion',
-        description: error?.response?.data?.error || error.message,
-        variant: 'destructive',
-      })
-    },
+    onError: error => configErrorToast('Error al eliminar configuracion', error),
   })
 
   // Save pricing mutation
@@ -1331,6 +1333,7 @@ export const PaymentConfigDialog: React.FC<PaymentConfigDialogProps> = ({ open, 
             </TabsContent>
           </Tabs>
         )}
+        {positionConfirmDialog}
       </DialogContent>
     </Dialog>
   )

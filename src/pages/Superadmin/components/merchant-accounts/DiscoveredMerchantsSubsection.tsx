@@ -52,6 +52,8 @@ import {
   type VenuePaymentConfig,
 } from '@/services/paymentProvider.service'
 import { terminalAPI, type Terminal } from '@/services/superadmin-terminals.service'
+import { usePositionConfirm } from '../position-lock/PositionConfirmDialog'
+import { isPositionConfirmCancel, isStalePosition } from '../position-lock/positionLock'
 
 const SLOT_LABELS: Record<AngelPayVenuePaymentSlot, string> = {
   PRIMARY: 'Principal',
@@ -68,6 +70,7 @@ export interface DiscoveredMerchantsSubsectionProps {
 export function DiscoveredMerchantsSubsection({ venueId, onPendingCountChange }: DiscoveredMerchantsSubsectionProps) {
   const queryClient = useQueryClient()
   const { toast } = useToast()
+  const { run, dialog: positionConfirmDialog } = usePositionConfirm()
 
   const providersQuery = useQuery({
     queryKey: ['payment-providers-for-angelpay-discovery'],
@@ -142,7 +145,9 @@ export function DiscoveredMerchantsSubsection({ venueId, onPendingCountChange }:
       merchantAccountId: string
       slot: AngelPayVenuePaymentSlot
       terminalIds?: string[]
-    }) => angelpayUserAccountAPI.approveDiscoveredMerchant({ venueId, merchantAccountId, slot, terminalIds }),
+    }) =>
+      // Candado de posiciones: si el SERVIDOR pide confirmar, se repite SÓLO esta aprobación con lo confirmado.
+      run(pc => angelpayUserAccountAPI.approveDiscoveredMerchant({ venueId, merchantAccountId, slot, terminalIds, positionConfirmations: pc })),
     onSuccess: (_data, variables) => {
       toast({
         title: 'Merchant aprobado',
@@ -151,12 +156,16 @@ export function DiscoveredMerchantsSubsection({ venueId, onPendingCountChange }:
       invalidate()
     },
     onError: (err) => {
+      if (isPositionConfirmCancel(err)) return
       const anyErr = err as { response?: { data?: { message?: string }; status?: number }; message?: string }
-      const status = anyErr?.response?.status
+      // El 409 del candado (la configuración cambió mientras se confirmaba) no es «slot ocupado»: se recarga y se reintenta.
+      const stale = isStalePosition(err)
+      if (stale) invalidate()
+      const status = stale ? undefined : anyErr?.response?.status
       const baseMsg = anyErr?.response?.data?.message || anyErr?.message || 'Error desconocido'
       const description = status === 409 ? `${baseMsg} Prueba con otro slot.` : baseMsg
       toast({
-        title: status === 409 ? 'Slot ocupado' : 'No se pudo aprobar',
+        title: status === 409 ? 'Slot ocupado' : stale ? 'La configuración cambió' : 'No se pudo aprobar',
         description,
         variant: 'destructive',
       })
@@ -219,6 +228,7 @@ export function DiscoveredMerchantsSubsection({ venueId, onPendingCountChange }:
           onReject={() => rejectMutation.mutate(m.id)}
         />
       ))}
+      {positionConfirmDialog}
     </div>
   )
 }

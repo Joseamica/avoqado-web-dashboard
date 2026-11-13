@@ -5,6 +5,7 @@ import type {
   SuperadminDashboardData as SASuperadminDashboardData,
 } from '@/types/superadmin'
 import type { PlanState } from '@/services/features.service'
+import type { PositionConfirmations } from '@/pages/Superadmin/components/position-lock/positionLock'
 
 // ===== TYPES =====
 
@@ -896,9 +897,14 @@ export interface TransferVenueResponse {
   staffMembersUpdated: number
 }
 
-export async function transferVenue(venueId: string, targetOrganizationId: string): Promise<TransferVenueResponse> {
+export async function transferVenue(
+  venueId: string,
+  targetOrganizationId: string,
+  positionConfirmations?: PositionConfirmations,
+): Promise<TransferVenueResponse> {
   const response = await api.patch(`/api/v1/dashboard/superadmin/venues/${venueId}/transfer`, {
     targetOrganizationId,
+    positionConfirmations,
   })
   return response.data
 }
@@ -1097,8 +1103,12 @@ export const superadminAPI = {
     await deleteAppUpdate(id)
   },
   // Venue Transfer
-  transferVenue: async (venueId: string, targetOrganizationId: string): Promise<TransferVenueResponse> => {
-    return await transferVenue(venueId, targetOrganizationId)
+  transferVenue: async (
+    venueId: string,
+    targetOrganizationId: string,
+    positionConfirmations?: PositionConfirmations,
+  ): Promise<TransferVenueResponse> => {
+    return await transferVenue(venueId, targetOrganizationId, positionConfirmations)
   },
   // Bulk Venue Creation
   bulkCreateVenues: async (payload: BulkCreateVenuesPayload): Promise<BulkCreateVenuesResponse> => {

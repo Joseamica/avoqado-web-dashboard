@@ -10,6 +10,8 @@ import { AlertTriangle, Building2, CreditCard, Loader2, Unlink, Zap } from 'luci
 import { paymentProviderAPI, type MerchantAccount } from '@/services/paymentProvider.service'
 import { getAllVenues, type SuperadminVenue } from '@/services/superadmin.service'
 import { cn } from '@/lib/utils'
+import { usePositionConfirm } from '../position-lock/PositionConfirmDialog'
+import { isPositionConfirmCancel, isStalePosition, seenFromConfig, serverMessage, venueRatesLink } from '../position-lock/positionLock'
 
 interface AssignAccountToVenueDialogProps {
   open: boolean
@@ -31,6 +33,7 @@ export const AssignAccountToVenueDialog: React.FC<AssignAccountToVenueDialogProp
   const [selectedVenueId, setSelectedVenueId] = useState<string>('')
   const [selectedSlot, setSelectedSlot] = useState<AccountSlot>('PRIMARY')
   const [hasInitialized, setHasInitialized] = useState(false)
+  const { run, dialog } = usePositionConfirm()
 
   // Fetch all venues
   const { data: venues = [] } = useQuery({
@@ -130,18 +133,32 @@ export const AssignAccountToVenueDialog: React.FC<AssignAccountToVenueDialogProp
         updateData.tertiaryAccountId = account.id
       }
 
+      // Candado de posiciones: las cuentas que esta pantalla tiene a la vista (la config que leyó del venue).
+      const seen = seenFromConfig(existingConfig)
+      const ratesLink = venueRatesLink(venues.find((v: SuperadminVenue) => v.id === selectedVenueId)?.slug)
+
       if (existingConfig) {
         // Update existing config
-        return paymentProviderAPI.updateVenuePaymentConfig(selectedVenueId, updateData)
+        return run(
+          pc => paymentProviderAPI.updateVenuePaymentConfig(selectedVenueId, { ...updateData, positionConfirmations: pc }),
+          seen,
+          { ratesLink },
+        )
       } else {
         // Create new config - primary is required
         if (selectedSlot !== 'PRIMARY') {
           throw new Error('Para crear una nueva configuración, primero debes asignar una cuenta primaria')
         }
-        return paymentProviderAPI.createVenuePaymentConfig({
-          venueId: selectedVenueId,
-          primaryAccountId: account.id,
-        })
+        return run(
+          pc =>
+            paymentProviderAPI.createVenuePaymentConfig({
+              venueId: selectedVenueId,
+              primaryAccountId: account.id,
+              positionConfirmations: pc,
+            }),
+          seen,
+          { ratesLink },
+        )
       }
     },
     onSuccess: () => {
@@ -156,10 +173,15 @@ export const AssignAccountToVenueDialog: React.FC<AssignAccountToVenueDialogProp
       queryClient.invalidateQueries({ queryKey: ['venue-configs-by-merchant'] })
       onOpenChange(false)
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      if (isPositionConfirmCancel(error)) return
+      if (isStalePosition(error)) {
+        queryClient.invalidateQueries({ queryKey: ['venue-payment-config'] })
+        queryClient.invalidateQueries({ queryKey: ['venue-configs-by-merchant'] })
+      }
       toast({
         title: 'Error',
-        description: error.message || 'No se pudo asignar la cuenta',
+        description: serverMessage(error, 'No se pudo asignar la cuenta'),
         variant: 'destructive',
       })
     },
@@ -181,7 +203,12 @@ export const AssignAccountToVenueDialog: React.FC<AssignAccountToVenueDialogProp
         updateData.tertiaryAccountId = null
       }
 
-      return paymentProviderAPI.updateVenuePaymentConfig(currentAssignment.venueId, updateData)
+      // La cuenta que se quita es la que esta pantalla ve en esa posición.
+      return run(
+        pc => paymentProviderAPI.updateVenuePaymentConfig(currentAssignment.venueId, { ...updateData, positionConfirmations: pc }),
+        { [currentAssignment.slot]: account.id },
+        { ratesLink: venueRatesLink(venues.find((v: SuperadminVenue) => v.id === currentAssignment.venueId)?.slug) },
+      )
     },
     onSuccess: () => {
       toast({
@@ -195,10 +222,15 @@ export const AssignAccountToVenueDialog: React.FC<AssignAccountToVenueDialogProp
       queryClient.invalidateQueries({ queryKey: ['venue-configs-by-merchant'] })
       onOpenChange(false)
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      if (isPositionConfirmCancel(error)) return
+      if (isStalePosition(error)) {
+        queryClient.invalidateQueries({ queryKey: ['venue-payment-config'] })
+        queryClient.invalidateQueries({ queryKey: ['venue-configs-by-merchant'] })
+      }
       toast({
         title: 'Error',
-        description: error.message || 'No se pudo desanexar la cuenta',
+        description: serverMessage(error, 'No se pudo desanexar la cuenta'),
         variant: 'destructive',
       })
     },
@@ -497,6 +529,7 @@ export const AssignAccountToVenueDialog: React.FC<AssignAccountToVenueDialogProp
             </Button>
           </div>
         </DialogFooter>
+        {dialog}
       </DialogContent>
     </Dialog>
   )

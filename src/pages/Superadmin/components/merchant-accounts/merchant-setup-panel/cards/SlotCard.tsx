@@ -12,6 +12,14 @@ import {
 import { cn } from '@/lib/utils'
 import type { AccountSlot, SetupState, SlotSlice } from '../types'
 import type { SetupAction } from '../useSetupReducer'
+import { usePositionConfirm } from '../../../position-lock/PositionConfirmDialog'
+import {
+  isPositionConfirmCancel,
+  isStalePosition,
+  seenFromConfig,
+  serverMessage,
+  venueRatesLink,
+} from '../../../position-lock/positionLock'
 
 interface Props {
   state: SetupState
@@ -136,6 +144,7 @@ function SlotDialogBody({
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const venueId = state.venue.id
+  const { run, dialog } = usePositionConfirm()
 
   // Live VenuePaymentConfig is the source of truth for slot occupancy. Same
   // query key as the legacy wizard so we share the cache.
@@ -211,7 +220,13 @@ function SlotDialogBody({
           : draft.accountType === 'SECONDARY'
             ? { secondaryAccountId: merchantAccountId }
             : { tertiaryAccountId: merchantAccountId }
-      return paymentProviderAPI.updateVenuePaymentConfig(venueId, payload)
+      // Candado de posiciones: el backend también vacía la posición de donde sale este merchant, así que se mandan las tres
+      // cuentas que esta pantalla tiene a la vista.
+      return run(
+        pc => paymentProviderAPI.updateVenuePaymentConfig(venueId, { ...payload, positionConfirmations: pc }),
+        seenFromConfig(paymentConfig),
+        { ratesLink: venueRatesLink(state.venue.slug) },
+      )
     },
     onSuccess: () => {
       // The hydration hook keyed the VenuePaymentConfig fetch by merchant id;
@@ -227,13 +242,12 @@ function SlotDialogBody({
       toast({ title: 'Slot actualizado' })
       onClose()
     },
-    onError: (err: any) => {
+    onError: (err: unknown) => {
+      if (isPositionConfirmCancel(err)) return
+      if (isStalePosition(err)) queryClient.invalidateQueries({ queryKey: ['venue-payment-config', venueId] })
       toast({
         title: 'No se pudo actualizar el slot',
-        description:
-          err?.response?.data?.message ||
-          err?.message ||
-          'Error en el servidor',
+        description: serverMessage(err, 'Error en el servidor'),
         variant: 'destructive',
       })
     },
@@ -340,6 +354,7 @@ function SlotDialogBody({
           {mode === 'edit' ? 'Guardar cambios' : 'Guardar slot'}
         </button>
       </div>
+      {dialog}
     </div>
   )
 }
