@@ -543,6 +543,9 @@ const VenuePaymentConfig: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['venue-cost-structures', venue?.id] })
       queryClient.invalidateQueries({ queryKey: ['venue-pricing-structures', venue?.id] })
       queryClient.invalidateQueries({ queryKey: ['payment-readiness', venue?.id] })
+      // «Resumen de Ventas» filtra por estas cuentas y muestra sus plazos de depósito (30 min de vigencia): Codex r2.
+      queryClient.invalidateQueries({ queryKey: ['venueMerchantAccounts', venue?.id] })
+      queryClient.invalidateQueries({ queryKey: ['venueSettlementInfo', venue?.id] })
       toast({ title: t('common:success'), description: t('venuePaymentConfig.createSuccess') })
       setConfigDialogOpen(false)
     },
@@ -562,6 +565,9 @@ const VenuePaymentConfig: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['venue-cost-structures', venue?.id] })
       queryClient.invalidateQueries({ queryKey: ['venue-pricing-structures', venue?.id] })
       queryClient.invalidateQueries({ queryKey: ['payment-readiness', venue?.id] })
+      // «Resumen de Ventas» filtra por estas cuentas y muestra sus plazos de depósito (30 min de vigencia): Codex r2.
+      queryClient.invalidateQueries({ queryKey: ['venueMerchantAccounts', venue?.id] })
+      queryClient.invalidateQueries({ queryKey: ['venueSettlementInfo', venue?.id] })
       toast({ title: t('common:success'), description: t('venuePaymentConfig.updateSuccess') })
       setConfigDialogOpen(false)
     },
@@ -576,6 +582,9 @@ const VenuePaymentConfig: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['venue-cost-structures', venue?.id] })
       queryClient.invalidateQueries({ queryKey: ['venue-pricing-structures', venue?.id] })
       queryClient.invalidateQueries({ queryKey: ['payment-readiness', venue?.id] })
+      // «Resumen de Ventas» filtra por estas cuentas y muestra sus plazos de depósito (30 min de vigencia): Codex r2.
+      queryClient.invalidateQueries({ queryKey: ['venueMerchantAccounts', venue?.id] })
+      queryClient.invalidateQueries({ queryKey: ['venueSettlementInfo', venue?.id] })
       toast({ title: t('common:success'), description: t('venuePaymentConfig.deleteSuccess') })
     },
     onError: error => configErrorToast(error, t('venuePaymentConfig.deleteError')),

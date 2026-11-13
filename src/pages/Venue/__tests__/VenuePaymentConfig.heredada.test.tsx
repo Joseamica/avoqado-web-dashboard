@@ -117,6 +117,11 @@ describe('Configuración de Pagos · heredada de la organización', () => {
     pintar()
     await screen.findByText('venuePaymentConfig.inheritedTitle')
     await waitFor(() => expect(red.lecturasDeCostos).toBe(1))
+    // Como si antes se hubiera abierto «Resumen de Ventas» con la cuenta heredada (sin `gcTime` la caché sin pantalla se borra).
+    client.setQueryDefaults(['venueMerchantAccounts'], { gcTime: Infinity })
+    client.setQueryDefaults(['venueSettlementInfo'], { gcTime: Infinity })
+    client.setQueryData(['venueMerchantAccounts', 'v1'], [{ id: 'acc-org-1' }])
+    client.setQueryData(['venueSettlementInfo', 'v1'], { primaryAccountId: 'acc-org-1' })
     const costosAntes = red.lecturasDeCostos
     const tarifasAntes = red.lecturasDeTarifas
 
@@ -132,6 +137,12 @@ describe('Configuración de Pagos · heredada de la organización', () => {
     expect(red.creates[0][1]).toMatchObject({ primaryAccountId: 'acc-org-1', secondaryAccountId: 'acc-org-2', tertiaryAccountId: null })
     await waitFor(() => expect(red.lecturasDeCostos).toBeGreaterThan(costosAntes))
     expect(red.lecturasDeTarifas).toBeGreaterThan(tarifasAntes)
+    // Lo que «Resumen de Ventas» guardó de la cuenta anterior queda vencido (Codex r2).
+    for (const clave of [
+      ['venueMerchantAccounts', 'v1'],
+      ['venueSettlementInfo', 'v1'],
+    ])
+      expect(client.getQueryState(clave)?.isInvalidated).toBe(true)
     // Ya es del negocio: el aviso de heredada se va.
     await waitFor(() => expect(screen.queryByText('venuePaymentConfig.inheritedTitle')).not.toBeInTheDocument())
   })
