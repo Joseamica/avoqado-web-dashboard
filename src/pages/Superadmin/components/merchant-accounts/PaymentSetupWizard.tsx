@@ -261,7 +261,7 @@ const COSTO_SEMBRADO: CostStructureData = {
 interface Cargado {
   costo: Record<string, CostStructureData>
   tarifaOrg?: PricingData
-  liquidacion?: { merchantId: string; data: SettlementData } // los plazos son de UNA cuenta
+  liquidacion?: SettlementData
   sucursales: Record<string, { pricing: PricingData; id: string }>
 }
 const nadaCargado = (): Cargado => ({ costo: {}, sucursales: {} })
@@ -429,7 +429,7 @@ export const PaymentSetupWizard: React.FC<PaymentSetupWizardProps> = ({ open, on
   // Pre-fill wizard with existing data when reopening
   const prefilled = useRef(false)
   const cargado = useRef<Cargado>(nadaCargado())
-  // D18: pasos que la persona abrió. Lo que NO existe en el servidor (tarifa o plazos de default) sólo se crea si los vio.
+  // D18: pasos que la persona abrió. La tarifa de organización que NO existe (la de default) sólo se crea si la vio.
   const vistos = useRef(new Set<string>())
   useEffect(() => {
     if (open) vistos.current.add(STEPS[state.currentStep].key)
@@ -552,7 +552,7 @@ export const PaymentSetupWizard: React.FC<PaymentSetupWizardProps> = ({ open, on
           otherDays: other?.settlementDays ?? 2,
         }
         dispatch({ type: 'SET_SETTLEMENT', data })
-        foto.liquidacion = { merchantId: primaryAccount.id, data }
+        foto.liquidacion = data
       }
     }
 
@@ -803,11 +803,10 @@ export const PaymentSetupWizard: React.FC<PaymentSetupWizardProps> = ({ open, on
           cargado.current.tarifaOrg = pricingData
         }
 
-        // 5. Create settlement configs — misma regla (D18).
-        // Codex r2 #3: los plazos cargados son de la cuenta que era la principal; si la persona eligió otra, no cuentan.
-        const plazoAntes =
-          cargado.current.liquidacion?.merchantId === primary.merchantId ? cargado.current.liquidacion.data : undefined
-        if (plazoAntes ? !iguales(state.settlement, plazoAntes, LLAVES_DE_PLAZO) : vio('settlement')) {
+        // 5. Create settlement configs — SÓLO si la persona editó los plazos que el formulario le mostró (D18, rediseño tras
+        // Codex r3 H2/H3): el resumen no trae con certeza los plazos de cada cuenta (no lee los de otra principal ni los que
+        // tienen fecha de fin), así que sin una edición no se escribe nada sobre la cuenta.
+        if (!iguales(state.settlement, cargado.current.liquidacion ?? DEFAULT_SETTLEMENT, LLAVES_DE_PLAZO)) {
           await bulkCreateSettlementConfigurations({
             merchantAccountId: primary.merchantId,
             configs: [
@@ -819,7 +818,7 @@ export const PaymentSetupWizard: React.FC<PaymentSetupWizardProps> = ({ open, on
             ],
             effectiveFrom: new Date().toISOString(),
           })
-          cargado.current.liquidacion = { merchantId: primary.merchantId, data: state.settlement }
+          cargado.current.liquidacion = state.settlement
         }
 
         // 6. Handle venue-level pricing overrides
@@ -846,7 +845,9 @@ export const PaymentSetupWizard: React.FC<PaymentSetupWizardProps> = ({ open, on
           const antes = cargado.current.sucursales[override.venueId]
           if (antes && override.existingPricingId === antes.id && mismaTarifa(override.pricing, antes.pricing)) continue
 
-          const orgP = pricingData
+          // Codex r3 H1: sólo se compara con una tarifa de organización que EXISTE (la cargada o la que se acaba de guardar);
+          // la de default del formulario no es respaldo de nadie.
+          const orgP = cargado.current.tarifaOrg
           const vP = override.pricing
           // D18 (Codex r1 #3): el IVA también cuenta; 2.5 % «más IVA» no es la misma tarifa que 2.5 % final.
           const isIdentical = mismaTarifa(vP, orgP)

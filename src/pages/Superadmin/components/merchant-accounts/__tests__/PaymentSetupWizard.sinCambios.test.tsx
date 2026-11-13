@@ -78,7 +78,11 @@ vi.mock('../wizard-steps/VenuePricingStep', () => ({
     </button>
   ),
 }))
-vi.mock('../wizard-steps/SettlementStep', () => ({ SettlementStep: () => null }))
+vi.mock('../wizard-steps/SettlementStep', () => ({
+  SettlementStep: ({ state, dispatch }: any) => (
+    <button onClick={() => dispatch({ type: 'SET_SETTLEMENT', data: { ...state.settlement, debitDays: 2 } })}>débito a 2 días</button>
+  ),
+}))
 vi.mock('../wizard-steps/VenueOverridesStep', () => ({
   // Iguala las tasas de la sucursal A a las de la organización (sin tocar su IVA).
   VenueOverridesStep: ({ state, dispatch }: any) => (
@@ -266,12 +270,16 @@ describe('PaymentSetupWizard · guardar sin cambios', () => {
     expect(tarifasEscritas()).toEqual([])
   })
 
-  it('sin nada guardado: si la persona vio la tarifa y los plazos, «Guardar» los crea como hoy', async () => {
+  it('sin nada guardado: si la persona vio la tarifa la crea; los plazos, sólo si los edita', async () => {
     red.resumen = sinNada()
     red.costos = {}
     await abrir()
     await ir('Pricing')
     await ir('Liquidación')
+    await guardar()
+    expect(tarifasEscritas().map(([n]) => n)).toEqual(['setOrganizationPricing'])
+
+    fireEvent.click(screen.getByRole('button', { name: 'débito a 2 días' }))
     await guardar()
     expect(tarifasEscritas().map(([n]) => n)).toEqual(['setOrganizationPricing', 'bulkCreateSettlementConfigurations'])
   })
@@ -295,14 +303,32 @@ describe('PaymentSetupWizard · lo cargado es de la cuenta y la tarifa correctas
     expect(tarifasEscritas()).toEqual([])
   })
 
-  it('si la persona cambia la cuenta principal, los plazos que vio se crean para la NUEVA cuenta', async () => {
+  it('cambiar la cuenta principal sin editar plazos no escribe sobre los de la nueva cuenta (no se leyeron); editándolos, sí', async () => {
     red.resumen = configurada()
     await abrir()
     fireEvent.click(screen.getByRole('button', { name: 'principal acc-2' }))
     await ir('Liquidación')
     await guardar()
+    expect(tarifasEscritas()).toEqual([])
+
+    fireEvent.click(screen.getByRole('button', { name: 'débito a 2 días' }))
+    await guardar()
     expect(tarifasEscritas().map(([n]) => n)).toEqual(['bulkCreateSettlementConfigurations'])
     expect(tarifasEscritas()[0][1]).toMatchObject({ merchantAccountId: 'acc-2' })
+  })
+
+  it('sin tarifa de organización guardada, igualar una sucursal a la de default NO la desactiva (Codex r3 H1)', async () => {
+    red.resumen = {
+      ...sinNada(),
+      venues: [{ id: 'v-a', name: 'Sucursal A', slug: 'a' }],
+      venuePricingStructures: [tarifa('vp-a', { venueId: 'v-a', creditRate: '0.027', includesTax: null })],
+    }
+    red.costos = {}
+    await abrir()
+    await ir('Sucursales')
+    fireEvent.click(screen.getByRole('button', { name: 'igualar A' }))
+    await guardar()
+    expect(tarifasEscritas().map(([n]) => n)).toEqual(['updateVenuePricingStructure'])
   })
 
   it('una sucursal «más IVA 8 %» con las mismas tasas que la organización «más IVA 16 %» no se desactiva: se actualiza con su IVA', async () => {
