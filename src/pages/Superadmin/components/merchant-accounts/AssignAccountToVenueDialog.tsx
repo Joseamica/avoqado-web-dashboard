@@ -9,6 +9,7 @@ import { useToast } from '@/hooks/use-toast'
 import { AlertTriangle, Building2, CreditCard, Loader2, Unlink, Zap } from 'lucide-react'
 import { paymentProviderAPI, type MerchantAccount } from '@/services/paymentProvider.service'
 import { getAllVenues, type SuperadminVenue } from '@/services/superadmin.service'
+import { cuentasParaConfigPropia, esHeredadaDeLaOrganizacion } from '@/lib/configDePagosOrigen'
 import { cn } from '@/lib/utils'
 import { usePositionConfirm } from '../position-lock/PositionConfirmDialog'
 import { isPositionConfirmCancel, isStalePosition, seenFromConfig, serverMessage, venueRatesLink } from '../position-lock/positionLock'
@@ -137,7 +138,20 @@ export const AssignAccountToVenueDialog: React.FC<AssignAccountToVenueDialogProp
       const seen = seenFromConfig(existingConfig)
       const ratesLink = venueRatesLink(venues.find((v: SuperadminVenue) => v.id === selectedVenueId)?.slug)
 
-      if (existingConfig) {
+      if (existingConfig && esHeredadaDeLaOrganizacion(existingConfig)) {
+        // La que se ve es la de la ORGANIZACIÓN (el negocio no tiene propia): un PUT fallaría. Se crea la propia del negocio
+        // con las cuentas heredadas y esta en su posición; el candado confirma que deja de heredar (encargo e12dc4).
+        return run(
+          pc =>
+            paymentProviderAPI.createVenuePaymentConfig({
+              venueId: selectedVenueId,
+              ...cuentasParaConfigPropia(existingConfig, selectedSlot, account.id),
+              positionConfirmations: pc,
+            }),
+          seen,
+          { ratesLink },
+        )
+      } else if (existingConfig) {
         // Update existing config
         return run(
           pc => paymentProviderAPI.updateVenuePaymentConfig(selectedVenueId, { ...updateData, positionConfirmations: pc }),
@@ -404,6 +418,12 @@ export const AssignAccountToVenueDialog: React.FC<AssignAccountToVenueDialogProp
               {!existingConfig && selectedVenueId && !loadingConfig && (
                 <p className="text-xs text-amber-600 dark:text-amber-400">
                   Este venue no tiene configuración de pagos. Se creará una nueva con esta cuenta como principal.
+                </p>
+              )}
+              {esHeredadaDeLaOrganizacion(existingConfig) && selectedVenueId && !loadingConfig && (
+                <p className="text-xs text-amber-600 dark:text-amber-400" data-tour="assign-account-inherited-config">
+                  Este venue usa la configuración de su organización (heredada). Al asignar, tendrá su propia configuración: las
+                  mismas cuentas de la organización con esta en el slot elegido, y dejará de seguir los cambios de la organización.
                 </p>
               )}
 

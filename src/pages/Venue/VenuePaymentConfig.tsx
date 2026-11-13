@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useAuth } from '@/context/AuthContext'
 import { useToast } from '@/hooks/use-toast'
+import { esHeredadaDeLaOrganizacion } from '@/lib/configDePagosOrigen'
 import { falloDeCarga } from '@/lib/falloDeCarga'
 import { cn } from '@/lib/utils'
 import type { ProviderCostStructure, VenuePricingStructure } from '@/services/paymentProvider.service'
@@ -16,6 +17,7 @@ import {
   AlertCircle,
   ArrowRight,
   ArrowUpRight,
+  Building2,
   Calculator,
   CheckCircle2,
   ChevronRight,
@@ -466,6 +468,9 @@ const VenuePaymentConfig: React.FC = () => {
     enabled: !!venue?.id,
   })
   const { data: paymentConfig } = paymentConfigQuery
+  // La heredada es de la ORGANIZACIÓN (el negocio no tiene propia): no se edita ni se borra desde aquí; guardar crea la
+  // propia del negocio con las cuentas que se ven (encargo e12dc4).
+  const heredada = esHeredadaDeLaOrganizacion(paymentConfig)
   // `null` es «no tiene configuración» (lo que dice su 404). Sin leer no se sabe: no se invita a conectar lo que ya puede estar conectado.
   const configLoading = !!venue?.id && paymentConfig === undefined && !falloDeCarga(paymentConfigQuery)
 
@@ -597,7 +602,7 @@ const VenuePaymentConfig: React.FC = () => {
   // === HANDLERS ===
 
   const handleSaveConfig = async (data: any) => {
-    if (paymentConfig) {
+    if (paymentConfig && !heredada) {
       await updateConfigMutation.mutateAsync(data)
     } else {
       await createConfigMutation.mutateAsync(data)
@@ -776,6 +781,20 @@ const VenuePaymentConfig: React.FC = () => {
           </div>
         </div>
 
+        {heredada && (
+          <div
+            className="flex items-start gap-3 rounded-xl border border-input bg-muted/40 p-4"
+            data-tour="venue-payment-config-inherited"
+            role="status"
+          >
+            <Building2 className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" />
+            <div className="space-y-1">
+              <p className="text-sm font-medium">{t('venuePaymentConfig.inheritedTitle')}</p>
+              <p className="text-sm text-muted-foreground">{t('venuePaymentConfig.inheritedBody')}</p>
+            </div>
+          </div>
+        )}
+
         {/* Superadmin Payment Setup Wizard */}
         {isSuperadmin && venue && venue.organizationId && (
           <PaymentSetupWizard
@@ -811,6 +830,11 @@ const VenuePaymentConfig: React.FC = () => {
                     <Badge variant="outline" className="text-xs">
                       {primaryAccount?.provider?.name}
                     </Badge>
+                    {heredada && (
+                      <Badge variant="secondary" className="text-xs">
+                        {t('venuePaymentConfig.inheritedBadge')}
+                      </Badge>
+                    )}
                     {primaryAccount?.blumonEnvironment && (
                       <Badge variant={primaryAccount.blumonEnvironment === 'PRODUCTION' ? 'default' : 'secondary'} className="text-xs">
                         {primaryAccount.blumonEnvironment}
@@ -988,24 +1012,26 @@ const VenuePaymentConfig: React.FC = () => {
 
                 <Button variant="outline" size="sm" onClick={() => setConfigDialogOpen(true)}>
                   <Settings className="w-4 h-4 mr-1" />
-                  Modificar Cuentas
+                  {heredada ? t('venuePaymentConfig.inheritedCreateOwn') : 'Modificar Cuentas'}
                 </Button>
 
-                {/* Danger zone */}
-                <div className="pt-4">
-                  <div className="p-4 rounded-xl border border-red-500/20 bg-red-500/5">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h4 className="text-sm font-medium text-red-600 dark:text-red-400">Eliminar Configuración</h4>
-                        <p className="text-xs text-muted-foreground mt-0.5">Esta acción no se puede deshacer</p>
+                {/* Danger zone — la heredada es de la organización: desde el negocio no se borra. */}
+                {!heredada && (
+                  <div className="pt-4">
+                    <div className="p-4 rounded-xl border border-red-500/20 bg-red-500/5">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className="text-sm font-medium text-red-600 dark:text-red-400">Eliminar Configuración</h4>
+                          <p className="text-xs text-muted-foreground mt-0.5">Esta acción no se puede deshacer</p>
+                        </div>
+                        <Button variant="destructive" size="sm" onClick={handleDeleteConfig} disabled={deleteConfigMutation.isPending}>
+                          <Trash2 className="w-4 h-4 mr-1" />
+                          {deleteConfigMutation.isPending ? 'Eliminando...' : 'Eliminar'}
+                        </Button>
                       </div>
-                      <Button variant="destructive" size="sm" onClick={handleDeleteConfig} disabled={deleteConfigMutation.isPending}>
-                        <Trash2 className="w-4 h-4 mr-1" />
-                        {deleteConfigMutation.isPending ? 'Eliminando...' : 'Eliminar'}
-                      </Button>
                     </div>
                   </div>
-                </div>
+                )}
               </div>
             </CollapsibleContent>
           </GlassCard>
@@ -1016,6 +1042,7 @@ const VenuePaymentConfig: React.FC = () => {
           open={configDialogOpen}
           onOpenChange={setConfigDialogOpen}
           config={paymentConfig}
+          inherited={heredada}
           venueId={venue!.id}
           onSave={handleSaveConfig}
         />

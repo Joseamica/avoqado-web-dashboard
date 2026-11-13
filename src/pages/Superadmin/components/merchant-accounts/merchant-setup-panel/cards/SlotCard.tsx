@@ -9,6 +9,7 @@ import {
   type MerchantAccount,
   type VenuePaymentConfig,
 } from '@/services/paymentProvider.service'
+import { cuentasParaConfigPropia, esHeredadaDeLaOrganizacion } from '@/lib/configDePagosOrigen'
 import { cn } from '@/lib/utils'
 import type { AccountSlot, SetupState, SlotSlice } from '../types'
 import type { SetupAction } from '../useSetupReducer'
@@ -220,6 +221,20 @@ function SlotDialogBody({
           : draft.accountType === 'SECONDARY'
             ? { secondaryAccountId: merchantAccountId }
             : { tertiaryAccountId: merchantAccountId }
+      // La que se ve es la de la ORGANIZACIÓN (el negocio no tiene propia): un PUT fallaría. Se crea la propia del negocio con
+      // las cuentas heredadas y este merchant en su posición; el candado confirma que deja de heredar (encargo e12dc4).
+      if (paymentConfig && esHeredadaDeLaOrganizacion(paymentConfig)) {
+        return run(
+          pc =>
+            paymentProviderAPI.createVenuePaymentConfig({
+              venueId,
+              ...cuentasParaConfigPropia(paymentConfig, draft.accountType, merchantAccountId),
+              positionConfirmations: pc,
+            }),
+          seenFromConfig(paymentConfig),
+          { ratesLink: venueRatesLink(state.venue.slug) },
+        )
+      }
       // Candado de posiciones: el backend también vacía la posición de donde sale este merchant, así que se mandan las tres
       // cuentas que esta pantalla tiene a la vista.
       return run(
@@ -269,6 +284,19 @@ function SlotDialogBody({
         ¿En qué slot de ruteo de pagos va esta cuenta? Reemplazar un slot ocupado obliga a recapturar el
         precio.
       </p>
+
+      {esHeredadaDeLaOrganizacion(paymentConfig) && (
+        <p
+          className="flex items-start gap-1.5 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400"
+          data-tour="slot-card-inherited-config"
+        >
+          <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+          <span>
+            Este venue usa la configuración de su organización (heredada). Al guardar, tendrá su propia configuración con las
+            mismas cuentas y ésta en el slot elegido, y dejará de seguir los cambios de la organización.
+          </span>
+        </p>
+      )}
 
       {/* Slot conflict banner — the bug we shipped earlier. Operator chose
           mode=fill on a slot that's actually occupied; block Save until they

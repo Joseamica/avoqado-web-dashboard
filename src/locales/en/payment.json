@@ -769,7 +769,13 @@
     "providerCost": "Provider Cost",
     "venueCharge": "Venue Charge",
     "netProfit": "Net Profit",
-    "margin": "margin"
+    "margin": "margin",
+    "inheritedBadge": "Inherited from the organization",
+    "inheritedTitle": "This venue uses its organization's payment configuration",
+    "inheritedBody": "It has no configuration of its own: the accounts you see belong to the organization and are shared by its venues without their own configuration. If you save changes here, this venue will get its own configuration and stop following the organization's changes. To change it for everyone, do it from the organization.",
+    "inheritedCreateOwn": "Create own configuration",
+    "inheritedDialogTitle": "Create this venue's own configuration",
+    "inheritedDialogDescription": "You start from the organization's accounts. Once saved, this venue will use this configuration and stop inheriting its organization's."
   },
   "manualPayment": {
     "errorUnknownTitle": "Payment not confirmed",

@@ -769,7 +769,13 @@
     "providerCost": "Costo de Proveedor",
     "venueCharge": "Cargo a Sucursal",
     "netProfit": "Beneficio Neto",
-    "margin": "margen"
+    "margin": "margen",
+    "inheritedBadge": "Heredada de la organización",
+    "inheritedTitle": "Este negocio usa la configuración de pagos de su organización",
+    "inheritedBody": "No tiene configuración propia: las cuentas que ves son de la organización y las comparten sus negocios sin configuración propia. Si guardas cambios aquí, este negocio tendrá su propia configuración y dejará de seguir los cambios de la organización. Para cambiarla para todos, hazlo desde la organización.",
+    "inheritedCreateOwn": "Crear configuración propia",
+    "inheritedDialogTitle": "Crear configuración propia del negocio",
+    "inheritedDialogDescription": "Partes de las cuentas de la organización. Al guardar, este negocio usará esta configuración y dejará de heredar la de su organización."
   },
   "manualPayment": {
     "errorUnknownTitle": "Pago sin confirmar",

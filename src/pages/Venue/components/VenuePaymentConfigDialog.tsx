@@ -25,6 +25,8 @@ interface VenuePaymentConfigDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   config: VenuePaymentConfig | null
+  /** La config es HEREDADA de la organización: guardar crea la propia del negocio (y deja de heredar). */
+  inherited?: boolean
   venueId: string
   onSave: (data: {
     primaryAccountId: string
@@ -38,6 +40,7 @@ export const VenuePaymentConfigDialog: React.FC<VenuePaymentConfigDialogProps> =
   open,
   onOpenChange,
   config,
+  inherited = false,
   venueId: _venueId,
   onSave,
 }) => {
@@ -101,8 +104,16 @@ export const VenuePaymentConfigDialog: React.FC<VenuePaymentConfigDialogProps> =
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>{config ? t('venuePaymentConfig.editConfig') : t('venuePaymentConfig.createConfig')}</DialogTitle>
-            <DialogDescription>{t('venuePaymentConfig.configDescription')}</DialogDescription>
+            <DialogTitle>
+              {inherited
+                ? t('venuePaymentConfig.inheritedDialogTitle')
+                : config
+                  ? t('venuePaymentConfig.editConfig')
+                  : t('venuePaymentConfig.createConfig')}
+            </DialogTitle>
+            <DialogDescription>
+              {inherited ? t('venuePaymentConfig.inheritedDialogDescription') : t('venuePaymentConfig.configDescription')}
+            </DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleSubmit}>

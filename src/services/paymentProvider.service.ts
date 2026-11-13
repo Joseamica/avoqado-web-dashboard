@@ -121,6 +121,13 @@ export interface ProviderCostStructure {
 export interface VenuePaymentConfig {
   id: string
   venueId: string
+  /** Sólo en la heredada: la organización dueña de la fila (el negocio no tiene configuración propia). */
+  organizationId?: string | null
+  /**
+   * De dónde sale: propia del negocio o HEREDADA de su organización (SERVIDOR desde el 13-nov). Léelo con
+   * `esHeredadaDeLaOrganizacion` (`@/lib/configDePagosOrigen`), que también entiende a un SERVIDOR anterior.
+   */
+  configSource?: 'venue' | 'organization'
   primaryAccountId: string
   secondaryAccountId?: string | null
   tertiaryAccountId?: string | null
