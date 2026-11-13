@@ -9,8 +9,8 @@
  * Y lo que pidió Codex (F1 r1): restablecer y ver el resultado, y una reconsulta fallida con el borrador abierto. Más lo
  * que cambiaron las rondas de arreglo: un guardado de respuesta perdida (aviso «No pudimos confirmar» o se da por hecho
  * si el server ya lo tiene), «Sin confirmar» en los pasos, el tope de 6 porcentajes y «Cargar más» bloqueado mientras carga.
- * Y lo del arreglo final (Codex F1 código): la RED de verdad en los pasos (la escritura se aplica y su respuesta se aborta; desde
- * D6, 12-nov, `src/api.ts` ya no la reenvía sola), y un error de fondo de la PÁGINA del aparato con el editor abierto.
+ * Y lo del arreglo final (Codex F1 código): la RED de verdad en los pasos (la escritura se aplica, su respuesta se aborta y el
+ * reintento automático de `src/api.ts` recibe 409/429), y un error de fondo de la PÁGINA del aparato con el editor abierto.
  */
 import { test, expect, type Page, type Route } from '@playwright/test'
 
@@ -128,8 +128,8 @@ type ModoDeGuardado = 'ok' | 'conflicto' | 'perdido' | 'aplicado-sin-respuesta'
  * Qué hace el server con el PUT de los pasos del cobro, y con la relectura que le sigue:
  *  - '5xx': contesta 500 SIN aplicar nada (un 5xx no prueba nada: se relee);
  *  - '5xx-y-no-relee': lo mismo, y la relectura también falla;
- *  - 'aplicado-sin-red': el PRIMER PUT se aplica y su respuesta se pierde en la RED (`route.abort('failed')`). Desde D6 nadie
- *    lo reenvía solo; si un reenvío volviera a colarse, recibiría `respuestaDelReintento` (409 o 429) y la prueba lo contaría.
+ *  - 'aplicado-sin-red': el PRIMER PUT se aplica y su respuesta se pierde en la RED (`route.abort('failed')`); el reintento
+ *    automático de `src/api.ts` (1 s después) recibe `respuestaDelReintento` (409 o 429), que tampoco prueba nada.
  */
 type ModoDePasos = 'ok' | '5xx' | '5xx-y-no-relee' | 'aplicado-sin-red'
 
@@ -536,38 +536,40 @@ test.describe('Pantalla del cliente — escribir y ver el cambio', () => {
     await expect(pasos.getByText('Sin confirmar')).toHaveCount(0)
     await expect(estrellas).toHaveAttribute('aria-checked', 'true')
     await expect(estrellas).toBeEnabled()
-    expect(estado.intentosDeAjustes).toBe(1) // un 5xx no se reenvía solo
+    expect(estado.intentosDeAjustes).toBe(1) // un 5xx no se reenvía solo (sólo un error de RED se reintenta, en src/api.ts)
   })
 
-  test('RED: la escritura de un paso se aplica y su respuesta se pierde ⇒ NO se reenvía sola (D6), relee y enseña lo aplicado', async ({
-    page,
-  }) => {
-    const estado = await preparar(page, { pasos: 'aplicado-sin-red', respuestaDelReintento: 409, demoraDeLaRelecturaDePasos: 1_500 })
-    await abrirDetalle(page)
-    const pasos = pasosDelCobro(page)
-    const estrellas = pasos.getByRole('switch', { name: es.steps.review })
-    await expect(estrellas).toHaveAttribute('aria-checked', 'true')
-    await estrellas.click()
+  for (const status of [409, 429] as const) {
+    test(`RED: la escritura de un paso se aplica, su respuesta se pierde y el reintento automático recibe ${status} ⇒ relee, enseña lo aplicado y NUNCA hay un tercer envío`, async ({
+      page,
+    }) => {
+      const estado = await preparar(page, { pasos: 'aplicado-sin-red', respuestaDelReintento: status, demoraDeLaRelecturaDePasos: 1_500 })
+      await abrirDetalle(page)
+      const pasos = pasosDelCobro(page)
+      const estrellas = pasos.getByRole('switch', { name: es.steps.review })
+      await expect(estrellas).toHaveAttribute('aria-checked', 'true')
+      await estrellas.click()
 
-    // El PUT se aplicó y su respuesta se abortó. D6 (Codex r4): `src/api.ts` ya NO lo repite solo (un reenvío de 1 s podía
-    // deshacer un cambio que otra pestaña hizo en medio). Sin respuesta no se sabe: es INCIERTO, se olvida lo supuesto y se relee.
-    await expect.poll(() => estado.intentosDeAjustes).toBe(1)
-    await expect(page.getByText(es.steps.uncertainTitle, { exact: true })).toBeVisible()
-    await expect(pasos.getByText(es.steps.unconfirmed)).toHaveCount(3)
-    await expect(pasos.getByRole('switch')).toHaveCount(0)
-    await expect(page.getByText(es.steps.saveError, { exact: true })).toHaveCount(0)
+      // El primer PUT se aplicó y su respuesta se abortó; `src/api.ts` lo repitió solo una vez (1 s después) y recibió el 409 o
+      // el 429. Ése NO prueba que «no se guardó» (lo provocó nuestra propia primera escritura): es INCIERTO.
+      await expect.poll(() => estado.intentosDeAjustes).toBe(2)
+      await expect(page.getByText(es.steps.uncertainTitle, { exact: true })).toBeVisible()
+      await expect(pasos.getByText(es.steps.unconfirmed)).toHaveCount(3)
+      await expect(pasos.getByRole('switch')).toHaveCount(0)
+      await expect(page.getByText(es.steps.saveError, { exact: true })).toHaveCount(0)
 
-    // Al releer manda el SERVIDOR: el cambio SÍ quedó (apagado), y no se volvió al valor de antes.
-    await expect(pasos.getByText(es.steps.unconfirmed)).toHaveCount(0)
-    await expect(estrellas).toHaveAttribute('aria-checked', 'false')
-    await expect(estrellas).toBeEnabled()
+      // Al releer manda el SERVIDOR: el cambio SÍ quedó (apagado), y no se volvió al valor de antes.
+      await expect(pasos.getByText(es.steps.unconfirmed)).toHaveCount(0)
+      await expect(estrellas).toHaveAttribute('aria-checked', 'false')
+      await expect(estrellas).toBeEnabled()
 
-    // Ningún segundo envío: ni el cliente HTTP, ni la mutación, ni la relectura vuelven a escribir.
-    await page.waitForTimeout(2_500)
-    expect(estado.intentosDeAjustes).toBe(1)
-    expect(estado.peticiones.filter(p => p === `PUT ${RUTA_DE_LOS_PASOS}`)).toHaveLength(1)
-    expect(estado.cambiosDeAjustes).toEqual([{ showReviewScreen: false }])
-  })
+      // Ningún tercer envío: ni la mutación ni la relectura vuelven a escribir.
+      await page.waitForTimeout(2_500)
+      expect(estado.intentosDeAjustes).toBe(2)
+      expect(estado.peticiones.filter(p => p === `PUT ${RUTA_DE_LOS_PASOS}`)).toHaveLength(2)
+      expect(estado.cambiosDeAjustes).toEqual([{ showReviewScreen: false }, { showReviewScreen: false }])
+    })
+  }
 
   test('si tras un guardado incierto la relectura de los pasos también falla, el error sale pronto (un reintento, no tres) y se puede reintentar', async ({
     page,

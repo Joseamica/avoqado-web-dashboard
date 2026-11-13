@@ -70,16 +70,18 @@ export const getUnauthorizedLoginRedirectUrl = (location: Pick<Location, 'pathna
 declare module 'axios' {
   interface AxiosRequestConfig {
     /**
-     * D6: esta escritura SIN llave se puede repetir sola tras un corte de red porque el servidor la aguanta repetida
-     * (p. ej. liberar algo que ya está libre contesta «ya estaba» sin hacer nada). Úsala sólo si lo comprobaste en el
-     * servidor: sin ella, una escritura sin llave falla una vez y la pantalla dice que no se sabe si se guardó.
+     * D6: `true` = este POST SIN llave se puede repetir solo tras un corte de red porque el servidor lo aguanta repetido
+     * (p. ej. liberar algo que ya está libre contesta «ya estaba» sin hacer nada). Úsalo sólo si lo comprobaste en el
+     * servidor: sin él, un POST sin llave falla una vez y la pantalla dice que no se sabe si se guardó.
+     * `false` = NO se repite aunque sea PUT/PATCH/DELETE (una escritura que no aguanta repetirse, p. ej. un «alternar»).
      */
     repetible?: boolean
   }
 }
 
 /** Los métodos que sólo leen: repetirlos no cambia nada en el servidor. */
-const METODOS_QUE_SOLO_LEEN = new Set(['get', 'head', 'options'])
+/** Sólo el POST (crea algo: un reembolso, un pago, un registro) deja de repetirse solo; los demás métodos, como antes de D6. */
+const METODO_QUE_CREA = 'post'
 /**
  * Campos del cuerpo con los que el servidor reconoce una repetición: la llave de la operación devuelve lo ya hecho, y el
  * token de edición (`expectedEditToken`) contesta 409 si el primer intento ya guardó. Las llaves con otro nombre son las
@@ -117,13 +119,18 @@ function cuerpoComoObjeto(data: unknown): Record<string, unknown> | null {
 
 /**
  * D6 (12-nov): ¿esta petición se puede repetir sola tras un error de red? Un error de red no dice si la petición llegó: a veces
- * se pierde sólo la RESPUESTA y el servidor ya registró el reembolso o el pago. Repetir una escritura sin llave lo registraría
- * dos veces, así que sólo se repiten las lecturas y las escrituras que el servidor reconoce. Las demás fallan una vez y la
- * pantalla dice que no se sabe si se guardó.
+ * se pierde sólo la RESPUESTA y el servidor ya registró el reembolso o el pago. Repetir un POST sin llave lo registraría dos
+ * veces, así que un POST sólo se repite si el servidor lo reconoce (llave en el cuerpo o en `Idempotency-Key`, o marcado
+ * `repetible`). Falla una vez y la pantalla dice que no se sabe si se guardó.
+ *
+ * Rediseño tras Codex r2-r5 (13-nov): GET/PUT/PATCH/DELETE se repiten como antes de D6 (como `axios-retry`, que no repite el
+ * POST). Quitarles el reenvío cambiaba 337 pantallas que contaban con él y decían «error» cuando sí se había guardado. Una
+ * escritura que no aguante repetirse se marca `repetible: false`.
  */
 export function sePuedeRepetirSola(config: InternalAxiosRequestConfig | undefined): boolean {
   if (!config) return false
-  if (METODOS_QUE_SOLO_LEEN.has((config.method ?? 'get').toLowerCase())) return true
+  if (config.repetible === false) return false
+  if ((config.method ?? 'get').toLowerCase() !== METODO_QUE_CREA) return true
   if (config.repetible === true) return true
   if (esTextoConAlgo(AxiosHeaders.from(config.headers).get('Idempotency-Key'))) return true
   const cuerpo = cuerpoComoObjeto(config.data)

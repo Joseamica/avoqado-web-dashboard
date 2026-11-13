@@ -39,7 +39,7 @@ async function cortarLaPrimera(hacer: () => Promise<unknown>) {
 const REEMBOLSO = '/api/v1/dashboard/venues/v1/payments/p1/refund'
 const PAGO_MANUAL = '/api/v1/dashboard/venues/v1/payments/manual'
 
-describe('D6 · el panel no repite solo una escritura sin llave', () => {
+describe('D6 · el panel no repite solo un POST sin llave (crea algo: un reembolso, un pago, un registro)', () => {
   it('🔴 reembolso: si se corta la red, sale UNA vez y la persona ve el error (no dos reembolsos)', async () => {
     const r = await cortarLaPrimera(() => api.post(REEMBOLSO, { reason: 'OTHER', amount: 5000 }))
     expect(r.salidas).toBe(1)
@@ -53,10 +53,13 @@ describe('D6 · el panel no repite solo una escritura sin llave', () => {
     expect(r.fallo?.code).toBe(AxiosError.ERR_NETWORK)
   })
 
-  it.each(['put', 'patch', 'delete'] as const)('%s sin llave: sale UNA vez', async metodo => {
-    const r = await cortarLaPrimera(() =>
-      metodo === 'delete' ? api.delete('/api/v1/dashboard/venues/v1/x/1') : api[metodo]('/api/v1/dashboard/venues/v1/x/1', { a: 1 }),
-    )
+  it('un POST cualquiera sin llave (crear un producto) sale UNA vez', async () => {
+    const r = await cortarLaPrimera(() => api.post('/api/v1/dashboard/venues/v1/products', { name: 'Café' }))
+    expect(r.salidas).toBe(1)
+  })
+
+  it('una escritura marcada `repetible: false` sale UNA vez aunque sea PUT', async () => {
+    const r = await cortarLaPrimera(() => api.put('/api/v1/dashboard/venues/v1/x/1', { a: 1 }, { repetible: false }))
     expect(r.salidas).toBe(1)
   })
 
@@ -73,7 +76,17 @@ describe('D6 · el panel no repite solo una escritura sin llave', () => {
   })
 })
 
-describe('D6 · lo que sí se sigue repitiendo solo (como hoy)', () => {
+describe('D6 · lo que sí se sigue repitiendo solo (como antes de D6)', () => {
+  // Rediseño tras Codex r2-r5 (13-nov): PUT/PATCH/DELETE se repiten como antes. Quitarles el reenvío cambiaba 337 pantallas que
+  // contaban con él y decían «error» cuando sí se había guardado (r3 pago de clase, r5 Configuración de la terminal).
+  it.each(['put', 'patch', 'delete'] as const)('%s sin llave se repite, como antes de D6', async metodo => {
+    const r = await cortarLaPrimera(() =>
+      metodo === 'delete' ? api.delete('/api/v1/dashboard/venues/v1/x/1') : api[metodo]('/api/v1/dashboard/venues/v1/x/1', { a: 1 }),
+    )
+    expect(r.salidas).toBe(2)
+    expect(r.fallo).toBeNull()
+  }, 10_000)
+
   it('una lectura (GET) se repite y la persona ni se entera', async () => {
     const r = await cortarLaPrimera(() => api.get('/api/v1/dashboard/venues/v1/payments'))
     expect(r.salidas).toBe(2)
@@ -128,11 +141,11 @@ describe('D6 · lo que sí se sigue repitiendo solo (como hoy)', () => {
     expect(salidas).toBe(2)
   }, 10_000)
 
-  it('los ajustes de una terminal (PUT sin llave) salen UNA vez: un reenvío podía deshacer el cambio de otra pestaña (Codex r4)', async () => {
+  it('los ajustes de una terminal (PUT) se repiten: la Configuración y los pasos del cobro cuentan con eso (Codex r5)', async () => {
     const { tpvSettingsService } = await import('@/services/tpv-settings.service')
     const r = await cortarLaPrimera(() => tpvSettingsService.updateSettings('tpv-1', { showReviewScreen: false }))
-    expect(r.salidas).toBe(1)
-    expect(r.fallo?.code).toBe(AxiosError.ERR_NETWORK)
+    expect(r.salidas).toBe(2)
+    expect(r.fallo).toBeNull()
   }, 10_000)
 
   it('una escritura con el encabezado Idempotency-Key se repite', async () => {
