@@ -1,4 +1,4 @@
-import axios from 'axios'
+import axios, { AxiosHeaders, type InternalAxiosRequestConfig } from 'axios'
 import { emitImpersonationError, extractImpersonationErrorCode } from './lib/impersonation-errors'
 
 // Connection status tracking
@@ -67,6 +67,46 @@ export const getUnauthorizedLoginRedirectUrl = (location: Pick<Location, 'pathna
   return `/login?returnTo=${returnTo}`
 }
 
+/** Los métodos que sólo leen: repetirlos no cambia nada en el servidor. */
+const METODOS_QUE_SOLO_LEEN = new Set(['get', 'head', 'options'])
+/**
+ * Campos del cuerpo con los que el servidor reconoce una repetición: la llave de la operación (`idempotencyKey`,
+ * `operationKey`) devuelve lo ya hecho, y el token de edición (`expectedEditToken`) contesta 409 si el primer intento ya
+ * guardó. 🔴 Sólo cuentan si el endpoint los respeta: mandar una llave que el servidor ignora (o que su esquema tira) hace
+ * insegura la repetición.
+ */
+const CAMPOS_QUE_RECONOCEN_LA_REPETICION = ['idempotencyKey', 'operationKey', 'expectedEditToken'] as const
+
+const esTextoConAlgo = (valor: unknown) => typeof valor === 'string' && valor.trim().length > 0
+
+/** El cuerpo ya viene serializado (JSON en texto) cuando el error llega aquí; FormData y demás no llevan llave. */
+function cuerpoComoObjeto(data: unknown): Record<string, unknown> | null {
+  if (typeof data === 'string') {
+    try {
+      const parsed: unknown = JSON.parse(data)
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? (parsed as Record<string, unknown>) : null
+    } catch {
+      return null
+    }
+  }
+  if (data && typeof data === 'object' && Object.getPrototypeOf(data) === Object.prototype) return data as Record<string, unknown>
+  return null
+}
+
+/**
+ * D6 (12-nov): ¿esta petición se puede repetir sola tras un error de red? Un error de red no dice si la petición llegó: a veces
+ * se pierde sólo la RESPUESTA y el servidor ya registró el reembolso o el pago. Repetir una escritura sin llave lo registraría
+ * dos veces, así que sólo se repiten las lecturas y las escrituras que el servidor reconoce. Las demás fallan una vez y la
+ * pantalla dice que no se sabe si se guardó.
+ */
+export function sePuedeRepetirSola(config: InternalAxiosRequestConfig | undefined): boolean {
+  if (!config) return false
+  if (METODOS_QUE_SOLO_LEEN.has((config.method ?? 'get').toLowerCase())) return true
+  if (esTextoConAlgo(AxiosHeaders.from(config.headers).get('Idempotency-Key'))) return true
+  const cuerpo = cuerpoComoObjeto(config.data)
+  return !!cuerpo && CAMPOS_QUE_RECONOCEN_LA_REPETICION.some(campo => esTextoConAlgo(cuerpo[campo]))
+}
+
 // Track API call success/failure to detect server availability
 api.interceptors.response.use(
   response => {
@@ -94,8 +134,8 @@ api.interceptors.response.use(
         notifyListeners()
       }
 
-      // Retry once for network errors
-      if (!config._retry) {
+      // Retry once for network errors — sólo lo que se puede repetir sin duplicar (D6, ver `sePuedeRepetirSola`)
+      if (config && !config._retry && sePuedeRepetirSola(config)) {
         config._retry = true
         await new Promise(resolve => setTimeout(resolve, 1000))
         return api.request(config)
