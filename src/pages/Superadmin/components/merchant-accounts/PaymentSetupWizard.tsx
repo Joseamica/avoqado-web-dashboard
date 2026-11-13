@@ -375,6 +375,8 @@ function wizardReducer(state: WizardState, action: WizardAction): WizardState {
       const existing = state.venueOverrides[action.venueId]
       if (!existing) return state
       const updated = { ...existing }
+      // D18 (Codex r6): la semilla del auto-encendido sólo vale hasta que se guarda algo de esa sucursal.
+      delete updated.semilla
       if (action.existingPricingId === null) {
         delete updated.existingPricingId
       } else {
@@ -880,6 +882,7 @@ export const PaymentSetupWizard: React.FC<PaymentSetupWizardProps> = ({ open, on
                 monthlyServiceFee: vP.monthlyServiceFee,
               } as any)
               cargado.current.sucursales[override.venueId] = { pricing: vP, id: override.existingPricingId }
+              dispatch({ type: 'SET_VENUE_EXISTING_PRICING_ID', venueId: override.venueId, existingPricingId: override.existingPricingId })
             } else {
               // Create new — capture the returned ID for subsequent saves
               const created = await paymentProviderAPI.createVenuePricingStructure({

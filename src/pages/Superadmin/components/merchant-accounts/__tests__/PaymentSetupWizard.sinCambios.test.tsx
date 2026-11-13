@@ -89,6 +89,16 @@ vi.mock('../wizard-steps/VenueOverridesStep', () => ({
     <>
       <button onClick={() => dispatch({ type: 'TOGGLE_VENUE_OVERRIDE', venueId: 'v-a', sola: true })}>encender A sola</button>
       <button onClick={() => dispatch({ type: 'TOGGLE_VENUE_OVERRIDE', venueId: 'v-a' })}>encender A</button>
+      {[2.7, 2.5].map(c => (
+        <button
+          key={c}
+          onClick={() =>
+            dispatch({ type: 'SET_VENUE_PRICING', venueId: 'v-a', data: { ...state.venueOverrides['v-a'].pricing, creditRate: c } })
+          }
+        >
+          crédito de A a {c}
+        </button>
+      ))}
       <button
         onClick={() => {
           const org = state.pricing.PRIMARY
@@ -381,6 +391,19 @@ describe('PaymentSetupWizard · abierto desde una sucursal (Codex r4 #1)', () =>
     fireEvent.click(screen.getByRole('button', { name: 'encender A sola' }))
     await guardar()
     expect(tarifasEscritas()).toEqual([])
+  })
+
+  it('encendida sola: tras guardarla una vez, volver a los valores con que se encendió también se guarda (Codex r6)', async () => {
+    red.resumen = { ...configurada(), venuePricingStructures: [] }
+    await abrir()
+    await ir('Sucursales')
+    fireEvent.click(screen.getByRole('button', { name: 'encender A sola' })) // con los de default (2.5 % de crédito)
+    fireEvent.click(screen.getByRole('button', { name: 'crédito de A a 2.7' }))
+    await guardar()
+    expect(tarifasEscritas().map(([n]) => n)).toEqual(['createVenuePricingStructure'])
+    fireEvent.click(screen.getByRole('button', { name: 'crédito de A a 2.5' })) // otra vez el valor de la semilla
+    await guardar()
+    expect(tarifasEscritas().map(([n]) => n)).toEqual(['createVenuePricingStructure', 'updateVenuePricingStructure'])
   })
 
   it('apagar, guardar, volver a encender a mano y editar SÍ escribe la tarifa de la sucursal (Codex r5 #1)', async () => {
