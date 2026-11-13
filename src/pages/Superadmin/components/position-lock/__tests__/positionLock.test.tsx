@@ -141,6 +141,17 @@ describe('usePositionConfirm', () => {
     expect(send).toHaveBeenCalledTimes(1)
   })
 
+  it('en una organización dice «las cuentas de esta organización» (full-testing D5)', async () => {
+    const send = vi.fn().mockRejectedValueOnce(errorDelCandado([posicion({ venuesWithOwnRate: { total: 1, sample: [] } })]))
+    let run!: ReturnType<typeof usePositionConfirm>['run']
+    render(<Prueba onRun={r => (run = r)} />)
+    await act(async () => {
+      void run(send, { PRIMARY: 'acc-a' }).catch(() => undefined)
+    })
+    expect(await screen.findByText(/usan las cuentas de esta organización/)).toBeInTheDocument()
+    expect(screen.queryByText(/usan las cuentas de este negocio/)).not.toBeInTheDocument()
+  })
+
   it('cualquier otro error pasa tal cual (sin diálogo)', async () => {
     const otro = new Error('red caída')
     const { result } = renderHook(() => usePositionConfirm())

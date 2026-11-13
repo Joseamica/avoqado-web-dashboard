@@ -105,8 +105,9 @@ export function PositionConfirmDialog({
                 <div className="flex gap-2 rounded-md bg-muted p-2">
                   <AlertTriangle className="h-4 w-4 shrink-0 text-orange-600 dark:text-orange-400 mt-0.5" aria-hidden />
                   <span>
-                    {p.inheritingTerminals.total} terminal(es) ({marcas(p.inheritingTerminals.byBrand)}) usan las cuentas de este negocio sin
-                    asignación propia.
+                    {p.inheritingTerminals.total} terminal(es) ({marcas(p.inheritingTerminals.byBrand)}) usan las cuentas{' '}
+                    {/* Sólo el detalle de una organización trae `venuesWithOwnRate` (full-testing D5). */}
+                    {p.venuesWithOwnRate ? 'de esta organización' : 'de este negocio'} sin asignación propia.
                     {p.inheritingTerminals.losingAccount > 0 &&
                       ` ${p.inheritingTerminals.losingAccount} dejarán de tener la cuenta ${p.currentAccount?.name ?? ''}.`}
                   </span>
