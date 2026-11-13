@@ -425,6 +425,18 @@ describe('PaymentSetupWizard · abierto desde una sucursal (Codex r4 #1)', () =>
     expect(tarifasEscritas().map(([n]) => n)).toEqual(['createVenuePricingStructure'])
   })
 
+  it('encendida sola: cambiarla y regresarla al valor mostrado, sin guardar en medio, no crea nada (Codex r8)', async () => {
+    red.resumen = { ...sinNada(), venues: [{ id: 'v-a', name: 'Sucursal A', slug: 'a' }] }
+    red.costos = {}
+    await abrir()
+    await ir('Sucursales')
+    fireEvent.click(screen.getByRole('button', { name: 'encender A sola' }))
+    fireEvent.click(screen.getByRole('button', { name: 'crédito de A a 2.7' }))
+    fireEvent.click(screen.getByRole('button', { name: 'crédito de A a 2.5' }))
+    await guardar()
+    expect(tarifasEscritas()).toEqual([])
+  })
+
   it('apagar, guardar, volver a encender a mano y editar SÍ escribe la tarifa de la sucursal (Codex r5 #1)', async () => {
     red.resumen = {
       ...configurada(),
