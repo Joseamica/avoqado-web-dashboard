@@ -153,11 +153,10 @@ describe('PaymentSetupWizard · candado de posiciones', () => {
     red.configResponde.push('ok')
     await abrirYGuardar()
 
-    await waitFor(() => expect(nombres()).toContain('bulkCreateSettlementConfigurations'))
+    // D18: sin plazos guardados y sin que la persona viera ese paso, ya no se crean los de default.
+    await waitFor(() => expect(red.avisos.map(a => a.title)).toEqual(['Configuración guardada']))
     expect(nombres()[0]).toBe('setOrganizationPaymentConfig')
-    expect(nombres()).toEqual(
-      expect.arrayContaining(['batchAssignTerminals', 'removeMerchantFromTerminal', 'bulkCreateSettlementConfigurations']),
-    )
+    expect(nombres()).toEqual(expect.arrayContaining(['batchAssignTerminals', 'removeMerchantFromTerminal']))
     expect(red.llamadas[0]).toEqual([
       'setOrganizationPaymentConfig',
       'org-1',
@@ -210,7 +209,7 @@ describe('PaymentSetupWizard · candado de posiciones', () => {
       fireEvent.click(screen.getByTestId('position-confirm-ok'))
     })
 
-    await waitFor(() => expect(nombres()).toContain('bulkCreateSettlementConfigurations'))
+    await waitFor(() => expect(red.avisos.map(a => a.title)).toEqual(['Configuración guardada']))
     expect(nombres().slice(0, 2)).toEqual(['setOrganizationPaymentConfig', 'setOrganizationPaymentConfig'])
     expect((red.llamadas[1][2] as { positionConfirmations: unknown }).positionConfirmations).toEqual({
       PRIMARY: { previousAccountId: 'acc-1' },

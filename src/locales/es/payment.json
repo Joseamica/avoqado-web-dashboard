@@ -707,6 +707,7 @@
     "createConfig": "Crear Configuración de Pagos",
     "configDescription": "Configura las cuentas de comerciante y el enrutamiento de pagos para esta sucursal",
     "noConfig": "No se encontró configuración de pagos para esta sucursal. Crea una para comenzar a procesar pagos.",
+    "createAccount": "Crear cuenta nueva",
     "primaryAccount": "Cuenta Principal",
     "primaryAccountDesc": "Cuenta principal para todas las transacciones",
     "secondaryAccount": "Cuenta Secundaria",

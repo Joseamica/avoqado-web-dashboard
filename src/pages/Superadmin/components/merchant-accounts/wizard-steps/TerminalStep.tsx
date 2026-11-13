@@ -4,27 +4,26 @@ import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Badge } from '@/components/ui/badge'
 import { cn, includesNormalized } from '@/lib/utils'
-import { useQuery } from '@tanstack/react-query'
 import { Smartphone, Ban, CheckCircle2, Search, X, AlertTriangle } from 'lucide-react'
 import type { WizardState } from '../PaymentSetupWizard'
-import { getAllTerminals, type Terminal } from '@/services/superadmin-terminals.service'
+import type { Terminal } from '@/services/superadmin-terminals.service'
 
 interface TerminalStepProps {
   state: WizardState
   dispatch: React.Dispatch<any>
+  /** Las terminales de las sucursales de ESTA organización (las del resumen; `undefined` mientras carga). Son las mismas que
+   *  concilia «Guardar»: antes se listaban las de toda la plataforma (A3, 13-nov). */
+  terminals: Terminal[] | undefined
 }
 
 const COMPATIBLE_TYPES = ['TPV_ANDROID', 'TPV_IOS']
 
-export const TerminalStep: React.FC<TerminalStepProps> = ({ state, dispatch }) => {
+export const TerminalStep: React.FC<TerminalStepProps> = ({ state, dispatch, terminals: deLaOrganizacion }) => {
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState<string | null>(null)
 
-  // Fetch all terminals (superadmin can see all)
-  const { data: terminals = [], isLoading } = useQuery({
-    queryKey: ['superadmin-terminals-all'],
-    queryFn: () => getAllTerminals(),
-  })
+  const isLoading = deLaOrganizacion === undefined
+  const terminals = useMemo(() => deLaOrganizacion ?? [], [deLaOrganizacion])
 
   // Get unique terminal types for filter pills
   const terminalTypes = useMemo(() => {
@@ -255,7 +254,7 @@ export const TerminalStep: React.FC<TerminalStepProps> = ({ state, dispatch }) =
               <div className="py-6 text-center text-sm text-muted-foreground">Cargando terminales...</div>
             ) : filteredTerminals.length === 0 ? (
               <div className="py-6 text-center text-sm text-muted-foreground">
-                {search || typeFilter ? 'Sin resultados para el filtro actual' : 'No hay terminales registradas'}
+                {search || typeFilter ? 'Sin resultados para el filtro actual' : 'Esta organización no tiene terminales'}
               </div>
             ) : (
               <div className="space-y-1 max-h-[400px] overflow-y-auto pr-1">
