@@ -31,7 +31,7 @@ import {
   Wallet,
   Zap,
 } from 'lucide-react'
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useParams } from 'react-router-dom'
 import { PaymentSetupWizard } from '../Superadmin/components/merchant-accounts/PaymentSetupWizard'
@@ -40,6 +40,7 @@ import {
   isPositionConfirmCancel,
   isStalePosition,
   seenFromConfig,
+  type SeenAccounts,
   serverMessage,
 } from '../Superadmin/components/position-lock/positionLock'
 import { VenuePaymentConfigDialog } from './components/VenuePaymentConfigDialog'
@@ -510,6 +511,14 @@ const VenuePaymentConfig: React.FC = () => {
   // las terminales que heredan. Las cuentas que esta pantalla ve son las de la configuración que leyó. La tarifa se cambia
   // aquí mismo (sección de tarifas), por eso el diálogo no lleva liga.
   const { run, dialog: positionConfirmDialog } = usePositionConfirm()
+  // Codex p12-r4 #5: lo que la pantalla «vio» al editar es la configuración con la que se ABRIÓ el diálogo, no una recarga
+  // posterior que el formulario no muestra (al volver a la pestaña). Lo peor que pasa así es un 409 de más.
+  const seenAtOpen = useRef<SeenAccounts | undefined>(undefined)
+  useEffect(() => {
+    if (configDialogOpen) seenAtOpen.current = seenFromConfig(paymentConfig)
+    // Sólo al abrir: una recarga con el diálogo abierto no debe cambiar lo «visto».
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [configDialogOpen])
   const configErrorToast = (error: unknown, fallback: string) => {
     if (isPositionConfirmCancel(error)) return
     if (isStalePosition(error)) queryClient.invalidateQueries({ queryKey: ['venue-payment-config', venue?.id] })
@@ -520,7 +529,7 @@ const VenuePaymentConfig: React.FC = () => {
     mutationFn: (data: any) =>
       run(
         pc => paymentProviderAPI.createVenuePaymentConfigByVenueId(venue!.id, { ...data, positionConfirmations: pc }),
-        seenFromConfig(paymentConfig),
+        seenAtOpen.current,
       ),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['venue-payment-config', venue?.id] })
@@ -535,7 +544,7 @@ const VenuePaymentConfig: React.FC = () => {
     mutationFn: (data: any) =>
       run(
         pc => paymentProviderAPI.updateVenuePaymentConfigByVenueId(venue!.id, paymentConfig!.id, { ...data, positionConfirmations: pc }),
-        seenFromConfig(paymentConfig),
+        seenAtOpen.current,
       ),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['venue-payment-config', venue?.id] })

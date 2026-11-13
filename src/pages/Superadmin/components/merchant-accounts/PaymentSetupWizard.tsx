@@ -14,7 +14,13 @@ import {
 } from '@/services/superadmin-organizations.service'
 import { bulkCreateSettlementConfigurations } from '@/services/settlementConfiguration.service'
 import { usePositionConfirm } from '../position-lock/PositionConfirmDialog'
-import { isPositionConfirmCancel, isStalePosition, seenFromConfig, serverMessage } from '../position-lock/positionLock'
+import {
+  isPositionConfirmCancel,
+  isStalePosition,
+  seenFromConfig,
+  serverMessage,
+  type SeenAccounts,
+} from '../position-lock/positionLock'
 import {
   Building2,
   CheckCircle2,
@@ -337,6 +343,18 @@ export const PaymentSetupWizard: React.FC<PaymentSetupWizardProps> = ({ open, on
 
   // Pre-fill wizard with existing data when reopening
   const prefilled = useRef(false)
+  // Candado de posiciones (Codex p12-r4 #5): las cuentas «vistas» son las de la PRIMERA lectura con la que se llenó el
+  // formulario, no las de una recarga posterior (al volver a la pestaña) que el formulario no muestra.
+  const seenAtFill = useRef<SeenAccounts | undefined>(undefined)
+  useEffect(() => {
+    if (!open) {
+      seenAtFill.current = undefined
+      return
+    }
+    if (seenAtFill.current === undefined && existingSummary !== undefined) {
+      seenAtFill.current = seenFromConfig(existingSummary.config ?? null)
+    }
+  }, [open, existingSummary])
   useEffect(() => {
     if (!open) {
       prefilled.current = false
@@ -616,7 +634,7 @@ export const PaymentSetupWizard: React.FC<PaymentSetupWizardProps> = ({ open, on
               positionConfirmations: pc,
             }),
           // The accounts this screen shows are the org config it loaded (`undefined` while unread: assert none).
-          existingSummary === undefined ? undefined : seenFromConfig(existingSummary.config ?? null),
+          seenAtFill.current,
         )
 
         // 2. Batch assign terminals for ALL configured merchants + reconcile orphans
