@@ -49,7 +49,7 @@ export const getOnboardingProgress = async (organizationId: string): Promise<Onb
  * Start onboarding progress for an organization
  */
 export const startOnboarding = async (organizationId: string) => {
-  const response = await api.post(`/api/v1/onboarding/organizations/${organizationId}/start`)
+  const response = await api.post(`/api/v1/onboarding/organizations/${organizationId}/start`, undefined, { repetible: true })
   return response.data
 }
 

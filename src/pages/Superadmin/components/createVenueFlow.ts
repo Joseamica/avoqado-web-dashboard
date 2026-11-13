@@ -12,7 +12,7 @@ export interface CreatedVenue {
   venueName: string
 }
 
-export interface CreateVenueFlowDeps {
+export interface CreateVenueFlowDeps<T extends object> {
   /** Negocio ya creado en un intento anterior de este mismo asistente (o null en el primero). */
   alreadyCreated: CreatedVenue | null
   /** Crea el negocio y devuelve su id. Sólo se llama si `alreadyCreated` es null. */
@@ -22,10 +22,10 @@ export interface CreateVenueFlowDeps {
   /** Activa las funciones elegidas. Sólo en el intento que creó el negocio. */
   applyFeatureGrants: (venueId: string) => Promise<void>
   /** Configura la cuenta de cobro (o nada si no aplica). Se repite en cada reintento. */
-  setupPayments: (venueId: string) => Promise<void>
+  setupPayments: (venueId: string) => Promise<T>
 }
 
-export async function runCreateVenueFlow(deps: CreateVenueFlowDeps): Promise<CreatedVenue & { reused: boolean }> {
+export async function runCreateVenueFlow<T extends object>(deps: CreateVenueFlowDeps<T>): Promise<CreatedVenue & { reused: boolean } & T> {
   let venue = deps.alreadyCreated
   const reused = venue !== null
 
@@ -35,6 +35,6 @@ export async function runCreateVenueFlow(deps: CreateVenueFlowDeps): Promise<Cre
     await deps.applyFeatureGrants(venue.venueId)
   }
 
-  await deps.setupPayments(venue.venueId)
-  return { ...venue, reused }
+  const payment = await deps.setupPayments(venue.venueId)
+  return { ...venue, reused, ...payment }
 }

@@ -1,4 +1,4 @@
-import axios from 'axios'
+import axios, { AxiosHeaders, type InternalAxiosRequestConfig } from 'axios'
 import { emitImpersonationError, extractImpersonationErrorCode } from './lib/impersonation-errors'
 
 // Connection status tracking
@@ -67,6 +67,76 @@ export const getUnauthorizedLoginRedirectUrl = (location: Pick<Location, 'pathna
   return `/login?returnTo=${returnTo}`
 }
 
+declare module 'axios' {
+  interface AxiosRequestConfig {
+    /**
+     * D6: `true` = este POST SIN llave se puede repetir solo tras un corte de red porque el servidor lo aguanta repetido
+     * (p. ej. liberar algo que ya está libre contesta «ya estaba» sin hacer nada). Úsalo sólo si lo comprobaste en el
+     * servidor: sin él, un POST sin llave falla una vez y la pantalla dice que no se sabe si se guardó.
+     * `false` = NO se repite aunque sea PUT/PATCH/DELETE (una escritura que no aguanta repetirse, p. ej. un «alternar»).
+     */
+    repetible?: boolean
+  }
+}
+
+/** Los métodos que sólo leen: repetirlos no cambia nada en el servidor. */
+/** Sólo el POST (crea algo: un reembolso, un pago, un registro) deja de repetirse solo; los demás métodos, como antes de D6. */
+const METODO_QUE_CREA = 'post'
+/**
+ * Campos del cuerpo con los que el servidor reconoce una repetición: la llave de la operación devuelve lo ya hecho, y el
+ * token de edición (`expectedEditToken`) contesta 409 si el primer intento ya guardó. Las llaves con otro nombre son las
+ * del panel que el servidor deduplica (12-nov, pasada completa de D6 sobre cada llave que genera el panel):
+ * - `clientKey`: ajuste del pago de una clase, ajuste manual de pago al personal, compra de plan híbrida;
+ * - `solicitudId`: liquidar una diferencia de pago al personal;
+ * - `saveId`: guardar el plano de mesas.
+ * 🔴 Sólo cuentan si el endpoint los respeta: mandar una llave que el servidor ignora (o que su esquema tira) hace
+ * insegura la repetición. Una llave nueva con otro nombre se agrega aquí, o la petición se marca `repetible`.
+ */
+const CAMPOS_QUE_RECONOCEN_LA_REPETICION = [
+  'idempotencyKey',
+  'operationKey',
+  'expectedEditToken',
+  'clientKey',
+  'solicitudId',
+  'saveId',
+] as const
+
+const esTextoConAlgo = (valor: unknown) => typeof valor === 'string' && valor.trim().length > 0
+
+/** El cuerpo ya viene serializado (JSON en texto) cuando el error llega aquí; FormData y demás no llevan llave. */
+function cuerpoComoObjeto(data: unknown): Record<string, unknown> | null {
+  if (typeof data === 'string') {
+    try {
+      const parsed: unknown = JSON.parse(data)
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? (parsed as Record<string, unknown>) : null
+    } catch {
+      return null
+    }
+  }
+  if (data && typeof data === 'object' && Object.getPrototypeOf(data) === Object.prototype) return data as Record<string, unknown>
+  return null
+}
+
+/**
+ * D6 (12-nov): ¿esta petición se puede repetir sola tras un error de red? Un error de red no dice si la petición llegó: a veces
+ * se pierde sólo la RESPUESTA y el servidor ya registró el reembolso o el pago. Repetir un POST sin llave lo registraría dos
+ * veces, así que un POST sólo se repite si el servidor lo reconoce (llave en el cuerpo o en `Idempotency-Key`, o marcado
+ * `repetible`). Falla una vez y la pantalla dice que no se sabe si se guardó.
+ *
+ * Rediseño tras Codex r2-r5 (13-nov): GET/PUT/PATCH/DELETE se repiten como antes de D6 (como `axios-retry`, que no repite el
+ * POST). Quitarles el reenvío cambiaba 337 pantallas que contaban con él y decían «error» cuando sí se había guardado. Una
+ * escritura que no aguante repetirse se marca `repetible: false`.
+ */
+export function sePuedeRepetirSola(config: InternalAxiosRequestConfig | undefined): boolean {
+  if (!config) return false
+  if (config.repetible === false) return false
+  if ((config.method ?? 'get').toLowerCase() !== METODO_QUE_CREA) return true
+  if (config.repetible === true) return true
+  if (esTextoConAlgo(AxiosHeaders.from(config.headers).get('Idempotency-Key'))) return true
+  const cuerpo = cuerpoComoObjeto(config.data)
+  return !!cuerpo && CAMPOS_QUE_RECONOCEN_LA_REPETICION.some(campo => esTextoConAlgo(cuerpo[campo]))
+}
+
 // Track API call success/failure to detect server availability
 api.interceptors.response.use(
   response => {
@@ -94,8 +164,8 @@ api.interceptors.response.use(
         notifyListeners()
       }
 
-      // Retry once for network errors
-      if (!config._retry) {
+      // Retry once for network errors — sólo lo que se puede repetir sin duplicar (D6, ver `sePuedeRepetirSola`)
+      if (config && !config._retry && sePuedeRepetirSola(config)) {
         config._retry = true
         await new Promise(resolve => setTimeout(resolve, 1000))
         return api.request(config)

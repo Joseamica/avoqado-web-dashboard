@@ -75,6 +75,6 @@ describe('feature grid and hybrid writes', () => {
       expectedRevision: 3,
       reason: 'TEMPORARY',
       comment: 'Cerramos agosto',
-    })
+    }, { repetible: true }) // D6: el servidor devuelve la cancelación existente sin otro efecto
   })
 })

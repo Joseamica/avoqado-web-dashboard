@@ -396,6 +396,10 @@ function DashboardContent() {
 
     // Check if we have a predefined display name for this segment
     const lowerSegment = segment.toLowerCase()
+    // «loyalty/promotions» es la promo de lealtad, no el menú de combos/2×1 que también se llama «promotions».
+    if (lowerSegment === 'promotions' && pathSegments[index - 1]?.toLowerCase() === 'loyalty') {
+      return t('sidebar:customersMenu.loyaltyPromotions')
+    }
     if (routeKeyMap[lowerSegment]) {
       return t(routeKeyMap[lowerSegment])
     }

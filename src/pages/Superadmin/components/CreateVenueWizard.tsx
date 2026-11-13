@@ -42,6 +42,8 @@ import {
   Zap,
 } from 'lucide-react'
 import { cn, includesNormalized } from '@/lib/utils'
+import { usePositionConfirm } from './position-lock/PositionConfirmDialog'
+import { isPositionConfirmCancel } from './position-lock/positionLock'
 
 // ══════════════════════════════════════════════════════════════════════
 // Business type categories (superadmin = hardcoded Spanish)
@@ -333,6 +335,7 @@ interface CreateVenueWizardProps {
 const CreateVenueWizard: React.FC<CreateVenueWizardProps> = ({ open, onOpenChange }) => {
   const { toast } = useToast()
   const queryClient = useQueryClient()
+  const { run: runPositionConfirm, dialog: positionConfirmDialog } = usePositionConfirm()
 
   const [currentStep, setCurrentStep] = useState(0)
   const [form, setForm] = useState<VenueFormData>(INITIAL_FORM)
@@ -501,14 +504,25 @@ const CreateVenueWizard: React.FC<CreateVenueWizardProps> = ({ open, onOpenChang
                 otherDays: data.merchant.settlement.otherDays,
               },
             }
-            await paymentProviderAPI.fullSetupBlumonMerchant(setupPayload)
+            // Candado de posiciones: el venue es nuevo (hereda las cuentas de su organización), así que la pantalla no afirma
+            // ninguna cuenta; si el SERVIDOR pide confirmar, el diálogo muestra lo que hay y reintenta SÓLO esta llamada.
+            try {
+              await runPositionConfirm(pc => paymentProviderAPI.fullSetupBlumonMerchant({ ...setupPayload, positionConfirmations: pc }))
+            } catch (err) {
+              // El venue YA existe: cancelar sólo deja la cuenta de cobro sin configurar (no se vuelve a crear el venue).
+              if (isPositionConfirmCancel(err)) return { paymentSkipped: true }
+              throw err
+            }
           }
+          return { paymentSkipped: false }
         },
       }),
-    onSuccess: ({ venueName }) => {
+    onSuccess: ({ venueName, paymentSkipped }) => {
       toast({
         title: 'Venue creado',
-        description: `${venueName} ha sido creado exitosamente${merchant.enabled && merchant.mode === 'new' ? ' con cuenta de cobro configurada' : ''}.`,
+        description: paymentSkipped
+          ? `${venueName} se creó sin cuenta de cobro: cancelaste la confirmación. Configúrala desde Pagos del venue.`
+          : `${venueName} ha sido creado exitosamente${merchant.enabled && merchant.mode === 'new' ? ' con cuenta de cobro configurada' : ''}.`,
       })
       queryClient.invalidateQueries({ queryKey: ['superadmin-venues'] })
       queryClient.invalidateQueries({ queryKey: ['superadmin-organizations-list'] })
@@ -998,6 +1012,7 @@ const CreateVenueWizard: React.FC<CreateVenueWizardProps> = ({ open, onOpenChang
           </div>
         </div>
       </div>
+      {positionConfirmDialog}
     </FullScreenModal>
   )
 }

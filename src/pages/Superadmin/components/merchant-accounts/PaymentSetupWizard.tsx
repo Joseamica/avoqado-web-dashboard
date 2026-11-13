@@ -13,6 +13,14 @@ import {
   setOrganizationPricing,
 } from '@/services/superadmin-organizations.service'
 import { bulkCreateSettlementConfigurations } from '@/services/settlementConfiguration.service'
+import { usePositionConfirm } from '../position-lock/PositionConfirmDialog'
+import {
+  isPositionConfirmCancel,
+  isStalePosition,
+  seenFromConfig,
+  serverMessage,
+  type SeenAccounts,
+} from '../position-lock/positionLock'
 import {
   Building2,
   CheckCircle2,
@@ -317,6 +325,7 @@ export const PaymentSetupWizard: React.FC<PaymentSetupWizardProps> = ({ open, on
   const queryClient = useQueryClient()
   const [state, dispatch] = useReducer(wizardReducer, initialState)
   const [saving, setSaving] = useState(false)
+  const { run, dialog: positionConfirmDialog } = usePositionConfirm()
 
   // Fetch existing config for pre-fill
   const { data: existingSummary } = useQuery({
@@ -334,6 +343,18 @@ export const PaymentSetupWizard: React.FC<PaymentSetupWizardProps> = ({ open, on
 
   // Pre-fill wizard with existing data when reopening
   const prefilled = useRef(false)
+  // Candado de posiciones (Codex p12-r4 #5): las cuentas «vistas» son las de la PRIMERA lectura con la que se llenó el
+  // formulario, no las de una recarga posterior (al volver a la pestaña) que el formulario no muestra.
+  const seenAtFill = useRef<SeenAccounts | undefined>(undefined)
+  useEffect(() => {
+    if (!open) {
+      seenAtFill.current = undefined
+      return
+    }
+    if (seenAtFill.current === undefined && existingSummary !== undefined) {
+      seenAtFill.current = seenFromConfig(existingSummary.config ?? null)
+    }
+  }, [open, existingSummary])
   useEffect(() => {
     if (!open) {
       prefilled.current = false
@@ -602,7 +623,21 @@ export const PaymentSetupWizard: React.FC<PaymentSetupWizardProps> = ({ open, on
       const primary = state.merchants.primary
 
       if (primary.mode === 'existing') {
-        // 1. Batch assign terminals for ALL configured merchants + reconcile orphans
+        // 1. Create/update OrganizationPaymentConfig FIRST, through the position lock (tarifa al comercio, paso 1): if the
+        // server asks to confirm and the operator cancels (or it fails), NOTHING else is written — no terminal is touched.
+        await run(
+          pc =>
+            setOrganizationPaymentConfig(context.organizationId, {
+              primaryAccountId: primary.merchantId,
+              secondaryAccountId: state.merchants.secondary?.merchantId,
+              tertiaryAccountId: state.merchants.tertiary?.merchantId,
+              positionConfirmations: pc,
+            }),
+          // The accounts this screen shows are the org config it loaded (`undefined` while unread: assert none).
+          seenAtFill.current ?? (existingSummary === undefined ? undefined : seenFromConfig(existingSummary.config ?? null)),
+        )
+
+        // 2. Batch assign terminals for ALL configured merchants + reconcile orphans
         const configuredMerchants = [
           state.merchants.primary,
           state.merchants.secondary,
@@ -633,13 +668,6 @@ export const PaymentSetupWizard: React.FC<PaymentSetupWizardProps> = ({ open, on
             }
           }
         }
-
-        // 2. Create/update OrganizationPaymentConfig
-        await setOrganizationPaymentConfig(context.organizationId, {
-          primaryAccountId: primary.merchantId,
-          secondaryAccountId: state.merchants.secondary?.merchantId,
-          tertiaryAccountId: state.merchants.tertiary?.merchantId,
-        })
 
         // 3. Create/update cost structure if provided
         const costData = state.costStructures[primary.merchantId]
@@ -793,12 +821,22 @@ export const PaymentSetupWizard: React.FC<PaymentSetupWizardProps> = ({ open, on
       queryClient.invalidateQueries({ queryKey: ['superadmin-organizations'] })
       queryClient.invalidateQueries({ queryKey: ['org-payment-config'] })
       queryClient.invalidateQueries({ queryKey: ['cost-structures'] })
-    } catch (error: any) {
+    } catch (error: unknown) {
+      if (isPositionConfirmCancel(error)) return
       console.error('Save error:', error)
+      if (isStalePosition(error)) {
+        queryClient.invalidateQueries({ queryKey: ['payment-setup-summary'] })
+        queryClient.invalidateQueries({ queryKey: ['org-payment-config'] })
+        toast({ variant: 'destructive', title: 'Error al guardar', description: serverMessage(error, 'Error desconocido') })
+        // Codex p12-r3 #5: el formulario se llenó UNA vez con lo de antes; cerrarlo obliga a reabrirlo con lo que hay ahora,
+        // para que la siguiente vez sólo se declare como «vista» una cuenta que la persona sí vio.
+        handleClose()
+        return
+      }
       toast({
         variant: 'destructive',
         title: 'Error al guardar',
-        description: error.response?.data?.message || error.message || 'Error desconocido',
+        description: serverMessage(error, 'Error desconocido'),
       })
     } finally {
       setSaving(false)
@@ -979,6 +1017,7 @@ export const PaymentSetupWizard: React.FC<PaymentSetupWizardProps> = ({ open, on
           </div>
         </div>
       </div>
+      {positionConfirmDialog}
     </FullScreenModal>
   )
 }

@@ -1,4 +1,5 @@
 import api from '@/api'
+import type { PositionConfirmations } from '@/pages/Superadmin/components/position-lock/positionLock'
 
 // ===== TYPES =====
 
@@ -687,6 +688,7 @@ export async function createVenuePaymentConfig(data: {
   tertiaryAccountId?: string
   routingRules?: any
   preferredProcessor?: string
+  positionConfirmations?: PositionConfirmations
 }): Promise<VenuePaymentConfig> {
   const response = await api.post('/api/v1/dashboard/superadmin/venue-pricing/config', data)
   return response.data.data
@@ -704,6 +706,7 @@ export async function updateVenuePaymentConfig(
     tertiaryAccountId?: string | null
     routingRules?: any
     preferredProcessor?: string
+    positionConfirmations?: PositionConfirmations
   },
 ): Promise<VenuePaymentConfig> {
   const response = await api.put(`/api/v1/dashboard/superadmin/venue-pricing/config/${venueId}`, data)
@@ -713,8 +716,8 @@ export async function updateVenuePaymentConfig(
 /**
  * Delete venue payment config (not implemented in backend yet)
  */
-export async function deleteVenuePaymentConfig(venueId: string): Promise<void> {
-  await api.delete(`/api/v1/dashboard/superadmin/venue-pricing/config/${venueId}`)
+export async function deleteVenuePaymentConfig(venueId: string, positionConfirmations?: PositionConfirmations): Promise<void> {
+  await api.delete(`/api/v1/dashboard/superadmin/venue-pricing/config/${venueId}`, { data: { positionConfirmations } })
 }
 
 // ─── Venue merchant roster (PR-2 N-account model) ───────────────────────────
@@ -910,6 +913,7 @@ export async function createVenuePaymentConfigByVenueId(
     tertiaryAccountId?: string
     routingRules?: any
     preferredProcessor?: string
+    positionConfirmations?: PositionConfirmations
   },
 ): Promise<VenuePaymentConfig> {
   const response = await api.post(`/api/v1/dashboard/venues/${venueId}/payment-config`, data)
@@ -928,6 +932,7 @@ export async function updateVenuePaymentConfigByVenueId(
     tertiaryAccountId?: string | null
     routingRules?: any
     preferredProcessor?: string
+    positionConfirmations?: PositionConfirmations
   },
 ): Promise<VenuePaymentConfig> {
   const response = await api.put(`/api/v1/dashboard/venues/${venueId}/payment-config/${configId}`, data)
@@ -937,8 +942,12 @@ export async function updateVenuePaymentConfigByVenueId(
 /**
  * Delete payment configuration for a specific venue (venue-scoped)
  */
-export async function deleteVenuePaymentConfigByVenueId(venueId: string, configId: string): Promise<void> {
-  await api.delete(`/api/v1/dashboard/venues/${venueId}/payment-config/${configId}`)
+export async function deleteVenuePaymentConfigByVenueId(
+  venueId: string,
+  configId: string,
+  positionConfirmations?: PositionConfirmations,
+): Promise<void> {
+  await api.delete(`/api/v1/dashboard/venues/${venueId}/payment-config/${configId}`, { data: { positionConfirmations } })
 }
 
 /**
@@ -1194,6 +1203,8 @@ export interface FullSetupRequest {
     internationalDays: number
     otherDays: number
   }
+  /** Candado de posiciones (tarifa al comercio, paso 1). */
+  positionConfirmations?: PositionConfirmations
 }
 
 export interface FullSetupResponse {
@@ -1325,6 +1336,8 @@ export interface FullSetupAngelPayPayload {
     cutoffTimezone: string
     effectiveFrom: string
   }
+  /** Candado de posiciones (tarifa al comercio, paso 1). */
+  positionConfirmations?: PositionConfirmations
 }
 
 export interface FullSetupAngelPayResult {

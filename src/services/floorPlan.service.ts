@@ -2,8 +2,8 @@ import api from '@/api'
 import type { FloorPlanDto, PublishFloorPlanBody, PublishFloorPlanResult } from '@/pages/Settings/FloorPlan/model/types'
 
 // Plano de mesas — GET/PUT /api/v1/dashboard/venues/:venueId/floor-plan. Responden { success, data }.
-// Query key: ['floor-plan', venueId]. El PUT es idempotente por `saveId` (src/api.ts reintenta una vez
-// ante error de red; el servidor reconoce el folio repetido).
+// Query key: ['floor-plan', venueId]. El PUT es idempotente por `saveId`: va marcado `repetible` (D6), así que src/api.ts
+// lo reenvía una vez ante un error de red y el servidor reconoce el folio repetido (`venueId_saveId`).
 const base = (venueId: string) => `/api/v1/dashboard/venues/${venueId}/floor-plan`
 
 export async function getFloorPlan(venueId: string): Promise<FloorPlanDto> {
@@ -19,6 +19,6 @@ export async function getFloorPlan(venueId: string): Promise<FloorPlanDto> {
 export const PUBLISH_TIMEOUT_MS = 45_000
 
 export async function publishFloorPlan(venueId: string, body: PublishFloorPlanBody): Promise<PublishFloorPlanResult> {
-  const res = await api.put(base(venueId), body, { timeout: PUBLISH_TIMEOUT_MS })
+  const res = await api.put(base(venueId), body, { timeout: PUBLISH_TIMEOUT_MS, repetible: true })
   return res.data.data
 }

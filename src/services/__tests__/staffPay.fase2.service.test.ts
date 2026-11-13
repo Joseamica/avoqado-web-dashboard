@@ -18,7 +18,7 @@ describe('staffPayService — fase 2', () => {
   it('cerrar manda fecha, huella y la confirmación de huérfanas', async () => {
     m.post.mockResolvedValue({ data: { periodId: 'p1' } })
     await staffPayService.close('v1', { fecha: '2026-08-15', huellaEsperada: 'h', confirmarHuerfanas: true })
-    expect(m.post).toHaveBeenCalledWith(`${base}/periods/close`, { fecha: '2026-08-15', huellaEsperada: 'h', confirmarHuerfanas: true })
+    expect(m.post).toHaveBeenCalledWith(`${base}/periods/close`, { fecha: '2026-08-15', huellaEsperada: 'h', confirmarHuerfanas: true }, { repetible: true }) // D6: `yaCerrado`
   })
   it('el preview y el recibo van con la fecha del periodo en la query; el recibo, por páginas', async () => {
     m.get.mockResolvedValue({ data: {} })

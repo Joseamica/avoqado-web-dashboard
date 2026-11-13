@@ -300,6 +300,74 @@ export interface UpdateLoyaltyConfigRequest {
 	stampRewardLabel?: string
 }
 
+// ── Promociones de lealtad («sello doble», «puntos dobles») ────────────────
+// No es la «Promoción» de combos y 2×1 (`types/discount.ts`): ésta multiplica o suma sellos y puntos.
+
+export type LoyaltyPromotionStatus = 'ACTIVE' | 'SCHEDULED' | 'ENDED'
+export type LoyaltyPromotionKind = 'MULTIPLY' | 'ADD'
+export type LoyaltyPromotionLimit = 'NONE' | 'ONCE_PER_DAY' | 'ONCE_PER_PROMOTION'
+
+export interface LoyaltyPromotion {
+	id: string
+	name: string
+	kind: LoyaltyPromotionKind
+	multiplier: number | null
+	extraStamps: number | null
+	extraPoints: number | null
+	/** Calculado por el servidor en cada lectura. */
+	status: LoyaltyPromotionStatus
+	startsAt: string
+	endsAt: string | null
+	/** Cuándo se terminó a mano («Terminar ahora»). */
+	endedAt: string | null
+	/** Días del negocio ('AAAA-MM-DD'), para mostrar y editar sin pasar por la zona horaria del navegador. */
+	startDate: string
+	endDate: string | null
+	/** 0 = domingo. Vacío = todos los días. */
+	daysOfWeek: number[]
+	timeFrom: string | null
+	timeUntil: string | null
+	productIds: string[]
+	categoryIds: string[]
+	/** Sólo los que siguen existiendo en el negocio, con su nombre actual. */
+	products: { id: string; name: string }[]
+	categories: { id: string; name: string }[]
+	/** Pesos. */
+	minSpend: number | null
+	limit: LoyaltyPromotionLimit
+	createdAt: string
+	updatedAt: string
+}
+
+export interface LoyaltyPromotionInput {
+	name: string
+	kind: LoyaltyPromotionKind
+	multiplier: number | null
+	extraStamps: number | null
+	extraPoints: number | null
+	startDate: string
+	endDate: string | null
+	daysOfWeek: number[]
+	timeFrom: string | null
+	timeUntil: string | null
+	productIds: string[]
+	categoryIds: string[]
+	minSpend: number | null
+	limit: LoyaltyPromotionLimit
+}
+
+/** 🔴 Una promo ACTIVA sólo acepta esto: cualquier otra llave es un 409 aunque traiga el mismo valor. */
+export interface LoyaltyPromotionEndDatePatch {
+	endDate: string | null
+}
+
+export interface PaginatedLoyaltyPromotions {
+	items: LoyaltyPromotion[]
+	total: number
+	page: number
+	pageSize: number
+}
+
 export interface RedeemPointsRequest {
 	points: number
 	orderId: string
