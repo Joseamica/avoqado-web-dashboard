@@ -112,7 +112,7 @@ describe('onlineOrdering.service', () => {
   it('resolveCardRefund: POST …/card-refund/:refundId/resolve con el método', async () => {
     post.mockResolvedValue({ data: { data: { status: 'RESOLVED', replay: false } } })
     expect(await resolveCardRefund('v1', 'o1', 'r1', { method: 'CASH' })).toEqual({ status: 'RESOLVED', replay: false })
-    expect(post).toHaveBeenLastCalledWith(`${base}/orders/o1/card-refund/r1/resolve`, { method: 'CASH' })
+    expect(post).toHaveBeenLastCalledWith(`${base}/orders/o1/card-refund/r1/resolve`, { method: 'CASH' }, { repetible: true }) // D6: el servidor contesta `replay`
   })
 
   it('getOnlineOrder: un pedido por su cuenta; 404 ⇒ null (no es pedido en línea), lo demás truena', async () => {

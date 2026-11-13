@@ -148,6 +148,28 @@ describe('D6 · lo que sí se sigue repitiendo solo (como antes de D6)', () => {
     expect(r.fallo).toBeNull()
   }, 10_000)
 
+  it('«Devolver por otro medio» de un pedido en línea (el servidor contesta `replay` sin otra salida de caja) se repite con el MISMO cuerpo (Codex r6 y pasada exhaustiva)', async () => {
+    const { resolveCardRefund } = await import('@/services/onlineOrdering.service')
+    const cuerpos: unknown[] = []
+    let salidas = 0
+    api.defaults.adapter = async config => {
+      salidas += 1
+      cuerpos.push(config.data)
+      if (salidas === 1) throw sinRed(config)
+      return { ...ok(config), data: { success: true, data: { status: 'RESOLVED', replay: true } } }
+    }
+    await resolveCardRefund('v1', 'o1', 'r1', { method: 'CASH' as never })
+    expect(salidas).toBe(2)
+    expect(cuerpos[1]).toEqual(cuerpos[0])
+  }, 10_000)
+
+  it('🔴 registrar la llegada de una reserva NO se repite: el servidor puede abrir otra cuenta si la primera se canceló (pasada exhaustiva)', async () => {
+    const { reservationService } = await import('@/services/reservation.service')
+    const r = await cortarLaPrimera(() => reservationService.checkIn('v1', 'res-1'))
+    expect(r.salidas).toBe(1)
+    expect(r.fallo?.code).toBe(AxiosError.ERR_NETWORK)
+  }, 10_000)
+
   it('una escritura con el encabezado Idempotency-Key se repite', async () => {
     const r = await cortarLaPrimera(() =>
       api.post('/api/v1/dashboard/venues/v1/orders/o1/card-refund', { amount: '10.00' }, { headers: { 'Idempotency-Key': 'k-1' } }),

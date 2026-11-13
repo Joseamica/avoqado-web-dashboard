@@ -93,4 +93,4 @@ export const confirmPassVisit = async (venueId: string, visitId: string): Promis
 
 /** POST /visits/:id/reject — sólo una PENDING pasa a REJECTED. */
 export const rejectPassVisit = async (venueId: string, visitId: string): Promise<PassVisitView> =>
-  (await api.post(`${base(venueId)}/visits/${visitId}/reject`)).data.data
+  (await api.post(`${base(venueId)}/visits/${visitId}/reject`, undefined, { repetible: true })).data.data

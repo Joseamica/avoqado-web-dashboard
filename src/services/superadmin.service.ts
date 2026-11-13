@@ -694,7 +694,7 @@ export async function enableModuleForVenue(venueId: string, moduleCode: string, 
     venueId,
     moduleCode,
     preset,
-  })
+  }, { repetible: true })
 }
 
 /**
@@ -704,7 +704,7 @@ export async function disableModuleForVenue(venueId: string, moduleCode: string)
   await api.post('/api/v1/dashboard/superadmin/modules/disable', {
     venueId,
     moduleCode,
-  })
+  }, { repetible: true })
 }
 
 /**

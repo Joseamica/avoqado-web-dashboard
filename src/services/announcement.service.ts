@@ -79,7 +79,7 @@ export async function recordAnnouncementOpen(id: string): Promise<void> {
  */
 export async function dismissAnnouncement(id: string, staffId?: string): Promise<void> {
   // Con `staffId` el servidor rechaza (409) un cierre hecho por otra persona de la sesión.
-  await api.post(`/api/v1/dashboard/announcements/${id}/dismiss`, staffId ? { staffId } : {})
+  await api.post(`/api/v1/dashboard/announcements/${id}/dismiss`, staffId ? { staffId } : {}, { repetible: true })
 }
 
 // ── Cierre que sobrevive a la red caída ───────────────────────────────────────

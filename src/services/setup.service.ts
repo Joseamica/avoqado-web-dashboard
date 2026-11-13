@@ -31,7 +31,7 @@ export const setupService = {
   getProgress: (orgId: string) => api.get(`/api/v1/onboarding/organizations/${orgId}/progress`),
 
   /** Start/initialize onboarding progress */
-  startOnboarding: (orgId: string) => api.post(`/api/v1/onboarding/organizations/${orgId}/start`),
+  startOnboarding: (orgId: string) => api.post(`/api/v1/onboarding/organizations/${orgId}/start`, undefined, { repetible: true }),
 
   /**
    * Generate a real test payment link via the venue's connected MP/Stripe merchant.

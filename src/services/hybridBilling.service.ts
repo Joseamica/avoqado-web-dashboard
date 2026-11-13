@@ -312,7 +312,7 @@ export const hybridBilling = {
   selection: (venueId: string, id: string, expectedRevision: number, featureCodes: string[] | null) =>
     api.post(`${base(venueId)}/contracts/${encodeURIComponent(id)}/selection`, { expectedRevision, featureCodes }),
   cancelContract: (venueId: string, id: string, expectedRevision: number, input: CancellationInput = {}) =>
-    api.post(`${base(venueId)}/contracts/${encodeURIComponent(id)}/cancel`, { expectedRevision, ...input }),
+    api.post(`${base(venueId)}/contracts/${encodeURIComponent(id)}/cancel`, { expectedRevision, ...input }, { repetible: true }),
   featureGrid: (venueId: string) =>
     api
       .get<{ data: FeatureGrid }>(`${base(venueId)}/feature-grid`)

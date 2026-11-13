@@ -216,7 +216,7 @@ export async function enableModuleForOrganization(
     moduleCode,
     preset,
     config,
-  })
+  }, { repetible: true })
   return response.data
 }
 
@@ -233,7 +233,7 @@ export async function disableModuleForOrganization(
 }> {
   const response = await api.post(`/api/v1/dashboard/superadmin/organizations/${organizationId}/modules/disable`, {
     moduleCode,
-  })
+  }, { repetible: true })
   return response.data
 }
 

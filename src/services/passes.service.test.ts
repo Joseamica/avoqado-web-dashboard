@@ -92,6 +92,6 @@ describe('passes.service', () => {
     // D6: «confirmar» va marcado `repetible` (el servidor la aguanta repetida; src/api.ts la reenvía tras un corte).
     expect(mocked.post).toHaveBeenCalledWith(`${BASE}/visits/vis1/confirm`, undefined, { repetible: true })
     await rejectPassVisit('v1', 'vis1')
-    expect(mocked.post).toHaveBeenCalledWith(`${BASE}/visits/vis1/reject`)
+    expect(mocked.post).toHaveBeenCalledWith(`${BASE}/visits/vis1/reject`, undefined, { repetible: true })
   })
 })
