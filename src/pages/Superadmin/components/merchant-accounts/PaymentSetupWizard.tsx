@@ -267,6 +267,9 @@ interface Cargado {
   tarifaOrg?: PricingData
   liquidacion?: SettlementData
   sucursales: Record<string, { pricing: PricingData; id: string }>
+  /** Codex r9 #2: un «Guardar» falló a media escritura y no sabemos qué quedó en el servidor. Hasta un guardado completo,
+   *  «Guardar» vuelve a escribir todo como antes del D18 (no se fía de esta foto). */
+  incierto?: boolean
 }
 const nadaCargado = (): Cargado => ({ costo: {}, sucursales: {} })
 
@@ -339,8 +342,9 @@ function wizardReducer(state: WizardState, action: WizardAction): WizardState {
               ? {
                   pricing: existing.pricing || { ...DEFAULT_PRICING },
                   settlement: existing.settlement || { ...state.settlement },
-                  // D18: encendida por la persona ⇒ sin semilla (encender ya es su decisión); sola ⇒ se recuerda con qué.
-                  semilla: action.sola ? existing.pricing || { ...DEFAULT_PRICING } : undefined,
+                  // D18: encendida sola ⇒ se recuerda con qué (la base). A mano ⇒ conserva la base que tuviera (Codex r9 #1:
+                  // apagar y volver a encender no es un cambio); si nunca la tuvo, encender es decisión de la persona.
+                  semilla: action.sola ? existing.pricing || { ...DEFAULT_PRICING } : existing.semilla,
                 }
               : {}),
           },
@@ -758,7 +762,8 @@ export const PaymentSetupWizard: React.FC<PaymentSetupWizardProps> = ({ open, on
 
         // 3. Create/update cost structure — sólo si cambió contra lo cargado (D18); el sembrado en ceros nunca.
         const costData = state.costStructures[primary.merchantId]
-        if (costData && !iguales(costData, cargado.current.costo[primary.merchantId] ?? COSTO_SEMBRADO, LLAVES_DE_COSTO)) {
+        const incierto = cargado.current.incierto === true
+        if (costData && (incierto || !iguales(costData, cargado.current.costo[primary.merchantId] ?? COSTO_SEMBRADO, LLAVES_DE_COSTO))) {
           if (costData.mode === 'existing' && costData.existingId) {
             // Update existing cost structure
             await paymentProviderAPI.updateProviderCostStructure(costData.existingId, {
@@ -797,7 +802,7 @@ export const PaymentSetupWizard: React.FC<PaymentSetupWizardProps> = ({ open, on
         // el paso (D18: antes se cerraba y se volvía a crear idéntica en cada «Guardar», o nacía la de default sin que nadie la viera).
         const pricingData = state.pricing.PRIMARY
         const tarifaAntes = cargado.current.tarifaOrg
-        if (pricingData && (tarifaAntes ? !mismaTarifa(pricingData, tarifaAntes) : vio('pricing'))) {
+        if (pricingData && (incierto || (tarifaAntes ? !mismaTarifa(pricingData, tarifaAntes) : vio('pricing')))) {
           await setOrganizationPricing(context.organizationId, {
             accountType: 'PRIMARY',
             debitRate: pricingData.debitRate / 100,
@@ -821,7 +826,7 @@ export const PaymentSetupWizard: React.FC<PaymentSetupWizardProps> = ({ open, on
         // 5. Create settlement configs — SÓLO si la persona editó los plazos que el formulario le mostró (D18, rediseño tras
         // Codex r3 H2/H3): el resumen no trae con certeza los plazos de cada cuenta (no lee los de otra principal ni los que
         // tienen fecha de fin), así que sin una edición no se escribe nada sobre la cuenta.
-        if (!iguales(state.settlement, cargado.current.liquidacion ?? DEFAULT_SETTLEMENT, LLAVES_DE_PLAZO)) {
+        if (incierto || !iguales(state.settlement, cargado.current.liquidacion ?? DEFAULT_SETTLEMENT, LLAVES_DE_PLAZO)) {
           await bulkCreateSettlementConfigurations({
             merchantAccountId: primary.merchantId,
             configs: [
@@ -858,10 +863,10 @@ export const PaymentSetupWizard: React.FC<PaymentSetupWizardProps> = ({ open, on
 
           // D18: sin cambios contra lo cargado no se toca (antes se reescribía, o se desactivaba si igualaba a la de la organización).
           const antes = cargado.current.sucursales[override.venueId]
-          if (antes && override.existingPricingId === antes.id && mismaTarifa(override.pricing, antes.pricing)) continue
+          if (!incierto && antes && override.existingPricingId === antes.id && mismaTarifa(override.pricing, antes.pricing)) continue
           // Codex r4 #1 / r5–r8: una sucursal sin tarifa propia que el asistente encendió SOLO (abierto desde la sucursal) se
           // compara contra su base (lo que se le mostró o lo último guardado sin escribir): igual ⇒ la persona no la cambió.
-          if (!antes && override.semilla && mismaTarifa(override.pricing, override.semilla)) continue
+          if (!incierto && !antes && override.semilla && mismaTarifa(override.pricing, override.semilla)) continue
 
           // Codex r3 H1: sólo se compara con una tarifa de organización que EXISTE (la cargada o la que se acaba de guardar);
           // la de default del formulario no es respaldo de nadie.
@@ -916,6 +921,7 @@ export const PaymentSetupWizard: React.FC<PaymentSetupWizardProps> = ({ open, on
         }
       }
 
+      cargado.current.incierto = false
       toast({
         title: 'Configuración guardada',
         description: `Configuración de organización guardada. ${Object.values(state.venueOverrides).filter(v => v.enabled).length} sucursal(es) con tarifa personalizada.`,
@@ -932,6 +938,8 @@ export const PaymentSetupWizard: React.FC<PaymentSetupWizardProps> = ({ open, on
     } catch (error: unknown) {
       if (isPositionConfirmCancel(error)) return
       console.error('Save error:', error)
+      // Codex r9 #2: pudo quedar escrito algo cuya respuesta no llegó; el siguiente «Guardar» no se fía de la foto.
+      cargado.current.incierto = true
       if (isStalePosition(error)) {
         queryClient.invalidateQueries({ queryKey: ['payment-setup-summary'] })
         queryClient.invalidateQueries({ queryKey: ['org-payment-config'] })

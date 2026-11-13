@@ -14,6 +14,8 @@ const red = vi.hoisted(() => ({
   llamadas: [] as Array<[string, ...unknown[]]>,
   resumen: null as unknown,
   costos: {} as Record<string, unknown[]>,
+  /** Nombre de la escritura que, la próxima vez, llega al servidor pero pierde la respuesta. */
+  pierdeRespuesta: null as string | null,
   avisos: [] as Array<{ title?: string }>,
 }))
 
@@ -23,6 +25,10 @@ vi.mock('@/services/paymentProvider.service', () => {
     (nombre: string) =>
     async (...args: unknown[]) => {
       red.llamadas.push([nombre, ...args])
+      if (red.pierdeRespuesta === nombre) {
+        red.pierdeRespuesta = null
+        throw new Error('Network Error')
+      }
       return { id: `${nombre}-id` }
     }
   return {
@@ -239,6 +245,7 @@ describe('PaymentSetupWizard · guardar sin cambios', () => {
     red.llamadas.length = 0
     red.avisos.length = 0
     red.costos = { 'acc-1': costoDeLaCuenta1() }
+    red.pierdeRespuesta = null
   })
 
   it('organización configurada: «Guardar» sin cambios no escribe ninguna tarifa, costo ni plazo (tampoco tras ver todos los pasos)', async () => {
@@ -305,6 +312,7 @@ describe('PaymentSetupWizard · lo cargado es de la cuenta y la tarifa correctas
     red.llamadas.length = 0
     red.avisos.length = 0
     red.costos = { 'acc-1': costoDeLaCuenta1() }
+    red.pierdeRespuesta = null
   })
 
   it('sin configuración de cuentas: elegir la cuenta y ver Costos y Pricing no reescribe el costo ni la tarifa que ya existían', async () => {
@@ -435,6 +443,41 @@ describe('PaymentSetupWizard · abierto desde una sucursal (Codex r4 #1)', () =>
     fireEvent.click(screen.getByRole('button', { name: 'crédito de A a 2.5' }))
     await guardar()
     expect(tarifasEscritas()).toEqual([])
+  })
+
+  it('encendida sola: apagarla y volver a encenderla a mano sin cambiar nada no crea nada (Codex r9 #1)', async () => {
+    red.resumen = { ...sinNada(), venues: [{ id: 'v-a', name: 'Sucursal A', slug: 'a' }] }
+    red.costos = {}
+    await abrir()
+    await ir('Sucursales')
+    fireEvent.click(screen.getByRole('button', { name: 'encender A sola' }))
+    fireEvent.click(screen.getByRole('button', { name: 'encender A' })) // apagar
+    fireEvent.click(screen.getByRole('button', { name: 'encender A' })) // encender a mano
+    await guardar()
+    expect(tarifasEscritas()).toEqual([])
+  })
+
+  it('si un «Guardar» falla a media escritura, el siguiente no se fía de la foto y vuelve a mandar lo editado (Codex r9 #2)', async () => {
+    const r = configurada()
+    red.resumen = {
+      ...r,
+      pricingStructures: [tarifa('org-vigente', { creditRate: '0.03', includesTax: null })],
+      venuePricingStructures: [],
+    }
+    await abrir()
+    await ir('Sucursales')
+    fireEvent.click(screen.getByRole('button', { name: 'encender A sola' }))
+    fireEvent.click(screen.getByRole('button', { name: 'crédito de A a 2.7' }))
+    red.pierdeRespuesta = 'createVenuePricingStructure' // el servidor la crea, pero la respuesta no llega
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /Guardar/ }))
+    })
+    await waitFor(() => expect(red.avisos.map(a => a.title)).toContain('Error al guardar'))
+    fireEvent.click(screen.getByRole('button', { name: 'crédito de A a 2.5' })) // la persona la regresa al valor mostrado
+    await guardar()
+    const sucursal = tarifasEscritas().filter(([n]) => n === 'createVenuePricingStructure')
+    expect(sucursal).toHaveLength(2)
+    expect(sucursal[1][1]).toMatchObject({ venueId: 'v-a', creditRate: expect.closeTo(0.025, 10) })
   })
 
   it('apagar, guardar, volver a encender a mano y editar SÍ escribe la tarifa de la sucursal (Codex r5 #1)', async () => {
