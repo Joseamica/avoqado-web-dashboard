@@ -391,7 +391,7 @@ export const validateTimeEntry = async (
   timeEntryId: string,
   data: { status: 'APPROVED' | 'REJECTED'; note?: string; depositAmount?: number },
 ): Promise<{ id: string; validationStatus: string }> => {
-  const response = await api.post(`/api/v1/dashboard/venues/${venueId}/stores-analysis/time-entry/${timeEntryId}/validate`, data)
+  const response = await api.post(`/api/v1/dashboard/venues/${venueId}/stores-analysis/time-entry/${timeEntryId}/validate`, data, { repetible: true })
   return response.data.data
 }
 

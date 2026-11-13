@@ -21,6 +21,8 @@ import SettlementCard from './cards/SettlementCard'
 import RevenueShareCard from './cards/RevenueShareCard'
 import TerminalsCard from './cards/TerminalsCard'
 import VenueRosterPanel from '../VenueRosterPanel'
+import { usePositionConfirm } from '../../position-lock/PositionConfirmDialog'
+import { isPositionConfirmCancel, isStalePosition, serverMessage, venueRatesLink } from '../../position-lock/positionLock'
 
 interface MerchantSetupPanelProps {
   open: boolean
@@ -51,6 +53,7 @@ export default function MerchantSetupPanel({
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const [state, dispatch] = useReducer(setupReducer, undefined, initialState)
+  const { run, dialog: positionConfirmDialog } = usePositionConfirm()
 
   // Resolve the user account id (only known once login card has chosen one)
   const userAccountId = state.login.mode === 'existing' ? state.login.angelpayUserAccountId : null
@@ -116,7 +119,12 @@ export default function MerchantSetupPanel({
   }, [state])
 
   const activateMutation = useMutation({
-    mutationFn: () => paymentProviderAPI.fullSetupAngelPayMerchant(assemblePayload(state)),
+    // Candado de posiciones: el SERVIDOR toma el precio de esta misma petición como la tarifa confirmada de la posición y ya
+    // revisa al ocupante con `replacedAccountId`; el diálogo sólo sale por terminales o por la posición de origen del cambio.
+    mutationFn: () =>
+      run(pc => paymentProviderAPI.fullSetupAngelPayMerchant({ ...assemblePayload(state), positionConfirmations: pc }), undefined, {
+        ratesLink: venueRatesLink(state.venue.slug),
+      }),
     onSuccess: async result => {
       queryClient.invalidateQueries({ queryKey: ['merchant-accounts-all'] })
 
@@ -156,10 +164,12 @@ export default function MerchantSetupPanel({
       clearDraft(state.venue.id, userAccountId)
       onOpenChange(false)
     },
-    onError: (err: any) => {
+    onError: (err: unknown) => {
+      if (isPositionConfirmCancel(err)) return
+      if (isStalePosition(err)) queryClient.invalidateQueries({ queryKey: ['venue-payment-config', state.venue.id] })
       toast({
         title: 'No pudimos activar el merchant',
-        description: err?.response?.data?.message || 'Error en el servidor. Reintenta.',
+        description: serverMessage(err, 'Error en el servidor. Reintenta.'),
         variant: 'destructive',
       })
     },
@@ -310,6 +320,7 @@ export default function MerchantSetupPanel({
       </div>
 
       {/* Draft recovery banner: Task 5.1 */}
+      {positionConfirmDialog}
     </FullScreenModal>
   )
 }

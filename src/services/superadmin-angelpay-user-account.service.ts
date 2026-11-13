@@ -22,6 +22,7 @@
  */
 
 import api from '@/api'
+import type { PositionConfirmations } from '@/pages/Superadmin/components/position-lock/positionLock'
 
 export type AngelPayEnvironment = 'QA' | 'PROD'
 
@@ -323,16 +324,19 @@ export interface ApproveDiscoveredAngelPayMerchantPayload {
    * brand-compatible terminal in the venue via VenuePaymentConfig inheritance.
    */
   terminalIds?: string[]
+  /** Candado de posiciones (tarifa al comercio, paso 1). */
+  positionConfirmations?: PositionConfirmations
 }
 
 export async function approveDiscoveredAngelPayMerchant(
   payload: ApproveDiscoveredAngelPayMerchantPayload,
 ): Promise<ApproveDiscoveredAngelPayMerchantResult> {
-  const { venueId, merchantAccountId, slot = 'PRIMARY', terminalIds } = payload
-  const body: { slot: AngelPayVenuePaymentSlot; terminalIds?: string[] } = { slot }
+  const { venueId, merchantAccountId, slot = 'PRIMARY', terminalIds, positionConfirmations } = payload
+  const body: { slot: AngelPayVenuePaymentSlot; terminalIds?: string[]; positionConfirmations?: PositionConfirmations } = { slot }
   if (terminalIds && terminalIds.length > 0) {
     body.terminalIds = terminalIds
   }
+  if (positionConfirmations) body.positionConfirmations = positionConfirmations
   const { data } = await api.post<ApiEnvelope<ApproveDiscoveredAngelPayMerchantResult>>(
     `/api/v1/superadmin/venues/${venueId}/angelpay-merchants/${merchantAccountId}/approve`,
     body,
@@ -352,6 +356,8 @@ export interface ReserveAngelPaySlotPayload {
    * Omit (or empty string) for the legacy "first authenticated wins" path.
    */
   angelpayUserAccountId?: string
+  /** Candado de posiciones (tarifa al comercio, paso 1). */
+  positionConfirmations?: PositionConfirmations
 }
 
 export interface ReserveAngelPaySlotResult {
@@ -369,11 +375,17 @@ export interface ReserveAngelPaySlotResult {
 export async function reserveAngelPaySlot(
   payload: ReserveAngelPaySlotPayload,
 ): Promise<ReserveAngelPaySlotResult> {
-  const { venueId, slot, displayName, angelpayUserAccountId } = payload
-  const body: { slot?: AngelPayVenuePaymentSlot; displayName?: string; angelpayUserAccountId?: string } = {}
+  const { venueId, slot, displayName, angelpayUserAccountId, positionConfirmations } = payload
+  const body: {
+    slot?: AngelPayVenuePaymentSlot
+    displayName?: string
+    angelpayUserAccountId?: string
+    positionConfirmations?: PositionConfirmations
+  } = {}
   if (slot) body.slot = slot
   if (displayName) body.displayName = displayName
   if (angelpayUserAccountId) body.angelpayUserAccountId = angelpayUserAccountId
+  if (positionConfirmations) body.positionConfirmations = positionConfirmations
   const { data } = await api.post<ApiEnvelope<ReserveAngelPaySlotResult>>(
     `/api/v1/superadmin/venues/${venueId}/angelpay-reserve-slot`,
     body,

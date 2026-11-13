@@ -25,7 +25,7 @@ export const staffPayService = {
   async adjustClass(venueId: string, sessionId: string, data: AjusteClaseInput): Promise<PagoDeClaseDto> { return (await api.put(`${base(venueId)}/class-sessions/${sessionId}/pay-adjustments`, data)).data },
   // ── Fase 3: activar pago al personal, propinas en el recibo (staffpay:close) y estado por sede ──
   async activate(venueId: string, body: { periodicidad: 'MONTHLY' | 'SEMIMONTHLY'; inicioEsperado: string; sedes?: string[] }): Promise<{ startDate: string; yaActivado: boolean }> {
-    return (await api.post(`${base(venueId)}/activate`, body)).data
+    return (await api.post(`${base(venueId)}/activate`, body, { repetible: true })).data
   },
   async setTips(venueId: string, encender: boolean): Promise<{ encendidas: boolean }> {
     return (await api.put(`${base(venueId)}/tips`, { encender })).data
@@ -46,7 +46,7 @@ export const staffPayService = {
   async periods(venueId: string, antesDe?: string): Promise<ListaPeriodosDto> { return (await api.get(`${base(venueId)}/periods`, { params: antesDe ? { antesDe } : {} })).data },
   async setPeriodicity(venueId: string, periodicidad: 'MONTHLY' | 'SEMIMONTHLY') { return (await api.patch(`${base(venueId)}/periodicity`, { periodicidad })).data },
   async closePreview(venueId: string, fecha: string): Promise<PreviewCierreDto> { return (await api.get(`${base(venueId)}/periods/close-preview`, { params: { fecha } })).data },
-  async close(venueId: string, body: { fecha: string; huellaEsperada: string; confirmarHuerfanas: boolean }): Promise<ResultadoCierreDto> { return (await api.post(`${base(venueId)}/periods/close`, body)).data },
+  async close(venueId: string, body: { fecha: string; huellaEsperada: string; confirmarHuerfanas: boolean }): Promise<ResultadoCierreDto> { return (await api.post(`${base(venueId)}/periods/close`, body, { repetible: true })).data },
   async paidPreview(venueId: string, periodId: string, staffId?: string): Promise<PreviewPagadoDto> { return (await api.get(`${base(venueId)}/periods/${periodId}/paid-preview`, { params: staffId ? { staffId } : {} })).data },
   async markPaid(venueId: string, periodId: string, body: { staffId?: string; nota?: string; huellaEsperada?: string }): Promise<{ marcados: number }> { return (await api.post(`${base(venueId)}/periods/${periodId}/paid`, body)).data },
   async addAdjustment(venueId: string, body: AjusteManualInput): Promise<AjusteManualDto> { return (await api.post(`${base(venueId)}/adjustments`, body)).data },

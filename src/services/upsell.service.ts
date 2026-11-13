@@ -157,7 +157,7 @@ export const upsellService = {
 
 	/** `PROPOSED` → `ACTIVE`. Lo que el dueño hace con una propuesta del job o de la IA. */
 	async approveRule(venueId: string, ruleId: string): Promise<UpsellRule> {
-		const response = await api.post(`${base(venueId)}/upsell-rules/${ruleId}/approve`)
+		const response = await api.post(`${base(venueId)}/upsell-rules/${ruleId}/approve`, undefined, { repetible: true })
 		return response.data.data
 	},
 

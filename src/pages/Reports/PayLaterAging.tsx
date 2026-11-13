@@ -186,7 +186,7 @@ export default function PayLaterAging() {
     mutationFn: async ({ orderId, notes }: { orderId: string; notes?: string }) => {
       const response = await api.post(`/api/v1/dashboard/venues/${venueId}/orders/${orderId}/settle`, {
         notes,
-      })
+      }, { repetible: true })
       return response.data
     },
     onSuccess: () => {

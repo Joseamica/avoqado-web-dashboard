@@ -171,12 +171,14 @@ export default function WalletCardDesigner() {
     stampRewardType: TipoPremio
     stampRewardValue: number | undefined
     stampRewardLabel: string
+    maxStampsPerDay: number | undefined // 0 = sin límite
   }>({
     stampsEnabled: false,
     stampsRequired: 10,
     stampRewardType: 'FREE_PRODUCT',
     stampRewardValue: undefined,
     stampRewardLabel: '',
+    maxStampsPerDay: 1,
   })
 
   useEffect(() => {
@@ -187,6 +189,7 @@ export default function WalletCardDesigner() {
       stampRewardType: (config.stampRewardType as TipoPremio) ?? 'FREE_PRODUCT',
       stampRewardValue: config.stampRewardValue == null ? undefined : Number(config.stampRewardValue),
       stampRewardLabel: config.stampRewardLabel ?? '',
+      maxStampsPerDay: config.maxStampsPerDay ?? 1,
     })
   }, [config])
 
@@ -196,6 +199,7 @@ export default function WalletCardDesigner() {
         stampsEnabled: programa.stampsEnabled,
         stampsRequired: programa.stampsRequired,
         stampRewardType: programa.stampRewardType,
+        ...(programa.maxStampsPerDay === undefined ? {} : { maxStampsPerDay: programa.maxStampsPerDay }),
         // El monto sólo viaja cuando el tipo lo usa: mandarlo con FREE_PRODUCT
         // guardaría un número que nadie lee y confunde al leer la configuración.
         ...(programa.stampRewardType === 'FREE_PRODUCT' ? {} : { stampRewardValue: programa.stampRewardValue }),
@@ -353,6 +357,42 @@ export default function WalletCardDesigner() {
                   </div>
 
                   <div className="mt-4 space-y-2">
+                    <Label htmlFor="max-stamps-per-day" className="text-sm">
+                      {t('card.program.maxPerDay')}
+                    </Label>
+                    <div className="flex items-center gap-4">
+                      <Input
+                        id="max-stamps-per-day"
+                        type="number"
+                        min={1}
+                        className="w-24"
+                        disabled={programa.maxStampsPerDay === 0}
+                        value={programa.maxStampsPerDay === 0 ? '' : (programa.maxStampsPerDay ?? '')}
+                        onChange={e => {
+                          // 0 es «Sin límite» y eso sólo lo da el interruptor: lo escrito se queda en 1 o más. Vacío = sin valor (no guarda).
+                          const n = parseInt(e.target.value, 10)
+                          setPrograma(p => ({ ...p, maxStampsPerDay: Number.isNaN(n) ? undefined : Math.max(1, n) }))
+                        }}
+                      />
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          id="max-stamps-unlimited"
+                          checked={programa.maxStampsPerDay === 0}
+                          onCheckedChange={v => setPrograma(p => ({ ...p, maxStampsPerDay: v ? 0 : 1 }))}
+                          aria-label={t('card.program.maxPerDayUnlimited')}
+                        />
+                        <Label htmlFor="max-stamps-unlimited" className="text-sm">
+                          {t('card.program.maxPerDayUnlimited')}
+                        </Label>
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground">{t('card.program.maxPerDayHint')}</p>
+                    {programa.maxStampsPerDay === undefined && (
+                      <p className="text-xs text-destructive">{t('card.program.maxPerDayRequired')}</p>
+                    )}
+                  </div>
+
+                  <div className="mt-4 space-y-2">
                     <Label className="text-sm">{t('card.program.rewardType')}</Label>
                     <div className="flex flex-wrap gap-2">
                       {(['FREE_PRODUCT', 'FIXED_AMOUNT', 'PERCENTAGE'] as const).map(tipo => (
@@ -394,7 +434,11 @@ export default function WalletCardDesigner() {
                   </div>
 
                   <div className="mt-5 flex justify-end">
-                    <Button size="sm" onClick={() => guardarPrograma.mutate()} disabled={guardarPrograma.isPending}>
+                    <Button
+                      size="sm"
+                      onClick={() => guardarPrograma.mutate()}
+                      disabled={guardarPrograma.isPending || programa.maxStampsPerDay === undefined}
+                    >
                       {guardarPrograma.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                       {t('card.program.save')}
                     </Button>

@@ -16,7 +16,7 @@ describe('staffPayService — fase 3 (activación, propinas, sedes)', () => {
   it('activar manda periodicidad, inicioEsperado y la lista explícita de sedes', async () => {
     m.post.mockResolvedValue({ data: { startDate: '2026-10-01', yaActivado: false } })
     await staffPayService.activate('v1', { periodicidad: 'MONTHLY', inicioEsperado: '2026-10-01', sedes: ['s1'] })
-    expect(m.post).toHaveBeenCalledWith(`${base}/activate`, { periodicidad: 'MONTHLY', inicioEsperado: '2026-10-01', sedes: ['s1'] })
+    expect(m.post).toHaveBeenCalledWith(`${base}/activate`, { periodicidad: 'MONTHLY', inicioEsperado: '2026-10-01', sedes: ['s1'] }, { repetible: true }) // D6: `yaActivado`
   })
   it('propinas: PUT /tips con { encender }', async () => {
     m.put.mockResolvedValue({ data: { encendidas: true } })

@@ -35,5 +35,5 @@ export async function generateActivation(venueId: string): Promise<ActivationGen
 // Reverts the venue to WA_ME_FALLBACK, closes OPEN sessions, invalidates any
 // open activation tokens. 204 on success.
 export async function deactivateVenueChat(venueId: string): Promise<void> {
-  await api.post(`/api/v1/dashboard/venues/${venueId}/chat/deactivate`)
+  await api.post(`/api/v1/dashboard/venues/${venueId}/chat/deactivate`, undefined, { repetible: true })
 }

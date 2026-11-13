@@ -29,6 +29,8 @@ import { AngelPayAccountSection } from './AngelPayAccountSection'
 import { AttachTerminalDialog } from './AttachTerminalDialog'
 import { DiscoveredMerchantsSubsection } from './DiscoveredMerchantsSubsection'
 import { TerminalsSubsection } from './TerminalsSubsection'
+import { usePositionConfirm } from '../position-lock/PositionConfirmDialog'
+import { isPositionConfirmCancel, isStalePosition } from '../position-lock/positionLock'
 // Note: DeviceCompatibilityBanner removed from this dialog in Task 54.
 // TerminalsSubsection's empty-state already conveys "no NEXGO terminals"
 // with two actionable buttons. The banner component still exists for any
@@ -110,6 +112,9 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
   const [manageSheetAccount, setManageSheetAccount] = useState<AngelPayUserAccount | null>(null)
   const queryClient = useQueryClient()
   const { toast } = useToast()
+  // Candado de posiciones (tarifa al comercio, paso 1): reservar o asignar una posición puede pedir confirmar la tarifa y
+  // las terminales; se repite SÓLO la llamada de la posición, nunca la creación de la cuenta.
+  const { run: runPositionConfirm, dialog: positionConfirmDialog } = usePositionConfirm()
   // UX polish on top of Task 17: when the operator opens this dialog from the
   // "Todos" page-level filter (i.e. no `venueId` prop), we render an inline
   // venue picker for the ANGELPAY path so they don't have to cancel, change
@@ -473,12 +478,16 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
       if (!effectiveVenueId) {
         return Promise.reject(new Error('No venue selected'))
       }
-      return angelpayUserAccountAPI.reserveSlot({
-        venueId: effectiveVenueId,
-        slot: reserveSlotChoice === 'AUTO' ? undefined : reserveSlotChoice,
-        displayName: reserveDisplayName.trim() || undefined,
-        angelpayUserAccountId: reserveAccountId || undefined,
-      })
+      const venueIdToReserve = effectiveVenueId
+      return runPositionConfirm(pc =>
+        angelpayUserAccountAPI.reserveSlot({
+          venueId: venueIdToReserve,
+          slot: reserveSlotChoice === 'AUTO' ? undefined : reserveSlotChoice,
+          displayName: reserveDisplayName.trim() || undefined,
+          angelpayUserAccountId: reserveAccountId || undefined,
+          positionConfirmations: pc,
+        }),
+      )
     },
     onSuccess: (data) => {
       // Force-refetch ALL relevant queries so the dialog reflects the new
@@ -501,9 +510,12 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
       setReserveSlotChoice('AUTO')
     },
     onError: (err: any) => {
+      if (isPositionConfirmCancel(err)) return
+      const stale = isStalePosition(err)
+      if (stale) queryClient.invalidateQueries({ queryKey: ['venue-payment-config', effectiveVenueId] })
       const msg = err?.response?.data?.message || err?.message || 'Error desconocido'
       toast({
-        title: err?.response?.status === 409 ? 'Slot ocupado' : 'No se pudo reservar el slot',
+        title: stale ? 'La configuración cambió' : err?.response?.status === 409 ? 'Slot ocupado' : 'No se pudo reservar el slot',
         description: msg,
         variant: 'destructive',
       })
@@ -727,12 +739,17 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
         created && typeof created === 'object' && 'id' in created ? created : undefined
 
       if (isAngelPay && !account && effectiveVenueId && createdAccount) {
+        const venueIdToApprove = effectiveVenueId
         try {
-          await angelpayUserAccountAPI.approveDiscoveredMerchant({
-            venueId: effectiveVenueId,
-            merchantAccountId: createdAccount.id,
-            slot: manualSlot,
-          })
+          // Si el SERVIDOR pide confirmar la posición, se repite SÓLO esta aprobación (la cuenta ya se creó).
+          await runPositionConfirm(pc =>
+            angelpayUserAccountAPI.approveDiscoveredMerchant({
+              venueId: venueIdToApprove,
+              merchantAccountId: createdAccount.id,
+              slot: manualSlot,
+              positionConfirmations: pc,
+            }),
+          )
           queryClient.invalidateQueries({ queryKey: ['merchant-accounts-all'] })
           queryClient.invalidateQueries({ queryKey: ['merchant-accounts'] })
           queryClient.invalidateQueries({ queryKey: ['venue-payment-config', effectiveVenueId] })
@@ -742,7 +759,20 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
           })
         } catch (err: any) {
           const msg = err?.response?.data?.message || err?.message || 'Error desconocido'
-          if (err?.response?.status === 409) {
+          if (isPositionConfirmCancel(err)) {
+            queryClient.invalidateQueries({ queryKey: ['merchant-accounts-all'] })
+            toast({
+              title: 'Merchant creado sin asignar',
+              description: 'Cancelaste la confirmación: el merchant se creó pero no se asignó a ninguna posición.',
+            })
+          } else if (isStalePosition(err)) {
+            queryClient.invalidateQueries({ queryKey: ['venue-payment-config', venueIdToApprove] })
+            toast({
+              title: 'La configuración cambió',
+              description: `${msg} El merchant se creó pero no se asignó.`,
+              variant: 'destructive',
+            })
+          } else if (err?.response?.status === 409) {
             toast({
               title: 'Slot ocupado',
               description: `${msg}. El merchant se creó pero no se asignó — escoge otro slot y vuelve a intentar.`,
@@ -1874,6 +1904,7 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
         </div>
       </DialogContent>
     </Dialog>
+    {positionConfirmDialog}
 
     {/* Crear terminal — two flavors:
         - AngelPay path: AngelPayCreateTerminalDialog hardcodes brand=NEXGO,

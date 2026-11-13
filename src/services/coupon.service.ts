@@ -95,7 +95,7 @@ export const couponService = {
 
 	// Validate a coupon code
 	async validateCoupon(venueId: string, data: ValidateCouponRequest): Promise<CouponValidationResult> {
-		const response = await api.post(`/api/v1/dashboard/venues/${venueId}/coupons/validate`, data)
+		const response = await api.post(`/api/v1/dashboard/venues/${venueId}/coupons/validate`, data, { repetible: true })
 		return response.data
 	},
 

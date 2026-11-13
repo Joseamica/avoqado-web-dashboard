@@ -116,7 +116,7 @@ export const resolveCardRefund = async (
   refundId: string,
   body: { method: CardRefundResolveMethod; note?: string },
 ): Promise<{ status: 'RESOLVED'; replay: boolean }> =>
-  (await api.post(`${base(venueId)}/orders/${orderId}/card-refund/${refundId}/resolve`, body)).data.data
+  (await api.post(`${base(venueId)}/orders/${orderId}/card-refund/${refundId}/resolve`, body, { repetible: true })).data.data
 
 /** `fallback` ya viene traducido por la UI (`t('…')`): nada de texto fijo en español aquí. */
 export function serverMessage(error: unknown, fallback: string): string {

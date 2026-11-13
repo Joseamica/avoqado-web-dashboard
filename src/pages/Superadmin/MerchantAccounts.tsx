@@ -46,6 +46,9 @@ import {
   AssignAccountToVenueDialog,
 } from './components/merchant-accounts'
 import MerchantSetupPanel from './components/merchant-accounts/merchant-setup-panel/MerchantSetupPanel'
+import type { VenueConfigRow } from './components/merchant-accounts/DeleteConfirmDialog'
+import { usePositionConfirm } from './components/position-lock/PositionConfirmDialog'
+import { isPositionConfirmCancel, isStalePosition, seenFromConfig, serverMessage, venueRatesLink } from './components/position-lock/positionLock'
 
 /** Bucket a raw merchant-account environment into PROD / SANDBOX (mirrors MerchantAccountCard). */
 const envBucket = (raw?: string | null): 'PRODUCTION' | 'SANDBOX' | null => {
@@ -293,13 +296,27 @@ const MerchantAccounts: React.FC = () => {
     },
   })
 
-  // Delete venue config
+  // Delete venue config. Sin su configuración propia el venue pasa a las cuentas de su organización: el candado de posiciones
+  // pide confirmarlo (las cuentas que se ven son las de la fila).
+  const { run: runPositionConfirm, dialog: positionConfirmDialog } = usePositionConfirm()
   const deleteVenueConfigMutation = useMutation({
-    mutationFn: ({ venueId }: { venueId: string; configId: string }) => paymentProviderAPI.deleteVenuePaymentConfig(venueId),
+    mutationFn: ({ venueId, config }: { venueId: string; configId: string; config: VenueConfigRow }) =>
+      runPositionConfirm(pc => paymentProviderAPI.deleteVenuePaymentConfig(venueId, pc), seenFromConfig(config), {
+        ratesLink: venueRatesLink(config.venue?.slug),
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['merchant-accounts-all'] })
       queryClient.invalidateQueries({ queryKey: ['merchant-accounts'] })
       toast({ title: 'Éxito', description: 'Configuración de venue eliminada' })
+    },
+    onError: (error: unknown) => {
+      if (isPositionConfirmCancel(error)) return
+      if (isStalePosition(error)) queryClient.invalidateQueries({ queryKey: ['merchant-account-configs'] })
+      toast({
+        title: 'Error',
+        description: serverMessage(error, 'No se pudo eliminar la configuración del venue'),
+        variant: 'destructive',
+      })
     },
   })
 
@@ -1006,8 +1023,9 @@ const MerchantAccounts: React.FC = () => {
         account={selectedAccount}
         onConfirmDelete={handleConfirmDelete}
         onDeleteCostStructure={id => deleteCostStructureMutation.mutateAsync(id)}
-        onDeleteVenueConfig={(venueId, configId) => deleteVenueConfigMutation.mutateAsync({ venueId, configId })}
+        onDeleteVenueConfig={(venueId, configId, config) => deleteVenueConfigMutation.mutateAsync({ venueId, configId, config })}
       />
+      {positionConfirmDialog}
 
       <TerminalAssignmentsDialog
         open={terminalsDialogOpen}

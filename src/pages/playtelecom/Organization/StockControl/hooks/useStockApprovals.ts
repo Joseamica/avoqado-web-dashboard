@@ -58,7 +58,7 @@ export function useApproveStock(orgId: string | undefined) {
     mutationFn: async (serializedItemIds: string[]) => {
       const { data } = await api.post(`/api/v1/dashboard/organizations/${orgId}/pending-stock-approvals/approve`, {
         serializedItemIds,
-      })
+      }, { repetible: true })
       return data.data
     },
     onSuccess: () => {

@@ -133,7 +133,7 @@ export async function enableModule(
     venueId,
     moduleCode,
     preset,
-  })
+  }, { repetible: true })
   return response.data
 }
 
@@ -155,7 +155,7 @@ export async function disableModule(
   const response = await api.post('/api/v1/dashboard/superadmin/modules/disable', {
     venueId,
     moduleCode,
-  })
+  }, { repetible: true })
   return response.data
 }
 
