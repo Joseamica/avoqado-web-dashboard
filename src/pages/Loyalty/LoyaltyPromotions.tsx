@@ -275,8 +275,8 @@ function Grupo({
 
       {datos?.items.map(p => (
         <div key={p.id} className="flex flex-wrap items-start justify-between gap-3 rounded-xl border border-input bg-card p-4">
-          <div className="min-w-0 flex-1 space-y-1">
-            <p className="font-medium">{p.name}</p>
+          <div className="min-w-0 flex-1 basis-full space-y-1 sm:basis-60">
+            <p className="break-words font-medium">{p.name}</p>
             <p className="text-sm text-muted-foreground">
               {describirPromo(
                 { ...p, productNames: p.products.map(x => x.name), categoryNames: p.categories.map(x => x.name) },
