@@ -20,9 +20,7 @@ import {
   type PaymentMethod,
   type PaymentSource,
 } from '@/services/manualPayment.service'
-import { quedoSinConfirmar, reservar, resolver, useCandado, useLlaveDeEnvio } from '@/lib/llaveDeEnvio'
-import { Currency } from '@/utils/currency'
-import { EnvioEnDudaAviso } from '@/components/EnvioEnDudaAviso'
+import { esFolioDeOtraOperacion, useCandado, useLlaveDeLaVentana } from '@/lib/llaveDeEnvio'
 import { quedoEnDuda } from '@/pages/Commissions/envioUnico'
 import { ExternalSourceCombobox } from './ExternalSourceCombobox'
 
@@ -112,13 +110,6 @@ interface ManualPaymentDialogProps {
   venueId: string
 }
 
-/** D1: lo que viaja en la mutación: el pago con su llave, y su huella para borrar SU anotación al terminar. */
-interface EnvioDelPago {
-  input: CreateManualPaymentInput
-  huella: string
-  reusada: boolean
-}
-
 /**
  * Manual payments are ALWAYS standalone bookkeeping entries — money received
  * via an external provider (BUQ, Clip, etc.) that never passed through
@@ -130,12 +121,11 @@ export function ManualPaymentDialog({ open, onClose, venueId }: ManualPaymentDia
   const queryClient = useQueryClient()
   const { t } = useTranslation('payment')
   /**
-   * D1: la llave del pago. Cada envío se anota ANTES de salir, para este negocio (aunque se cierre el diálogo, se recargue o se
-   * abra otra pestaña); el mismo contenido reusa su llave y el diálogo avisa lo que quedó sin confirmar con «Es otro». Un
-   * candado frena el doble clic del mismo instante. Ver `@/lib/llaveDeEnvio`.
+   * D1 (founder 13-nov: «A, una ventana = un folio»): la llave del pago nace al abrir este diálogo y se queda mientras siga
+   * abierto. Reintentar aquí tras quedar en duda va con la misma llave (el servidor no registra otro); un éxito confirmado la
+   * estrena; cerrar y volver a abrir es otro pago. Un candado frena el doble clic del mismo instante. Ver `@/lib/llaveDeEnvio`.
    */
-  const ambitoDelPago = `pago-manual:${venueId}`
-  const { sinConfirmar: pagosSinConfirmar, esOtro } = useLlaveDeEnvio(ambitoDelPago)
+  const { llave: llaveDelPago, estrenar: estrenarLlave } = useLlaveDeLaVentana(open)
   const conCandado = useCandado()
 
   const form = useForm<FormValues>({
@@ -199,36 +189,39 @@ export function ManualPaymentDialog({ open, onClose, venueId }: ManualPaymentDia
   })
 
   const mutation = useMutation({
-    mutationFn: ({ input }: EnvioDelPago) => manualPaymentService.create(venueId, input),
-    onSuccess: (_data, { huella, reusada }) => {
-      // Confirmado: se borra SU anotación; el siguiente pago (aunque sea idéntico) estrena llave.
-      resolver(ambitoDelPago, huella)
-      toast(
-        reusada
-          ? {
-              title: t('enDuda.mismoRegistrado', { defaultValue: 'Ya quedó registrado' }),
-              description: t('enDuda.mismoRegistradoDescripcion', {
-                defaultValue: 'Era el mismo que había quedado sin confirmar: no se registró dos veces.',
-              }),
-            }
-          : { title: 'Pago registrado', description: 'El pago manual se registró correctamente.' },
-      )
+    mutationFn: (input: CreateManualPaymentInput) => manualPaymentService.create(venueId, input),
+    onSuccess: () => {
+      // Confirmado: lo siguiente en este diálogo (aunque sea idéntico) es otro pago.
+      estrenarLlave()
+      toast({ title: 'Pago registrado', description: 'El pago manual se registró correctamente.' })
       queryClient.invalidateQueries({ queryKey: ['orders', venueId] })
       queryClient.invalidateQueries({ queryKey: ['payments', venueId] })
       queryClient.invalidateQueries({ queryKey: ['external-sources', venueId] })
       onClose()
     },
-    onError: (err: any, { huella }) => {
-      // D1: sin respuesta (o 5xx) no se sabe si se registró: no se dice «error» como si no hubiera pasado nada. La anotación se
-      // queda (con su aviso) para que volver a mandarlo no duplique, y se refrescan los pagos para revisarlo. Un rechazo
-      // definitivo no registró nada: se borra.
-      if (quedoEnDuda(err)) quedoSinConfirmar(ambitoDelPago, huella)
-      else resolver(ambitoDelPago, huella)
+    onError: (err: any) => {
+      // D1: la llave NO se estrena. Sin respuesta (o 5xx) no se sabe si se registró: no se dice «error» como si no hubiera pasado
+      // nada; reintentar en este diálogo no duplica, y se refrescan los pagos para revisarlo. Si el servidor dice que esta llave ya
+      // es de un pago con otros datos, lo primero sí entró: se dice en llano.
+      if (esFolioDeOtraOperacion(err)) {
+        toast({
+          title: t('manualPayment.alreadyRecordedTitle', { defaultValue: 'Ya se había registrado un pago' }),
+          description: t('manualPayment.alreadyRecorded', {
+            defaultValue:
+              'Desde esta ventana ya se registró un pago con otros datos (el que no se pudo confirmar sí entró). Revisa los pagos; si necesitas otro, cierra y vuelve a abrir esta ventana.',
+          }),
+          variant: 'destructive',
+        })
+        queryClient.invalidateQueries({ queryKey: ['payments', venueId] })
+        queryClient.invalidateQueries({ queryKey: ['orders', venueId] })
+        return
+      }
       if (quedoEnDuda(err)) {
         toast({
           title: t('manualPayment.errorUnknownTitle', { defaultValue: 'Pago sin confirmar' }),
           description: t('manualPayment.errorUnknown', {
-            defaultValue: 'No supimos si se registró el pago. Revisa los pagos antes de intentarlo otra vez.',
+            defaultValue:
+              'No supimos si se registró el pago. Si lo intentas otra vez en esta misma ventana, no se duplica. Si la cierras, revisa los pagos antes de registrar otro.',
           }),
           variant: 'destructive',
         })
@@ -249,13 +242,10 @@ export function ManualPaymentDialog({ open, onClose, venueId }: ManualPaymentDia
     },
   })
 
-  /** D1: arma el pago, lo anota con su llave ANTES de mandarlo y lo manda; el candado frena el doble clic. */
+  /** D1: manda el pago con la llave de este diálogo; el candado frena el doble clic. */
   const onSubmit = (values: FormValues) =>
     conCandado(async () => {
-      const input = armarPago(values)
-      const huella = JSON.stringify([venueId, input])
-      const { llave, reusada } = reservar(ambitoDelPago, huella, Number(values.amount) || 0)
-      await mutation.mutateAsync({ input: { ...input, idempotencyKey: llave }, huella, reusada }).catch(() => undefined)
+      await mutation.mutateAsync({ ...armarPago(values), idempotencyKey: llaveDelPago }).catch(() => undefined)
     })
 
   return (
@@ -273,16 +263,6 @@ export function ManualPaymentDialog({ open, onClose, venueId }: ManualPaymentDia
           </DialogDescription>
         </DialogHeader>
 
-        {pagosSinConfirmar.map(envio => (
-          <EnvioEnDudaAviso
-            key={envio.huella}
-            titulo={t('enDuda.pagoTitulo', {
-              monto: Currency(envio.monto),
-              defaultValue: `Hay un pago de ${Currency(envio.monto)} sin confirmar`,
-            })}
-            onEsOtro={() => esOtro(envio.huella)}
-          />
-        ))}
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">

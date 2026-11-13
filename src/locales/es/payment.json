@@ -773,22 +773,16 @@
   },
   "manualPayment": {
     "errorUnknownTitle": "Pago sin confirmar",
-    "errorUnknown": "No supimos si se registró el pago. Revisa los pagos antes de intentarlo otra vez."
-  },
-  "enDuda": {
-    "pagoTitulo": "Hay un pago de {{monto}} sin confirmar",
-    "reembolsoTitulo": "Hay un reembolso de {{monto}} sin confirmar",
-    "explicacion": "Si es el mismo, vuelve a enviarlo con los mismos datos: no se registra dos veces. Si ya revisaste y es otro, toca «Es otro».",
-    "esOtro": "Es otro",
-    "mismoRegistrado": "Ya quedó registrado",
-    "mismoRegistradoDescripcion": "Era el mismo que había quedado sin confirmar: no se registró dos veces."
+    "errorUnknown": "No supimos si se registró el pago. Si lo intentas otra vez en esta misma ventana, no se duplica. Si la cierras, revisa los pagos antes de registrar otro.",
+    "alreadyRecordedTitle": "Ya se había registrado un pago",
+    "alreadyRecorded": "Desde esta ventana ya se registró un pago con otros datos (el que no se pudo confirmar sí entró). Revisa los pagos; si necesitas otro, cierra y vuelve a abrir esta ventana."
   },
   "refund": {
     "success": "Reembolso emitido",
     "errorUnknownTitle": "Reembolso sin confirmar",
     "error": "No se pudo emitir el reembolso",
     "errors": {
-      "unknown": "No supimos si se emitió el reembolso. Revisa los reembolsos de este pago antes de intentarlo otra vez.",
+      "unknown": "No supimos si se emitió el reembolso. Si lo intentas otra vez en esta misma ventana, no se duplica. Si la cierras, revisa los reembolsos de este pago antes de hacer otro.",
       "forbidden": "No tienes permiso para emitir reembolsos. Pídeselo a quien administra el negocio."
     },
     "reasons": {
@@ -845,6 +839,8 @@
       "exceeds": "El importe excede el máximo reembolsable"
     },
     "confirmTitle": "Reembolso de {{amount}}",
-    "goToOrder": "Ver la cuenta"
+    "goToOrder": "Ver la cuenta",
+    "alreadyIssuedTitle": "Ya se había emitido un reembolso",
+    "alreadyIssued": "Desde esta ventana ya se emitió un reembolso con otros datos (el que no se pudo confirmar sí entró). Revisa los reembolsos de este pago; si necesitas otro, cierra y vuelve a abrir esta ventana."
   }
 }

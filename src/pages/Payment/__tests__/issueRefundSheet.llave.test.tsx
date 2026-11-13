@@ -1,13 +1,12 @@
 /**
- * D1 (12-nov): el reembolso del panel viaja con su llave (`idempotencyKey`). Si el primer envío quedó en duda (sin respuesta) y la
- * persona vuelve a tocar «Reembolsar» con lo mismo, va la MISMA llave: el servidor devuelve el reembolso ya hecho en vez de hacer
- * otro. Tras un éxito, o con otro monto, la llave es nueva.
+ * D1 (founder 13-nov: «A, una ventana = un folio»): el reembolso del panel viaja con su llave (`idempotencyKey`). La llave nace al
+ * abrir la ventana y se queda mientras siga abierta: el «intentar otra vez» tras quedar en duda va con la MISMA llave y el servidor
+ * devuelve el reembolso ya hecho en vez de hacer otro. Cerrar y volver a abrir, o un éxito confirmado, estrenan llave.
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { olvidarTodo } from '@/lib/llaveDeEnvio'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const post = vi.hoisted(() => vi.fn())
 const toast = vi.hoisted(() => vi.fn())
@@ -18,14 +17,26 @@ vi.mock('@/components/ui/select', () => import('@/test/nativeSelectShim'))
 import { IssueRefundSheet } from '../IssueRefundSheet'
 
 const sinRespuesta = () => Object.assign(new Error('Network Error'), { code: 'ERR_NETWORK' })
+const folioDeOtraOperacion = () =>
+  Object.assign(new Error('Request failed with status code 409'), {
+    response: { status: 409, data: { code: 'IDEMPOTENCY_KEY_REUSED', message: 'La llave de idempotencia ya pertenece a otra operación' } },
+  })
 const llaveDe = (n: number) => (post.mock.calls[n][1] as { idempotencyKey?: string }).idempotencyKey
 
+function hoja(open: boolean) {
+  return (
+    <IssueRefundSheet venueId="v1" paymentId="p1" maxRefundable={500} methodLabel="Efectivo" open={open} onOpenChange={() => {}} onRefunded={() => {}} />
+  )
+}
+
 function montar() {
-  return { user: userEvent.setup(), ...render(
-    <QueryClientProvider client={new QueryClient({ defaultOptions: { mutations: { retry: false } } })}>
-      <IssueRefundSheet venueId="v1" paymentId="p1" maxRefundable={500} methodLabel="Efectivo" open onOpenChange={() => {}} onRefunded={() => {}} />
-    </QueryClientProvider>,
-  ) }
+  const client = new QueryClient({ defaultOptions: { mutations: { retry: false } } })
+  const vista = render(<QueryClientProvider client={client}>{hoja(true)}</QueryClientProvider>)
+  return {
+    user: userEvent.setup(),
+    ...vista,
+    abrir: (open: boolean) => vista.rerender(<QueryClientProvider client={client}>{hoja(open)}</QueryClientProvider>),
+  }
 }
 
 async function reembolsar(user: ReturnType<typeof userEvent.setup>, monto: string, veces: number) {
@@ -37,14 +48,13 @@ async function reembolsar(user: ReturnType<typeof userEvent.setup>, monto: strin
   await waitFor(() => expect(post).toHaveBeenCalledTimes(veces))
 }
 
-describe('IssueRefundSheet — la llave del reembolso (D1)', () => {
+describe('IssueRefundSheet — una ventana = un folio (D1, opción A)', () => {
   beforeEach(() => {
     post.mockReset()
     toast.mockReset()
   })
-  afterEach(() => olvidarTodo())
 
-  it('🔴 en duda y otra vez con lo mismo ⇒ la MISMA llave (el servidor no hace otro reembolso)', async () => {
+  it('🔴 en duda y otra vez en la MISMA ventana ⇒ la MISMA llave (el servidor no hace otro reembolso)', async () => {
     post.mockRejectedValueOnce(sinRespuesta()).mockResolvedValueOnce({ data: { success: true } })
     const { user } = montar()
 
@@ -57,7 +67,40 @@ describe('IssueRefundSheet — la llave del reembolso (D1)', () => {
     expect(llaveDe(1)).toBe(llaveDe(0))
   })
 
-  it('tras un reembolso confirmado, el siguiente (aunque sea igual) estrena llave', async () => {
+  it('🔴 en duda y otra vez con OTRO monto en la misma ventana ⇒ sigue la MISMA llave (si el primero entró, el servidor lo dice; no duplica)', async () => {
+    post.mockRejectedValueOnce(sinRespuesta()).mockResolvedValueOnce({ data: { success: true } })
+    const { user } = montar()
+
+    await reembolsar(user, '50', 1)
+    await reembolsar(user, '60', 2)
+
+    expect(llaveDe(1)).toBe(llaveDe(0))
+  })
+
+  it('el aviso de duda dice que en la misma ventana no se duplica y que, si la cierras, revises antes', async () => {
+    post.mockRejectedValueOnce(sinRespuesta())
+    const { user } = montar()
+    await reembolsar(user, '50', 1)
+    await waitFor(() =>
+      expect(toast).toHaveBeenCalledWith(
+        expect.objectContaining({ title: 'Reembolso sin confirmar', description: expect.stringMatching(/misma ventana/) }),
+      ),
+    )
+  })
+
+  it('cerrar la ventana y volver a abrirla ⇒ llave nueva (cuenta como otra operación)', async () => {
+    post.mockRejectedValueOnce(sinRespuesta()).mockResolvedValueOnce({ data: { success: true } })
+    const vista = montar()
+    await reembolsar(vista.user, '50', 1)
+
+    vista.abrir(false)
+    vista.abrir(true)
+    await reembolsar(vista.user, '50', 2)
+
+    expect(llaveDe(1)).not.toBe(llaveDe(0))
+  })
+
+  it('tras un reembolso confirmado, el siguiente en la misma ventana (aunque sea igual) estrena llave', async () => {
     post.mockResolvedValue({ data: { success: true } })
     const { user } = montar()
 
@@ -68,57 +111,19 @@ describe('IssueRefundSheet — la llave del reembolso (D1)', () => {
     expect(llaveDe(1)).not.toBe(llaveDe(0))
   })
 
-  it('con otro monto, llave nueva (con la vieja el servidor diría IDEMPOTENCY_KEY_REUSED)', async () => {
-    post.mockRejectedValueOnce(sinRespuesta()).mockResolvedValueOnce({ data: { success: true } })
+  it('🔴 «ese folio ya es de otra operación» (409) ⇒ lo dice en llano y NO estrena llave (no se puede duplicar desde esta ventana)', async () => {
+    post.mockRejectedValueOnce(sinRespuesta()).mockRejectedValueOnce(folioDeOtraOperacion()).mockRejectedValueOnce(folioDeOtraOperacion())
     const { user } = montar()
 
     await reembolsar(user, '50', 1)
     await reembolsar(user, '60', 2)
-
-    expect(llaveDe(1)).not.toBe(llaveDe(0))
-  })
-
-  it('🔴 Codex r1 #1: cerrar el detalle y volver a abrirlo conserva el reembolso en duda (aviso y MISMA llave)', async () => {
-    post.mockRejectedValueOnce(sinRespuesta()).mockResolvedValueOnce({ data: { success: true } })
-    const primero = montar()
-    await reembolsar(primero.user, '50', 1)
-    await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'Reembolso sin confirmar' })))
-    primero.unmount()
-
-    const { user } = montar()
-    expect(screen.getByText(/Hay un reembolso de .*50.* sin confirmar/)).toBeInTheDocument()
-    await reembolsar(user, '50', 2)
-
-    expect(llaveDe(1)).toBe(llaveDe(0))
-    await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'Ya quedó registrado' })))
-  })
-
-  it('🔴 Codex r1 #2: «Es otro» ⇒ un segundo reembolso idéntico legítimo estrena llave', async () => {
-    post.mockRejectedValueOnce(sinRespuesta()).mockResolvedValueOnce({ data: { success: true } })
-    const { user } = montar()
-    await reembolsar(user, '50', 1)
-    await screen.findByText(/Hay un reembolso de .*50.* sin confirmar/)
-
-    await user.click(screen.getByRole('button', { name: 'Es otro' }))
-    await user.click(screen.getByRole('button', { name: 'Reembolsar' }))
-    await waitFor(() => expect(post).toHaveBeenCalledTimes(2))
-
-    expect(llaveDe(1)).not.toBe(llaveDe(0))
-    await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'Reembolso emitido' })))
-  })
-
-  it('el reembolso en duda de OTRO pago no se ve aquí', async () => {
-    post.mockRejectedValueOnce(sinRespuesta())
-    const primero = montar()
-    await reembolsar(primero.user, '50', 1)
-    primero.unmount()
-
-    render(
-      <QueryClientProvider client={new QueryClient()}>
-        <IssueRefundSheet venueId="v1" paymentId="p2" maxRefundable={500} methodLabel="Efectivo" open onOpenChange={() => {}} onRefunded={() => {}} />
-      </QueryClientProvider>,
+    await waitFor(() =>
+      expect(toast).toHaveBeenCalledWith(
+        expect.objectContaining({ title: 'Ya se había emitido un reembolso', description: expect.stringMatching(/cierra y vuelve a abrir/) }),
+      ),
     )
-    expect(screen.queryByText(/sin confirmar/)).not.toBeInTheDocument()
+    await reembolsar(user, '60', 3)
+    expect(llaveDe(2)).toBe(llaveDe(0))
   })
 
   it('🔴 doble clic del MISMO instante manda UN solo reembolso (hz:1fdd539e:D6: en la D3 salían dos POST)', async () => {
