@@ -1,6 +1,6 @@
 // src/pages/Delivery/components/ImpresionDelCanalEditor.test.tsx
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import esDelivery from '@/locales/es/delivery.json'
 import type { DeliveryChannelLink } from '@/types/delivery'
@@ -145,14 +145,31 @@ describe('ImpresionDelCanalEditor', () => {
     expect((screen.getByRole('button', { name: 'Guardar' }) as HTMLButtonElement).disabled).toBe(true)
   })
 
-  it('doble clic en Guardar: una sola llamada', async () => {
+  it('doble clic en Guardar (los dos en el mismo instante): una sola llamada', async () => {
     mockUpdateChannel.mockReturnValue(new Promise(() => {}))
     renderEditor()
     await screen.findByRole('radio', { name: /Todo junto en: Barra/ })
     const btn = screen.getByRole('button', { name: 'Guardar' })
-    fireEvent.click(btn)
-    fireEvent.click(btn)
+    act(() => {
+      btn.click()
+      btn.click()
+    })
     await waitFor(() => expect(mockUpdateChannel).toHaveBeenCalledTimes(1))
+  })
+
+  it('getPrinters falla: no dice «Sin impresora», avisa del error y Guardar queda apagado', async () => {
+    mockGetPrinters.mockRejectedValue(new Error('boom'))
+    renderEditor()
+    expect(await screen.findByText('No se pudieron cargar las estaciones e impresoras.')).toBeTruthy()
+    expect(screen.queryByText(/Sin impresora/)).toBeNull()
+    expect((screen.getByRole('button', { name: 'Guardar' }) as HTMLButtonElement).disabled).toBe(true)
+  })
+
+  it('getPrintStations falla: mensaje de error con Reintentar', async () => {
+    mockGetStations.mockRejectedValue(new Error('boom'))
+    renderEditor()
+    expect(await screen.findByText('No se pudieron cargar las estaciones e impresoras.')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Reintentar' })).toBeTruthy()
   })
 
   it('error del servidor: el aviso lleva su mensaje', async () => {

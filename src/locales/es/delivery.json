@@ -144,6 +144,8 @@
     "guardado": "Impresión guardada",
     "errorGuardar": "No se pudo guardar la impresión",
     "errorFallback": "Intenta de nuevo en unos segundos.",
-    "cargando": "Cargando estaciones…"
+    "cargando": "Cargando estaciones…",
+    "errorCarga": "No se pudieron cargar las estaciones e impresoras.",
+    "reintentar": "Reintentar"
   }
 }

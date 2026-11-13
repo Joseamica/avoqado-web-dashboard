@@ -60,7 +60,9 @@ export function ImpresionDelCanalEditor({ venueId, channel, canEdit }: Props) {
   const [comanda, setComanda] = useState<string>(SALON)
   const [empaque, setEmpaque] = useState<string>(NEGOCIO)
 
-  const cargado = stationsQ.isSuccess
+  // Sin saber las impresoras no se puede avisar nada honesto: se espera a las dos consultas.
+  const cargado = stationsQ.isSuccess && printersQ.isSuccess
+  const falloCarga = stationsQ.isError || printersQ.isError
   const comandaPerdida = !!guardado && guardado.comanda === 'UNA_ESTACION' && cargado && !porId(guardado.estacionId)
   const empaquePerdido = !!guardado && guardado.empaque === 'ESTACION' && cargado && !porId(guardado.empaqueEstacionId)
 
@@ -140,7 +142,21 @@ export function ImpresionDelCanalEditor({ venueId, channel, canEdit }: Props) {
         <p className="text-sm text-muted-foreground">{t('impresion.description')}</p>
       </div>
 
-      {stationsQ.isLoading ? (
+      {falloCarga ? (
+        <div className="space-y-2 text-sm">
+          <p className="text-destructive">{t('impresion.errorCarga')}</p>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              stationsQ.refetch()
+              printersQ.refetch()
+            }}
+          >
+            {t('impresion.reintentar')}
+          </Button>
+        </div>
+      ) : !cargado ? (
         <p className="text-sm text-muted-foreground">{t('impresion.cargando')}</p>
       ) : (
         <>

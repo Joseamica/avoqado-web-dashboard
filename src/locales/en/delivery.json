@@ -144,6 +144,8 @@
     "guardado": "Printing saved",
     "errorGuardar": "Could not save printing",
     "errorFallback": "Try again in a few seconds.",
-    "cargando": "Loading stations…"
+    "cargando": "Loading stations…",
+    "errorCarga": "Could not load stations and printers.",
+    "reintentar": "Retry"
   }
 }
