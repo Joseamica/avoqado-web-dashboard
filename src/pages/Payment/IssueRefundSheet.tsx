@@ -25,6 +25,7 @@ import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { textoDelServidorEnIdioma } from '@/pages/GiftCards/giftCardText'
 import { quedoEnDuda } from '@/pages/Commissions/envioUnico'
+import { esFolioDeOtraOperacion, useCandado, useLlaveDeLaVentana } from '@/lib/llaveDeEnvio'
 import { lineRefundAmount, type RefundableItem } from './refundAmount'
 import { cabeEnCentavos, propinaMarcadaPorDefecto, propinaQueCabe } from './refundTip'
 
@@ -160,8 +161,15 @@ export function IssueRefundSheet({
   const itemsTip = itemsTipChecked ? tipAvailable : 0
   const itemsTotal = Math.round((itemsRefundAmount + itemsTip) * 100) / 100
 
-  const refundMutation = useMutation({
-    mutationFn: async () => {
+  /**
+   * D1 (founder 13-nov: «A, una ventana = un folio»): la llave del reembolso nace al abrir esta hoja y se queda mientras siga
+   * abierta. Reintentar aquí tras quedar en duda va con la misma llave (el servidor no hace otro); un éxito confirmado la estrena;
+   * cerrar y volver a abrir es otra operación. Un candado frena el doble clic del mismo instante. Ver `@/lib/llaveDeEnvio`.
+   */
+  const { llave: llaveDelReembolso, estrenar: estrenarLlave } = useLlaveDeLaVentana(open)
+  const conCandado = useCandado()
+
+  const armarCuerpo = (): Record<string, unknown> => {
       const body: Record<string, unknown> = { reason }
       if (tab === 'amount') {
         body.amount = Math.round(parsedAmount * 100)
@@ -180,6 +188,11 @@ export function IssueRefundSheet({
           )
         }
       }
+      return body
+  }
+
+  const refundMutation = useMutation({
+    mutationFn: async ({ body }: { body: Record<string, unknown> }) => {
       const res = await api.post(
         `/api/v1/dashboard/venues/${venueId}/payments/${paymentId}/refund`,
         body,
@@ -187,6 +200,8 @@ export function IssueRefundSheet({
       return res.data
     },
     onSuccess: () => {
+      // Confirmado: lo siguiente en esta hoja (aunque sea idéntico) es otro reembolso.
+      estrenarLlave()
       toast({ title: t('refund.success', { defaultValue: 'Reembolso emitido' }) })
       queryClient.invalidateQueries({ queryKey: ['payment', paymentId] })
       queryClient.invalidateQueries({ queryKey: ['refunds', paymentId] })
@@ -194,6 +209,22 @@ export function IssueRefundSheet({
       onRefunded()
     },
     onError: (err: any) => {
+      // D1: la llave NO se estrena (en duda, reintentar aquí no duplica). Si el servidor dice que esta llave ya es de un reembolso
+      // con otros datos, lo primero sí entró: se dice en llano y se releen los reembolsos.
+      if (esFolioDeOtraOperacion(err)) {
+        toast({
+          title: t('refund.alreadyIssuedTitle', { defaultValue: 'Ya se había emitido un reembolso' }),
+          description: t('refund.alreadyIssued', {
+            defaultValue:
+              'Desde esta ventana ya se emitió un reembolso con otros datos (el que no se pudo confirmar sí entró). Revisa los reembolsos de este pago; si necesitas otro, cierra y vuelve a abrir esta ventana.',
+          }),
+          variant: 'destructive',
+        })
+        queryClient.invalidateQueries({ queryKey: ['payment', paymentId] })
+        queryClient.invalidateQueries({ queryKey: ['refunds', paymentId] })
+        queryClient.invalidateQueries({ queryKey: ['payments', venueId] })
+        return
+      }
       const delServidor = textoDelServidorEnIdioma(err, tGiftCards)
       const sinConfirmar = delServidor === undefined && quedoEnDuda(err)
       const irAlPedido: string | undefined = err?.response?.data?.code === 'ONLINE_ORDER_REFUND_VIA_ONLINE_ORDERS' ? orderHref : undefined
@@ -204,7 +235,7 @@ export function IssueRefundSheet({
           : t('refund.error', { defaultValue: 'No se pudo emitir el reembolso' }),
         // Los rechazos de tarjetas de regalo llegan en español con su `code`: con el panel en otro idioma, su traducción.
         description: delServidor ?? (sinConfirmar
-          ? t('refund.errors.unknown', { defaultValue: 'No supimos si se emitió el reembolso. Revisa los reembolsos de este pago antes de intentarlo otra vez.' })
+          ? t('refund.errors.unknown', { defaultValue: 'No supimos si se emitió el reembolso. Si lo intentas otra vez en esta misma ventana, no se duplica. Si la cierras, revisa los reembolsos de este pago antes de hacer otro.' })
           : err?.response?.status === 403
             ? t('refund.errors.forbidden', { defaultValue: 'No tienes permiso para emitir reembolsos. Pídeselo a quien administra el negocio.' })
             : err?.response?.data?.message || err?.message),
@@ -218,6 +249,12 @@ export function IssueRefundSheet({
       })
     },
   })
+
+  /** D1: manda el reembolso con la llave de esta hoja; el candado frena el doble clic. */
+  const reembolsar = () =>
+    conCandado(async () => {
+      await refundMutation.mutateAsync({ body: { ...armarCuerpo(), idempotencyKey: llaveDelReembolso } }).catch(() => undefined)
+    })
 
   const reasons: { value: Reason; label: string }[] = [
     { value: 'RETURNED_GOODS', label: t('refund.reasons.RETURNED_GOODS', { defaultValue: 'Productos devueltos' }) },
@@ -305,6 +342,7 @@ export function IssueRefundSheet({
           </DialogTitle>
         </div>
         <DialogDescription className="sr-only">{t('refund.description', { defaultValue: 'Elige qué devolver y por qué.' })}</DialogDescription>
+
 
         {/* Tabs (hidden on step 2/3 of items flow to avoid accidental switch) */}
         {!(tab === 'items' && itemStep !== 'select') && (
@@ -420,7 +458,7 @@ export function IssueRefundSheet({
             <Button
               className="rounded-full px-6 bg-foreground text-background hover:bg-foreground/90"
               disabled={!canFinalConfirm || refundMutation.isPending}
-              onClick={() => refundMutation.mutate()}
+              onClick={reembolsar}
             >
               {refundMutation.isPending
                 ? t('refund.processing', { defaultValue: 'Procesando...' })

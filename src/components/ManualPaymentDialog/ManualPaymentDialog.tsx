@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -13,7 +14,14 @@ import { Button } from '@/components/ui/button'
 import { LoadingButton } from '@/components/ui/loading-button'
 import { useToast } from '@/hooks/use-toast'
 
-import { manualPaymentService, type PaymentMethod, type PaymentSource } from '@/services/manualPayment.service'
+import {
+  manualPaymentService,
+  type CreateManualPaymentInput,
+  type PaymentMethod,
+  type PaymentSource,
+} from '@/services/manualPayment.service'
+import { esFolioDeOtraOperacion, useCandado, useLlaveDeLaVentana } from '@/lib/llaveDeEnvio'
+import { quedoEnDuda } from '@/pages/Commissions/envioUnico'
 import { ExternalSourceCombobox } from './ExternalSourceCombobox'
 
 /**
@@ -111,6 +119,14 @@ interface ManualPaymentDialogProps {
 export function ManualPaymentDialog({ open, onClose, venueId }: ManualPaymentDialogProps) {
   const { toast } = useToast()
   const queryClient = useQueryClient()
+  const { t } = useTranslation('payment')
+  /**
+   * D1 (founder 13-nov: «A, una ventana = un folio»): la llave del pago nace al abrir este diálogo y se queda mientras siga
+   * abierto. Reintentar aquí tras quedar en duda va con la misma llave (el servidor no registra otro); un éxito confirmado la
+   * estrena; cerrar y volver a abrir es otro pago. Un candado frena el doble clic del mismo instante. Ver `@/lib/llaveDeEnvio`.
+   */
+  const { llave: llaveDelPago, estrenar: estrenarLlave } = useLlaveDeLaVentana(open)
+  const conCandado = useCandado()
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -154,9 +170,7 @@ export function ManualPaymentDialog({ open, onClose, venueId }: ManualPaymentDia
     enabled: open,
   })
 
-  const mutation = useMutation({
-    mutationFn: (values: FormValues) =>
-      manualPaymentService.create(venueId, {
+  const armarPago = (values: FormValues) => ({
         // No orderId: manual payments are always standalone — backend
         // creates a shadow order automatically.
         amount: values.amount,
@@ -172,18 +186,49 @@ export function ManualPaymentDialog({ open, onClose, venueId }: ManualPaymentDia
             : undefined,
         waiterId: values.waiterId && values.waiterId.length > 0 ? values.waiterId : undefined,
         reason: values.reason && values.reason.trim().length > 0 ? values.reason.trim() : undefined,
-      }),
+  })
+
+  const mutation = useMutation({
+    mutationFn: (input: CreateManualPaymentInput) => manualPaymentService.create(venueId, input),
     onSuccess: () => {
-      toast({
-        title: 'Pago registrado',
-        description: 'El pago manual se registró correctamente.',
-      })
+      // Confirmado: lo siguiente en este diálogo (aunque sea idéntico) es otro pago.
+      estrenarLlave()
+      toast({ title: 'Pago registrado', description: 'El pago manual se registró correctamente.' })
       queryClient.invalidateQueries({ queryKey: ['orders', venueId] })
       queryClient.invalidateQueries({ queryKey: ['payments', venueId] })
       queryClient.invalidateQueries({ queryKey: ['external-sources', venueId] })
       onClose()
     },
     onError: (err: any) => {
+      // D1: la llave NO se estrena. Sin respuesta (o 5xx) no se sabe si se registró: no se dice «error» como si no hubiera pasado
+      // nada; reintentar en este diálogo no duplica, y se refrescan los pagos para revisarlo. Si el servidor dice que esta llave ya
+      // es de un pago con otros datos, lo primero sí entró: se dice en llano.
+      if (esFolioDeOtraOperacion(err)) {
+        toast({
+          title: t('manualPayment.alreadyRecordedTitle', { defaultValue: 'Ya se había registrado un pago' }),
+          description: t('manualPayment.alreadyRecorded', {
+            defaultValue:
+              'Desde esta ventana ya se registró un pago con otros datos (el que no se pudo confirmar sí entró). Revisa los pagos; si necesitas otro, cierra y vuelve a abrir esta ventana.',
+          }),
+          variant: 'destructive',
+        })
+        queryClient.invalidateQueries({ queryKey: ['payments', venueId] })
+        queryClient.invalidateQueries({ queryKey: ['orders', venueId] })
+        return
+      }
+      if (quedoEnDuda(err)) {
+        toast({
+          title: t('manualPayment.errorUnknownTitle', { defaultValue: 'Pago sin confirmar' }),
+          description: t('manualPayment.errorUnknown', {
+            defaultValue:
+              'No supimos si se registró el pago. Si lo intentas otra vez en esta misma ventana, no se duplica. Si la cierras, revisa los pagos antes de registrar otro.',
+          }),
+          variant: 'destructive',
+        })
+        queryClient.invalidateQueries({ queryKey: ['payments', venueId] })
+        queryClient.invalidateQueries({ queryKey: ['orders', venueId] })
+        return
+      }
       const message =
         err?.response?.data?.error?.message ||
         err?.response?.data?.message ||
@@ -197,9 +242,11 @@ export function ManualPaymentDialog({ open, onClose, venueId }: ManualPaymentDia
     },
   })
 
-  const onSubmit = (values: FormValues) => {
-    mutation.mutate(values)
-  }
+  /** D1: manda el pago con la llave de este diálogo; el candado frena el doble clic. */
+  const onSubmit = (values: FormValues) =>
+    conCandado(async () => {
+      await mutation.mutateAsync({ ...armarPago(values), idempotencyKey: llaveDelPago }).catch(() => undefined)
+    })
 
   return (
     <Dialog
@@ -215,6 +262,7 @@ export function ManualPaymentDialog({ open, onClose, venueId }: ManualPaymentDia
             Registra un pago hecho fuera del sistema (BUQ, Clip, transferencia, efectivo, etc.).
           </DialogDescription>
         </DialogHeader>
+
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">

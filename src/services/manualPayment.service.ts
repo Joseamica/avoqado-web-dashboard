@@ -24,6 +24,11 @@ export interface CreateManualPaymentInput {
   taxAmount?: string
   /** Discount applied (only used when creating a shadow order). */
   discountAmount?: string
+  /**
+   * D1 (12-nov): la llave del envío. El servidor reconoce el envío repetido (mismo contenido, misma llave) y devuelve el pago ya
+   * registrado; con otros datos, 409 IDEMPOTENCY_KEY_REUSED. Ver `@/lib/llaveDeEnvio`.
+   */
+  idempotencyKey?: string
 }
 
 export interface ManualPaymentResult {

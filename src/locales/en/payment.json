@@ -771,6 +771,12 @@
     "netProfit": "Net Profit",
     "margin": "margin"
   },
+  "manualPayment": {
+    "errorUnknownTitle": "Payment not confirmed",
+    "errorUnknown": "We don't know if the payment was recorded. Trying again in this same window won't duplicate it. If you close it, check the payments before recording another one.",
+    "alreadyRecordedTitle": "A payment was already recorded",
+    "alreadyRecorded": "This window already recorded a payment with different details (the one we couldn't confirm did go through). Check the payments; if you need another one, close and reopen this window."
+  },
   "refund": {
     "success": "Refund issued",
     "error": "Couldn't issue the refund",
@@ -778,7 +784,7 @@
     "processing": "Processing...",
     "errorUnknownTitle": "Refund not confirmed",
     "errors": {
-      "unknown": "We don't know if the refund went through. Check this payment's refunds before trying again.",
+      "unknown": "We don't know if the refund went through. Trying again in this same window won't duplicate it. If you close it, check this payment's refunds before making another one.",
       "forbidden": "You don't have permission to issue refunds. Ask whoever manages the business."
     },
     "reasons": {
@@ -833,6 +839,8 @@
       "includeTipOff": "Only the product is refunded; the server's tip stays untouched.",
       "exceeds": "The amount exceeds the maximum refundable"
     },
-    "goToOrder": "Open the order"
+    "goToOrder": "Open the order",
+    "alreadyIssuedTitle": "A refund was already issued",
+    "alreadyIssued": "This window already issued a refund with different details (the one we couldn't confirm did go through). Check this payment's refunds; if you need another one, close and reopen this window."
   }
 }
