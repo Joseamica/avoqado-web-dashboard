@@ -26,9 +26,11 @@ import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { useToast } from '@/hooks/use-toast'
+import { useAccess } from '@/hooks/use-access'
 import { updateChannel } from '@/services/delivery.service'
 import type { DeliveryChannelLink, DeliveryDayHours, DeliveryWeekday, DeliveryWeeklyHours } from '@/types/delivery'
 import { providerLabel } from '../providerLabels'
+import { ImpresionDelCanalEditor } from './ImpresionDelCanalEditor'
 
 const DIAS: DeliveryWeekday[] = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
 
@@ -63,6 +65,7 @@ export function ChannelSettingsDialog({ open, onClose, venueId, channel }: Chann
   const { t } = useTranslation('delivery')
   const { toast } = useToast()
   const queryClient = useQueryClient()
+  const { can } = useAccess()
 
   const [horario, setHorario] = useState<DeliveryWeeklyHours>(HORARIO_DEFAULT)
   // `number | undefined` a propósito: un input numérico que colapsa el vacío a 0 atrapa el
@@ -115,7 +118,7 @@ export function ChannelSettingsDialog({ open, onClose, venueId, channel }: Chann
         },
       }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['delivery-channels', venueId] })
+      queryClient.invalidateQueries({ queryKey: ['deliveryChannels', venueId] })
       toast({ title: t('settings.saveSuccess') })
       onClose()
     },
@@ -243,6 +246,11 @@ export function ChannelSettingsDialog({ open, onClose, venueId, channel }: Chann
               resultado: markup !== undefined && Number.isFinite(markup) ? (100 * (1 + markup / 100)).toFixed(2) : '100.00',
             })}
           </p>
+        </section>
+
+        {/* ── Impresión (misma pieza que la pestaña «Delivery» de Impresoras; guarda por su cuenta) ───────── */}
+        <section className="rounded-2xl border border-input bg-card p-6">
+          <ImpresionDelCanalEditor venueId={venueId} channel={channel} canEdit={can('delivery-channels:manage')} />
         </section>
 
         {errores.length > 0 && (

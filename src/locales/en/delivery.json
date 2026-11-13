@@ -146,6 +146,10 @@
     "errorFallback": "Try again in a few seconds.",
     "cargando": "Loading stations…",
     "errorCarga": "Could not load stations and printers.",
-    "reintentar": "Retry"
+    "reintentar": "Retry",
+    "tab": {
+      "sinCanales": "Connect Rappi or Uber Eats in Delivery to choose where their orders print.",
+      "irADelivery": "Go to Delivery"
+    }
   }
 }

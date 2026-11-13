@@ -146,6 +146,10 @@
     "errorFallback": "Intenta de nuevo en unos segundos.",
     "cargando": "Cargando estaciones…",
     "errorCarga": "No se pudieron cargar las estaciones e impresoras.",
-    "reintentar": "Reintentar"
+    "reintentar": "Reintentar",
+    "tab": {
+      "sinCanales": "Conecta Rappi o Uber Eats en Delivery para elegir dónde se imprimen sus pedidos.",
+      "irADelivery": "Ir a Delivery"
+    }
   }
 }

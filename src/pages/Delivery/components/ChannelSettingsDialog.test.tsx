@@ -15,6 +15,13 @@ vi.mock('@/services/delivery.service', () => ({
   updateChannel: (...args: unknown[]) => mockUpdateChannel(...args),
 }))
 
+vi.mock('@/hooks/use-access', () => ({ useAccess: () => ({ can: (p: string) => p === 'delivery-channels:manage' }) }))
+vi.mock('./ImpresionDelCanalEditor', () => ({
+  ImpresionDelCanalEditor: (p: { venueId: string; channel: { id: string }; canEdit: boolean }) => (
+    <div data-testid="editor-impresion">{`${p.venueId}|${p.channel.id}|${p.canEdit}`}</div>
+  ),
+}))
+
 import { ChannelSettingsDialog } from './ChannelSettingsDialog'
 
 const HORARIO_GUARDADO: DeliveryWeeklyHours = {
@@ -41,8 +48,11 @@ function channel(overrides: Partial<DeliveryChannelLink> = {}): DeliveryChannelL
   }
 }
 
+let invalidateSpy: ReturnType<typeof vi.spyOn>
+
 function renderDialog(ch: DeliveryChannelLink) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
+  invalidateSpy = vi.spyOn(qc, 'invalidateQueries')
   return render(
     <QueryClientProvider client={qc}>
       <ChannelSettingsDialog open onClose={vi.fn()} venueId="venue-1" channel={ch} />
@@ -138,5 +148,17 @@ describe('ChannelSettingsDialog', () => {
 
     await waitFor(() => expect(mockUpdateChannel).toHaveBeenCalled())
     expect(mockUpdateChannel.mock.calls[0][2].config.deliveryHours.monday.enabled).toBe(false)
+  })
+
+  it('trae la sección «Impresión» con el editor del canal y el permiso de editar', () => {
+    renderDialog(channel())
+    expect(screen.getByTestId('editor-impresion').textContent).toBe('venue-1|link-1|true')
+  })
+
+  // La lista de canales usa ['deliveryChannels', venueId]; con otra llave guardar aquí no refrescaba la lista ni la otra puerta.
+  it('al guardar refresca la MISMA consulta que usa la lista de canales', async () => {
+    renderDialog(channel({ config: { deliveryHours: HORARIO_GUARDADO } }))
+    fireEvent.click(screen.getByText('settings.save'))
+    await waitFor(() => expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['deliveryChannels', 'venue-1'] }))
   })
 })
