@@ -3,7 +3,8 @@
  * Montada en /api/v1/dashboard/venues/:venueId/pass-integrations (avoqado-server, Plan 2a T5), protegida por
  * `AGGREGATOR_PASSES` (Pro) —salvo la vista general y desconectar, que sólo piden permiso (R62, pausa suave)— y
  * permisos `reservations:*`. El server envuelve todo en `{ success, data }`: cada fn desenvuelve `response.data.data`.
- * Los reintentos de red ya los hace `src/api.ts`; aquí no se repiten.
+ * Los reintentos de red los hace `src/api.ts`; aquí no se repiten. Desde D6 (12-nov) `src/api.ts` sólo reenvía solas las
+ * lecturas y las escrituras con llave o marcadas `repetible`: aquí sólo «confirmar visita», que el servidor aguanta repetida.
  */
 import api from '@/api'
 import type {
@@ -88,7 +89,7 @@ export const getPassVisitsSummary = async (venueId: string, month: string): Prom
  * COMO QUEDÓ: puede seguir PENDING (la validación con el proveedor va por outbox) o venir ya resuelta
  * (CONFIRMED/ALREADY_CONFIRMED/EXPIRED/REJECTED); la UI decide por `status`, nunca anuncia éxito a ciegas (P1-3). */
 export const confirmPassVisit = async (venueId: string, visitId: string): Promise<PassVisitView> =>
-  (await api.post(`${base(venueId)}/visits/${visitId}/confirm`)).data.data
+  (await api.post(`${base(venueId)}/visits/${visitId}/confirm`, undefined, { repetible: true })).data.data
 
 /** POST /visits/:id/reject — sólo una PENDING pasa a REJECTED. */
 export const rejectPassVisit = async (venueId: string, visitId: string): Promise<PassVisitView> =>

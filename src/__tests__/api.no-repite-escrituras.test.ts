@@ -98,6 +98,33 @@ describe('D6 · lo que sí se sigue repitiendo solo (como hoy)', () => {
     expect(r.fallo).toBeNull()
   }, 10_000)
 
+  it('el plano de mesas (PUT con `saveId`, marcado `repetible`) se repite con el MISMO cuerpo (Codex r2)', async () => {
+    const { publishFloorPlan } = await import('@/services/floorPlan.service')
+    const cuerpos: unknown[] = []
+    let salidas = 0
+    api.defaults.adapter = async config => {
+      salidas += 1
+      cuerpos.push(JSON.parse(config.data as string))
+      if (salidas === 1) throw sinRed(config)
+      return { ...ok(config), data: { success: true, data: { saved: true } } }
+    }
+    await publishFloorPlan('v1', { saveId: 'save-1' } as never)
+    expect(salidas).toBe(2)
+    expect(cuerpos[1]).toEqual(cuerpos[0])
+  }, 10_000)
+
+  it('confirmar una visita de pases (el servidor la aguanta repetida) se repite', async () => {
+    const { confirmPassVisit } = await import('@/services/passes.service')
+    let salidas = 0
+    api.defaults.adapter = async config => {
+      salidas += 1
+      if (salidas === 1) throw sinRed(config)
+      return { ...ok(config), data: { success: true, data: { id: 'visita-1', status: 'ALREADY_CONFIRMED' } } }
+    }
+    await confirmPassVisit('v1', 'visita-1')
+    expect(salidas).toBe(2)
+  }, 10_000)
+
   it('una escritura con el encabezado Idempotency-Key se repite', async () => {
     const r = await cortarLaPrimera(() =>
       api.post('/api/v1/dashboard/venues/v1/orders/o1/card-refund', { amount: '10.00' }, { headers: { 'Idempotency-Key': 'k-1' } }),
