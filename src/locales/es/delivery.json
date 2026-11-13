@@ -140,6 +140,7 @@
     "empaqueDesaparecida": "La estación de empaque elegida ya no existe: se usa la de empaque del negocio",
     "mismoPapel": "Van a la misma impresora: sale un solo papel",
     "versionMinima": "Se aplica en los POS con la versión {{version}} o más nueva",
+    "iosTodaviaNo": "En iPad e iPhone todavía no se aplica: ahí el pedido se imprime como hoy",
     "guardar": "Guardar",
     "guardado": "Impresión guardada",
     "errorGuardar": "No se pudo guardar la impresión",
@@ -149,7 +150,9 @@
     "reintentar": "Reintentar",
     "tab": {
       "sinCanales": "Conecta Rappi o Uber Eats en Delivery para elegir dónde se imprimen sus pedidos.",
-      "irADelivery": "Ir a Delivery"
+      "irADelivery": "Ir a Delivery",
+      "errorCanales": "No se pudieron cargar los canales de delivery.",
+      "sinPermiso": "No tienes permiso para ver los canales de delivery."
     }
   }
 }

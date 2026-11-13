@@ -140,6 +140,7 @@
     "empaqueDesaparecida": "The chosen packing station no longer exists: the business packing station is used",
     "mismoPapel": "Both go to the same printer: one single paper comes out",
     "versionMinima": "Applies on POS version {{version}} or newer",
+    "iosTodaviaNo": "Not applied on iPad and iPhone yet: orders there print as they do today",
     "guardar": "Save",
     "guardado": "Printing saved",
     "errorGuardar": "Could not save printing",
@@ -149,7 +150,9 @@
     "reintentar": "Retry",
     "tab": {
       "sinCanales": "Connect Rappi or Uber Eats in Delivery to choose where their orders print.",
-      "irADelivery": "Go to Delivery"
+      "irADelivery": "Go to Delivery",
+      "errorCanales": "Couldn't load the delivery channels.",
+      "sinPermiso": "You don't have permission to see the delivery channels."
     }
   }
 }

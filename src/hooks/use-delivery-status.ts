@@ -25,6 +25,9 @@ export interface DeliveryStatus {
   channels: DeliveryChannelLink[]
   activationRequest: DeliveryActivationRequest | null
   isLoading: boolean
+  /** La lista de canales falló al cargar (red, 403 sin `delivery-channels:read`…): no es lo mismo que «no hay canales». */
+  channelsError: boolean
+  retryChannels: () => void
 }
 
 const tieneRappi = (canales?: DeliveryChannelLink[]) => !!canales?.some(c => c.provider === 'RAPPI')
@@ -48,7 +51,12 @@ export function useDeliveryStatus(venueId: string | undefined): DeliveryStatus {
   // que el tier resuelve; ya resuelto, un venue sin feature tiene hasFeature=false y sigue sin pegar.
   const enabled = !!venueId && hasFeature && !tierLoading
 
-  const { data: channels = [], isLoading: chLoading } = useQuery({
+  const {
+    data: channels = [],
+    isLoading: chLoading,
+    isError: channelsError,
+    refetch: refetchChannels,
+  } = useQuery({
     queryKey: ['deliveryChannels', venueId],
     queryFn: () => getChannels(venueId!),
     enabled,
@@ -76,5 +84,5 @@ export function useDeliveryStatus(venueId: string | undefined): DeliveryStatus {
 
   const state: DeliveryState = !hasFeature ? 'LOCKED' : hasActive ? 'LIVE' : activationRequest ? 'PENDING' : 'TEASER'
 
-  return { state, channels, activationRequest, isLoading }
+  return { state, channels, activationRequest, isLoading, channelsError, retryChannels: () => void refetchChannels() }
 }
