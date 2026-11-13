@@ -1,7 +1,7 @@
 import { onlineManager, QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { AxiosError, type AxiosAdapter } from 'axios'
+import { AxiosError, type AxiosAdapter, type AxiosRequestConfig } from 'axios'
 import { MemoryRouter, Route, Routes, useNavigate, type NavigateFunction } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -254,7 +254,7 @@ describe('E1 soporte suelta la terminal sin decidir el resultado de la venta', (
     renderDetail()
     await submitReason(value)
     await waitFor(() => expect(apiPost).toHaveBeenCalledTimes(1))
-    expect(apiPost).toHaveBeenCalledWith(endpoint, { venueId: previousVenueId, reason: value.trim() })
+    expect(apiPost).toHaveBeenCalledWith(endpoint, { venueId: previousVenueId, reason: value.trim() }, { repetible: true })
   })
 
   it('soltar refresca ambas lecturas y el bloqueador desaparece sin recargar; la venta sigue protegida', async () => {
@@ -297,7 +297,7 @@ describe('E1 soporte suelta la terminal sin decidir el resultado de la venta', (
     assertNoSuccess()
     fireEvent.click(confirmButton())
     await waitFor(() => expect(apiPost).toHaveBeenCalledTimes(2))
-    expect(apiPost.mock.calls[0]).toEqual([endpoint, { venueId: previousVenueId, reason }])
+    expect(apiPost.mock.calls[0]).toEqual([endpoint, { venueId: previousVenueId, reason }, { repetible: true }])
     expect(apiPost.mock.calls[1]).toEqual(apiPost.mock.calls[0])
   })
 
@@ -313,7 +313,7 @@ describe('E1 soporte suelta la terminal sin decidir el resultado de la venta', (
     expect(apiPost).toHaveBeenCalledTimes(1)
     expect(button).toBeDisabled()
     expect(reasonInput()).toBeDisabled()
-    expect(apiPost).toHaveBeenCalledWith(endpoint, { venueId: previousVenueId, reason })
+    expect(apiPost).toHaveBeenCalledWith(endpoint, { venueId: previousVenueId, reason }, { repetible: true })
     await act(async () => {
       pending.resolve({ data: { success: false, released: false, status: 'UNKNOWN' } })
     })
@@ -383,7 +383,7 @@ describe('E1 soporte suelta la terminal sin decidir el resultado de la venta', (
     })
     expect(screen.getByText(nextId)).toBeInTheDocument()
     expect(apiPost).toHaveBeenCalledTimes(1)
-    expect(apiPost).toHaveBeenCalledWith(endpoint, { venueId: previousVenueId, reason })
+    expect(apiPost).toHaveBeenCalledWith(endpoint, { venueId: previousVenueId, reason }, { repetible: true })
     expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
     assertNoSuccess()
   })
@@ -408,8 +408,11 @@ describe('E1 soporte suelta la terminal sin decidir el resultado de la venta', (
         data: { success: false, released: false, status: 'TIMED_OUT', message: 'Este cobro ya no aparta la terminal. La venta sigue pendiente.' },
       }
     }
-    // Se delega el POST al cliente productivo: NO se sustituye el interceptor ni su temporizador de 1 s.
-    apiPost.mockImplementation((path: string, body: unknown) => realApi.post(path, body, { adapter }))
+    // Se delega el POST al cliente productivo: NO se sustituye el interceptor ni su temporizador de 1 s. La configuración
+    // del servicio viaja tal cual (D6: su `repetible: true` es lo que autoriza el reenvío de una escritura sin llave).
+    apiPost.mockImplementation((path: string, body: unknown, config?: AxiosRequestConfig) =>
+      realApi.post(path, body, { ...config, adapter }),
+    )
     renderDetail()
     await submitReason()
     await waitFor(() => expect(sent).toHaveLength(2), { timeout: 4000 })

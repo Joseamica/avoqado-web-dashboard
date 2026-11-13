@@ -17,7 +17,7 @@ export const rhService = {
     return (await api.patch(`${base(venueId)}/positions/${id}`, body)).data
   },
   async archivePosition(venueId: string, id: string): Promise<Puesto> {
-    return (await api.post(`${base(venueId)}/positions/${id}/archive`)).data
+    return (await api.post(`${base(venueId)}/positions/${id}/archive`, undefined, { repetible: true })).data
   },
   async history(venueId: string, staffId: string, page = 0, limit = 20): Promise<Pagina<Asignacion>> {
     return (await api.get(`${base(venueId)}/staff/${staffId}/assignments`, { params: { limit, offset: page * limit } })).data

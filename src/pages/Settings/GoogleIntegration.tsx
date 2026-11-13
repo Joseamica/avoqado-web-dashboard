@@ -100,7 +100,7 @@ export default function GoogleIntegration() {
   // Sync now mutation
   const syncMutation = useMutation({
     mutationFn: async () => {
-      const response = await api.post(`/api/v1/dashboard/venues/${venueId}/integrations/google/sync`)
+      const response = await api.post(`/api/v1/dashboard/venues/${venueId}/integrations/google/sync`, undefined, { repetible: true })
       return response.data
     },
     onSuccess: (data) => {

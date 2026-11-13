@@ -129,7 +129,7 @@ export const reservationService = {
   },
 
   async resolveNoShowCorrection(venueId: string, id: string, note?: string): Promise<{ resolvedAt: string }> {
-    const response = await api.post(`/api/v1/dashboard/venues/${venueId}/reservations/${id}/no-show/undo/resolve`, note ? { note } : {})
+    const response = await api.post(`/api/v1/dashboard/venues/${venueId}/reservations/${id}/no-show/undo/resolve`, note ? { note } : {}, { repetible: true })
     return response.data
   },
 
