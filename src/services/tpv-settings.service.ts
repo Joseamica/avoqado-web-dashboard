@@ -189,7 +189,8 @@ export const tpvSettingsService = {
    * @permission tpv-settings:update (ADMIN+)
    */
   async updateSettings(tpvId: string, settings: TpvSettingsUpdate): Promise<TpvSettings> {
-    const response = await api.put(`/api/v1/dashboard/tpv/${tpvId}/settings`, settings)
+    // D6: valores fijos, repetirlo da lo mismo; la pantalla de pasos del cobro cuenta con este reenvío tras un corte de red.
+    const response = await api.put(`/api/v1/dashboard/tpv/${tpvId}/settings`, settings, { repetible: true })
     return response.data
   },
 

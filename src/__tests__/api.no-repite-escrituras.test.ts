@@ -128,6 +128,21 @@ describe('D6 · lo que sí se sigue repitiendo solo (como hoy)', () => {
     expect(salidas).toBe(2)
   }, 10_000)
 
+  it('los ajustes de una terminal (PUT con valores fijos, marcado `repetible`) se repiten: la pantalla de pasos del cobro cuenta con eso (CI de #330)', async () => {
+    const { tpvSettingsService } = await import('@/services/tpv-settings.service')
+    const cuerpos: unknown[] = []
+    let salidas = 0
+    api.defaults.adapter = async config => {
+      salidas += 1
+      cuerpos.push(config.data)
+      if (salidas === 1) throw sinRed(config)
+      return { ...ok(config), data: { showReviewScreen: false } }
+    }
+    await tpvSettingsService.updateSettings('tpv-1', { showReviewScreen: false })
+    expect(salidas).toBe(2)
+    expect(cuerpos[1]).toEqual(cuerpos[0])
+  }, 10_000)
+
   it('una escritura con el encabezado Idempotency-Key se repite', async () => {
     const r = await cortarLaPrimera(() =>
       api.post('/api/v1/dashboard/venues/v1/orders/o1/card-refund', { amount: '10.00' }, { headers: { 'Idempotency-Key': 'k-1' } }),
