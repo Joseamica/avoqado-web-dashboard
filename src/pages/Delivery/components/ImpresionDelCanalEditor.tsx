@@ -70,9 +70,12 @@ export function ImpresionDelCanalEditor({ venueId, channel, canEdit, onPendiente
   const [comanda, setComanda] = useState<string>(SALON)
   const [empaque, setEmpaque] = useState<string>(NEGOCIO)
 
-  // Sin saber las impresoras no se puede avisar nada honesto: se espera a las dos consultas.
-  const cargado = stationsQ.isSuccess && printersQ.isSuccess
-  const falloCarga = stationsQ.isError || printersQ.isError
+  // Sin saber las impresoras no se puede avisar nada honesto: se espera a las dos consultas. «Cargado» = YA hay datos,
+  // no «la última consulta salió bien»: un refresco que falla después (p. ej. al volver a la pestaña) deja `isSuccess` en
+  // false con los datos de antes, y eso borraba lo elegido sin guardar y el «Guardar» de arriba cerraba sin mandarlo
+  // (Codex c2 #1). Con datos, se sigue mostrando lo elegido; el error sólo se pinta si nunca hubo datos.
+  const cargado = stationsQ.data !== undefined && printersQ.data !== undefined
+  const falloCarga = !cargado && (stationsQ.isError || printersQ.isError)
   const comandaPerdida = !!guardado && guardado.comanda === 'UNA_ESTACION' && cargado && !porId(guardado.estacionId)
   const empaquePerdido = !!guardado && guardado.empaque === 'ESTACION' && cargado && !porId(guardado.empaqueEstacionId)
 

@@ -74,7 +74,7 @@ function renderEditor(ch = channel(), canEdit = true, onPendienteChange?: (p: un
     </QueryClientProvider>
   )
   const r = render(arbol(ch))
-  return { ...r, rerenderCon: (c: DeliveryChannelLink) => r.rerender(arbol(c)) }
+  return { ...r, qc, rerenderCon: (c: DeliveryChannelLink) => r.rerender(arbol(c)) }
 }
 
 describe('ImpresionDelCanalEditor', () => {
@@ -111,6 +111,26 @@ describe('ImpresionDelCanalEditor', () => {
     )
     fireEvent.click(screen.getByRole('radio', { name: /Como en el salón/ }))
     await waitFor(() => expect(pendiente).toHaveBeenLastCalledWith(null))
+  })
+
+  it('un refresco de impresoras que FALLA después no borra lo elegido ni lo deja de avisar (Codex c2 #1)', async () => {
+    const pendiente = vi.fn()
+    const { qc } = renderEditor(channel(), true, pendiente)
+    fireEvent.click(await screen.findByRole('radio', { name: /Todo junto en: Barra/ }))
+    await waitFor(() =>
+      expect(pendiente).toHaveBeenLastCalledWith({ comanda: 'UNA_ESTACION', estacionId: 'barra', empaque: 'NEGOCIO' }),
+    )
+
+    mockGetPrinters.mockRejectedValue(new Error('503'))
+    await act(async () => {
+      await qc.refetchQueries({ queryKey: ['printStations', 'venue-1', 'printers'] })
+      // React Query avisa a los componentes en el siguiente tic: sin esto se afirmaría sobre la pantalla de antes.
+      await new Promise(r => setTimeout(r, 20))
+    })
+
+    expect(qc.getQueryState(['printStations', 'venue-1', 'printers'])?.status).toBe('error')
+    expect(screen.getByRole('radio', { name: /Todo junto en: Barra/ }).getAttribute('aria-checked')).toBe('true')
+    expect(pendiente).toHaveBeenLastCalledWith({ comanda: 'UNA_ESTACION', estacionId: 'barra', empaque: 'NEGOCIO' })
   })
 
   it('si la otra puerta guarda otra cosa, el editor muestra lo nuevo', async () => {
