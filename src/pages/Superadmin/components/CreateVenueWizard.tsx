@@ -795,8 +795,20 @@ const CreateVenueWizard: React.FC<CreateVenueWizardProps> = ({ open, onOpenChang
     if (currentStep > 0) setCurrentStep(prev => prev - 1)
   }, [currentStep])
 
+  // Candado contra doble clic: `isPending` llega tarde (el segundo clic cae antes del re-render que
+  // deshabilita el botón) y un doble clic en «Crear Venue» creaba dos venues.
+  const savingRef = useRef(false)
   const handleSave = useCallback(() => {
-    createMutation.mutate({ form, merchant, config })
+    if (savingRef.current) return
+    savingRef.current = true
+    createMutation.mutate(
+      { form, merchant, config },
+      {
+        onSettled: () => {
+          savingRef.current = false
+        },
+      },
+    )
   }, [form, merchant, config, createMutation])
 
   // ── Render ──
