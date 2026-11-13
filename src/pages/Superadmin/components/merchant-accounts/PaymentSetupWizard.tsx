@@ -844,6 +844,9 @@ export const PaymentSetupWizard: React.FC<PaymentSetupWizardProps> = ({ open, on
           // D18: sin cambios contra lo cargado no se toca (antes se reescribía, o se desactivaba si igualaba a la de la organización).
           const antes = cargado.current.sucursales[override.venueId]
           if (antes && override.existingPricingId === antes.id && mismaTarifa(override.pricing, antes.pricing)) continue
+          // Codex r4 #1: una sucursal sin tarifa propia que sólo se encendió (a mano o sola, al abrir el wizard desde la
+          // sucursal) con los valores de default intactos no se crea: nadie escribió esa tarifa.
+          if (!antes && mismaTarifa(override.pricing, DEFAULT_PRICING)) continue
 
           // Codex r3 H1: sólo se compara con una tarifa de organización que EXISTE (la cargada o la que se acaba de guardar);
           // la de default del formulario no es respaldo de nadie.

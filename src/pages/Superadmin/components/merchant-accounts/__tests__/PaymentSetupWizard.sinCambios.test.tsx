@@ -86,15 +86,18 @@ vi.mock('../wizard-steps/SettlementStep', () => ({
 vi.mock('../wizard-steps/VenueOverridesStep', () => ({
   // Iguala las tasas de la sucursal A a las de la organización (sin tocar su IVA).
   VenueOverridesStep: ({ state, dispatch }: any) => (
-    <button
-      onClick={() => {
-        const org = state.pricing.PRIMARY
-        const a = state.venueOverrides['v-a'].pricing
-        dispatch({ type: 'SET_VENUE_PRICING', venueId: 'v-a', data: { ...a, debitRate: org.debitRate, creditRate: org.creditRate } })
-      }}
-    >
-      igualar A
-    </button>
+    <>
+      <button onClick={() => dispatch({ type: 'TOGGLE_VENUE_OVERRIDE', venueId: 'v-a' })}>encender A</button>
+      <button
+        onClick={() => {
+          const org = state.pricing.PRIMARY
+          const a = state.venueOverrides['v-a'].pricing
+          dispatch({ type: 'SET_VENUE_PRICING', venueId: 'v-a', data: { ...a, debitRate: org.debitRate, creditRate: org.creditRate } })
+        }}
+      >
+        igualar A
+      </button>
+    </>
   ),
 }))
 vi.mock('../wizard-steps/SummaryStep', () => ({ SummaryStep: () => null }))
@@ -347,6 +350,35 @@ describe('PaymentSetupWizard · lo cargado es de la cuenta y la tarifa correctas
       'vp-a',
       expect.objectContaining({ creditRate: expect.closeTo(0.025, 10), includesTax: false, taxRate: 0.08 }),
     ])
+  })
+})
+
+describe('PaymentSetupWizard · abierto desde una sucursal (Codex r4 #1)', () => {
+  beforeEach(() => {
+    red.llamadas.length = 0
+    red.avisos.length = 0
+    red.costos = {}
+  })
+
+  it('el auto-encendido de la sucursal con los valores de default no crea su tarifa ni la de la organización', async () => {
+    red.resumen = { ...sinNada(), venues: [{ id: 'v-a', name: 'Sucursal A', slug: 'a' }] }
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    render(
+      <QueryClientProvider client={client}>
+        <PaymentSetupWizard
+          open
+          onClose={() => {}}
+          context={{ organizationId: 'org-1', orgName: 'Org Uno', initialVenueId: 'v-a', initialVenueName: 'Sucursal A' }}
+        />
+      </QueryClientProvider>,
+    )
+    const boton = await screen.findByRole('button', { name: /Guardar/ })
+    await waitFor(() => expect(boton).not.toBeDisabled())
+    await ir('Sucursales')
+    // Lo que hace VenueOverridesStep al abrirse desde la sucursal: la enciende sola, con los valores de default.
+    fireEvent.click(screen.getByRole('button', { name: 'encender A' }))
+    await guardar()
+    expect(tarifasEscritas()).toEqual([])
   })
 })
 
