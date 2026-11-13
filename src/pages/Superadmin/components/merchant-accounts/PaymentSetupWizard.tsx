@@ -634,7 +634,7 @@ export const PaymentSetupWizard: React.FC<PaymentSetupWizardProps> = ({ open, on
               positionConfirmations: pc,
             }),
           // The accounts this screen shows are the org config it loaded (`undefined` while unread: assert none).
-          seenAtFill.current,
+          seenAtFill.current ?? (existingSummary === undefined ? undefined : seenFromConfig(existingSummary.config ?? null)),
         )
 
         // 2. Batch assign terminals for ALL configured merchants + reconcile orphans
