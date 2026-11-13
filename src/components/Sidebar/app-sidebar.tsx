@@ -762,6 +762,17 @@ export function AppSidebar({
           gatedFeature: 'LOYALTY_PROGRAM',
           keywords: ['tarjeta', 'sellos', 'wallet', 'cartera', 'credencial', 'apple'],
         })
+
+        // Sello doble, puntos dobles. Siempre «Promociones de lealtad», nunca «Promociones» a secas: ése es el menú de
+        // combos y 2×1, que es otra cosa.
+        items.push({
+          title: t('sidebar:customersMenu.loyaltyPromotions'),
+          url: 'loyalty/promotions',
+          permission: 'loyalty:read',
+          premiumLocked: !hasFeatureAccess('LOYALTY_PROGRAM'),
+          gatedFeature: 'LOYALTY_PROGRAM',
+          keywords: ['sello doble', 'puntos dobles', 'promoción', 'buen fin', 'lealtad', 'bono'],
+        })
       }
 
       // Tarjetas de regalo (fase 1a) — TEASER VISIBLE, como lealtad: se ve con la insignia del plan y la página decide el

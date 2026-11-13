@@ -59,6 +59,7 @@ import {
   InventoryWastePage,
   LoyaltySettings,
   WalletCardDesigner,
+  LoyaltyPromotions,
   ReferralsSettings,
   GiftCardsPage,
   GiftCardSettings,
@@ -694,6 +695,8 @@ export function createVenueRoutes(): RouteObject[] {
       children: [
         { index: true, element: <LoyaltySettings /> },
         { path: 'card', element: <WalletCardDesigner /> },
+        // «Promociones de lealtad» (sello doble, puntos dobles): mismo permiso y mismo candado de plan que sus hermanas.
+        { path: 'promotions', element: <LoyaltyPromotions /> },
       ],
     },
 
