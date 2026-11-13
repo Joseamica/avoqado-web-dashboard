@@ -91,13 +91,22 @@ export function ImpresionDelCanalEditor({ venueId, channel, canEdit, onPendiente
   // Se relee cuando cambia lo guardado de IMPRESIÓN (p. ej. desde la otra puerta) o las estaciones. No con todo
   // `config`: con Rappi la lista se refresca cada 30 s y el sistema escribe ahí agotados y avisos del menú; depender
   // de `config` regresaba lo recién elegido a lo guardado y se podía guardar lo viejo con «Impresión guardada».
+  // Tampoco con cada refresco de estaciones: traen el estado de su impresora (`printer.lastStatus`), que cambia solo.
   const guardadoKey = JSON.stringify(guardado ?? null)
   useEffect(() => {
     if (!cargado) return
     setComanda(comandaGuardada)
     setEmpaque(empaqueGuardado)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cargado, elegibles, channel.id, guardadoKey])
+  }, [cargado, channel.id, guardadoKey])
+  // Lo que sí importa de un refresco de estaciones: si la elegida (guardada o no) dejó de servir, cae al default.
+  const idsElegibles = elegibles.map(e => e.id).join('|')
+  useEffect(() => {
+    if (!cargado) return
+    setComanda(c => (c !== SALON && !porId(c.slice(2)) ? SALON : c))
+    setEmpaque(e => (e !== NO && e !== NEGOCIO && !porId(e.slice(2)) ? NEGOCIO : e))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cargado, idsElegibles])
 
   const impresion: ImpresionDelCanal = {
     comanda: comanda === SALON ? 'SALON' : 'UNA_ESTACION',

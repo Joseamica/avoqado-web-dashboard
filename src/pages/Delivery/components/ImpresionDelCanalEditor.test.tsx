@@ -133,6 +133,30 @@ describe('ImpresionDelCanalEditor', () => {
     expect(pendiente).toHaveBeenLastCalledWith({ comanda: 'UNA_ESTACION', estacionId: 'barra', empaque: 'NEGOCIO' })
   })
 
+  it('un refresco de estaciones con otro estado de impresora no regresa lo elegido', async () => {
+    const { qc } = renderEditor(channel())
+    fireEvent.click(await screen.findByRole('radio', { name: /Todo junto en: Barra/ }))
+    mockGetStations.mockResolvedValue(
+      ESTACIONES.map(e => ({ ...e, printer: { id: 'p-red', name: 'P', active: true, lastStatus: 'OFFLINE' } })),
+    )
+    await act(async () => {
+      await qc.refetchQueries({ queryKey: ['printStations', 'venue-1'], exact: true })
+      await new Promise(r => setTimeout(r, 20))
+    })
+    expect(screen.getByRole('radio', { name: /Todo junto en: Barra/ }).getAttribute('aria-checked')).toBe('true')
+  })
+
+  it('si la estación elegida (sin guardar) deja de servir tras un refresco, cae a «Como en el salón»', async () => {
+    const { qc } = renderEditor(channel())
+    fireEvent.click(await screen.findByRole('radio', { name: /Todo junto en: Barra/ }))
+    mockGetStations.mockResolvedValue(ESTACIONES.map(e => (e.id === 'barra' ? { ...e, active: false } : e)))
+    await act(async () => {
+      await qc.refetchQueries({ queryKey: ['printStations', 'venue-1'], exact: true })
+      await new Promise(r => setTimeout(r, 20))
+    })
+    expect(screen.getByRole('radio', { name: /Como en el salón/ }).getAttribute('aria-checked')).toBe('true')
+  })
+
   it('si la otra puerta guarda otra cosa, el editor muestra lo nuevo', async () => {
     const { rerenderCon } = renderEditor(channel())
     expect((await screen.findByRole('radio', { name: /Como en el salón/ })).getAttribute('aria-checked')).toBe('true')
