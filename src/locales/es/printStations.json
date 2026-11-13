@@ -6,7 +6,8 @@
     "stations": "Estaciones",
     "printers": "Impresoras",
     "gateway": "Gateway",
-    "routing": "Ruteo"
+    "routing": "Ruteo",
+    "delivery": "Delivery"
   },
   "actions": {
     "save": "Guardar",

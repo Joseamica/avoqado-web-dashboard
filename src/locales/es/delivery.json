@@ -120,5 +120,36 @@
     "forceDescription": "Rappi podría seguir mandando pedidos que no van a aparecer aquí. Recíbelos en tu tableta de Rappi o en el portal de aliados.",
     "disconnectSuccess": "Tienda desconectada",
     "openLinkFallback": "¿No se abrió Rappi? Ábrelo aquí"
+  },
+  "impresion": {
+    "title": "Impresión de pedidos de {{canal}}",
+    "description": "Dónde sale el papel cuando entra un pedido de este canal.",
+    "comandaTitle": "Comanda",
+    "salon": "Como en el salón",
+    "salonHelp": "Cada producto sale en la estación que ya tiene asignada.",
+    "todoJunto": "Todo junto en: {{estacion}}",
+    "empaqueTitle": "Ticket de empaque",
+    "empaqueNegocio": "La de empaque del negocio ({{estacion}})",
+    "empaqueNegocioSinEstacion": "La de empaque del negocio (ninguna configurada)",
+    "empaqueNo": "No imprimir ticket de empaque",
+    "empaqueEn": "En: {{estacion}}",
+    "sinImpresora": "Sin impresora: sale en la impresora de cocina de la tablet",
+    "integrada": "Impresora integrada: sale en la tablet que tome el pedido; puede ser otra",
+    "sinDireccion": "Esta impresora no tiene dirección: sale en la impresora de cocina de la tablet",
+    "estacionDesaparecida": "La estación elegida ya no existe: se imprime como en el salón",
+    "empaqueDesaparecida": "La estación de empaque elegida ya no existe: se usa la de empaque del negocio",
+    "mismoPapel": "Van a la misma impresora: sale un solo papel",
+    "versionMinima": "Se aplica en los POS con la versión {{version}} o más nueva",
+    "guardar": "Guardar",
+    "guardado": "Impresión guardada",
+    "errorGuardar": "No se pudo guardar la impresión",
+    "errorFallback": "Intenta de nuevo en unos segundos.",
+    "cargando": "Cargando estaciones…",
+    "errorCarga": "No se pudieron cargar las estaciones e impresoras.",
+    "reintentar": "Reintentar",
+    "tab": {
+      "sinCanales": "Conecta Rappi o Uber Eats en Delivery para elegir dónde se imprimen sus pedidos.",
+      "irADelivery": "Ir a Delivery"
+    }
   }
 }
