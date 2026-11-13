@@ -60,7 +60,7 @@
     "menuManual": "Manual menu",
     "injectionRate": "Acceptance {{pct}}%",
     "injectionTooltip": "{{aceptados}} of {{recibidos}} orders got through. Below 99% the provider may suspend the integration.",
-    "settingsAction": "Hours and pricing"
+    "settingsAction": "Hours, pricing and printing"
   },
   "settings": {
     "title": "Channel hours, pricing and printing",

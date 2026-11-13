@@ -60,7 +60,7 @@
     "menuManual": "Menú manual",
     "injectionRate": "Aceptación {{pct}}%",
     "injectionTooltip": "{{aceptados}} de {{recibidos}} pedidos entraron. Por debajo del 99% el proveedor puede suspender la integración.",
-    "settingsAction": "Horario y precios"
+    "settingsAction": "Horario, precios e impresión"
   },
   "settings": {
     "title": "Horario, precios e impresión del canal",
