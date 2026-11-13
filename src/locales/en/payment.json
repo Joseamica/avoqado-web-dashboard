@@ -775,6 +775,14 @@
     "errorUnknownTitle": "Payment not confirmed",
     "errorUnknown": "We couldn't tell whether the payment was recorded. Check the payments before trying again."
   },
+  "enDuda": {
+    "pagoTitulo": "A {{monto}} payment is not confirmed",
+    "reembolsoTitulo": "A {{monto}} refund is not confirmed",
+    "explicacion": "If it's the same one, send it again with the same details: it won't be recorded twice. If you already checked and it's a different one, tap \"It's another one\".",
+    "esOtro": "It's another one",
+    "mismoRegistrado": "Already recorded",
+    "mismoRegistradoDescripcion": "It was the same one that wasn't confirmed: it wasn't recorded twice."
+  },
   "refund": {
     "success": "Refund issued",
     "error": "Couldn't issue the refund",

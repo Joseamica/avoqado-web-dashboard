@@ -20,12 +20,13 @@ import { useToast } from '@/hooks/use-toast'
 import { Currency } from '@/utils/currency'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, Minus, Plus, X } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { textoDelServidorEnIdioma } from '@/pages/GiftCards/giftCardText'
 import { quedoEnDuda } from '@/pages/Commissions/envioUnico'
-import { llaveParaEnvio, type LlaveDeEnvio } from '@/lib/llaveDeEnvio'
+import { useLlaveDeEnvio } from '@/lib/llaveDeEnvio'
+import { EnvioEnDudaAviso } from '@/components/EnvioEnDudaAviso'
 import { lineRefundAmount, type RefundableItem } from './refundAmount'
 import { cabeEnCentavos, propinaMarcadaPorDefecto, propinaQueCabe } from './refundTip'
 
@@ -161,8 +162,11 @@ export function IssueRefundSheet({
   const itemsTip = itemsTipChecked ? tipAvailable : 0
   const itemsTotal = Math.round((itemsRefundAmount + itemsTip) * 100) / 100
 
-  /** D1: la llave del envío en curso (se conserva mientras no se sepa si se registró). Ver `@/lib/llaveDeEnvio`. */
-  const llaveDelReembolso = useRef<LlaveDeEnvio | null>(null)
+  /**
+   * D1: la llave del reembolso. Un envío en duda se recuerda para ESTE pago (aunque se cierre la hoja o se recargue) y la hoja lo
+   * avisa con «Es otro»; reenviarlo con lo mismo lleva su misma llave. Ver `@/lib/llaveDeEnvio`.
+   */
+  const llave = useLlaveDeEnvio(`reembolso:${venueId}:${paymentId}`)
 
   const refundMutation = useMutation({
     mutationFn: async () => {
@@ -184,10 +188,8 @@ export function IssueRefundSheet({
           )
         }
       }
-      // D1: la llave del reembolso. Mismo contenido ⇒ misma llave: si el primer envío quedó en duda y se vuelve a mandar (la
-      // persona o src/api.ts), el servidor devuelve el reembolso ya hecho en vez de hacer otro.
-      llaveDelReembolso.current = llaveParaEnvio(llaveDelReembolso.current, JSON.stringify([venueId, paymentId, body]))
-      body.idempotencyKey = llaveDelReembolso.current.llave
+      // D1: mismo contenido que el envío en duda ⇒ su misma llave: el servidor devuelve el reembolso ya hecho en vez de otro.
+      body.idempotencyKey = llave.preparar(JSON.stringify([venueId, paymentId, body]), tab === 'amount' ? parsedAmount : itemsTotal).llave
       const res = await api.post(
         `/api/v1/dashboard/venues/${venueId}/payments/${paymentId}/refund`,
         body,
@@ -196,14 +198,24 @@ export function IssueRefundSheet({
     },
     onSuccess: () => {
       // Confirmado: el siguiente reembolso (aunque sea idéntico) es otra operación y estrena llave.
-      llaveDelReembolso.current = null
-      toast({ title: t('refund.success', { defaultValue: 'Reembolso emitido' }) })
+      const { fueReintento } = llave.alTerminarBien()
+      toast(
+        fueReintento
+          ? {
+              title: t('enDuda.mismoRegistrado', { defaultValue: 'Ya quedó registrado' }),
+              description: t('enDuda.mismoRegistradoDescripcion', {
+                defaultValue: 'Era el mismo que había quedado sin confirmar: no se registró dos veces.',
+              }),
+            }
+          : { title: t('refund.success', { defaultValue: 'Reembolso emitido' }) },
+      )
       queryClient.invalidateQueries({ queryKey: ['payment', paymentId] })
       queryClient.invalidateQueries({ queryKey: ['refunds', paymentId] })
       queryClient.invalidateQueries({ queryKey: ['payments', venueId] })
       onRefunded()
     },
     onError: (err: any) => {
+      llave.alFallar(err) // D1: en duda se recuerda (con su aviso); un rechazo definitivo la olvida
       const delServidor = textoDelServidorEnIdioma(err, tGiftCards)
       const sinConfirmar = delServidor === undefined && quedoEnDuda(err)
       const irAlPedido: string | undefined = err?.response?.data?.code === 'ONLINE_ORDER_REFUND_VIA_ONLINE_ORDERS' ? orderHref : undefined
@@ -315,6 +327,18 @@ export function IssueRefundSheet({
           </DialogTitle>
         </div>
         <DialogDescription className="sr-only">{t('refund.description', { defaultValue: 'Elige qué devolver y por qué.' })}</DialogDescription>
+
+        {llave.enDuda && (
+          <div className="px-6 pt-4">
+            <EnvioEnDudaAviso
+              titulo={t('enDuda.reembolsoTitulo', {
+                monto: Currency(llave.enDuda.monto),
+                defaultValue: `Hay un reembolso de ${Currency(llave.enDuda.monto)} sin confirmar`,
+              })}
+              onEsOtro={llave.esOtro}
+            />
+          </div>
+        )}
 
         {/* Tabs (hidden on step 2/3 of items flow to avoid accidental switch) */}
         {!(tab === 'items' && itemStep !== 'select') && (

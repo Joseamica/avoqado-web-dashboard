@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -15,7 +15,9 @@ import { LoadingButton } from '@/components/ui/loading-button'
 import { useToast } from '@/hooks/use-toast'
 
 import { manualPaymentService, type PaymentMethod, type PaymentSource } from '@/services/manualPayment.service'
-import { llaveParaEnvio, type LlaveDeEnvio } from '@/lib/llaveDeEnvio'
+import { useLlaveDeEnvio } from '@/lib/llaveDeEnvio'
+import { Currency } from '@/utils/currency'
+import { EnvioEnDudaAviso } from '@/components/EnvioEnDudaAviso'
 import { quedoEnDuda } from '@/pages/Commissions/envioUnico'
 import { ExternalSourceCombobox } from './ExternalSourceCombobox'
 
@@ -115,8 +117,11 @@ export function ManualPaymentDialog({ open, onClose, venueId }: ManualPaymentDia
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const { t } = useTranslation('payment')
-  /** D1: la llave del envío en curso (se conserva mientras no se sepa si se registró). Ver `@/lib/llaveDeEnvio`. */
-  const llaveDelPago = useRef<LlaveDeEnvio | null>(null)
+  /**
+   * D1: la llave del pago. Un envío en duda se recuerda para este negocio (aunque se cierre el diálogo o se recargue) y el
+   * diálogo lo avisa con «Es otro»; reenviarlo con lo mismo lleva su misma llave. Ver `@/lib/llaveDeEnvio`.
+   */
+  const llave = useLlaveDeEnvio(`pago-manual:${venueId}`)
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -179,18 +184,23 @@ export function ManualPaymentDialog({ open, onClose, venueId }: ManualPaymentDia
         waiterId: values.waiterId && values.waiterId.length > 0 ? values.waiterId : undefined,
         reason: values.reason && values.reason.trim().length > 0 ? values.reason.trim() : undefined,
       }
-      // D1: la llave del pago. Mismo contenido ⇒ misma llave: si el primer envío quedó en duda y se vuelve a mandar (la
-      // persona o src/api.ts), el servidor devuelve el pago ya registrado en vez de registrar otro.
-      llaveDelPago.current = llaveParaEnvio(llaveDelPago.current, JSON.stringify([venueId, input]))
-      return manualPaymentService.create(venueId, { ...input, idempotencyKey: llaveDelPago.current.llave })
+      // D1: mismo contenido que el envío en duda ⇒ su misma llave: el servidor devuelve el pago ya registrado en vez de otro.
+      const { llave: idempotencyKey } = llave.preparar(JSON.stringify([venueId, input]), Number(values.amount) || 0)
+      return manualPaymentService.create(venueId, { ...input, idempotencyKey })
     },
     onSuccess: () => {
       // Confirmado: el siguiente pago (aunque sea idéntico) es otra operación y estrena llave.
-      llaveDelPago.current = null
-      toast({
-        title: 'Pago registrado',
-        description: 'El pago manual se registró correctamente.',
-      })
+      const { fueReintento } = llave.alTerminarBien()
+      toast(
+        fueReintento
+          ? {
+              title: t('enDuda.mismoRegistrado', { defaultValue: 'Ya quedó registrado' }),
+              description: t('enDuda.mismoRegistradoDescripcion', {
+                defaultValue: 'Era el mismo que había quedado sin confirmar: no se registró dos veces.',
+              }),
+            }
+          : { title: 'Pago registrado', description: 'El pago manual se registró correctamente.' },
+      )
       queryClient.invalidateQueries({ queryKey: ['orders', venueId] })
       queryClient.invalidateQueries({ queryKey: ['payments', venueId] })
       queryClient.invalidateQueries({ queryKey: ['external-sources', venueId] })
@@ -198,7 +208,8 @@ export function ManualPaymentDialog({ open, onClose, venueId }: ManualPaymentDia
     },
     onError: (err: any) => {
       // D1: sin respuesta (o 5xx) no se sabe si se registró: no se dice «error» como si no hubiera pasado nada. La llave se
-      // conserva para que volver a mandarlo no duplique, y se refrescan los pagos para revisarlo.
+      // recuerda (con su aviso) para que volver a mandarlo no duplique, y se refrescan los pagos para revisarlo.
+      llave.alFallar(err)
       if (quedoEnDuda(err)) {
         toast({
           title: t('manualPayment.errorUnknownTitle', { defaultValue: 'Pago sin confirmar' }),
@@ -242,6 +253,16 @@ export function ManualPaymentDialog({ open, onClose, venueId }: ManualPaymentDia
             Registra un pago hecho fuera del sistema (BUQ, Clip, transferencia, efectivo, etc.).
           </DialogDescription>
         </DialogHeader>
+
+        {llave.enDuda && (
+          <EnvioEnDudaAviso
+            titulo={t('enDuda.pagoTitulo', {
+              monto: Currency(llave.enDuda.monto),
+              defaultValue: `Hay un pago de ${Currency(llave.enDuda.monto)} sin confirmar`,
+            })}
+            onEsOtro={llave.esOtro}
+          />
+        )}
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">

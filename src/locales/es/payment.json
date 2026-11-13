@@ -775,6 +775,14 @@
     "errorUnknownTitle": "Pago sin confirmar",
     "errorUnknown": "No supimos si se registró el pago. Revisa los pagos antes de intentarlo otra vez."
   },
+  "enDuda": {
+    "pagoTitulo": "Hay un pago de {{monto}} sin confirmar",
+    "reembolsoTitulo": "Hay un reembolso de {{monto}} sin confirmar",
+    "explicacion": "Si es el mismo, vuelve a enviarlo con los mismos datos: no se registra dos veces. Si ya revisaste y es otro, toca «Es otro».",
+    "esOtro": "Es otro",
+    "mismoRegistrado": "Ya quedó registrado",
+    "mismoRegistradoDescripcion": "Era el mismo que había quedado sin confirmar: no se registró dos veces."
+  },
   "refund": {
     "success": "Reembolso emitido",
     "errorUnknownTitle": "Reembolso sin confirmar",
