@@ -90,6 +90,14 @@ describe('D6 · lo que sí se sigue repitiendo solo (como hoy)', () => {
     expect(r.fallo).toBeNull()
   }, 10_000)
 
+  it('una escritura marcada `repetible` (el servidor la aguanta repetida, p. ej. liberar la terminal) se repite', async () => {
+    const r = await cortarLaPrimera(() =>
+      api.post('/api/v1/dashboard/superadmin/terminals/payment-requests/r1/release', { venueId: 'v1', reason: 'x' }, { repetible: true }),
+    )
+    expect(r.salidas).toBe(2)
+    expect(r.fallo).toBeNull()
+  }, 10_000)
+
   it('una escritura con el encabezado Idempotency-Key se repite', async () => {
     const r = await cortarLaPrimera(() =>
       api.post('/api/v1/dashboard/venues/v1/orders/o1/card-refund', { amount: '10.00' }, { headers: { 'Idempotency-Key': 'k-1' } }),

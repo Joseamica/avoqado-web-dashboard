@@ -192,7 +192,13 @@ export async function releaseTerminalPaymentRequest(
   requestId: string,
   data: { venueId: string; reason: string },
 ): Promise<TerminalPaymentReleaseResult> {
-  const response = await api.post(`/api/v1/dashboard/superadmin/terminals/payment-requests/${encodeURIComponent(requestId)}/release`, data)
+  // D6: `repetible` — el servidor aguanta la liberación repetida (la segunda contesta `released: false` sin tocar nada), así
+  // que tras un corte de red se reenvía sola, como siempre (lo prueba `TpvId.management-surfaces.test.tsx`).
+  const response = await api.post(
+    `/api/v1/dashboard/superadmin/terminals/payment-requests/${encodeURIComponent(requestId)}/release`,
+    data,
+    { repetible: true },
+  )
   return response.data
 }
 

@@ -67,6 +67,17 @@ export const getUnauthorizedLoginRedirectUrl = (location: Pick<Location, 'pathna
   return `/login?returnTo=${returnTo}`
 }
 
+declare module 'axios' {
+  interface AxiosRequestConfig {
+    /**
+     * D6: esta escritura SIN llave se puede repetir sola tras un corte de red porque el servidor la aguanta repetida
+     * (p. ej. liberar algo que ya está libre contesta «ya estaba» sin hacer nada). Úsala sólo si lo comprobaste en el
+     * servidor: sin ella, una escritura sin llave falla una vez y la pantalla dice que no se sabe si se guardó.
+     */
+    repetible?: boolean
+  }
+}
+
 /** Los métodos que sólo leen: repetirlos no cambia nada en el servidor. */
 const METODOS_QUE_SOLO_LEEN = new Set(['get', 'head', 'options'])
 /**
@@ -102,6 +113,7 @@ function cuerpoComoObjeto(data: unknown): Record<string, unknown> | null {
 export function sePuedeRepetirSola(config: InternalAxiosRequestConfig | undefined): boolean {
   if (!config) return false
   if (METODOS_QUE_SOLO_LEEN.has((config.method ?? 'get').toLowerCase())) return true
+  if (config.repetible === true) return true
   if (esTextoConAlgo(AxiosHeaders.from(config.headers).get('Idempotency-Key'))) return true
   const cuerpo = cuerpoComoObjeto(config.data)
   return !!cuerpo && CAMPOS_QUE_RECONOCEN_LA_REPETICION.some(campo => esTextoConAlgo(cuerpo[campo]))
