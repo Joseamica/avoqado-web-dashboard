@@ -809,6 +809,11 @@ export const PaymentSetupWizard: React.FC<PaymentSetupWizardProps> = ({ open, on
       if (isStalePosition(error)) {
         queryClient.invalidateQueries({ queryKey: ['payment-setup-summary'] })
         queryClient.invalidateQueries({ queryKey: ['org-payment-config'] })
+        toast({ variant: 'destructive', title: 'Error al guardar', description: serverMessage(error, 'Error desconocido') })
+        // Codex p12-r3 #5: el formulario se llenó UNA vez con lo de antes; cerrarlo obliga a reabrirlo con lo que hay ahora,
+        // para que la siguiente vez sólo se declare como «vista» una cuenta que la persona sí vio.
+        handleClose()
+        return
       }
       toast({
         variant: 'destructive',

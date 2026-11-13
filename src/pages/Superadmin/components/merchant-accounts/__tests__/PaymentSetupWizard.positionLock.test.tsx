@@ -11,7 +11,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const red = vi.hoisted(() => ({
   llamadas: [] as Array<[string, ...unknown[]]>,
-  configResponde: [] as Array<'candado' | 'ok'>,
+  configResponde: [] as Array<'candado' | 'ok' | 'vieja'>,
+  cerrado: 0,
   avisos: [] as Array<{ title?: string }>,
 }))
 
@@ -58,7 +59,9 @@ vi.mock('@/services/paymentProvider.service', () => {
 vi.mock('@/services/superadmin-organizations.service', () => ({
   setOrganizationPaymentConfig: async (orgId: string, data: Record<string, unknown>) => {
     red.llamadas.push(['setOrganizationPaymentConfig', orgId, data])
-    if (red.configResponde.shift() === 'candado') throw errorDelCandado()
+    const respuesta = red.configResponde.shift()
+    if (respuesta === 'candado') throw errorDelCandado()
+    if (respuesta === 'vieja') throw errorDePantallaVieja()
     return { success: true }
   },
   setOrganizationPricing: async (...args: unknown[]) => {
@@ -111,11 +114,21 @@ function errorDelCandado() {
   })
 }
 
+function errorDePantallaVieja() {
+  return new AxiosError('409', 'ERR_BAD_REQUEST', undefined, undefined, {
+    status: 409,
+    statusText: 'Conflict',
+    headers: {},
+    config: { headers: new AxiosHeaders() },
+    data: { code: 'POSICION_DESACTUALIZADA', message: 'Alguien cambió la configuración de cobro… Recarga y vuelve a intentarlo.' },
+  })
+}
+
 async function abrirYGuardar() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   render(
     <QueryClientProvider client={client}>
-      <PaymentSetupWizard open onClose={() => {}} context={{ organizationId: 'org-1', orgName: 'Org Uno' }} />
+      <PaymentSetupWizard open onClose={() => (red.cerrado += 1)} context={{ organizationId: 'org-1', orgName: 'Org Uno' }} />
     </QueryClientProvider>,
   )
   // «Guardar» se habilita cuando el asistente ya cargó la configuración de la organización (la cuenta principal).
@@ -133,6 +146,7 @@ describe('PaymentSetupWizard · candado de posiciones', () => {
     red.llamadas.length = 0
     red.configResponde.length = 0
     red.avisos.length = 0
+    red.cerrado = 0
   })
 
   it('guarda la configuración de la organización ANTES de tocar cualquier terminal, con las cuentas que la pantalla leyó', async () => {
@@ -175,6 +189,15 @@ describe('PaymentSetupWizard · candado de posiciones', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: /Guardar/ })).not.toBeDisabled())
     expect(nombres()).toEqual(['setOrganizationPaymentConfig'])
     expect(red.avisos).toEqual([])
+  })
+
+  it('pantalla vieja (409): avisa y cierra el asistente, para que al reabrirlo se llene con lo que hay ahora (Codex p12-r3 #5)', async () => {
+    red.configResponde.push('vieja')
+    await abrirYGuardar()
+
+    await waitFor(() => expect(red.cerrado).toBe(1))
+    expect(nombres()).toEqual(['setOrganizationPaymentConfig'])
+    expect(red.avisos.map(a => a.title)).toEqual(['Error al guardar'])
   })
 
   it('al confirmar se reenvía SÓLO la configuración con lo confirmado y después siguen las terminales', async () => {
