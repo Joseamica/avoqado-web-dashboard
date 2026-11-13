@@ -17,7 +17,15 @@ interface DeleteConfirmDialogProps {
   account: MerchantAccount | null
   onConfirmDelete: () => Promise<void>
   onDeleteCostStructure: (id: string) => Promise<void>
-  onDeleteVenueConfig: (venueId: string, configId: string) => Promise<void>
+  /** `config`: la fila que esta pantalla tiene a la vista (sus cuentas son las que vio, para el candado de posiciones). */
+  onDeleteVenueConfig: (venueId: string, configId: string, config: VenueConfigRow) => Promise<void>
+}
+
+export interface VenueConfigRow {
+  primaryAccountId?: string | null
+  secondaryAccountId?: string | null
+  tertiaryAccountId?: string | null
+  venue?: { slug?: string | null } | null
 }
 
 export const DeleteConfirmDialog: React.FC<DeleteConfirmDialogProps> = ({
@@ -83,13 +91,15 @@ export const DeleteConfirmDialog: React.FC<DeleteConfirmDialogProps> = ({
     }
   }
 
-  const handleDeleteConfig = async (venueId: string, configId: string) => {
+  const handleDeleteConfig = async (venueId: string, configId: string, config: VenueConfigRow) => {
     setDeletingConfig(configId)
     try {
-      await onDeleteVenueConfig(venueId, configId)
+      await onDeleteVenueConfig(venueId, configId, config)
       refetchConfigs()
       queryClient.invalidateQueries({ queryKey: ['merchant-accounts'] })
       queryClient.invalidateQueries({ queryKey: ['merchant-accounts-all'] })
+    } catch {
+      // El aviso (o nada, si se canceló la confirmación) lo da quien borra.
     } finally {
       setDeletingConfig(null)
     }
@@ -241,7 +251,7 @@ export const DeleteConfirmDialog: React.FC<DeleteConfirmDialogProps> = ({
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => handleDeleteConfig(config.venueId, config.id)}
+                                onClick={() => handleDeleteConfig(config.venueId, config.id, config)}
                                 disabled={deletingConfig === config.id}
                                 className="text-destructive hover:text-destructive"
                               >

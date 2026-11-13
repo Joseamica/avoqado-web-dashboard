@@ -1,4 +1,5 @@
 import api from '@/api'
+import type { PositionConfirmations } from '@/pages/Superadmin/components/position-lock/positionLock'
 
 /**
  * Organization Types & Interfaces
@@ -311,6 +312,8 @@ export interface SetOrgPaymentConfigData {
   tertiaryAccountId?: string | null
   routingRules?: any
   preferredProcessor?: PaymentProcessor
+  /** Candado de posiciones (tarifa al comercio, paso 1). */
+  positionConfirmations?: PositionConfirmations
 }
 
 export interface SetOrgPricingData {
@@ -352,8 +355,10 @@ export async function setOrganizationPaymentConfig(organizationId: string, data:
 /**
  * Delete org payment config
  */
-export async function deleteOrganizationPaymentConfig(organizationId: string) {
-  const response = await api.delete(`/api/v1/dashboard/superadmin/organizations/${organizationId}/payment-config`)
+export async function deleteOrganizationPaymentConfig(organizationId: string, positionConfirmations?: PositionConfirmations) {
+  const response = await api.delete(`/api/v1/dashboard/superadmin/organizations/${organizationId}/payment-config`, {
+    data: { positionConfirmations },
+  })
   return response.data
 }
 

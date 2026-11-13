@@ -31,10 +31,18 @@ import {
   Wallet,
   Zap,
 } from 'lucide-react'
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useParams } from 'react-router-dom'
 import { PaymentSetupWizard } from '../Superadmin/components/merchant-accounts/PaymentSetupWizard'
+import { usePositionConfirm } from '../Superadmin/components/position-lock/PositionConfirmDialog'
+import {
+  isPositionConfirmCancel,
+  isStalePosition,
+  seenFromConfig,
+  type SeenAccounts,
+  serverMessage,
+} from '../Superadmin/components/position-lock/positionLock'
 import { VenuePaymentConfigDialog } from './components/VenuePaymentConfigDialog'
 import { VenuePricingDialog } from './components/VenuePricingDialog'
 
@@ -499,34 +507,57 @@ const VenuePaymentConfig: React.FC = () => {
 
   // === MUTATIONS ===
 
+  // Candado de posiciones (tarifa al comercio, paso 1): cambiar la cuenta de una posición pide confirmar la tarifa que queda y
+  // las terminales que heredan. Las cuentas que esta pantalla ve son las de la configuración que leyó. La tarifa se cambia
+  // aquí mismo (sección de tarifas), por eso el diálogo no lleva liga.
+  const { run, dialog: positionConfirmDialog } = usePositionConfirm()
+  // Codex p12-r4 #5: lo que la pantalla «vio» al editar es la configuración con la que se ABRIÓ el diálogo, no una recarga
+  // posterior que el formulario no muestra (al volver a la pestaña). Lo peor que pasa así es un 409 de más.
+  const seenAtOpen = useRef<SeenAccounts | undefined>(undefined)
+  useEffect(() => {
+    if (configDialogOpen) seenAtOpen.current = seenFromConfig(paymentConfig)
+    // Sólo al abrir: una recarga con el diálogo abierto no debe cambiar lo «visto».
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [configDialogOpen])
+  const configErrorToast = (error: unknown, fallback: string) => {
+    if (isPositionConfirmCancel(error)) return
+    if (isStalePosition(error)) queryClient.invalidateQueries({ queryKey: ['venue-payment-config', venue?.id] })
+    toast({ title: t('common:error'), description: serverMessage(error, fallback), variant: 'destructive' })
+  }
+
   const createConfigMutation = useMutation({
-    mutationFn: (data: any) => paymentProviderAPI.createVenuePaymentConfigByVenueId(venue!.id, data),
+    mutationFn: (data: any) =>
+      run(
+        pc => paymentProviderAPI.createVenuePaymentConfigByVenueId(venue!.id, { ...data, positionConfirmations: pc }),
+        seenAtOpen.current,
+      ),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['venue-payment-config', venue?.id] })
       queryClient.invalidateQueries({ queryKey: ['payment-readiness', venue?.id] })
       toast({ title: t('common:success'), description: t('venuePaymentConfig.createSuccess') })
       setConfigDialogOpen(false)
     },
-    onError: () => {
-      toast({ title: t('common:error'), description: t('venuePaymentConfig.createError'), variant: 'destructive' })
-    },
+    onError: error => configErrorToast(error, t('venuePaymentConfig.createError')),
   })
 
   const updateConfigMutation = useMutation({
-    mutationFn: (data: any) => paymentProviderAPI.updateVenuePaymentConfigByVenueId(venue!.id, paymentConfig!.id, data),
+    mutationFn: (data: any) =>
+      run(
+        pc => paymentProviderAPI.updateVenuePaymentConfigByVenueId(venue!.id, paymentConfig!.id, { ...data, positionConfirmations: pc }),
+        seenAtOpen.current,
+      ),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['venue-payment-config', venue?.id] })
       queryClient.invalidateQueries({ queryKey: ['payment-readiness', venue?.id] })
       toast({ title: t('common:success'), description: t('venuePaymentConfig.updateSuccess') })
       setConfigDialogOpen(false)
     },
-    onError: () => {
-      toast({ title: t('common:error'), description: t('venuePaymentConfig.updateError'), variant: 'destructive' })
-    },
+    onError: error => configErrorToast(error, t('venuePaymentConfig.updateError')),
   })
 
   const deleteConfigMutation = useMutation({
-    mutationFn: () => paymentProviderAPI.deleteVenuePaymentConfigByVenueId(venue!.id, paymentConfig!.id),
+    mutationFn: () =>
+      run(pc => paymentProviderAPI.deleteVenuePaymentConfigByVenueId(venue!.id, paymentConfig!.id, pc), seenFromConfig(paymentConfig)),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['venue-payment-config', venue?.id] })
       queryClient.invalidateQueries({ queryKey: ['venue-cost-structures', venue?.id] })
@@ -534,9 +565,7 @@ const VenuePaymentConfig: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['payment-readiness', venue?.id] })
       toast({ title: t('common:success'), description: t('venuePaymentConfig.deleteSuccess') })
     },
-    onError: () => {
-      toast({ title: t('common:error'), description: t('venuePaymentConfig.deleteError'), variant: 'destructive' })
-    },
+    onError: error => configErrorToast(error, t('venuePaymentConfig.deleteError')),
   })
 
   const createPricingMutation = useMutation({
@@ -575,9 +604,10 @@ const VenuePaymentConfig: React.FC = () => {
     }
   }
 
-  const handleDeleteConfig = async () => {
+  const handleDeleteConfig = () => {
     if (confirm(t('venuePaymentConfig.confirmDelete'))) {
-      await deleteConfigMutation.mutateAsync()
+      // `mutate` (no `mutateAsync`): el aviso de error lo da `onError`; cancelar la confirmación no es un error suelto.
+      deleteConfigMutation.mutate()
     }
   }
 
@@ -709,6 +739,7 @@ const VenuePaymentConfig: React.FC = () => {
             venueId={venue!.id}
             onSave={handleSaveConfig}
           />
+          {positionConfirmDialog}
         </div>
       </TooltipProvider>
     )
@@ -997,6 +1028,7 @@ const VenuePaymentConfig: React.FC = () => {
           venueId={venue!.id}
           onSave={handleSavePricing}
         />
+        {positionConfirmDialog}
       </div>
     </TooltipProvider>
   )

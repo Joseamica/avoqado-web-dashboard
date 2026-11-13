@@ -71,6 +71,8 @@ import VenueModuleManagementDialog from './components/VenueModuleManagementDialo
 import BulkVenueCreationDialog from './components/BulkVenueCreationDialog'
 import CreateVenueWizard from './components/CreateVenueWizard'
 import { cn, includesNormalized } from '@/lib/utils'
+import { usePositionConfirm } from './components/position-lock/PositionConfirmDialog'
+import { isPositionConfirmCancel, isStalePosition, serverMessage, venueRatesLink } from './components/position-lock/positionLock'
 
 // ============================================================================
 // MODERN UI COMPONENTS (2025/2026 Design System)
@@ -305,6 +307,7 @@ const VenueManagement: React.FC = () => {
   const navigate = useNavigate()
   const { toast } = useToast()
   const queryClient = useQueryClient()
+  const { run: runPositionConfirm, dialog: positionConfirmDialog } = usePositionConfirm()
 
   const venuesQuery = useQuery({
     queryKey: ['superadmin-venues'],
@@ -417,8 +420,12 @@ const VenueManagement: React.FC = () => {
   })
 
   const transferMutation = useMutation({
-    mutationFn: ({ venueId, targetOrganizationId }: { venueId: string; targetOrganizationId: string }) =>
-      superadminAPI.transferVenue(venueId, targetOrganizationId),
+    // Candado de posiciones: sin configuración propia el venue pasa a las cuentas de la organización destino (y a su tarifa).
+    // Las calcula el SERVIDOR: la pantalla no afirma cuentas y el diálogo muestra lo que cambia.
+    mutationFn: ({ venueId, targetOrganizationId, slug }: { venueId: string; targetOrganizationId: string; slug?: string }) =>
+      runPositionConfirm(pc => superadminAPI.transferVenue(venueId, targetOrganizationId, pc), undefined, {
+        ratesLink: venueRatesLink(slug),
+      }),
     onSuccess: (data) => {
       toast({
         title: 'Venue transferido',
@@ -428,10 +435,12 @@ const VenueManagement: React.FC = () => {
       setIsTransferDialogOpen(false)
       setTargetOrgId('')
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      if (isPositionConfirmCancel(error)) return
+      if (isStalePosition(error)) queryClient.invalidateQueries({ queryKey: ['superadmin-venues'] })
       toast({
         title: 'Error al transferir',
-        description: error?.response?.data?.error || error.message,
+        description: serverMessage(error, 'No se pudo transferir el venue'),
         variant: 'destructive',
       })
     },
@@ -941,6 +950,7 @@ const VenueManagement: React.FC = () => {
                 transferMutation.mutate({
                   venueId: selectedVenue.id,
                   targetOrganizationId: targetOrgId,
+                  slug: selectedVenue.slug,
                 })
               }
               disabled={transferMutation.isPending || !targetOrgId}
@@ -949,6 +959,7 @@ const VenueManagement: React.FC = () => {
               {transferMutation.isPending ? 'Transfiriendo...' : 'Transferir Venue'}
             </Button>
           </DialogFooter>
+          {positionConfirmDialog}
         </DialogContent>
       </Dialog>
 
