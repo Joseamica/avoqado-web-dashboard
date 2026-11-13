@@ -122,6 +122,8 @@ export interface VenueOverride {
   pricing?: PricingData
   settlement?: SettlementData
   existingPricingId?: string
+  /** D18: la tarifa con que la ENCENDIÓ SOLA el asistente (abierto desde la sucursal). Mientras siga igual, nadie la escribió. */
+  semilla?: PricingData
 }
 
 export interface WizardState {
@@ -154,7 +156,7 @@ type WizardAction =
   | { type: 'SET_PRICING'; slot: 'PRIMARY' | 'SECONDARY' | 'TERTIARY'; data: PricingData }
   | { type: 'SET_SETTLEMENT'; data: SettlementData }
   | { type: 'INIT_VENUE_OVERRIDES'; venues: Array<{ id: string; name: string; slug: string }> }
-  | { type: 'TOGGLE_VENUE_OVERRIDE'; venueId: string }
+  | { type: 'TOGGLE_VENUE_OVERRIDE'; venueId: string; sola?: boolean }
   | { type: 'SET_VENUE_PRICING'; venueId: string; data: PricingData; existingPricingId?: string }
   | { type: 'SET_VENUE_SETTLEMENT'; venueId: string; data: SettlementData }
   | { type: 'SET_VENUE_EXISTING_PRICING_ID'; venueId: string; existingPricingId: string | null }
@@ -335,6 +337,8 @@ function wizardReducer(state: WizardState, action: WizardAction): WizardState {
               ? {
                   pricing: existing.pricing || { ...DEFAULT_PRICING },
                   settlement: existing.settlement || { ...state.settlement },
+                  // D18: encendida por la persona ⇒ sin semilla (encender ya es su decisión); sola ⇒ se recuerda con qué.
+                  semilla: action.sola ? existing.pricing || { ...DEFAULT_PRICING } : undefined,
                 }
               : {}),
           },
@@ -799,6 +803,8 @@ export const PaymentSetupWizard: React.FC<PaymentSetupWizardProps> = ({ open, on
             fixedFeePerTransaction: pricingData.fixedFeePerTransaction,
             monthlyServiceFee: pricingData.monthlyServiceFee,
             effectiveFrom: new Date().toISOString(),
+            // Por si este formulario se quedó viejo: si en el servidor ya está igual, no la cierra para crear otra idéntica.
+            skipIfUnchanged: true,
           } as any)
           cargado.current.tarifaOrg = pricingData
         }
@@ -844,9 +850,9 @@ export const PaymentSetupWizard: React.FC<PaymentSetupWizardProps> = ({ open, on
           // D18: sin cambios contra lo cargado no se toca (antes se reescribía, o se desactivaba si igualaba a la de la organización).
           const antes = cargado.current.sucursales[override.venueId]
           if (antes && override.existingPricingId === antes.id && mismaTarifa(override.pricing, antes.pricing)) continue
-          // Codex r4 #1: una sucursal sin tarifa propia que sólo se encendió (a mano o sola, al abrir el wizard desde la
-          // sucursal) con los valores de default intactos no se crea: nadie escribió esa tarifa.
-          if (!antes && mismaTarifa(override.pricing, DEFAULT_PRICING)) continue
+          // Codex r4 #1 / r5 #1: una sucursal sin tarifa propia que el asistente encendió SOLO (abierto desde la sucursal) y
+          // que nadie editó no se crea. Encendida por la persona, se escribe como siempre.
+          if (!antes && override.semilla && mismaTarifa(override.pricing, override.semilla)) continue
 
           // Codex r3 H1: sólo se compara con una tarifa de organización que EXISTE (la cargada o la que se acaba de guardar);
           // la de default del formulario no es respaldo de nadie.

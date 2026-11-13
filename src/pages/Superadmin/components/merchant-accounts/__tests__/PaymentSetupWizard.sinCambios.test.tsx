@@ -87,6 +87,7 @@ vi.mock('../wizard-steps/VenueOverridesStep', () => ({
   // Iguala las tasas de la sucursal A a las de la organización (sin tocar su IVA).
   VenueOverridesStep: ({ state, dispatch }: any) => (
     <>
+      <button onClick={() => dispatch({ type: 'TOGGLE_VENUE_OVERRIDE', venueId: 'v-a', sola: true })}>encender A sola</button>
       <button onClick={() => dispatch({ type: 'TOGGLE_VENUE_OVERRIDE', venueId: 'v-a' })}>encender A</button>
       <button
         onClick={() => {
@@ -258,6 +259,7 @@ describe('PaymentSetupWizard · guardar sin cambios', () => {
       internationalRate: expect.closeTo(0.038, 10),
       includesTax: false,
       taxRate: 0.16,
+      skipIfUnchanged: true,
     })
 
     await guardar()
@@ -376,9 +378,25 @@ describe('PaymentSetupWizard · abierto desde una sucursal (Codex r4 #1)', () =>
     await waitFor(() => expect(boton).not.toBeDisabled())
     await ir('Sucursales')
     // Lo que hace VenueOverridesStep al abrirse desde la sucursal: la enciende sola, con los valores de default.
-    fireEvent.click(screen.getByRole('button', { name: 'encender A' }))
+    fireEvent.click(screen.getByRole('button', { name: 'encender A sola' }))
     await guardar()
     expect(tarifasEscritas()).toEqual([])
+  })
+
+  it('apagar, guardar, volver a encender a mano y editar SÍ escribe la tarifa de la sucursal (Codex r5 #1)', async () => {
+    red.resumen = {
+      ...configurada(),
+      venuePricingStructures: [tarifa('vp-a', { venueId: 'v-a', creditRate: '0.027', includesTax: null })],
+    }
+    await abrir()
+    await ir('Sucursales')
+    fireEvent.click(screen.getByRole('button', { name: 'encender A' })) // apagar
+    await guardar()
+    expect(tarifasEscritas().map(([n]) => n)).toEqual(['deactivateVenuePricingStructure'])
+    fireEvent.click(screen.getByRole('button', { name: 'encender A' })) // volver a encender a mano
+    fireEvent.click(screen.getByRole('button', { name: 'igualar A' })) // y cambiarla
+    await guardar()
+    expect(tarifasEscritas().map(([n]) => n)).toEqual(['deactivateVenuePricingStructure', 'createVenuePricingStructure'])
   })
 })
 

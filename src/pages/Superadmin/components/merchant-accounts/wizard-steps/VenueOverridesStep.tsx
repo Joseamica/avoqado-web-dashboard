@@ -47,7 +47,7 @@ export const VenueOverridesStep: React.FC<VenueOverridesStepProps> = ({ state, d
     if (context.initialVenueId && orgDetail.venues.some(v => v.id === context.initialVenueId)) {
       const existing = state.venueOverrides[context.initialVenueId]
       if (!existing?.enabled) {
-        dispatch({ type: 'TOGGLE_VENUE_OVERRIDE', venueId: context.initialVenueId })
+        dispatch({ type: 'TOGGLE_VENUE_OVERRIDE', venueId: context.initialVenueId, sola: true })
       }
     }
   }, [orgDetail?.venues, context.initialVenueId]) // eslint-disable-line react-hooks/exhaustive-deps
