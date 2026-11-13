@@ -60,13 +60,15 @@ const channel = (o: Partial<DeliveryChannelLink> = {}): DeliveryChannelLink => (
   lastMenuSyncAt: null, externalLocationId: 'ext', ...o,
 })
 
-function renderEditor(ch = channel(), canEdit = true) {
+function renderEditor(ch = channel(), canEdit = true, onPendienteChange?: (p: unknown) => void) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
-  return render(
+  const arbol = (c: DeliveryChannelLink) => (
     <QueryClientProvider client={qc}>
-      <ImpresionDelCanalEditor venueId="venue-1" channel={ch} canEdit={canEdit} />
-    </QueryClientProvider>,
+      <ImpresionDelCanalEditor venueId="venue-1" channel={c} canEdit={canEdit} onPendienteChange={onPendienteChange} />
+    </QueryClientProvider>
   )
+  const r = render(arbol(ch))
+  return { ...r, rerenderCon: (c: DeliveryChannelLink) => r.rerender(arbol(c)) }
 }
 
 describe('ImpresionDelCanalEditor', () => {
@@ -92,6 +94,26 @@ describe('ImpresionDelCanalEditor', () => {
     expect(mockUpdateChannel).toHaveBeenCalledWith('venue-1', 'link-1', {
       config: { impresion: { comanda: 'UNA_ESTACION', estacionId: 'barra', empaque: 'NEGOCIO' } },
     })
+  })
+
+  it('avisa lo elegido y SIN guardar, y null cuando vuelve a lo guardado', async () => {
+    const pendiente = vi.fn()
+    renderEditor(channel(), true, pendiente)
+    fireEvent.click(await screen.findByRole('radio', { name: /Todo junto en: Barra/ }))
+    await waitFor(() =>
+      expect(pendiente).toHaveBeenLastCalledWith({ comanda: 'UNA_ESTACION', estacionId: 'barra', empaque: 'NEGOCIO' }),
+    )
+    fireEvent.click(screen.getByRole('radio', { name: /Como en el salón/ }))
+    await waitFor(() => expect(pendiente).toHaveBeenLastCalledWith(null))
+  })
+
+  it('si la otra puerta guarda otra cosa, el editor muestra lo nuevo', async () => {
+    const { rerenderCon } = renderEditor(channel())
+    expect((await screen.findByRole('radio', { name: /Como en el salón/ })).getAttribute('aria-checked')).toBe('true')
+    rerenderCon(channel({ config: { impresion: { comanda: 'UNA_ESTACION', estacionId: 'barra', empaque: 'NO' } } }))
+    await waitFor(() =>
+      expect(screen.getByRole('radio', { name: /Todo junto en: Barra/ }).getAttribute('aria-checked')).toBe('true'),
+    )
   })
 
   it('sólo lista estaciones activas y con comanda', async () => {

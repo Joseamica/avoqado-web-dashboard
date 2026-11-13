@@ -28,7 +28,7 @@ import { Switch } from '@/components/ui/switch'
 import { useToast } from '@/hooks/use-toast'
 import { useAccess } from '@/hooks/use-access'
 import { updateChannel } from '@/services/delivery.service'
-import type { DeliveryChannelLink, DeliveryDayHours, DeliveryWeekday, DeliveryWeeklyHours } from '@/types/delivery'
+import type { DeliveryChannelLink, DeliveryDayHours, DeliveryWeekday, DeliveryWeeklyHours, ImpresionDelCanal } from '@/types/delivery'
 import { providerLabel } from '../providerLabels'
 import { ImpresionDelCanalEditor } from './ImpresionDelCanalEditor'
 
@@ -71,6 +71,8 @@ export function ChannelSettingsDialog({ open, onClose, venueId, channel }: Chann
   // `number | undefined` a propósito: un input numérico que colapsa el vacío a 0 atrapa el
   // campo — el usuario borra y el valor rebota. Regla `ui-patterns.md`.
   const [markup, setMarkup] = useState<number | undefined>(undefined)
+  // La impresión elegida y sin guardar en su cuadro: el «Guardar» de arriba la guarda junto con lo demás.
+  const [impresionPendiente, setImpresionPendiente] = useState<ImpresionDelCanal | null>(null)
 
   // Al abrir, se relee del canal: si el modal se reusa para otro canal (o el de antes cambió
   // en el servidor) sin esto quedaría el estado del anterior y el usuario guardaría el
@@ -115,6 +117,8 @@ export function ChannelSettingsDialog({ open, onClose, venueId, channel }: Chann
           // Sin margen se manda el bloque vacío, no se omite: omitirlo dejaría el markup
           // anterior vivo (el backend mezcla), y el usuario acaba de dejar el campo en blanco.
           precios: markup === undefined ? {} : { markupPercent: markup },
+          // Sólo si cambió: mandarla siempre pisaría lo que otra persona guardó desde Impresoras → Delivery.
+          ...(impresionPendiente ? { impresion: impresionPendiente } : {}),
         },
       }),
     onSuccess: () => {
@@ -250,7 +254,12 @@ export function ChannelSettingsDialog({ open, onClose, venueId, channel }: Chann
 
         {/* ── Impresión (misma pieza que la pestaña «Delivery» de Impresoras; guarda por su cuenta) ───────── */}
         <section className="rounded-2xl border border-input bg-card p-6">
-          <ImpresionDelCanalEditor venueId={venueId} channel={channel} canEdit={can('delivery-channels:manage')} />
+          <ImpresionDelCanalEditor
+            venueId={venueId}
+            channel={channel}
+            canEdit={can('delivery-channels:manage')}
+            onPendienteChange={setImpresionPendiente}
+          />
         </section>
 
         {errores.length > 0 && (

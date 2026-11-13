@@ -40,9 +40,14 @@ interface Props {
   venueId: string
   channel: DeliveryChannelLink
   canEdit: boolean
+  /**
+   * Lo elegido y SIN guardar (`null` si coincide con lo guardado). El diálogo del canal lo usa para que su «Guardar»
+   * de arriba lo guarde también: si no, cerraba diciendo «Ajustes guardados» y la impresión se perdía (Codex c1 #1).
+   */
+  onPendienteChange?: (pendiente: ImpresionDelCanal | null) => void
 }
 
-export function ImpresionDelCanalEditor({ venueId, channel, canEdit }: Props) {
+export function ImpresionDelCanalEditor({ venueId, channel, canEdit, onPendienteChange }: Props) {
   const { t } = useTranslation('delivery')
   const { toast } = useToast()
   const queryClient = useQueryClient()
@@ -66,17 +71,21 @@ export function ImpresionDelCanalEditor({ venueId, channel, canEdit }: Props) {
   const comandaPerdida = !!guardado && guardado.comanda === 'UNA_ESTACION' && cargado && !porId(guardado.estacionId)
   const empaquePerdido = !!guardado && guardado.empaque === 'ESTACION' && cargado && !porId(guardado.empaqueEstacionId)
 
-  // Se relee del canal y de las estaciones: un valor guardado que ya no sirve cae al default, no se queda fantasma.
+  // Lo guardado, ya resuelto contra las estaciones: un valor que ya no sirve cae al default, no se queda fantasma.
+  const comandaGuardada = guardado?.comanda === 'UNA_ESTACION' && porId(guardado.estacionId) ? est(guardado.estacionId!) : SALON
+  const empaqueGuardado =
+    guardado?.empaque === 'NO'
+      ? NO
+      : guardado?.empaque === 'ESTACION' && porId(guardado.empaqueEstacionId)
+        ? est(guardado.empaqueEstacionId!)
+        : NEGOCIO
+
+  // Se relee del canal y de las estaciones (React Query conserva la identidad si el refresco trae lo mismo, así que
+  // sólo un cambio de verdad, p. ej. guardado desde la otra puerta, reemplaza lo que se ve).
   useEffect(() => {
     if (!cargado) return
-    setComanda(guardado?.comanda === 'UNA_ESTACION' && porId(guardado.estacionId) ? est(guardado.estacionId!) : SALON)
-    setEmpaque(
-      guardado?.empaque === 'NO'
-        ? NO
-        : guardado?.empaque === 'ESTACION' && porId(guardado.empaqueEstacionId)
-          ? est(guardado.empaqueEstacionId!)
-          : NEGOCIO,
-    )
+    setComanda(comandaGuardada)
+    setEmpaque(empaqueGuardado)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cargado, elegibles, channel.id, channel.config])
 
@@ -86,6 +95,13 @@ export function ImpresionDelCanalEditor({ venueId, channel, canEdit }: Props) {
     empaque: empaque === NO ? 'NO' : empaque === NEGOCIO ? 'NEGOCIO' : 'ESTACION',
     ...(empaque !== NO && empaque !== NEGOCIO ? { empaqueEstacionId: empaque.slice(2) } : {}),
   }
+
+  const pendiente = cargado && (comanda !== comandaGuardada || empaque !== empaqueGuardado)
+  const pendienteKey = pendiente ? JSON.stringify(impresion) : null
+  useEffect(() => {
+    onPendienteChange?.(pendienteKey ? (JSON.parse(pendienteKey) as ImpresionDelCanal) : null)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendienteKey])
 
   // `isPending` se pinta un instante tarde: dos clics seguidos pasarían los dos. El candado va en un ref.
   const guardando = useRef(false)

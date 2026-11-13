@@ -37,6 +37,12 @@ vi.mock('./RappiConnectionSection', () => ({
   RappiStoreActions: ({ channel }: { channel: DeliveryChannelLink }) => <div data-testid={`rappi-actions-${channel.id}`} />,
 }))
 
+vi.mock('./ChannelSettingsDialog', () => ({
+  ChannelSettingsDialog: ({ channel }: { channel: DeliveryChannelLink }) => (
+    <div data-testid="dialogo-ajustes">{JSON.stringify(channel.config ?? null)}</div>
+  ),
+}))
+
 import { DeliveryLivePanel } from './DeliveryLivePanel'
 
 function channel(overrides: Partial<DeliveryChannelLink> = {}): DeliveryChannelLink {
@@ -318,5 +324,24 @@ describe('DeliveryLivePanel', () => {
       await screen.findByText('live.channelsTitle')
       expect(screen.queryByText('live.injectionRate')).not.toBeInTheDocument()
     })
+  })
+})
+
+describe('DeliveryLivePanel · ajustes del canal', () => {
+  it('el diálogo abierto ve el canal VIGENTE de la lista, no una copia tomada al abrir (Codex c1 #2)', async () => {
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    const arbol = (chs: DeliveryChannelLink[]) => (
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <DeliveryLivePanel venueId="venue-1" channels={chs} />
+        </MemoryRouter>
+      </QueryClientProvider>
+    )
+    const { rerender } = render(arbol([channel({ config: { impresion: { comanda: 'SALON', empaque: 'NEGOCIO' } } })]))
+    fireEvent.click(screen.getByText('live.settingsAction'))
+    expect(screen.getByTestId('dialogo-ajustes').textContent).toContain('"SALON"')
+
+    rerender(arbol([channel({ config: { impresion: { comanda: 'UNA_ESTACION', estacionId: 'barra', empaque: 'NO' } } })]))
+    expect(screen.getByTestId('dialogo-ajustes').textContent).toContain('"UNA_ESTACION"')
   })
 })

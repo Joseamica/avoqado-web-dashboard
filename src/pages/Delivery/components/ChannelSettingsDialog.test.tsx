@@ -17,8 +17,21 @@ vi.mock('@/services/delivery.service', () => ({
 
 vi.mock('@/hooks/use-access', () => ({ useAccess: () => ({ can: (p: string) => p === 'delivery-channels:manage' }) }))
 vi.mock('./ImpresionDelCanalEditor', () => ({
-  ImpresionDelCanalEditor: (p: { venueId: string; channel: { id: string }; canEdit: boolean }) => (
-    <div data-testid="editor-impresion">{`${p.venueId}|${p.channel.id}|${p.canEdit}`}</div>
+  ImpresionDelCanalEditor: (p: {
+    venueId: string
+    channel: { id: string }
+    canEdit: boolean
+    onPendienteChange?: (x: unknown) => void
+  }) => (
+    <div>
+      <span data-testid="editor-impresion">{`${p.venueId}|${p.channel.id}|${p.canEdit}`}</span>
+      <button
+        type="button"
+        onClick={() => p.onPendienteChange?.({ comanda: 'UNA_ESTACION', estacionId: 'barra', empaque: 'NO' })}
+      >
+        elegir-todo-junto
+      </button>
+    </div>
   ),
 }))
 
@@ -156,6 +169,26 @@ describe('ChannelSettingsDialog', () => {
   })
 
   // La lista de canales usa ['deliveryChannels', venueId]; con otra llave guardar aquí no refrescaba la lista ni la otra puerta.
+  it('«Guardar» de arriba guarda también la impresión elegida y sin guardar (no se pierde al cerrar)', async () => {
+    renderDialog(channel({ config: { deliveryHours: HORARIO_GUARDADO } }))
+    fireEvent.click(screen.getByText('elegir-todo-junto'))
+    fireEvent.click(screen.getByText('settings.save'))
+
+    await waitFor(() => expect(mockUpdateChannel).toHaveBeenCalledTimes(1))
+    const [, , body] = mockUpdateChannel.mock.calls[0]
+    expect(body.config.impresion).toEqual({ comanda: 'UNA_ESTACION', estacionId: 'barra', empaque: 'NO' })
+    expect(body.config.deliveryHours).toEqual(HORARIO_GUARDADO)
+  })
+
+  it('sin cambios en la impresión, «Guardar» de arriba NO la manda (no pisa lo guardado desde Impresoras)', async () => {
+    renderDialog(channel({ config: { deliveryHours: HORARIO_GUARDADO } }))
+    fireEvent.click(screen.getByText('settings.save'))
+
+    await waitFor(() => expect(mockUpdateChannel).toHaveBeenCalledTimes(1))
+    const [, , body] = mockUpdateChannel.mock.calls[0]
+    expect('impresion' in body.config).toBe(false)
+  })
+
   it('al guardar refresca la MISMA consulta que usa la lista de canales', async () => {
     renderDialog(channel({ config: { deliveryHours: HORARIO_GUARDADO } }))
     fireEvent.click(screen.getByText('settings.save'))
