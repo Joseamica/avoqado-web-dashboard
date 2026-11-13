@@ -771,6 +771,10 @@
     "netProfit": "Net Profit",
     "margin": "margin"
   },
+  "manualPayment": {
+    "errorUnknownTitle": "Payment not confirmed",
+    "errorUnknown": "We couldn't tell whether the payment was recorded. Check the payments before trying again."
+  },
   "refund": {
     "success": "Refund issued",
     "error": "Couldn't issue the refund",

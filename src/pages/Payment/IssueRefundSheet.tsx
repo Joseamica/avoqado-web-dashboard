@@ -20,11 +20,12 @@ import { useToast } from '@/hooks/use-toast'
 import { Currency } from '@/utils/currency'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, Minus, Plus, X } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { textoDelServidorEnIdioma } from '@/pages/GiftCards/giftCardText'
 import { quedoEnDuda } from '@/pages/Commissions/envioUnico'
+import { llaveParaEnvio, type LlaveDeEnvio } from '@/lib/llaveDeEnvio'
 import { lineRefundAmount, type RefundableItem } from './refundAmount'
 import { cabeEnCentavos, propinaMarcadaPorDefecto, propinaQueCabe } from './refundTip'
 
@@ -160,6 +161,9 @@ export function IssueRefundSheet({
   const itemsTip = itemsTipChecked ? tipAvailable : 0
   const itemsTotal = Math.round((itemsRefundAmount + itemsTip) * 100) / 100
 
+  /** D1: la llave del envío en curso (se conserva mientras no se sepa si se registró). Ver `@/lib/llaveDeEnvio`. */
+  const llaveDelReembolso = useRef<LlaveDeEnvio | null>(null)
+
   const refundMutation = useMutation({
     mutationFn: async () => {
       const body: Record<string, unknown> = { reason }
@@ -180,6 +184,10 @@ export function IssueRefundSheet({
           )
         }
       }
+      // D1: la llave del reembolso. Mismo contenido ⇒ misma llave: si el primer envío quedó en duda y se vuelve a mandar (la
+      // persona o src/api.ts), el servidor devuelve el reembolso ya hecho en vez de hacer otro.
+      llaveDelReembolso.current = llaveParaEnvio(llaveDelReembolso.current, JSON.stringify([venueId, paymentId, body]))
+      body.idempotencyKey = llaveDelReembolso.current.llave
       const res = await api.post(
         `/api/v1/dashboard/venues/${venueId}/payments/${paymentId}/refund`,
         body,
@@ -187,6 +195,8 @@ export function IssueRefundSheet({
       return res.data
     },
     onSuccess: () => {
+      // Confirmado: el siguiente reembolso (aunque sea idéntico) es otra operación y estrena llave.
+      llaveDelReembolso.current = null
       toast({ title: t('refund.success', { defaultValue: 'Reembolso emitido' }) })
       queryClient.invalidateQueries({ queryKey: ['payment', paymentId] })
       queryClient.invalidateQueries({ queryKey: ['refunds', paymentId] })

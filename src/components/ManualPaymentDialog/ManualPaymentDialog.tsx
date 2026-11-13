@@ -1,4 +1,5 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -14,6 +15,8 @@ import { LoadingButton } from '@/components/ui/loading-button'
 import { useToast } from '@/hooks/use-toast'
 
 import { manualPaymentService, type PaymentMethod, type PaymentSource } from '@/services/manualPayment.service'
+import { llaveParaEnvio, type LlaveDeEnvio } from '@/lib/llaveDeEnvio'
+import { quedoEnDuda } from '@/pages/Commissions/envioUnico'
 import { ExternalSourceCombobox } from './ExternalSourceCombobox'
 
 /**
@@ -111,6 +114,9 @@ interface ManualPaymentDialogProps {
 export function ManualPaymentDialog({ open, onClose, venueId }: ManualPaymentDialogProps) {
   const { toast } = useToast()
   const queryClient = useQueryClient()
+  const { t } = useTranslation('payment')
+  /** D1: la llave del envío en curso (se conserva mientras no se sepa si se registró). Ver `@/lib/llaveDeEnvio`. */
+  const llaveDelPago = useRef<LlaveDeEnvio | null>(null)
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -155,8 +161,8 @@ export function ManualPaymentDialog({ open, onClose, venueId }: ManualPaymentDia
   })
 
   const mutation = useMutation({
-    mutationFn: (values: FormValues) =>
-      manualPaymentService.create(venueId, {
+    mutationFn: (values: FormValues) => {
+      const input = {
         // No orderId: manual payments are always standalone — backend
         // creates a shadow order automatically.
         amount: values.amount,
@@ -172,8 +178,15 @@ export function ManualPaymentDialog({ open, onClose, venueId }: ManualPaymentDia
             : undefined,
         waiterId: values.waiterId && values.waiterId.length > 0 ? values.waiterId : undefined,
         reason: values.reason && values.reason.trim().length > 0 ? values.reason.trim() : undefined,
-      }),
+      }
+      // D1: la llave del pago. Mismo contenido ⇒ misma llave: si el primer envío quedó en duda y se vuelve a mandar (la
+      // persona o src/api.ts), el servidor devuelve el pago ya registrado en vez de registrar otro.
+      llaveDelPago.current = llaveParaEnvio(llaveDelPago.current, JSON.stringify([venueId, input]))
+      return manualPaymentService.create(venueId, { ...input, idempotencyKey: llaveDelPago.current.llave })
+    },
     onSuccess: () => {
+      // Confirmado: el siguiente pago (aunque sea idéntico) es otra operación y estrena llave.
+      llaveDelPago.current = null
       toast({
         title: 'Pago registrado',
         description: 'El pago manual se registró correctamente.',
@@ -184,6 +197,20 @@ export function ManualPaymentDialog({ open, onClose, venueId }: ManualPaymentDia
       onClose()
     },
     onError: (err: any) => {
+      // D1: sin respuesta (o 5xx) no se sabe si se registró: no se dice «error» como si no hubiera pasado nada. La llave se
+      // conserva para que volver a mandarlo no duplique, y se refrescan los pagos para revisarlo.
+      if (quedoEnDuda(err)) {
+        toast({
+          title: t('manualPayment.errorUnknownTitle', { defaultValue: 'Pago sin confirmar' }),
+          description: t('manualPayment.errorUnknown', {
+            defaultValue: 'No supimos si se registró el pago. Revisa los pagos antes de intentarlo otra vez.',
+          }),
+          variant: 'destructive',
+        })
+        queryClient.invalidateQueries({ queryKey: ['payments', venueId] })
+        queryClient.invalidateQueries({ queryKey: ['orders', venueId] })
+        return
+      }
       const message =
         err?.response?.data?.error?.message ||
         err?.response?.data?.message ||

@@ -771,6 +771,10 @@
     "netProfit": "Beneficio Neto",
     "margin": "margen"
   },
+  "manualPayment": {
+    "errorUnknownTitle": "Pago sin confirmar",
+    "errorUnknown": "No supimos si se registró el pago. Revisa los pagos antes de intentarlo otra vez."
+  },
   "refund": {
     "success": "Reembolso emitido",
     "errorUnknownTitle": "Reembolso sin confirmar",

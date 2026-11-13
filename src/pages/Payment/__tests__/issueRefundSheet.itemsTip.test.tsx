@@ -75,6 +75,8 @@ describe('IssueRefundSheet: casilla propina en el reembolso por artículos', () 
         { orderItemId: 'b', quantity: 1 },
       ],
       tipRefundCents: 1450,
+      // D1: la llave con la que el servidor reconoce el envío repetido.
+      idempotencyKey: expect.stringMatching(/^[A-Za-z0-9_-]{8,64}$/),
     })
   })
 
