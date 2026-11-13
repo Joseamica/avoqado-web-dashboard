@@ -56,6 +56,10 @@ vi.mock('@/services/superadmin-organizations.service', () => ({
   },
   setOrganizationPricing: async (...args: unknown[]) => {
     red.llamadas.push(['setOrganizationPricing', ...args])
+    if (red.pierdeRespuesta === 'setOrganizationPricing') {
+      red.pierdeRespuesta = null
+      throw new Error('Network Error')
+    }
     return { success: true }
   },
 }))
@@ -79,9 +83,14 @@ vi.mock('../wizard-steps/MerchantStep', () => ({
 vi.mock('../wizard-steps/TerminalStep', () => ({ TerminalStep: () => null }))
 vi.mock('../wizard-steps/VenuePricingStep', () => ({
   VenuePricingStep: ({ state, dispatch }: any) => (
-    <button onClick={() => dispatch({ type: 'SET_PRICING', slot: 'PRIMARY', data: { ...state.pricing.PRIMARY, creditRate: 2.6 } })}>
-      subir crédito
-    </button>
+    <>
+      <button onClick={() => dispatch({ type: 'SET_PRICING', slot: 'PRIMARY', data: { ...state.pricing.PRIMARY, creditRate: 2.6 } })}>
+        subir crédito
+      </button>
+      <button onClick={() => dispatch({ type: 'SET_PRICING', slot: 'PRIMARY', data: { ...state.pricing.PRIMARY, creditRate: 2.5 } })}>
+        bajar crédito
+      </button>
+    </>
   ),
 }))
 vi.mock('../wizard-steps/SettlementStep', () => ({
@@ -93,7 +102,6 @@ vi.mock('../wizard-steps/VenueOverridesStep', () => ({
   // Iguala las tasas de la sucursal A a las de la organización (sin tocar su IVA).
   VenueOverridesStep: ({ state, dispatch }: any) => (
     <>
-      <button onClick={() => dispatch({ type: 'TOGGLE_VENUE_OVERRIDE', venueId: 'v-a', sola: true })}>encender A sola</button>
       <button onClick={() => dispatch({ type: 'TOGGLE_VENUE_OVERRIDE', venueId: 'v-a' })}>encender A</button>
       {[2.7, 2.5].map(c => (
         <button
@@ -373,111 +381,29 @@ describe('PaymentSetupWizard · lo cargado es de la cuenta y la tarifa correctas
   })
 })
 
-describe('PaymentSetupWizard · abierto desde una sucursal (Codex r4 #1)', () => {
+describe('PaymentSetupWizard · sucursales y guardados que fallan', () => {
   beforeEach(() => {
     red.llamadas.length = 0
     red.avisos.length = 0
-    red.costos = {}
-  })
-
-  it('el auto-encendido de la sucursal con los valores de default no crea su tarifa ni la de la organización', async () => {
-    red.resumen = { ...sinNada(), venues: [{ id: 'v-a', name: 'Sucursal A', slug: 'a' }] }
-    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-    render(
-      <QueryClientProvider client={client}>
-        <PaymentSetupWizard
-          open
-          onClose={() => {}}
-          context={{ organizationId: 'org-1', orgName: 'Org Uno', initialVenueId: 'v-a', initialVenueName: 'Sucursal A' }}
-        />
-      </QueryClientProvider>,
-    )
-    const boton = await screen.findByRole('button', { name: /Guardar/ })
-    await waitFor(() => expect(boton).not.toBeDisabled())
-    await ir('Sucursales')
-    // Lo que hace VenueOverridesStep al abrirse desde la sucursal: la enciende sola, con los valores de default.
-    fireEvent.click(screen.getByRole('button', { name: 'encender A sola' }))
-    await guardar()
-    expect(tarifasEscritas()).toEqual([])
-  })
-
-  it('encendida sola: tras guardarla una vez, volver a los valores con que se encendió también se guarda (Codex r6)', async () => {
-    red.resumen = { ...configurada(), venuePricingStructures: [] }
-    await abrir()
-    await ir('Sucursales')
-    fireEvent.click(screen.getByRole('button', { name: 'encender A sola' })) // con los de default (2.5 % de crédito)
-    fireEvent.click(screen.getByRole('button', { name: 'crédito de A a 2.7' }))
-    await guardar()
-    expect(tarifasEscritas().map(([n]) => n)).toEqual(['createVenuePricingStructure'])
-    fireEvent.click(screen.getByRole('button', { name: 'crédito de A a 2.5' })) // otra vez el valor de la semilla
-    await guardar()
-    expect(tarifasEscritas().map(([n]) => n)).toEqual(['createVenuePricingStructure', 'updateVenuePricingStructure'])
-  })
-
-  it('encendida sola: guardar una edición igual a la organización y luego volver al valor de la semilla SÍ se guarda (Codex r7)', async () => {
-    // Organización al 3 % de crédito con IVA sin definir (la semilla de default es 2.5 %).
-    const r = configurada()
-    red.resumen = {
-      ...r,
-      pricingStructures: [tarifa('org-vigente', { creditRate: '0.03', includesTax: null })],
-      venuePricingStructures: [],
-    }
-    await abrir()
-    await ir('Sucursales')
-    fireEvent.click(screen.getByRole('button', { name: 'encender A sola' }))
-    fireEvent.click(screen.getByRole('button', { name: 'igualar A' })) // igual a la organización: no hay nada que escribir
-    await guardar()
-    expect(tarifasEscritas()).toEqual([])
-    fireEvent.click(screen.getByRole('button', { name: 'crédito de A a 2.5' })) // el valor con que se encendió
-    await guardar()
-    expect(tarifasEscritas().map(([n]) => n)).toEqual(['createVenuePricingStructure'])
-  })
-
-  it('encendida sola: cambiarla y regresarla al valor mostrado, sin guardar en medio, no crea nada (Codex r8)', async () => {
-    red.resumen = { ...sinNada(), venues: [{ id: 'v-a', name: 'Sucursal A', slug: 'a' }] }
-    red.costos = {}
-    await abrir()
-    await ir('Sucursales')
-    fireEvent.click(screen.getByRole('button', { name: 'encender A sola' }))
-    fireEvent.click(screen.getByRole('button', { name: 'crédito de A a 2.7' }))
-    fireEvent.click(screen.getByRole('button', { name: 'crédito de A a 2.5' }))
-    await guardar()
-    expect(tarifasEscritas()).toEqual([])
-  })
-
-  it('encendida sola: apagarla y volver a encenderla a mano sin cambiar nada no crea nada (Codex r9 #1)', async () => {
-    red.resumen = { ...sinNada(), venues: [{ id: 'v-a', name: 'Sucursal A', slug: 'a' }] }
-    red.costos = {}
-    await abrir()
-    await ir('Sucursales')
-    fireEvent.click(screen.getByRole('button', { name: 'encender A sola' }))
-    fireEvent.click(screen.getByRole('button', { name: 'encender A' })) // apagar
-    fireEvent.click(screen.getByRole('button', { name: 'encender A' })) // encender a mano
-    await guardar()
-    expect(tarifasEscritas()).toEqual([])
+    red.costos = { 'acc-1': costoDeLaCuenta1() }
+    red.pierdeRespuesta = null
   })
 
   it('si un «Guardar» falla a media escritura, el siguiente no se fía de la foto y vuelve a mandar lo editado (Codex r9 #2)', async () => {
-    const r = configurada()
-    red.resumen = {
-      ...r,
-      pricingStructures: [tarifa('org-vigente', { creditRate: '0.03', includesTax: null })],
-      venuePricingStructures: [],
-    }
+    red.resumen = configurada()
     await abrir()
-    await ir('Sucursales')
-    fireEvent.click(screen.getByRole('button', { name: 'encender A sola' }))
-    fireEvent.click(screen.getByRole('button', { name: 'crédito de A a 2.7' }))
-    red.pierdeRespuesta = 'createVenuePricingStructure' // el servidor la crea, pero la respuesta no llega
+    await ir('Pricing')
+    fireEvent.click(screen.getByRole('button', { name: 'subir crédito' })) // 2.5 → 2.6
+    red.pierdeRespuesta = 'setOrganizationPricing' // el servidor la guarda, pero la respuesta no llega
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: /Guardar/ }))
     })
     await waitFor(() => expect(red.avisos.map(a => a.title)).toContain('Error al guardar'))
-    fireEvent.click(screen.getByRole('button', { name: 'crédito de A a 2.5' })) // la persona la regresa al valor mostrado
+    fireEvent.click(screen.getByRole('button', { name: 'bajar crédito' })) // la persona la regresa a lo que se cargó (2.5)
     await guardar()
-    const sucursal = tarifasEscritas().filter(([n]) => n === 'createVenuePricingStructure')
-    expect(sucursal).toHaveLength(2)
-    expect(sucursal[1][1]).toMatchObject({ venueId: 'v-a', creditRate: expect.closeTo(0.025, 10) })
+    const org = tarifasEscritas().filter(([n]) => n === 'setOrganizationPricing')
+    expect(org).toHaveLength(2)
+    expect(org[1][2]).toMatchObject({ creditRate: expect.closeTo(0.025, 10) })
   })
 
   it('apagar, guardar, volver a encender a mano y editar SÍ escribe la tarifa de la sucursal (Codex r5 #1)', async () => {

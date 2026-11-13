@@ -122,9 +122,6 @@ export interface VenueOverride {
   pricing?: PricingData
   settlement?: SettlementData
   existingPricingId?: string
-  /** D18: base de una sucursal que el asistente ENCENDIÓ SOLO (abierto desde la sucursal) y que todavía no tiene tarifa propia:
-   *  lo que el formulario le mostró, o lo último que se guardó sin escribir nada. Igual a esto ⇒ la persona no la cambió. */
-  semilla?: PricingData
 }
 
 export interface WizardState {
@@ -157,11 +154,10 @@ type WizardAction =
   | { type: 'SET_PRICING'; slot: 'PRIMARY' | 'SECONDARY' | 'TERTIARY'; data: PricingData }
   | { type: 'SET_SETTLEMENT'; data: SettlementData }
   | { type: 'INIT_VENUE_OVERRIDES'; venues: Array<{ id: string; name: string; slug: string }> }
-  | { type: 'TOGGLE_VENUE_OVERRIDE'; venueId: string; sola?: boolean }
+  | { type: 'TOGGLE_VENUE_OVERRIDE'; venueId: string }
   | { type: 'SET_VENUE_PRICING'; venueId: string; data: PricingData; existingPricingId?: string }
   | { type: 'SET_VENUE_SETTLEMENT'; venueId: string; data: SettlementData }
   | { type: 'SET_VENUE_EXISTING_PRICING_ID'; venueId: string; existingPricingId: string | null }
-  | { type: 'SET_VENUE_SEMILLA'; venueId: string; semilla: PricingData }
   | { type: 'RESET' }
 
 // Blumon defaults: DEBIT/CREDIT 1d, AMEX 3d, INTERNATIONAL 3d, OTHER 2d
@@ -342,9 +338,6 @@ function wizardReducer(state: WizardState, action: WizardAction): WizardState {
               ? {
                   pricing: existing.pricing || { ...DEFAULT_PRICING },
                   settlement: existing.settlement || { ...state.settlement },
-                  // D18: encendida sola ⇒ se recuerda con qué (la base). A mano ⇒ conserva la base que tuviera (Codex r9 #1:
-                  // apagar y volver a encender no es un cambio); si nunca la tuvo, encender es decisión de la persona.
-                  semilla: action.sola ? existing.pricing || { ...DEFAULT_PRICING } : existing.semilla,
                 }
               : {}),
           },
@@ -381,8 +374,6 @@ function wizardReducer(state: WizardState, action: WizardAction): WizardState {
       const existing = state.venueOverrides[action.venueId]
       if (!existing) return state
       const updated = { ...existing }
-      // D18 (Codex r6): en cuanto la sucursal tiene (o deja de tener) tarifa propia guardada, ya no hay semilla.
-      delete updated.semilla
       if (action.existingPricingId === null) {
         delete updated.existingPricingId
       } else {
@@ -395,11 +386,6 @@ function wizardReducer(state: WizardState, action: WizardAction): WizardState {
           [action.venueId]: updated,
         },
       }
-    }
-    case 'SET_VENUE_SEMILLA': {
-      const existing = state.venueOverrides[action.venueId]
-      if (!existing) return state
-      return { ...state, venueOverrides: { ...state.venueOverrides, [action.venueId]: { ...existing, semilla: action.semilla } } }
     }
     case 'RESET':
       return { ...initialState }
@@ -864,9 +850,6 @@ export const PaymentSetupWizard: React.FC<PaymentSetupWizardProps> = ({ open, on
           // D18: sin cambios contra lo cargado no se toca (antes se reescribía, o se desactivaba si igualaba a la de la organización).
           const antes = cargado.current.sucursales[override.venueId]
           if (!incierto && antes && override.existingPricingId === antes.id && mismaTarifa(override.pricing, antes.pricing)) continue
-          // Codex r4 #1 / r5–r8: una sucursal sin tarifa propia que el asistente encendió SOLO (abierto desde la sucursal) se
-          // compara contra su base (lo que se le mostró o lo último guardado sin escribir): igual ⇒ la persona no la cambió.
-          if (!incierto && !antes && override.semilla && mismaTarifa(override.pricing, override.semilla)) continue
 
           // Codex r3 H1: sólo se compara con una tarifa de organización que EXISTE (la cargada o la que se acaba de guardar);
           // la de default del formulario no es respaldo de nadie.
@@ -914,9 +897,6 @@ export const PaymentSetupWizard: React.FC<PaymentSetupWizardProps> = ({ open, on
               dispatch({ type: 'SET_VENUE_EXISTING_PRICING_ID', venueId: override.venueId, existingPricingId: created.id })
               cargado.current.sucursales[override.venueId] = { pricing: vP, id: created.id }
             }
-          } else if (override.semilla) {
-            // Igual a la organización y sin tarifa propia: no hay nada que escribir, pero esto es lo último que se guardó.
-            dispatch({ type: 'SET_VENUE_SEMILLA', venueId: override.venueId, semilla: vP })
           }
         }
       }

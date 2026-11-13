@@ -43,14 +43,10 @@ export const VenueOverridesStep: React.FC<VenueOverridesStepProps> = ({ state, d
       venues: orgDetail.venues.map(v => ({ id: v.id, name: v.name, slug: v.slug })),
     })
 
-    // If opened from a specific venue, auto-enable its override
-    if (context.initialVenueId && orgDetail.venues.some(v => v.id === context.initialVenueId)) {
-      const existing = state.venueOverrides[context.initialVenueId]
-      if (!existing?.enabled) {
-        dispatch({ type: 'TOGGLE_VENUE_OVERRIDE', venueId: context.initialVenueId, sola: true })
-      }
-    }
-  }, [orgDetail?.venues, context.initialVenueId]) // eslint-disable-line react-hooks/exhaustive-deps
+    // D18 (Codex r4–r10): abrir el wizard desde una sucursal ya NO enciende sola su tarifa personalizada. Encenderla sola
+    // hacía que «Guardar» creara una tarifa que nadie escribió (y volvía a encender lo que la persona apagaba). La persona
+    // la enciende con su switch.
+  }, [orgDetail?.venues]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const orgPricing = state.pricing.PRIMARY
   const venues = Object.values(state.venueOverrides)
