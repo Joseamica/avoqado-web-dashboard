@@ -4,10 +4,10 @@
  * (el servidor devuelve el pago ya registrado en vez de registrar otro). Tras un éxito, la llave es nueva.
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { olvidarTodosLosEnviosEnDuda } from '@/lib/llaveDeEnvio'
+import { olvidarTodo } from '@/lib/llaveDeEnvio'
 
 const create = vi.hoisted(() => vi.fn())
 const toast = vi.hoisted(() => vi.fn())
@@ -54,7 +54,7 @@ describe('ManualPaymentDialog — la llave del pago y el aviso honesto (D1)', ()
     create.mockReset()
     toast.mockReset()
   })
-  afterEach(() => olvidarTodosLosEnviosEnDuda())
+  afterEach(() => olvidarTodo())
 
   it('🔴 sin respuesta: dice que no sabe si se registró (no «Network Error»), y el reintento lleva la MISMA llave', async () => {
     create.mockRejectedValueOnce(sinRespuesta()).mockResolvedValueOnce(PAGO)
@@ -134,4 +134,53 @@ describe('ManualPaymentDialog — la llave del pago y el aviso honesto (D1)', ()
     expect(llaveDe(1)).not.toBe(llaveDe(0))
     expect(screen.queryByText(/sin confirmar/)).not.toBeInTheDocument()
   })
+
+  it('🔴 doble clic del MISMO instante registra UN solo pago', async () => {
+    let soltar: (v: unknown) => void = () => {}
+    create.mockImplementation(() => new Promise(r => (soltar = r)))
+    const { user } = montar()
+    await user.type(screen.getByLabelText('Monto'), '100')
+    fireEvent.change(screen.getByLabelText('Proveedor externo'), { target: { value: 'Clip' } })
+    const boton = screen.getByRole('button', { name: 'Registrar pago' })
+
+    act(() => {
+      boton.click()
+      boton.click()
+    })
+    await waitFor(() => expect(create).toHaveBeenCalled())
+    await act(async () => {
+      await new Promise(r => setTimeout(r, 50))
+      soltar(PAGO)
+    })
+
+    expect(create).toHaveBeenCalledTimes(1)
+  })
+
+  it('🔴 Codex r2 #3: salir y volver ANTES de que falle: al fallar, la pantalla nueva avisa y el reenvío lleva la MISMA llave', async () => {
+    let fallar: (e: unknown) => void = () => {}
+    create.mockImplementationOnce(() => new Promise((_, rechazar) => (fallar = rechazar))).mockResolvedValueOnce(PAGO)
+    const primero = montar()
+    await registrar(primero.user, '100', 1)
+    primero.unmount()
+
+    const { user } = montar()
+    expect(screen.queryByText(/sin confirmar/)).not.toBeInTheDocument() // sigue en vuelo: todavía no es una duda
+    await act(async () => fallar(sinRespuesta()))
+    expect(await screen.findByText(/Hay un pago de .*100.* sin confirmar/)).toBeInTheDocument()
+
+    await registrar(user, '100', 2)
+    expect(llaveDe(1)).toBe(llaveDe(0))
+  })
+
+  it('🔴 Codex r2 #2: A en duda, B confirmado, reintentar A ⇒ la llave de A (no se duplica A)', async () => {
+    create.mockRejectedValueOnce(sinRespuesta()).mockResolvedValueOnce(PAGO).mockResolvedValueOnce(PAGO)
+    const { user } = montar()
+    await registrar(user, '100', 1)
+    await registrar(user, '120', 2)
+    await registrar(user, '100', 3)
+
+    expect(llaveDe(1)).not.toBe(llaveDe(0))
+    expect(llaveDe(2)).toBe(llaveDe(0))
+  })
 })
+

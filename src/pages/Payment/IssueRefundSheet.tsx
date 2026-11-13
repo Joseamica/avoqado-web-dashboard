@@ -25,7 +25,7 @@ import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { textoDelServidorEnIdioma } from '@/pages/GiftCards/giftCardText'
 import { quedoEnDuda } from '@/pages/Commissions/envioUnico'
-import { useLlaveDeEnvio } from '@/lib/llaveDeEnvio'
+import { quedoSinConfirmar, reservar, resolver, useCandado, useLlaveDeEnvio } from '@/lib/llaveDeEnvio'
 import { EnvioEnDudaAviso } from '@/components/EnvioEnDudaAviso'
 import { lineRefundAmount, type RefundableItem } from './refundAmount'
 import { cabeEnCentavos, propinaMarcadaPorDefecto, propinaQueCabe } from './refundTip'
@@ -74,6 +74,13 @@ interface IssueRefundSheetProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onRefunded: () => void
+}
+
+/** D1: lo que viaja en una mutación de reembolso: el cuerpo con su llave, y su huella para borrar SU anotación al terminar. */
+interface EnvioDelReembolso {
+  body: Record<string, unknown>
+  huella: string
+  reusada: boolean
 }
 
 export function IssueRefundSheet({
@@ -163,13 +170,15 @@ export function IssueRefundSheet({
   const itemsTotal = Math.round((itemsRefundAmount + itemsTip) * 100) / 100
 
   /**
-   * D1: la llave del reembolso. Un envío en duda se recuerda para ESTE pago (aunque se cierre la hoja o se recargue) y la hoja lo
-   * avisa con «Es otro»; reenviarlo con lo mismo lleva su misma llave. Ver `@/lib/llaveDeEnvio`.
+   * D1: la llave del reembolso. Cada envío se anota ANTES de salir, para ESTE pago (aunque se cierre la hoja, se recargue o se
+   * abra otra pestaña); el mismo contenido reusa su llave y la hoja avisa lo que quedó sin confirmar con «Es otro». Un candado
+   * frena el doble clic del mismo instante. Ver `@/lib/llaveDeEnvio`.
    */
-  const llave = useLlaveDeEnvio(`reembolso:${venueId}:${paymentId}`)
+  const ambitoDelReembolso = `reembolso:${venueId}:${paymentId}`
+  const { sinConfirmar: reembolsosSinConfirmar, esOtro } = useLlaveDeEnvio(ambitoDelReembolso)
+  const conCandado = useCandado()
 
-  const refundMutation = useMutation({
-    mutationFn: async () => {
+  const armarCuerpo = (): Record<string, unknown> => {
       const body: Record<string, unknown> = { reason }
       if (tab === 'amount') {
         body.amount = Math.round(parsedAmount * 100)
@@ -188,19 +197,22 @@ export function IssueRefundSheet({
           )
         }
       }
-      // D1: mismo contenido que el envío en duda ⇒ su misma llave: el servidor devuelve el reembolso ya hecho en vez de otro.
-      body.idempotencyKey = llave.preparar(JSON.stringify([venueId, paymentId, body]), tab === 'amount' ? parsedAmount : itemsTotal).llave
+      return body
+  }
+
+  const refundMutation = useMutation({
+    mutationFn: async ({ body }: EnvioDelReembolso) => {
       const res = await api.post(
         `/api/v1/dashboard/venues/${venueId}/payments/${paymentId}/refund`,
         body,
       )
       return res.data
     },
-    onSuccess: () => {
-      // Confirmado: el siguiente reembolso (aunque sea idéntico) es otra operación y estrena llave.
-      const { fueReintento } = llave.alTerminarBien()
+    onSuccess: (_data, { huella, reusada }) => {
+      // Confirmado: se borra SU anotación; el siguiente reembolso (aunque sea idéntico) estrena llave.
+      resolver(ambitoDelReembolso, huella)
       toast(
-        fueReintento
+        reusada
           ? {
               title: t('enDuda.mismoRegistrado', { defaultValue: 'Ya quedó registrado' }),
               description: t('enDuda.mismoRegistradoDescripcion', {
@@ -214,8 +226,10 @@ export function IssueRefundSheet({
       queryClient.invalidateQueries({ queryKey: ['payments', venueId] })
       onRefunded()
     },
-    onError: (err: any) => {
-      llave.alFallar(err) // D1: en duda se recuerda (con su aviso); un rechazo definitivo la olvida
+    onError: (err: any, { huella }) => {
+      // D1: en duda la anotación se queda (y la hoja la avisa); un rechazo definitivo no registró nada: se borra.
+      if (quedoEnDuda(err)) quedoSinConfirmar(ambitoDelReembolso, huella)
+      else resolver(ambitoDelReembolso, huella)
       const delServidor = textoDelServidorEnIdioma(err, tGiftCards)
       const sinConfirmar = delServidor === undefined && quedoEnDuda(err)
       const irAlPedido: string | undefined = err?.response?.data?.code === 'ONLINE_ORDER_REFUND_VIA_ONLINE_ORDERS' ? orderHref : undefined
@@ -240,6 +254,15 @@ export function IssueRefundSheet({
       })
     },
   })
+
+  /** D1: arma el envío, lo anota con su llave ANTES de mandarlo y lo manda; el candado frena el doble clic. */
+  const reembolsar = () =>
+    conCandado(async () => {
+      const body = armarCuerpo()
+      const huella = JSON.stringify([venueId, paymentId, body])
+      const { llave, reusada } = reservar(ambitoDelReembolso, huella, tab === 'amount' ? parsedAmount : itemsTotal)
+      await refundMutation.mutateAsync({ body: { ...body, idempotencyKey: llave }, huella, reusada }).catch(() => undefined)
+    })
 
   const reasons: { value: Reason; label: string }[] = [
     { value: 'RETURNED_GOODS', label: t('refund.reasons.RETURNED_GOODS', { defaultValue: 'Productos devueltos' }) },
@@ -328,15 +351,18 @@ export function IssueRefundSheet({
         </div>
         <DialogDescription className="sr-only">{t('refund.description', { defaultValue: 'Elige qué devolver y por qué.' })}</DialogDescription>
 
-        {llave.enDuda && (
-          <div className="px-6 pt-4">
-            <EnvioEnDudaAviso
-              titulo={t('enDuda.reembolsoTitulo', {
-                monto: Currency(llave.enDuda.monto),
-                defaultValue: `Hay un reembolso de ${Currency(llave.enDuda.monto)} sin confirmar`,
-              })}
-              onEsOtro={llave.esOtro}
-            />
+        {reembolsosSinConfirmar.length > 0 && (
+          <div className="px-6 pt-4 space-y-2">
+            {reembolsosSinConfirmar.map(envio => (
+              <EnvioEnDudaAviso
+                key={envio.huella}
+                titulo={t('enDuda.reembolsoTitulo', {
+                  monto: Currency(envio.monto),
+                  defaultValue: `Hay un reembolso de ${Currency(envio.monto)} sin confirmar`,
+                })}
+                onEsOtro={() => esOtro(envio.huella)}
+              />
+            ))}
           </div>
         )}
 
@@ -454,7 +480,7 @@ export function IssueRefundSheet({
             <Button
               className="rounded-full px-6 bg-foreground text-background hover:bg-foreground/90"
               disabled={!canFinalConfirm || refundMutation.isPending}
-              onClick={() => refundMutation.mutate()}
+              onClick={reembolsar}
             >
               {refundMutation.isPending
                 ? t('refund.processing', { defaultValue: 'Procesando...' })

@@ -4,10 +4,10 @@
  * otro. Tras un éxito, o con otro monto, la llave es nueva.
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { olvidarTodosLosEnviosEnDuda } from '@/lib/llaveDeEnvio'
+import { olvidarTodo } from '@/lib/llaveDeEnvio'
 
 const post = vi.hoisted(() => vi.fn())
 const toast = vi.hoisted(() => vi.fn())
@@ -42,7 +42,7 @@ describe('IssueRefundSheet — la llave del reembolso (D1)', () => {
     post.mockReset()
     toast.mockReset()
   })
-  afterEach(() => olvidarTodosLosEnviosEnDuda())
+  afterEach(() => olvidarTodo())
 
   it('🔴 en duda y otra vez con lo mismo ⇒ la MISMA llave (el servidor no hace otro reembolso)', async () => {
     post.mockRejectedValueOnce(sinRespuesta()).mockResolvedValueOnce({ data: { success: true } })
@@ -119,5 +119,24 @@ describe('IssueRefundSheet — la llave del reembolso (D1)', () => {
       </QueryClientProvider>,
     )
     expect(screen.queryByText(/sin confirmar/)).not.toBeInTheDocument()
+  })
+
+  it('🔴 doble clic del MISMO instante manda UN solo reembolso (hz:1fdd539e:D6: en la D3 salían dos POST)', async () => {
+    let soltar: (v: unknown) => void = () => {}
+    post.mockImplementation(() => new Promise(r => (soltar = r)))
+    const { user } = montar()
+    const campo = screen.getByRole('textbox')
+    await user.type(campo, '50')
+    await user.selectOptions(screen.getByRole('combobox'), 'OTHER')
+    const boton = screen.getByRole('button', { name: 'Reembolsar' })
+
+    act(() => {
+      boton.click()
+      boton.click()
+    })
+    await waitFor(() => expect(post).toHaveBeenCalled())
+    await act(async () => soltar({ data: { success: true } }))
+
+    expect(post).toHaveBeenCalledTimes(1)
   })
 })

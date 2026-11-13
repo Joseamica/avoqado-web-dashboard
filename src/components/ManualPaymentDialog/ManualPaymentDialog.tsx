@@ -14,8 +14,13 @@ import { Button } from '@/components/ui/button'
 import { LoadingButton } from '@/components/ui/loading-button'
 import { useToast } from '@/hooks/use-toast'
 
-import { manualPaymentService, type PaymentMethod, type PaymentSource } from '@/services/manualPayment.service'
-import { useLlaveDeEnvio } from '@/lib/llaveDeEnvio'
+import {
+  manualPaymentService,
+  type CreateManualPaymentInput,
+  type PaymentMethod,
+  type PaymentSource,
+} from '@/services/manualPayment.service'
+import { quedoSinConfirmar, reservar, resolver, useCandado, useLlaveDeEnvio } from '@/lib/llaveDeEnvio'
 import { Currency } from '@/utils/currency'
 import { EnvioEnDudaAviso } from '@/components/EnvioEnDudaAviso'
 import { quedoEnDuda } from '@/pages/Commissions/envioUnico'
@@ -107,6 +112,13 @@ interface ManualPaymentDialogProps {
   venueId: string
 }
 
+/** D1: lo que viaja en la mutación: el pago con su llave, y su huella para borrar SU anotación al terminar. */
+interface EnvioDelPago {
+  input: CreateManualPaymentInput
+  huella: string
+  reusada: boolean
+}
+
 /**
  * Manual payments are ALWAYS standalone bookkeeping entries — money received
  * via an external provider (BUQ, Clip, etc.) that never passed through
@@ -118,10 +130,13 @@ export function ManualPaymentDialog({ open, onClose, venueId }: ManualPaymentDia
   const queryClient = useQueryClient()
   const { t } = useTranslation('payment')
   /**
-   * D1: la llave del pago. Un envío en duda se recuerda para este negocio (aunque se cierre el diálogo o se recargue) y el
-   * diálogo lo avisa con «Es otro»; reenviarlo con lo mismo lleva su misma llave. Ver `@/lib/llaveDeEnvio`.
+   * D1: la llave del pago. Cada envío se anota ANTES de salir, para este negocio (aunque se cierre el diálogo, se recargue o se
+   * abra otra pestaña); el mismo contenido reusa su llave y el diálogo avisa lo que quedó sin confirmar con «Es otro». Un
+   * candado frena el doble clic del mismo instante. Ver `@/lib/llaveDeEnvio`.
    */
-  const llave = useLlaveDeEnvio(`pago-manual:${venueId}`)
+  const ambitoDelPago = `pago-manual:${venueId}`
+  const { sinConfirmar: pagosSinConfirmar, esOtro } = useLlaveDeEnvio(ambitoDelPago)
+  const conCandado = useCandado()
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -165,9 +180,7 @@ export function ManualPaymentDialog({ open, onClose, venueId }: ManualPaymentDia
     enabled: open,
   })
 
-  const mutation = useMutation({
-    mutationFn: (values: FormValues) => {
-      const input = {
+  const armarPago = (values: FormValues) => ({
         // No orderId: manual payments are always standalone — backend
         // creates a shadow order automatically.
         amount: values.amount,
@@ -183,16 +196,15 @@ export function ManualPaymentDialog({ open, onClose, venueId }: ManualPaymentDia
             : undefined,
         waiterId: values.waiterId && values.waiterId.length > 0 ? values.waiterId : undefined,
         reason: values.reason && values.reason.trim().length > 0 ? values.reason.trim() : undefined,
-      }
-      // D1: mismo contenido que el envío en duda ⇒ su misma llave: el servidor devuelve el pago ya registrado en vez de otro.
-      const { llave: idempotencyKey } = llave.preparar(JSON.stringify([venueId, input]), Number(values.amount) || 0)
-      return manualPaymentService.create(venueId, { ...input, idempotencyKey })
-    },
-    onSuccess: () => {
-      // Confirmado: el siguiente pago (aunque sea idéntico) es otra operación y estrena llave.
-      const { fueReintento } = llave.alTerminarBien()
+  })
+
+  const mutation = useMutation({
+    mutationFn: ({ input }: EnvioDelPago) => manualPaymentService.create(venueId, input),
+    onSuccess: (_data, { huella, reusada }) => {
+      // Confirmado: se borra SU anotación; el siguiente pago (aunque sea idéntico) estrena llave.
+      resolver(ambitoDelPago, huella)
       toast(
-        fueReintento
+        reusada
           ? {
               title: t('enDuda.mismoRegistrado', { defaultValue: 'Ya quedó registrado' }),
               description: t('enDuda.mismoRegistradoDescripcion', {
@@ -206,10 +218,12 @@ export function ManualPaymentDialog({ open, onClose, venueId }: ManualPaymentDia
       queryClient.invalidateQueries({ queryKey: ['external-sources', venueId] })
       onClose()
     },
-    onError: (err: any) => {
-      // D1: sin respuesta (o 5xx) no se sabe si se registró: no se dice «error» como si no hubiera pasado nada. La llave se
-      // recuerda (con su aviso) para que volver a mandarlo no duplique, y se refrescan los pagos para revisarlo.
-      llave.alFallar(err)
+    onError: (err: any, { huella }) => {
+      // D1: sin respuesta (o 5xx) no se sabe si se registró: no se dice «error» como si no hubiera pasado nada. La anotación se
+      // queda (con su aviso) para que volver a mandarlo no duplique, y se refrescan los pagos para revisarlo. Un rechazo
+      // definitivo no registró nada: se borra.
+      if (quedoEnDuda(err)) quedoSinConfirmar(ambitoDelPago, huella)
+      else resolver(ambitoDelPago, huella)
       if (quedoEnDuda(err)) {
         toast({
           title: t('manualPayment.errorUnknownTitle', { defaultValue: 'Pago sin confirmar' }),
@@ -235,9 +249,14 @@ export function ManualPaymentDialog({ open, onClose, venueId }: ManualPaymentDia
     },
   })
 
-  const onSubmit = (values: FormValues) => {
-    mutation.mutate(values)
-  }
+  /** D1: arma el pago, lo anota con su llave ANTES de mandarlo y lo manda; el candado frena el doble clic. */
+  const onSubmit = (values: FormValues) =>
+    conCandado(async () => {
+      const input = armarPago(values)
+      const huella = JSON.stringify([venueId, input])
+      const { llave, reusada } = reservar(ambitoDelPago, huella, Number(values.amount) || 0)
+      await mutation.mutateAsync({ input: { ...input, idempotencyKey: llave }, huella, reusada }).catch(() => undefined)
+    })
 
   return (
     <Dialog
@@ -254,15 +273,16 @@ export function ManualPaymentDialog({ open, onClose, venueId }: ManualPaymentDia
           </DialogDescription>
         </DialogHeader>
 
-        {llave.enDuda && (
+        {pagosSinConfirmar.map(envio => (
           <EnvioEnDudaAviso
+            key={envio.huella}
             titulo={t('enDuda.pagoTitulo', {
-              monto: Currency(llave.enDuda.monto),
-              defaultValue: `Hay un pago de ${Currency(llave.enDuda.monto)} sin confirmar`,
+              monto: Currency(envio.monto),
+              defaultValue: `Hay un pago de ${Currency(envio.monto)} sin confirmar`,
             })}
-            onEsOtro={llave.esOtro}
+            onEsOtro={() => esOtro(envio.huella)}
           />
-        )}
+        ))}
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
