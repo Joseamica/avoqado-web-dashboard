@@ -22,9 +22,11 @@ vi.mock('./ImpresionDelCanalEditor', () => ({
     channel: { id: string }
     canEdit: boolean
     onPendienteChange?: (x: unknown) => void
+    conBotonGuardar?: boolean
   }) => (
     <div>
       <span data-testid="editor-impresion">{`${p.venueId}|${p.channel.id}|${p.canEdit}`}</span>
+      <span data-testid="editor-boton">{String(p.conBotonGuardar)}</span>
       <button
         type="button"
         onClick={() => p.onPendienteChange?.({ comanda: 'UNA_ESTACION', estacionId: 'barra', empaque: 'NO' })}
@@ -66,11 +68,13 @@ let invalidateSpy: ReturnType<typeof vi.spyOn>
 function renderDialog(ch: DeliveryChannelLink) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
   invalidateSpy = vi.spyOn(qc, 'invalidateQueries')
-  return render(
+  const arbol = (c: DeliveryChannelLink) => (
     <QueryClientProvider client={qc}>
-      <ChannelSettingsDialog open onClose={vi.fn()} venueId="venue-1" channel={ch} />
-    </QueryClientProvider>,
+      <ChannelSettingsDialog open onClose={vi.fn()} venueId="venue-1" channel={c} />
+    </QueryClientProvider>
   )
+  const r = render(arbol(ch))
+  return { ...r, rerenderCon: (c: DeliveryChannelLink) => r.rerender(arbol(c)) }
 }
 
 describe('ChannelSettingsDialog', () => {
@@ -187,6 +191,18 @@ describe('ChannelSettingsDialog', () => {
     await waitFor(() => expect(mockUpdateChannel).toHaveBeenCalledTimes(1))
     const [, , body] = mockUpdateChannel.mock.calls[0]
     expect('impresion' in body.config).toBe(false)
+  })
+
+  it('UN solo «Guardar»: el editor de impresión va sin su botón propio', () => {
+    renderDialog(channel())
+    expect(screen.getByTestId('editor-boton').textContent).toBe('false')
+  })
+
+  it('un refresco que cambia OTRA llave de config no borra el horario que se está editando', async () => {
+    const { rerenderCon } = renderDialog(channel({ config: { deliveryHours: HORARIO_GUARDADO } }))
+    fireEvent.change(screen.getAllByLabelText('settings.opensAt')[0], { target: { value: '08:00' } })
+    rerenderCon(channel({ config: { deliveryHours: HORARIO_GUARDADO, soldOutSkus: ['sku-1'] } as DeliveryChannelLink['config'] }))
+    expect((screen.getAllByLabelText('settings.opensAt')[0] as HTMLInputElement).value).toBe('08:00')
   })
 
   it('al guardar refresca la MISMA consulta que usa la lista de canales', async () => {

@@ -77,11 +77,16 @@ export function ChannelSettingsDialog({ open, onClose, venueId, channel }: Chann
   // Al abrir, se relee del canal: si el modal se reusa para otro canal (o el de antes cambió
   // en el servidor) sin esto quedaría el estado del anterior y el usuario guardaría el
   // horario de OTRA tienda encima del suyo.
+  // Sólo cuando cambia LO SUYO (horario o margen): el diálogo ve el canal vigente y el sistema escribe otras llaves de
+  // `config` (agotados, avisos del menú) en cada refresco; releer con todo `config` borraba lo que se estaba editando.
+  const horarioKey = JSON.stringify(channel.config?.deliveryHours ?? null)
+  const markupGuardado = channel.config?.precios?.markupPercent
   useEffect(() => {
     if (!open) return
     setHorario(channel.config?.deliveryHours ?? HORARIO_DEFAULT)
-    setMarkup(channel.config?.precios?.markupPercent)
-  }, [open, channel.id, channel.config])
+    setMarkup(markupGuardado)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, channel.id, horarioKey, markupGuardado])
 
   /** Nunca se configuró: se está mostrando el estimado, y eso hay que decirlo. */
   const usandoEstimado = !channel.config?.deliveryHours
@@ -259,6 +264,7 @@ export function ChannelSettingsDialog({ open, onClose, venueId, channel }: Chann
             channel={channel}
             canEdit={can('delivery-channels:manage')}
             onPendienteChange={setImpresionPendiente}
+            conBotonGuardar={false}
           />
         </section>
 

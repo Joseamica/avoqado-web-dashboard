@@ -60,11 +60,17 @@ const channel = (o: Partial<DeliveryChannelLink> = {}): DeliveryChannelLink => (
   lastMenuSyncAt: null, externalLocationId: 'ext', ...o,
 })
 
-function renderEditor(ch = channel(), canEdit = true, onPendienteChange?: (p: unknown) => void) {
+function renderEditor(ch = channel(), canEdit = true, onPendienteChange?: (p: unknown) => void, conBotonGuardar?: boolean) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
   const arbol = (c: DeliveryChannelLink) => (
     <QueryClientProvider client={qc}>
-      <ImpresionDelCanalEditor venueId="venue-1" channel={c} canEdit={canEdit} onPendienteChange={onPendienteChange} />
+      <ImpresionDelCanalEditor
+        venueId="venue-1"
+        channel={c}
+        canEdit={canEdit}
+        onPendienteChange={onPendienteChange}
+        conBotonGuardar={conBotonGuardar}
+      />
     </QueryClientProvider>
   )
   const r = render(arbol(ch))
@@ -116,6 +122,30 @@ describe('ImpresionDelCanalEditor', () => {
     )
   })
 
+  it('un refresco que cambia OTRA llave de config (agotados de Rappi) no regresa lo recién elegido', async () => {
+    const { rerenderCon } = renderEditor(channel({ config: {} }))
+    fireEvent.click(await screen.findByRole('radio', { name: /Todo junto en: Barra/ }))
+    rerenderCon(channel({ config: { soldOutSkus: ['sku-1'] } as DeliveryChannelLink['config'] }))
+    await act(async () => {})
+    expect(screen.getByRole('radio', { name: /Todo junto en: Barra/ }).getAttribute('aria-checked')).toBe('true')
+  })
+
+  it('empaque «En: Barra» manda ESTACION con su id (el contrato con el SERVIDOR)', async () => {
+    renderEditor()
+    fireEvent.click(await screen.findByRole('radio', { name: 'En: Barra' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }))
+    await waitFor(() => expect(mockUpdateChannel).toHaveBeenCalledTimes(1))
+    expect(mockUpdateChannel).toHaveBeenCalledWith('venue-1', 'link-1', {
+      config: { impresion: { comanda: 'SALON', empaque: 'ESTACION', empaqueEstacionId: 'barra' } },
+    })
+  })
+
+  it('conBotonGuardar=false (dentro del diálogo del canal): no hay botón propio', async () => {
+    renderEditor(channel(), true, undefined, false)
+    await screen.findByRole('radio', { name: /Todo junto en: Barra/ })
+    expect(screen.queryByRole('button', { name: 'Guardar' })).toBeNull()
+  })
+
   it('sólo lista estaciones activas y con comanda', async () => {
     renderEditor()
     await screen.findByRole('radio', { name: /Todo junto en: Barra/ })
@@ -145,7 +175,7 @@ describe('ImpresionDelCanalEditor', () => {
 
   it('estacionId que ya no es elegible: aviso y vuelve a «Como en el salón»', async () => {
     renderEditor(channel({ config: { impresion: { comanda: 'UNA_ESTACION', estacionId: 'apagada', empaque: 'NEGOCIO' } } }))
-    expect(await screen.findByText('La estación elegida ya no existe: se imprime como en el salón')).toBeTruthy()
+    expect(await screen.findByText('La estación elegida ya no existe o está apagada: se imprime como en el salón')).toBeTruthy()
     expect(screen.getByRole('radio', { name: /Como en el salón/ }).getAttribute('aria-checked')).toBe('true')
   })
 
@@ -162,7 +192,7 @@ describe('ImpresionDelCanalEditor', () => {
 
   it('avisa que en iPad e iPhone todavía no se aplica', async () => {
     renderEditor()
-    expect(await screen.findByText('En iPad e iPhone todavía no se aplica: ahí el pedido se imprime como hoy')).toBeTruthy()
+    expect(await screen.findByText('En iPad e iPhone todavía no se aplica: ahí la comanda sale como en el salón, con el empaque del negocio')).toBeTruthy()
   })
 
   it('canEdit=false: controles deshabilitados', async () => {

@@ -45,9 +45,14 @@ interface Props {
    * de arriba lo guarde también: si no, cerraba diciendo «Ajustes guardados» y la impresión se perdía (Codex c1 #1).
    */
   onPendienteChange?: (pendiente: ImpresionDelCanal | null) => void
+  /**
+   * `false` dentro del diálogo del canal: ahí hay UN solo «Guardar» (el de arriba, que manda lo pendiente). Dos botones
+   * se estorbaban: guardar aquí refrescaba el canal y borraba el horario que se estaba editando (revisión 07d9d0).
+   */
+  conBotonGuardar?: boolean
 }
 
-export function ImpresionDelCanalEditor({ venueId, channel, canEdit, onPendienteChange }: Props) {
+export function ImpresionDelCanalEditor({ venueId, channel, canEdit, onPendienteChange, conBotonGuardar = true }: Props) {
   const { t } = useTranslation('delivery')
   const { toast } = useToast()
   const queryClient = useQueryClient()
@@ -80,14 +85,16 @@ export function ImpresionDelCanalEditor({ venueId, channel, canEdit, onPendiente
         ? est(guardado.empaqueEstacionId!)
         : NEGOCIO
 
-  // Se relee del canal y de las estaciones (React Query conserva la identidad si el refresco trae lo mismo, así que
-  // sólo un cambio de verdad, p. ej. guardado desde la otra puerta, reemplaza lo que se ve).
+  // Se relee cuando cambia lo guardado de IMPRESIÓN (p. ej. desde la otra puerta) o las estaciones. No con todo
+  // `config`: con Rappi la lista se refresca cada 30 s y el sistema escribe ahí agotados y avisos del menú; depender
+  // de `config` regresaba lo recién elegido a lo guardado y se podía guardar lo viejo con «Impresión guardada».
+  const guardadoKey = JSON.stringify(guardado ?? null)
   useEffect(() => {
     if (!cargado) return
     setComanda(comandaGuardada)
     setEmpaque(empaqueGuardado)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cargado, elegibles, channel.id, channel.config])
+  }, [cargado, elegibles, channel.id, guardadoKey])
 
   const impresion: ImpresionDelCanal = {
     comanda: comanda === SALON ? 'SALON' : 'UNA_ESTACION',
@@ -200,8 +207,8 @@ export function ImpresionDelCanalEditor({ venueId, channel, canEdit, onPendiente
 
           {avisos.length > 0 && (
             <ul className="space-y-1 text-sm text-amber-700 dark:text-amber-400">
-              {avisos.map(a => (
-                <li key={a} className="flex items-start gap-2">
+              {avisos.map((a, i) => (
+                <li key={i} className="flex items-start gap-2">
                   <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
                   {a}
                 </li>
@@ -215,14 +222,19 @@ export function ImpresionDelCanalEditor({ venueId, channel, canEdit, onPendiente
       {/* iOS va después (docs/proyectos/ios-por-hacer.md, «Mientras iOS espera» 6): la pantalla dice que ahí no aplica. */}
       <p className="text-xs text-muted-foreground">{t('impresion.iosTodaviaNo')}</p>
 
-      <Button disabled={!canEdit || !cargado || mutation.isPending} onClick={() => {
-          if (guardando.current) return
-          guardando.current = true
-          mutation.mutate()
-        }}>
-        {mutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-        {t('impresion.guardar')}
-      </Button>
+      {conBotonGuardar && (
+        <Button
+          disabled={!canEdit || !cargado || mutation.isPending}
+          onClick={() => {
+            if (guardando.current) return
+            guardando.current = true
+            mutation.mutate()
+          }}
+        >
+          {mutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          {t('impresion.guardar')}
+        </Button>
+      )}
     </section>
   )
 }

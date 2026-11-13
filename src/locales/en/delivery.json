@@ -63,7 +63,7 @@
     "settingsAction": "Hours and pricing"
   },
   "settings": {
-    "title": "Channel hours and pricing",
+    "title": "Channel hours, pricing and printing",
     "save": "Save",
     "saveSuccess": "Settings saved",
     "saveError": "Couldn't save the settings",
@@ -136,11 +136,11 @@
     "sinImpresora": "No printer: prints on the tablet's kitchen printer",
     "integrada": "Built-in printer: prints on the tablet that takes the order; it may be another one",
     "sinDireccion": "This printer has no address: prints on the tablet's kitchen printer",
-    "estacionDesaparecida": "The chosen station no longer exists: it prints like in the dining room",
-    "empaqueDesaparecida": "The chosen packing station no longer exists: the business packing station is used",
+    "estacionDesaparecida": "The chosen station no longer exists or is turned off: it prints like in the dining room",
+    "empaqueDesaparecida": "The chosen packing station no longer exists or is turned off: the business packing station is used",
     "mismoPapel": "Both go to the same printer: one single paper comes out",
     "versionMinima": "Applies on POS version {{version}} or newer",
-    "iosTodaviaNo": "Not applied on iPad and iPhone yet: orders there print as they do today",
+    "iosTodaviaNo": "Not applied on iPad and iPhone yet: there the ticket prints like in the dining room, with the business packing station",
     "guardar": "Save",
     "guardado": "Printing saved",
     "errorGuardar": "Could not save printing",
