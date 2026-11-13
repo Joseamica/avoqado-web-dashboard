@@ -59,6 +59,7 @@ import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
 import { includesNormalized } from '@/lib/utils'
 import { terminalAPI, type Terminal } from '@/services/superadmin-terminals.service'
+import { refrescarLecturasDeConfigDePagos } from '@/lib/configDePagosOrigen'
 
 export interface AttachTerminalDialogProps {
   open: boolean
@@ -120,7 +121,7 @@ export function AttachTerminalDialog({
       // surfaced visually elsewhere, no data fix needed here.
       queryClient.invalidateQueries({ queryKey: ['superadmin-terminals'] })
       queryClient.invalidateQueries({ queryKey: ['terminals'] })
-      queryClient.invalidateQueries({ queryKey: ['venue-payment-config'] })
+      refrescarLecturasDeConfigDePagos(queryClient)
       toast({
         title: 'Terminal movida',
         description: `Ahora pertenece al venue actual. La TPV recogerá el cambio en su próximo heartbeat (~30s).`,

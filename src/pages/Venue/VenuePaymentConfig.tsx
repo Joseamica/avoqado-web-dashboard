@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useAuth } from '@/context/AuthContext'
 import { useToast } from '@/hooks/use-toast'
-import { esHeredadaDeLaOrganizacion } from '@/lib/configDePagosOrigen'
+import { esHeredadaDeLaOrganizacion, refrescarLecturasDeConfigDePagos } from '@/lib/configDePagosOrigen'
 import { falloDeCarga } from '@/lib/falloDeCarga'
 import { cn } from '@/lib/utils'
 import type { ProviderCostStructure, VenuePricingStructure } from '@/services/paymentProvider.service'
@@ -537,15 +537,8 @@ const VenuePaymentConfig: React.FC = () => {
         seenAtOpen.current,
       ),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['venue-payment-config', venue?.id] })
-      // Los costos y tarifas dependen de la cuenta principal: si cambió (o se creó la propia desde la heredada), los márgenes
-      // no pueden seguir con los de la cuenta anterior (Codex r1 #2).
-      queryClient.invalidateQueries({ queryKey: ['venue-cost-structures', venue?.id] })
-      queryClient.invalidateQueries({ queryKey: ['venue-pricing-structures', venue?.id] })
-      queryClient.invalidateQueries({ queryKey: ['payment-readiness', venue?.id] })
-      // «Resumen de Ventas» filtra por estas cuentas y muestra sus plazos de depósito (30 min de vigencia): Codex r2.
-      queryClient.invalidateQueries({ queryKey: ['venueMerchantAccounts', venue?.id] })
-      queryClient.invalidateQueries({ queryKey: ['venueSettlementInfo', venue?.id] })
+      // Todo lo que lee la configuración (márgenes, disponibilidad, «Resumen de Ventas»…): Codex r1–r3 del encargo e12dc4.
+      refrescarLecturasDeConfigDePagos(queryClient, venue?.id)
       toast({ title: t('common:success'), description: t('venuePaymentConfig.createSuccess') })
       setConfigDialogOpen(false)
     },
@@ -559,15 +552,8 @@ const VenuePaymentConfig: React.FC = () => {
         seenAtOpen.current,
       ),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['venue-payment-config', venue?.id] })
-      // Los costos y tarifas dependen de la cuenta principal: si cambió (o se creó la propia desde la heredada), los márgenes
-      // no pueden seguir con los de la cuenta anterior (Codex r1 #2).
-      queryClient.invalidateQueries({ queryKey: ['venue-cost-structures', venue?.id] })
-      queryClient.invalidateQueries({ queryKey: ['venue-pricing-structures', venue?.id] })
-      queryClient.invalidateQueries({ queryKey: ['payment-readiness', venue?.id] })
-      // «Resumen de Ventas» filtra por estas cuentas y muestra sus plazos de depósito (30 min de vigencia): Codex r2.
-      queryClient.invalidateQueries({ queryKey: ['venueMerchantAccounts', venue?.id] })
-      queryClient.invalidateQueries({ queryKey: ['venueSettlementInfo', venue?.id] })
+      // Todo lo que lee la configuración (márgenes, disponibilidad, «Resumen de Ventas»…): Codex r1–r3 del encargo e12dc4.
+      refrescarLecturasDeConfigDePagos(queryClient, venue?.id)
       toast({ title: t('common:success'), description: t('venuePaymentConfig.updateSuccess') })
       setConfigDialogOpen(false)
     },
@@ -578,13 +564,8 @@ const VenuePaymentConfig: React.FC = () => {
     mutationFn: () =>
       run(pc => paymentProviderAPI.deleteVenuePaymentConfigByVenueId(venue!.id, paymentConfig!.id, pc), seenFromConfig(paymentConfig)),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['venue-payment-config', venue?.id] })
-      queryClient.invalidateQueries({ queryKey: ['venue-cost-structures', venue?.id] })
-      queryClient.invalidateQueries({ queryKey: ['venue-pricing-structures', venue?.id] })
-      queryClient.invalidateQueries({ queryKey: ['payment-readiness', venue?.id] })
-      // «Resumen de Ventas» filtra por estas cuentas y muestra sus plazos de depósito (30 min de vigencia): Codex r2.
-      queryClient.invalidateQueries({ queryKey: ['venueMerchantAccounts', venue?.id] })
-      queryClient.invalidateQueries({ queryKey: ['venueSettlementInfo', venue?.id] })
+      // Todo lo que lee la configuración (márgenes, disponibilidad, «Resumen de Ventas»…): Codex r1–r3 del encargo e12dc4.
+      refrescarLecturasDeConfigDePagos(queryClient, venue?.id)
       toast({ title: t('common:success'), description: t('venuePaymentConfig.deleteSuccess') })
     },
     onError: error => configErrorToast(error, t('venuePaymentConfig.deleteError')),

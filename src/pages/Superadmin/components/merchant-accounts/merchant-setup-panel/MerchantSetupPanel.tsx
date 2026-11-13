@@ -23,6 +23,7 @@ import TerminalsCard from './cards/TerminalsCard'
 import VenueRosterPanel from '../VenueRosterPanel'
 import { usePositionConfirm } from '../../position-lock/PositionConfirmDialog'
 import { isPositionConfirmCancel, isStalePosition, serverMessage, venueRatesLink } from '../../position-lock/positionLock'
+import { refrescarLecturasDeConfigDePagos } from '@/lib/configDePagosOrigen'
 
 interface MerchantSetupPanelProps {
   open: boolean
@@ -127,6 +128,8 @@ export default function MerchantSetupPanel({
       }),
     onSuccess: async result => {
       queryClient.invalidateQueries({ queryKey: ['merchant-accounts-all'] })
+      // El alta crea o cambia la configuración de pagos del venue: todo lo que la lee (encargo e12dc4).
+      refrescarLecturasDeConfigDePagos(queryClient, state.venue.id)
 
       // Follow-up: revenue share (non-atomic, non-blocking)
       if (!state.revenueShare.skipped) {

@@ -9,7 +9,7 @@ import {
   type MerchantAccount,
   type VenuePaymentConfig,
 } from '@/services/paymentProvider.service'
-import { cuentasParaConfigPropia, esHeredadaDeLaOrganizacion } from '@/lib/configDePagosOrigen'
+import { cuentasParaConfigPropia, esHeredadaDeLaOrganizacion, refrescarLecturasDeConfigDePagos } from '@/lib/configDePagosOrigen'
 import { cn } from '@/lib/utils'
 import type { AccountSlot, SetupState, SlotSlice } from '../types'
 import type { SetupAction } from '../useSetupReducer'
@@ -251,7 +251,8 @@ function SlotDialogBody({
       queryClient.invalidateQueries({
         queryKey: ['venue-payment-config-by-merchant', merchantAccountId],
       })
-      queryClient.invalidateQueries({ queryKey: ['venue-payment-config', venueId] })
+      // Todo lo que lee la configuración de pagos (márgenes, «Resumen de Ventas»…): encargo e12dc4.
+      refrescarLecturasDeConfigDePagos(queryClient, venueId)
       queryClient.invalidateQueries({ queryKey: ['merchant-accounts-all'] })
       dispatch({ type: 'SET_SLOT', slot: draft })
       toast({ title: 'Slot actualizado' })

@@ -31,6 +31,7 @@ import { DiscoveredMerchantsSubsection } from './DiscoveredMerchantsSubsection'
 import { TerminalsSubsection } from './TerminalsSubsection'
 import { usePositionConfirm } from '../position-lock/PositionConfirmDialog'
 import { isPositionConfirmCancel, isStalePosition } from '../position-lock/positionLock'
+import { refrescarLecturasDeConfigDePagos } from '@/lib/configDePagosOrigen'
 // Note: DeviceCompatibilityBanner removed from this dialog in Task 54.
 // TerminalsSubsection's empty-state already conveys "no NEXGO terminals"
 // with two actionable buttons. The banner component still exists for any
@@ -446,6 +447,7 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
         queryClient.invalidateQueries({ queryKey: ['venue-payment-config', effectiveVenueId] })
       }
       invalidateAll()
+      refrescarLecturasDeConfigDePagos(queryClient, effectiveVenueId)
       // Burst at 3, 6, 10, 15, 25, 45, 60s — cheap because cached + 304
       ;[3, 6, 10, 15, 25, 45, 60].forEach(s => window.setTimeout(invalidateAll, s * 1000))
       // Fallback clear of the loader at 90s — by then merchants either
@@ -495,7 +497,7 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
       // accounts list + merchant accounts list).
       queryClient.invalidateQueries({ queryKey: ['merchant-accounts-all'] })
       queryClient.invalidateQueries({ queryKey: ['merchant-accounts'] })
-      queryClient.invalidateQueries({ queryKey: ['venue-payment-config', effectiveVenueId] })
+      refrescarLecturasDeConfigDePagos(queryClient, effectiveVenueId)
       queryClient.invalidateQueries({ queryKey: ['superadmin-discovered-merchants', effectiveVenueId] })
       queryClient.invalidateQueries({ queryKey: ['superadmin-angelpay-accounts', effectiveVenueId] })
       queryClient.refetchQueries({ queryKey: ['superadmin-discovered-merchants', effectiveVenueId] })
@@ -752,7 +754,7 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
           )
           queryClient.invalidateQueries({ queryKey: ['merchant-accounts-all'] })
           queryClient.invalidateQueries({ queryKey: ['merchant-accounts'] })
-          queryClient.invalidateQueries({ queryKey: ['venue-payment-config', effectiveVenueId] })
+          refrescarLecturasDeConfigDePagos(queryClient, effectiveVenueId)
           toast({
             title: 'Merchant creado y asignado',
             description: `Asignado al slot ${manualSlot} del venue.`,

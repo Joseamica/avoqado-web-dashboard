@@ -54,3 +54,31 @@ export function cuentasParaConfigPropia(
     ...(cuentas.TERTIARY ? { tertiaryAccountId: cuentas.TERTIARY } : {}),
   }
 }
+
+/**
+ * Todo lo que LEE la configuración de pagos de un negocio, por clave de TanStack (Codex r2/r3 del encargo e12dc4: cada
+ * escritor invalidaba una parte distinta y «Resumen de Ventas» o los márgenes se quedaban con la cuenta anterior hasta
+ * 30 min). Cada pantalla que crea, cambia o borra la configuración llama ESTA función al guardar. Una lectura nueva de la
+ * configuración se agrega aquí, no en cada escritor.
+ *
+ * Con `venueId` refresca sólo ese negocio; sin él (el escritor no sabe cuál o tocó varios), todos.
+ */
+export const LECTURAS_DE_CONFIG_DE_PAGOS = [
+  'venue-payment-config',
+  'venue-payment-config-for-angelpay-approval',
+  'venue-cost-structures',
+  'venue-pricing-structures',
+  'payment-readiness',
+  'venueMerchantAccounts',
+  'venueSettlementInfo',
+] as const
+/** Ésta va por cuenta (merchant), no por negocio: siempre se refresca entera. */
+const LECTURAS_POR_CUENTA = ['venue-payment-config-by-merchant'] as const
+
+export function refrescarLecturasDeConfigDePagos(
+  queryClient: { invalidateQueries: (filtro: { queryKey: readonly unknown[] }) => unknown },
+  venueId?: string | null,
+): void {
+  for (const clave of LECTURAS_DE_CONFIG_DE_PAGOS) queryClient.invalidateQueries({ queryKey: venueId ? [clave, venueId] : [clave] })
+  for (const clave of LECTURAS_POR_CUENTA) queryClient.invalidateQueries({ queryKey: [clave] })
+}

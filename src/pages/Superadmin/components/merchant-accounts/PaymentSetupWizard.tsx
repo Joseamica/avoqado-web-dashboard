@@ -43,6 +43,7 @@ import { VenuePricingStep } from './wizard-steps/VenuePricingStep'
 import { SettlementStep } from './wizard-steps/SettlementStep'
 import { VenueOverridesStep } from './wizard-steps/VenueOverridesStep'
 import { SummaryStep } from './wizard-steps/SummaryStep'
+import { refrescarLecturasDeConfigDePagos } from '@/lib/configDePagosOrigen'
 
 // ===== TYPES =====
 
@@ -815,7 +816,7 @@ export const PaymentSetupWizard: React.FC<PaymentSetupWizardProps> = ({ open, on
 
       // Invalidate queries
       queryClient.invalidateQueries({ queryKey: ['payment-setup-summary'] })
-      queryClient.invalidateQueries({ queryKey: ['venue-payment-config'] })
+      refrescarLecturasDeConfigDePagos(queryClient)
       queryClient.invalidateQueries({ queryKey: ['merchant-accounts'] })
       queryClient.invalidateQueries({ queryKey: ['settlement-configs'] })
       queryClient.invalidateQueries({ queryKey: ['superadmin-organizations'] })

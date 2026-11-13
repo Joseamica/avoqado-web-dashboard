@@ -9,7 +9,7 @@ import { useToast } from '@/hooks/use-toast'
 import { AlertTriangle, Building2, CreditCard, Loader2, Unlink, Zap } from 'lucide-react'
 import { paymentProviderAPI, type MerchantAccount } from '@/services/paymentProvider.service'
 import { getAllVenues, type SuperadminVenue } from '@/services/superadmin.service'
-import { cuentasParaConfigPropia, esHeredadaDeLaOrganizacion } from '@/lib/configDePagosOrigen'
+import { cuentasParaConfigPropia, esHeredadaDeLaOrganizacion, refrescarLecturasDeConfigDePagos } from '@/lib/configDePagosOrigen'
 import { cn } from '@/lib/utils'
 import { usePositionConfirm } from '../position-lock/PositionConfirmDialog'
 import { isPositionConfirmCancel, isStalePosition, seenFromConfig, serverMessage, venueRatesLink } from '../position-lock/positionLock'
@@ -182,7 +182,8 @@ export const AssignAccountToVenueDialog: React.FC<AssignAccountToVenueDialogProp
       })
       queryClient.invalidateQueries({ queryKey: ['merchant-accounts'] })
       queryClient.invalidateQueries({ queryKey: ['merchant-accounts-all'] })
-      queryClient.invalidateQueries({ queryKey: ['venue-payment-config'] })
+      // Todo lo que lee la configuración de pagos (márgenes, «Resumen de Ventas»…): encargo e12dc4.
+      refrescarLecturasDeConfigDePagos(queryClient)
       queryClient.invalidateQueries({ queryKey: ['all-venue-configs'] })
       queryClient.invalidateQueries({ queryKey: ['venue-configs-by-merchant'] })
       onOpenChange(false)
@@ -231,7 +232,8 @@ export const AssignAccountToVenueDialog: React.FC<AssignAccountToVenueDialogProp
       })
       queryClient.invalidateQueries({ queryKey: ['merchant-accounts'] })
       queryClient.invalidateQueries({ queryKey: ['merchant-accounts-all'] })
-      queryClient.invalidateQueries({ queryKey: ['venue-payment-config'] })
+      // Todo lo que lee la configuración de pagos (márgenes, «Resumen de Ventas»…): encargo e12dc4.
+      refrescarLecturasDeConfigDePagos(queryClient)
       queryClient.invalidateQueries({ queryKey: ['all-venue-configs'] })
       queryClient.invalidateQueries({ queryKey: ['venue-configs-by-merchant'] })
       onOpenChange(false)

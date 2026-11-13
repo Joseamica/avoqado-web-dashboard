@@ -54,6 +54,7 @@ import {
 import { terminalAPI, type Terminal } from '@/services/superadmin-terminals.service'
 import { usePositionConfirm } from '../position-lock/PositionConfirmDialog'
 import { isPositionConfirmCancel, isStalePosition } from '../position-lock/positionLock'
+import { refrescarLecturasDeConfigDePagos } from '@/lib/configDePagosOrigen'
 
 const SLOT_LABELS: Record<AngelPayVenuePaymentSlot, string> = {
   PRIMARY: 'Principal',
@@ -128,7 +129,7 @@ export function DiscoveredMerchantsSubsection({ venueId, onPendingCountChange }:
     queryClient.invalidateQueries({ queryKey: ['venue-payment-config-for-angelpay-approval', venueId] })
     queryClient.invalidateQueries({ queryKey: ['merchant-accounts-all'] })
     queryClient.invalidateQueries({ queryKey: ['merchant-accounts'] })
-    queryClient.invalidateQueries({ queryKey: ['venue-payment-config'] })
+    refrescarLecturasDeConfigDePagos(queryClient)
     // Terminal.assignedMerchantIds may have changed — refresh terminal lists
     // anywhere they're read (terminal config, assignment dialog, etc.).
     queryClient.invalidateQueries({ queryKey: ['superadmin-terminals-for-angelpay-scoping', venueId] })
