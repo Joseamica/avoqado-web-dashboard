@@ -538,6 +538,10 @@ const VenuePaymentConfig: React.FC = () => {
       ),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['venue-payment-config', venue?.id] })
+      // Los costos y tarifas dependen de la cuenta principal: si cambió (o se creó la propia desde la heredada), los márgenes
+      // no pueden seguir con los de la cuenta anterior (Codex r1 #2).
+      queryClient.invalidateQueries({ queryKey: ['venue-cost-structures', venue?.id] })
+      queryClient.invalidateQueries({ queryKey: ['venue-pricing-structures', venue?.id] })
       queryClient.invalidateQueries({ queryKey: ['payment-readiness', venue?.id] })
       toast({ title: t('common:success'), description: t('venuePaymentConfig.createSuccess') })
       setConfigDialogOpen(false)
@@ -553,6 +557,10 @@ const VenuePaymentConfig: React.FC = () => {
       ),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['venue-payment-config', venue?.id] })
+      // Los costos y tarifas dependen de la cuenta principal: si cambió (o se creó la propia desde la heredada), los márgenes
+      // no pueden seguir con los de la cuenta anterior (Codex r1 #2).
+      queryClient.invalidateQueries({ queryKey: ['venue-cost-structures', venue?.id] })
+      queryClient.invalidateQueries({ queryKey: ['venue-pricing-structures', venue?.id] })
       queryClient.invalidateQueries({ queryKey: ['payment-readiness', venue?.id] })
       toast({ title: t('common:success'), description: t('venuePaymentConfig.updateSuccess') })
       setConfigDialogOpen(false)

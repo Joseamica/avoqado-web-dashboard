@@ -291,9 +291,12 @@ function SlotDialogBody({
           data-tour="slot-card-inherited-config"
         >
           <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+          {/* Editar conserva las otras posiciones heredadas (cuentasParaConfigPropia). El ALTA no: el SERVIDOR
+              (fullSetupAngelPayMerchant) crea la del venue sólo con esta cuenta; el aviso lo dice tal cual (Codex r1 #1). */}
           <span>
-            Este venue usa la configuración de su organización (heredada). Al guardar, tendrá su propia configuración con las
-            mismas cuentas y ésta en el slot elegido, y dejará de seguir los cambios de la organización.
+            {mode === 'edit'
+              ? 'Este venue usa la configuración de su organización (heredada). Al guardar, tendrá su propia configuración con las mismas cuentas y ésta en el slot elegido, y dejará de seguir los cambios de la organización.'
+              : 'Este venue usa la configuración de su organización (heredada). Al activar esta cuenta, tendrá su propia configuración sólo con esta cuenta: las otras cuentas de la organización no se copian (la confirmación te las muestra) y dejará de seguir los cambios de la organización.'}
           </span>
         </p>
       )}
