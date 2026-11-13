@@ -19,6 +19,7 @@ import { includesNormalized } from '@/lib/utils'
 import { getAllVenues } from '@/services/superadmin.service'
 import { paymentProviderAPI } from '@/services/paymentProvider.service'
 import { terminalAPI, type Terminal, type PreflightResult, type TerminalMigrationInfo } from '@/services/superadmin-terminals.service'
+import { refrescarLecturasDeConfigDePagos } from '@/lib/configDePagosOrigen'
 
 interface Props {
   open: boolean
@@ -122,6 +123,8 @@ export default function MigrateTerminalWizard({ open, onOpenChange, terminal, re
       setStep('progress')
       queryClient.invalidateQueries({ queryKey: ['terminals'] })
       queryClient.invalidateQueries({ queryKey: ['superadmin-terminals'] })
+      // Llevarse la cuenta puede crear la configuración del negocio destino, y cancelar la borra (encargo e12dc4).
+      refrescarLecturasDeConfigDePagos(queryClient)
     },
     onError: (e: any) => toast({ title: 'No se pudo iniciar la migración', description: e?.response?.data?.message || e?.message, variant: 'destructive' }),
   })
@@ -146,6 +149,8 @@ export default function MigrateTerminalWizard({ open, onOpenChange, terminal, re
       toast({ title: 'Migración cancelada', description: 'La TPV volvió a su venue original.' })
       queryClient.invalidateQueries({ queryKey: ['terminals'] })
       queryClient.invalidateQueries({ queryKey: ['superadmin-terminals'] })
+      // Llevarse la cuenta puede crear la configuración del negocio destino, y cancelar la borra (encargo e12dc4).
+      refrescarLecturasDeConfigDePagos(queryClient)
       setCancelConfirmOpen(false)
       close()
     },

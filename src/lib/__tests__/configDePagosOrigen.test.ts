@@ -56,7 +56,12 @@ describe('refrescarLecturasDeConfigDePagos', () => {
       ['payment-readiness', 'v1'],
       ['venueMerchantAccounts', 'v1'],
       ['venueSettlementInfo', 'v1'],
+      ['fiscal-add-merchant-accounts', 'v1'],
+      ['merchantRoutingRules', 'v1'],
       ['venue-payment-config-by-merchant'],
+      ['venue-configs-by-merchant'],
+      ['merchant-account-configs'],
+      ['all-venue-configs'],
     ])
   })
 
@@ -64,6 +69,6 @@ describe('refrescarLecturasDeConfigDePagos', () => {
     const { claves, qc } = llamadas()
     refrescarLecturasDeConfigDePagos(qc)
     expect(claves.every(c => c.length === 1)).toBe(true)
-    expect(claves).toHaveLength(8)
+    expect(claves).toHaveLength(13)
   })
 })

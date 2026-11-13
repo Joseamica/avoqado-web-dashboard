@@ -35,6 +35,7 @@ import {
   type OrgTerminalMigrationInfo,
   type OrgMigrationPreflight,
 } from '@/services/organizationDashboard.service'
+import { refrescarLecturasDeConfigDePagos } from '@/lib/configDePagosOrigen'
 
 interface Props {
   open: boolean
@@ -168,6 +169,8 @@ export default function OrgMigrateTerminalWizard({ open, onOpenChange, orgId, te
       setCommandId(r.commandId)
       setStep('progress')
       queryClient.invalidateQueries({ queryKey: ['org-terminals'] })
+      // Llevarse la cuenta puede crear la configuración del negocio destino, y cancelar la borra (encargo e12dc4).
+      refrescarLecturasDeConfigDePagos(queryClient)
     },
     onError: (e: any) =>
       toast({ title: t('terminals.migrate.executeError'), description: e?.response?.data?.message || e?.message, variant: 'destructive' }),
@@ -195,6 +198,8 @@ export default function OrgMigrateTerminalWizard({ open, onOpenChange, orgId, te
     onSuccess: () => {
       toast({ title: t('terminals.migrate.cancelledToast'), description: t('terminals.migrate.cancelledToastBody') })
       queryClient.invalidateQueries({ queryKey: ['org-terminals'] })
+      // Llevarse la cuenta puede crear la configuración del negocio destino, y cancelar la borra (encargo e12dc4).
+      refrescarLecturasDeConfigDePagos(queryClient)
       setCancelConfirmOpen(false)
       close()
     },
@@ -213,6 +218,8 @@ export default function OrgMigrateTerminalWizard({ open, onOpenChange, orgId, te
     onSuccess: () => {
       toast({ title: t('terminals.migrate.pendingWipe.cancelledToast') })
       queryClient.invalidateQueries({ queryKey: ['org-terminals'] })
+      // Llevarse la cuenta puede crear la configuración del negocio destino, y cancelar la borra (encargo e12dc4).
+      refrescarLecturasDeConfigDePagos(queryClient)
       setPendingWipeCancelOpen(false)
       preflightMutation.mutate()
     },
@@ -226,6 +233,8 @@ export default function OrgMigrateTerminalWizard({ open, onOpenChange, orgId, te
     onSuccess: () => {
       toast({ title: t('terminals.migrate.pendingWipe.discardedToast') })
       queryClient.invalidateQueries({ queryKey: ['org-terminals'] })
+      // Llevarse la cuenta puede crear la configuración del negocio destino, y cancelar la borra (encargo e12dc4).
+      refrescarLecturasDeConfigDePagos(queryClient)
       setPendingWipeDiscardOpen(false)
       preflightMutation.mutate()
     },

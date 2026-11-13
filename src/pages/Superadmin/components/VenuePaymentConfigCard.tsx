@@ -14,6 +14,7 @@ import {
 import { useToast } from '@/hooks/use-toast'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
+import { refrescarLecturasDeConfigDePagos } from '@/lib/configDePagosOrigen'
 
 interface VenuePaymentConfigCardProps {
   venueId: string | null
@@ -59,7 +60,7 @@ export const VenuePaymentConfigCard: React.FC<VenuePaymentConfigCardProps> = ({
   const createMutation = useMutation({
     mutationFn: paymentProviderAPI.createVenuePaymentConfig,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['venue-payment-config'] })
+      refrescarLecturasDeConfigDePagos(queryClient, venueId)
       queryClient.invalidateQueries({ queryKey: ['venue-pricing-structures'] })
       toast({ title: t('common.success'), description: t('paymentConfiguration.messages.success.created') })
       setIsEditing(false)
@@ -77,7 +78,7 @@ export const VenuePaymentConfigCard: React.FC<VenuePaymentConfigCardProps> = ({
     mutationFn: ({ venueId, data }: { venueId: string; data: any }) =>
       paymentProviderAPI.updateVenuePaymentConfig(venueId, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['venue-payment-config'] })
+      refrescarLecturasDeConfigDePagos(queryClient, venueId)
       queryClient.invalidateQueries({ queryKey: ['venue-pricing-structures'] })
       toast({ title: t('common.success'), description: t('paymentConfiguration.messages.success.updated') })
       setIsEditing(false)

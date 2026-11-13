@@ -71,9 +71,16 @@ export const LECTURAS_DE_CONFIG_DE_PAGOS = [
   'payment-readiness',
   'venueMerchantAccounts',
   'venueSettlementInfo',
+  'fiscal-add-merchant-accounts',
+  'merchantRoutingRules',
 ] as const
-/** Ésta va por cuenta (merchant), no por negocio: siempre se refresca entera. */
-const LECTURAS_POR_CUENTA = ['venue-payment-config-by-merchant'] as const
+/** Éstas van por cuenta (merchant) o son listas de todos: siempre se refrescan enteras. */
+const LECTURAS_POR_CUENTA = [
+  'venue-payment-config-by-merchant',
+  'venue-configs-by-merchant',
+  'merchant-account-configs',
+  'all-venue-configs',
+] as const
 
 export function refrescarLecturasDeConfigDePagos(
   queryClient: { invalidateQueries: (filtro: { queryKey: readonly unknown[] }) => unknown },

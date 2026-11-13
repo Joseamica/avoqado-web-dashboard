@@ -49,6 +49,7 @@ import MerchantSetupPanel from './components/merchant-accounts/merchant-setup-pa
 import type { VenueConfigRow } from './components/merchant-accounts/DeleteConfirmDialog'
 import { usePositionConfirm } from './components/position-lock/PositionConfirmDialog'
 import { isPositionConfirmCancel, isStalePosition, seenFromConfig, serverMessage, venueRatesLink } from './components/position-lock/positionLock'
+import { refrescarLecturasDeConfigDePagos } from '@/lib/configDePagosOrigen'
 
 /** Bucket a raw merchant-account environment into PROD / SANDBOX (mirrors MerchantAccountCard). */
 const envBucket = (raw?: string | null): 'PRODUCTION' | 'SANDBOX' | null => {
@@ -304,9 +305,11 @@ const MerchantAccounts: React.FC = () => {
       runPositionConfirm(pc => paymentProviderAPI.deleteVenuePaymentConfig(venueId, pc), seenFromConfig(config), {
         ratesLink: venueRatesLink(config.venue?.slug),
       }),
-    onSuccess: () => {
+    onSuccess: (_resultado, { venueId }) => {
       queryClient.invalidateQueries({ queryKey: ['merchant-accounts-all'] })
       queryClient.invalidateQueries({ queryKey: ['merchant-accounts'] })
+      // Cambia la configuración de pagos de un negocio: todo lo que la lee (encargo e12dc4).
+      refrescarLecturasDeConfigDePagos(queryClient, venueId)
       toast({ title: 'Éxito', description: 'Configuración de venue eliminada' })
     },
     onError: (error: unknown) => {

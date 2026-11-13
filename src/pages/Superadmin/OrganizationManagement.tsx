@@ -662,6 +662,7 @@ const ModuleManagementDialog: React.FC<ModuleManagementDialogProps> = ({ open, o
 // ===========================================
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { refrescarLecturasDeConfigDePagos } from '@/lib/configDePagosOrigen'
 
 interface PaymentConfigDialogProps {
   open: boolean
@@ -804,6 +805,8 @@ export const PaymentConfigDialog: React.FC<PaymentConfigDialogProps> = ({ open, 
     onSuccess: () => {
       toast({ title: 'Configuracion de pago guardada' })
       queryClient.invalidateQueries({ queryKey: ['org-payment-config', organization?.id] })
+      // La de la organización es la que heredan sus negocios sin configuración propia (encargo e12dc4).
+      refrescarLecturasDeConfigDePagos(queryClient)
     },
     onError: error => configErrorToast('Error al guardar configuracion', error),
   })
@@ -814,6 +817,8 @@ export const PaymentConfigDialog: React.FC<PaymentConfigDialogProps> = ({ open, 
     onSuccess: () => {
       toast({ title: 'Configuracion de pago eliminada' })
       queryClient.invalidateQueries({ queryKey: ['org-payment-config', organization?.id] })
+      // La de la organización es la que heredan sus negocios sin configuración propia (encargo e12dc4).
+      refrescarLecturasDeConfigDePagos(queryClient)
     },
     onError: error => configErrorToast('Error al eliminar configuracion', error),
   })
@@ -824,6 +829,8 @@ export const PaymentConfigDialog: React.FC<PaymentConfigDialogProps> = ({ open, 
     onSuccess: () => {
       toast({ title: 'Tarifas guardadas' })
       queryClient.invalidateQueries({ queryKey: ['org-payment-config', organization?.id] })
+      // La de la organización es la que heredan sus negocios sin configuración propia (encargo e12dc4).
+      refrescarLecturasDeConfigDePagos(queryClient)
       setPricingForm(prev => ({ ...prev, debitRate: 0, creditRate: 0, amexRate: 0, internationalRate: 0 }))
     },
     onError: (error: any) => {
@@ -841,6 +848,8 @@ export const PaymentConfigDialog: React.FC<PaymentConfigDialogProps> = ({ open, 
     onSuccess: () => {
       toast({ title: 'Tarifa desactivada' })
       queryClient.invalidateQueries({ queryKey: ['org-payment-config', organization?.id] })
+      // La de la organización es la que heredan sus negocios sin configuración propia (encargo e12dc4).
+      refrescarLecturasDeConfigDePagos(queryClient)
     },
     onError: (error: any) => {
       toast({
