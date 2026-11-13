@@ -84,6 +84,9 @@ describe('D6 · lo que sí se sigue repitiendo solo (como hoy)', () => {
     ['operationKey en el cuerpo (tarjetas de regalo)', { operationKey: 'op-123456789' }],
     ['idempotencyKey en el cuerpo (merma, SPEI)', { idempotencyKey: 'k-123456789' }],
     ['expectedEditToken en el cuerpo (pantalla del cliente)', { expectedEditToken: 'd1:1', design: {} }],
+    ['clientKey en el cuerpo (pago de una clase, ajuste manual, compra de plan; Codex r3)', { clientKey: 'k-123456789', amount: 1 }],
+    ['solicitudId en el cuerpo (liquidar una diferencia de pago al personal)', { solicitudId: 's-123456789', huellaEsperada: 'h' }],
+    ['saveId en el cuerpo (plano de mesas)', { saveId: 'save-1' }],
   ])('una escritura con %s se repite', async (_nombre, cuerpo) => {
     const r = await cortarLaPrimera(() => api.post('/api/v1/dashboard/venues/v1/x', cuerpo))
     expect(r.salidas).toBe(2)

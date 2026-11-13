@@ -81,12 +81,23 @@ declare module 'axios' {
 /** Los métodos que sólo leen: repetirlos no cambia nada en el servidor. */
 const METODOS_QUE_SOLO_LEEN = new Set(['get', 'head', 'options'])
 /**
- * Campos del cuerpo con los que el servidor reconoce una repetición: la llave de la operación (`idempotencyKey`,
- * `operationKey`) devuelve lo ya hecho, y el token de edición (`expectedEditToken`) contesta 409 si el primer intento ya
- * guardó. 🔴 Sólo cuentan si el endpoint los respeta: mandar una llave que el servidor ignora (o que su esquema tira) hace
- * insegura la repetición.
+ * Campos del cuerpo con los que el servidor reconoce una repetición: la llave de la operación devuelve lo ya hecho, y el
+ * token de edición (`expectedEditToken`) contesta 409 si el primer intento ya guardó. Las llaves con otro nombre son las
+ * del panel que el servidor deduplica (12-nov, pasada completa de D6 sobre cada llave que genera el panel):
+ * - `clientKey`: ajuste del pago de una clase, ajuste manual de pago al personal, compra de plan híbrida;
+ * - `solicitudId`: liquidar una diferencia de pago al personal;
+ * - `saveId`: guardar el plano de mesas.
+ * 🔴 Sólo cuentan si el endpoint los respeta: mandar una llave que el servidor ignora (o que su esquema tira) hace
+ * insegura la repetición. Una llave nueva con otro nombre se agrega aquí, o la petición se marca `repetible`.
  */
-const CAMPOS_QUE_RECONOCEN_LA_REPETICION = ['idempotencyKey', 'operationKey', 'expectedEditToken'] as const
+const CAMPOS_QUE_RECONOCEN_LA_REPETICION = [
+  'idempotencyKey',
+  'operationKey',
+  'expectedEditToken',
+  'clientKey',
+  'solicitudId',
+  'saveId',
+] as const
 
 const esTextoConAlgo = (valor: unknown) => typeof valor === 'string' && valor.trim().length > 0
 
