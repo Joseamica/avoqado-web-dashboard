@@ -240,166 +240,151 @@ export function ItemFormSection({
           </div>
         ) : (
           <>
-        <p className="text-sm text-muted-foreground">
-          Agrega uno o varios productos. El cliente paga el total exacto del bundle.
-        </p>
+            <p className="text-sm text-muted-foreground">Agrega uno o varios productos. El cliente paga el total exacto del bundle.</p>
 
-        {/* Selected items list — each line has quantity stepper + inline
+            {/* Selected items list — each line has quantity stepper + inline
             modifier picker per product that has groups. */}
-        {selectedItems.length > 0 && (
-          <div className="rounded-xl border border-input bg-card divide-y divide-input">
-            {selectedItems.map(it => {
-              const groups: ModifierGroup[] = (it.product.modifierGroups ?? [])
-                .map(pmg => pmg.group)
-                .filter((g): g is ModifierGroup => !!g && (g.modifiers?.length ?? 0) > 0)
-              const hasModifierGroups = groups.length > 0
+            {selectedItems.length > 0 && (
+              <div className="rounded-xl border border-input bg-card divide-y divide-input">
+                {selectedItems.map(it => {
+                  const groups: ModifierGroup[] = (it.product.modifierGroups ?? [])
+                    .map(pmg => pmg.group)
+                    .filter((g): g is ModifierGroup => !!g && (g.modifiers?.length ?? 0) > 0)
+                  const hasModifierGroups = groups.length > 0
 
-              return (
-                <div key={it.product.id} className="p-3 space-y-3">
-                  {/* Top row: product + qty stepper + line total + remove */}
-                  <div className="flex items-center gap-3">
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate">{it.product.name}</p>
-                      <p className="text-xs text-muted-foreground">{formatPrice(Number(it.product.price))} c/u</p>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        className="h-8 w-8 cursor-pointer"
-                        onClick={() => setQuantity(it.product.id, it.quantity - 1)}
-                        disabled={it.quantity <= 1}
-                      >
-                        <Minus className="h-3 w-3" />
-                      </Button>
-                      <Input
-                        type="number"
-                        min={1}
-                        max={999}
-                        value={it.quantity}
-                        onChange={e => {
-                          const v = parseInt(e.target.value, 10)
-                          if (!Number.isNaN(v)) setQuantity(it.product.id, v)
-                        }}
-                        className="h-8 w-14 text-center text-sm"
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        className="h-8 w-8 cursor-pointer"
-                        onClick={() => setQuantity(it.product.id, it.quantity + 1)}
-                      >
-                        <Plus className="h-3 w-3" />
-                      </Button>
-                    </div>
-                    <div className="w-20 text-right font-medium text-sm">{formatPrice(lineTotal(it))}</div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-muted-foreground hover:text-destructive cursor-pointer"
-                      onClick={() => removeItem(it.product.id)}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
+                  return (
+                    <div key={it.product.id} className="p-3 space-y-3">
+                      {/* Top row: product + qty stepper + line total + remove */}
+                      <div className="flex items-center gap-3">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium truncate">{it.product.name}</p>
+                          <p className="text-xs text-muted-foreground">{formatPrice(Number(it.product.price))} c/u</p>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            className="h-8 w-8 cursor-pointer"
+                            onClick={() => setQuantity(it.product.id, it.quantity - 1)}
+                            disabled={it.quantity <= 1}
+                          >
+                            <Minus className="h-3 w-3" />
+                          </Button>
+                          <Input
+                            type="number"
+                            min={1}
+                            max={999}
+                            value={it.quantity}
+                            onChange={e => {
+                              const v = parseInt(e.target.value, 10)
+                              if (!Number.isNaN(v)) setQuantity(it.product.id, v)
+                            }}
+                            className="h-8 w-14 text-center text-sm"
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            className="h-8 w-8 cursor-pointer"
+                            onClick={() => setQuantity(it.product.id, it.quantity + 1)}
+                          >
+                            <Plus className="h-3 w-3" />
+                          </Button>
+                        </div>
+                        <div className="w-20 text-right font-medium text-sm">{formatPrice(lineTotal(it))}</div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-destructive cursor-pointer"
+                          onClick={() => removeItem(it.product.id)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
 
-                  {/* Modifier groups for this product. Required + min/max info
+                      {/* Modifier groups for this product. Required + min/max info
                       is shown inline so the admin knows what to pick. */}
-                  {hasModifierGroups && (
-                    <div className="space-y-2 pl-2 border-l-2 border-muted">
-                      {groups.map(group => {
-                        const modifiers: Modifier[] = group.modifiers ?? []
-                        const pickedInGroup = it.modifiers.filter(m =>
-                          modifiers.some(gm => gm.id === m.modifierId),
-                        )
-                        const meta: string[] = []
-                        if (group.required) meta.push('requerido')
-                        if (group.minSelections > 0)
-                          meta.push(`mín ${group.minSelections}`)
-                        if (group.maxSelections != null)
-                          meta.push(`máx ${group.maxSelections}`)
-                        if (!group.allowMultiple && !group.required) meta.push('elige uno')
-                        return (
-                          <div key={group.id} className="space-y-1.5">
-                            <div className="flex items-center gap-2 text-xs">
-                              <span className="font-medium">{group.name}</span>
-                              {meta.length > 0 && (
-                                <span className="text-muted-foreground">· {meta.join(' · ')}</span>
-                              )}
-                              {pickedInGroup.length > 0 && (
-                                <span className="ml-auto text-muted-foreground">
-                                  {pickedInGroup.length} seleccionado{pickedInGroup.length === 1 ? '' : 's'}
-                                </span>
-                              )}
-                            </div>
-                            <div className="flex flex-wrap gap-1.5">
-                              {modifiers.map(m => {
-                                const picked = it.modifiers.some(mm => mm.modifierId === m.id)
-                                return (
-                                  <button
-                                    key={m.id}
-                                    type="button"
-                                    onClick={() => toggleModifier(it.product.id, group, m)}
-                                    className={`rounded-full border px-2.5 py-1 text-xs transition-colors cursor-pointer ${
-                                      picked
-                                        ? 'border-foreground bg-foreground text-background'
-                                        : 'border-input hover:bg-muted'
-                                    }`}
-                                  >
-                                    {m.name}
-                                    {Number(m.price) > 0 && (
-                                      <span className={picked ? '' : 'text-muted-foreground'}>
-                                        {' '}
-                                        +{formatPrice(Number(m.price))}
-                                      </span>
-                                    )}
-                                  </button>
-                                )
-                              })}
-                            </div>
-                          </div>
-                        )
-                      })}
+                      {hasModifierGroups && (
+                        <div className="space-y-2 pl-2 border-l-2 border-muted">
+                          {groups.map(group => {
+                            const modifiers: Modifier[] = group.modifiers ?? []
+                            const pickedInGroup = it.modifiers.filter(m => modifiers.some(gm => gm.id === m.modifierId))
+                            const meta: string[] = []
+                            if (group.required) meta.push('requerido')
+                            if (group.minSelections > 0) meta.push(`mín ${group.minSelections}`)
+                            if (group.maxSelections != null) meta.push(`máx ${group.maxSelections}`)
+                            if (!group.allowMultiple && !group.required) meta.push('elige uno')
+                            return (
+                              <div key={group.id} className="space-y-1.5">
+                                <div className="flex items-center gap-2 text-xs">
+                                  <span className="font-medium">{group.name}</span>
+                                  {meta.length > 0 && <span className="text-muted-foreground">· {meta.join(' · ')}</span>}
+                                  {pickedInGroup.length > 0 && (
+                                    <span className="ml-auto text-muted-foreground">
+                                      {pickedInGroup.length} seleccionado{pickedInGroup.length === 1 ? '' : 's'}
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {modifiers.map(m => {
+                                    const picked = it.modifiers.some(mm => mm.modifierId === m.id)
+                                    return (
+                                      <button
+                                        key={m.id}
+                                        type="button"
+                                        onClick={() => toggleModifier(it.product.id, group, m)}
+                                        className={`rounded-full border px-2.5 py-1 text-xs transition-colors cursor-pointer ${
+                                          picked ? 'border-foreground bg-foreground text-background' : 'border-input hover:bg-muted'
+                                        }`}
+                                      >
+                                        {m.name}
+                                        {Number(m.price) > 0 && (
+                                          <span className={picked ? '' : 'text-muted-foreground'}> +{formatPrice(Number(m.price))}</span>
+                                        )}
+                                      </button>
+                                    )
+                                  })}
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
                     </div>
-                  )}
+                  )
+                })}
+                {/* Subtotal footer */}
+                <div className="flex items-center justify-between p-3 bg-muted/40">
+                  <span className="text-sm font-medium">Subtotal</span>
+                  <span className="text-base font-semibold">{formatPrice(subtotal)}</span>
                 </div>
-              )
-            })}
-            {/* Subtotal footer */}
-            <div className="flex items-center justify-between p-3 bg-muted/40">
-              <span className="text-sm font-medium">Subtotal</span>
-              <span className="text-base font-semibold">{formatPrice(subtotal)}</span>
-            </div>
-          </div>
-        )}
+              </div>
+            )}
 
-        {/* Product picker — adds a new line at qty=1 */}
-        <SearchCombobox
-          placeholder={selectedItems.length === 0 ? 'Selecciona un producto…' : 'Agregar otro producto…'}
-          items={productItems}
-          isLoading={productsLoading}
-          value={productSearch}
-          onChange={setProductSearch}
-          onSelect={item => {
-            if (item.id.startsWith('group:')) {
-              onItemsChange([])
-              onGroupChange?.({ id: item.id.slice(6), name: item.label })
-              setProductSearch('')
-              return
-            }
-            const product = products.find(p => p.id === item.id)
-            if (product) {
-              addProduct(product)
-              setProductSearch('') // reset so user can immediately search the next one
-            }
-          }}
-        />
-        {selectedItems.length > 0 && (
-          <p className="text-xs text-muted-foreground">{selectedItems.length} de 20 productos</p>
-        )}
+            {/* Product picker — adds a new line at qty=1 */}
+            <SearchCombobox
+              placeholder={selectedItems.length === 0 ? 'Selecciona un producto…' : 'Agregar otro producto…'}
+              items={productItems}
+              isLoading={productsLoading}
+              value={productSearch}
+              onChange={setProductSearch}
+              onSelect={item => {
+                if (item.id.startsWith('group:')) {
+                  onItemsChange([])
+                  onGroupChange?.({ id: item.id.slice(6), name: item.label })
+                  setProductSearch('')
+                  return
+                }
+                const product = products.find(p => p.id === item.id)
+                if (product) {
+                  addProduct(product)
+                  setProductSearch('') // reset so user can immediately search the next one
+                }
+              }}
+            />
+            {selectedItems.length > 0 && <p className="text-xs text-muted-foreground">{selectedItems.length} de 20 productos</p>}
 
             {groupsLocked && (
               <button
