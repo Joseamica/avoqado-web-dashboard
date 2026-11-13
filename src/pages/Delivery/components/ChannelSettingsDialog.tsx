@@ -26,9 +26,11 @@ import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { useToast } from '@/hooks/use-toast'
+import { useAccess } from '@/hooks/use-access'
 import { updateChannel } from '@/services/delivery.service'
-import type { DeliveryChannelLink, DeliveryDayHours, DeliveryWeekday, DeliveryWeeklyHours } from '@/types/delivery'
+import type { DeliveryChannelLink, DeliveryDayHours, DeliveryWeekday, DeliveryWeeklyHours, ImpresionDelCanal } from '@/types/delivery'
 import { providerLabel } from '../providerLabels'
+import { ImpresionDelCanalEditor } from './ImpresionDelCanalEditor'
 
 const DIAS: DeliveryWeekday[] = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
 
@@ -63,20 +65,28 @@ export function ChannelSettingsDialog({ open, onClose, venueId, channel }: Chann
   const { t } = useTranslation('delivery')
   const { toast } = useToast()
   const queryClient = useQueryClient()
+  const { can } = useAccess()
 
   const [horario, setHorario] = useState<DeliveryWeeklyHours>(HORARIO_DEFAULT)
   // `number | undefined` a propósito: un input numérico que colapsa el vacío a 0 atrapa el
   // campo — el usuario borra y el valor rebota. Regla `ui-patterns.md`.
   const [markup, setMarkup] = useState<number | undefined>(undefined)
+  // La impresión elegida y sin guardar en su cuadro: el «Guardar» de arriba la guarda junto con lo demás.
+  const [impresionPendiente, setImpresionPendiente] = useState<ImpresionDelCanal | null>(null)
 
   // Al abrir, se relee del canal: si el modal se reusa para otro canal (o el de antes cambió
   // en el servidor) sin esto quedaría el estado del anterior y el usuario guardaría el
   // horario de OTRA tienda encima del suyo.
+  // Sólo cuando cambia LO SUYO (horario o margen): el diálogo ve el canal vigente y el sistema escribe otras llaves de
+  // `config` (agotados, avisos del menú) en cada refresco; releer con todo `config` borraba lo que se estaba editando.
+  const horarioKey = JSON.stringify(channel.config?.deliveryHours ?? null)
+  const markupGuardado = channel.config?.precios?.markupPercent
   useEffect(() => {
     if (!open) return
     setHorario(channel.config?.deliveryHours ?? HORARIO_DEFAULT)
-    setMarkup(channel.config?.precios?.markupPercent)
-  }, [open, channel.id, channel.config])
+    setMarkup(markupGuardado)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, channel.id, horarioKey, markupGuardado])
 
   /** Nunca se configuró: se está mostrando el estimado, y eso hay que decirlo. */
   const usandoEstimado = !channel.config?.deliveryHours
@@ -112,10 +122,12 @@ export function ChannelSettingsDialog({ open, onClose, venueId, channel }: Chann
           // Sin margen se manda el bloque vacío, no se omite: omitirlo dejaría el markup
           // anterior vivo (el backend mezcla), y el usuario acaba de dejar el campo en blanco.
           precios: markup === undefined ? {} : { markupPercent: markup },
+          // Sólo si cambió: mandarla siempre pisaría lo que otra persona guardó desde Impresoras → Delivery.
+          ...(impresionPendiente ? { impresion: impresionPendiente } : {}),
         },
       }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['delivery-channels', venueId] })
+      queryClient.invalidateQueries({ queryKey: ['deliveryChannels', venueId] })
       toast({ title: t('settings.saveSuccess') })
       onClose()
     },
@@ -243,6 +255,17 @@ export function ChannelSettingsDialog({ open, onClose, venueId, channel }: Chann
               resultado: markup !== undefined && Number.isFinite(markup) ? (100 * (1 + markup / 100)).toFixed(2) : '100.00',
             })}
           </p>
+        </section>
+
+        {/* ── Impresión (misma pieza que la pestaña «Delivery» de Impresoras; guarda por su cuenta) ───────── */}
+        <section className="rounded-2xl border border-input bg-card p-6">
+          <ImpresionDelCanalEditor
+            venueId={venueId}
+            channel={channel}
+            canEdit={can('delivery-channels:manage')}
+            onPendienteChange={setImpresionPendiente}
+            conBotonGuardar={false}
+          />
         </section>
 
         {errores.length > 0 && (

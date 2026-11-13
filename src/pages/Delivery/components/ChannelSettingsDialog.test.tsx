@@ -15,6 +15,28 @@ vi.mock('@/services/delivery.service', () => ({
   updateChannel: (...args: unknown[]) => mockUpdateChannel(...args),
 }))
 
+vi.mock('@/hooks/use-access', () => ({ useAccess: () => ({ can: (p: string) => p === 'delivery-channels:manage' }) }))
+vi.mock('./ImpresionDelCanalEditor', () => ({
+  ImpresionDelCanalEditor: (p: {
+    venueId: string
+    channel: { id: string }
+    canEdit: boolean
+    onPendienteChange?: (x: unknown) => void
+    conBotonGuardar?: boolean
+  }) => (
+    <div>
+      <span data-testid="editor-impresion">{`${p.venueId}|${p.channel.id}|${p.canEdit}`}</span>
+      <span data-testid="editor-boton">{String(p.conBotonGuardar)}</span>
+      <button
+        type="button"
+        onClick={() => p.onPendienteChange?.({ comanda: 'UNA_ESTACION', estacionId: 'barra', empaque: 'NO' })}
+      >
+        elegir-todo-junto
+      </button>
+    </div>
+  ),
+}))
+
 import { ChannelSettingsDialog } from './ChannelSettingsDialog'
 
 const HORARIO_GUARDADO: DeliveryWeeklyHours = {
@@ -41,13 +63,18 @@ function channel(overrides: Partial<DeliveryChannelLink> = {}): DeliveryChannelL
   }
 }
 
+let invalidateSpy: ReturnType<typeof vi.spyOn>
+
 function renderDialog(ch: DeliveryChannelLink) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
-  return render(
+  invalidateSpy = vi.spyOn(qc, 'invalidateQueries')
+  const arbol = (c: DeliveryChannelLink) => (
     <QueryClientProvider client={qc}>
-      <ChannelSettingsDialog open onClose={vi.fn()} venueId="venue-1" channel={ch} />
-    </QueryClientProvider>,
+      <ChannelSettingsDialog open onClose={vi.fn()} venueId="venue-1" channel={c} />
+    </QueryClientProvider>
   )
+  const r = render(arbol(ch))
+  return { ...r, rerenderCon: (c: DeliveryChannelLink) => r.rerender(arbol(c)) }
 }
 
 describe('ChannelSettingsDialog', () => {
@@ -138,5 +165,49 @@ describe('ChannelSettingsDialog', () => {
 
     await waitFor(() => expect(mockUpdateChannel).toHaveBeenCalled())
     expect(mockUpdateChannel.mock.calls[0][2].config.deliveryHours.monday.enabled).toBe(false)
+  })
+
+  it('trae la sección «Impresión» con el editor del canal y el permiso de editar', () => {
+    renderDialog(channel())
+    expect(screen.getByTestId('editor-impresion').textContent).toBe('venue-1|link-1|true')
+  })
+
+  // La lista de canales usa ['deliveryChannels', venueId]; con otra llave guardar aquí no refrescaba la lista ni la otra puerta.
+  it('«Guardar» de arriba guarda también la impresión elegida y sin guardar (no se pierde al cerrar)', async () => {
+    renderDialog(channel({ config: { deliveryHours: HORARIO_GUARDADO } }))
+    fireEvent.click(screen.getByText('elegir-todo-junto'))
+    fireEvent.click(screen.getByText('settings.save'))
+
+    await waitFor(() => expect(mockUpdateChannel).toHaveBeenCalledTimes(1))
+    const [, , body] = mockUpdateChannel.mock.calls[0]
+    expect(body.config.impresion).toEqual({ comanda: 'UNA_ESTACION', estacionId: 'barra', empaque: 'NO' })
+    expect(body.config.deliveryHours).toEqual(HORARIO_GUARDADO)
+  })
+
+  it('sin cambios en la impresión, «Guardar» de arriba NO la manda (no pisa lo guardado desde Impresoras)', async () => {
+    renderDialog(channel({ config: { deliveryHours: HORARIO_GUARDADO } }))
+    fireEvent.click(screen.getByText('settings.save'))
+
+    await waitFor(() => expect(mockUpdateChannel).toHaveBeenCalledTimes(1))
+    const [, , body] = mockUpdateChannel.mock.calls[0]
+    expect('impresion' in body.config).toBe(false)
+  })
+
+  it('UN solo «Guardar»: el editor de impresión va sin su botón propio', () => {
+    renderDialog(channel())
+    expect(screen.getByTestId('editor-boton').textContent).toBe('false')
+  })
+
+  it('un refresco que cambia OTRA llave de config no borra el horario que se está editando', async () => {
+    const { rerenderCon } = renderDialog(channel({ config: { deliveryHours: HORARIO_GUARDADO } }))
+    fireEvent.change(screen.getAllByLabelText('settings.opensAt')[0], { target: { value: '08:00' } })
+    rerenderCon(channel({ config: { deliveryHours: HORARIO_GUARDADO, soldOutSkus: ['sku-1'] } as DeliveryChannelLink['config'] }))
+    expect((screen.getAllByLabelText('settings.opensAt')[0] as HTMLInputElement).value).toBe('08:00')
+  })
+
+  it('al guardar refresca la MISMA consulta que usa la lista de canales', async () => {
+    renderDialog(channel({ config: { deliveryHours: HORARIO_GUARDADO } }))
+    fireEvent.click(screen.getByText('settings.save'))
+    await waitFor(() => expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['deliveryChannels', 'venue-1'] }))
   })
 })

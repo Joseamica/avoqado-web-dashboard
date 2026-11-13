@@ -7,6 +7,7 @@ import { StationsTab } from './components/printStations/StationsTab'
 import { PrintersTab } from './components/printStations/PrintersTab'
 import { GatewayTab } from './components/printStations/GatewayTab'
 import { RoutingTab } from './components/printStations/RoutingTab'
+import { DeliveryPrintingTab } from './components/printStations/DeliveryPrintingTab'
 
 const triggerClass =
   'group rounded-full px-4 py-2 text-sm font-medium transition-colors border border-transparent hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground'
@@ -46,6 +47,9 @@ export default function PrintStations() {
           <TabsTrigger value="routing" className={triggerClass}>
             {t('tabs.routing')}
           </TabsTrigger>
+          <TabsTrigger value="delivery" className={triggerClass}>
+            {t('tabs.delivery')}
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="stations" className="mt-6">
@@ -59,6 +63,9 @@ export default function PrintStations() {
         </TabsContent>
         <TabsContent value="routing" className="mt-6">
           <RoutingTab venueId={venueId} />
+        </TabsContent>
+        <TabsContent value="delivery" className="mt-6">
+          <DeliveryPrintingTab venueId={venueId} />
         </TabsContent>
       </Tabs>
     </div>

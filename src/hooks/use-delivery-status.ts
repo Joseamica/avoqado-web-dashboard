@@ -25,6 +25,12 @@ export interface DeliveryStatus {
   channels: DeliveryChannelLink[]
   activationRequest: DeliveryActivationRequest | null
   isLoading: boolean
+  /**
+   * La lista de canales NUNCA se pudo cargar (red, 403 sin `delivery-channels:read`…): no es lo mismo que «no hay canales».
+   * Un refresco que falla CON datos de antes no cuenta: se siguen mostrando (y los editores abiertos no se desmontan).
+   */
+  channelsError: boolean
+  retryChannels: () => void
 }
 
 const tieneRappi = (canales?: DeliveryChannelLink[]) => !!canales?.some(c => c.provider === 'RAPPI')
@@ -48,7 +54,12 @@ export function useDeliveryStatus(venueId: string | undefined): DeliveryStatus {
   // que el tier resuelve; ya resuelto, un venue sin feature tiene hasFeature=false y sigue sin pegar.
   const enabled = !!venueId && hasFeature && !tierLoading
 
-  const { data: channels = [], isLoading: chLoading } = useQuery({
+  const {
+    data: channelsData,
+    isLoading: chLoading,
+    isError: chError,
+    refetch: refetchChannels,
+  } = useQuery({
     queryKey: ['deliveryChannels', venueId],
     queryFn: () => getChannels(venueId!),
     enabled,
@@ -61,6 +72,8 @@ export function useDeliveryStatus(venueId: string | undefined): DeliveryStatus {
     refetchInterval: query => intervaloDeRappi(query.state.data),
     refetchOnWindowFocus: 'always',
   })
+  const channels = channelsData ?? []
+  const channelsError = chError && channelsData === undefined
   const { data: activationRequest = null, isLoading: reqLoading } = useQuery({
     queryKey: ['deliveryActivation', venueId],
     queryFn: () => getActivationRequest(venueId!),
@@ -76,5 +89,5 @@ export function useDeliveryStatus(venueId: string | undefined): DeliveryStatus {
 
   const state: DeliveryState = !hasFeature ? 'LOCKED' : hasActive ? 'LIVE' : activationRequest ? 'PENDING' : 'TEASER'
 
-  return { state, channels, activationRequest, isLoading }
+  return { state, channels, activationRequest, isLoading, channelsError, retryChannels: () => void refetchChannels() }
 }

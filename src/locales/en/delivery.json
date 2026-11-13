@@ -60,10 +60,10 @@
     "menuManual": "Manual menu",
     "injectionRate": "Acceptance {{pct}}%",
     "injectionTooltip": "{{aceptados}} of {{recibidos}} orders got through. Below 99% the provider may suspend the integration.",
-    "settingsAction": "Hours and pricing"
+    "settingsAction": "Hours, pricing and printing"
   },
   "settings": {
-    "title": "Channel hours and pricing",
+    "title": "Channel hours, pricing and printing",
     "save": "Save",
     "saveSuccess": "Settings saved",
     "saveError": "Couldn't save the settings",
@@ -120,5 +120,39 @@
     "forceDescription": "Rappi might keep sending orders that won't show up here. Receive them on your Rappi tablet or the partners portal.",
     "disconnectSuccess": "Store disconnected",
     "openLinkFallback": "Rappi didn't open? Open it here"
+  },
+  "impresion": {
+    "title": "{{canal}} order printing",
+    "description": "Where paper comes out when an order from this channel arrives.",
+    "comandaTitle": "Kitchen ticket",
+    "salon": "Like in the dining room",
+    "salonHelp": "Each product prints at the station it is already assigned to.",
+    "todoJunto": "Everything together at: {{estacion}}",
+    "empaqueTitle": "Packing ticket",
+    "empaqueNegocio": "The business packing station ({{estacion}})",
+    "empaqueNegocioSinEstacion": "The business packing station (none set up)",
+    "empaqueNo": "Do not print a packing ticket",
+    "empaqueEn": "At: {{estacion}}",
+    "sinImpresora": "No printer: prints on the tablet's kitchen printer",
+    "integrada": "Built-in printer: prints on the tablet that takes the order; it may be another one",
+    "sinDireccion": "This printer has no address: prints on the tablet's kitchen printer",
+    "estacionDesaparecida": "The chosen station no longer exists or is turned off: it prints like in the dining room",
+    "empaqueDesaparecida": "The chosen packing station no longer exists or is turned off: the business packing station is used",
+    "mismoPapel": "Both go to the same printer: one single paper comes out",
+    "versionMinima": "Applies on POS version {{version}} or newer",
+    "iosTodaviaNo": "Not applied on iPad and iPhone yet: there the ticket prints like in the dining room, with the business packing station",
+    "guardar": "Save",
+    "guardado": "Printing saved",
+    "errorGuardar": "Could not save printing",
+    "errorFallback": "Try again in a few seconds.",
+    "cargando": "Loading stations…",
+    "errorCarga": "Could not load stations and printers.",
+    "reintentar": "Retry",
+    "tab": {
+      "sinCanales": "Connect Rappi or Uber Eats in Delivery to choose where their orders print.",
+      "irADelivery": "Go to Delivery",
+      "errorCanales": "Couldn't load the delivery channels.",
+      "sinPermiso": "You don't have permission to see the delivery channels."
+    }
   }
 }
