@@ -1,4 +1,5 @@
-import React, { useCallback, useMemo, useState } from 'react'
+import React, { useCallback, useMemo, useRef, useState } from 'react'
+import { runCreateVenueFlow, type CreatedVenue } from './createVenueFlow'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -318,6 +319,8 @@ type _StepId = (typeof STEPS)[number]['id']
 // Props
 // ══════════════════════════════════════════════════════════════════════
 
+const PAYMENTS_STEP = STEPS.findIndex(s => s.id === 'payments')
+
 interface CreateVenueWizardProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -340,6 +343,9 @@ const CreateVenueWizard: React.FC<CreateVenueWizardProps> = ({ open, onOpenChang
   const [copiedFromVenueName, setCopiedFromVenueName] = useState('')
   const [orgSearch, setOrgSearch] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
+  // Negocio ya creado en este asistente. El ref lo lee la mutación (sin cierre viejo); el estado pinta el aviso.
+  const createdVenueRef = useRef<CreatedVenue | null>(null)
+  const [createdVenue, setCreatedVenue] = useState<CreatedVenue | null>(null)
 
   // Available platform features for the optional "Funciones" panel in the
   // Configuración step. Loaded lazily; only superadmin uses this wizard.
@@ -381,114 +387,124 @@ const CreateVenueWizard: React.FC<CreateVenueWizardProps> = ({ open, onOpenChang
   // ── Mutation ──
 
   const createMutation = useMutation({
-    mutationFn: async (data: { form: VenueFormData; merchant: MerchantData; config: ConfigData }) => {
-      const venueResponse = await superadminAPI.bulkCreateVenues({
-        organizationId: data.form.organizationId,
-        venues: [
-          {
-            name: data.form.name,
-            type: data.form.type,
-            phone: data.form.phone,
-            address: data.form.address,
-            city: data.form.city,
-            state: data.form.state,
-            country: data.form.country,
-            zipCode: data.form.zipCode,
-            latitude: data.form.latitude,
-            longitude: data.form.longitude,
-            timezone: data.form.timezone || undefined,
-            currency: data.config.currency,
-            settings: { enableShifts: data.config.enableShifts },
-            kycApproved: data.config.kycApproved,
-          },
-        ],
-      })
-
-      if (venueResponse.summary.venuesCreated === 0) {
-        throw new Error(venueResponse.errors?.[0]?.error || 'Error al crear venue')
-      }
-
-      const venueId = venueResponse.venues[0].venueId
-
-      // Apply optional feature grants from the Configuración step. Failures
-      // here don't roll back the venue (it's already created); we surface
-      // them as a non-blocking toast so the superadmin can retry from
-      // /settings/billing/subscriptions.
-      const grantEntries = Object.entries(data.config.featureGrants)
-      if (grantEntries.length > 0) {
-        const svc = await import('@/services/superadmin.service')
-        const failed: { code: string; reason: string }[] = []
-        for (const [featureCode, grant] of grantEntries) {
-          try {
-            if (grant.mode === 'enable') {
-              await svc.enableFeatureForVenue(venueId, featureCode)
-            } else {
-              await svc.grantTrialForVenue(venueId, featureCode, grant.trialDays ?? 30)
-            }
-          } catch (err: any) {
-            failed.push({ code: featureCode, reason: err?.response?.data?.message ?? err?.message ?? 'error' })
-          }
-        }
-        if (failed.length > 0) {
-          toast({
-            title: 'Algunas funciones no se activaron',
-            description: failed.map(f => `${f.code}: ${f.reason}`).join('\n'),
-            variant: 'destructive',
+    mutationFn: async (data: { form: VenueFormData; merchant: MerchantData; config: ConfigData }) =>
+      runCreateVenueFlow({
+        // Si un intento anterior ya creó el negocio (y falló en cobros), se reusa: nunca un segundo negocio.
+        alreadyCreated: createdVenueRef.current,
+        onVenueCreated: venue => {
+          createdVenueRef.current = venue
+          setCreatedVenue(venue)
+          queryClient.invalidateQueries({ queryKey: ['superadmin-venues'] })
+        },
+        createVenue: async () => {
+          const venueResponse = await superadminAPI.bulkCreateVenues({
+            organizationId: data.form.organizationId,
+            venues: [
+              {
+                name: data.form.name,
+                type: data.form.type,
+                phone: data.form.phone,
+                address: data.form.address,
+                city: data.form.city,
+                state: data.form.state,
+                country: data.form.country,
+                zipCode: data.form.zipCode,
+                latitude: data.form.latitude,
+                longitude: data.form.longitude,
+                timezone: data.form.timezone || undefined,
+                currency: data.config.currency,
+                settings: { enableShifts: data.config.enableShifts },
+                kycApproved: data.config.kycApproved,
+              },
+            ],
           })
-        }
-      }
 
-      if (data.merchant.enabled && data.merchant.mode === 'new' && data.merchant.autofetchResult) {
-        const setupPayload: FullSetupRequest = {
-          serialNumber: data.merchant.serialNumber,
-          brand: data.merchant.brand,
-          model: data.merchant.model,
-          displayName: data.merchant.displayName || undefined,
-          environment: data.merchant.environment,
-          businessCategory: data.form.type,
-          target: { type: 'venue', id: venueId },
-          accountSlot: 'PRIMARY',
-          // The backend endpoint (/blumon/full-setup) divides these rates by 100
-          // to convert percent → decimal before storing. We MUST send the raw
-          // percent the user typed (e.g. 3.3 for 3.3%), not pre-divide.
-          // Previous bug: frontend divided → backend divided again → 0.00033
-          // (= 0.033% instead of 3.3%) saved in DB.
-          costStructureOverrides: {
-            debitRate: data.merchant.providerCosts.debitRate,
-            creditRate: data.merchant.providerCosts.creditRate,
-            amexRate: data.merchant.providerCosts.amexRate,
-            internationalRate: data.merchant.providerCosts.internationalRate,
-            includesTax: data.merchant.providerCosts.includesTax ?? null,
-            ...(data.merchant.providerCosts.taxRate !== undefined ? { taxRate: data.merchant.providerCosts.taxRate } : {}),
-            fixedCostPerTransaction: data.merchant.providerCosts.fixedCost,
-            monthlyFee: data.merchant.providerCosts.monthlyFee,
-          },
-          venuePricing: {
-            debitRate: data.merchant.venuePricing.debitRate,
-            creditRate: data.merchant.venuePricing.creditRate,
-            amexRate: data.merchant.venuePricing.amexRate,
-            internationalRate: data.merchant.venuePricing.internationalRate,
-            includesTax: data.merchant.venuePricing.includesTax ?? null,
-            ...(data.merchant.venuePricing.taxRate !== undefined ? { taxRate: data.merchant.venuePricing.taxRate } : {}),
-            fixedFeePerTransaction: data.merchant.venuePricing.fixedCost,
-            monthlyServiceFee: data.merchant.venuePricing.monthlyFee,
-          },
-          settlementConfig: {
-            dayType: data.merchant.settlement.dayType,
-            cutoffTime: data.merchant.settlement.cutoffTime,
-            cutoffTimezone: data.merchant.settlement.cutoffTimezone,
-            debitDays: data.merchant.settlement.debitDays,
-            creditDays: data.merchant.settlement.creditDays,
-            amexDays: data.merchant.settlement.amexDays,
-            internationalDays: data.merchant.settlement.internationalDays,
-            otherDays: data.merchant.settlement.otherDays,
-          },
-        }
-        await paymentProviderAPI.fullSetupBlumonMerchant(setupPayload)
-      }
+          if (venueResponse.summary.venuesCreated === 0) {
+            throw new Error(venueResponse.errors?.[0]?.error || 'Error al crear venue')
+          }
 
-      return { venueId, venueName: data.form.name }
-    },
+          return { venueId: venueResponse.venues[0].venueId, venueName: data.form.name }
+        },
+        applyFeatureGrants: async venueId => {
+          // Apply optional feature grants from the Configuración step. Failures
+          // here don't roll back the venue (it's already created); we surface
+          // them as a non-blocking toast so the superadmin can retry from
+          // /settings/billing/subscriptions.
+          const grantEntries = Object.entries(data.config.featureGrants)
+          if (grantEntries.length > 0) {
+            const svc = await import('@/services/superadmin.service')
+            const failed: { code: string; reason: string }[] = []
+            for (const [featureCode, grant] of grantEntries) {
+              try {
+                if (grant.mode === 'enable') {
+                  await svc.enableFeatureForVenue(venueId, featureCode)
+                } else {
+                  await svc.grantTrialForVenue(venueId, featureCode, grant.trialDays ?? 30)
+                }
+              } catch (err: any) {
+                failed.push({ code: featureCode, reason: err?.response?.data?.message ?? err?.message ?? 'error' })
+              }
+            }
+            if (failed.length > 0) {
+              toast({
+                title: 'Algunas funciones no se activaron',
+                description: failed.map(f => `${f.code}: ${f.reason}`).join('\n'),
+                variant: 'destructive',
+              })
+            }
+          }
+        },
+        setupPayments: async venueId => {
+          if (data.merchant.enabled && data.merchant.mode === 'new' && data.merchant.autofetchResult) {
+            const setupPayload: FullSetupRequest = {
+              serialNumber: data.merchant.serialNumber,
+              brand: data.merchant.brand,
+              model: data.merchant.model,
+              displayName: data.merchant.displayName || undefined,
+              environment: data.merchant.environment,
+              businessCategory: data.form.type,
+              target: { type: 'venue', id: venueId },
+              accountSlot: 'PRIMARY',
+              // The backend endpoint (/blumon/full-setup) divides these rates by 100
+              // to convert percent → decimal before storing. We MUST send the raw
+              // percent the user typed (e.g. 3.3 for 3.3%), not pre-divide.
+              // Previous bug: frontend divided → backend divided again → 0.00033
+              // (= 0.033% instead of 3.3%) saved in DB.
+              costStructureOverrides: {
+                debitRate: data.merchant.providerCosts.debitRate,
+                creditRate: data.merchant.providerCosts.creditRate,
+                amexRate: data.merchant.providerCosts.amexRate,
+                internationalRate: data.merchant.providerCosts.internationalRate,
+                includesTax: data.merchant.providerCosts.includesTax ?? null,
+                ...(data.merchant.providerCosts.taxRate !== undefined ? { taxRate: data.merchant.providerCosts.taxRate } : {}),
+                fixedCostPerTransaction: data.merchant.providerCosts.fixedCost,
+                monthlyFee: data.merchant.providerCosts.monthlyFee,
+              },
+              venuePricing: {
+                debitRate: data.merchant.venuePricing.debitRate,
+                creditRate: data.merchant.venuePricing.creditRate,
+                amexRate: data.merchant.venuePricing.amexRate,
+                internationalRate: data.merchant.venuePricing.internationalRate,
+                includesTax: data.merchant.venuePricing.includesTax ?? null,
+                ...(data.merchant.venuePricing.taxRate !== undefined ? { taxRate: data.merchant.venuePricing.taxRate } : {}),
+                fixedFeePerTransaction: data.merchant.venuePricing.fixedCost,
+                monthlyServiceFee: data.merchant.venuePricing.monthlyFee,
+              },
+              settlementConfig: {
+                dayType: data.merchant.settlement.dayType,
+                cutoffTime: data.merchant.settlement.cutoffTime,
+                cutoffTimezone: data.merchant.settlement.cutoffTimezone,
+                debitDays: data.merchant.settlement.debitDays,
+                creditDays: data.merchant.settlement.creditDays,
+                amexDays: data.merchant.settlement.amexDays,
+                internationalDays: data.merchant.settlement.internationalDays,
+                otherDays: data.merchant.settlement.otherDays,
+              },
+            }
+            await paymentProviderAPI.fullSetupBlumonMerchant(setupPayload)
+          }
+        },
+      }),
     onSuccess: ({ venueName }) => {
       toast({
         title: 'Venue creado',
@@ -499,9 +515,12 @@ const CreateVenueWizard: React.FC<CreateVenueWizardProps> = ({ open, onOpenChang
       handleClose()
     },
     onError: (error: any) => {
+      const created = createdVenueRef.current
       toast({
-        title: 'Error al crear venue',
-        description: error?.response?.data?.message || error.message,
+        title: created ? 'El venue se creó, pero falló la cuenta de cobro' : 'Error al crear venue',
+        description: created
+          ? `${created.venueName} ya existe. «Reintentar cobros» sólo repite la cuenta de cobro, no crea otro venue. Detalle: ${error?.response?.data?.message || error.message}`
+          : error?.response?.data?.message || error.message,
         variant: 'destructive',
       })
     },
@@ -517,6 +536,8 @@ const CreateVenueWizard: React.FC<CreateVenueWizardProps> = ({ open, onOpenChang
     setOrgSearch('')
     setSelectedCategory(null)
     setCopiedFromVenueName('')
+    createdVenueRef.current = null
+    setCreatedVenue(null)
     onOpenChange(false)
   }, [onOpenChange])
 
@@ -808,8 +829,8 @@ const CreateVenueWizard: React.FC<CreateVenueWizardProps> = ({ open, onOpenChang
                       </div>
                     )}
                     <button
-                      onClick={() => i < currentStep && setCurrentStep(i)}
-                      disabled={i > currentStep}
+                      onClick={() => i < currentStep && !(createdVenue && i < PAYMENTS_STEP) && setCurrentStep(i)}
+                      disabled={i > currentStep || (!!createdVenue && i < PAYMENTS_STEP)}
                       className={cn(
                         'flex flex-col items-center gap-1.5 group transition-all',
                         i <= currentStep ? 'cursor-pointer' : 'cursor-default opacity-40',
@@ -844,6 +865,18 @@ const CreateVenueWizard: React.FC<CreateVenueWizardProps> = ({ open, onOpenChang
         {/* ═══ Step Content ═══ */}
         <div className="flex-1 overflow-y-auto">
           <div className="mx-auto max-w-2xl px-6 py-8">
+            {createdVenue && (
+              <div
+                data-tour="create-venue-already-created"
+                className="mb-6 rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-foreground"
+              >
+                <p className="font-medium">«{createdVenue.venueName}» ya se creó.</p>
+                <p className="mt-1 text-muted-foreground">
+                  Falló la cuenta de cobro. «Reintentar cobros» sólo repite ese paso; no crea otro venue. Los pasos anteriores ya no se
+                  pueden cambiar aquí: edítalos en el venue. Si cierras, el venue queda sin cuenta de cobro.
+                </p>
+              </div>
+            )}
             {currentStep === 0 && (
               <StepOrganization
                 organizations={filteredOrgs}
@@ -904,7 +937,12 @@ const CreateVenueWizard: React.FC<CreateVenueWizardProps> = ({ open, onOpenChang
         {/* ═══ Bottom Navigation ═══ */}
         <div className="border-t border-border/50 bg-card/80 backdrop-blur-sm">
           <div className="mx-auto max-w-2xl px-6 py-4 flex items-center justify-between">
-            <Button variant="ghost" onClick={handleBack} disabled={currentStep === 0} className="gap-2 cursor-pointer">
+            <Button
+              variant="ghost"
+              onClick={handleBack}
+              disabled={currentStep === 0 || (!!createdVenue && currentStep <= PAYMENTS_STEP)}
+              className="gap-2 cursor-pointer"
+            >
               <ArrowLeft className="w-4 h-4" />
               Anterior
             </Button>
@@ -926,12 +964,12 @@ const CreateVenueWizard: React.FC<CreateVenueWizardProps> = ({ open, onOpenChang
                 {createMutation.isPending ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    Creando...
+                    {createdVenue ? 'Reintentando...' : 'Creando...'}
                   </>
                 ) : (
                   <>
                     <Sparkles className="w-4 h-4" />
-                    Crear Venue
+                    {createdVenue ? 'Reintentar cobros' : 'Crear Venue'}
                   </>
                 )}
               </Button>
@@ -2265,13 +2303,10 @@ interface VenuePickerProps {
 
 function VenuePicker({ venues, value, onSelect, placeholder }: VenuePickerProps) {
   const [search, setSearch] = useState('')
-  const selected = useMemo(() => (value ? venues.find(v => v.id === value) ?? null : null), [venues, value])
+  const selected = useMemo(() => (value ? (venues.find(v => v.id === value) ?? null) : null), [venues, value])
 
   const items = useMemo<SearchComboboxItem[]>(
-    () =>
-      venues
-        .filter(v => !search || includesNormalized(v.name ?? '', search))
-        .map(v => ({ id: v.id, label: v.name })),
+    () => venues.filter(v => !search || includesNormalized(v.name ?? '', search)).map(v => ({ id: v.id, label: v.name })),
     [venues, search],
   )
 
