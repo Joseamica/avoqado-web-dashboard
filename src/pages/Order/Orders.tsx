@@ -65,6 +65,7 @@ import { conteoParaExportar } from '@/lib/conteoParaExportar'
 import { OrderDrawerContent } from './OrderDrawerContent'
 import { orderCardsForTab, orderRowMatchesTab, orderTabCounts } from './orderSummary'
 import { describeOrderMutationError } from './orderMutationError'
+import { cambiosDeLaVenta, fechaParaElCampo, type CambiosDeVenta, type ValoresDeEdicion } from './editarVenta'
 
 // Table interface for dropdowns
 interface Table {
@@ -189,6 +190,8 @@ export default function Orders() {
   // tipAmount/total widened to allow `undefined` so the inline edit inputs
   // can be cleared (the previous `parseFloat(...) || 0` fallback locked the
   // field to 0 on every keystroke). We coerce back to a number at submit.
+  // D70: cómo se abrió el diálogo, para mandar sólo lo que cambió.
+  const [editInitial, setEditInitial] = useState<ValoresDeEdicion | null>(null)
   const [editValues, setEditValues] = useState<{
     status: OrderStatus
     customerName: string
@@ -440,27 +443,9 @@ export default function Orders() {
 
   // Update mutation (SUPERADMIN only)
   const updateOrderMutation = useMutation({
-    mutationFn: (data: {
-      orderId: string
-      status: OrderStatus
-      customerName: string
-      tableId: string
-      servedById: string
-      createdAt: string
-      orderNumber: string
-      type: OrderTypeEnum
-    }) =>
-      orderService.updateOrder(venueId, data.orderId, {
-        status: data.status,
-        customerName: data.customerName,
-        tableId: data.tableId || null,
-        servedById: data.servedById || null,
-        // total / tipAmount NO viajan: se derivan de renglones y pagos (el server
-        // los ignora aunque lleguen). Ver el bloque de sólo lectura del diálogo.
-        createdAt: data.createdAt,
-        orderNumber: data.orderNumber,
-        type: data.type,
-      }),
+    // D70: sólo viaja lo que cambió (`cambiosDeLaVenta`); total / tipAmount nunca (se derivan de renglones y pagos).
+    mutationFn: (data: { orderId: string; cambios: CambiosDeVenta }) =>
+      orderService.updateOrder(venueId, data.orderId, data.cambios as Partial<Order>),
     onSuccess: () => {
       toast({
         title: tCommon('superadmin.edit.success'),
@@ -489,17 +474,17 @@ export default function Orders() {
   const handleEditClick = (e: React.MouseEvent, order: Order) => {
     e.stopPropagation()
     setOrderToEdit(order)
-    setEditValues({
+    const inicial = {
       status: order.status || OrderStatus.PENDING,
       customerName: order.customerName || '',
       tableId: order.tableId || '',
       servedById: order.servedById || '',
-      tipAmount: Number(order.tipAmount) || 0,
-      total: Number(order.total) || 0,
-      createdAt: order.createdAt ? new Date(order.createdAt).toISOString().slice(0, 16) : '',
+      createdAt: fechaParaElCampo(order.createdAt),
       orderNumber: order.orderNumber || '',
       type: order.type || OrderTypeEnum.DINE_IN,
-    })
+    }
+    setEditInitial(inicial)
+    setEditValues({ ...inicial, tipAmount: Number(order.tipAmount) || 0, total: Number(order.total) || 0 })
     setEditDialogOpen(true)
   }
 
@@ -510,17 +495,14 @@ export default function Orders() {
   }
 
   const confirmEdit = () => {
-    if (orderToEdit) {
-      updateOrderMutation.mutate({
-        orderId: orderToEdit.id,
-        status: editValues.status,
-        customerName: editValues.customerName,
-        tableId: editValues.tableId,
-        servedById: editValues.servedById,
-        createdAt: editValues.createdAt,
-        orderNumber: editValues.orderNumber,
-        type: editValues.type,
-      })
+    if (orderToEdit && editInitial) {
+      const cambios = cambiosDeLaVenta(editInitial, editValues)
+      if (Object.keys(cambios).length === 0) {
+        setEditDialogOpen(false)
+        setOrderToEdit(null)
+        return
+      }
+      updateOrderMutation.mutate({ orderId: orderToEdit.id, cambios })
     }
   }
 
