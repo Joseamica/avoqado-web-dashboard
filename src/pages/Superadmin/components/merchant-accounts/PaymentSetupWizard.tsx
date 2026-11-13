@@ -356,6 +356,8 @@ function wizardReducer(state: WizardState, action: WizardAction): WizardState {
             ...existing,
             pricing: action.data,
             ...(action.existingPricingId ? { existingPricingId: action.existingPricingId } : {}),
+            // D18 (Codex r7): cualquier edición de su tarifa la vuelve de la persona: se olvida la semilla para siempre.
+            semilla: undefined,
           },
         },
       }
@@ -852,9 +854,9 @@ export const PaymentSetupWizard: React.FC<PaymentSetupWizardProps> = ({ open, on
           // D18: sin cambios contra lo cargado no se toca (antes se reescribía, o se desactivaba si igualaba a la de la organización).
           const antes = cargado.current.sucursales[override.venueId]
           if (antes && override.existingPricingId === antes.id && mismaTarifa(override.pricing, antes.pricing)) continue
-          // Codex r4 #1 / r5 #1: una sucursal sin tarifa propia que el asistente encendió SOLO (abierto desde la sucursal) y
-          // que nadie editó no se crea. Encendida por la persona, se escribe como siempre.
-          if (!antes && override.semilla && mismaTarifa(override.pricing, override.semilla)) continue
+          // Codex r4 #1 / r5 #1 / r7: una sucursal sin tarifa propia que el asistente encendió SOLO (abierto desde la sucursal)
+          // y que nadie ha editado (la semilla se borra en la primera edición) no se crea. Encendida por la persona, como siempre.
+          if (!antes && override.semilla) continue
 
           // Codex r3 H1: sólo se compara con una tarifa de organización que EXISTE (la cargada o la que se acaba de guardar);
           // la de default del formulario no es respaldo de nadie.

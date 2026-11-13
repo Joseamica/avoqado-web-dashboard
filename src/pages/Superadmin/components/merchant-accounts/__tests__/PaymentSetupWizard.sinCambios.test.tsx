@@ -406,6 +406,25 @@ describe('PaymentSetupWizard · abierto desde una sucursal (Codex r4 #1)', () =>
     expect(tarifasEscritas().map(([n]) => n)).toEqual(['createVenuePricingStructure', 'updateVenuePricingStructure'])
   })
 
+  it('encendida sola: guardar una edición igual a la organización y luego volver al valor de la semilla SÍ se guarda (Codex r7)', async () => {
+    // Organización al 3 % de crédito con IVA sin definir (la semilla de default es 2.5 %).
+    const r = configurada()
+    red.resumen = {
+      ...r,
+      pricingStructures: [tarifa('org-vigente', { creditRate: '0.03', includesTax: null })],
+      venuePricingStructures: [],
+    }
+    await abrir()
+    await ir('Sucursales')
+    fireEvent.click(screen.getByRole('button', { name: 'encender A sola' }))
+    fireEvent.click(screen.getByRole('button', { name: 'igualar A' })) // igual a la organización: no hay nada que escribir
+    await guardar()
+    expect(tarifasEscritas()).toEqual([])
+    fireEvent.click(screen.getByRole('button', { name: 'crédito de A a 2.5' })) // el valor con que se encendió
+    await guardar()
+    expect(tarifasEscritas().map(([n]) => n)).toEqual(['createVenuePricingStructure'])
+  })
+
   it('apagar, guardar, volver a encender a mano y editar SÍ escribe la tarifa de la sucursal (Codex r5 #1)', async () => {
     red.resumen = {
       ...configurada(),
