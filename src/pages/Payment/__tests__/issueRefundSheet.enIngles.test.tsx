@@ -76,8 +76,8 @@ describe('Pagos › Devolver: idioma, incertidumbre y accesibilidad', () => {
     expect(aviso).toMatchObject({
       title: lng === 'es' ? 'Reembolso sin confirmar' : 'Refund not confirmed',
       description: lng === 'es'
-        ? 'No supimos si se emitió el reembolso. Revisa los reembolsos de este pago antes de intentarlo otra vez.'
-        : "We don't know if the refund went through. Check this payment's refunds before trying again.",
+        ? 'No supimos si se emitió el reembolso. Si lo intentas otra vez en esta misma ventana, no se duplica. Si la cierras, revisa los reembolsos de este pago antes de hacer otro.'
+        : "We don't know if the refund went through. Trying again in this same window won't duplicate it. If you close it, check this payment's refunds before making another one.",
       variant: 'destructive',
     })
     expect(JSON.stringify(aviso)).not.toContain('Se cayó la base')
@@ -86,7 +86,7 @@ describe('Pagos › Devolver: idioma, incertidumbre y accesibilidad', () => {
   it('sin respuesta de red también dice sin confirmar, nunca Network Error', async () => {
     const aviso = await devolver(new Error('Network Error'))
     expect(aviso.title).toBe('Refund not confirmed')
-    expect(aviso.description).toBe("We don't know if the refund went through. Check this payment's refunds before trying again.")
+    expect(aviso.description).toBe("We don't know if the refund went through. Trying again in this same window won't duplicate it. If you close it, check this payment's refunds before making another one.")
   })
 
   it.each(['es', 'en'])('un 403 sin código en %s dice que falta permiso', async lng => {
