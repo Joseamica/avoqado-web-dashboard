@@ -218,16 +218,18 @@ export function ItemFormSection({
                 <p className="truncate font-medium">{selectedGroup.name}</p>
                 <p className="text-xs text-muted-foreground">{t('itemForm.sizeChoice')}</p>
               </div>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                aria-label={t('itemForm.groupRemove')}
-                className="h-8 w-8 cursor-pointer text-muted-foreground hover:text-destructive"
-                onClick={() => onGroupChange?.(null)}
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </Button>
+              {onGroupChange && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  aria-label={t('itemForm.groupRemove')}
+                  className="h-8 w-8 cursor-pointer text-muted-foreground hover:text-destructive"
+                  onClick={() => onGroupChange?.(null)}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              )}
             </div>
             <p className="text-sm text-muted-foreground">{t('itemForm.groupNote')}</p>
             <div className="flex items-center justify-between py-1">

@@ -184,11 +184,11 @@ function PaymentLinkForm({ open, onClose, editingLinkId }: CreatePaymentLinkDial
   const chosenMerchant = usableMerchants.find(m => m.id === selectedMerchantId)
   const groupsNeedStripe = !!chosenMerchant && chosenMerchant.provider?.code !== 'STRIPE_CONNECT'
   useEffect(() => {
-    if (groupsNeedStripe && selectedGroup) {
+    if (!editingLinkId && groupsNeedStripe && selectedGroup) {
       setSelectedGroup(null)
       setIsReusable(false)
     }
-  }, [groupsNeedStripe, selectedGroup])
+  }, [editingLinkId, groupsNeedStripe, selectedGroup])
 
   const handleGroupChange = (group: { id: string; name: string } | null) => {
     setSelectedGroup(group)
@@ -732,7 +732,8 @@ function PaymentLinkForm({ open, onClose, editingLinkId }: CreatePaymentLinkDial
                   redirectEnabled={redirectEnabled}
                   onRedirectEnabledChange={setRedirectEnabled}
                   selectedGroup={selectedGroup}
-                  onGroupChange={handleGroupChange}
+                  // Editando no cambia el tipo de la liga (el SERVIDOR lo rechaza): ni prendas en una de producto ni quitar la prenda.
+                  onGroupChange={editingLinkId ? undefined : handleGroupChange}
                   groupsNeedStripe={groupsNeedStripe}
                 />
               ) : (

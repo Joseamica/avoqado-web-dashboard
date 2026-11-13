@@ -13,6 +13,7 @@ import type { PaymentLink } from '@/services/paymentLink.service'
 const state = vi.hoisted(() => ({ hasAccess: true, merchants: [] as unknown[], stub: false }))
 const mocks = vi.hoisted(() => ({
   create: vi.fn(),
+  getOne: vi.fn(),
   navigate: vi.fn(),
   groups: vi.fn(),
   products: vi.fn(),
@@ -48,6 +49,7 @@ vi.mock('@/services/ecommerceMerchant.service', () => ({ ecommerceMerchantAPI: {
 vi.mock('@/services/paymentLink.service', () => ({
   default: {
     createPaymentLink: mocks.create,
+    getPaymentLink: mocks.getOne,
     getSettings: async () => ({}),
     getPaymentLinks: async () => ({
       total: 1,
@@ -81,6 +83,7 @@ vi.mock('@/components/data-table', () => ({
       {data.map(row => (
         <div key={row.id} data-testid={`fila-${row.id}`}>
           {columns.find(c => c.accessorKey === 'title')?.cell?.({ row: { original: row } }) as never}
+          {columns.find(c => c.accessorKey === 'amount')?.cell?.({ row: { original: row } }) as never}
         </div>
       ))}
     </div>
@@ -254,8 +257,91 @@ describe('lista y detalle', () => {
   })
 
   it('el detalle también', async () => {
-    const link = { id: 'l1', shortCode: 'P', title: 'Vestido lino', amountType: 'FIXED', currency: 'MXN', status: 'ACTIVE', isReusable: true, paymentCount: 0, totalCollected: 0, productGroup: { id: 'g1', name: 'Vestido lino' } } as PaymentLink
+    const link = {
+      id: 'l1',
+      shortCode: 'P',
+      title: 'Vestido lino',
+      amountType: 'FIXED',
+      currency: 'MXN',
+      status: 'ACTIVE',
+      isReusable: true,
+      paymentCount: 0,
+      totalCollected: 0,
+      productGroup: { id: 'g1', name: 'Vestido lino' },
+    } as PaymentLink
     render(wrap(<PaymentLinkDetailSheet link={link} open onOpenChange={vi.fn()} onEdit={vi.fn()} onCopy={vi.fn()} />))
     expect((await screen.findAllByText(/list\.garment/))[0]).toHaveTextContent('Vestido lino')
+  })
+})
+
+// F1: una liga por prenda es FIXED sin importe: no es «El cliente ingresa el monto», el precio es el de la talla.
+describe('importe de una liga por prenda', () => {
+  it('la lista dice «Según la talla», no «El cliente ingresa el monto»', async () => {
+    render(wrap(<PaymentLinks />))
+    expect(await screen.findByText('list.bySize')).toBeVisible()
+    expect(screen.queryByText('list.openAmount')).toBeNull()
+  })
+
+  it('el detalle también', async () => {
+    const link = {
+      id: 'l1',
+      shortCode: 'P',
+      title: 'Vestido lino',
+      amountType: 'FIXED',
+      amount: null,
+      currency: 'MXN',
+      status: 'ACTIVE',
+      isReusable: true,
+      paymentCount: 0,
+      totalCollected: 0,
+      productGroup: { id: 'g1', name: 'Vestido lino' },
+    } as unknown as PaymentLink
+    render(wrap(<PaymentLinkDetailSheet link={link} open onOpenChange={vi.fn()} onEdit={vi.fn()} onCopy={vi.fn()} />))
+    expect(await screen.findByText('list.bySize')).toBeVisible()
+    expect(screen.queryByText('list.openAmount')).toBeNull()
+  })
+})
+
+// F2: al editar, el tipo de la liga no cambia (el SERVIDOR lo rechaza con 400 «No se puede cambiar el tipo…»).
+describe('editar una liga existente', () => {
+  const base = {
+    id: 'l1',
+    shortCode: 'P',
+    title: 'x',
+    description: null,
+    currency: 'MXN',
+    status: 'ACTIVE',
+    isReusable: false,
+    redirectUrl: null,
+    customFields: null,
+    tippingConfig: null,
+    discount: null,
+    purpose: 'ITEM',
+    amountType: 'FIXED',
+  }
+  async function abrirEdicion(link: Record<string, unknown>) {
+    mocks.getOne.mockResolvedValue({ success: true, data: { ...base, ...link } })
+    render(wrap(<CreatePaymentLinkDialog open onClose={vi.fn()} editingLinkId="l1" />))
+    await act(async () => {
+      await new Promise(r => setTimeout(r, 30))
+    })
+  }
+
+  it('una liga de producto no ofrece prendas', async () => {
+    await abrirEdicion({
+      amount: 100,
+      productGroup: null,
+      items: [{ product: { id: 'p1', name: 'Playera', price: 100 }, quantity: 1, modifiers: [] }],
+    })
+    expect(await screen.findByText('Playera')).toBeVisible()
+    expect(screen.queryByText(/itemForm\.sizeChoice/)).toBeNull()
+    expect(screen.queryByText(/itemForm\.groupLocked/)).toBeNull()
+    expect(mocks.groups).not.toHaveBeenCalled()
+  })
+
+  it('una liga por prenda no deja quitar la prenda', async () => {
+    await abrirEdicion({ amount: null, isReusable: true, items: [], productGroup: { id: 'g1', name: 'Vestido lino' } })
+    expect(await screen.findByText('itemForm.groupNote')).toBeVisible()
+    expect(screen.queryByRole('button', { name: 'itemForm.groupRemove' })).toBeNull()
   })
 })

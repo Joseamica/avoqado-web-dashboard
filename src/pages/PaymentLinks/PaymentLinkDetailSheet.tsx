@@ -66,7 +66,11 @@ export function PaymentLinkDetailSheet({ link, open, onOpenChange, onEdit, onCop
           <dl className="grid grid-cols-2 gap-4 text-sm">
             <div>
               <dt className="text-muted-foreground">{t('list.columns.amount')}</dt>
-              <dd className="font-medium">{link.amountType === 'FIXED' && link.amount ? precio(link.amount) : t('list.openAmount')}</dd>
+              <dd className="font-medium">
+                {link.amountType === 'FIXED' && link.amount
+                  ? precio(link.amount)
+                  : t(link.productGroup ? 'list.bySize' : 'list.openAmount')}
+              </dd>
             </div>
             <div>
               <dt className="text-muted-foreground">{t('list.columns.totalCollected')}</dt>

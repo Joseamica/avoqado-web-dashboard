@@ -25,6 +25,7 @@
     },
     "search": "Buscar ligas...",
     "openAmount": "El cliente ingresa el monto",
+    "bySize": "Según la talla",
     "lastOfPayments": "el último de {{count}} pagos"
   },
   "status": {

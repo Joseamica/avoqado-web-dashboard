@@ -25,6 +25,7 @@
     },
     "search": "Search links...",
     "openAmount": "Customer enters amount",
+    "bySize": "Depends on the size",
     "lastOfPayments": "latest of {{count}} payments"
   },
   "status": {

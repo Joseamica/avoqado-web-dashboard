@@ -372,7 +372,7 @@ export default function PaymentLinks() {
             {row.original.amountType === 'FIXED' && row.original.amount ? (
               <span className="font-medium">{formatPrice(row.original.amount, row.original.currency)}</span>
             ) : (
-              <span className="text-sm text-muted-foreground">{t('list.openAmount')}</span>
+              <span className="text-sm text-muted-foreground">{t(row.original.productGroup ? 'list.bySize' : 'list.openAmount')}</span>
             )}
             <PaymentLinkDiscountStatus
               link={row.original}
