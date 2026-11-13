@@ -100,11 +100,20 @@ export function ImpresionDelCanalEditor({ venueId, channel, canEdit, onPendiente
     setBorradorDe(llaveGuardado)
     setBorrador({})
   }
-  // Un borrador que dejó de servir (estación apagada o borrada) no se muestra: se ve lo guardado.
+  // Un borrador que dejó de servir (estación apagada o borrada) se DESCARTA, no sólo se esconde: escondido en memoria
+  // reaparecía al reactivarse la estación, aun después de guardar otra cosa (Codex c4 #1). Se ve lo guardado.
   const comandaValida = (v?: string) => v === SALON || (!!v && v.startsWith('E:') && !!porId(v.slice(2)))
   const empaqueValido = (v?: string) => v === NO || v === NEGOCIO || (!!v && v.startsWith('E:') && !!porId(v.slice(2)))
-  const comanda = comandaValida(borrador.comanda) ? borrador.comanda! : comandaGuardada
-  const empaque = empaqueValido(borrador.empaque) ? borrador.empaque! : empaqueGuardado
+  const comandaCaduca = cargado && borrador.comanda !== undefined && !comandaValida(borrador.comanda)
+  const empaqueCaduco = cargado && borrador.empaque !== undefined && !empaqueValido(borrador.empaque)
+  if (comandaCaduca || empaqueCaduco) {
+    setBorrador(b => ({
+      comanda: comandaCaduca ? undefined : b.comanda,
+      empaque: empaqueCaduco ? undefined : b.empaque,
+    }))
+  }
+  const comanda = !comandaCaduca && borrador.comanda !== undefined ? borrador.comanda : comandaGuardada
+  const empaque = !empaqueCaduco && borrador.empaque !== undefined ? borrador.empaque : empaqueGuardado
   const setComanda = (v: string) => setBorrador(b => ({ ...b, comanda: v }))
   const setEmpaque = (v: string) => setBorrador(b => ({ ...b, empaque: v }))
 

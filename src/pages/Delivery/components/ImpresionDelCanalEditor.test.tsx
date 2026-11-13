@@ -177,6 +177,27 @@ describe('ImpresionDelCanalEditor', () => {
     expect(pendiente).toHaveBeenLastCalledWith(null)
   })
 
+  it('borrador cuya estación se apaga: se descarta y NO reaparece al reactivarla, aun tras guardar (Codex c4 #1)', async () => {
+    const pendiente = vi.fn()
+    const { qc } = renderEditor(channel(), true, pendiente)
+    fireEvent.click(await screen.findByRole('radio', { name: /Todo junto en: Barra/ }))
+
+    const refrescar = async (estaciones: PrintStation[]) => {
+      mockGetStations.mockResolvedValue(estaciones)
+      await act(async () => {
+        await qc.refetchQueries({ queryKey: ['printStations', 'venue-1'], exact: true })
+        await new Promise(r => setTimeout(r, 20))
+      })
+    }
+    await refrescar(ESTACIONES.map(e => (e.id === 'barra' ? { ...e, active: false } : e)))
+    expect(screen.getByRole('radio', { name: /Como en el salón/ }).getAttribute('aria-checked')).toBe('true')
+    expect(pendiente).toHaveBeenLastCalledWith(null)
+
+    await refrescar(ESTACIONES)
+    expect(screen.getByRole('radio', { name: /Como en el salón/ }).getAttribute('aria-checked')).toBe('true')
+    expect(pendiente).toHaveBeenLastCalledWith(null)
+  })
+
   it('si la otra puerta guarda otra cosa, el editor muestra lo nuevo', async () => {
     const { rerenderCon } = renderEditor(channel())
     expect((await screen.findByRole('radio', { name: /Como en el salón/ })).getAttribute('aria-checked')).toBe('true')
