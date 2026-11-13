@@ -18,6 +18,7 @@ import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import avoqadoIsotipo from '@/assets/Isotipo.png'
 import { getTierForFeature } from '@/config/plan-catalog'
+import { enlaceActivo } from './enlace-activo'
 
 export type NavSubItem = {
   title: string
@@ -324,7 +325,7 @@ export function NavMain({
 
   const tourKey = (url: string) => `sidebar-${url.replace(/^#/, '').replace(/\//g, '-')}`
 
-  const renderItem = (item: NavItem) => {
+  const renderItem = (item: NavItem, hermanos: NavItem[]) => {
     const isSuperadminItem = isSuperadminPath(item.url) || !!item.superadminOnly
     const itemHidden = isHidden(item.url)
 
@@ -595,7 +596,7 @@ export function NavMain({
         <SidebarMenuButton
           asChild
           tooltip={item.title}
-          isActive={isItemActive(item.url)}
+          isActive={enlaceActivo(item.url, hermanos.map(h => h.url), isItemActive)}
           className={isSuperadminItem ? superadminButtonClass : undefined}
         >
           <NavLink
@@ -656,7 +657,7 @@ export function NavMain({
           {Object.entries(groupedItems).map(([group, groupItems]) => (
             <SidebarGroup key={group}>
               {GROUP_LABELS[group] && <SidebarGroupLabel>{GROUP_LABELS[group]}</SidebarGroupLabel>}
-              <SidebarMenu>{groupItems.map(item => renderItem(item))}</SidebarMenu>
+              <SidebarMenu>{groupItems.map(item => renderItem(item, groupItems))}</SidebarMenu>
             </SidebarGroup>
           ))}
 
@@ -791,7 +792,7 @@ export function NavMain({
                   <div className="mx-3 my-1 border-t border-sidebar-border" />
 
                   {/* Sub-sidebar items */}
-                  {displayedSectionItems.map(item => renderItem(item))}
+                  {displayedSectionItems.map(item => renderItem(item, displayedSectionItems))}
                 </SidebarMenu>
               </SidebarGroup>
             )}
