@@ -17,78 +17,12 @@ import {
 import { getOrganizationVenues } from '@/services/organization.service'
 import { useVenueDateTime } from '@/utils/datetime'
 import { useQuery } from '@tanstack/react-query'
-import {
-  ChevronLeft,
-  ChevronRight,
-  FileText,
-  Info,
-  LogIn,
-  LogOut,
-  Plus,
-  ScrollText,
-  Search,
-  Settings,
-  Shield,
-  Smartphone,
-  Store,
-  Trash2,
-  UserCheck,
-  UserX,
-  Zap,
-} from 'lucide-react'
+import { ChevronLeft, ChevronRight, Info, ScrollText, Search } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useParams } from 'react-router-dom'
-import { formatEntityId, toDetailRows } from '@/pages/Venue/activity-log/formatActivity'
-
-// ── Action Display Config ──
-
-interface ActionConfig {
-  icon: React.ElementType
-  color: string
-  bgColor: string
-}
-
-const ACTION_CONFIG: Record<string, ActionConfig> = {
-  TERMINAL_CREATED: { icon: Plus, color: 'text-blue-600 dark:text-blue-400', bgColor: 'bg-blue-100 dark:bg-blue-900/30' },
-  TERMINAL_UPDATED: { icon: Settings, color: 'text-muted-foreground', bgColor: 'bg-muted' },
-  TERMINAL_DELETED: { icon: Trash2, color: 'text-red-600 dark:text-red-400', bgColor: 'bg-red-100 dark:bg-red-900/30' },
-  COMMAND_SENT: { icon: Zap, color: 'text-amber-600 dark:text-amber-400', bgColor: 'bg-amber-100 dark:bg-amber-900/30' },
-  ACTIVATION_CODE_GENERATED: { icon: Smartphone, color: 'text-cyan-600 dark:text-cyan-400', bgColor: 'bg-cyan-100 dark:bg-cyan-900/30' },
-  MERCHANTS_ASSIGNED: { icon: Smartphone, color: 'text-indigo-600 dark:text-indigo-400', bgColor: 'bg-indigo-100 dark:bg-indigo-900/30' },
-  ROLE_CHANGED: { icon: Shield, color: 'text-purple-600 dark:text-purple-400', bgColor: 'bg-purple-100 dark:bg-purple-900/30' },
-  USER_ACTIVATED: { icon: UserCheck, color: 'text-green-600 dark:text-green-400', bgColor: 'bg-green-100 dark:bg-green-900/30' },
-  USER_DEACTIVATED: { icon: UserX, color: 'text-red-600 dark:text-red-400', bgColor: 'bg-red-100 dark:bg-red-900/30' },
-  MASTER_LOGIN_SUCCESS: { icon: LogIn, color: 'text-amber-600 dark:text-amber-400', bgColor: 'bg-amber-100 dark:bg-amber-900/30' },
-  MASTER_LOGIN_FAILED: { icon: LogIn, color: 'text-red-600 dark:text-red-400', bgColor: 'bg-red-100 dark:bg-red-900/30' },
-  // Routine staff access. Deliberately gray: these are the highest-volume rows in the
-  // audit log and must not compete visually with the anomalies (emergency logins, role
-  // changes, deactivations), which are what an auditor actually comes here looking for.
-  STAFF_LOGIN: { icon: LogIn, color: 'text-muted-foreground', bgColor: 'bg-muted' },
-  STAFF_LOGOUT: { icon: LogOut, color: 'text-muted-foreground', bgColor: 'bg-muted' },
-  ACCOUNT_LOCKED: { icon: Shield, color: 'text-red-600 dark:text-red-400', bgColor: 'bg-red-100 dark:bg-red-900/30' },
-  VENUE_CREATED: { icon: Store, color: 'text-blue-600 dark:text-blue-400', bgColor: 'bg-blue-100 dark:bg-blue-900/30' },
-  VENUE_UPDATED: { icon: Store, color: 'text-muted-foreground', bgColor: 'bg-muted' },
-  VENUE_DELETED: { icon: Trash2, color: 'text-red-600 dark:text-red-400', bgColor: 'bg-red-100 dark:bg-red-900/30' },
-  VENUE_ASSIGNED: { icon: Plus, color: 'text-green-600 dark:text-green-400', bgColor: 'bg-green-100 dark:bg-green-900/30' },
-  VENUE_REMOVED: { icon: Trash2, color: 'text-red-600 dark:text-red-400', bgColor: 'bg-red-100 dark:bg-red-900/30' },
-  SETTINGS_UPDATED: { icon: Settings, color: 'text-muted-foreground', bgColor: 'bg-muted' },
-  PASSWORD_RESET: { icon: Shield, color: 'text-amber-600 dark:text-amber-400', bgColor: 'bg-amber-100 dark:bg-amber-900/30' },
-}
-
-const DEFAULT_ACTION_CONFIG: ActionConfig = {
-  icon: FileText,
-  color: 'text-muted-foreground',
-  bgColor: 'bg-muted',
-}
-
-function getActionConfig(action: string): ActionConfig {
-  return ACTION_CONFIG[action] || DEFAULT_ACTION_CONFIG
-}
-
-function formatActionFallback(action: string): string {
-  return action.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
-}
+import { iconFor, TONE_STYLES } from '@/pages/Venue/activity-log/actionDisplay'
+import { actionLabel, actionTone, formatEntityId, toDetailRows } from '@/pages/Venue/activity-log/formatActivity'
 
 // ── Component ──
 
@@ -191,7 +125,7 @@ function OrganizationActivityLog() {
               <SelectItem value="all">{t('activityLog.filters.allActions')}</SelectItem>
               {availableActions?.map(action => (
                 <SelectItem key={action} value={action}>
-                  {t(`activityLog.actions.${action}`, { defaultValue: formatActionFallback(action) })}
+                  {actionLabel(action, t)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -293,8 +227,9 @@ function ActivityLogRow({ log }: { log: OrgActivityLogEntry }) {
   const { t } = useTranslation('organization')
   const { formatDateTime } = useVenueDateTime()
   const [expanded, setExpanded] = useState(false)
-  const config = getActionConfig(log.action)
-  const Icon = config.icon
+  // El mismo tono, icono y texto que la bitácora del negocio (una sola fuente).
+  const styles = TONE_STYLES[actionTone(log.action)]
+  const Icon = iconFor(log.action)
 
   const entityId = formatEntityId(log.entityId)
   const entityLabel = log.entity ? t(`activityLog.entities.${log.entity}`, { defaultValue: log.entity }) : null
@@ -319,12 +254,10 @@ function ActivityLogRow({ log }: { log: OrgActivityLogEntry }) {
       <TableRow>
         <TableCell>
           <div className="flex items-center gap-2">
-            <div className={`p-1.5 rounded-md ${config.bgColor}`}>
-              <Icon className={`h-3.5 w-3.5 ${config.color}`} />
+            <div className={`p-1.5 rounded-md ${styles.chip}`}>
+              <Icon className={`h-3.5 w-3.5 ${styles.icon}`} />
             </div>
-            <span className="text-sm font-medium text-foreground">
-              {t(`activityLog.actions.${log.action}`, { defaultValue: formatActionFallback(log.action) })}
-            </span>
+            <span className="text-sm font-medium text-foreground">{actionLabel(log.action, t)}</span>
           </div>
         </TableCell>
         <TableCell>
