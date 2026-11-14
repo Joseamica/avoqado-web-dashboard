@@ -13,6 +13,8 @@ import type { WizardState, CostStructureData } from '../PaymentSetupWizard'
 interface CostStructureStepProps {
   state: WizardState
   dispatch: React.Dispatch<any>
+  /** Avisa el costo que se leyó del servidor (D18: el asistente sólo guarda lo que cambie contra esto). */
+  alCargar?: (merchantId: string, data: CostStructureData) => void
 }
 
 const RATE_FIELDS = [
@@ -22,7 +24,7 @@ const RATE_FIELDS = [
   { key: 'internationalRate' as const, label: 'Internacional', color: 'text-orange-600' },
 ]
 
-export const CostStructureStep: React.FC<CostStructureStepProps> = ({ state, dispatch }) => {
+export const CostStructureStep: React.FC<CostStructureStepProps> = ({ state, dispatch, alCargar }) => {
   const merchantSlots = useMemo(() => {
     const slots: Array<{ slot: string; merchantId: string; displayName: string }> = []
     if (state.merchants.primary) {
@@ -87,6 +89,7 @@ export const CostStructureStep: React.FC<CostStructureStepProps> = ({ state, dis
           displayName={displayName}
           state={state}
           dispatch={dispatch}
+          alCargar={alCargar}
         />
       ))}
     </div>
@@ -99,12 +102,14 @@ function MerchantCostCard({
   displayName,
   state,
   dispatch,
+  alCargar,
 }: {
   slot: string
   merchantId: string
   displayName: string
   state: WizardState
   dispatch: React.Dispatch<any>
+  alCargar?: (merchantId: string, data: CostStructureData) => void
 }) {
   // Fetch existing cost structures for this merchant
   const { data: existingCosts = [], isLoading: costsLoading } = useQuery({
@@ -124,23 +129,22 @@ function MerchantCostCard({
       const round4 = (n: number) => Math.round(n * 10000) / 10000
       // Only skip if already loaded from this same existing record
       if (currentData?.mode === 'existing' && currentData?.existingId === existing.id) return
-      dispatch({
-        type: 'SET_COST_STRUCTURE',
-        merchantId,
-        data: {
-          mode: 'existing',
-          existingId: existing.id,
-          debitRate: round4(Number(existing.debitRate) * 100),
-          creditRate: round4(Number(existing.creditRate) * 100),
-          amexRate: round4(Number(existing.amexRate) * 100),
-          internationalRate: round4(Number(existing.internationalRate) * 100),
-          // Hidrata el flag desde la estructura cargada (null/true = no
-          // marcado; false = marcado).
-          includesTax: (existing as any).includesTax ?? null,
-          fixedCostPerTransaction: Number(existing.fixedCostPerTransaction || 0),
-          monthlyFee: Number(existing.monthlyFee || 0),
-        },
-      })
+      const data: CostStructureData = {
+        mode: 'existing',
+        existingId: existing.id,
+        debitRate: round4(Number(existing.debitRate) * 100),
+        creditRate: round4(Number(existing.creditRate) * 100),
+        amexRate: round4(Number(existing.amexRate) * 100),
+        internationalRate: round4(Number(existing.internationalRate) * 100),
+        // Hidrata el flag desde la estructura cargada (null/true = no
+        // marcado; false = marcado).
+        includesTax: (existing as any).includesTax ?? null,
+        taxRate: (existing as any).taxRate != null ? Number((existing as any).taxRate) : undefined,
+        fixedCostPerTransaction: Number(existing.fixedCostPerTransaction || 0),
+        monthlyFee: Number(existing.monthlyFee || 0),
+      }
+      dispatch({ type: 'SET_COST_STRUCTURE', merchantId, data })
+      alCargar?.(merchantId, data)
     } else if (!currentData) {
       // No existing costs — initialize with empty (new) structure
       dispatch({

@@ -334,6 +334,8 @@ export interface SetOrgPricingData {
   effectiveTo?: string | null
   contractReference?: string | null
   notes?: string | null
+  /** D18: el SERVIDOR no escribe si queda igual a la vigente (y si escribe, empieza ahora). Lo manda el Wizard de Pagos. */
+  skipIfUnchanged?: boolean
 }
 
 /**

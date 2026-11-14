@@ -114,7 +114,7 @@ export const VenuePaymentConfigDialog: React.FC<VenuePaymentConfigDialogProps> =
                     {t('venuePaymentConfig.primaryAccount')} <span className="text-destructive">*</span>
                   </Label>
                   <Button type="button" variant="link" className="h-auto p-0 text-xs" onClick={handleCreateNew}>
-                    + {t('common:createNew')}
+                    + {t('venuePaymentConfig.createAccount')}
                   </Button>
                 </div>
                 <AccountPicker

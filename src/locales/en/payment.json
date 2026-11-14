@@ -707,6 +707,7 @@
     "createConfig": "Create Payment Configuration",
     "configDescription": "Configure merchant accounts and payment routing for this venue",
     "noConfig": "No payment configuration found for this venue. Create one to start processing payments.",
+    "createAccount": "Create new account",
     "primaryAccount": "Primary Account",
     "primaryAccountDesc": "Main account for all transactions",
     "secondaryAccount": "Secondary Account",
