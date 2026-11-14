@@ -236,9 +236,7 @@
     "summary": "Summary",
     "endingIn": "ending in",
     "selectOne": "Select one",
-    "fulfillment": "How to get it",
-    "shipping": "Shipping",
-    "pickup": "Pickup at"
+    "from": "From"
   },
   "confirm": {
     "archiveTitle": "Archive this payment link?",

@@ -242,7 +242,7 @@ export function ItemFormSection({
           </div>
         ) : (
           <>
-            <p className="text-sm text-muted-foreground">Agrega uno o varios productos. El cliente paga el total exacto del bundle.</p>
+            <p className="text-sm text-muted-foreground">Agrega uno o varios productos. Tu cliente paga el total exacto.</p>
 
             {/* Selected items list — each line has quantity stepper + inline
             modifier picker per product that has groups. */}

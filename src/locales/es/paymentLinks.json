@@ -236,9 +236,7 @@
     "summary": "Resumen",
     "endingIn": "que termina en",
     "selectOne": "Seleccionar uno",
-    "fulfillment": "Cómo obtenerlo",
-    "shipping": "Envío",
-    "pickup": "Recolección en"
+    "from": "Desde"
   },
   "confirm": {
     "archiveTitle": "¿Archivar esta liga de pago?",

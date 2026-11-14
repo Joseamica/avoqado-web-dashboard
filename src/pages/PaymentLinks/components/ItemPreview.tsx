@@ -1,8 +1,10 @@
-import { Check, ChevronDown, Circle, CreditCard, ExternalLink, ImageIcon, Lock } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
+import { Check, ChevronDown, CreditCard, ExternalLink, ImageIcon, Lock } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import type { CustomFieldDefinition, TippingConfig } from '@/services/paymentLink.service'
+import { getProductGroup } from '@/services/productGroups.service'
 import { PhoneFrame } from './PhoneFrame'
 import type { BundleItem } from './ItemFormSection'
 
@@ -12,15 +14,16 @@ interface ItemPreviewProps {
   items: BundleItem[]
   /** Liga por prenda: en vez de productos, la clienta escoge la talla al pagar. */
   groupName?: string
+  groupId?: string
   redirectEnabled: boolean
   redirectUrl: string
   customFields?: CustomFieldDefinition[]
   tippingConfig?: TippingConfig | null
 }
 
-export function ItemPreview({ items, groupName, redirectEnabled, redirectUrl, customFields, tippingConfig }: ItemPreviewProps) {
+export function ItemPreview({ items, groupName, groupId, redirectEnabled, redirectUrl, customFields, tippingConfig }: ItemPreviewProps) {
   const { t } = useTranslation('paymentLinks')
-  const { venue } = useCurrentVenue()
+  const { venue, venueId } = useCurrentVenue()
   const [activeTab, setActiveTab] = useState<PreviewTab>('details')
   const [selectedTip, setSelectedTip] = useState<number | null>(null)
 
@@ -40,8 +43,20 @@ export function ItemPreview({ items, groupName, redirectEnabled, redirectUrl, cu
     const modSum = it.modifiers.reduce((m, mm) => m + mm.price * mm.quantity, 0)
     return sum + (Number(it.product.price) + modSum) * it.quantity
   }, 0)
-  const tipAmount = selectedTip !== null ? subtotal * (selectedTip / 100) : 0
-  const total = subtotal + tipAmount
+  // Liga por prenda: como en la página de pago, «Desde» el precio más bajo de las tallas activas y un botón por valor.
+  const { data: grupo } = useQuery({
+    queryKey: ['product-group', venueId, groupId],
+    queryFn: () => getProductGroup(venueId!, groupId!),
+    enabled: !!venueId && !!groupId,
+  })
+  const precios = (grupo?.variants ?? []).filter(v => v.active).map(v => Number(v.price))
+  const desde = precios.length > 0 ? Math.min(...precios) : null
+  const porPosicion = (a: { position: number }, b: { position: number }) => a.position - b.position
+  const ejes = [...(grupo?.options ?? [])].sort(porPosicion)
+  const base = groupName ? (desde ?? 0) : subtotal
+  const piezas = groupName ? 1 : totalQuantity
+  const tipAmount = selectedTip !== null ? base * (selectedTip / 100) : 0
+  const total = base + tipAmount
   // For the hero image, pick the first item's image if any has one. Bundle
   // links have no single "primary" product image, so this is just a hint.
   const heroProduct = items.find(it => it.product.imageUrl)?.product ?? items[0]?.product ?? null
@@ -105,13 +120,36 @@ export function ItemPreview({ items, groupName, redirectEnabled, redirectUrl, cu
                   {groupName
                     ? groupName
                     : items.length === 0
-                    ? t('itemPreview.articlePlaceholder')
-                    : items.length === 1
-                      ? items[0].product.name
-                      : `${items.length} artículos`}
+                      ? t('itemPreview.articlePlaceholder')
+                      : items.length === 1
+                        ? items[0].product.name
+                        : `${items.length} artículos`}
                 </h3>
-                <p className="text-lg font-medium mt-1.5">{groupName ? t('itemForm.sizeChoice') : formatPrice(subtotal)}</p>
+                {groupName && desde !== null ? (
+                  <p className="text-lg font-medium mt-1.5">
+                    {desde !== Math.max(...precios) && (
+                      <span className="block text-xs font-medium text-muted-foreground">{t('itemPreview.from')}</span>
+                    )}
+                    {formatPrice(desde)}
+                  </p>
+                ) : (
+                  <p className="text-lg font-medium mt-1.5">{groupName ? t('itemForm.sizeChoice') : formatPrice(subtotal)}</p>
+                )}
               </div>
+
+              {groupName &&
+                ejes.map(eje => (
+                  <div key={eje.id} role="group" aria-label={eje.name} className="space-y-1.5">
+                    <p className="text-sm font-semibold">{eje.name}</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {[...eje.values].sort(porPosicion).map(v => (
+                        <span key={v.id} className="rounded-lg border border-input px-2.5 py-1 text-xs font-medium">
+                          {v.value}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ))}
 
               {/* Line items — show every product with qty × price + its
                   pre-selected modifiers indented underneath. */}
@@ -142,9 +180,7 @@ export function ItemPreview({ items, groupName, redirectEnabled, redirectUrl, cu
                                   + {mm.quantity > 1 && `${mm.quantity}× `}
                                   {mm.name}
                                 </span>
-                                {mm.price > 0 && (
-                                  <span className="shrink-0">{formatPrice(mm.price * mm.quantity * it.quantity)}</span>
-                                )}
+                                {mm.price > 0 && <span className="shrink-0">{formatPrice(mm.price * mm.quantity * it.quantity)}</span>}
                               </li>
                             ))}
                           </ul>
@@ -179,32 +215,20 @@ export function ItemPreview({ items, groupName, redirectEnabled, redirectUrl, cu
                 </>
               )}
 
-              {/* Fulfillment method */}
-              <hr className="border-border" />
-              <div className="space-y-2.5">
-                <p className="text-sm font-semibold">{t('itemPreview.fulfillment')}</p>
-                <div className="flex items-center gap-2.5">
-                  <Circle className="h-5 w-5 text-foreground fill-foreground" />
-                  <span className="text-sm">{t('itemPreview.shipping')}</span>
-                </div>
-                <div className="flex items-center gap-2.5">
-                  <Circle className="h-5 w-5 text-muted-foreground/40" />
-                  <span className="text-sm text-muted-foreground">{t('itemPreview.pickup')}</span>
-                </div>
-              </div>
-
               <hr className="border-border" />
 
               {/* Subtotal — quantities are fixed by the bundle, no selector */}
-              <div>
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-bold">{t('itemPreview.subtotal')}</p>
-                  <p className="text-sm font-bold">{formatPrice(subtotal)}</p>
+              {!groupName && (
+                <div>
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-bold">{t('itemPreview.subtotal')}</p>
+                    <p className="text-sm font-bold">{formatPrice(subtotal)}</p>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {totalQuantity} {totalQuantity === 1 ? 'artículo' : 'artículos'} en total
+                  </p>
                 </div>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  {totalQuantity} {totalQuantity === 1 ? 'artículo' : 'artículos'} en total
-                </p>
-              </div>
+              )}
 
               {/* CTA button */}
               <button className="w-full rounded-xl bg-primary py-3.5 text-base font-semibold text-primary-foreground">
@@ -220,7 +244,7 @@ export function ItemPreview({ items, groupName, redirectEnabled, redirectUrl, cu
 
               {/* Order summary */}
               <div className="flex items-center justify-between text-sm">
-                <span>{t('itemPreview.orderSummary', { count: totalQuantity })}</span>
+                <span>{t('itemPreview.orderSummary', { count: piezas })}</span>
                 <ChevronDown className="h-4 w-4 text-muted-foreground" />
               </div>
 
@@ -230,7 +254,7 @@ export function ItemPreview({ items, groupName, redirectEnabled, redirectUrl, cu
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
                   <span>{t('itemPreview.subtotal')}</span>
-                  <span>{formatPrice(subtotal)}</span>
+                  <span>{formatPrice(base)}</span>
                 </div>
 
                 {/* Tip selector */}
@@ -320,8 +344,8 @@ export function ItemPreview({ items, groupName, redirectEnabled, redirectUrl, cu
                     <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t('itemPreview.summary')}</p>
                     {items.length === 0 ? (
                       <div className="flex items-center justify-between text-sm">
-                        <span>{t('itemPreview.articlePlaceholder')}</span>
-                        <span>{formatPrice(0)}</span>
+                        <span>{groupName ?? t('itemPreview.articlePlaceholder')}</span>
+                        <span>{formatPrice(base)}</span>
                       </div>
                     ) : (
                       items.map(it => (
@@ -343,7 +367,7 @@ export function ItemPreview({ items, groupName, redirectEnabled, redirectUrl, cu
                     <hr className="border-border/60" />
                     <div className="flex items-center justify-between text-sm">
                       <span>{t('itemPreview.subtotal')}</span>
-                      <span>{formatPrice(subtotal)}</span>
+                      <span>{formatPrice(base)}</span>
                     </div>
                     <div className="flex items-center justify-between text-sm font-semibold">
                       <span>{t('itemPreview.orderTotal')}</span>
