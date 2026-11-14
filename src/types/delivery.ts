@@ -82,7 +82,16 @@ export interface DeliveryChannelPrices {
   overrides?: Record<string, number>
 }
 
+/** Dónde se imprimen los pedidos de un canal (espejo del SERVIDOR). Sin esto = como en el salón + empaque del negocio. */
+export interface ImpresionDelCanal {
+  comanda: 'SALON' | 'UNA_ESTACION'
+  estacionId?: string
+  empaque: 'NEGOCIO' | 'NO' | 'ESTACION'
+  empaqueEstacionId?: string
+}
+
 export interface DeliveryChannelConfig {
+  impresion?: ImpresionDelCanal | null
   deliveryHours?: DeliveryWeeklyHours | null
   precios?: DeliveryChannelPrices | null
   /**

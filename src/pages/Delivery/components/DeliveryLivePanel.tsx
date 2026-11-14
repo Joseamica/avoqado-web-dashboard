@@ -61,7 +61,10 @@ export function DeliveryLivePanel({ venueId, channels }: DeliveryLivePanelProps)
   const queryClient = useQueryClient()
   // Se guarda el canal ENTERO, no el id: el modal necesita su `config` actual para pintar el
   // horario y el margen que ya tiene. Guardar sólo el id obligaría a buscarlo de nuevo.
-  const [ajustesDe, setAjustesDe] = useState<DeliveryChannelLink | null>(null)
+  // Se guarda el id, no el canal: el diálogo debe ver el canal VIGENTE de la lista (si otra persona cambió su impresión
+  // desde Impresoras → Delivery, una copia tomada al abrir mostraría lo viejo y lo guardaría encima; Codex c1 #2).
+  const [ajustesDeId, setAjustesDeId] = useState<string | null>(null)
+  const ajustesDe = ajustesDeId ? (channels.find(c => c.id === ajustesDeId) ?? null) : null
 
   const summaryQuery = useQuery({
     queryKey: ['deliverySummary', venueId],
@@ -259,7 +262,7 @@ export function DeliveryLivePanel({ venueId, channels }: DeliveryLivePanelProps)
                     data-tour="delivery-channel-settings-btn"
                     disabled={!canManage}
                     className="w-full cursor-pointer gap-1.5 text-xs"
-                    onClick={() => setAjustesDe(channel)}
+                    onClick={() => setAjustesDeId(channel.id)}
                   >
                     <Settings2 className="h-3.5 w-3.5" />
                     {t('live.settingsAction')}
@@ -285,7 +288,7 @@ export function DeliveryLivePanel({ venueId, channels }: DeliveryLivePanelProps)
         </div>
       </div>
 
-      {ajustesDe && <ChannelSettingsDialog open onClose={() => setAjustesDe(null)} venueId={venueId} channel={ajustesDe} />}
+      {ajustesDe && <ChannelSettingsDialog open onClose={() => setAjustesDeId(null)} venueId={venueId} channel={ajustesDe} />}
 
       {/* (c) Link into the EXISTING Orders view — reused, not rebuilt. */}
       <Link to={`${fullBasePath}/orders`} className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline">

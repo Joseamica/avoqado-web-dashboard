@@ -6,7 +6,8 @@
     "stations": "Stations",
     "printers": "Printers",
     "gateway": "Gateway",
-    "routing": "Routing"
+    "routing": "Routing",
+    "delivery": "Delivery"
   },
   "actions": {
     "save": "Save",
