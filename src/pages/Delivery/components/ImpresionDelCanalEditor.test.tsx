@@ -271,8 +271,8 @@ describe('ImpresionDelCanalEditor', () => {
 
   it('siempre muestra la versión mínima del POS', async () => {
     renderEditor()
-    expect(VERSION_MINIMA_POS_IMPRESION_REPARTO).toBe('2.25.44')
-    expect(await screen.findByText('Se aplica en los POS con la versión 2.25.44 o más nueva')).toBeTruthy()
+    expect(VERSION_MINIMA_POS_IMPRESION_REPARTO).toBe('2.25.45')
+    expect(await screen.findByText('Se aplica en los POS con la versión 2.25.45 o más nueva')).toBeTruthy()
   })
 
   it('avisa que en iPad e iPhone todavía no se aplica', async () => {

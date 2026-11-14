@@ -19,7 +19,7 @@ import type { DeliveryChannelLink, ImpresionDelCanal } from '@/types/delivery'
 import { providerLabel } from '../providerLabels'
 
 /** Primera versión del POS (ANDROID) que respeta esta configuración. */
-export const VERSION_MINIMA_POS_IMPRESION_REPARTO = '2.25.44'
+export const VERSION_MINIMA_POS_IMPRESION_REPARTO = '2.25.45'
 
 const SALON = 'SALON'
 const NEGOCIO = 'NEGOCIO'
