@@ -116,6 +116,9 @@ vi.mock('../components/ShareActions', () => ({ ShareActions: () => null }))
 
 const stripe = { id: 'm-stripe', chargesEnabled: true, provider: { code: 'STRIPE_CONNECT', name: 'Stripe' } }
 const blumon = { id: 'm-blumon', provider: { code: 'BLUMON', name: 'Blumon' } }
+// Stripe con la cuenta creada pero sin poder cobrar todavía (onboarding sin terminar).
+const stripeSinCobros = { id: 'm-stripe-x', chargesEnabled: false, onboardingStatus: 'COMPLETED', provider: { code: 'STRIPE_CONNECT', name: 'Stripe' } }
+const mercadoPago = { id: 'm-mp', providerMerchantId: 'mp-1', provider: { code: 'MERCADO_PAGO', name: 'Mercado Pago' } }
 const vestido = { id: 'g1', name: 'Vestido lino', imageUrl: null, categoryId: 'c', variantCount: 4, minPrice: 900, maxPrice: 900 }
 const playera = { id: 'p1', name: 'Playera', price: 100, modifierGroups: [] }
 
@@ -231,6 +234,51 @@ describe('crear la liga por prenda', () => {
     fireEvent.click(screen.getByText('wizard.continue'))
     expect(await screen.findByText('itemForm.groupNeedsStripe')).toBeVisible()
     expect(screen.queryByText(/Vestido lino/)).toBeNull()
+  })
+
+  // El SERVIDOR sólo acepta la liga por prenda con un Stripe que PUEDA cobrar (chargesEnabled). El panel decide igual,
+  // antes de elegir, en vez de dejar elegir la prenda y estrellarse con el 400 al guardar (encargo 8aedae).
+  async function abrirVenderProducto() {
+    render(wrap(<CreatePaymentLinkDialog open onClose={vi.fn()} />))
+    await act(async () => {
+      await new Promise(r => setTimeout(r, 20))
+    })
+    fireEvent.click(screen.getByText('wizard.itemTitle'))
+    fireEvent.click(screen.getByText('wizard.continue'))
+  }
+
+  it('con Stripe que todavía no puede cobrar (chargesEnabled=false) avisa antes de elegir y no ofrece prendas', async () => {
+    state.merchants = [stripeSinCobros]
+    await abrirVenderProducto()
+    expect(await screen.findByText('itemForm.groupNeedsStripe')).toBeVisible()
+    expect(screen.queryByText(/Vestido lino/)).toBeNull()
+    expect(mocks.groups).not.toHaveBeenCalled()
+  })
+
+  it('con Stripe sin cobros y Blumon listo (se elige solo Blumon) avisa y no ofrece prendas', async () => {
+    state.merchants = [stripeSinCobros, blumon]
+    await abrirVenderProducto()
+    expect(await screen.findByText('itemForm.groupNeedsStripe')).toBeVisible()
+    expect(screen.queryByText(/Vestido lino/)).toBeNull()
+  })
+
+  it('con dos canales que no son Stripe y ninguno elegido todavía, avisa y no ofrece prendas', async () => {
+    state.merchants = [blumon, mercadoPago]
+    await abrirVenderProducto()
+    expect(await screen.findByText('itemForm.groupNeedsStripe')).toBeVisible()
+    expect(screen.queryByText(/Vestido lino/)).toBeNull()
+  })
+
+  it('regresión: con Stripe cobrable y Blumon, sin canal elegido, sí ofrece prendas (el servidor usa el Stripe)', async () => {
+    state.merchants = [stripe, blumon]
+    await abrirVenderProducto()
+    fireEvent.click(await screen.findByText('Vestido lino|itemForm.sizeChoice'))
+    fireEvent.click(screen.getByText('form.save'))
+    await waitFor(() => expect(mocks.create).toHaveBeenCalledTimes(1))
+    const body = mocks.create.mock.calls[0][1]
+    expect(body).toMatchObject({ productGroupId: 'g1' })
+    expect(body).not.toHaveProperty('ecommerceMerchantId')
+    expect(screen.queryByText('itemForm.groupNeedsStripe')).toBeNull()
   })
 
   it('regresión: la liga de varios productos sigue igual (items, sin productGroupId)', async () => {
