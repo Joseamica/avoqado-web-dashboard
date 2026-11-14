@@ -147,11 +147,12 @@ function PaymentLinkForm({ open, onClose, editingLinkId }: CreatePaymentLinkDial
   // don't have ecommerce checkout integration today. Stripe Connect channels
   // also require chargesEnabled (Stripe approved the account) to be usable.
   const [selectedMerchantId, setSelectedMerchantId] = useState<string | null>(null)
-  const { data: allActiveMerchants = [] } = useQuery({
+  const allActiveMerchantsQuery = useQuery({
     queryKey: ['ecommerce-merchants', venueId, 'active-for-payment-link-create'],
     queryFn: () => ecommerceMerchantAPI.listByVenue(venueId, { active: true }),
     enabled: !!venueId && open && !isEditing,
   })
+  const allActiveMerchants = useMemo(() => allActiveMerchantsQuery.data ?? [], [allActiveMerchantsQuery.data])
 
   const usableMerchants = useMemo(() => {
     return allActiveMerchants.filter(m => {
@@ -180,9 +181,16 @@ function PaymentLinkForm({ open, onClose, editingLinkId }: CreatePaymentLinkDial
   })
 
   const showMerchantPicker = usableMerchants.length > 1
-  // Las ligas por prenda sólo funcionan con Stripe: si el comercio elegido es otro, la opción se ve en gris.
+  // Las ligas por prenda sólo funcionan con un Stripe que PUEDA cobrar: el SERVIDOR exige `chargesEnabled`
+  // (`isEcommerceMerchantChargeable`) y, si no lo hay, contesta 400 «Las ligas por prenda sólo funcionan con Stripe»
+  // al guardar. El panel decide igual y ANTES de elegir: con el canal elegido, que sea Stripe; sin canal elegido, que
+  // exista un Stripe cobrable (el servidor lo toma solo). `usableMerchants` ya exige `chargesEnabled` en Stripe.
+  // Sólo al crear y con la lista ya leída: al editar no se lee y la familia de la liga no se toca aquí.
+  const merchantsRead = allActiveMerchantsQuery.isSuccess
   const chosenMerchant = usableMerchants.find(m => m.id === selectedMerchantId)
-  const groupsNeedStripe = !!chosenMerchant && chosenMerchant.provider?.code !== 'STRIPE_CONNECT'
+  const hasChargeableStripe = usableMerchants.some(m => m.provider?.code === 'STRIPE_CONNECT')
+  const groupsNeedStripe =
+    !isEditing && merchantsRead && (chosenMerchant ? chosenMerchant.provider?.code !== 'STRIPE_CONNECT' : !hasChargeableStripe)
   useEffect(() => {
     if (groupsNeedStripe && selectedGroup) {
       setSelectedGroup(null)
