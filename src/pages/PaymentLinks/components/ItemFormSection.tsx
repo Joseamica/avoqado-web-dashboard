@@ -7,7 +7,10 @@ import { SearchCombobox } from '@/components/search-combobox'
 import type { SearchComboboxItem } from '@/components/search-combobox'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { getProducts } from '@/services/menu.service'
-import { Minus, Plus, Trash2 } from 'lucide-react'
+import { listProductGroups } from '@/services/productGroups.service'
+import { useTierFeatureAccess } from '@/hooks/use-tier-feature-access'
+import { useNavigate } from 'react-router-dom'
+import { Lock, Minus, Plus, Trash2 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Product, ModifierGroup, Modifier } from '@/types'
@@ -47,6 +50,11 @@ interface ItemFormSectionProps {
   onRedirectUrlChange: (val: string) => void
   redirectEnabled: boolean
   onRedirectEnabledChange: (val: boolean) => void
+  /** Liga por prenda: la familia elegida (la clienta escoge la talla). Opcional: sin `onGroupChange` no se ofrece. */
+  selectedGroup?: { id: string; name: string } | null
+  onGroupChange?: (group: { id: string; name: string } | null) => void
+  /** El comercio de la liga no es Stripe: las prendas se ven en gris con la razón. */
+  groupsNeedStripe?: boolean
 }
 
 let fieldCounter = 0
@@ -64,10 +72,24 @@ export function ItemFormSection({
   onRedirectUrlChange,
   redirectEnabled,
   onRedirectEnabledChange,
+  selectedGroup = null,
+  onGroupChange,
+  groupsNeedStripe = false,
 }: ItemFormSectionProps) {
   const { t } = useTranslation('paymentLinks')
-  const { venueId } = useCurrentVenue()
+  const { venueId, fullBasePath } = useCurrentVenue()
+  const navigate = useNavigate()
   const [productSearch, setProductSearch] = useState('')
+
+  // Prendas (familias con talla). Sin Pro la opción se ve con candado y lleva al plan; nunca se esconde.
+  const { hasAccess: hasVariants, isResolved } = useTierFeatureAccess('PRODUCT_VARIANTS')
+  const groupsLocked = !!onGroupChange && isResolved && !hasVariants
+  const groupsOffered = !!onGroupChange && !groupsLocked && !groupsNeedStripe
+  const { data: groupsPage } = useQuery({
+    queryKey: ['payment-link-groups', venueId, productSearch.trim()],
+    queryFn: () => listProductGroups(venueId, { page: 1, pageSize: 20, search: productSearch.trim() || undefined }),
+    enabled: !!venueId && groupsOffered && !selectedGroup,
+  })
 
   const { data: products = [], isLoading: productsLoading } = useQuery({
     queryKey: ['products', venueId],
@@ -82,7 +104,11 @@ export function ItemFormSection({
   // Show only products not yet in the bundle. Picking adds a new line at qty=1;
   // bumping the quantity stays in the line list instead of the combobox.
   const productItems: SearchComboboxItem[] = useMemo(() => {
-    return products
+    const prendas: SearchComboboxItem[] =
+      groupsOffered && selectedItems.length === 0
+        ? (groupsPage?.items ?? []).map(g => ({ id: `group:${g.id}`, label: g.name, endLabel: t('itemForm.sizeChoice') }))
+        : []
+    const sueltos = products
       .filter(p => !selectedProductIds.has(p.id))
       .filter(p => !productSearch || includesNormalized(p.name ?? '', productSearch))
       .map(p => ({
@@ -90,7 +116,9 @@ export function ItemFormSection({
         label: p.name,
         endLabel: formatPrice(p.price),
       }))
-  }, [products, productSearch, selectedProductIds])
+    return [...prendas, ...sueltos]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [products, productSearch, selectedProductIds, groupsOffered, groupsPage, selectedItems.length])
 
   const addProduct = (product: Product) => {
     if (selectedProductIds.has(product.id)) return
@@ -183,159 +211,203 @@ export function ItemFormSection({
       {/* ── Bundle line items ─────────────────────────── */}
       <section className="space-y-3">
         <h2 className="text-lg font-semibold">Artículos</h2>
-        <p className="text-sm text-muted-foreground">
-          Agrega uno o varios productos. El cliente paga el total exacto del bundle.
-        </p>
-
-        {/* Selected items list — each line has quantity stepper + inline
-            modifier picker per product that has groups. */}
-        {selectedItems.length > 0 && (
-          <div className="rounded-xl border border-input bg-card divide-y divide-input">
-            {selectedItems.map(it => {
-              const groups: ModifierGroup[] = (it.product.modifierGroups ?? [])
-                .map(pmg => pmg.group)
-                .filter((g): g is ModifierGroup => !!g && (g.modifiers?.length ?? 0) > 0)
-              const hasModifierGroups = groups.length > 0
-
-              return (
-                <div key={it.product.id} className="p-3 space-y-3">
-                  {/* Top row: product + qty stepper + line total + remove */}
-                  <div className="flex items-center gap-3">
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate">{it.product.name}</p>
-                      <p className="text-xs text-muted-foreground">{formatPrice(Number(it.product.price))} c/u</p>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        className="h-8 w-8 cursor-pointer"
-                        onClick={() => setQuantity(it.product.id, it.quantity - 1)}
-                        disabled={it.quantity <= 1}
-                      >
-                        <Minus className="h-3 w-3" />
-                      </Button>
-                      <Input
-                        type="number"
-                        min={1}
-                        max={999}
-                        value={it.quantity}
-                        onChange={e => {
-                          const v = parseInt(e.target.value, 10)
-                          if (!Number.isNaN(v)) setQuantity(it.product.id, v)
-                        }}
-                        className="h-8 w-14 text-center text-sm"
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        className="h-8 w-8 cursor-pointer"
-                        onClick={() => setQuantity(it.product.id, it.quantity + 1)}
-                      >
-                        <Plus className="h-3 w-3" />
-                      </Button>
-                    </div>
-                    <div className="w-20 text-right font-medium text-sm">{formatPrice(lineTotal(it))}</div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-muted-foreground hover:text-destructive cursor-pointer"
-                      onClick={() => removeItem(it.product.id)}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-
-                  {/* Modifier groups for this product. Required + min/max info
-                      is shown inline so the admin knows what to pick. */}
-                  {hasModifierGroups && (
-                    <div className="space-y-2 pl-2 border-l-2 border-muted">
-                      {groups.map(group => {
-                        const modifiers: Modifier[] = group.modifiers ?? []
-                        const pickedInGroup = it.modifiers.filter(m =>
-                          modifiers.some(gm => gm.id === m.modifierId),
-                        )
-                        const meta: string[] = []
-                        if (group.required) meta.push('requerido')
-                        if (group.minSelections > 0)
-                          meta.push(`mín ${group.minSelections}`)
-                        if (group.maxSelections != null)
-                          meta.push(`máx ${group.maxSelections}`)
-                        if (!group.allowMultiple && !group.required) meta.push('elige uno')
-                        return (
-                          <div key={group.id} className="space-y-1.5">
-                            <div className="flex items-center gap-2 text-xs">
-                              <span className="font-medium">{group.name}</span>
-                              {meta.length > 0 && (
-                                <span className="text-muted-foreground">· {meta.join(' · ')}</span>
-                              )}
-                              {pickedInGroup.length > 0 && (
-                                <span className="ml-auto text-muted-foreground">
-                                  {pickedInGroup.length} seleccionado{pickedInGroup.length === 1 ? '' : 's'}
-                                </span>
-                              )}
-                            </div>
-                            <div className="flex flex-wrap gap-1.5">
-                              {modifiers.map(m => {
-                                const picked = it.modifiers.some(mm => mm.modifierId === m.id)
-                                return (
-                                  <button
-                                    key={m.id}
-                                    type="button"
-                                    onClick={() => toggleModifier(it.product.id, group, m)}
-                                    className={`rounded-full border px-2.5 py-1 text-xs transition-colors cursor-pointer ${
-                                      picked
-                                        ? 'border-foreground bg-foreground text-background'
-                                        : 'border-input hover:bg-muted'
-                                    }`}
-                                  >
-                                    {m.name}
-                                    {Number(m.price) > 0 && (
-                                      <span className={picked ? '' : 'text-muted-foreground'}>
-                                        {' '}
-                                        +{formatPrice(Number(m.price))}
-                                      </span>
-                                    )}
-                                  </button>
-                                )
-                              })}
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  )}
-                </div>
-              )
-            })}
-            {/* Subtotal footer */}
-            <div className="flex items-center justify-between p-3 bg-muted/40">
-              <span className="text-sm font-medium">Subtotal</span>
-              <span className="text-base font-semibold">{formatPrice(subtotal)}</span>
+        {selectedGroup ? (
+          <div className="space-y-3">
+            <div className="flex items-center gap-3 rounded-xl border border-input bg-card p-3">
+              <div className="min-w-0 flex-1">
+                <p className="truncate font-medium">{selectedGroup.name}</p>
+                <p className="text-xs text-muted-foreground">{t('itemForm.sizeChoice')}</p>
+              </div>
+              {onGroupChange && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  aria-label={t('itemForm.groupRemove')}
+                  className="h-8 w-8 cursor-pointer text-muted-foreground hover:text-destructive"
+                  onClick={() => onGroupChange?.(null)}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              )}
+            </div>
+            <p className="text-sm text-muted-foreground">{t('itemForm.groupNote')}</p>
+            <div className="flex items-center justify-between py-1">
+              <div className="space-y-0.5">
+                <span className="text-sm font-medium">{t('itemForm.groupReusable')}</span>
+                <p className="text-xs text-muted-foreground">{t('itemForm.groupReusableHint')}</p>
+              </div>
+              <Switch checked disabled aria-label={t('itemForm.groupReusable')} />
             </div>
           </div>
-        )}
+        ) : (
+          <>
+            <p className="text-sm text-muted-foreground">Agrega uno o varios productos. El cliente paga el total exacto del bundle.</p>
 
-        {/* Product picker — adds a new line at qty=1 */}
-        <SearchCombobox
-          placeholder={selectedItems.length === 0 ? 'Selecciona un producto…' : 'Agregar otro producto…'}
-          items={productItems}
-          isLoading={productsLoading}
-          value={productSearch}
-          onChange={setProductSearch}
-          onSelect={item => {
-            const product = products.find(p => p.id === item.id)
-            if (product) {
-              addProduct(product)
-              setProductSearch('') // reset so user can immediately search the next one
-            }
-          }}
-        />
-        {selectedItems.length > 0 && (
-          <p className="text-xs text-muted-foreground">{selectedItems.length} de 20 productos</p>
+            {/* Selected items list — each line has quantity stepper + inline
+            modifier picker per product that has groups. */}
+            {selectedItems.length > 0 && (
+              <div className="rounded-xl border border-input bg-card divide-y divide-input">
+                {selectedItems.map(it => {
+                  const groups: ModifierGroup[] = (it.product.modifierGroups ?? [])
+                    .map(pmg => pmg.group)
+                    .filter((g): g is ModifierGroup => !!g && (g.modifiers?.length ?? 0) > 0)
+                  const hasModifierGroups = groups.length > 0
+
+                  return (
+                    <div key={it.product.id} className="p-3 space-y-3">
+                      {/* Top row: product + qty stepper + line total + remove */}
+                      <div className="flex items-center gap-3">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium truncate">{it.product.name}</p>
+                          <p className="text-xs text-muted-foreground">{formatPrice(Number(it.product.price))} c/u</p>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            className="h-8 w-8 cursor-pointer"
+                            onClick={() => setQuantity(it.product.id, it.quantity - 1)}
+                            disabled={it.quantity <= 1}
+                          >
+                            <Minus className="h-3 w-3" />
+                          </Button>
+                          <Input
+                            type="number"
+                            min={1}
+                            max={999}
+                            value={it.quantity}
+                            onChange={e => {
+                              const v = parseInt(e.target.value, 10)
+                              if (!Number.isNaN(v)) setQuantity(it.product.id, v)
+                            }}
+                            className="h-8 w-14 text-center text-sm"
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            className="h-8 w-8 cursor-pointer"
+                            onClick={() => setQuantity(it.product.id, it.quantity + 1)}
+                          >
+                            <Plus className="h-3 w-3" />
+                          </Button>
+                        </div>
+                        <div className="w-20 text-right font-medium text-sm">{formatPrice(lineTotal(it))}</div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-destructive cursor-pointer"
+                          onClick={() => removeItem(it.product.id)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+
+                      {/* Modifier groups for this product. Required + min/max info
+                      is shown inline so the admin knows what to pick. */}
+                      {hasModifierGroups && (
+                        <div className="space-y-2 pl-2 border-l-2 border-muted">
+                          {groups.map(group => {
+                            const modifiers: Modifier[] = group.modifiers ?? []
+                            const pickedInGroup = it.modifiers.filter(m => modifiers.some(gm => gm.id === m.modifierId))
+                            const meta: string[] = []
+                            if (group.required) meta.push('requerido')
+                            if (group.minSelections > 0) meta.push(`mín ${group.minSelections}`)
+                            if (group.maxSelections != null) meta.push(`máx ${group.maxSelections}`)
+                            if (!group.allowMultiple && !group.required) meta.push('elige uno')
+                            return (
+                              <div key={group.id} className="space-y-1.5">
+                                <div className="flex items-center gap-2 text-xs">
+                                  <span className="font-medium">{group.name}</span>
+                                  {meta.length > 0 && <span className="text-muted-foreground">· {meta.join(' · ')}</span>}
+                                  {pickedInGroup.length > 0 && (
+                                    <span className="ml-auto text-muted-foreground">
+                                      {pickedInGroup.length} seleccionado{pickedInGroup.length === 1 ? '' : 's'}
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {modifiers.map(m => {
+                                    const picked = it.modifiers.some(mm => mm.modifierId === m.id)
+                                    return (
+                                      <button
+                                        key={m.id}
+                                        type="button"
+                                        onClick={() => toggleModifier(it.product.id, group, m)}
+                                        className={`rounded-full border px-2.5 py-1 text-xs transition-colors cursor-pointer ${
+                                          picked ? 'border-foreground bg-foreground text-background' : 'border-input hover:bg-muted'
+                                        }`}
+                                      >
+                                        {m.name}
+                                        {Number(m.price) > 0 && (
+                                          <span className={picked ? '' : 'text-muted-foreground'}> +{formatPrice(Number(m.price))}</span>
+                                        )}
+                                      </button>
+                                    )
+                                  })}
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+                {/* Subtotal footer */}
+                <div className="flex items-center justify-between p-3 bg-muted/40">
+                  <span className="text-sm font-medium">Subtotal</span>
+                  <span className="text-base font-semibold">{formatPrice(subtotal)}</span>
+                </div>
+              </div>
+            )}
+
+            {/* Product picker — adds a new line at qty=1 */}
+            <SearchCombobox
+              placeholder={selectedItems.length === 0 ? 'Selecciona un producto…' : 'Agregar otro producto…'}
+              items={productItems}
+              isLoading={productsLoading}
+              value={productSearch}
+              onChange={setProductSearch}
+              onSelect={item => {
+                if (item.id.startsWith('group:')) {
+                  onItemsChange([])
+                  onGroupChange?.({ id: item.id.slice(6), name: item.label })
+                  setProductSearch('')
+                  return
+                }
+                const product = products.find(p => p.id === item.id)
+                if (product) {
+                  addProduct(product)
+                  setProductSearch('') // reset so user can immediately search the next one
+                }
+              }}
+            />
+            {selectedItems.length > 0 && <p className="text-xs text-muted-foreground">{selectedItems.length} de 20 productos</p>}
+
+            {groupsLocked && (
+              <button
+                type="button"
+                onClick={() => navigate(`${fullBasePath}/settings/billing`)}
+                className="flex w-full cursor-pointer items-center gap-3 rounded-xl border border-dashed border-input bg-muted/40 p-3 text-left hover:bg-muted"
+              >
+                <Lock className="h-4 w-4 shrink-0 text-muted-foreground" />
+                <span className="min-w-0">
+                  <span className="block text-sm font-medium">{t('itemForm.groupLocked')}</span>
+                  <span className="block text-xs text-muted-foreground">{t('itemForm.groupLockedHint')}</span>
+                </span>
+              </button>
+            )}
+            {!!onGroupChange && !groupsLocked && groupsNeedStripe && (
+              <div className="flex items-center gap-3 rounded-xl border border-dashed border-input bg-muted/40 p-3 opacity-60">
+                <Lock className="h-4 w-4 shrink-0 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">{t('itemForm.groupNeedsStripe')}</span>
+              </div>
+            )}
+          </>
         )}
       </section>
 

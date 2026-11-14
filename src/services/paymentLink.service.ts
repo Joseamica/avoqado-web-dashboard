@@ -60,6 +60,8 @@ export interface PaymentLink {
   purpose: 'PAYMENT' | 'ITEM' | 'DONATION'
   /** Bundle line items for ITEM-purpose links. Empty for PAYMENT/DONATION. */
   items?: PaymentLinkBundleItem[]
+  /** Liga por prenda: la clienta elige la talla al pagar. Un servidor viejo no lo manda. */
+  productGroup?: { id: string; name: string } | null
   title: string
   description?: string
   imageUrl?: string
@@ -111,7 +113,9 @@ export interface CreatePaymentLinkRequest {
   expiresAt?: string
   redirectUrl?: string
   purpose?: 'PAYMENT' | 'ITEM' | 'DONATION'
-  /** Bundle line items for ITEM-purpose links. Required when purpose is ITEM.
+  /** Liga por prenda (ITEM sin `items` ni `discount`; sólo Stripe; plan Pro). Sigue mandando `amountType: 'FIXED'`. */
+  productGroupId?: string
+  /** Bundle line items for ITEM-purpose links. Required when purpose is ITEM (salvo liga por prenda).
    *  Each item may include pre-selected modifiers. */
   items?: Array<{
     productId: string
@@ -141,6 +145,7 @@ export interface UpdatePaymentLinkRequest {
   expiresAt?: string | null
   redirectUrl?: string | null
   status?: 'ACTIVE' | 'PAUSED'
+  productGroupId?: string
   /** Replace the bundle items list for ITEM links. Pass [] to clear. */
   items?: Array<{
     productId: string

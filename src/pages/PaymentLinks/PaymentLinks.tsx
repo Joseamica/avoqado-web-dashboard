@@ -352,7 +352,11 @@ export default function PaymentLinks() {
               </div>
               <div>
                 <div className="font-medium">{row.original.title}</div>
-                {row.original.description && (
+                {row.original.productGroup ? (
+                  <div className="text-sm text-muted-foreground truncate max-w-[200px]">
+                    {t('list.garment', { name: row.original.productGroup.name })}
+                  </div>
+                ) : row.original.description && (
                   <div className="text-sm text-muted-foreground truncate max-w-[200px]">{row.original.description}</div>
                 )}
               </div>
@@ -368,7 +372,7 @@ export default function PaymentLinks() {
             {row.original.amountType === 'FIXED' && row.original.amount ? (
               <span className="font-medium">{formatPrice(row.original.amount, row.original.currency)}</span>
             ) : (
-              <span className="text-sm text-muted-foreground">{t('list.openAmount')}</span>
+              <span className="text-sm text-muted-foreground">{t(row.original.productGroup ? 'list.bySize' : 'list.openAmount')}</span>
             )}
             <PaymentLinkDiscountStatus
               link={row.original}

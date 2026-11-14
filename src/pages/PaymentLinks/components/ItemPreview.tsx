@@ -10,13 +10,15 @@ type PreviewTab = 'details' | 'payment' | 'confirmation'
 
 interface ItemPreviewProps {
   items: BundleItem[]
+  /** Liga por prenda: en vez de productos, la clienta escoge la talla al pagar. */
+  groupName?: string
   redirectEnabled: boolean
   redirectUrl: string
   customFields?: CustomFieldDefinition[]
   tippingConfig?: TippingConfig | null
 }
 
-export function ItemPreview({ items, redirectEnabled, redirectUrl, customFields, tippingConfig }: ItemPreviewProps) {
+export function ItemPreview({ items, groupName, redirectEnabled, redirectUrl, customFields, tippingConfig }: ItemPreviewProps) {
   const { t } = useTranslation('paymentLinks')
   const { venue } = useCurrentVenue()
   const [activeTab, setActiveTab] = useState<PreviewTab>('details')
@@ -100,13 +102,15 @@ export function ItemPreview({ items, redirectEnabled, redirectUrl, customFields,
               {/* Bundle header */}
               <div>
                 <h3 className="font-bold text-xl leading-snug">
-                  {items.length === 0
+                  {groupName
+                    ? groupName
+                    : items.length === 0
                     ? t('itemPreview.articlePlaceholder')
                     : items.length === 1
                       ? items[0].product.name
                       : `${items.length} artículos`}
                 </h3>
-                <p className="text-lg font-medium mt-1.5">{formatPrice(subtotal)}</p>
+                <p className="text-lg font-medium mt-1.5">{groupName ? t('itemForm.sizeChoice') : formatPrice(subtotal)}</p>
               </div>
 
               {/* Line items — show every product with qty × price + its
