@@ -1213,6 +1213,7 @@ function PaymentLinkForm({ open, onClose, editingLinkId }: CreatePaymentLinkDial
                   <ItemPreview
                     items={selectedItems}
                     groupName={selectedGroup?.name}
+                    groupId={selectedGroup?.id}
                     redirectEnabled={redirectEnabled}
                     redirectUrl={redirectUrl}
                     customFields={customFieldsEnabled ? customFields : undefined}
