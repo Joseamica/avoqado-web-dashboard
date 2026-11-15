@@ -54,7 +54,7 @@ describe('aviso al no poder eliminar una categoría', () => {
   it('subcategorías que bloquean: las nombra', () => {
     const error = rechazo({ code: 'CATEGORY_HAS_SUBCATEGORIES', details: { subcategorias: ['Pays', 'Helados'] } })
     expect(rechazoAlBorrarCategoria(error, 'Postres', t as never)).toBe(
-      'No se puede eliminar «Postres»: tiene 2 subcategorías activas o con productos: Pays, Helados. Elimínalas primero y vuelve a intentarlo.',
+      'No se puede eliminar «Postres»: tiene 2 subcategorías: Pays, Helados. Elimínalas primero y vuelve a intentarlo.',
     )
   })
 

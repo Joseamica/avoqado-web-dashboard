@@ -196,8 +196,8 @@
       "pausedCount": "Los pausados también cuentan.",
       "productsAction_one": "Muévelo a otra categoría o elimínalo y vuelve a intentarlo.",
       "productsAction_other": "Muévelos a otra categoría o elimínalos y vuelve a intentarlo.",
-      "subcategories_one": "No se puede eliminar «{{name}}»: tiene 1 subcategoría activa o con productos: {{names}}. Elimínala primero y vuelve a intentarlo.",
-      "subcategories_other": "No se puede eliminar «{{name}}»: tiene {{count}} subcategorías activas o con productos: {{names}}. Elimínalas primero y vuelve a intentarlo.",
+      "subcategories_one": "No se puede eliminar «{{name}}»: tiene 1 subcategoría: {{names}}. Elimínala primero y vuelve a intentarlo.",
+      "subcategories_other": "No se puede eliminar «{{name}}»: tiene {{count}} subcategorías: {{names}}. Elimínalas primero y vuelve a intentarlo.",
       "generic": "No se pudo eliminar la categoría. Inténtalo de nuevo."
     }
   },

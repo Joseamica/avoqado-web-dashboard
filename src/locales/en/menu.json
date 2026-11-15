@@ -196,8 +196,8 @@
       "pausedCount": "Paused products count too.",
       "productsAction_one": "Move it to another category or delete it, then try again.",
       "productsAction_other": "Move them to another category or delete them, then try again.",
-      "subcategories_one": "«{{name}}» can't be deleted: it has 1 subcategory that is active or has products: {{names}}. Delete it first, then try again.",
-      "subcategories_other": "«{{name}}» can't be deleted: it has {{count}} subcategories that are active or have products: {{names}}. Delete them first, then try again.",
+      "subcategories_one": "«{{name}}» can't be deleted: it has 1 subcategory: {{names}}. Delete it first, then try again.",
+      "subcategories_other": "«{{name}}» can't be deleted: it has {{count}} subcategories: {{names}}. Delete them first, then try again.",
       "generic": "The category couldn't be deleted. Please try again."
     }
   },
