@@ -17,6 +17,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useAccess } from '@/hooks/use-access'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { useTierFeatureAccess } from '@/hooks/use-tier-feature-access'
 import { useReceiptLayout, useReceiptPreview, useResetReceiptLayout, useReceiptTemplates } from '@/hooks/useReceiptLayout'
 import { useReceiptLayoutTour } from '@/hooks/useReceiptLayoutTour'
 import { cn } from '@/lib/utils'
@@ -39,6 +40,14 @@ export default function ReceiptLayoutPage() {
   const { t } = useTranslation('receiptLayout')
   const { venueId, venue, fullBasePath } = useCurrentVenue()
   const { can } = useAccess()
+  // Encargo 08cc59 (15-nov): «Ir a Facturación» llevaba a `/facturacion`, que no existe (404). El RFC y la razón social del
+  // ticket se capturan como EMISOR en la configuración de Facturación (sin certificados), y esa pantalla es de PREMIUM: el
+  // servidor la cierra con `checkFeatureAccess('CFDI')`. Sin el plan no hay pantalla donde teclearlos, así que no se ofrece un
+  // enlace a un callejón: el aviso lo dice (`fiscalSinPlan`).
+  const { hasAccess: puedeFacturar, isResolved: planResuelto } = useTierFeatureAccess('CFDI')
+  // Mientras el plan carga, el hook contesta `hasAccess: true`: el enlace sólo sale con el plan YA confirmado (Codex r1).
+  const fiscalHref = planResuelto && puedeFacturar ? `${fullBasePath}/cfdi/configuracion` : undefined
+  const fiscalSinPlan = planResuelto && !puedeFacturar
   const canManage = can('receipt-layout:manage')
   // La fecha en la zona del NEGOCIO: con la del navegador, un dueño de viaje ve otro día.
   const { formatDate } = useVenueDateTime()
@@ -188,7 +197,12 @@ export default function ReceiptLayoutPage() {
           </section>
 
           {layout.data && (
-            <AvisosHonestos readiness={layout.data.readiness} devices={layout.data.devices} fiscalHref={`${fullBasePath}/facturacion`} />
+            <AvisosHonestos
+              readiness={layout.data.readiness}
+              devices={layout.data.devices}
+              fiscalHref={fiscalHref}
+              fiscalSinPlan={fiscalSinPlan}
+            />
           )}
 
           {/* El estado vacío ENSEÑA: un negocio que nunca editó ve su ticket ya armado y una
@@ -220,7 +234,8 @@ export default function ReceiptLayoutPage() {
           readiness={layout.data.readiness}
           devices={layout.data.devices}
           canManage={canManage}
-          fiscalHref={`${fullBasePath}/facturacion`}
+          fiscalHref={fiscalHref}
+          fiscalSinPlan={fiscalSinPlan}
         />
       )}
 

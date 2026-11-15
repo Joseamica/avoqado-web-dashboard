@@ -41,8 +41,9 @@
   },
   "readiness": {
     "noEmisorTitle": "Tu ticket saldrá sin RFC ni razón social",
-    "noEmisorBody": "La ley pide esos datos en el comprobante. Configura tu emisor para que aparezcan.",
-    "goToFiscal": "Ir a Facturación"
+    "noEmisorBody": "La ley pide esos datos en el comprobante. Para el ticket no necesitas los certificados del SAT (CSD): basta con dar de alta tus datos fiscales (RFC, razón social, régimen y código postal).",
+    "goToFiscal": "Capturar RFC y razón social",
+    "noEmisorNoPlan": "Con tu plan todavía no se pueden capturar desde el panel: escríbenos y los agregamos por ti."
   },
   "devices": {
     "title_one": "{{count}} aparato sigue imprimiendo el ticket anterior",

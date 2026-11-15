@@ -41,8 +41,9 @@
   },
   "readiness": {
     "noEmisorTitle": "Your receipt will print without a tax ID or legal name",
-    "noEmisorBody": "The law requires that information on the receipt. Set up your tax issuer so it shows up.",
-    "goToFiscal": "Go to Invoicing"
+    "noEmisorBody": "The law requires them on the receipt. The ticket doesn't need the SAT certificates (CSD): just add your tax details (RFC, legal name, tax regime and ZIP code).",
+    "goToFiscal": "Enter RFC and legal name",
+    "noEmisorNoPlan": "Your plan can't enter them from the dashboard yet: write to us and we'll add them for you."
   },
   "devices": {
     "title_one": "{{count}} device is still printing the previous receipt",

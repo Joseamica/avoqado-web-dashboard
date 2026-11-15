@@ -15,7 +15,7 @@ import { ArrowLeft, Receipt } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Card as CardShadcn, CardContent as CardContentShadcn } from '@/components/ui/card'
 import { useTierFeatureAccess } from '@/hooks/use-tier-feature-access'
@@ -23,6 +23,7 @@ import { SatKeyPicker } from '@/components/SatKeyPicker'
 import { PrintStationField } from '@/components/PrintStationField'
 import { useBreadcrumb } from '@/context/BreadcrumbContext'
 import { textoDelServidor } from '@/utils/apiError'
+import { rechazoAlBorrarCategoria } from './rechazoAlBorrar'
 
 export default function CategoryId() {
   const { t } = useTranslation('menu')
@@ -113,6 +114,8 @@ export default function CategoryId() {
     },
   })
 
+  // Un solo envío por confirmación: con doble clic salían dos DELETE y dos avisos (prueba del banco, encargo 08cc59).
+  const borrando = useRef(false)
   const deleteCategory = useMutation({
     mutationFn: async () => {
       await deleteMenuCategory(venueId!, categoryId!)
@@ -123,6 +126,14 @@ export default function CategoryId() {
         description: t('categoryDetail.toasts.deletedDesc'),
       })
       navigate(from)
+    },
+    // Encargo 08cc59: sin esto, un rechazo del servidor (productos o subcategorías) cerraba la ventana sin decir nada.
+    onError: (error: unknown) => {
+      toast({
+        title: t('categoryDetail.deleteBlocked.title'),
+        description: rechazoAlBorrarCategoria(error, data?.name ?? '', t),
+        variant: 'destructive',
+      })
     },
   })
 
@@ -283,7 +294,15 @@ export default function CategoryId() {
             message={t('categoryDetail.dialogs.deleteMessage')}
             rightButtonLabel={t('categoryDetail.buttons.delete')}
             rightButtonVariant="default"
-            onRightButtonClick={() => deleteCategory.mutate()}
+            onRightButtonClick={() => {
+              if (borrando.current) return
+              borrando.current = true
+              deleteCategory.mutate(undefined, {
+                onSettled: () => {
+                  borrando.current = false
+                },
+              })
+            }}
           />
           <Button variant="outline">{t('categoryDetail.buttons.duplicate')}</Button>
           <LoadingButton

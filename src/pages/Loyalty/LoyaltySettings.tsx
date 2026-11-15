@@ -20,11 +20,17 @@ import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import loyaltyService from '@/services/loyalty.service'
 import { getIntlLocale } from '@/utils/i18n-locale'
 import { cn } from '@/lib/utils'
+import { puntosPorGasto, tieneHastaDosDecimales } from './puntosPorGasto'
 
 // ─── Schema ─────────────────────────────────────────────────────────────────
 const schema = z.object({
 	active: z.boolean(),
-	pointsPerDollar: z.number().min(0),
+	// Encargo 08cc59: acepta centésimas (0.01 = 1 punto por cada $100), como el SERVIDOR (Decimal(5,2): hasta 999.99).
+	pointsPerDollar: z
+		.number()
+		.min(0)
+		.max(999.99, 'settings.earning.pointsPerDollar.tooBig')
+		.refine(tieneHastaDosDecimales, 'settings.earning.pointsPerDollar.twoDecimals'),
 	pointsPerVisit: z.number().min(0),
 	redemptionRate: z.number().min(0),
 	minPointsRedeem: z.number().min(0),
@@ -199,7 +205,8 @@ export default function LoyaltySettings() {
 
 	// Live preview calculations
 	const exampleSpend = 500
-	const earnedPoints = Math.round(exampleSpend * (watchedPointsPerDollar || 0)) + (watchedPointsPerVisit || 0)
+	// Como el SERVIDOR: lo gastado da puntos redondeados HACIA ABAJO (`puntosPorGasto`).
+	const earnedPoints = puntosPorGasto(exampleSpend, watchedPointsPerDollar || 0) + (watchedPointsPerVisit || 0)
 	const exampleDiscount = (watchedMinPoints || 100) * (watchedRedemptionRate || 0)
 
 	if (isLoading) {
@@ -306,8 +313,18 @@ export default function LoyaltySettings() {
 									label={t('settings.earning.pointsPerDollar.label')}
 									description={t('settings.earning.pointsPerDollar.description')}
 									suffix={t('settings.earning.pointsPerDollar.suffix')}
-									error={errors.pointsPerDollar?.message}
-									inputProps={{ type: 'number', step: '0.1', min: '0', ...register('pointsPerDollar', { valueAsNumber: true }) }}
+									hint={<p className="text-[11px] text-muted-foreground leading-relaxed">{t('settings.earning.pointsPerDollar.rounding')}</p>}
+									error={errors.pointsPerDollar?.message ? t(errors.pointsPerDollar.message) : undefined}
+									inputProps={
+										{
+											type: 'number',
+											step: '0.01',
+											min: '0',
+											max: '999.99',
+											'data-testid': 'loyalty-points-per-dollar',
+											...register('pointsPerDollar', { valueAsNumber: true }),
+										} as React.ComponentProps<'input'>
+									}
 								/>
 
 								<div className="border-t border-border/50" />
