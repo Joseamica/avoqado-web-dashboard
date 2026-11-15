@@ -676,6 +676,8 @@ export interface VenueSettings {
   /** Minutos de gracia antes de contar un retardo. */
   attendanceGraceMinutes?: number
   attendanceLateAlertEnabled?: boolean
+  /** «Foto de entrada»: el POS y la terminal piden selfie al marcar entrada (Equipo → Asistencia). Viaja en auth/status. */
+  requireClockInPhoto?: boolean
   maxShiftDurationEnabled: boolean
   maxShiftDurationHours: number
 
@@ -1891,6 +1893,7 @@ export interface SessionVenue {
     rotatingShiftsEnabled?: boolean // turnos rotativos (fase 1 "como Sesame"), viaja igual
     attendanceGraceMinutes?: number
     attendanceLateAlertEnabled?: boolean
+    requireClockInPhoto?: boolean // «Foto de entrada»: viaja en auth/status y login
     /** Propiedad de mesa (PRO): solo el mesero dueño modifica/cierra sus mesas. */
     enforceTableOwnership?: boolean
   } | null

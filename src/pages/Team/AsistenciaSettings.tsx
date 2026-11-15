@@ -115,6 +115,9 @@ export default function AsistenciaSettings({ venueId, settings, canEdit }: Props
                     : t('venue:attendance.toastDisabled'),
       })
       queryClient.invalidateQueries({ queryKey: ['get-venue-data', venueId] })
+      // Asistencia lee los ajustes de la sesión (auth/status): sin esto, «Sin foto» y el aviso de checador apagado no
+      // cambiaban hasta recargar la página.
+      queryClient.invalidateQueries({ queryKey: ['status'] })
     },
     onError: () => {
       // 🔴 Se revierte a lo que había: dejar el switch en la posición pedida haría creer que se

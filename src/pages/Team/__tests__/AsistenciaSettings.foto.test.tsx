@@ -15,8 +15,16 @@ vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (k: string) => k }
 
 const put = vi.mocked(api.put)
 
+let invalidadas: unknown[] = []
+
 function pintar(settings: Record<string, unknown>, canEdit = true) {
   const client = new QueryClient({ defaultOptions: { mutations: { retry: false } } })
+  invalidadas = []
+  const original = client.invalidateQueries.bind(client)
+  client.invalidateQueries = ((f?: { queryKey?: unknown }) => (
+    invalidadas.push(f?.queryKey),
+    original(f as never)
+  )) as typeof client.invalidateQueries
   return render(
     <QueryClientProvider client={client}>
       <AsistenciaSettings venueId="venue-1" settings={settings} canEdit={canEdit} />
@@ -37,6 +45,8 @@ describe('AsistenciaSettings — foto de entrada', () => {
 
     await waitFor(() => expect(put).toHaveBeenCalledWith('/api/v1/dashboard/venues/venue-1/settings', { requireClockInPhoto: true }))
     await waitFor(() => expect(sw).toHaveAttribute('aria-checked', 'true'))
+    // Asistencia lee la sesión: se pide otra vez para que «Sin foto» aparezca sin recargar.
+    expect(invalidadas).toContainEqual(['status'])
   })
 
   it('si el servidor la rechaza, regresa a como estaba', async () => {
