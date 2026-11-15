@@ -645,24 +645,29 @@ export function DiscountFormFields({ form, products, categoryOptions, customerGr
             )}
           />
 
+          {/* «Requiere aprobación»: cortesía y, desde el encargo 1afe04, también % y monto fijo (PIN de un encargado en el POS). */}
+          <div className="flex items-start justify-between gap-4">
+            <div className="space-y-0.5 flex-1">
+              <Label>{t('discounts.form.fields.requiresApproval')}</Label>
+              {watchType !== 'COMP' && <p className="text-sm text-muted-foreground">{t('discounts.wizard.hints.approval')}</p>}
+            </div>
+            <FormField
+              control={form.control}
+              name="requiresApproval"
+              render={({ field }) => (
+                <FormControl>
+                  <Switch checked={field.value} onCheckedChange={field.onChange} />
+                </FormControl>
+              )}
+            />
+          </div>
+          {watchType !== 'COMP' && form.watch('requiresApproval') && (
+            <p className="text-sm text-amber-700 dark:text-amber-300">{t('discounts.wizard.hints.approvalWarning')}</p>
+          )}
+
           {/* Comp-specific fields */}
           {watchType === 'COMP' && (
             <>
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>{t('discounts.form.fields.requiresApproval')}</Label>
-                </div>
-                <FormField
-                  control={form.control}
-                  name="requiresApproval"
-                  render={({ field }) => (
-                    <FormControl>
-                      <Switch checked={field.value} onCheckedChange={field.onChange} />
-                    </FormControl>
-                  )}
-                />
-              </div>
-
               <FormField
                 control={form.control}
                 name="compReason"

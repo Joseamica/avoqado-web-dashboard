@@ -36,7 +36,7 @@
     "detail": {
       "title": "Discount Details",
       "notFound": "Discount not found",
-      "usage": {"total": "Uses: {{count}}", "pos": "At the POS: {{count}}", "links": "In paid links: {{count}}"},
+      "usage": { "total": "Uses: {{count}}", "pos": "At the POS: {{count}}", "links": "In paid links: {{count}}" },
       "tabs": {
         "general": "General",
         "scope": "Scope",
@@ -262,7 +262,9 @@
         "stacking": "Stacking Options",
         "tax": "Tax Calculation",
         "comp": "Comp Settings",
-        "compDescription": "Additional settings for comped discounts"
+        "compDescription": "Additional settings for comped discounts",
+        "approval": "Manager approval",
+        "approvalDescription": "Who can apply this discount on the POS"
       },
       "hints": {
         "type": {
@@ -334,7 +336,9 @@
           "approval": "Require manager approval before applying this comp",
           "reason": "Document why this comp discount was created"
         },
-        "active": "When disabled, the discount cannot be used even if other conditions are met"
+        "active": "When disabled, the discount cannot be used even if other conditions are met",
+        "approval": "On the POS it is applied directly by anyone with «Apply discounts on TPV» (by default: manager, admin and owner). Everyone else is asked for a manager PIN at checkout.",
+        "approvalWarning": "When on, this discount stops being used on the payment terminal (TPV), payment links, the online store, as an automatic discount and as a customer-assigned discount: nobody can approve it there yet."
       }
     }
   },
