@@ -234,7 +234,9 @@ export default function Attendance() {
                     pedida={fotoPedida}
                     nombre={staffName(entry)}
                     hora={formatTime(entry.clockInTime)}
-                    onVencida={() => refetchEntries()}
+                    // Varias fotos vencidas comparten UNA recarga: sin `cancelRefetch: false`, cada una cancelaba la
+                    // anterior y pedía otra vez las 200 checadas (Codex r4 #2).
+                    onVencida={() => refetchEntries({ cancelRefetch: false })}
                   />
 
                   <div className="min-w-0 space-y-1">
