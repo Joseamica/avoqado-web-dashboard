@@ -186,6 +186,17 @@ describe('ReceiptLayout (sección de Ajustes)', () => {
     expect(screen.queryByText('readiness.noEmisorNoPlan')).toBeNull()
   })
 
+  it('🔴 mientras el plan no se conoce, no se ofrece el enlace (el hook contesta «sí» por adelantado)', async () => {
+    planFiscal.hasAccess = true
+    planFiscal.isResolved = false
+    get.mockResolvedValue({ ...guardado, readiness: { fiscalEmisor: false, logo: true }, devices: { supporting: 0, notSupporting: [] } })
+    pintar()
+    await screen.findByTestId('receipt-layout-banners')
+    expect(screen.queryByTestId('receipt-layout-go-to-fiscal')).toBeNull()
+    expect(screen.queryByText('readiness.noEmisorNoPlan')).toBeNull()
+    planFiscal.isResolved = true
+  })
+
   it('🔴 sin el plan de Facturación no hay enlace a un callejón: el aviso dice que con su plan no se capturan aquí', async () => {
     planFiscal.hasAccess = false
     get.mockResolvedValue({ ...guardado, readiness: { fiscalEmisor: false, logo: true }, devices: { supporting: 0, notSupporting: [] } })

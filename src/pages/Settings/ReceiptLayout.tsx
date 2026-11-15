@@ -45,7 +45,8 @@ export default function ReceiptLayoutPage() {
   // servidor la cierra con `checkFeatureAccess('CFDI')`. Sin el plan no hay pantalla donde teclearlos, así que no se ofrece un
   // enlace a un callejón: el aviso lo dice (`fiscalSinPlan`).
   const { hasAccess: puedeFacturar, isResolved: planResuelto } = useTierFeatureAccess('CFDI')
-  const fiscalHref = puedeFacturar ? `${fullBasePath}/cfdi/configuracion` : undefined
+  // Mientras el plan carga, el hook contesta `hasAccess: true`: el enlace sólo sale con el plan YA confirmado (Codex r1).
+  const fiscalHref = planResuelto && puedeFacturar ? `${fullBasePath}/cfdi/configuracion` : undefined
   const fiscalSinPlan = planResuelto && !puedeFacturar
   const canManage = can('receipt-layout:manage')
   // La fecha en la zona del NEGOCIO: con la del navegador, un dueño de viaje ve otro día.
