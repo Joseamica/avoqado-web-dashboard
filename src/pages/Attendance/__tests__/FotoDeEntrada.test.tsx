@@ -59,4 +59,15 @@ describe('FotoDeEntrada', () => {
     }
     expect(onVencida).toHaveBeenCalledTimes(2)
   })
+
+  it('si entre vencimientos la foto carga bien, se puede renovar otra vez (Codex r3 #2)', () => {
+    const onVencida = vi.fn()
+    const { rerender } = render(<FotoDeEntrada url="https://firmada/1.jpg" pedida nombre="Ana" hora="9:00" onVencida={onVencida} />)
+    for (const n of [2, 3, 4]) {
+      fireEvent.error(screen.getByAltText('photoAlt:Ana'))
+      rerender(<FotoDeEntrada url={`https://firmada/${n}.jpg`} pedida nombre="Ana" hora="9:00" onVencida={onVencida} />)
+      fireEvent.load(screen.getByAltText('photoAlt:Ana'))
+    }
+    expect(onVencida).toHaveBeenCalledTimes(3)
+  })
 })

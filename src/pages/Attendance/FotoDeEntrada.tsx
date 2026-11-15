@@ -33,7 +33,8 @@ export function FotoDeEntrada({
   // La URL firmada vence a los 10 min: al llegar la nueva (onVencida pidió la lista otra vez) se vuelve a intentar
   // (Codex r2 #4: sin esto la foto se quedaba en «Sin foto» hasta salir de la pantalla).
   useEffect(() => setRota(false), [url])
-  // Una foto que de verdad no existe fallaría con cada URL nueva: se pide la lista otra vez a lo más dos veces.
+  // Una foto que de verdad no existe fallaría con cada URL nueva: se pide la lista otra vez a lo más dos veces SEGUIDAS.
+  // Cada vez que la foto carga bien, la cuenta vuelve a cero (Codex r3 #2: si no, al tercer vencimiento ya no se renovaba).
   const reintentos = useRef(0)
   const vencida = () => {
     if (reintentos.current >= 2) return
@@ -55,6 +56,7 @@ export function FotoDeEntrada({
             alt={t('photoAlt', { name: nombre })}
             className="h-full w-full object-cover"
             loading="lazy"
+            onLoad={() => (reintentos.current = 0)}
             onError={() => {
               setRota(true)
               vencida()
@@ -67,7 +69,13 @@ export function FotoDeEntrada({
               <DialogTitle>{nombre}</DialogTitle>
               <DialogDescription>{t('photo.caption', { time: hora })}</DialogDescription>
             </DialogHeader>
-            <img src={url} alt={t('photoAlt', { name: nombre })} className="w-full rounded-lg object-contain" onError={() => vencida()} />
+            <img
+              src={url}
+              alt={t('photoAlt', { name: nombre })}
+              className="w-full rounded-lg object-contain"
+              onLoad={() => (reintentos.current = 0)}
+              onError={() => vencida()}
+            />
           </DialogContent>
         </Dialog>
       </>
