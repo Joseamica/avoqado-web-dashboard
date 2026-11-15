@@ -28,6 +28,11 @@ const can = vi.fn()
 vi.mock('@/hooks/use-access', () => ({ useAccess: () => ({ can }) }))
 const toast = vi.fn()
 vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast }) }))
+// El plan de Facturación (CFDI) decide a dónde lleva «Capturar RFC y razón social» (encargo 08cc59).
+const planFiscal = { hasAccess: true, isResolved: true }
+vi.mock('@/hooks/use-tier-feature-access', () => ({
+  useTierFeatureAccess: () => ({ ...planFiscal, requiredTier: 'PREMIUM', isLoading: false }),
+}))
 
 const get = vi.mocked(receiptLayoutService.get)
 const reset = vi.mocked(receiptLayoutService.reset)
@@ -168,6 +173,29 @@ describe('ReceiptLayout (sección de Ajustes)', () => {
     expect(avisos).toHaveTextContent('NEXGO')
     // El enum del servidor NUNCA se pinta crudo en pantalla.
     expect(screen.queryByText('TPV_ANDROID')).toBeNull()
+  })
+
+  // Encargo 08cc59 (15-nov): «Ir a Facturación» llevaba a `/facturacion`, que no existe (404).
+  it('🔴 con el plan de Facturación, el enlace lleva a la configuración de Facturación (no a un 404)', async () => {
+    planFiscal.hasAccess = true
+    get.mockResolvedValue({ ...guardado, readiness: { fiscalEmisor: false, logo: true }, devices: { supporting: 0, notSupporting: [] } })
+    pintar()
+    const enlace = await screen.findByTestId('receipt-layout-go-to-fiscal')
+    expect(enlace).toHaveAttribute('href', '/venues/testarudo/cfdi/configuracion')
+    expect(screen.getByTestId('receipt-layout-banners')).toHaveTextContent('readiness.noEmisorBody')
+    expect(screen.queryByText('readiness.noEmisorNoPlan')).toBeNull()
+  })
+
+  it('🔴 sin el plan de Facturación no hay enlace a un callejón: el aviso dice que con su plan no se capturan aquí', async () => {
+    planFiscal.hasAccess = false
+    get.mockResolvedValue({ ...guardado, readiness: { fiscalEmisor: false, logo: true }, devices: { supporting: 0, notSupporting: [] } })
+    pintar()
+    const avisos = await screen.findByTestId('receipt-layout-banners')
+    expect(avisos).toHaveTextContent('readiness.noEmisorNoPlan')
+    expect(screen.queryByTestId('receipt-layout-go-to-fiscal')).toBeNull()
+    // Ningún enlace de la página apunta a la ruta que no existe.
+    expect(document.querySelector('a[href$="/facturacion"]')).toBeNull()
+    planFiscal.hasAccess = true
   })
 
   /**

@@ -181,6 +181,24 @@
     "sections": {
       "availability": "Availability",
       "assignments": "Assignments"
+    },
+    "deleteBlocked": {
+      "title": "The category couldn't be deleted",
+      "products_one": "«{{name}}» can't be deleted: it still has {{count}} product{{paused}}{{list}}.",
+      "products_other": "«{{name}}» can't be deleted: it still has {{count}} products{{paused}}{{list}}.",
+      "allPaused_one": " (paused)",
+      "allPaused_other": " (all paused)",
+      "somePaused_one": " ({{count}} paused)",
+      "somePaused_other": " ({{count}} paused)",
+      "list": ": {{names}}",
+      "listWithMore_one": ": {{names}} and {{count}} more",
+      "listWithMore_other": ": {{names}} and {{count}} more",
+      "pausedCount": "Paused products count too.",
+      "productsAction_one": "Move it to another category or delete it, then try again.",
+      "productsAction_other": "Move them to another category or delete them, then try again.",
+      "subcategories_one": "«{{name}}» can't be deleted: it has 1 subcategory that is active or has products: {{names}}. Delete it first, then try again.",
+      "subcategories_other": "«{{name}}» can't be deleted: it has {{count}} subcategories that are active or have products: {{names}}. Delete them first, then try again.",
+      "generic": "The category couldn't be deleted. Please try again."
     }
   },
   "modifiers": {

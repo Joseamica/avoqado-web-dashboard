@@ -37,11 +37,15 @@ export function AvisosHonestos({
   readiness,
   devices,
   fiscalHref,
+  fiscalSinPlan = false,
   className,
 }: {
   readiness: ReceiptReadiness
   devices: ReceiptDevices
+  /** A dónde se capturan RFC y razón social (la configuración de Facturación); sin él no se pinta enlace. */
   fiscalHref?: string
+  /** El negocio no tiene el plan de Facturación: no hay pantalla donde capturarlos, y el aviso lo dice en vez de mandarlo a un 404. */
+  fiscalSinPlan?: boolean
   className?: string
 }) {
   const { t } = useTranslation('receiptLayout')
@@ -60,8 +64,13 @@ export function AvisosHonestos({
           <div>
             <p className="font-medium">{t('readiness.noEmisorTitle')}</p>
             <p className="mt-0.5 text-muted-foreground">{t('readiness.noEmisorBody')}</p>
+            {fiscalSinPlan && <p className="mt-0.5 text-muted-foreground">{t('readiness.noEmisorNoPlan')}</p>}
             {fiscalHref && (
-              <a href={fiscalHref} className="mt-1 inline-block font-medium text-primary hover:underline">
+              <a
+                href={fiscalHref}
+                className="mt-1 inline-block font-medium text-primary hover:underline"
+                data-testid="receipt-layout-go-to-fiscal"
+              >
                 {t('readiness.goToFiscal')}
               </a>
             )}

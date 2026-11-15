@@ -23,6 +23,7 @@ import { SatKeyPicker } from '@/components/SatKeyPicker'
 import { PrintStationField } from '@/components/PrintStationField'
 import { useBreadcrumb } from '@/context/BreadcrumbContext'
 import { textoDelServidor } from '@/utils/apiError'
+import { rechazoAlBorrarCategoria } from './rechazoAlBorrar'
 
 export default function CategoryId() {
   const { t } = useTranslation('menu')
@@ -123,6 +124,14 @@ export default function CategoryId() {
         description: t('categoryDetail.toasts.deletedDesc'),
       })
       navigate(from)
+    },
+    // Encargo 08cc59: sin esto, un rechazo del servidor (productos o subcategorías) cerraba la ventana sin decir nada.
+    onError: (error: unknown) => {
+      toast({
+        title: t('categoryDetail.deleteBlocked.title'),
+        description: rechazoAlBorrarCategoria(error, data?.name ?? '', t),
+        variant: 'destructive',
+      })
     },
   })
 

@@ -44,6 +44,8 @@ interface ReceiptDesignerModalProps {
   canManage: boolean
   /** Para que el enlace de «configura tu emisor» lleve a la ruta correcta del venue. */
   fiscalHref?: string
+  /** Sin el plan de Facturación no hay pantalla donde capturar RFC y razón social: el aviso lo dice. */
+  fiscalSinPlan?: boolean
 }
 
 const ANCHOS: Array<{ mm: PaperMm; cols: 48 | 32 }> = [
@@ -73,6 +75,7 @@ export function ReceiptDesignerModal({
   devices,
   canManage,
   fiscalHref,
+  fiscalSinPlan,
 }: ReceiptDesignerModalProps) {
   const { t } = useTranslation('receiptLayout')
   // 🔴 UN solo árbol, elegido por viewport. Pintar los dos y esconder uno con `lg:hidden`
@@ -199,7 +202,13 @@ export function ReceiptDesignerModal({
           </div>
         </div>
       )}
-      <AvisosHonestos readiness={readiness} devices={devices} fiscalHref={fiscalHref} className="border-b border-border/50 p-3" />
+      <AvisosHonestos
+        readiness={readiness}
+        devices={devices}
+        fiscalHref={fiscalHref}
+        fiscalSinPlan={fiscalSinPlan}
+        className="border-b border-border/50 p-3"
+      />
 
       <div className="flex items-center justify-between px-3 py-2">
         <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t('designer.blocksTitle')}</p>

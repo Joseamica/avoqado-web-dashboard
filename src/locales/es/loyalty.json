@@ -15,7 +15,10 @@
       "pointsPerDollar": {
         "label": "Puntos por cada $1 gastado",
         "description": "Cuántos puntos gana el cliente por cada $1 de compra",
-        "suffix": "puntos/$1"
+        "suffix": "puntos/$1",
+        "rounding": "Acepta hasta dos decimales: 0.01 es 1 punto por cada $100. Los puntos se redondean hacia abajo: con 0.01, una compra de $250 da 2 puntos (no 2.5).",
+        "twoDecimals": "Usa como máximo dos decimales (por ejemplo, 0.01).",
+        "tooBig": "El máximo es 999.99 puntos por cada $1."
       },
       "pointsPerVisit": {
         "label": "Puntos Bonus por Visita",
