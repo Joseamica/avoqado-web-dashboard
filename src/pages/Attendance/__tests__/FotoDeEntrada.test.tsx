@@ -41,4 +41,22 @@ describe('FotoDeEntrada', () => {
     expect(onVencida).toHaveBeenCalledTimes(1)
     expect(screen.queryByAltText('photoAlt:Ana')).toBeNull()
   })
+
+  it('al llegar la URL nueva tras vencer, la foto vuelve a verse (Codex r2 #4)', () => {
+    const { rerender } = render(<FotoDeEntrada url="https://firmada/vieja.jpg" pedida nombre="Ana" hora="9:00" onVencida={vi.fn()} />)
+    fireEvent.error(screen.getByAltText('photoAlt:Ana'))
+    expect(screen.queryByAltText('photoAlt:Ana')).toBeNull()
+    rerender(<FotoDeEntrada url="https://firmada/nueva.jpg" pedida nombre="Ana" hora="9:00" onVencida={vi.fn()} />)
+    expect(screen.getByAltText('photoAlt:Ana')).toHaveAttribute('src', 'https://firmada/nueva.jpg')
+  })
+
+  it('una foto que no existe no pide la lista sin fin: a lo más dos veces', () => {
+    const onVencida = vi.fn()
+    const { rerender } = render(<FotoDeEntrada url="https://firmada/1.jpg" pedida nombre="Ana" hora="9:00" onVencida={onVencida} />)
+    for (const n of [2, 3, 4]) {
+      fireEvent.error(screen.getByAltText('photoAlt:Ana'))
+      rerender(<FotoDeEntrada url={`https://firmada/${n}.jpg`} pedida nombre="Ana" hora="9:00" onVencida={onVencida} />)
+    }
+    expect(onVencida).toHaveBeenCalledTimes(2)
+  })
 })

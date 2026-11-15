@@ -617,7 +617,7 @@
     "lateAlertToastEnabled": "Late alert turned on",
     "lateAlertToastDisabled": "Late alert turned off",
     "photoTitle": "Clock-in photo",
-    "photoDesc": "When clocking in, the POS and the terminal ask for a selfie. You see it in Attendance. If the device has no camera, the entry is marked “No photo”.",
+    "photoDesc": "When clocking in on the POS (tablet, phone or computer) a selfie is required, and you see it in Attendance. If the device has no camera, the entry is marked “No photo”. On payment terminals it is turned on separately, in each terminal's settings.",
     "photoToastEnabled": "Clock-in photo turned on",
     "photoToastDisabled": "Clock-in photo turned off"
   },

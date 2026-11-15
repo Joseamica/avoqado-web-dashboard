@@ -1,5 +1,5 @@
 import { CameraOff, UserCheck } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -30,6 +30,16 @@ export function FotoDeEntrada({
   const { t } = useTranslation('attendance')
   const [abierta, setAbierta] = useState(false)
   const [rota, setRota] = useState(false)
+  // La URL firmada vence a los 10 min: al llegar la nueva (onVencida pidió la lista otra vez) se vuelve a intentar
+  // (Codex r2 #4: sin esto la foto se quedaba en «Sin foto» hasta salir de la pantalla).
+  useEffect(() => setRota(false), [url])
+  // Una foto que de verdad no existe fallaría con cada URL nueva: se pide la lista otra vez a lo más dos veces.
+  const reintentos = useRef(0)
+  const vencida = () => {
+    if (reintentos.current >= 2) return
+    reintentos.current += 1
+    onVencida?.()
+  }
 
   if (url && !rota) {
     return (
@@ -47,7 +57,7 @@ export function FotoDeEntrada({
             loading="lazy"
             onError={() => {
               setRota(true)
-              onVencida?.()
+              vencida()
             }}
           />
         </button>
@@ -57,7 +67,7 @@ export function FotoDeEntrada({
               <DialogTitle>{nombre}</DialogTitle>
               <DialogDescription>{t('photo.caption', { time: hora })}</DialogDescription>
             </DialogHeader>
-            <img src={url} alt={t('photoAlt', { name: nombre })} className="w-full rounded-lg object-contain" />
+            <img src={url} alt={t('photoAlt', { name: nombre })} className="w-full rounded-lg object-contain" onError={() => vencida()} />
           </DialogContent>
         </Dialog>
       </>
