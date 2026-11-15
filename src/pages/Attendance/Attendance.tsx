@@ -13,6 +13,7 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { attendanceService, type TimeEntry } from '@/services/attendance.service'
 import { useVenueDateTime } from '@/utils/datetime'
 import { rangeToDates, type RangeKey } from './attendanceRange'
+import { FotoDeEntrada } from './FotoDeEntrada'
 import { PayrollReport } from './PayrollReport'
 import { LoadError, PunctualityReport } from './PunctualityReport'
 import { ShiftPlanner } from './ShiftPlanner'
@@ -22,8 +23,12 @@ import { useAccess } from '@/hooks/use-access'
  * Asistencia: sólo LECTURA. No hay «Aprobar»/«Rechazar» a propósito: Square no aprueba
  * checadas (aprueba solicitudes de corrección que manda el empleado), y validar cada
  * checada es el flujo de PlayTelecom — su supervisor valida foto y GPS porque de eso
- * depende que les paguen. Para una estética o una tienda, ese trámite es ruido. Tampoco
- * se muestran foto ni ubicación: esos campos sólo los llena la app de PT.
+ * depende que les paguen. Para una estética o una tienda, ese trámite es ruido. La
+ * ubicación no se muestra (sólo la llena la app de PT).
+ *
+ * La FOTO de entrada sí (15-nov, encargo b0c1a1): si el negocio prende «Foto de Entrada» en
+ * Ajustes, el POS y la terminal piden una selfie al marcar entrada, y sin verla aquí ese
+ * interruptor no servía de nada. Sólo se ve; no hay aprobar/rechazar.
  */
 export default function Attendance() {
   const { t } = useTranslation('attendance')
@@ -38,6 +43,8 @@ export default function Attendance() {
   const { can } = useAccess()
   // Turnos rotativos (fase 1 "como Sesame"): interruptor por venue, apagado de fábrica.
   const rotatingShifts = venue?.settings?.rotatingShiftsEnabled === true
+  // «Foto de Entrada (Anti-fraude)» prendida: una checada sin foto se marca, para que el dueño lo vea.
+  const fotoPedida = venue?.settings?.requireClockInPhoto === true
 
   // "Hoy" en la zona del negocio, no en la del navegador de quien mira.
   const todayIso = useMemo(() => new Intl.DateTimeFormat('en-CA', { timeZone: venueTimezone }).format(new Date()), [venueTimezone])
@@ -222,9 +229,13 @@ export default function Attendance() {
             <Card key={entry.id} className="border-input">
               <CardContent className="flex flex-col gap-4 p-4 md:flex-row md:items-center md:justify-between">
                 <div className="flex min-w-0 items-start gap-3">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-muted">
-                    <UserCheck className="h-5 w-5 text-muted-foreground" />
-                  </div>
+                  <FotoDeEntrada
+                    url={entry.checkInPhotoViewUrl}
+                    pedida={fotoPedida}
+                    nombre={staffName(entry)}
+                    hora={formatTime(entry.clockInTime)}
+                    onVencida={() => refetchEntries()}
+                  />
 
                   <div className="min-w-0 space-y-1">
                     <p className="truncate font-medium">{staffName(entry)}</p>
@@ -237,6 +248,7 @@ export default function Attendance() {
                       <span>{t('worked', { value: hoursLabel(entry) })}</span>
                       {!!entry.breakMinutes && <span>· {t('breakMinutes', { count: entry.breakMinutes })}</span>}
                       {entry.autoClockOut && <span>· {t('autoClosed')}</span>}
+                      {fotoPedida && !entry.checkInPhotoViewUrl && <span>· {t('photo.missing')}</span>}
                     </div>
                   </div>
                 </div>

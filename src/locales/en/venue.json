@@ -615,7 +615,11 @@
     "lateAlertTitle": "Alert me when someone is late",
     "lateAlertDesc": "You get a dashboard notice and an email when someone hasn't clocked in past their start time plus the grace period. Only owner, admin and manager receive it.",
     "lateAlertToastEnabled": "Late alert turned on",
-    "lateAlertToastDisabled": "Late alert turned off"
+    "lateAlertToastDisabled": "Late alert turned off",
+    "photoTitle": "Clock-in photo",
+    "photoDesc": "When clocking in, the POS and the terminal ask for a selfie. You see it in Attendance. If the device has no camera, the entry is marked “No photo”.",
+    "photoToastEnabled": "Clock-in photo turned on",
+    "photoToastDisabled": "Clock-in photo turned off"
   },
   "rotatingShifts": {
     "title": "Rotating shifts",
