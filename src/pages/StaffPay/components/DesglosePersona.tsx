@@ -25,6 +25,7 @@ import { useNombrePeriodo } from '../useNombrePeriodo'
 import { hayPendientes, lineaDePendiente } from '../pendientes'
 import { nombreVisible } from '../personaBorrada'
 import { porFecha, textoDeRegla } from '../textoDeRegla'
+import { textoDeLlegadas } from '../textoDeLlegadas'
 
 /** Orden fijo de los totales por tipo (no el del JSON): primero lo que se gana, luego lo que lo corrige. */
 const ORDEN_TIPOS: TipoRenglon[] = ['CLASE', 'COMISION', 'PROPINA', 'DIFERENCIA', 'AJUSTE']
@@ -295,6 +296,12 @@ export function DesglosePersona({
                         )}
                         {/* La regla que movió el pago, como en el recibo cerrado (E6a-fix F14). */}
                         {f.regla && <span className="block text-xs text-muted-foreground">{textoDeRegla(t, f.regla)}</span>}
+                        {/* Asistencia verificada: cómo llegó cada lugar (sólo en «Sólo quien llegó»). */}
+                        {f.countMode === 'ATTENDED' && textoDeLlegadas(t, f.llegadas) && (
+                          <span className="block text-xs text-muted-foreground" data-testid="llegadas-clase">
+                            {textoDeLlegadas(t, f.llegadas)}
+                          </span>
+                        )}
                       </td>
                       <td className="hidden text-right sm:table-cell">{f.conteo}</td>
                       <td className="text-right">

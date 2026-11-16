@@ -9,7 +9,14 @@ export interface TablaDto {
     reglas?: { coverBonusHours: number | null; coverBonusAmount: number | null; lateCancelHours: number | null }
   }
 }
-export type MotivoExcepcion = 'SIN_COACH' | 'COACH_SIN_NIVEL' | 'SIN_TABLA' | 'SIN_MONTO_PARA_ESE_CONTEO'
+export type MotivoExcepcion = 'SIN_COACH' | 'COACH_SIN_NIVEL' | 'SIN_TABLA' | 'SIN_MONTO_PARA_ESE_CONTEO' | 'GRUPO_POR_CONFIRMAR'
+/**
+ * Asistencia verificada (16-nov-2026): cómo llegaron los lugares de una clase. `corregidoA` = «Corregir conteo»: el pago usa
+ * ese número y esto sigue diciendo lo registrado. Opcional en todo: un server previo no lo manda.
+ */
+export interface LlegadasDto {
+  qr: number; phone: number; staff: number; list: number; pass: number; sinMetodo: number; aMano?: string[]; corregidoA?: number | null
+}
 export interface ClaseValoradaDto {
   classSessionId: string; venueId: string; productName: string; startsAt: string; fechaLocal: string
   staffId: string | null; staffName: string | null; payLevelName: string | null; countMode: 'BOOKED' | 'ATTENDED' | null
@@ -17,6 +24,7 @@ export interface ClaseValoradaDto {
   motivo: MotivoExcepcion | null; monto: string | null
   /** Fase 3 (D3d): la regla que movió el pago (el server ya la manda en el desglose). Opcional: un server previo no. */
   regla?: ReglaDeClase | null
+  llegadas?: LlegadasDto | null
 }
 export interface ReportePeriodoDto {
   periodo: { start: string; end: string; periodicidad: 'MONTHLY' | 'SEMIMONTHLY'; id?: string | null; estado?: 'OPEN' | 'CLOSED' }
@@ -52,6 +60,8 @@ export interface PagoDeClaseDto {
   montoSiEntrara?: string | null
   /** Fase 3 (B11), sólo en `FUERA_DEL_SOBRE`: la sede y la fecha local de la clase. */
   sede?: { nombre: string; fecha: string } | null
+  /** Asistencia verificada: cómo llegaron (opcional). */
+  llegadas?: LlegadasDto | null
 }
 /**
  * Simulación de publicar una tabla o asignar un nivel (revisión final I-2): cuántas clases cambian y en qué periodo

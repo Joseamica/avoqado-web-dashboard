@@ -91,6 +91,9 @@ export interface Reservation {
   internalNotes: string | null
   tags: string[]
   statusLog: StatusLogEntry[] | null
+  /** Asistencia verificada: cómo llegó y quién la marcó si fue a mano. Opcionales: un server previo no los manda. */
+  checkInMethod?: CheckInMethod | null
+  checkedInBy?: { id: string; firstName: string; lastName: string } | null
   /** D4: la corrección «Sí llegó» de esta reserva (una sola por reserva). `null`/ausente = nunca se corrigió (o server anterior). */
   noShowCorrection?: NoShowCorrectionSummary | null
   createdAt: string
@@ -104,7 +107,12 @@ export interface StatusLogEntry {
   reason?: string
   /** D4: la entrada que corrige un «No asistió» trae `'NO_SHOW'`. */
   correctionOf?: 'NO_SHOW'
+  /** Asistencia verificada (16-nov-2026): cómo se demostró la llegada. Opcional: entradas viejas no lo traen. */
+  method?: CheckInMethod
 }
+
+/** Cómo se demostró una llegada (espejo del enum del servidor `ReservationCheckInMethod`). */
+export type CheckInMethod = 'QR' | 'PHONE' | 'STAFF' | 'KIOSK_LIST' | 'PASS'
 
 /** Lo que una persona tiene que resolver después de «Sí llegó» (los textos viven en `undoNoShow.pending.*`). */
 export type NoShowPending = 'CREDIT_NOT_RECONSUMED' | 'CLASS_UNPAID' | 'FEE_CAPTURED'

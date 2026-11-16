@@ -16,6 +16,8 @@ interface Props {
   onOpenChange: (open: boolean) => void
   tableId: string
   maxCount: number
+  /** «Quien reservó» o «Sólo quien llegó» (asistencia verificada, 16-nov-2026). */
+  countMode?: 'BOOKED' | 'ATTENDED'
   grid: Cuadricula
   /** Las reglas de clase de la versión (spec §6.6): viajan también al simular, para que el efecto las cuente. */
   reglas: ReglasPayload
@@ -23,7 +25,7 @@ interface Props {
   hoy: string
 }
 
-export function PublicarTablaModal({ open, onOpenChange, tableId, maxCount, grid, reglas, hoy }: Props) {
+export function PublicarTablaModal({ open, onOpenChange, tableId, maxCount, countMode = 'BOOKED', grid, reglas, hoy }: Props) {
   const { t } = useTranslation('staffPay')
   const { toast } = useToast()
   // La vista previa no escribe: su propia llave (`simulacion`), para que el aviso y la cancelación sean sólo del envío que guarda.
@@ -37,7 +39,7 @@ export function PublicarTablaModal({ open, onOpenChange, tableId, maxCount, grid
   // Vista previa del efecto («cambia el pago de 12 clases de septiembre…») cada vez que cambia la fecha.
   const vigencia = useVigenciaSimulada(
     hoy,
-    fecha => simular.mutateAsync({ tableId, effectiveFrom: fecha, maxCount, cells, ...reglas, simular: true }),
+    fecha => simular.mutateAsync({ tableId, effectiveFrom: fecha, maxCount, countMode, cells, ...reglas, simular: true }),
     tableId,
     simular.isPaused,
   )
@@ -57,7 +59,7 @@ export function PublicarTablaModal({ open, onOpenChange, tableId, maxCount, grid
     enVuelo.current = true
     setGuardando(true)
     try {
-      await publicar.mutateAsync({ tableId, effectiveFrom: vigencia.fecha, maxCount, cells, ...reglas })
+      await publicar.mutateAsync({ tableId, effectiveFrom: vigencia.fecha, maxCount, countMode, cells, ...reglas })
       toast({ title: t('publish.saved') })
       onOpenChange(false)
     } catch (err) {

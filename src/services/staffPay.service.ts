@@ -14,7 +14,7 @@ export const staffPayService = {
   async tables(venueId: string, fecha?: string): Promise<TablaDto[]> { return (await api.get(`${base(venueId)}/tables`, { params: { fecha } })).data },
   async createTable(venueId: string, data: { name: string; productIds: string[] }): Promise<{ id: string }> { return (await api.post(`${base(venueId)}/tables`, data)).data },
   /** Manda siempre las tres reglas de clase (`null` = apagada): así nunca dependen de lo que herede el server (D4). */
-  async publish(venueId: string, tableId: string, data: { effectiveFrom: string; countMode: 'BOOKED'; maxCount: number; cells: CeldaDto[]; simular?: boolean } & ReglasPayload): Promise<SimulacionVigenciaDto & { revision?: number }> {
+  async publish(venueId: string, tableId: string, data: { effectiveFrom: string; countMode: 'BOOKED' | 'ATTENDED'; maxCount: number; cells: CeldaDto[]; simular?: boolean } & ReglasPayload): Promise<SimulacionVigenciaDto & { revision?: number }> {
     return (await api.post(`${base(venueId)}/tables/${tableId}/versions`, data)).data
   },
   async report(venueId: string, p: { fecha?: string; sede?: string; offset: number; limit: number }): Promise<ReportePeriodoDto> { return (await api.get(`${base(venueId)}/report`, { params: p })).data },

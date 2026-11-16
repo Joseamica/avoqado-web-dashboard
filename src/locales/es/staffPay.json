@@ -80,7 +80,7 @@
     "booked": "Quien reservó (aunque falte)",
     "bookedHelp": "La coach no pierde por las faltas del cliente.",
     "attended": "Sólo quien llegó",
-    "attendedHelp": "Contar sólo a quien llegó estará disponible cuando el check-in quede registrado en el aparato; hoy se cuenta a quien reservó.",
+    "attendedHelp": "Paga sólo por quien llegó: con su celular (QR del kiosco), con su teléfono o marcada a mano. En cada clase verás cómo llegó cada lugar.",
     "create": "Crear tabla de pagos",
     "publish": "Guardar tabla",
     "empty": "Todavía no tienes tabla de pagos. Créala para capturar los montos.",
@@ -225,13 +225,15 @@
     "pendingHelp": "No están en el total de arriba: cada una se descuenta en el cierre que dice.",
     "pendingLine": "{{monto}} se descontará solo {{cuando}}.",
     "pendingAtClose": "al cerrar el periodo de {{periodo}}",
-    "pendingAfter": "al cerrar un periodo posterior al de {{periodo}} (ése ya se cerró)"
+    "pendingAfter": "al cerrar un periodo posterior al de {{periodo}} (ése ya se cerró)",
+    "resolveGroup": "Abre la clase y usa «Corregir conteo» con cuántos llegaron."
   },
   "reasons": {
     "SIN_COACH": "La clase no tiene coach",
     "COACH_SIN_NIVEL": "La coach no tiene nivel",
     "SIN_TABLA": "No hay tabla de pagos para esta clase",
-    "SIN_MONTO_PARA_ESE_CONTEO": "Falta el monto para ese número de lugares"
+    "SIN_MONTO_PARA_ESE_CONTEO": "Falta el monto para ese número de lugares",
+    "GRUPO_POR_CONFIRMAR": "Llegó una reserva de varios lugares"
   },
   "classCard": {
     "title": "Pago a la coach",
@@ -668,5 +670,25 @@
     "willCalculateClose": "Sin conexión: el cierre se calcula cuando vuelva la red.",
     "willCalculatePending": "Sin conexión: las devoluciones pendientes de esta persona se revisan cuando vuelva la red.",
     "cancelSend": "Cancelar envío"
+  },
+  "arrivals": {
+    "qr_one": "{{count}} con celular",
+    "qr_other": "{{count}} con celular",
+    "phone_one": "{{count}} con teléfono",
+    "phone_other": "{{count}} con teléfono",
+    "byHand_one": "{{count}} a mano",
+    "byHand_other": "{{count}} a mano",
+    "byHandBy_one": "{{count}} a mano por {{names}}",
+    "byHandBy_other": "{{count}} a mano por {{names}}",
+    "list_one": "{{count}} desde la lista",
+    "list_other": "{{count}} desde la lista",
+    "pass_one": "{{count}} con pase",
+    "pass_other": "{{count}} con pase",
+    "noMethod_one": "{{count}} sin método",
+    "noMethod_other": "{{count}} sin método",
+    "recorded": "llegadas registradas: {{list}}",
+    "noneRecorded": "sin llegadas registradas",
+    "corrected_one": "pago corregido a mano a {{count}} lugar",
+    "corrected_other": "pago corregido a mano a {{count}} lugares"
   }
 }

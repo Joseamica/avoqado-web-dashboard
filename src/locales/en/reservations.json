@@ -201,6 +201,17 @@
       "modifiers": "Extras / add-ons",
       "assignment": "Assignment",
       "notes": "Notes"
+    },
+    "checkInMethod": {
+      "QR": "Checked in with their phone (kiosk QR)",
+      "PHONE": "Checked in by typing their phone at the kiosk",
+      "STAFF": "Arrival marked by hand",
+      "KIOSK_LIST": "Checked in by tapping their name on the kiosk list",
+      "PASS": "Checked in with their pass"
+    },
+    "checkInMethodBy": {
+      "STAFF": "Arrival marked by hand by {{name}}",
+      "KIOSK_LIST": "Checked in by tapping their name on the kiosk list (session of {{name}})"
     }
   },
   "calendar": {

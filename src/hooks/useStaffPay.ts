@@ -303,8 +303,9 @@ export function usePublishTable(simulacion = false) {
   const mutationKey = [...staffPayKeys.all(venueId), simulacion ? 'publish-table-simulation' : 'publish-table']
   const mutacion = useMutation({
     mutationKey,
-    mutationFn: (p: { tableId: string; effectiveFrom: string; maxCount: number; cells: CeldaDto[]; simular?: boolean } & ReglasPayload) =>
-      staffPayService.publish(venueId!, p.tableId, { ...p, countMode: 'BOOKED' }),
+    mutationFn: (
+      p: { tableId: string; effectiveFrom: string; maxCount: number; countMode?: 'BOOKED' | 'ATTENDED'; cells: CeldaDto[]; simular?: boolean } & ReglasPayload,
+    ) => staffPayService.publish(venueId!, p.tableId, { ...p, countMode: p.countMode ?? 'BOOKED' }),
     onSuccess: (_d, p) => { if (!p.simular) inv() },
   })
   return conCancelarEnPausa(mutacion, qc, mutationKey)

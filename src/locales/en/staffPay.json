@@ -80,7 +80,7 @@
     "booked": "Whoever booked (even if absent)",
     "bookedHelp": "The coach does not lose pay for client no-shows.",
     "attended": "Only those who showed up",
-    "attendedHelp": "Counting only those who showed up will be available once check-in is recorded on the device; today, everyone who booked is counted.",
+    "attendedHelp": "Pays only for those who showed up: with their phone (kiosk QR), by typing their phone number, or marked by hand. Each class shows how every spot arrived.",
     "create": "Create pay table",
     "publish": "Save table",
     "empty": "You do not have a pay table yet. Create it to enter the amounts.",
@@ -225,13 +225,15 @@
     "pendingHelp": "They are not in the total above: each one is deducted in the closing it names.",
     "pendingLine": "{{monto}} will be deducted automatically {{cuando}}.",
     "pendingAtClose": "when the {{periodo}} period closes",
-    "pendingAfter": "when a period after {{periodo}} closes (that one is already closed)"
+    "pendingAfter": "when a period after {{periodo}} closes (that one is already closed)",
+    "resolveGroup": "Open the class and use “Correct count” with how many showed up."
   },
   "reasons": {
     "SIN_COACH": "The class has no coach",
     "COACH_SIN_NIVEL": "The coach has no level",
     "SIN_TABLA": "There is no pay table for this class",
-    "SIN_MONTO_PARA_ESE_CONTEO": "The amount for that number of spots is missing"
+    "SIN_MONTO_PARA_ESE_CONTEO": "The amount for that number of spots is missing",
+    "GRUPO_POR_CONFIRMAR": "A multi-spot booking checked in"
   },
   "classCard": {
     "title": "Coach pay",
@@ -668,5 +670,25 @@
     "willCalculateClose": "No connection: the close will be calculated when the network is back.",
     "willCalculatePending": "No connection: this person's pending refunds will be checked when the network is back.",
     "cancelSend": "Cancel sending"
+  },
+  "arrivals": {
+    "qr_one": "{{count}} with phone",
+    "qr_other": "{{count}} with phone",
+    "phone_one": "{{count}} by phone number",
+    "phone_other": "{{count}} by phone number",
+    "byHand_one": "{{count}} by hand",
+    "byHand_other": "{{count}} by hand",
+    "byHandBy_one": "{{count}} by hand by {{names}}",
+    "byHandBy_other": "{{count}} by hand by {{names}}",
+    "list_one": "{{count}} from the list",
+    "list_other": "{{count}} from the list",
+    "pass_one": "{{count}} with a pass",
+    "pass_other": "{{count}} with a pass",
+    "noMethod_one": "{{count}} without method",
+    "noMethod_other": "{{count}} without method",
+    "recorded": "recorded arrivals: {{list}}",
+    "noneRecorded": "no recorded arrivals",
+    "corrected_one": "pay corrected by hand to {{count}} spot",
+    "corrected_other": "pay corrected by hand to {{count}} spots"
   }
 }
