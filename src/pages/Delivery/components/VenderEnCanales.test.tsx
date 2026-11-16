@@ -91,7 +91,7 @@ describe('casilla «Vender en»: qué se ve', () => {
     expect(screen.queryByRole('checkbox', { name: 'Rappi' })).not.toBeInTheDocument()
     expect(estado.visible).toBe(false)
     await act(async () => {
-      await expect(estado.aplicar('nuevo', { marcados: { l1: false }, alta: true })).resolves.toBe(true)
+      await expect(estado.aplicar('nuevo', { marcados: { l1: false }, base: { l1: false }, alta: true })).resolves.toBe(true)
     })
     expect(svc.ponerProductoEnCanales).not.toHaveBeenCalled()
   })
