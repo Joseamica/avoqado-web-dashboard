@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { CalendarDays, Check, Clock, LogIn, MapPin, Phone, Mail, User, Users, X, AlertTriangle, CalendarClock } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { tableNumber } from '@/lib/tableName'
 import { useParams } from 'react-router-dom'
@@ -138,6 +138,19 @@ export default function ReservationDetail() {
       toast({ title: tCommon('error'), description: error.response?.data?.message || t('toasts.error'), variant: 'destructive' })
     },
   })
+
+  // Un doble clic llegaba antes de que el botón se deshabilitara: dos POST y dos WhatsApp al cliente
+  // (medido en el banco, 16-nov). El candado se suelta cuando la petición termina.
+  const reagendando = useRef(false)
+  const reagendar = () => {
+    if (reagendando.current) return
+    reagendando.current = true
+    rescheduleMutation.mutate(undefined, {
+      onSettled: () => {
+        reagendando.current = false
+      },
+    })
+  }
 
   const rescheduleMutation = useMutation({
     mutationFn: () => {
@@ -614,7 +627,7 @@ export default function ReservationDetail() {
         onClose={() => setShowRescheduleDialog(false)}
         title={t('detail.reschedule.title')}
         actions={
-          <Button onClick={() => rescheduleMutation.mutate()} disabled={rescheduleMutation.isPending || !rescheduleStart || !rescheduleEnd}>
+          <Button onClick={reagendar} disabled={rescheduleMutation.isPending || !rescheduleStart || !rescheduleEnd}>
             {rescheduleMutation.isPending ? tCommon('loading') : t('detail.reschedule.confirm')}
           </Button>
         }

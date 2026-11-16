@@ -733,6 +733,25 @@ describe('ReservationDetail — Reagendar', () => {
     expect(correo?.getAttribute('data-state')).toBe('checked')
   })
 
+  // Medido en el banco (16-nov): un doble clic mandaba dos POST y dos WhatsApp al cliente.
+  it('un doble clic en «Confirmar» manda una sola petición', async () => {
+    mockReservation = createTestReservation('CONFIRMED')
+    let terminar: (v: unknown) => void = () => {}
+    svc.reschedule.mockImplementation(() => new Promise(resolve => (terminar = resolve)))
+    await abrirReagendar()
+    const [inicio, fin] = document.querySelectorAll('input[type="datetime-local"]')
+    fireEvent.change(inicio, { target: { value: '2026-11-12T15:00' } })
+    fireEvent.change(fin, { target: { value: '2026-11-12T16:00' } })
+    const confirmar = screen.getByText('detail.reschedule.confirm')
+    fireEvent.click(confirmar)
+    fireEvent.click(confirmar)
+
+    await waitFor(() => expect(svc.reschedule).toHaveBeenCalledTimes(1))
+    terminar({})
+    await new Promise(r => setTimeout(r, 0))
+    expect(svc.reschedule).toHaveBeenCalledTimes(1)
+  })
+
   it('sin teléfono ni correo viene marcado «Sin notificación»', async () => {
     mockReservation = { ...createTestReservation('CONFIRMED'), guestPhone: null, guestEmail: null }
     await abrirReagendar()
