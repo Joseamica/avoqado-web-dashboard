@@ -22,7 +22,8 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import type { Product, ProductType } from '@/types'
 import { ProductWizardDialog } from '@/pages/Inventory/components/ProductWizardDialog'
 import { useMasterCatalogError } from '@/features/master-catalog/use-master-catalog-error'
-import { useVenderEnCanales, VenderEnCanales } from '@/pages/Delivery/components/VenderEnCanales'
+import { VenderEnCanales } from '@/pages/Delivery/components/VenderEnCanales'
+import { useVenderEnCanales } from '@/pages/Delivery/components/useVenderEnCanales'
 import {
   getSkuValidationRules,
   getNameValidationRules,

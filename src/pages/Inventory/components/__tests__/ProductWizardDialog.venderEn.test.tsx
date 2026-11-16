@@ -51,7 +51,10 @@ vi.mock('@/hooks/use-current-venue', () => ({
 }))
 const toastMock = vi.hoisted(() => vi.fn())
 vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: toastMock }) }))
-vi.mock('@/hooks/use-tier-feature-access', () => ({ useTierFeatureAccess: () => ({ hasAccess: false, isResolved: true }) }))
+// Sólo delivery está en el plan: variantes, CFDI e inventario avanzado siguen como en el arnés original.
+vi.mock('@/hooks/use-tier-feature-access', () => ({
+  useTierFeatureAccess: (f: string) => ({ hasAccess: f === 'DELIVERY_CHANNELS', isLoading: false, isResolved: true }),
+}))
 vi.mock('@/firebase', () => ({ storage: {} }))
 vi.mock('@/hooks/use-print-stations', () => ({ usePrintStations: () => ({ data: [], isLoading: false }) }))
 vi.mock('@/components/PrintStationField', () => ({ PrintStationField: () => null }))

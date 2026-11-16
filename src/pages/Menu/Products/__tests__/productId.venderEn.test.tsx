@@ -3,7 +3,7 @@
  * Arnés copiado de `productId.iva.test.tsx`, más los canales de delivery y el permiso.
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -26,6 +26,15 @@ vi.mock('@/services/menu.service', () => svc)
 const delivery = vi.hoisted(() => ({ getChannels: vi.fn(), ponerProductoEnCanales: vi.fn() }))
 vi.mock('@/services/delivery.service', () => delivery)
 vi.mock('@/hooks/use-access', () => ({ useAccess: () => ({ can: (p: string) => p === 'delivery-channels:manage' }) }))
+vi.mock('@/hooks/use-tier-feature-access', async importOriginal => ({
+  ...(await importOriginal<typeof import('@/hooks/use-tier-feature-access')>()),
+  useTierFeatureAccess: (f: string) => ({
+    hasAccess: f === 'DELIVERY_CHANNELS',
+    isLoading: false,
+    isResolved: true,
+    requiredTier: 'PREMIUM',
+  }),
+}))
 vi.mock('@/services/inventory.service', () => ({ recipesApi: { get: vi.fn() } }))
 vi.mock('@/api', () => ({ default: { patch: vi.fn(), get: vi.fn() } }))
 vi.mock('@/hooks/use-current-venue', () => ({
@@ -90,7 +99,7 @@ const rappi = {
 
 function renderFicha() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-  return render(
+  render(
     <QueryClientProvider client={qc}>
       <MemoryRouter initialEntries={['/menumaker/products/p1']}>
         <Routes>
@@ -99,6 +108,7 @@ function renderFicha() {
       </MemoryRouter>
     </QueryClientProvider>,
   )
+  return { qc }
 }
 const guardarBtn = () => screen.getByRole('button', { name: /save|guardar/i })
 
@@ -123,6 +133,22 @@ describe('ficha del producto: casilla «Vender en» (D1)', () => {
     await userEvent.click(guardarBtn())
     await waitFor(() => expect(delivery.ponerProductoEnCanales).toHaveBeenCalledExactlyOnceWith('v1', 'p1', { l1: true }))
     expect(svc.updateProduct).not.toHaveBeenCalled()
+  })
+
+  it('tras guardar sólo la casilla, ésta sigue al canal: si después lo quitan desde Delivery, sale desmarcada', async () => {
+    delivery.getChannels
+      .mockResolvedValueOnce([rappi]) // al abrir
+      .mockResolvedValueOnce([{ ...rappi, config: { productoIds: ['otro', 'p1'] } }]) // la lectura tras guardar
+      .mockResolvedValue([rappi]) // alguien lo quitó desde la pantalla del canal
+    const { qc } = renderFicha()
+    await userEvent.click(await screen.findByRole('checkbox', { name: 'Rappi' }))
+    await userEvent.click(guardarBtn())
+    await waitFor(() => expect(delivery.ponerProductoEnCanales).toHaveBeenCalledTimes(1))
+    await waitFor(() => expect(guardarBtn()).toBeDisabled())
+    expect(screen.getByRole('checkbox', { name: 'Rappi' })).toBeChecked()
+    await act(() => qc.invalidateQueries({ queryKey: ['deliveryChannels', 'v1'] }))
+    await waitFor(() => expect(screen.getByRole('checkbox', { name: 'Rappi' })).not.toBeChecked())
+    expect(guardarBtn()).toBeDisabled()
   })
 
   it('si cambió algo más, primero se guarda el producto y luego se pone en Rappi', async () => {

@@ -58,7 +58,8 @@ import { VariantNotice } from '@/features/product-variants/components/VariantNot
 import { sinCamposDelPadre } from '@/features/product-variants/families'
 import { codigoDelError } from '@/features/product-variants/errors'
 import { useInvalidarCatalogo } from '@/features/product-variants/hooks'
-import { useVenderEnCanales, VenderEnCanales } from '@/pages/Delivery/components/VenderEnCanales'
+import { VenderEnCanales } from '@/pages/Delivery/components/VenderEnCanales'
+import { useVenderEnCanales } from '@/pages/Delivery/components/useVenderEnCanales'
 
 // Esquema de validación
 // const FormSchema = z.object({
@@ -220,7 +221,8 @@ export default function ProductId() {
       setBloqueosIva(undefined)
       queryClient.invalidateQueries({ queryKey: IVA_QUERY_KEY(venueId!) })
       // «Vender en» que viajó con ESTE guardado: se aplica ya guardado el producto (si falla, avisa por canal; no deshace nada).
-      if (formValues.venderEn) await venderEn.aplicar(productId!, { marcados: formValues.venderEn, alta: false })
+      // Si quedó, la casilla vuelve a seguir al canal (lo tocado ya está en la lectura nueva); si no, se conserva para reintentar.
+      if (formValues.venderEn && (await venderEn.aplicar(productId!, { marcados: formValues.venderEn, alta: false }))) venderEn.reiniciar()
     },
     onError: (error: any) => {
       if (handleMasterCatalogError(error)) return
@@ -472,7 +474,9 @@ export default function ProductId() {
     setGuardandoCanales(true)
     const quedo = await venderEn.aplicar(productId!, { marcados: { ...venderEn.marcados }, alta: false })
     setGuardandoCanales(false)
-    if (quedo) toast({ title: t('products.detail.toasts.saved'), description: t('products.detail.toasts.savedDesc') })
+    if (!quedo) return // lo marcado se queda para reintentar; el aviso ya salió
+    venderEn.reiniciar() // la casilla vuelve a seguir al canal: un cambio posterior desde Delivery se ve tal cual
+    toast({ title: t('products.detail.toasts.saved'), description: t('products.detail.toasts.savedDesc') })
   }
 
   // Imagen a mostrar: si hay una nueva (subida) úsala, si no usa la de la BD

@@ -12,10 +12,15 @@ vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: toastMock }) }))
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (k: string) => k }) }))
 const acceso = vi.hoisted(() => ({ puede: true }))
 vi.mock('@/hooks/use-access', () => ({ useAccess: () => ({ can: (p: string) => acceso.puede && p === 'delivery-channels:manage' }) }))
+const plan = vi.hoisted(() => ({ hasAccess: true, isLoading: false }))
+vi.mock('@/hooks/use-tier-feature-access', () => ({
+  useTierFeatureAccess: (f: string) => ({ hasAccess: plan.hasAccess && f === 'DELIVERY_CHANNELS', isLoading: plan.isLoading }),
+}))
 const svc = vi.hoisted(() => ({ getChannels: vi.fn(), ponerProductoEnCanales: vi.fn() }))
 vi.mock('@/services/delivery.service', () => svc)
 
-import { useVenderEnCanales, VenderEnCanales } from './VenderEnCanales'
+import { useVenderEnCanales } from './useVenderEnCanales'
+import { VenderEnCanales } from './VenderEnCanales'
 
 const canal = (over: Partial<DeliveryChannelLink> = {}): DeliveryChannelLink => ({
   id: 'l1',
@@ -35,8 +40,10 @@ function Prueba({ producto }: { producto: { id?: string; sku?: string } }) {
   estado = useVenderEnCanales('v1', producto)
   return <VenderEnCanales estado={estado} />
 }
-function montar(producto: { id?: string; sku?: string } = {}) {
+function montar(producto: { id?: string; sku?: string } = {}, enCache?: DeliveryChannelLink[]) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  // Lo que dejó otra pantalla en la misma llave (la página de Delivery sólo mira el plan, no `manage`).
+  if (enCache) qc.setQueryData(['deliveryChannels', 'v1'], enCache)
   return render(
     <QueryClientProvider client={qc}>
       <Prueba producto={producto} />
@@ -47,6 +54,8 @@ const casilla = (nombre = 'Rappi') => screen.findByRole('checkbox', { name: nomb
 
 beforeEach(() => {
   acceso.puede = true
+  plan.hasAccess = true
+  plan.isLoading = false
   svc.getChannels.mockResolvedValue([canal()])
   svc.ponerProductoEnCanales.mockResolvedValue([])
 })
@@ -58,6 +67,32 @@ describe('casilla «Vender en»: qué se ve', () => {
     await act(async () => {})
     expect(svc.getChannels).not.toHaveBeenCalled()
     expect(screen.queryByText('venderEn.titulo')).not.toBeInTheDocument()
+  })
+
+  it.each([
+    ['sin el plan', { hasAccess: false, isLoading: false }],
+    ['con el plan todavía cargando (deja pasar todo)', { hasAccess: true, isLoading: true }],
+  ])('%s no consulta los canales ni aparece', async (_caso, estadoDelPlan) => {
+    Object.assign(plan, estadoDelPlan)
+    montar()
+    await act(async () => {})
+    expect(svc.getChannels).not.toHaveBeenCalled()
+    expect(screen.queryByText('venderEn.titulo')).not.toBeInTheDocument()
+  })
+
+  it.each([
+    ['sin permiso', () => (acceso.puede = false)],
+    ['sin el plan', () => (plan.hasAccess = false)],
+  ])('%s, aunque los canales estén en caché: no aparece y aplicar no manda nada', async (_caso, quitar) => {
+    quitar()
+    montar({}, [canal()])
+    await act(async () => {})
+    expect(screen.queryByRole('checkbox', { name: 'Rappi' })).not.toBeInTheDocument()
+    expect(estado.visible).toBe(false)
+    await act(async () => {
+      await expect(estado.aplicar('nuevo', { marcados: { l1: false }, alta: true })).resolves.toBe(true)
+    })
+    expect(svc.ponerProductoEnCanales).not.toHaveBeenCalled()
   })
 
   it('si la lista de canales falla (403 sin plan), no aparece y no hay aviso', async () => {
