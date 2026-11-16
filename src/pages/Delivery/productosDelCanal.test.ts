@@ -56,6 +56,30 @@ describe('seleccionAlAbrir', () => {
   it('sin nada: lista null', () => {
     expect(seleccionAlAbrir(null, prods)).toEqual({ lista: null, precios: {}, codigosSinProducto: [] })
   })
+
+  // 🔴 Igual que el SERVIDOR (Codex impl r1 #1): con `porProducto` mandan SÓLO esos precios (la `overrides` es su copia por
+  // código); sin él, los de `overrides` cuyo código es de un producto recibido, empiece o no con `MOD-`.
+  it('reúso de código: porProducto {p1:79} y copia {LATTE:79}; p1 ahora es Z y p2 tomó LATTE ⇒ sólo {p1:79}', () => {
+    const ahora = [p('p1', 'Z'), p('p2', 'LATTE')]
+    const precios = { porProducto: { p1: 79 }, overrides: { LATTE: 79 } }
+    expect(seleccionAlAbrir({ precios }, ahora).precios).toEqual({ p1: 79 })
+    expect(seleccionAlAbrir({ productoIds: ['p1', 'p2'], precios }, ahora).precios).toEqual({ p1: 79 })
+  })
+
+  it('un producto cuyo código empieza con MOD- conserva su precio (lista vieja, con o sin lista)', () => {
+    const conMod = [p('pM', 'MOD-raro'), p('p2', 'TE')]
+    const precios = { overrides: { 'MOD-raro': 79, 'MOD-x1': 5 } }
+    expect(seleccionAlAbrir({ productos: ['MOD-raro', 'TE'], precios }, conMod)).toEqual({
+      lista: ['pM', 'p2'],
+      precios: { pM: 79 },
+      codigosSinProducto: [],
+    })
+    expect(seleccionAlAbrir({ precios }, conMod).precios).toEqual({ pM: 79 })
+  })
+
+  it('lista por id sin porProducto: los precios por código de productos recibidos, como los convierte el SERVIDOR', () => {
+    expect(seleccionAlAbrir({ productoIds: ['p1'], precios: { overrides: { LATTE: 60, NADIE: 3 } } }, prods).precios).toEqual({ p1: 60 })
+  })
 })
 
 describe('productosNuevos / idsQueYaNoExisten', () => {

@@ -165,8 +165,9 @@ export function ChannelSettingsDialog({ open, onClose, venueId, channel }: Chann
   if (productos && sel === null) setSel(armarSeleccion(canalAlAbrir.config, productos))
 
   const revisados = useMemo(() => [...(canalAlAbrir.config?.productosRevisados ?? []), ...revisadosAqui], [canalAlAbrir, revisadosAqui])
+  // El aviso sale de la lista de AL ABRIR: desmarcar un producto no lo hace aparecer como «nuevo» mientras se edita.
   const nuevos = useMemo(
-    () => (productos && sel ? productosNuevos(productos, sel.lista, revisados, canalAlAbrir.createdAt ?? null) : []),
+    () => (productos && sel ? productosNuevos(productos, sel.listaAlAbrir, revisados, canalAlAbrir.createdAt ?? null) : []),
     [productos, sel, revisados, canalAlAbrir],
   )
   const yaNoExisten = useMemo(
@@ -245,8 +246,9 @@ export function ChannelSettingsDialog({ open, onClose, venueId, channel }: Chann
       const cambio = !mismaLista(sel.lista, sel.listaAlAbrir)
       // La lista vieja por código se manda ya por id; la copia por código la arma el SERVIDOR.
       if (sel.lista !== null && (cambio || sel.porCodigo)) config.productoIds = sel.lista
-      // Los nuevos que tenía en pantalla y dejó fuera cuentan como revisados (los creados antes de conectar nunca son nuevos).
-      if (cambio) marcarRevisados = idsRecientes(nuevos)
+      // Los nuevos que tenía en pantalla y dejó fuera de la lista ACTUAL cuentan como revisados (los creados antes de conectar
+      // nunca son nuevos).
+      if (cambio) marcarRevisados = idsRecientes(productosNuevos(productos, sel.lista, revisados, canalAlAbrir.createdAt ?? null))
     }
     return {
       config,
@@ -429,7 +431,9 @@ export function ChannelSettingsDialog({ open, onClose, venueId, channel }: Chann
         </section>
 
         {/* ── Productos del canal (D1) ─────────────────────────────────────────────── */}
+        {/* `key`: «Recargar» también suelta la búsqueda, el filtro «Revisarlos» y los grupos abiertos. */}
         <ProductosDelCanalSection
+          key={recargas}
           provider={channel.provider}
           canal={canal}
           productos={productos ?? []}

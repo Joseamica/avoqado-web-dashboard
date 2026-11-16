@@ -321,6 +321,38 @@ describe('ChannelSettingsDialog', () => {
     expect(body.marcarRevisados).toBeUndefined()
   })
 
+  // 🔴 Codex impl r1 #1: el código de un producto puede empezar con `MOD-`. Descartarlo por el prefijo mandaba `porProducto: {}`
+  // y el SERVIDOR borraba su precio: Rappi lo publicaba a $50 en vez de $79 sin que nadie lo tocara.
+  it('canal viejo con un producto de código MOD-raro a $79: guardar sólo el horario conserva ese precio', async () => {
+    mockGetProducts.mockResolvedValue([prod('pM', 'MOD-raro'), prod('p2', 'TE')])
+    renderDialog(
+      channel({
+        provider: 'RAPPI',
+        config: { deliveryHours: HORARIO_GUARDADO, productos: ['MOD-raro', 'TE'], precios: { overrides: { 'MOD-raro': 79 } } },
+      }),
+    )
+    await screen.findByRole('checkbox', { name: 'MOD-raro' })
+    fireEvent.change(screen.getAllByLabelText('settings.opensAt')[0], { target: { value: '08:00' } })
+    guardar()
+
+    const body = await cuerpo()
+    expect(body.config.productoIds).toEqual(['pM', 'p2'])
+    expect(body.config.precios).toEqual({ porProducto: { pM: 79 } })
+  })
+
+  it('desmarcar un producto de la lista no lo hace salir como «nuevo»; al guardar sí cuenta como revisado', async () => {
+    mockGetProducts.mockResolvedValue([prod('p1', 'LATTE'), prod('p2', 'TE', { createdAt: DESPUES })])
+    renderDialog(channel({ createdAt: CONECTADO, config: { productoIds: ['p1', 'p2'] } }))
+
+    fireEvent.click(await screen.findByRole('checkbox', { name: 'TE' }))
+    expect(screen.queryByText('settings.productos.nuevos')).not.toBeInTheDocument()
+    guardar()
+
+    const body = await cuerpo()
+    expect(body.config.productoIds).toEqual(['p1'])
+    expect(body.marcarRevisados).toEqual(['p2'])
+  })
+
   it('cambiar sólo el horario (lista por id) NO manda la lista ni revisados', async () => {
     mockGetProducts.mockResolvedValue([prod('p1', 'LATTE'), prod('p2', 'TE', { createdAt: DESPUES })])
     renderDialog(channel({ createdAt: CONECTADO, config: { deliveryHours: HORARIO_GUARDADO, productoIds: ['p1'] } }))
@@ -538,6 +570,22 @@ describe('ChannelSettingsDialog', () => {
     expect(body.seleccionEsperada).toBe('h-B')
     expect('impresion' in body.config).toBe(false)
     expect(body.config.deliveryHours).toEqual(otroHorario)
+  })
+
+  it('«Recargar» también reinicia la búsqueda y el filtro «Revisarlos» de la sección de productos', async () => {
+    mockGetProducts.mockResolvedValue([prod('p1', 'LATTE'), prod('p2', 'TE', { createdAt: DESPUES })])
+    mockUpdateChannel.mockRejectedValueOnce({ response: { status: 409, data: { code: 'CHANNEL_CHANGED', message: 'x' } } })
+    renderDialog(channel({ createdAt: CONECTADO, config: { deliveryHours: HORARIO_GUARDADO, productoIds: ['p1'] } }))
+    await screen.findByRole('checkbox', { name: 'LATTE' })
+    fireEvent.click(screen.getByText('settings.productos.revisarlos'))
+    expect(screen.queryByRole('checkbox', { name: 'LATTE' })).not.toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText('settings.productos.buscar'), { target: { value: 'TE' } })
+    guardar()
+    fireEvent.click(await screen.findByText('settings.recargar'))
+
+    await waitFor(() => expect(screen.queryByText('settings.conflicto')).not.toBeInTheDocument())
+    expect(await screen.findByRole('checkbox', { name: 'LATTE' })).toBeInTheDocument()
+    expect((screen.getByLabelText('settings.productos.buscar') as HTMLInputElement).value).toBe('')
   })
 
   it('otro error (no 409) sigue saliendo como aviso flotante, sin «Recargar»', async () => {

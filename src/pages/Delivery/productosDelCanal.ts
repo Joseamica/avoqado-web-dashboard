@@ -6,32 +6,36 @@ export type ProductoDelCanal = Pick<Product, 'id' | 'sku' | 'name' | 'price' | '
   category?: { name: string } | null
 }
 
-const esMod = (k: string) => k.startsWith('MOD-')
-
+/**
+ * La lista y los precios de al abrir, IGUAL que los lee el SERVIDOR (Codex impl r1 #1):
+ *  · lista = `productoIds`; si no hay, la vieja por código pasada a ids de los productos recibidos.
+ *  · precios = `porProducto` si existe (la `overrides` es su copia por código: un código reusado le daría el precio a otro);
+ *    si no, los de `overrides` cuyo código es de un producto recibido, empiece o no con `MOD-` (un código de producto gana). Lo
+ *    que no es de ningún producto recibido (extras, códigos viejos) se ignora: el SERVIDOR conserva los extras.
+ */
 export function seleccionAlAbrir(
   config: DeliveryChannelConfig | null | undefined,
   productos: ProductoDelCanal[],
 ): { lista: string[] | null; precios: Record<string, number>; codigosSinProducto: string[] } {
-  const precios = config?.precios
-  if (config?.productoIds) {
-    return { lista: config.productoIds, precios: { ...(precios?.porProducto ?? {}) }, codigosSinProducto: [] }
-  }
   const idPorCodigo = new Map(productos.map(p => [p.sku, p.id]))
-  const out: Record<string, number> = {}
-  const sinProducto: string[] = []
-  for (const [codigo, precio] of Object.entries(precios?.overrides ?? {})) {
-    if (esMod(codigo)) continue
-    const id = idPorCodigo.get(codigo)
-    if (id) out[id] = precio
+  const porProducto = config?.precios?.porProducto
+  const precios: Record<string, number> = { ...(porProducto ?? {}) }
+  if (!porProducto) {
+    for (const [codigo, precio] of Object.entries(config?.precios?.overrides ?? {})) {
+      const id = idPorCodigo.get(codigo)
+      if (id) precios[id] = precio
+    }
   }
-  if (!config?.productos) return { lista: null, precios: { ...(precios?.porProducto ?? {}), ...out }, codigosSinProducto: [] }
+  if (config?.productoIds) return { lista: config.productoIds, precios, codigosSinProducto: [] }
+  if (!config?.productos) return { lista: null, precios, codigosSinProducto: [] }
   const lista: string[] = []
+  const sinProducto: string[] = []
   for (const codigo of config.productos) {
     const id = idPorCodigo.get(codigo)
     if (id) lista.push(id)
     else sinProducto.push(codigo)
   }
-  return { lista, precios: out, codigosSinProducto: sinProducto }
+  return { lista, precios, codigosSinProducto: sinProducto }
 }
 
 export function productosNuevos(
