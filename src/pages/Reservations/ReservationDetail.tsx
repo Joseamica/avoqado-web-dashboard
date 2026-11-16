@@ -31,6 +31,7 @@ import { Currency } from '@/utils/currency'
 import { useVenueDateTime } from '@/utils/datetime'
 import reservationService from '@/services/reservation.service'
 import type { RescheduleNotificationChannel } from '@/types/reservation'
+import { avisoPorOmision, CANALES_DE_AVISO, horaDelNegocioAUtc } from './reagendar'
 
 import { ReservationStatusBadge } from './components/ReservationStatusBadge'
 import { NoShowPendingBanner, UndoNoShowButton } from './components/UndoNoShow'
@@ -43,7 +44,7 @@ export default function ReservationDetail() {
   const { reservationId } = useParams<{ reservationId: string }>()
   const { toast } = useToast()
   const queryClient = useQueryClient()
-  const { formatDate, formatTime } = useVenueDateTime()
+  const { formatDate, formatTime, venueTimezone } = useVenueDateTime()
   const { setCustomSegment, clearCustomSegment } = useBreadcrumb()
 
   // Dialog states
@@ -53,7 +54,7 @@ export default function ReservationDetail() {
   const [cancelReason, setCancelReason] = useState('')
   const [rescheduleStart, setRescheduleStart] = useState('')
   const [rescheduleEnd, setRescheduleEnd] = useState('')
-  const [rescheduleChannel, setRescheduleChannel] = useState<RescheduleNotificationChannel>('push')
+  const [rescheduleChannel, setRescheduleChannel] = useState<RescheduleNotificationChannel>('none')
   const [rescheduleCustomMessage, setRescheduleCustomMessage] = useState('')
 
   // Fetch reservation
@@ -139,13 +140,19 @@ export default function ReservationDetail() {
   })
 
   const rescheduleMutation = useMutation({
-    mutationFn: () =>
-      reservationService.reschedule(venueId, reservationId!, {
-        startsAt: rescheduleStart,
-        endsAt: rescheduleEnd,
+    mutationFn: () => {
+      // La hora del formulario es la del reloj del negocio: se manda como instante UTC (igual que
+      // «Crear cita»). Sin esto el SERVIDOR la leía en UTC y la cita quedaba 6 h antes.
+      const startsAt = horaDelNegocioAUtc(rescheduleStart, venueTimezone)
+      const endsAt = horaDelNegocioAUtc(rescheduleEnd, venueTimezone)
+      if (!startsAt || !endsAt) return Promise.reject(new Error(t('toasts.error')))
+      return reservationService.reschedule(venueId, reservationId!, {
+        startsAt,
+        endsAt,
         notificationChannel: rescheduleChannel,
         customMessage: rescheduleCustomMessage.trim() || undefined,
-      }),
+      })
+    },
     onSuccess: () => {
       toast({ title: t('toasts.rescheduleSuccess') })
       setShowRescheduleDialog(false)
@@ -258,7 +265,15 @@ export default function ReservationDetail() {
             </Button>
           )}
           {canReschedule && (
-            <Button variant="outline" className="shrink-0" onClick={() => setShowRescheduleDialog(true)}>
+            <Button
+              variant="outline"
+              className="shrink-0"
+              onClick={() => {
+                // Viene marcado el canal por el que de verdad le llega: WhatsApp, correo o, sin datos, ninguno.
+                setRescheduleChannel(avisoPorOmision(reservation))
+                setShowRescheduleDialog(true)
+              }}
+            >
               <CalendarClock className="mr-2 h-4 w-4" />
               {t('actions.reschedule')}
             </Button>
@@ -470,7 +485,9 @@ export default function ReservationDetail() {
                         {entry.by && ` — ${entry.by}`}
                       </div>
                       {entry.reason && <div className="text-sm text-muted-foreground italic">{entry.reason}</div>}
-                      {entry.correctionOf && <div className="text-sm text-muted-foreground italic">{t('undoNoShow.timelineCorrection')}</div>}
+                      {entry.correctionOf && (
+                        <div className="text-sm text-muted-foreground italic">{t('undoNoShow.timelineCorrection')}</div>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -618,7 +635,7 @@ export default function ReservationDetail() {
               onValueChange={v => setRescheduleChannel(v as RescheduleNotificationChannel)}
               className="grid grid-cols-1 sm:grid-cols-2 gap-2"
             >
-              {(['push', 'whatsapp', 'email', 'none'] as const).map(channel => (
+              {CANALES_DE_AVISO.map(channel => (
                 <label
                   key={channel}
                   htmlFor={`reschedule-channel-${channel}`}
