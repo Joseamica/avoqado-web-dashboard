@@ -1,6 +1,6 @@
 // src/pages/Delivery/components/ChannelSettingsDialog.test.tsx
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
+import { act, render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { DeliveryChannelLink, DeliveryWeeklyHours } from '@/types/delivery'
 
@@ -549,7 +549,8 @@ describe('ChannelSettingsDialog', () => {
     guardar()
 
     expect(await screen.findByText('settings.conflicto')).toBeInTheDocument()
-    expect(mockToast).not.toHaveBeenCalled()
+    // El aviso de arriba puede quedar fuera de la vista de quien edita abajo: también sale flotante, con el mismo texto.
+    expect(mockToast).toHaveBeenCalledExactlyOnceWith({ title: 'settings.conflicto', variant: 'destructive' })
     expect(botonGuardar().disabled).toBe(true)
 
     const impresionB = { comanda: 'SALON' as const, empaque: 'NO' as const }
@@ -586,6 +587,24 @@ describe('ChannelSettingsDialog', () => {
     await waitFor(() => expect(screen.queryByText('settings.conflicto')).not.toBeInTheDocument())
     expect(await screen.findByRole('checkbox', { name: 'LATTE' })).toBeInTheDocument()
     expect((screen.getByLabelText('settings.productos.buscar') as HTMLInputElement).value).toBe('')
+  })
+
+  it('doble clic en «Guardar» manda UN solo PATCH; al terminar (con error) se puede volver a guardar', async () => {
+    let fallar!: (e: unknown) => void
+    mockUpdateChannel.mockReturnValueOnce(new Promise((_r, rej) => (fallar = rej)))
+    renderDialog(channel({ config: { deliveryHours: HORARIO_GUARDADO } }))
+    const boton = botonGuardar()
+    act(() => {
+      boton.click()
+      boton.click()
+    })
+    await waitFor(() => expect(mockUpdateChannel).toHaveBeenCalled())
+    expect(mockUpdateChannel).toHaveBeenCalledTimes(1)
+
+    await act(async () => fallar({ response: { status: 400, data: { message: 'horario malo' } } }))
+    await waitFor(() => expect(botonGuardar().disabled).toBe(false))
+    guardar()
+    await waitFor(() => expect(mockUpdateChannel).toHaveBeenCalledTimes(2))
   })
 
   it('otro error (no 409) sigue saliendo como aviso flotante, sin «Recargar»', async () => {

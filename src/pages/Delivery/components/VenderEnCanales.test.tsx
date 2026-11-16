@@ -106,6 +106,18 @@ describe('casilla «Vender en»: qué se ve', () => {
     expect(toastMock).not.toHaveBeenCalled()
   })
 
+  it('dos tiendas del mismo proveedor se distinguen por su tienda; un proveedor solo se queda como está', async () => {
+    svc.getChannels.mockResolvedValue([
+      canal({ id: 'l1', externalLocationId: '12345' }),
+      canal({ id: 'l2', externalLocationId: '67890' }),
+      canal({ id: 'l3', provider: 'UBER_EATS', externalLocationId: 'uber-1' }),
+    ])
+    montar()
+    expect(await screen.findByRole('checkbox', { name: 'Rappi · 12345' })).toBeInTheDocument()
+    expect(screen.getByRole('checkbox', { name: 'Rappi · 67890' })).toBeInTheDocument()
+    expect(screen.getByRole('checkbox', { name: 'Uber Eats' })).toBeInTheDocument()
+  })
+
   it('un canal PENDING no aparece; uno PAUSED sí', async () => {
     svc.getChannels.mockResolvedValue([canal({ id: 'l2', provider: 'UBER_EATS', status: 'PENDING' }), canal({ status: 'PAUSED' })])
     montar()

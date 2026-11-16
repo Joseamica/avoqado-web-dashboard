@@ -68,23 +68,21 @@ export function useVenderEnCanales(venueId: string, producto: { id?: string; sku
   })
 
   // Sin permiso o sin plan, ni lo que otra pantalla dejó en la caché (la página de Delivery sólo mira el plan): ni se ve ni se manda.
-  const canales = useMemo<CanalVenderEn[]>(
-    () =>
-      ((puede ? data : undefined) ?? [])
-        .filter(c => c.status === 'ACTIVE' || c.status === 'PAUSED')
-        .map(c => {
-          const ids = c.config?.productoIds
-          const codigos = c.config?.productos
-          const dentroInicial =
-            ids != null
-              ? !!producto.id && ids.includes(producto.id)
-              : codigos != null
-                ? !!producto.sku && codigos.includes(producto.sku)
-                : true
-          return { id: c.id, nombre: providerLabel(c.provider), todoElCatalogo: ids == null && codigos == null, dentroInicial }
-        }),
-    [puede, data, producto.id, producto.sku],
-  )
+  const canales = useMemo<CanalVenderEn[]>(() => {
+    const visibles = ((puede ? data : undefined) ?? []).filter(c => c.status === 'ACTIVE' || c.status === 'PAUSED')
+    // Dos tiendas del mismo proveedor (dos Rappi) se distinguen por su tienda; un proveedor solo se queda con su nombre.
+    const etiquetas = visibles.map(c => providerLabel(c.provider))
+    const repetida = (e: string) => etiquetas.indexOf(e) !== etiquetas.lastIndexOf(e)
+    return visibles.map(c => {
+      const ids = c.config?.productoIds
+      const codigos = c.config?.productos
+      const dentroInicial =
+        ids != null ? !!producto.id && ids.includes(producto.id) : codigos != null ? !!producto.sku && codigos.includes(producto.sku) : true
+      const etiqueta = providerLabel(c.provider)
+      const nombre = repetida(etiqueta) ? `${etiqueta} · ${c.externalLocationId}` : etiqueta
+      return { id: c.id, nombre, todoElCatalogo: ids == null && codigos == null, dentroInicial }
+    })
+  }, [puede, data, producto.id, producto.sku])
 
   // Sólo lo que la persona tocó; lo demás es como está el producto en el canal.
   const [elegidos, setElegidos] = useState<Record<string, boolean>>({})

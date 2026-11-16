@@ -21,7 +21,7 @@
  * borrar el borrador. El «Guardar» manda la huella de al abrir (`seleccionEsperada`); si alguien guardó en medio, el SERVIDOR
  * responde 409 y aquí sale «Recargar», que vuelve a congelar desde el canal nuevo.
  */
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { AlertTriangle, Clock, Loader2, PackageX, Tag } from 'lucide-react'
@@ -257,8 +257,13 @@ export function ChannelSettingsDialog({ open, onClose, venueId, channel }: Chann
     }
   }
 
+  // Doble clic en «Guardar»: el botón se apaga hasta el siguiente render, y dos clics en el mismo instante mandaban dos PATCH.
+  const guardando = useRef(false)
   const mutation = useMutation({
     mutationFn: () => updateChannel(venueId, channel.id, cuerpo()),
+    onSettled: () => {
+      guardando.current = false
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['deliveryChannels', venueId] })
       toast({ title: t('settings.saveSuccess') })
@@ -268,6 +273,8 @@ export function ChannelSettingsDialog({ open, onClose, venueId, channel }: Chann
       const r = (error as { response?: { status?: number; data?: { message?: string; code?: string } } })?.response
       if (r?.data?.code === 'CHANNEL_CHANGED' || r?.status === 409) {
         setConflicto(true)
+        // El aviso con «Recargar» vive arriba del todo: quien edita abajo sólo vería «Guardar» en gris.
+        toast({ title: t('settings.conflicto'), variant: 'destructive' })
         return
       }
       const mensaje = r?.data?.message ?? t('settings.saveErrorFallback')
@@ -320,7 +327,15 @@ export function ChannelSettingsDialog({ open, onClose, venueId, channel }: Chann
       subtitle={canal}
       contentClassName="bg-muted/30"
       actions={
-        <Button data-tour="delivery-settings-save" disabled={!puedeGuardar} onClick={() => mutation.mutate()}>
+        <Button
+          data-tour="delivery-settings-save"
+          disabled={!puedeGuardar}
+          onClick={() => {
+            if (guardando.current) return
+            guardando.current = true
+            mutation.mutate()
+          }}
+        >
           {mutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           {t('settings.save')}
         </Button>
