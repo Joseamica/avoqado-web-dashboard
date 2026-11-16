@@ -1,4 +1,5 @@
 import { falloDeCarga, reintentarSirve } from '@/lib/falloDeCarga'
+import { textoDeLlegadas } from '../textoDeLlegadas'
 import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -303,6 +304,12 @@ export function PeriodoCerradoView({ periodId, fecha, etiqueta, etiquetaAbierto 
                   <td className="py-2 font-medium">
                     {nombre(p.staffName)}
                     {Number(p.total) < 0 && <span className="block text-xs font-normal text-muted-foreground">{t('period.negativeShort')}</span>}
+                    {/* Asistencia verificada: cómo llegaron sus lugares, de la foto del cierre. */}
+                    {textoDeLlegadas(t, p.llegadas) && (
+                      <span className="block text-xs font-normal text-muted-foreground" data-testid="llegadas-persona">
+                        {textoDeLlegadas(t, p.llegadas)}
+                      </span>
+                    )}
                     <span className="mt-1 block font-normal md:hidden">{estadoDePago(p.pagadoEn)}</span>
                   </td>
                   <td className="hidden md:table-cell">{p.payLevelName ?? '—'}</td>

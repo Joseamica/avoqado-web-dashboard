@@ -9,7 +9,16 @@ export interface TablaDto {
     reglas?: { coverBonusHours: number | null; coverBonusAmount: number | null; lateCancelHours: number | null }
   }
 }
-export type MotivoExcepcion = 'SIN_COACH' | 'COACH_SIN_NIVEL' | 'SIN_TABLA' | 'SIN_MONTO_PARA_ESE_CONTEO'
+export type MotivoExcepcion = 'SIN_COACH' | 'COACH_SIN_NIVEL' | 'SIN_TABLA' | 'SIN_MONTO_PARA_ESE_CONTEO' | 'GRUPO_POR_CONFIRMAR'
+/**
+ * Asistencia verificada (16-nov-2026): cómo llegaron los lugares de una clase. `corregidoA` = «Corregir conteo»: el pago usa
+ * ese número y esto sigue diciendo lo registrado. Opcional en todo: un server previo no lo manda.
+ */
+export interface LlegadasDto {
+  qr: number; phone: number; staff: number; list: number; pass: number; sinMetodo: number; aMano?: string[]; corregidoA?: number | null
+  /** Con la sesión de quién se tocó la lista de una app vieja. */
+  desdeLaLista?: string[]
+}
 export interface ClaseValoradaDto {
   classSessionId: string; venueId: string; productName: string; startsAt: string; fechaLocal: string
   staffId: string | null; staffName: string | null; payLevelName: string | null; countMode: 'BOOKED' | 'ATTENDED' | null
@@ -17,6 +26,7 @@ export interface ClaseValoradaDto {
   motivo: MotivoExcepcion | null; monto: string | null
   /** Fase 3 (D3d): la regla que movió el pago (el server ya la manda en el desglose). Opcional: un server previo no. */
   regla?: ReglaDeClase | null
+  llegadas?: LlegadasDto | null
 }
 export interface ReportePeriodoDto {
   periodo: { start: string; end: string; periodicidad: 'MONTHLY' | 'SEMIMONTHLY'; id?: string | null; estado?: 'OPEN' | 'CLOSED' }
@@ -25,7 +35,7 @@ export interface ReportePeriodoDto {
   /** Fase 3 (spec §11): `comisiones` y `propinas` netas, sumadas en la base; opcionales (un server previo no las manda). */
   tarjetas: { total: string; clases: number; personas: number; excepciones: number; excluidas: number; pagadas?: number; comisiones?: string; propinas?: string }
   /** `staffName` de una persona borrada puede llegar vacío o con el literal del server «Persona dada de baja». `total` ya incluye comisiones y propinas. */
-  personas: { items: Array<{ staffId: string; staffName: string; payLevelName: string | null; venueIds: string[]; clases: number; promedioLugares: number; total: string; ajustes?: string; comisiones?: string; propinas?: string; pagadoEn?: string | null }>; total: number; offset: number; limit: number }
+  personas: { items: Array<{ staffId: string; staffName: string; payLevelName: string | null; venueIds: string[]; clases: number; promedioLugares: number; total: string; ajustes?: string; comisiones?: string; propinas?: string; pagadoEn?: string | null; llegadas?: LlegadasDto | null }>; total: number; offset: number; limit: number }
   huerfanas: number
 }
 export interface PaginaCursor<T> { items: T[]; nextCursor: string | null }
@@ -52,6 +62,8 @@ export interface PagoDeClaseDto {
   montoSiEntrara?: string | null
   /** Fase 3 (B11), sólo en `FUERA_DEL_SOBRE`: la sede y la fecha local de la clase. */
   sede?: { nombre: string; fecha: string } | null
+  /** Asistencia verificada: cómo llegaron (opcional). */
+  llegadas?: LlegadasDto | null
 }
 /**
  * Simulación de publicar una tabla o asignar un nivel (revisión final I-2): cuántas clases cambian y en qué periodo
@@ -135,6 +147,8 @@ export interface ReciboDto {
   parcial: boolean
   /** Fase 3: total por tipo del recibo ENTERO (lo suma la base); un tipo sin renglones no viene. Opcional: server previo. */
   totalesPorTipo?: Partial<Record<TipoRenglon, string>>
+  /** Asistencia verificada: llegadas por método del recibo ENTERO (sólo clases de «Sólo quien llegó»). Opcional. */
+  llegadas?: LlegadasDto | null
   /** B12/B13: devoluciones de esta persona que se descontarán solas en OTRO cierre. null en uno cerrado y en las páginas 2+. */
   pendientes?: DevolucionesPendientesDto | null
 }

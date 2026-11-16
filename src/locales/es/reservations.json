@@ -201,6 +201,17 @@
       "modifiers": "Extras / modificadores",
       "assignment": "Asignación",
       "notes": "Notas"
+    },
+    "checkInMethod": {
+      "QR": "Llegó con su celular (QR del kiosco)",
+      "PHONE": "Llegó tecleando su teléfono en el kiosco",
+      "STAFF": "Llegada marcada a mano",
+      "KIOSK_LIST": "Llegada tocando su nombre en la lista del kiosco",
+      "PASS": "Llegada con su pase"
+    },
+    "checkInMethodBy": {
+      "STAFF": "Llegada marcada a mano por {{name}}",
+      "KIOSK_LIST": "Llegada tocando su nombre en la lista del kiosco (sesión de {{name}})"
     }
   },
   "calendar": {

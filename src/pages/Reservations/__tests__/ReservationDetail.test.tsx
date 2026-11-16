@@ -45,6 +45,7 @@ vi.mock('@/utils/datetime', () => ({
   useVenueDateTime: () => ({
     formatDate: (d: string) => d?.split('T')[0] || d,
     formatTime: (d: string) => d?.split('T')[1]?.substring(0, 5) || d,
+    venueTimezone: 'America/Mexico_City',
   }),
 }))
 
@@ -62,6 +63,7 @@ const svc = vi.hoisted(() => ({
   previewUndoNoShow: vi.fn(),
   undoNoShow: vi.fn(),
   resolveNoShowCorrection: vi.fn(),
+  reschedule: vi.fn(),
 }))
 vi.mock('@/services/reservation.service', () => ({ default: svc, reservationService: svc }))
 
@@ -684,5 +686,75 @@ describe('ReservationDetail — «Sí llegó» (deshacer un No Show)', () => {
       fireEvent.click(screen.getByRole('button', { name: 'undoNoShow.resolve' }))
       await waitFor(() => expect(svc.resolveNoShowCorrection).toHaveBeenCalledTimes(2))
     })
+  })
+})
+
+// Encargo e781ce: reagendar movía la cita ~6 h (hora sin zona leída en UTC) y lo marcado
+// («Notificación push») no le avisaba a nadie.
+describe('ReservationDetail — Reagendar', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    svc.getReservation.mockImplementation(async () => mockReservation)
+    svc.reschedule.mockResolvedValue({})
+  })
+
+  async function abrirReagendar() {
+    await renderDetail()
+    fireEvent.click(screen.getByText('actions.reschedule'))
+    return screen.findAllByText('detail.reschedule.title')
+  }
+
+  it('manda la hora del negocio como UTC: 15:00 en CDMX = 21:00Z', async () => {
+    mockReservation = createTestReservation('CONFIRMED')
+    await abrirReagendar()
+    const [inicio, fin] = document.querySelectorAll('input[type="datetime-local"]')
+    fireEvent.change(inicio, { target: { value: '2026-11-12T15:00' } })
+    fireEvent.change(fin, { target: { value: '2026-11-12T16:00' } })
+    fireEvent.click(screen.getByText('detail.reschedule.confirm'))
+
+    await waitFor(() => expect(svc.reschedule).toHaveBeenCalledTimes(1))
+    expect(svc.reschedule).toHaveBeenCalledWith(
+      'test-venue',
+      'res-test-1',
+      expect.objectContaining({
+        startsAt: '2026-11-12T21:00:00.000Z',
+        endsAt: '2026-11-12T22:00:00.000Z',
+        notificationChannel: 'whatsapp',
+      }),
+    )
+  })
+
+  it('ya no ofrece «Notificación push» y, sin teléfono, viene marcado el correo', async () => {
+    mockReservation = { ...createTestReservation('CONFIRMED'), guestPhone: null }
+    await abrirReagendar()
+    expect(screen.queryByText('detail.reschedule.channels.push')).toBeNull()
+    expect(screen.getByText('detail.reschedule.channels.whatsapp')).toBeDefined()
+    const correo = document.getElementById('reschedule-channel-email')
+    expect(correo?.getAttribute('data-state')).toBe('checked')
+  })
+
+  // Medido en el banco (16-nov): un doble clic mandaba dos POST y dos WhatsApp al cliente.
+  it('un doble clic en «Confirmar» manda una sola petición', async () => {
+    mockReservation = createTestReservation('CONFIRMED')
+    let terminar: (v: unknown) => void = () => {}
+    svc.reschedule.mockImplementation(() => new Promise(resolve => (terminar = resolve)))
+    await abrirReagendar()
+    const [inicio, fin] = document.querySelectorAll('input[type="datetime-local"]')
+    fireEvent.change(inicio, { target: { value: '2026-11-12T15:00' } })
+    fireEvent.change(fin, { target: { value: '2026-11-12T16:00' } })
+    const confirmar = screen.getByText('detail.reschedule.confirm')
+    fireEvent.click(confirmar)
+    fireEvent.click(confirmar)
+
+    await waitFor(() => expect(svc.reschedule).toHaveBeenCalledTimes(1))
+    terminar({})
+    await new Promise(r => setTimeout(r, 0))
+    expect(svc.reschedule).toHaveBeenCalledTimes(1)
+  })
+
+  it('sin teléfono ni correo viene marcado «Sin notificación»', async () => {
+    mockReservation = { ...createTestReservation('CONFIRMED'), guestPhone: null, guestEmail: null }
+    await abrirReagendar()
+    expect(document.getElementById('reschedule-channel-none')?.getAttribute('data-state')).toBe('checked')
   })
 })

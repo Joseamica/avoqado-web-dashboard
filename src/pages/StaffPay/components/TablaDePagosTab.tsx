@@ -72,6 +72,8 @@ export function TablaDePagosTab() {
   const [simLugares, setSimLugares] = useState<number | undefined>(8)
   const [simNivel, setSimNivel] = useState<string | undefined>(undefined)
   const [publicar, setPublicar] = useState(false)
+  // Asistencia verificada (16-nov-2026): «Sólo quien llegó» ya se puede elegir.
+  const [modo, setModo] = useState<'BOOKED' | 'ATTENDED'>('BOOKED')
 
   // Llega (o cambia) la versión vigente → la cuadrícula arranca de lo guardado.
   useEffect(() => {
@@ -82,6 +84,7 @@ export function TablaDePagosTab() {
     // Las reglas vienen ANIDADAS en `vigente.reglas` (D4): leerlas de `vigente` directo las daría por apagadas, y publicar
     // sólo una celda las apagaría.
     setReglas(reglasDesdeVersion(tabla?.vigente?.reglas))
+    setModo(tabla?.vigente?.countMode === 'ATTENDED' ? 'ATTENDED' : 'BOOKED')
     setTocados(new Set())
     setMostrarReglas(false)
   }, [tabla?.id, tabla?.vigente?.id]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -281,12 +284,26 @@ export function TablaDePagosTab() {
 
             <fieldset className="space-y-2">
               <legend className="text-sm font-medium">{t('grid.countMode')}</legend>
-              <label className="flex items-start gap-2 text-sm">
-                <input type="radio" name="staffpay-count-mode" aria-label={t('grid.booked')} checked readOnly className="mt-1" />
+              <label className="flex cursor-pointer items-start gap-2 text-sm">
+                <input
+                  type="radio"
+                  name="staffpay-count-mode"
+                  aria-label={t('grid.booked')}
+                  checked={modo === 'BOOKED'}
+                  onChange={() => setModo('BOOKED')}
+                  className="mt-1 cursor-pointer"
+                />
                 <span>{t('grid.booked')} <span className="block text-muted-foreground">{t('grid.bookedHelp')}</span></span>
               </label>
-              <label className="flex items-start gap-2 text-sm opacity-60">
-                <input type="radio" name="staffpay-count-mode" aria-label={t('grid.attended')} disabled className="mt-1" />
+              <label className="flex cursor-pointer items-start gap-2 text-sm">
+                <input
+                  type="radio"
+                  name="staffpay-count-mode"
+                  aria-label={t('grid.attended')}
+                  checked={modo === 'ATTENDED'}
+                  onChange={() => setModo('ATTENDED')}
+                  className="mt-1 cursor-pointer"
+                />
                 <span>{t('grid.attended')} <span className="block text-muted-foreground">{t('grid.attendedHelp')}</span></span>
               </label>
             </fieldset>
@@ -378,6 +395,7 @@ export function TablaDePagosTab() {
                 onOpenChange={setPublicar}
                 tableId={tabla.id}
                 maxCount={max}
+                countMode={modo}
                 grid={grid}
                 reglas={reglasPayload(reglas)}
                 hoy={hoyEnSede(venueTimezone)}
