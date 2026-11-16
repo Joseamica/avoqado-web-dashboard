@@ -227,7 +227,10 @@
     "recurringSchedule": "Recurring schedule",
     "resetWeek": "Reset week to default values",
     "invalidTime": "Enter a valid time",
-    "done": "Done"
+    "done": "Done",
+    "singleChangeSoon": "Soon you will be able to change the hours of a single date. For now, changes apply to every week.",
+    "comingSoon": "Coming soon",
+    "recurringNote": "These hours repeat every week: closing a day closes it every week and no online bookings are received that day."
   },
   "calendarAttributes": {
     "title": "Appointment attributes",
