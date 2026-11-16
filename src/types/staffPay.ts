@@ -16,6 +16,8 @@ export type MotivoExcepcion = 'SIN_COACH' | 'COACH_SIN_NIVEL' | 'SIN_TABLA' | 'S
  */
 export interface LlegadasDto {
   qr: number; phone: number; staff: number; list: number; pass: number; sinMetodo: number; aMano?: string[]; corregidoA?: number | null
+  /** Con la sesión de quién se tocó la lista de una app vieja. */
+  desdeLaLista?: string[]
 }
 export interface ClaseValoradaDto {
   classSessionId: string; venueId: string; productName: string; startsAt: string; fechaLocal: string
@@ -33,7 +35,7 @@ export interface ReportePeriodoDto {
   /** Fase 3 (spec §11): `comisiones` y `propinas` netas, sumadas en la base; opcionales (un server previo no las manda). */
   tarjetas: { total: string; clases: number; personas: number; excepciones: number; excluidas: number; pagadas?: number; comisiones?: string; propinas?: string }
   /** `staffName` de una persona borrada puede llegar vacío o con el literal del server «Persona dada de baja». `total` ya incluye comisiones y propinas. */
-  personas: { items: Array<{ staffId: string; staffName: string; payLevelName: string | null; venueIds: string[]; clases: number; promedioLugares: number; total: string; ajustes?: string; comisiones?: string; propinas?: string; pagadoEn?: string | null }>; total: number; offset: number; limit: number }
+  personas: { items: Array<{ staffId: string; staffName: string; payLevelName: string | null; venueIds: string[]; clases: number; promedioLugares: number; total: string; ajustes?: string; comisiones?: string; propinas?: string; pagadoEn?: string | null; llegadas?: LlegadasDto | null }>; total: number; offset: number; limit: number }
   huerfanas: number
 }
 export interface PaginaCursor<T> { items: T[]; nextCursor: string | null }

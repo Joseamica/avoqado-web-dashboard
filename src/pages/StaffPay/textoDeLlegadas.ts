@@ -13,7 +13,11 @@ export function textoDeLlegadas(t: T, l: LlegadasDto | null | undefined): string
     l.qr ? t('arrivals.qr', { count: l.qr }) : null,
     l.phone ? t('arrivals.phone', { count: l.phone }) : null,
     l.staff ? aMano : null,
-    l.list ? t('arrivals.list', { count: l.list }) : null,
+    l.list
+      ? l.desdeLaLista?.length
+        ? t('arrivals.listBy', { count: l.list, names: l.desdeLaLista.join(', ') })
+        : t('arrivals.list', { count: l.list })
+      : null,
     l.pass ? t('arrivals.pass', { count: l.pass }) : null,
     l.sinMetodo ? t('arrivals.noMethod', { count: l.sinMetodo }) : null,
   ].filter(Boolean) as string[]

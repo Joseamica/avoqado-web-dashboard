@@ -689,6 +689,8 @@
     "recorded": "recorded arrivals: {{list}}",
     "noneRecorded": "no recorded arrivals",
     "corrected_one": "pay corrected by hand to {{count}} spot",
-    "corrected_other": "pay corrected by hand to {{count}} spots"
+    "corrected_other": "pay corrected by hand to {{count}} spots",
+    "listBy_one": "{{count}} from the list (session of {{names}})",
+    "listBy_other": "{{count}} from the list (session of {{names}})"
   }
 }

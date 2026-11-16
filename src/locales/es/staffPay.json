@@ -689,6 +689,8 @@
     "recorded": "llegadas registradas: {{list}}",
     "noneRecorded": "sin llegadas registradas",
     "corrected_one": "pago corregido a mano a {{count}} lugar",
-    "corrected_other": "pago corregido a mano a {{count}} lugares"
+    "corrected_other": "pago corregido a mano a {{count}} lugares",
+    "listBy_one": "{{count}} desde la lista (sesión de {{names}})",
+    "listBy_other": "{{count}} desde la lista (sesión de {{names}})"
   }
 }

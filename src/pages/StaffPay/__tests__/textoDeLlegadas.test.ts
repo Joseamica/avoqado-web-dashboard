@@ -22,6 +22,11 @@ describe('textoDeLlegadas — asistencia verificada (16-nov-2026)', () => {
       'llegadas registradas: 3 con teléfono · pago corregido a mano a 1 lugar',
     )
   })
+  it('la lista de una app vieja dice con la sesión de quién se tocó (Codex r3 #7)', () => {
+    expect(textoDeLlegadas(t, { qr: 0, phone: 0, staff: 0, list: 2, pass: 0, sinMetodo: 0, desdeLaLista: ['Ana P.'] })).toBe(
+      '2 desde la lista (sesión de Ana P.)',
+    )
+  })
   it('sin desglose (server previo) no dice nada', () => {
     expect(textoDeLlegadas(t, null)).toBeNull()
     expect(textoDeLlegadas(t, { qr: 0, phone: 0, staff: 0, list: 0, pass: 0, sinMetodo: 0 })).toBeNull()

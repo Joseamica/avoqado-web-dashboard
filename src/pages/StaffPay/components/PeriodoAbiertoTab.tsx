@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { textoDeLlegadas } from '../textoDeLlegadas'
 import { AlertTriangle, ChevronLeft, ChevronRight, Info, Loader2, Lock, Plus } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -262,6 +263,12 @@ export function PeriodoAbiertoTab({
                     {nombre(p.staffName)}
                     {/* Negativo: lo liquidado de periodos anteriores supera lo de éste (QA B-6). La explicación va en el desglose. */}
                     {Number(p.total) < 0 && <span className="block text-xs font-normal text-muted-foreground">{t('period.negativeShort')}</span>}
+                    {/* Asistencia verificada: cómo llegaron sus lugares en «Sólo quien llegó» (sumado de sus clases). */}
+                    {textoDeLlegadas(t, p.llegadas) && (
+                      <span className="block text-xs font-normal text-muted-foreground" data-testid="llegadas-persona">
+                        {textoDeLlegadas(t, p.llegadas)}
+                      </span>
+                    )}
                   </td>
                   <td className="hidden md:table-cell">{p.payLevelName ?? '—'}</td>
                   <td className="hidden text-muted-foreground md:table-cell">{p.venueIds.map(nombreSede).join(', ')}</td>
