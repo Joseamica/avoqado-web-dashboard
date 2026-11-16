@@ -25,6 +25,13 @@ describe('precios', () => {
     expect(precioQueSePublica('RAPPI', 79.5)).toBe(80)
     expect(precioQueSePublica('RAPPI', 79.49)).toBe(79)
   })
+  it('Rappi: el ruido de float no baja el .5', () => {
+    expect(precioGuia('RAPPI', 50, 15)).toBe(58)
+    expect(precioQueSePublica('RAPPI', 57.49999999999999)).toBe(58)
+  })
+  it('Uber da lo mismo que la cuenta del servidor', () => {
+    expect(precioGuia('UBER_EATS', 50, 15)).toBe(Math.round(50 * 1.15 * 100) / 100)
+  })
   it('otros conservan 2 decimales', () => expect(precioQueSePublica('UBER_EATS', 79.5)).toBe(79.5))
   it('erroresDePrecios', () => expect(erroresDePrecios({ a: -5, b: 79.5, c: undefined, d: NaN })).toEqual(['a', 'd']))
 })
@@ -41,6 +48,10 @@ describe('seleccionAlAbrir', () => {
       prods,
     )
     expect(r).toEqual({ lista: ['p2'], precios: { p2: 50 }, codigosSinProducto: [] })
+  })
+  it('sin lista pero con overrides: lista null y precios por id', () => {
+    const r = seleccionAlAbrir({ precios: { overrides: { LATTE: 79, 'MOD-X': 5, DESCONOCIDO: 9 } } }, prods)
+    expect(r).toEqual({ lista: null, precios: { p1: 79 }, codigosSinProducto: [] })
   })
   it('sin nada: lista null', () => {
     expect(seleccionAlAbrir(null, prods)).toEqual({ lista: null, precios: {}, codigosSinProducto: [] })

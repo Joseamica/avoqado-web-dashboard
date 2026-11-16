@@ -53,9 +53,12 @@ export function idsQueYaNoExisten(lista: string[] | null, productos: ProductoDel
   return lista.filter(id => !hay.has(id))
 }
 
-/** Rappi sólo acepta pesos enteros (mitad hacia arriba); los demás, 2 decimales. */
+/**
+ * Rappi sólo acepta pesos enteros (mitad hacia arriba; el servidor usa Decimal exacto, así que se quita el ruido de float
+ * antes). Los demás, 2 decimales con la misma cuenta que uber.menuMapper (Math.round(x * 100) / 100).
+ */
 export function precioQueSePublica(provider: DeliveryProvider, pesos: number): number {
-  return provider === 'RAPPI' ? Math.floor(pesos + 0.5) : Math.round(pesos * 100) / 100
+  return provider === 'RAPPI' ? Math.floor(Number(pesos.toFixed(6)) + 0.5) : Math.round(pesos * 100) / 100
 }
 
 export function precioGuia(provider: DeliveryProvider, precioMostrador: number, markupPercent = 0): number {
