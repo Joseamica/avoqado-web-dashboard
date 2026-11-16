@@ -63,7 +63,7 @@
     "settingsAction": "Horario, precios e impresión"
   },
   "settings": {
-    "title": "Horario, precios e impresión del canal",
+    "title": "Horario, precios, productos e impresión del canal",
     "save": "Guardar",
     "saveSuccess": "Ajustes guardados",
     "saveError": "No se pudieron guardar los ajustes",

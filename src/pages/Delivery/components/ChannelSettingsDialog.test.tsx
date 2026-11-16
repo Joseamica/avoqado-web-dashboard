@@ -367,6 +367,37 @@ describe('ChannelSettingsDialog', () => {
     expect(body.config.precios).toEqual({ porProducto: {} })
   })
 
+  // Precios = dinero: quitar un producto por temporada no borra su precio fijo; al volver a marcarlo no se publica más barato.
+  it('desmarcar un producto con precio fijo lo saca de la lista pero conserva su precio; al volver a marcarlo se ve igual', async () => {
+    mockGetProducts.mockResolvedValue([prod('p1', 'LATTE'), prod('p2', 'TE')])
+    renderDialog(channel({ config: { productoIds: ['p1', 'p2'], precios: { porProducto: { p2: 79 } } } }))
+
+    fireEvent.click(await screen.findByRole('checkbox', { name: 'TE' }))
+    guardar()
+
+    const body = await cuerpo()
+    expect(body.config.productoIds).toEqual(['p1'])
+    expect(body.config.precios.porProducto).toEqual({ p2: 79 })
+
+    fireEvent.click(screen.getByRole('checkbox', { name: 'TE' }))
+    expect((within(fila('TE')).getByLabelText('settings.productos.precioDe') as HTMLInputElement).value).toBe('79')
+  })
+
+  it('un precio inválido de un producto desmarcado no bloquea «Guardar» ni se manda', async () => {
+    mockGetProducts.mockResolvedValue([prod('p1', 'LATTE'), prod('p2', 'TE')])
+    renderDialog(channel({ config: { productoIds: ['p1', 'p2'], precios: { porProducto: { p1: 60 } } } }))
+
+    await screen.findByRole('checkbox', { name: 'TE' })
+    fireEvent.change(within(fila('TE')).getByLabelText('settings.productos.precioDe'), { target: { value: '-5' } })
+    expect(botonGuardar().disabled).toBe(true)
+    fireEvent.click(screen.getByRole('checkbox', { name: 'TE' }))
+    expect(botonGuardar().disabled).toBe(false)
+    guardar()
+
+    const body = await cuerpo()
+    expect(body.config.precios.porProducto).toEqual({ p1: 60 })
+  })
+
   it('desmarcar el único producto bloquea «Guardar» con el texto de pausar el canal', async () => {
     mockGetProducts.mockResolvedValue([prod('p1', 'LATTE')])
     renderDialog(channel({ config: { productoIds: ['p1'] } }))

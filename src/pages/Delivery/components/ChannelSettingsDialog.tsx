@@ -170,14 +170,22 @@ export function ChannelSettingsDialog({ open, onClose, venueId, channel }: Chann
     () => ({ ids: productos && sel ? idsQueYaNoExisten(sel.lista, productos) : [], codigos: sel?.codigos ?? [] }),
     [productos, sel],
   )
-  /** Los precios que se mandan: con lista, sólo los de productos marcados (un precio escondido no bloquea ni se guarda). */
-  const preciosAMandar = useMemo(() => {
-    if (!sel) return {}
-    const enLista = sel.lista && new Set(sel.lista)
-    return Object.fromEntries(Object.entries(sel.precios).filter(([id, v]) => v !== undefined && (!enLista || enLista.has(id)))) as Record<
-      string,
-      number
-    >
+  /**
+   * Precios = dinero: se mandan TODOS los que se cargaron o se editaron, marcados o no (un producto que sale por temporada y
+   * vuelve no debe publicarse al precio guía sin que nadie lo note; desmarcado no se publica porque no va en `productoIds`).
+   * Sólo se valida lo que el dueño ve y edita (los marcados); un precio escondido inválido no se manda.
+   */
+  const { preciosAMandar, hayPreciosInvalidos } = useMemo(() => {
+    if (!sel) return { preciosAMandar: {} as Record<string, number>, hayPreciosInvalidos: false }
+    const malos = new Set(erroresDePrecios(sel.precios))
+    const enLista = new Set(sel.lista ?? [])
+    return {
+      preciosAMandar: Object.fromEntries(Object.entries(sel.precios).filter(([id, v]) => v !== undefined && !malos.has(id))) as Record<
+        string,
+        number
+      >,
+      hayPreciosInvalidos: [...malos].some(id => enLista.has(id)),
+    }
   }, [sel])
   // Vacía = ningún producto VIVO marcado (una lista con sólo ids que ya no existen dejaría el menú en blanco).
   const listaVacia = useMemo(() => {
@@ -209,9 +217,9 @@ export function ChannelSettingsDialog({ open, onClose, venueId, channel }: Chann
     if (markup !== undefined && (!Number.isFinite(markup) || markup < 0 || markup > MARKUP_MAX)) {
       out.push(t('settings.errorMarkupRange', { max: MARKUP_MAX }))
     }
-    if (erroresDePrecios(preciosAMandar).length > 0) out.push(t('settings.productos.errorPrecios'))
+    if (hayPreciosInvalidos) out.push(t('settings.productos.errorPrecios'))
     return out
-  }, [horario, markup, preciosAMandar, t])
+  }, [horario, markup, hayPreciosInvalidos, t])
 
   const cuerpo = () => {
     // Sin margen se manda el bloque vacío, no se omite: omitirlo dejaría el markup

@@ -63,7 +63,7 @@
     "settingsAction": "Hours, pricing and printing"
   },
   "settings": {
-    "title": "Channel hours, pricing and printing",
+    "title": "Channel hours, pricing, products and printing",
     "save": "Save",
     "saveSuccess": "Settings saved",
     "saveError": "Couldn't save the settings",
