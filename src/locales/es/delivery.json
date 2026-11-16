@@ -60,10 +60,10 @@
     "menuManual": "Menú manual",
     "injectionRate": "Aceptación {{pct}}%",
     "injectionTooltip": "{{aceptados}} de {{recibidos}} pedidos entraron. Por debajo del 99% el proveedor puede suspender la integración.",
-    "settingsAction": "Horario, precios e impresión"
+    "settingsAction": "Horario, precios, productos e impresión"
   },
   "settings": {
-    "title": "Horario, precios e impresión del canal",
+    "title": "Horario, precios, productos e impresión del canal",
     "save": "Guardar",
     "saveSuccess": "Ajustes guardados",
     "saveError": "No se pudieron guardar los ajustes",
@@ -89,6 +89,51 @@
       "friday": "Viernes",
       "saturday": "Sábado",
       "sunday": "Domingo"
+    },
+    "conflicto": "Alguien cambió este canal mientras lo editabas. Recarga y vuelve a guardar.",
+    "recargar": "Recargar",
+    "agotar": {
+      "title": "Marcar agotado en {{canal}} según tu inventario",
+      "help": "Cuando un producto se queda sin existencias en Avoqado, se marca agotado en {{canal}} solo. Apágalo si no llevas tu inventario al día: así no se agotan en {{canal}} productos que sí tienes."
+    },
+    "productos": {
+      "title": "Productos en {{canal}}",
+      "help": "Elige qué productos se publican en {{canal}} y, si quieres, con un precio distinto para este canal. Los precios llevan IVA incluido.",
+      "cargando": "Cargando tus productos…",
+      "errorCarga": "No se pudieron cargar tus productos.",
+      "reintentar": "Reintentar",
+      "todoElCatalogo_one": "Publica todo tu catálogo (1 producto)",
+      "todoElCatalogo_other": "Publica todo tu catálogo ({{count}} productos)",
+      "todoElCatalogoHelp": "Lo que des de alta después también se publica.",
+      "elegir": "Elegir cuáles",
+      "masDe5000": "Tu catálogo tiene más de 5,000 productos: marca los que quieres en {{canal}}",
+      "conteo": "{{marcados}} de {{total}}",
+      "buscar": "Buscar por nombre o código",
+      "sinCategoria": "Sin categoría",
+      "todos": "Todos",
+      "todosDe": "Todos en {{categoria}}",
+      "sinCoincidencias": "Ningún producto coincide con tu búsqueda.",
+      "codigo": "Código: {{codigo}}",
+      "precioDe": "Precio en {{canal}} de {{producto}}",
+      "sinPrecioFijo": "Sin precio fijo",
+      "guia": "Sin precio fijo se publica en ${{precio}}",
+      "rappiRedondea": "Rappi lo publica en ${{precio}}: sólo acepta pesos enteros",
+      "errorPrecio": "El precio debe ser un número mayor o igual a 0.",
+      "errorPrecios": "Hay precios por producto que no son válidos: deben ser un número mayor o igual a 0.",
+      "listaVacia": "Un canal necesita al menos un producto; pausa el canal si no quieres vender ahí",
+      "nuevos_one": "1 producto nuevo no está en {{canal}}",
+      "nuevos_other": "{{count}} productos nuevos no están en {{canal}}",
+      "nuevosHelp": "Los diste de alta después de conectar el canal. No se publican hasta que los marques.",
+      "revisarlos": "Revisarlos",
+      "yaLosRevise": "Ya los revisé",
+      "revisadosError": "No se pudieron marcar como revisados",
+      "soloNuevos": "Sólo ves los productos nuevos.",
+      "verTodos": "Ver todos",
+      "yaNoExisten_one": "1 producto de la lista ya no existe en tu catálogo",
+      "yaNoExisten_other": "{{count}} productos de la lista ya no existen en tu catálogo",
+      "yaNoExistenHelp": "Quítalos para dejar la lista en orden.",
+      "yaNoExistenCodigos": "Los códigos que ya no son de ningún producto se quitan solos al guardar.",
+      "quitarlos": "Quitarlos"
     }
   },
   "rappi": {
@@ -154,5 +199,14 @@
       "errorCanales": "No se pudieron cargar los canales de delivery.",
       "sinPermiso": "No tienes permiso para ver los canales de delivery."
     }
+  },
+  "venderEn": {
+    "titulo": "Vender en",
+    "ayuda": "Elige en qué apps de delivery aparece este producto.",
+    "avisoTodoElCatalogo": "{{canal}} publica todo tu catálogo. Si lo quitas, {{canal}} pasará a publicar sólo los productos que elijas (todos menos éste).",
+    "falloAgregar": "El producto se guardó, pero no se pudo agregar a {{canal}}: inténtalo desde Delivery",
+    "falloQuitar": "El producto se guardó, pero no se pudo quitar de {{canal}}: inténtalo desde Delivery",
+    "noSePudoAgregar": "No se pudo agregar a {{canal}}: inténtalo desde Delivery",
+    "noSePudoQuitar": "No se pudo quitar de {{canal}}: inténtalo desde Delivery"
   }
 }

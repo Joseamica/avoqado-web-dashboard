@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 vi.mock('@/api', () => ({
-  default: { get: vi.fn(), post: vi.fn(), patch: vi.fn() },
+  default: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), put: vi.fn() },
 }))
 
 import api from '@/api'
@@ -14,9 +14,10 @@ import {
   updateChannel,
   getRappiConnectUrl,
   disconnectChannel,
+  ponerProductoEnCanales,
 } from '@/services/delivery.service'
 
-const mocked = api as unknown as { get: ReturnType<typeof vi.fn>; post: ReturnType<typeof vi.fn>; patch: ReturnType<typeof vi.fn> }
+const mocked = api as unknown as { get: ReturnType<typeof vi.fn>; post: ReturnType<typeof vi.fn>; patch: ReturnType<typeof vi.fn>; put: ReturnType<typeof vi.fn> }
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -193,5 +194,12 @@ describe('delivery.service', () => {
       conexionId: 'i1:900',
       forzar: true,
     })
+  })
+
+  it('ponerProductoEnCanales: PUT con { canales } y desenvuelve data', async () => {
+    mocked.put.mockResolvedValue({ data: { success: true, data: [{ linkId: 'l1', dentro: true }] } })
+    const r = await ponerProductoEnCanales('v1', 'p1', { l1: true })
+    expect(mocked.put).toHaveBeenCalledWith('/api/v1/delivery-channels/venues/v1/products/p1/channels', { canales: { l1: true } })
+    expect(r).toEqual([{ linkId: 'l1', dentro: true }])
   })
 })

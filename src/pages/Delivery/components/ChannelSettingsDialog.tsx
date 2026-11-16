@@ -15,11 +15,16 @@
  * El backend MEZCLA `config` (no la reemplaza), así que guardar el horario ya no borra el
  * margen. Aun así este formulario manda las dos llaves juntas: lo que el usuario ve en
  * pantalla es lo que queda guardado, sin sorpresas.
+ *
+ * D1: también los productos del canal, su precio y «agotar según inventario». 🔴 TODO lo editable se CONGELA al abrir
+ * (`canalAlAbrir`, Codex plan r2 #5): el listado de canales se refresca solo (cada 10-30 s con Rappi) y un refresco no puede
+ * borrar el borrador. El «Guardar» manda la huella de al abrir (`seleccionEsperada`); si alguien guardó en medio, el SERVIDOR
+ * responde 409 y aquí sale «Recargar», que vuelve a congelar desde el canal nuevo.
  */
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { AlertTriangle, Clock, Loader2, Tag } from 'lucide-react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { AlertTriangle, Clock, Loader2, PackageX, Tag } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
@@ -28,9 +33,19 @@ import { Switch } from '@/components/ui/switch'
 import { useToast } from '@/hooks/use-toast'
 import { useAccess } from '@/hooks/use-access'
 import { updateChannel } from '@/services/delivery.service'
-import type { DeliveryChannelLink, DeliveryDayHours, DeliveryWeekday, DeliveryWeeklyHours, ImpresionDelCanal } from '@/types/delivery'
+import { getProducts } from '@/services/menu.service'
+import type {
+  DeliveryChannelConfig,
+  DeliveryChannelLink,
+  DeliveryDayHours,
+  DeliveryWeekday,
+  DeliveryWeeklyHours,
+  ImpresionDelCanal,
+} from '@/types/delivery'
 import { providerLabel } from '../providerLabels'
+import { erroresDePrecios, idsQueYaNoExisten, productosNuevos, seleccionAlAbrir, type ProductoDelCanal } from '../productosDelCanal'
 import { ImpresionDelCanalEditor } from './ImpresionDelCanalEditor'
+import { ProductosDelCanalSection } from './ProductosDelCanalSection'
 
 const DIAS: DeliveryWeekday[] = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
 
@@ -54,6 +69,44 @@ function esHora(v: string): boolean {
   return h >= 0 && h <= 23 && m >= 0 && m <= 59
 }
 
+/** Tope de `marcarRevisados` en el SERVIDOR. */
+const MAX_REVISADOS = 10000
+
+/** Los más recientes primero, hasta el tope: el resto sigue saliendo como nuevo, a la vista. */
+const idsRecientes = (ps: ProductoDelCanal[]) =>
+  [...ps]
+    .sort((a, b) => Date.parse(String(b.createdAt)) - Date.parse(String(a.createdAt)))
+    .slice(0, MAX_REVISADOS)
+    .map(p => p.id)
+
+const mismaLista = (a: string[] | null, b: string[] | null) =>
+  a === null || b === null ? a === b : a.length === b.length && new Set([...a, ...b]).size === a.length
+
+/** La lista y los precios de al abrir, armados cuando llegan los productos. */
+interface Seleccion {
+  lista: string[] | null
+  precios: Record<string, number | undefined>
+  listaAlAbrir: string[] | null
+  /** Los precios guardados al abrir: un precio escondido inválido se manda como estaba, nunca se pierde. */
+  preciosAlAbrir: Record<string, number>
+  /** Códigos de la lista vieja que ya no son de ningún producto: no se pueden guardar como id. */
+  codigos: string[]
+  /** El canal tenía la lista vieja por código: el primer «Guardar» la manda ya por id. */
+  porCodigo: boolean
+}
+
+function armarSeleccion(config: DeliveryChannelConfig | null | undefined, productos: ProductoDelCanal[]): Seleccion {
+  const s = seleccionAlAbrir(config, productos)
+  return {
+    lista: s.lista,
+    precios: s.precios,
+    listaAlAbrir: s.lista,
+    preciosAlAbrir: s.precios,
+    codigos: s.codigosSinProducto,
+    porCodigo: !config?.productoIds && !!config?.productos,
+  }
+}
+
 interface ChannelSettingsDialogProps {
   open: boolean
   onClose: () => void
@@ -67,29 +120,88 @@ export function ChannelSettingsDialog({ open, onClose, venueId, channel }: Chann
   const queryClient = useQueryClient()
   const { can } = useAccess()
 
-  const [horario, setHorario] = useState<DeliveryWeeklyHours>(HORARIO_DEFAULT)
+  // 🔴 La copia del canal al abrir (y al «Recargar»): de ELLA sale todo lo editable y la huella. El `channel` vivo sólo sirve
+  // para «Recargar»; un refresco no toca nada de lo que se está editando.
+  const [canalAlAbrir, setCanalAlAbrir] = useState(channel)
+  const [horario, setHorario] = useState<DeliveryWeeklyHours>(channel.config?.deliveryHours ?? HORARIO_DEFAULT)
   // `number | undefined` a propósito: un input numérico que colapsa el vacío a 0 atrapa el
   // campo — el usuario borra y el valor rebota. Regla `ui-patterns.md`.
-  const [markup, setMarkup] = useState<number | undefined>(undefined)
+  const [markup, setMarkup] = useState<number | undefined>(channel.config?.precios?.markupPercent)
+  const [agotar, setAgotar] = useState(channel.config?.agotarPorInventario !== false)
   // La impresión elegida y sin guardar en su cuadro: el «Guardar» de arriba la guarda junto con lo demás.
   const [impresionPendiente, setImpresionPendiente] = useState<ImpresionDelCanal | null>(null)
+  /** `null` hasta que llegan los productos (sin ellos no se puede resolver la lista vieja por código). */
+  const [sel, setSel] = useState<Seleccion | null>(null)
+  /** Ids que «Ya los revisé» marcó en esta apertura (el canal congelado no los trae). */
+  const [revisadosAqui, setRevisadosAqui] = useState<string[]>([])
+  const [conflicto, setConflicto] = useState(false)
+  const [recargando, setRecargando] = useState(false)
+  /** Cambia con cada «Recargar»: el editor de impresión se monta de nuevo y suelta su borrador. */
+  const [recargas, setRecargas] = useState(0)
 
-  // Al abrir, se relee del canal: si el modal se reusa para otro canal (o el de antes cambió
-  // en el servidor) sin esto quedaría el estado del anterior y el usuario guardaría el
-  // horario de OTRA tienda encima del suyo.
-  // Sólo cuando cambia LO SUYO (horario o margen): el diálogo ve el canal vigente y el sistema escribe otras llaves de
-  // `config` (agotados, avisos del menú) en cada refresco; releer con todo `config` borraba lo que se estaba editando.
-  const horarioKey = JSON.stringify(channel.config?.deliveryHours ?? null)
-  const markupGuardado = channel.config?.precios?.markupPercent
-  useEffect(() => {
-    if (!open) return
-    setHorario(channel.config?.deliveryHours ?? HORARIO_DEFAULT)
-    setMarkup(markupGuardado)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, channel.id, horarioKey, markupGuardado])
+  const reiniciar = (c: DeliveryChannelLink) => {
+    setCanalAlAbrir(c)
+    setHorario(c.config?.deliveryHours ?? HORARIO_DEFAULT)
+    setMarkup(c.config?.precios?.markupPercent)
+    setAgotar(c.config?.agotarPorInventario !== false)
+    setImpresionPendiente(null)
+    setSel(null)
+    setRevisadosAqui([])
+    setConflicto(false)
+    setRecargas(r => r + 1)
+  }
+  // Si el modal se reusa para OTRO canal, se congela ése: si no, se guardaría el horario de otra tienda encima del suyo.
+  if (channel.id !== canalAlAbrir.id) reiniciar(channel)
+
+  const productosQ = useQuery({
+    queryKey: ['products', venueId, 'canalDelivery'],
+    queryFn: () => getProducts(venueId, { includeRecipe: false, includeModifiers: false, orderBy: 'name' }),
+    enabled: open,
+    staleTime: 30_000,
+    retry: 1,
+    refetchOnWindowFocus: false,
+  })
+  const productos: ProductoDelCanal[] | undefined = productosQ.data
+  if (productos && sel === null) setSel(armarSeleccion(canalAlAbrir.config, productos))
+
+  const revisados = useMemo(() => [...(canalAlAbrir.config?.productosRevisados ?? []), ...revisadosAqui], [canalAlAbrir, revisadosAqui])
+  // El aviso sale de la lista de AL ABRIR: desmarcar un producto no lo hace aparecer como «nuevo» mientras se edita.
+  const nuevos = useMemo(
+    () => (productos && sel ? productosNuevos(productos, sel.listaAlAbrir, revisados, canalAlAbrir.createdAt ?? null) : []),
+    [productos, sel, revisados, canalAlAbrir],
+  )
+  const yaNoExisten = useMemo(
+    () => ({ ids: productos && sel ? idsQueYaNoExisten(sel.lista, productos) : [], codigos: sel?.codigos ?? [] }),
+    [productos, sel],
+  )
+  /**
+   * Precios = dinero: se mandan TODOS los que se cargaron o se editaron, marcados o no (un producto que sale por temporada y
+   * vuelve no debe publicarse al precio guía sin que nadie lo note; desmarcado no se publica porque no va en `productoIds`).
+   * Sólo se valida lo que el dueño ve y edita (los marcados); un precio escondido inválido se manda como estaba al abrir
+   * (escribir -5 y desmarcar no borra el $79 guardado), o no se manda si no tenía.
+   */
+  const { preciosAMandar, hayPreciosInvalidos } = useMemo(() => {
+    if (!sel) return { preciosAMandar: {} as Record<string, number>, hayPreciosInvalidos: false }
+    const malos = new Set(erroresDePrecios(sel.precios))
+    const enLista = new Set(sel.lista ?? [])
+    return {
+      preciosAMandar: Object.fromEntries(
+        Object.entries(sel.precios)
+          .map(([id, v]) => [id, malos.has(id) ? sel.preciosAlAbrir[id] : v] as const)
+          .filter(([, v]) => v !== undefined),
+      ) as Record<string, number>,
+      hayPreciosInvalidos: [...malos].some(id => enLista.has(id)),
+    }
+  }, [sel])
+  // Vacía = ningún producto VIVO marcado (una lista con sólo ids que ya no existen dejaría el menú en blanco).
+  const listaVacia = useMemo(() => {
+    if (!productos || !sel?.lista) return false
+    const enLista = new Set(sel.lista)
+    return !productos.some(p => enLista.has(p.id))
+  }, [productos, sel])
 
   /** Nunca se configuró: se está mostrando el estimado, y eso hay que decirlo. */
-  const usandoEstimado = !channel.config?.deliveryHours
+  const usandoEstimado = !canalAlAbrir.config?.deliveryHours
 
   const errores = useMemo(() => {
     const out: string[] = []
@@ -111,32 +223,88 @@ export function ChannelSettingsDialog({ open, onClose, venueId, channel }: Chann
     if (markup !== undefined && (!Number.isFinite(markup) || markup < 0 || markup > MARKUP_MAX)) {
       out.push(t('settings.errorMarkupRange', { max: MARKUP_MAX }))
     }
+    if (hayPreciosInvalidos) out.push(t('settings.productos.errorPrecios'))
     return out
-  }, [horario, markup, t])
+  }, [horario, markup, hayPreciosInvalidos, t])
 
+  const cuerpo = () => {
+    // Sin margen se manda el bloque vacío, no se omite: omitirlo dejaría el markup
+    // anterior vivo (el backend mezcla), y el usuario acaba de dejar el campo en blanco.
+    const margen = markup === undefined ? {} : { markupPercent: markup }
+    const config: DeliveryChannelConfig = {
+      deliveryHours: horario,
+      // Sin `porProducto`, el SERVIDOR conserva los precios por producto (y los de modificadores por código) que había.
+      precios: margen,
+      agotarPorInventario: agotar,
+      // Sólo si cambió: mandarla siempre pisaría lo que otra persona guardó desde Impresoras → Delivery.
+      ...(impresionPendiente ? { impresion: impresionPendiente } : {}),
+    }
+    let marcarRevisados: string[] = []
+    // Sin productos (cargando o falló) no se toca la selección: se guarda como antes de D1.
+    if (sel && productos) {
+      if (sel.lista !== null || Object.keys(preciosAMandar).length > 0) config.precios = { ...margen, porProducto: preciosAMandar }
+      const cambio = !mismaLista(sel.lista, sel.listaAlAbrir)
+      // La lista vieja por código se manda ya por id; la copia por código la arma el SERVIDOR.
+      if (sel.lista !== null && (cambio || sel.porCodigo)) config.productoIds = sel.lista
+      // Los nuevos que tenía en pantalla y dejó fuera de la lista ACTUAL cuentan como revisados (los creados antes de conectar
+      // nunca son nuevos).
+      if (cambio) marcarRevisados = idsRecientes(productosNuevos(productos, sel.lista, revisados, canalAlAbrir.createdAt ?? null))
+    }
+    return {
+      config,
+      ...(canalAlAbrir.seleccionHuella ? { seleccionEsperada: canalAlAbrir.seleccionHuella } : {}),
+      ...(marcarRevisados.length > 0 ? { marcarRevisados } : {}),
+    }
+  }
+
+  // Doble clic en «Guardar»: el botón se apaga hasta el siguiente render, y dos clics en el mismo instante mandaban dos PATCH.
+  const guardando = useRef(false)
   const mutation = useMutation({
-    mutationFn: () =>
-      updateChannel(venueId, channel.id, {
-        config: {
-          deliveryHours: horario,
-          // Sin margen se manda el bloque vacío, no se omite: omitirlo dejaría el markup
-          // anterior vivo (el backend mezcla), y el usuario acaba de dejar el campo en blanco.
-          precios: markup === undefined ? {} : { markupPercent: markup },
-          // Sólo si cambió: mandarla siempre pisaría lo que otra persona guardó desde Impresoras → Delivery.
-          ...(impresionPendiente ? { impresion: impresionPendiente } : {}),
-        },
-      }),
+    mutationFn: () => updateChannel(venueId, channel.id, cuerpo()),
+    onSettled: () => {
+      guardando.current = false
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['deliveryChannels', venueId] })
       toast({ title: t('settings.saveSuccess') })
       onClose()
     },
     onError: (error: unknown) => {
-      const mensaje =
-        (error as { response?: { data?: { message?: string } } })?.response?.data?.message ?? t('settings.saveErrorFallback')
+      const r = (error as { response?: { status?: number; data?: { message?: string; code?: string } } })?.response
+      if (r?.data?.code === 'CHANNEL_CHANGED' || r?.status === 409) {
+        setConflicto(true)
+        // El aviso con «Recargar» vive arriba del todo: quien edita abajo sólo vería «Guardar» en gris.
+        toast({ title: t('settings.conflicto'), variant: 'destructive' })
+        return
+      }
+      const mensaje = r?.data?.message ?? t('settings.saveErrorFallback')
       toast({ title: t('settings.saveError'), description: mensaje, variant: 'destructive' })
     },
   })
+
+  const revisar = useMutation({
+    mutationFn: (ids: string[]) => updateChannel(venueId, channel.id, { marcarRevisados: ids }),
+    onSuccess: (_link, ids) => {
+      setRevisadosAqui(prev => [...prev, ...ids])
+      queryClient.invalidateQueries({ queryKey: ['deliveryChannels', venueId] })
+    },
+    onError: (error: unknown) => {
+      const mensaje = (error as { response?: { data?: { message?: string } } })?.response?.data?.message ?? t('settings.saveErrorFallback')
+      toast({ title: t('settings.productos.revisadosError'), description: mensaje, variant: 'destructive' })
+    },
+  })
+
+  /** «Recargar» tras un 409: trae el canal y el catálogo de nuevo y vuelve a congelar TODO desde ahí. */
+  const recargar = async () => {
+    setRecargando(true)
+    try {
+      await Promise.all([queryClient.refetchQueries({ queryKey: ['deliveryChannels', venueId] }), productosQ.refetch()])
+    } finally {
+      setRecargando(false)
+    }
+    const fresco = queryClient.getQueryData<DeliveryChannelLink[]>(['deliveryChannels', venueId])?.find(c => c.id === channel.id)
+    reiniciar(fresco ?? channel)
+  }
 
   const setDia = (dia: DeliveryWeekday, patch: Partial<DeliveryDayHours>) =>
     setHorario(prev => ({ ...prev, [dia]: { ...prev[dia], ...patch } }))
@@ -148,23 +316,43 @@ export function ChannelSettingsDialog({ open, onClose, venueId, channel }: Chann
       return { ...prev, [dia]: { ...prev[dia], ranges } }
     })
 
-  const puedeGuardar = errores.length === 0 && !mutation.isPending
+  const puedeGuardar = errores.length === 0 && !listaVacia && !conflicto && !recargando && !mutation.isPending
+  const canal = providerLabel(channel.provider)
 
   return (
     <FullScreenModal
       open={open}
       onClose={onClose}
       title={t('settings.title')}
-      subtitle={providerLabel(channel.provider)}
+      subtitle={canal}
       contentClassName="bg-muted/30"
       actions={
-        <Button data-tour="delivery-settings-save" disabled={!puedeGuardar} onClick={() => mutation.mutate()}>
+        <Button
+          data-tour="delivery-settings-save"
+          disabled={!puedeGuardar}
+          onClick={() => {
+            if (guardando.current) return
+            guardando.current = true
+            mutation.mutate()
+          }}
+        >
           {mutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           {t('settings.save')}
         </Button>
       }
     >
       <div className="mx-auto max-w-2xl space-y-6 py-6">
+        {conflicto && (
+          <div role="alert" className="flex flex-wrap items-center gap-3 rounded-lg border border-destructive/50 bg-destructive/10 p-4">
+            <AlertTriangle className="h-4 w-4 shrink-0 text-destructive" />
+            <p className="flex-1 text-sm text-destructive">{t('settings.conflicto')}</p>
+            <Button variant="outline" size="sm" disabled={recargando} onClick={recargar}>
+              {recargando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {t('settings.recargar')}
+            </Button>
+          </div>
+        )}
+
         {/* ── Horario ─────────────────────────────────────────────────────────────── */}
         <section data-tour="delivery-settings-hours" className="rounded-2xl border border-input bg-card p-6">
           <div className="mb-1 flex items-center gap-2">
@@ -257,11 +445,52 @@ export function ChannelSettingsDialog({ open, onClose, venueId, channel }: Chann
           </p>
         </section>
 
+        {/* ── Productos del canal (D1) ─────────────────────────────────────────────── */}
+        {/* `key`: «Recargar» también suelta la búsqueda, el filtro «Revisarlos» y los grupos abiertos. */}
+        <ProductosDelCanalSection
+          key={recargas}
+          provider={channel.provider}
+          canal={canal}
+          productos={productos ?? []}
+          cargando={productosQ.isLoading}
+          error={!productos && productosQ.isError}
+          onReintentar={() => productosQ.refetch()}
+          lista={sel?.lista ?? null}
+          onListaChange={lista => setSel(s => s && { ...s, lista })}
+          precios={sel?.precios ?? {}}
+          onPreciosChange={precios => setSel(s => s && { ...s, precios })}
+          markupPercent={markup !== undefined && Number.isFinite(markup) ? markup : undefined}
+          nuevos={nuevos}
+          yaNoExisten={yaNoExisten}
+          onQuitarQueYaNoExisten={() => {
+            const fuera = new Set(yaNoExisten.ids)
+            setSel(s => s && { ...s, lista: s.lista && s.lista.filter(id => !fuera.has(id)), codigos: [] })
+          }}
+          onYaRevisados={() => revisar.mutate(idsRecientes(nuevos))}
+          revisando={revisar.isPending}
+        />
+
+        {/* ── Agotar según inventario ─────────────────────────────────────────────── */}
+        <section data-tour="delivery-settings-agotar" className="rounded-2xl border border-input bg-card p-6">
+          <div className="flex items-start gap-3">
+            <PackageX className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" />
+            <div className="flex-1">
+              <h3 className="text-base font-medium" id="delivery-settings-agotar-title">
+                {t('settings.agotar.title', { canal })}
+              </h3>
+              <p className="mt-1 text-sm text-muted-foreground">{t('settings.agotar.help', { canal })}</p>
+            </div>
+            <Switch checked={agotar} onCheckedChange={setAgotar} aria-labelledby="delivery-settings-agotar-title" />
+          </div>
+        </section>
+
         {/* ── Impresión (misma pieza que la pestaña «Delivery» de Impresoras; guarda por su cuenta) ───────── */}
+        {/* El canal congelado: el borrador del editor se descarta sólo cuando cambia lo guardado que le pasamos (al «Recargar»). */}
         <section className="rounded-2xl border border-input bg-card p-6">
           <ImpresionDelCanalEditor
+            key={recargas}
             venueId={venueId}
-            channel={channel}
+            channel={canalAlAbrir}
             canEdit={can('delivery-channels:manage')}
             onPendienteChange={setImpresionPendiente}
             conBotonGuardar={false}

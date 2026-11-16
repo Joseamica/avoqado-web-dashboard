@@ -50,6 +50,9 @@ export interface DeliveryChannelLink {
   conexionId?: string
   /** Última escritura del vínculo (ISO). Con PENDING, cuándo empezó a esperar la confirmación del proveedor. */
   updatedAt?: string
+  createdAt?: string
+  /** Huella de la selección de productos; se manda de vuelta como `seleccionEsperada` al guardar. */
+  seleccionHuella?: string
   /**
    * Ajustes propios del canal. Es UNA columna JSON con VARIAS cosas adentro, así que el
    * backend la MEZCLA en vez de reemplazarla: mandar sólo `deliveryHours` no borra
@@ -80,6 +83,8 @@ export interface DeliveryChannelPrices {
   markupPercent?: number
   /** Precio fijo en PESOS para un SKU concreto. Gana sobre el markup. */
   overrides?: Record<string, number>
+  /** Precio en PESOS por id de producto. Gana cuando el canal tiene `productoIds`. */
+  porProducto?: Record<string, number>
 }
 
 /** Dónde se imprimen los pedidos de un canal (espejo del SERVIDOR). Sin esto = como en el salón + empaque del negocio. */
@@ -94,6 +99,13 @@ export interface DeliveryChannelConfig {
   impresion?: ImpresionDelCanal | null
   deliveryHours?: DeliveryWeeklyHours | null
   precios?: DeliveryChannelPrices | null
+  /** Ids de los productos del canal (gana sobre `productos`). `null`/ausente = todos. */
+  productoIds?: string[] | null
+  /** Lista vieja por código (o la copia por código que guarda el servidor). */
+  productos?: string[] | null
+  agotarPorInventario?: boolean | null
+  /** Ids de productos nuevos que alguien ya revisó y dejó fuera. */
+  productosRevisados?: string[]
   /**
    * D4 (SERVIDOR): el proveedor avisó que la tienda se cerró de SU lado (Rappi: desde su portal). La escribe y la borra el
    * SERVIDOR (llave del sistema: el PATCH del panel no la toca); se borra al reanudar desde este panel y que el proveedor acepte.
