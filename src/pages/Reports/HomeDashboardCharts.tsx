@@ -1,4 +1,5 @@
 import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { AvisoCobrosQrIncompletos } from '@/components/AvisoCobrosQrIncompletos'
 import { falloDeCarga } from '@/lib/falloDeCarga'
 import { useTranslation } from 'react-i18next'
 
@@ -63,6 +64,13 @@ export default function HomeDashboardCharts() {
         ) : (
           <>
           <AvisoDeCarga query={dashboardData.basicQuery} hayDatos />
+          <AvisoCobrosQrIncompletos
+            incompleto={dashboardData.cobrosQrIncompletos}
+            onRetry={() => {
+              void refetchBasicData()
+              if (compareType) void refetchCompareData()
+            }}
+          />
           <DashboardRenderer
             resolvedDashboard={resolvedDashboard}
             dashboardData={dashboardData}

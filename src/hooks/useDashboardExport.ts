@@ -4,7 +4,7 @@ import { DateTime } from 'luxon'
 import { Currency } from '@/utils/currency'
 import { ComparisonPeriod } from './useDashboardData'
 import { useVenueDateTime } from '@/utils/datetime'
-import { DashboardProgressiveService } from '@/services/dashboard.progressive.service'
+import { DashboardProgressiveService, type FilasDeDetalle } from '@/services/dashboard.progressive.service'
 
 interface UseDashboardExportProps {
   venueId: string
@@ -18,6 +18,8 @@ interface UseDashboardExportProps {
   tipStats: { totalTips: number; avgTipPercentage: number | string }
   compareType: ComparisonPeriod
   comparacionLista?: boolean
+  /** D15: las tarjetas (periodo actual o de comparación) vinieron marcadas `legacyUnavailable`. */
+  cobrosQrIncompletos?: boolean
   comparisonLabel: string
   compareAmount: number
   compareFiveStarReviews: number
@@ -40,6 +42,7 @@ export const useDashboardExport = ({
   tipStats,
   compareType,
   comparacionLista,
+  cobrosQrIncompletos,
   comparisonLabel,
   compareAmount,
   compareFiveStarReviews,
@@ -53,7 +56,7 @@ export const useDashboardExport = ({
   const { formatDate } = useVenueDateTime()
   const [exportLoading, setExportLoading] = useState(false)
 
-  const loadCompleteExportRows = useCallback(async () => {
+  const loadCompleteExportRows = useCallback(async (): Promise<FilasDeDetalle[]> => {
     const service = new DashboardProgressiveService(venueId)
     try {
       return await Promise.all([
@@ -139,8 +142,13 @@ export const useDashboardExport = ({
 
       const paymentMethodsCSV = convertToCSV(paymentMethodsForCSV, ['method', 'total', 'count'])
 
+      // D15: si a las tarjetas o a CUALQUIER página del detalle le faltaron cobros del sistema anterior de QR, el archivo lo dice
+      // arriba. La marca del detalle se lee del arreglo original (`.map` la pierde).
+      const incompleto = cobrosQrIncompletos || completePayments.legacyUnavailable
+
       // Combine all data with section headers
       const combinedCSV = [
+        ...(incompleto ? ['# ' + t('common:loadFailure.legacyQr'), ''] : []),
         '# ' + t('export.payments'),
         paymentsCSV,
         '',
@@ -172,7 +180,7 @@ export const useDashboardExport = ({
     } finally {
       setExportLoading(false)
     }
-  }, [basicData, loadCompleteExportRows, paymentMethodsData, totalAmount, fiveStarReviews, tipStats, t, formatDate])
+  }, [basicData, loadCompleteExportRows, cobrosQrIncompletos, paymentMethodsData, totalAmount, fiveStarReviews, tipStats, t, formatDate])
 
   const exportToJSON = useCallback(async () => {
     if (!basicData) return
@@ -191,6 +199,10 @@ export const useDashboardExport = ({
           },
           venue: venueId,
           locale: i18n.language,
+          // D15: mismo aviso que el CSV (tarjetas o alguna página del detalle sin los cobros del sistema anterior de QR).
+          ...(cobrosQrIncompletos || completePayments.legacyUnavailable
+            ? { legacyUnavailable: true, warning: t('common:loadFailure.legacyQr') }
+            : {}),
         },
         summary: {
           totalSales: totalAmount,
@@ -257,8 +269,10 @@ export const useDashboardExport = ({
     selectedRange,
     venueId,
     i18n.language,
+    t,
     compareType,
     comparacionLista,
+    cobrosQrIncompletos,
     comparisonLabel,
     compareAmount,
     compareFiveStarReviews,

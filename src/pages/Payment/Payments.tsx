@@ -35,6 +35,7 @@ import { StatusFilterTabs, type StatusTab } from '@/components/StatusFilterTabs'
 import { SummaryCards, type SummaryCardItem } from '@/components/SummaryCards'
 import { SummaryQueryBoundary } from '@/components/SummaryQueryBoundary'
 import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { AvisoCobrosQrIncompletos } from '@/components/AvisoCobrosQrIncompletos'
 import { falloDeCarga } from '@/lib/falloDeCarga'
 import { useAuth } from '@/context/AuthContext'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
@@ -1137,6 +1138,14 @@ export default function Payments() {
       </div>
 
       {paymentsSummary !== undefined && <AvisoDeCarga query={summaryQuery} hayDatos />}
+      {/* D15: al resumen o a la lista le pueden faltar cobros del sistema anterior de QR; un solo aviso para los dos. */}
+      <AvisoCobrosQrIncompletos
+        incompleto={paymentsSummary?.legacyUnavailable || data?.pages?.some(pagina => pagina.meta?.legacyUnavailable)}
+        onRetry={() => {
+          void refetchSummary()
+          void refetch()
+        }}
+      />
       <SummaryQueryBoundary
         isLoading={isSummaryLoading}
         isError={isSummaryError}

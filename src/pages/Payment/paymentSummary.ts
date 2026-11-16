@@ -35,6 +35,8 @@ export interface PaymentsSummaryData {
   filteredGroups: PaymentSummaryGroup[]
   total: number
   filteredTotal: number
+  /** Aditivo (D15): el servidor no pudo leer todos los cobros del sistema anterior de QR; estas cifras pueden estar incompletas. */
+  legacyUnavailable?: true
 }
 
 export type PaymentStatusTab = 'all' | 'completed' | 'pending' | 'refunded'

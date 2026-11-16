@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { AvisoCobrosQrIncompletos } from '@/components/AvisoCobrosQrIncompletos'
 import { falloDeCarga } from '@/lib/falloDeCarga'
 import { reintentarSalvoSinPermiso } from '@/lib/reintentoSinPermiso'
 import { Button } from '@/components/ui/button'
@@ -1999,6 +2000,7 @@ export default function SalesSummary() {
     <div className="p-4 md:p-6 space-y-6">
       {filtros}
       <AvisoDeCarga query={salesQuery} hayDatos />
+      <AvisoCobrosQrIncompletos incompleto={apiResponse?.legacyUnavailable} onRetry={() => void salesQuery.refetch()} />
 
       {/* Big Number - Total Sales with Dynamic Visualization (FREE: today's headline) */}
       <GlassCard className="p-6 space-y-5">
