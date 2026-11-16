@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { AlertTriangle, ChevronLeft, ChevronRight, Loader2, Plus, X } from 'lucide-react'
+import { AlertTriangle, Loader2, Plus, X } from 'lucide-react'
 
 import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
@@ -25,22 +26,6 @@ const DAY_KEYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'satur
 type DayKey = (typeof DAY_KEYS)[number]
 
 const MAX_RANGES = 3
-
-function getWeekDays(baseDate: Date): Date[] {
-	const dayOfWeek = baseDate.getDay()
-	const monday = new Date(baseDate)
-	monday.setDate(monday.getDate() - ((dayOfWeek + 6) % 7))
-	return Array.from({ length: 7 }, (_, i) => {
-		const d = new Date(monday)
-		d.setDate(d.getDate() + i)
-		return d
-	})
-}
-
-function getDayKeyForDate(date: Date): DayKey {
-	const jsDay = date.getDay() // 0=Sunday
-	return DAY_KEYS[(jsDay + 6) % 7] // Convert to Monday-first
-}
 
 /** Check if two time ranges overlap. Times are "HH:mm" strings. */
 function rangesOverlap(a: { open: string; close: string }, b: { open: string; close: string }): boolean {
@@ -75,8 +60,11 @@ export function EditAvailabilityDialog({ open, onOpenChange }: EditAvailabilityD
 	const queryClient = useQueryClient()
 	const { toast } = useToast()
 
-	const [tab, setTab] = useState<'single' | 'recurring'>('single')
-	const [weekBase, setWeekBase] = useState(new Date())
+	// «Cambio único» (sólo una fecha) no se ofrece todavía: el SERVIDOR sólo guarda el horario semanal, y la pestaña de
+	// antes editaba ese mismo horario semanal con renglones por fecha. Cerrar «sólo este lunes» cerraba TODOS los lunes y
+	// el negocio dejaba de recibir reservas en línea ese día sin saberlo (encargo 44e957). Vuelve cuando exista una
+	// excepción con fecha en el SERVIDOR.
+	const tab = 'recurring' as const
 	const [hours, setHours] = useState<OperatingHours | null>(null)
 
 	const settingsQuery = useQuery({
@@ -90,21 +78,8 @@ export function EditAvailabilityDialog({ open, onOpenChange }: EditAvailabilityD
 	useEffect(() => {
 		if (open && settings?.operatingHours) {
 			setHours(structuredClone(settings.operatingHours))
-			setWeekBase(new Date())
 		}
 	}, [open, settings])
-
-	const weekDays = useMemo(() => getWeekDays(weekBase), [weekBase])
-
-	const weekLabel = useMemo(() => {
-		const days = getWeekDays(weekBase)
-		const from = days[0].toLocaleDateString(undefined, { day: 'numeric', month: 'short' })
-		const to = days[6].toLocaleDateString(undefined, { day: 'numeric', month: 'short' })
-		return `${from} – ${to}`
-	}, [weekBase])
-
-	const goPrevWeek = () => setWeekBase(prev => { const d = new Date(prev); d.setDate(d.getDate() - 7); return d })
-	const goNextWeek = () => setWeekBase(prev => { const d = new Date(prev); d.setDate(d.getDate() + 7); return d })
 
 	// Validate all days — compute errors map
 	const validationErrors = useMemo<Record<DayKey, string | null>>(() => {
@@ -174,12 +149,6 @@ export function EditAvailabilityDialog({ open, onOpenChange }: EditAvailabilityD
 			}
 		})
 	}, [])
-
-	const resetToDefaults = useCallback(() => {
-		if (settings?.operatingHours) {
-			setHours(structuredClone(settings.operatingHours))
-		}
-	}, [settings])
 
 	// Save
 	const saveMutation = useMutation({
@@ -296,13 +265,18 @@ export function EditAvailabilityDialog({ open, onOpenChange }: EditAvailabilityD
 						</div>
 					)
 				) : (
-					<Tabs value={tab} onValueChange={v => setTab(v as 'single' | 'recurring')}>
+					<Tabs value={tab}>
 						<TabsList className="w-full justify-start bg-transparent border-b border-border rounded-none p-0 h-auto">
 							<TabsTrigger
 								value="single"
-								className="rounded-none border-b-2 border-transparent bg-transparent data-[state=active]:bg-transparent data-[state=active]:border-foreground data-[state=active]:shadow-none px-4 pb-2 pt-1 text-sm"
+								disabled
+								title={t('availability.singleChangeSoon')}
+								className="gap-2 rounded-none border-b-2 border-transparent bg-transparent data-[state=active]:bg-transparent data-[state=active]:border-foreground data-[state=active]:shadow-none px-4 pb-2 pt-1 text-sm"
 							>
 								{t('availability.singleChange', { defaultValue: 'Cambio único' })}
+								<Badge variant="outline" className="text-[10px] h-4 px-1.5">
+									{t('availability.comingSoon')}
+								</Badge>
 							</TabsTrigger>
 							<TabsTrigger
 								value="recurring"
@@ -312,40 +286,9 @@ export function EditAvailabilityDialog({ open, onOpenChange }: EditAvailabilityD
 							</TabsTrigger>
 						</TabsList>
 
-						{/* Single change tab — week view with specific dates */}
-						<TabsContent value="single" className="mt-4">
-							{/* Week navigator */}
-							<div className="flex items-center gap-2 mb-4">
-								<Button variant="ghost" size="icon" className="h-7 w-7" onClick={goPrevWeek}>
-									<ChevronLeft className="h-4 w-4" />
-								</Button>
-								<span className="text-sm font-medium bg-muted px-3 py-1 rounded-full">
-									{weekLabel}
-								</span>
-								<Button variant="ghost" size="icon" className="h-7 w-7" onClick={goNextWeek}>
-									<ChevronRight className="h-4 w-4" />
-								</Button>
-							</div>
-
-							<div className="divide-y divide-border">
-								{weekDays.map(day => {
-									const dayKey = getDayKeyForDate(day)
-									const label = day.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })
-									return renderDayRow(dayKey, label)
-								})}
-							</div>
-
-							<button
-								type="button"
-								className="mt-4 text-sm font-medium text-foreground underline underline-offset-2 hover:text-foreground/80 cursor-pointer"
-								onClick={resetToDefaults}
-							>
-								{t('availability.resetWeek', { defaultValue: 'Restablecer semana a los valores predeterminados' })}
-							</button>
-						</TabsContent>
-
 						{/* Recurring schedule tab — weekday names */}
 						<TabsContent value="recurring" className="mt-4">
+							<p className="mb-2 text-sm text-muted-foreground">{t('availability.recurringNote')}</p>
 							<div className="divide-y divide-border">
 								{DAY_KEYS.map(day =>
 									renderDayRow(day, t(`settings.operatingHours.days.${day}`)),

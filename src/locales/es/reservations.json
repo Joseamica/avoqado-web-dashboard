@@ -227,7 +227,10 @@
     "recurringSchedule": "Calendario recurrente",
     "resetWeek": "Restablecer semana a los valores predeterminados",
     "invalidTime": "Introduce una hora válida",
-    "done": "Listo"
+    "done": "Listo",
+    "singleChangeSoon": "Muy pronto podrás cambiar el horario de una sola fecha. Por ahora, los cambios aplican a todas las semanas.",
+    "comingSoon": "Muy pronto",
+    "recurringNote": "Este horario se repite todas las semanas: si cierras un día, se cierra ese día cada semana y no se reciben reservas en línea."
   },
   "calendarAttributes": {
     "title": "Atributos de la cita",
