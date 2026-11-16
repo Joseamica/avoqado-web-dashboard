@@ -1469,6 +1469,7 @@
     "prev": "Anterior",
     "next": "Siguiente",
     "noMatches": "No hay descuentos con ese motivo en el periodo.",
-    "noData": "No se dieron descuentos en el periodo."
+    "noData": "No se dieron descuentos en el periodo.",
+    "reasonsTruncated": "Se muestran los 100 motivos con más monto del periodo. El total de arriba sí incluye todos; acorta el periodo para ver el resto."
   }
 }

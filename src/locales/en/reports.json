@@ -1469,6 +1469,7 @@
     "prev": "Previous",
     "next": "Next",
     "noMatches": "No discounts with that reason in the period.",
-    "noData": "No discounts were given in the period."
+    "noData": "No discounts were given in the period.",
+    "reasonsTruncated": "Showing the 100 reasons with the highest amount in the period. The total above includes all of them; shorten the period to see the rest."
   }
 }

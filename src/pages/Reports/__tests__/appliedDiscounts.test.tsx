@@ -101,6 +101,18 @@ describe('AppliedDiscounts', () => {
     await waitFor(() => expect(m.fetch).toHaveBeenLastCalledWith(expect.objectContaining({ page: 2 })))
   })
 
+  it('Codex r2 #3: si el servidor recortó el agrupado, la pantalla lo dice', async () => {
+    m.fetch.mockResolvedValue(reporte({ motivosRecortados: true }))
+    renderPage()
+    expect(await screen.findByText(/Se muestran los 100 motivos con más monto/)).toBeInTheDocument()
+  })
+
+  it('sin recorte no sale el aviso', async () => {
+    renderPage()
+    await screen.findByText('Descuentos dados')
+    expect(screen.queryByText(/Se muestran los 100 motivos/)).not.toBeInTheDocument()
+  })
+
   it('periodo sin descuentos: lo dice (no es un error)', async () => {
     m.fetch.mockResolvedValue(
       reporte({

@@ -146,6 +146,14 @@ export default function AppliedDiscounts() {
                       )
                     })}
                   </div>
+                  {data.motivosRecortados && (
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      {t('appliedDiscounts.reasonsTruncated', {
+                        defaultValue:
+                          'Se muestran los 100 motivos con más monto del periodo. El total de arriba sí incluye todos; acorta el periodo para ver el resto.',
+                      })}
+                    </p>
+                  )}
                   {reason && (
                     <p className="mt-2 text-xs text-muted-foreground">
                       {t('appliedDiscounts.filteredHint', { defaultValue: 'Toca el motivo otra vez para ver todos.' })}
