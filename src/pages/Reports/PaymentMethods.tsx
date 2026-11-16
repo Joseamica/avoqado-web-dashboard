@@ -2,6 +2,7 @@ import { useState, useMemo, Fragment } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { AvisoCobrosQrIncompletos } from '@/components/AvisoCobrosQrIncompletos'
 import { falloDeCarga } from '@/lib/falloDeCarga'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -115,6 +116,8 @@ export default function PaymentMethods() {
     if (!apiResponse) return
 
     const rows: string[][] = []
+    // D15: el archivo dice lo mismo que la pantalla, arriba de todo.
+    if (apiResponse.legacyUnavailable) rows.push([t('common:loadFailure.legacyQr')])
     rows.push([
       t('paymentMethods.columns.method'),
       t('paymentMethods.columns.transactions'),
@@ -204,6 +207,7 @@ export default function PaymentMethods() {
 
       {/* Debajo del filtro: sin red es la salida a un periodo ya leído. */}
       <AvisoDeCarga query={reportQuery} hayDatos={apiResponse !== undefined} />
+      <AvisoCobrosQrIncompletos incompleto={apiResponse?.legacyUnavailable} onRetry={() => void reportQuery.refetch()} />
       {isLoading && <PaymentMethodsSkeleton />}
 
       {/* Summary Stats */}

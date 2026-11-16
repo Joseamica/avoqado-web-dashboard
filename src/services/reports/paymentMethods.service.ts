@@ -57,6 +57,8 @@ export interface PaymentMethodsResponse {
   }
   methods: PaymentMethodRow[]
   totals: PaymentMethodsTotals
+  /** Aditivo (D15): el servidor no pudo leer todos los cobros del sistema anterior de QR; estas cifras pueden estar incompletas. */
+  legacyUnavailable?: true
 }
 
 export interface PaymentMethodsFilters {
@@ -95,6 +97,7 @@ interface RawSalesSummaryResponse {
     transactionCount: number
   }
   byPaymentMethodDetailed?: RawDetailedBreakdown[]
+  legacyUnavailable?: true
 }
 
 interface ApiResponse<T> {
@@ -156,6 +159,8 @@ export async function fetchPaymentMethods(filters: PaymentMethodsFilters): Promi
       refunds: raw.summary.refunds ?? 0,
       platformFees: raw.summary.platformFees ?? 0,
     },
+    // D15: este adaptador reconstruye la respuesta; sin esto la marca se perdía aquí y la pantalla nunca avisaba.
+    ...(raw.legacyUnavailable ? { legacyUnavailable: true as const } : {}),
   }
 }
 

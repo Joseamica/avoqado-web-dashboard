@@ -6,6 +6,7 @@
  */
 
 import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { AvisoCobrosQrIncompletos } from '@/components/AvisoCobrosQrIncompletos'
 import { falloDeCarga } from '@/lib/falloDeCarga'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -157,6 +158,8 @@ const ProgressiveChartSection = ({
         {data && Component ? (
           <>
             <AvisoDeCarga query={chartQuery} hayDatos />
+            {/* D15: la serie de ESTA gráfica (p. ej. propinas) puede venir marcada aunque las tarjetas hayan llegado sanas. */}
+            <AvisoCobrosQrIncompletos incompleto={data.legacyUnavailable} onRetry={() => void chartQuery.refetch()} />
             <Component data={data} />
           </>
         ) : falloDeCarga(chartQuery) ? (

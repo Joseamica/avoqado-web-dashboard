@@ -24,11 +24,20 @@ export interface BasicMetricsData {
     totalLaborHours: number
     activeShifts: number
   }
+  /** Aditivo (D15): el servidor no pudo leer todos los cobros del sistema anterior de QR; estas cifras pueden estar incompletas. */
+  legacyUnavailable?: true
 }
 
 export interface ChartData {
   [key: string]: any
 }
+
+/**
+ * Las filas del detalle de Inicio, con la marca de que a ALGUNA de sus páginas le faltaron cobros del sistema anterior de QR (D15).
+ * La marca va en el arreglo (y no en otro retorno) para no cambiarle la forma a quien ya lo recorre: `.map`, `.filter` y el spread
+ * la pierden, así que se lee antes de transformar.
+ */
+export type FilasDeDetalle = any[] & { legacyUnavailable?: true }
 
 /**
  * Un producto de `/charts/best-selling-products` (`products[]`). La familia (`productGroupId`/`productGroupName`) es la
@@ -77,8 +86,8 @@ export class DashboardProgressiveService {
    * Recorre todas las páginas sólo para una acción explícita (CSV/JSON). La
    * carga normal usa agregados y nunca llama a este método.
    */
-  async getAllBasicMetricDetails(kind: 'payments' | 'reviews', dateRange: DateRange): Promise<any[]> {
-    const items: any[] = []
+  async getAllBasicMetricDetails(kind: 'payments' | 'reviews', dateRange: DateRange): Promise<FilasDeDetalle> {
+    const items: FilasDeDetalle = []
     const seenCursors = new Set<string>()
     let cursor: string | undefined
 
@@ -92,8 +101,10 @@ export class DashboardProgressiveService {
           ...(cursor ? { cursor } : {}),
         },
       })
-      const page = response.data as { items?: any[]; nextCursor?: string | null }
+      const page = response.data as { items?: any[]; nextCursor?: string | null; legacyUnavailable?: true }
       items.push(...(page.items || []))
+      // Las tarjetas pudieron cargar sanas y el puente fallar después, a media descarga: cuenta la marca de CUALQUIER página.
+      if (page.legacyUnavailable) items.legacyUnavailable = true
 
       const nextCursor = page.nextCursor || undefined
       if (nextCursor && seenCursors.has(nextCursor)) {
