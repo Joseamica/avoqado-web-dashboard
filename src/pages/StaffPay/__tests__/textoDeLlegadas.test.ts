@@ -5,7 +5,7 @@ import es from '@/locales/es/staffPay.json'
 // Traductor mínimo con los textos REALES en español (plural _one/_other e interpolación), sin montar i18next.
 const t = (k: string, o: Record<string, unknown> = {}) => {
   const [grupo, clave] = k.split('.')
-  const g = (es as Record<string, Record<string, string>>)[grupo]
+  const g = (es as unknown as Record<string, Record<string, string>>)[grupo]
   const n = typeof o.count === 'number' ? (o.count === 1 ? '_one' : '_other') : ''
   const texto = g[clave + n] ?? g[clave] ?? k
   return texto.replace(/{{(\w+)}}/g, (_, v) => String(o[v] ?? ''))
