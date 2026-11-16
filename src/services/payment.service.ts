@@ -37,7 +37,7 @@ export interface PaymentFilterOptions {
 }
 
 export const getPayments = async (venueId: string, page: number, pageSize: number, filters: PaymentListFilters = {}) => {
-  const response = await api.get<{ data: Payment[]; meta?: { total?: number; totalPages?: number; page?: number } }>(
+  const response = await api.get<{ data: Payment[]; meta?: { total?: number; totalPages?: number; page?: number; legacyUnavailable?: true } }>(
     `/api/v1/dashboard/venues/${venueId}/payments`,
     {
       params: {

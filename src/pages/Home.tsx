@@ -19,6 +19,7 @@ import {
 } from 'lucide-react'
 
 import { AvisoDeCarga } from '@/components/AvisoDeCarga'
+import { AvisoCobrosQrIncompletos } from '@/components/AvisoCobrosQrIncompletos'
 import { SummaryQueryBoundary } from '@/components/SummaryQueryBoundary'
 import { KYCStatusBanner } from '@/components/KYCStatusBanner'
 import { McpAnnouncementBanner } from '@/components/home/McpAnnouncementBanner'
@@ -492,6 +493,13 @@ export default function Home() {
                     </SummaryQueryBoundary>
                   )}
                   {!dashboardData.comparacionCaida && <AvisoDeCarga query={dashboardData.compareQuery} hayDatos />}
+                  <AvisoCobrosQrIncompletos
+                    incompleto={dashboardData.cobrosQrIncompletos}
+                    onRetry={() => {
+                      void dashboardData.refetchBasicData()
+                      void dashboardData.refetchCompareData()
+                    }}
+                  />
                   <div className="grid gap-6 md:grid-cols-[220px_1fr]">
                     <div className="flex flex-col">
                       <p className="text-sm text-muted-foreground">{t('newHome.performance.netSales')}</p>

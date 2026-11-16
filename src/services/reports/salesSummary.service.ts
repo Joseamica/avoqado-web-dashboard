@@ -156,6 +156,8 @@ export interface SalesSummaryResponse {
   filtered: boolean
   /** Lo pagado con saldo de tarjetas de regalo (B5); sólo con groupBy=paymentMethod y sin filtro. Opcional. */
   giftCardBalanceBreakdown?: GiftCardBalanceBreakdown
+  /** Aditivo (D15): el servidor no pudo leer todos los cobros del sistema anterior de QR; estas cifras pueden estar incompletas. */
+  legacyUnavailable?: true
 }
 
 export interface SalesSummaryFilters {

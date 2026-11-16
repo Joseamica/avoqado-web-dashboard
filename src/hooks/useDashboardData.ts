@@ -108,6 +108,9 @@ export const useDashboardData = () => {
   const comparacionCaida = compareData === undefined && falloDeCarga(compareQuery)
   // También mientras carga o se reintenta: hasta que llegue, no hay nada contra qué comparar.
   const comparacionLista = compareData !== undefined
+  // D15: al periodo actual O al de comparación le pueden faltar cobros del sistema anterior de QR. Con el anterior a medias, el
+  // «+40 %» engaña aunque las ventas de hoy estén completas: el aviso mira los dos.
+  const cobrosQrIncompletos = !!basicData?.legacyUnavailable || !!compareData?.legacyUnavailable
 
   // Register socket event handlers
   useSocketEvents(
@@ -369,6 +372,7 @@ export const useDashboardData = () => {
     compareQuery,
     comparacionCaida,
     comparacionLista,
+    cobrosQrIncompletos,
     isBasicLoading,
     isBasicError,
     basicError,
