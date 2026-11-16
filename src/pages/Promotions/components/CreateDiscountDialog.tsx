@@ -106,10 +106,9 @@ export function CreateDiscountDialog({ venueId, onSuccess }: CreateDiscountDialo
       cleanedData.getItemIds = undefined
     }
 
-    if (data.type !== 'COMP') {
-      cleanedData.requiresApproval = undefined
-      cleanedData.compReason = undefined
-    }
+    // Encargo 1afe04: «Requiere aprobación» vale para cortesía, % y monto fijo; el motivo de cortesía, sólo para cortesía.
+    if (data.type !== 'COMP') cleanedData.compReason = undefined
+    if (!['COMP', 'PERCENTAGE', 'FIXED_AMOUNT'].includes(data.type)) cleanedData.requiresApproval = undefined
 
     if (!cleanedData.validFrom) cleanedData.validFrom = undefined
     if (!cleanedData.validUntil) cleanedData.validUntil = undefined

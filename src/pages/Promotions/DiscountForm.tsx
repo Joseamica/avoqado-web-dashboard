@@ -162,11 +162,9 @@ export default function DiscountForm() {
       cleanedData.getItemIds = undefined
     }
 
-    // Only keep comp fields for COMP type
-    if (data.type !== 'COMP') {
-      cleanedData.requiresApproval = undefined
-      cleanedData.compReason = undefined
-    }
+    // Encargo 1afe04: «Requiere aprobación» vale para cortesía, % y monto fijo; el motivo de cortesía, sólo para cortesía.
+    if (data.type !== 'COMP') cleanedData.compReason = undefined
+    if (!['COMP', 'PERCENTAGE', 'FIXED_AMOUNT'].includes(data.type)) cleanedData.requiresApproval = undefined
 
     // Convert empty strings to undefined for optional fields
     if (!cleanedData.validFrom) cleanedData.validFrom = undefined

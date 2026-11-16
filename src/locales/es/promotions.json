@@ -36,7 +36,7 @@
     "detail": {
       "title": "Detalles del Descuento",
       "notFound": "Descuento no encontrado",
-      "usage": {"total": "Usos: {{count}}", "pos": "En el POS: {{count}}", "links": "En ligas pagadas: {{count}}"},
+      "usage": { "total": "Usos: {{count}}", "pos": "En el POS: {{count}}", "links": "En ligas pagadas: {{count}}" },
       "tabs": {
         "general": "General",
         "scope": "Alcance",
@@ -262,7 +262,9 @@
         "stacking": "Opciones de Acumulación",
         "tax": "Cálculo de Impuestos",
         "comp": "Configuración de Cortesía",
-        "compDescription": "Configuración adicional para descuentos de cortesía"
+        "compDescription": "Configuración adicional para descuentos de cortesía",
+        "approval": "Aprobación de un encargado",
+        "approvalDescription": "Quién puede aplicar este descuento en el POS"
       },
       "hints": {
         "type": {
@@ -334,7 +336,9 @@
           "approval": "Requerir aprobación del gerente antes de aplicar esta cortesía",
           "reason": "Documenta por qué se creó este descuento de cortesía"
         },
-        "active": "Cuando está deshabilitado, el descuento no puede usarse aunque se cumplan otras condiciones"
+        "active": "Cuando está deshabilitado, el descuento no puede usarse aunque se cumplan otras condiciones",
+        "approval": "En el POS lo aplica directo quien tenga «Aplicar descuentos en TPV» (de fábrica: gerente, administrador y dueño). A los demás les pide el PIN de un encargado al cobrar.",
+        "approvalWarning": "Al prenderlo, este descuento deja de usarse en la terminal de cobro (TPV), en las ligas de pago, en la tienda en línea, como descuento automático y como descuento asignado a un cliente: ahí nadie puede aprobarlo todavía."
       }
     }
   },

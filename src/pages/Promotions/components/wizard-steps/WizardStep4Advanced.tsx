@@ -235,6 +235,44 @@ export function WizardStep4Advanced({ form, discountType }: WizardStep4AdvancedP
         </CardContent>
       </Card>
 
+      {/* Encargo 1afe04 (founder «A», como Toast): un % o monto fijo también puede pedir la aprobación de un encargado en el POS. */}
+      {(discountType === 'PERCENTAGE' || discountType === 'FIXED_AMOUNT') && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="h-5 w-5 text-muted-foreground" />
+              <CardTitle className="text-base">{t('discounts.wizard.step4.approval')}</CardTitle>
+            </div>
+            <CardDescription>{t('discounts.wizard.step4.approvalDescription')}</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex items-start justify-between gap-4">
+              <div className="space-y-1 flex-1">
+                <Label className="font-medium" htmlFor="requiresApproval-switch">
+                  {t('discounts.form.fields.requiresApproval')}
+                </Label>
+                <p className="text-sm text-muted-foreground">{t('discounts.wizard.hints.approval')}</p>
+              </div>
+              <FormField
+                control={form.control}
+                name="requiresApproval"
+                render={({ field }) => (
+                  <FormControl>
+                    <Switch id="requiresApproval-switch" checked={field.value} onCheckedChange={field.onChange} />
+                  </FormControl>
+                )}
+              />
+            </div>
+            {form.watch('requiresApproval') && (
+              <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
+                <Info className="mt-0.5 h-4 w-4 shrink-0" />
+                <span data-testid="aviso-aprobacion">{t('discounts.wizard.hints.approvalWarning')}</span>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Comp-specific fields */}
       {discountType === 'COMP' && (
         <Card className="border-purple-200 dark:border-purple-800 bg-purple-50/50 dark:bg-purple-950/20">

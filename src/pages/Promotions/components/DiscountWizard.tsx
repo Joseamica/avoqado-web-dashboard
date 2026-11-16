@@ -338,7 +338,8 @@ export function DiscountWizard({ open, onOpenChange, venueId, editDiscount, onSu
       priority: step4Values.priority,
       isStackable: step4Values.isStackable,
       applyBeforeTax: step4Values.applyBeforeTax,
-      requiresApproval: step1Data.type === 'COMP' ? step4Values.requiresApproval : undefined,
+      // Encargo 1afe04: también en % y monto fijo (en el POS pide «Aplicar descuentos en TPV» o el PIN de un encargado).
+      requiresApproval: ['COMP', 'PERCENTAGE', 'FIXED_AMOUNT'].includes(step1Data.type) ? step4Values.requiresApproval : undefined,
       compReason: step1Data.type === 'COMP' ? step4Values.compReason : undefined,
       active: step4Values.active,
     }
