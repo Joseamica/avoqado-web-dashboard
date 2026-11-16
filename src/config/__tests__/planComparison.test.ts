@@ -18,6 +18,12 @@ describe('tabla de comparación de planes', () => {
     expect(faltan).toEqual([])
   })
 
+  it('«Bancos» (banca en vivo y SPEI) es legacy: no sale en la tabla, y «Saldo disponible» queda solo (D35, 15-nov)', () => {
+    const enTabla = new Set(PLAN_COMPARISON.flatMap(c => c.rows.flatMap(r => r.codes ?? [])))
+    expect(enTabla.has('BANKING_HUB')).toBe(false)
+    expect(fila('balance').codes).toEqual(['AVAILABLE_BALANCE'])
+  })
+
   it('la pantalla de cocina ya se anuncia: tiene su fila y no está «sin lanzar» (founder, 1-nov)', () => {
     const enTabla = new Set(PLAN_COMPARISON.flatMap(c => c.rows.flatMap(r => r.codes ?? [])))
     expect(enTabla.has('KITCHEN_DISPLAY')).toBe(true)

@@ -49,9 +49,11 @@ export const FUNCIONES_PROXIMAMENTE: readonly string[] = ['CUSTOMER_DISPLAY_PROM
  * `DEVICE_MENUS` (menú de cada aparato, Pro; Ruling 16) sale de aquí —y gana su fila `{ key: 'deviceMenus', codes:
  * ['DEVICE_MENUS'] }` en «sell»; el texto ya está en billing.json— cuando se publiquen las apps que aplican el filtro
  * (Parte E, paso 4): antes, ningún aparato lo aplica.
+ * `BANKING_HUB` (hub «Bancos»: saldo en vivo, transferencias y SPEI) va aquí al revés: ya no se anuncia porque es legacy
+ * (founder, 11-nov-2026; D35, 15-nov). Sigue en `includes` para quien entre por la liga directa.
  * 🔴 Esta lista NO esconde filas: sólo exime al código de «cada función aparece en alguna fila». Lo sin lanzar va SIN fila.
  */
-export const FUNCIONES_SIN_LANZAR: readonly string[] = ['AGGREGATOR_PASSES', 'CUSTOMER_DISPLAY_PROMOS', 'GIFT_CARDS', 'DEVICE_MENUS']
+export const FUNCIONES_SIN_LANZAR: readonly string[] = ['AGGREGATOR_PASSES', 'CUSTOMER_DISPLAY_PROMOS', 'GIFT_CARDS', 'DEVICE_MENUS', 'BANKING_HUB']
 
 export const PLAN_COMPARISON: CategoriaDeComparacion[] = [
   {
@@ -98,7 +100,7 @@ export const PLAN_COMPARISON: CategoriaDeComparacion[] = [
       { key: 'reportsHistory', codes: ['ADVANCED_REPORTS'] },
       { key: 'cashCount', codes: ['CASH_RECONCILIATION'] },
       { key: 'bankReconciliation', codes: ['BANK_RECONCILIATION'] },
-      { key: 'balance', codes: ['AVAILABLE_BALANCE', 'BANKING_HUB'] },
+      { key: 'balance', codes: ['AVAILABLE_BALANCE'] },
       { key: 'exportTransactions', codes: ['TRANSACTION_EXPORT'] },
       { key: 'cfdi', codes: ['CFDI'] },
     ],
