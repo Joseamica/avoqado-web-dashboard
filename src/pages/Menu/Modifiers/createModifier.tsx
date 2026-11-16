@@ -20,8 +20,9 @@ import { useUnitTranslation } from '@/hooks/use-unit-translation'
 import { apiErrorDescription } from '@/utils/apiError'
 import { Currency } from '@/utils/currency'
 import { Loader2, Search, Package, X } from 'lucide-react'
-import { ModifierInventoryMode, Unit } from '@/types'
+import { ModifierInventoryMode, Unit, type ModifierLinkedProduct } from '@/types'
 import { normalizeModifierSku } from './modifierSku'
+import { LinkedProductField } from './LinkedProductField'
 
 // Schema for the form validation
 // Define form values type
@@ -41,6 +42,9 @@ type FormValues = {
   quantityPerUnit: number | null
   unit: string | null
   inventoryMode: ModifierInventoryMode | null
+  /** «Este extra es un platillo del menú» (encargo 27771e): excluye a `trackInventory` (ingrediente). */
+  linkedEnabled: boolean
+  linkedProduct: ModifierLinkedProduct | null
 }
 
 // Schema will be created inside component to access t() function
@@ -59,6 +63,9 @@ const createFormSchema = (t: any) =>
     quantityPerUnit: z.number().positive().nullable().default(null),
     unit: z.string().nullable().default(null),
     inventoryMode: z.nativeEnum(ModifierInventoryMode).nullable().default(null),
+    // Declarados aquí: zod descarta las llaves que el esquema no conoce y el platillo ligado no se enviaría.
+    linkedEnabled: z.boolean().default(false),
+    linkedProduct: z.object({ id: z.string(), name: z.string() }).passthrough().nullable().default(null),
   })
 
 interface CreateModifierProps {
@@ -94,10 +101,23 @@ export default function CreateModifier({ venueId, modifierGroupId, onBack, onSuc
       quantityPerUnit: null,
       unit: null,
       inventoryMode: null,
+      linkedEnabled: false,
+      linkedProduct: null,
     },
   })
 
   const trackInventory = form.watch('trackInventory')
+  const linkedEnabled = form.watch('linkedEnabled')
+  const linkedProduct = form.watch('linkedProduct')
+  const [showLinkedRequired, setShowLinkedRequired] = useState(false)
+
+  // Un extra descuenta un ingrediente O un platillo, no los dos: prender uno apaga el otro.
+  const setLinkedEnabled = (on: boolean) => {
+    form.setValue('linkedEnabled', on, { shouldDirty: true })
+    if (on) form.setValue('trackInventory', false, { shouldDirty: true })
+    else form.setValue('linkedProduct', null, { shouldDirty: true })
+    setShowLinkedRequired(false)
+  }
 
   // Debounce search term
   useEffect(() => {
@@ -162,6 +182,11 @@ export default function CreateModifier({ venueId, modifierGroupId, onBack, onSuc
         payload.inventoryMode = formValues.inventoryMode
       }
 
+      // Extra ligado a un platillo del menú (encargo 27771e).
+      if (formValues.linkedEnabled && formValues.linkedProduct) {
+        payload.linkedProductId = formValues.linkedProduct.id
+      }
+
       return await createModifierService(venueId, modifierGroupId, payload)
     },
     onSuccess: _data => {
@@ -201,6 +226,10 @@ export default function CreateModifier({ venueId, modifierGroupId, onBack, onSuc
 
   // Handle form submission
   function onSubmit(values: FormValues) {
+    if (values.linkedEnabled && !values.linkedProduct) {
+      setShowLinkedRequired(true)
+      return
+    }
     createModifierMutation.mutate(values)
   }
 
@@ -367,7 +396,16 @@ export default function CreateModifier({ venueId, modifierGroupId, onBack, onSuc
                     </div>
                     <FormControl>
                       <div>
-                        <Switch checked={field.value} onCheckedChange={field.onChange} name={field.name} ref={field.ref} />
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={on => {
+                            field.onChange(on)
+                            if (on) setLinkedEnabled(false)
+                          }}
+                          aria-label={t('modifiers.inventory.trackInventory', 'Track Inventory')}
+                          name={field.name}
+                          ref={field.ref}
+                        />
                       </div>
                     </FormControl>
                   </FormItem>
@@ -551,6 +589,19 @@ export default function CreateModifier({ venueId, modifierGroupId, onBack, onSuc
                   )}
                 </>
               )}
+
+              {/* «Este extra es un platillo del menú» (encargo 27771e): Premium, excluye al ingrediente */}
+              <LinkedProductField
+                venueId={venueId}
+                enabled={linkedEnabled}
+                onEnabledChange={setLinkedEnabled}
+                value={linkedProduct}
+                onChange={product => {
+                  form.setValue('linkedProduct', product, { shouldDirty: true })
+                  setShowLinkedRequired(false)
+                }}
+                showRequired={showLinkedRequired}
+              />
             </CardContent>
           </Card>
 

@@ -1167,7 +1167,8 @@
     "viewAllModifiers": "View all modifiers",
     "noModifiersTracked": "No Modifiers with Inventory Tracking",
     "noModifiersDescription": "Configure inventory tracking for modifiers to see usage analytics and cost impact.",
-    "configureModifiers": "Configure Modifiers"
+    "configureModifiers": "Configure Modifiers",
+    "linkedProduct": "Takes down “{{name}}”"
   },
   "tour": {
     "launchButton": "How to add an ingredient?",

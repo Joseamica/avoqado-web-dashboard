@@ -297,6 +297,37 @@ export const getModifier = async (venueId: string, modifierGroupId: string, modi
 /**
  * Create a new modifier
  */
+/** Platillo del menú que un extra puede «ser» (encargo 27771e), tal como lo devuelve el buscador acotado del servidor. */
+export interface LinkableProduct {
+  id: string
+  name: string
+  active: boolean
+  categoryName: string | null
+  inventoryMethod: 'QUANTITY' | 'RECIPE' | null
+  linkable: boolean
+  blockedReason: 'NOT_INVENTORIED' | 'SOLD_BY_WEIGHT' | null
+}
+
+export interface LinkableProductsPage {
+  data: LinkableProduct[]
+  total: number
+  hasMore: boolean
+  nextCursor: string | null
+}
+
+/** Busca platillos para ligar a un extra: página acotada en el servidor (nunca el menú entero). */
+export const searchLinkableProducts = async (
+  venueId: string,
+  params: { search?: string; cursor?: string | null },
+): Promise<LinkableProductsPage> => {
+  const query = new URLSearchParams()
+  if (params.search) query.append('search', params.search)
+  if (params.cursor) query.append('cursor', params.cursor)
+  const qs = query.toString()
+  const response = await api.get(`/api/v1/dashboard/venues/${venueId}/modifier-linkable-products${qs ? `?${qs}` : ''}`)
+  return response.data as LinkableProductsPage
+}
+
 export const createModifier = async (venueId: string, modifierGroupId: string, modifierData: any): Promise<Modifier> => {
   const response = await api.post(`/api/v1/dashboard/venues/${venueId}/modifier-groups/${modifierGroupId}/modifiers`, modifierData)
   return response.data

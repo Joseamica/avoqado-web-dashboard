@@ -417,7 +417,29 @@
       "quantityPerUnit": "Cantidad por modificador",
       "quantityPerUnitDesc": "Cuánta Ingrediente se usa por cada modificador",
       "unit": "Unidad",
-      "selectUnit": "Seleccionar unidad"
+      "selectUnit": "Seleccionar unidad",
+      "linked": {
+        "title": "Este extra es un platillo del menú",
+        "desc": "Al venderse, baja el inventario de ese platillo (sus piezas o su receta). No cuenta como venta de ese platillo: su precio es el del extra.",
+        "pick": "Platillo",
+        "search": "Buscar platillo…",
+        "methodQuantity": "Por piezas",
+        "methodRecipe": "Por receta",
+        "showing": "Mostrando {{shown}} de {{total}}",
+        "loadMore": "Cargar más",
+        "empty": "No hay platillos con ese nombre.",
+        "error": "No se pudieron cargar los platillos. Intenta de nuevo.",
+        "retry": "Reintentar",
+        "blocked": {
+          "NOT_INVENTORIED": "No lleva inventario: actívaselo en su ficha (por piezas o por receta) para poder ligarlo.",
+          "SOLD_BY_WEIGHT": "Se vende por kilo: un extra no puede descontarlo."
+        },
+        "remove": "Quitar platillo",
+        "noLongerTracked": "Este platillo ya no lleva inventario: el extra no descuenta nada hasta que se lo vuelvas a activar.",
+        "inactive": "Inactivo",
+        "required": "Elige el platillo o apaga «Este extra es un platillo del menú».",
+        "exclusive": "Un extra descuenta un ingrediente o un platillo, no los dos: al prender uno se apaga el otro."
+      }
     },
     "editor": {
       "subtitle": "Modificadores del grupo",

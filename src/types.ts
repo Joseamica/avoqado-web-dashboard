@@ -1429,8 +1429,23 @@ export interface Modifier {
   quantityPerUnit?: number | null // Amount of raw material per modifier unit
   unit?: Unit | string | null // Unit of measurement
   inventoryMode?: ModifierInventoryMode | null // ADDITION or SUBSTITUTION
+  /** Platillo del menú que este extra «es» (encargo 27771e): al venderse descuenta su inventario. */
+  linkedProductId?: string | null
+  linkedProduct?: ModifierLinkedProduct | null
 
   orderItems?: OrderItemModifier[]
+}
+
+/** Lo que el servidor devuelve del platillo ligado a un extra. */
+export interface ModifierLinkedProduct {
+  id: string
+  name: string
+  trackInventory?: boolean
+  inventoryMethod?: 'QUANTITY' | 'RECIPE' | null
+  soldByWeight?: boolean
+  active?: boolean
+  deletedAt?: string | null
+  categoryName?: string | null
 }
 
 export interface ProductModifierGroup {

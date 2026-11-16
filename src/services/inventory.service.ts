@@ -837,6 +837,8 @@ export interface ModifierUsageStats {
   }
   inventoryMode: 'ADDITION' | 'SUBSTITUTION' | null
   quantityPerUnit: number | null
+  /** Extra ligado a un platillo del menú (encargo 27771e): qué platillo descuenta y el costo de hoy de una porción. */
+  linkedProduct?: { id: string; name: string; costPerPortion: number | null }
 }
 
 export interface ModifierLowStockItem {
