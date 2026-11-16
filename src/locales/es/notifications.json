@@ -161,7 +161,7 @@
     "VENUE_SUSPENDED": "Alertas críticas cuando el venue es suspendido",
     "HIGH_COMMISSION_ALERT": "Alertas por cargos de comisión inusualmente altos",
     "REVENUE_MILESTONE": "Celebración cuando se alcanzan hitos de ingresos",
-    "DAILY_SALES_SUMMARY": "Correo nocturno con un resumen de las ventas del día",
+    "DAILY_SALES_SUMMARY": "Correo cada mañana con el resumen de las ventas del día anterior",
     "EXPORT_READY": "Aviso en la campanita cuando termina de armarse un archivo que exportaste. El correo llega siempre, porque tú lo pediste.",
     "ANNOUNCEMENT": "Anuncios y noticias de la plataforma",
     "REMINDER": "Recordatorios personalizados y notificaciones programadas",

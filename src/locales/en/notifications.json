@@ -161,7 +161,7 @@
     "VENUE_SUSPENDED": "Critical alerts when venue is suspended",
     "HIGH_COMMISSION_ALERT": "Alerts for unusually high commission charges",
     "REVENUE_MILESTONE": "Celebrate when revenue milestones are reached",
-    "DAILY_SALES_SUMMARY": "Nightly email with a summary of the day's sales",
+    "DAILY_SALES_SUMMARY": "Morning email with a summary of the previous day's sales",
     "EXPORT_READY": "Bell notice when a file you exported is ready. The email always arrives, because you asked for it.",
     "ANNOUNCEMENT": "Platform-wide announcements and news",
     "REMINDER": "Custom reminders and scheduled notifications",
