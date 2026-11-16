@@ -95,6 +95,17 @@ describe('ProductosDelCanalSection', () => {
     expect(screen.getByRole('checkbox', { name: 'Producto 7' })).toBeInTheDocument()
   })
 
+  it('con más de 300 productos, una búsqueda con más de 300 coincidencias deja los grupos cerrados', () => {
+    const muchos = Array.from({ length: 400 }, (_, i) => p(`p${i}`, `Producto ${i}`, i % 2 ? 'Bebidas' : 'Postres'))
+    renderSeccion({ productos: muchos, lista: [] })
+    fireEvent.change(screen.getByLabelText('settings.productos.buscar'), { target: { value: 'producto' } })
+    expect(screen.queryByRole('checkbox', { name: 'Producto 7' })).not.toBeInTheDocument()
+    expect(screen.getAllByTestId('grupo-titulo').every(b => b.getAttribute('aria-expanded') === 'false')).toBe(true)
+
+    fireEvent.change(screen.getByLabelText('settings.productos.buscar'), { target: { value: 'producto 7' } })
+    expect(screen.getByRole('checkbox', { name: 'Producto 7' })).toBeInTheDocument()
+  })
+
   it('«Revisarlos» deja a la vista sólo los nuevos y «Ver todos» regresa', () => {
     const nuevo = p('p2', 'Té', 'Bebidas', { createdAt: '2026-07-01T00:00:00.000Z' })
     renderSeccion({ nuevos: [nuevo] })

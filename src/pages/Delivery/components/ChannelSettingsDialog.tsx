@@ -87,6 +87,8 @@ interface Seleccion {
   lista: string[] | null
   precios: Record<string, number | undefined>
   listaAlAbrir: string[] | null
+  /** Los precios guardados al abrir: un precio escondido inválido se manda como estaba, nunca se pierde. */
+  preciosAlAbrir: Record<string, number>
   /** Códigos de la lista vieja que ya no son de ningún producto: no se pueden guardar como id. */
   codigos: string[]
   /** El canal tenía la lista vieja por código: el primer «Guardar» la manda ya por id. */
@@ -99,6 +101,7 @@ function armarSeleccion(config: DeliveryChannelConfig | null | undefined, produc
     lista: s.lista,
     precios: s.precios,
     listaAlAbrir: s.lista,
+    preciosAlAbrir: s.precios,
     codigos: s.codigosSinProducto,
     porCodigo: !config?.productoIds && !!config?.productos,
   }
@@ -173,17 +176,19 @@ export function ChannelSettingsDialog({ open, onClose, venueId, channel }: Chann
   /**
    * Precios = dinero: se mandan TODOS los que se cargaron o se editaron, marcados o no (un producto que sale por temporada y
    * vuelve no debe publicarse al precio guía sin que nadie lo note; desmarcado no se publica porque no va en `productoIds`).
-   * Sólo se valida lo que el dueño ve y edita (los marcados); un precio escondido inválido no se manda.
+   * Sólo se valida lo que el dueño ve y edita (los marcados); un precio escondido inválido se manda como estaba al abrir
+   * (escribir -5 y desmarcar no borra el $79 guardado), o no se manda si no tenía.
    */
   const { preciosAMandar, hayPreciosInvalidos } = useMemo(() => {
     if (!sel) return { preciosAMandar: {} as Record<string, number>, hayPreciosInvalidos: false }
     const malos = new Set(erroresDePrecios(sel.precios))
     const enLista = new Set(sel.lista ?? [])
     return {
-      preciosAMandar: Object.fromEntries(Object.entries(sel.precios).filter(([id, v]) => v !== undefined && !malos.has(id))) as Record<
-        string,
-        number
-      >,
+      preciosAMandar: Object.fromEntries(
+        Object.entries(sel.precios)
+          .map(([id, v]) => [id, malos.has(id) ? sel.preciosAlAbrir[id] : v] as const)
+          .filter(([, v]) => v !== undefined),
+      ) as Record<string, number>,
       hayPreciosInvalidos: [...malos].some(id => enLista.has(id)),
     }
   }, [sel])

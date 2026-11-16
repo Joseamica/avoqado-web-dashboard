@@ -56,7 +56,7 @@ export function ProductosDelCanalSection(props: Props) {
   const conError = useMemo(() => new Set(erroresDePrecios(precios)), [precios])
 
   // Grupos por categoría (por nombre), «Sin categoría» al final; dentro, el orden del servidor (por nombre).
-  const grupos = useMemo(() => {
+  const { grupos, visibles } = useMemo(() => {
     const visibles = productos.filter(
       p => (!soloIds || soloIds.has(p.id)) && (!q || includesNormalized(p.name, q) || includesNormalized(p.sku ?? '', q)),
     )
@@ -68,7 +68,10 @@ export function ProductosDelCanalSection(props: Props) {
       g.productos.push(p)
       porClave.set(clave, g)
     }
-    return [...porClave.values()].sort((a, b) => (a.nombre === null ? 1 : b.nombre === null ? -1 : a.nombre.localeCompare(b.nombre, 'es')))
+    const grupos = [...porClave.values()].sort((a, b) =>
+      a.nombre === null ? 1 : b.nombre === null ? -1 : a.nombre.localeCompare(b.nombre, 'es'),
+    )
+    return { grupos, visibles: visibles.length }
   }, [productos, q, soloIds])
 
   if (props.cargando) {
@@ -115,7 +118,6 @@ export function ProductosDelCanalSection(props: Props) {
   }
 
   const marcados = productos.filter(p => enLista.has(p.id)).length
-  const filtrando = !!q || !!soloIds
   const cuantosYaNoExisten = props.yaNoExisten.ids.length + props.yaNoExisten.codigos.length
 
   const alternar = (id: string) => props.onListaChange(enLista.has(id) ? lista.filter(x => x !== id) : [...lista, id])
@@ -190,7 +192,8 @@ export function ProductosDelCanalSection(props: Props) {
           <div className="space-y-3">
             {grupos.map(g => {
               // ponytail: un grupo abierto pinta todas sus filas; con miles en UNA categoría, virtualizar la lista.
-              const abierto = abiertos[g.clave] ?? (filtrando || productos.length <= CERRADOS_DESDE)
+              // Abiertos sólo si lo visible (con búsqueda o filtro) cabe: una búsqueda amplia no pinta miles de filas.
+              const abierto = abiertos[g.clave] ?? visibles <= CERRADOS_DESDE
               const enGrupo = g.productos.filter(p => enLista.has(p.id)).length
               const nombre = g.nombre ?? t('settings.productos.sinCategoria')
               return (

@@ -398,6 +398,21 @@ describe('ChannelSettingsDialog', () => {
     expect(body.config.precios.porProducto).toEqual({ p1: 60 })
   })
 
+  it('precio guardado en $79, escribir -5 y desmarcar: se manda el $79 de al abrir, no se pierde', async () => {
+    mockGetProducts.mockResolvedValue([prod('p1', 'LATTE'), prod('p2', 'TE')])
+    renderDialog(channel({ config: { productoIds: ['p1', 'p2'], precios: { porProducto: { p2: 79 } } } }))
+
+    await screen.findByRole('checkbox', { name: 'TE' })
+    fireEvent.change(within(fila('TE')).getByLabelText('settings.productos.precioDe'), { target: { value: '-5' } })
+    fireEvent.click(screen.getByRole('checkbox', { name: 'TE' }))
+    expect(botonGuardar().disabled).toBe(false)
+    guardar()
+
+    const body = await cuerpo()
+    expect(body.config.productoIds).toEqual(['p1'])
+    expect(body.config.precios.porProducto).toEqual({ p2: 79 })
+  })
+
   it('desmarcar el único producto bloquea «Guardar» con el texto de pausar el canal', async () => {
     mockGetProducts.mockResolvedValue([prod('p1', 'LATTE')])
     renderDialog(channel({ config: { productoIds: ['p1'] } }))
