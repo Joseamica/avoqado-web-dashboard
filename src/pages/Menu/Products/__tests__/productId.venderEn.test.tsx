@@ -151,6 +151,45 @@ describe('ficha del producto: casilla «Vender en» (D1)', () => {
     expect(guardarBtn()).toBeDisabled()
   })
 
+  it('guardar sólo la casilla y fallar avisa «No se pudo agregar a Rappi» (con el motivo), sin decir que el producto se guardó', async () => {
+    delivery.ponerProductoEnCanales.mockRejectedValue({ response: { data: { message: 'motivo del servidor' } } })
+    renderFicha()
+    await userEvent.click(await screen.findByRole('checkbox', { name: 'Rappi' }))
+    await userEvent.click(guardarBtn())
+    await waitFor(() =>
+      expect(toastMock).toHaveBeenCalledWith({
+        title: 'venderEn.noSePudoAgregar',
+        description: 'motivo del servidor',
+        variant: 'destructive',
+      }),
+    )
+    expect(toastMock).not.toHaveBeenCalledWith(expect.objectContaining({ title: 'venderEn.falloAgregar' }))
+    expect(toastMock).not.toHaveBeenCalledWith(expect.objectContaining({ title: 'products.detail.toasts.saved' }))
+  })
+
+  // 🔴 Codex impl r1 #3: mientras el producto se guarda, otra persona lo agrega a Uber y la lectura nueva llega antes de `aplicar`.
+  it('si a media guardada alguien lo agrega a Uber, sólo se manda Rappi (lo único que tocó esta persona)', async () => {
+    const uber = { ...rappi, id: 'l2', provider: 'UBER_EATS' }
+    delivery.getChannels
+      .mockResolvedValueOnce([rappi, uber])
+      .mockResolvedValue([rappi, { ...uber, config: { productoIds: ['otro', 'p1'] } }])
+    let soltar!: (v: unknown) => void
+    svc.updateProduct.mockReturnValue(new Promise(r => (soltar = r)))
+    const { qc } = renderFicha()
+    await userEvent.click(await screen.findByRole('checkbox', { name: 'Rappi' }))
+    const precio = await screen.findByDisplayValue('250')
+    await userEvent.clear(precio)
+    await userEvent.type(precio, '260')
+    await userEvent.click(guardarBtn())
+    await waitFor(() => expect(svc.updateProduct).toHaveBeenCalledTimes(1))
+
+    await act(() => qc.invalidateQueries({ queryKey: ['deliveryChannels', 'v1'] }))
+    await waitFor(() => expect(screen.getByRole('checkbox', { name: 'Uber Eats' })).toBeChecked())
+    await act(async () => soltar(producto))
+
+    await waitFor(() => expect(delivery.ponerProductoEnCanales).toHaveBeenCalledExactlyOnceWith('v1', 'p1', { l1: true }))
+  })
+
   it('si cambió algo más, primero se guarda el producto y luego se pone en Rappi', async () => {
     renderFicha()
     await userEvent.click(await screen.findByRole('checkbox', { name: 'Rappi' }))

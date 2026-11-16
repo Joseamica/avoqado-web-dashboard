@@ -40,8 +40,9 @@ function Prueba({ producto }: { producto: { id?: string; sku?: string } }) {
   estado = useVenderEnCanales('v1', producto)
   return <VenderEnCanales estado={estado} />
 }
+let qc: QueryClient
 function montar(producto: { id?: string; sku?: string } = {}, enCache?: DeliveryChannelLink[]) {
-  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   // Lo que dejó otra pantalla en la misma llave (la página de Delivery sólo mira el plan, no `manage`).
   if (enCache) qc.setQueryData(['deliveryChannels', 'v1'], enCache)
   return render(
@@ -147,14 +148,14 @@ describe('casilla «Vender en»: qué manda aplicar', () => {
     svc.getChannels.mockResolvedValue([canal({ config: { productoIds: ['p1'] } })])
     montar({ id: 'p1' })
     await casilla()
-    await act(() => estado.aplicar('p1', { marcados: { l1: true }, alta: false }))
+    await act(() => estado.aplicar('p1', { marcados: { l1: true }, base: { l1: true }, alta: false }))
     expect(svc.ponerProductoEnCanales).not.toHaveBeenCalled()
   })
 
   it('con un cambio manda sólo ese canal', async () => {
     montar({ id: 'p1' })
     await casilla()
-    await act(() => estado.aplicar('p1', { marcados: { l1: true }, alta: false }))
+    await act(() => estado.aplicar('p1', { marcados: { l1: true }, base: { l1: false }, alta: false }))
     expect(svc.ponerProductoEnCanales).toHaveBeenCalledExactlyOnceWith('v1', 'p1', { l1: true })
   })
 
@@ -162,7 +163,7 @@ describe('casilla «Vender en»: qué manda aplicar', () => {
     svc.getChannels.mockResolvedValue([canal(), canal({ id: 'l2', provider: 'UBER_EATS', config: null })])
     montar()
     await casilla()
-    await act(() => estado.aplicar('nuevo', { marcados: { l1: false, l2: true }, alta: true }))
+    await act(() => estado.aplicar('nuevo', { marcados: { l1: false, l2: true }, base: { l1: false, l2: true }, alta: true }))
     expect(svc.ponerProductoEnCanales).toHaveBeenCalledExactlyOnceWith('v1', 'nuevo', { l1: false })
   })
 
@@ -171,8 +172,55 @@ describe('casilla «Vender en»: qué manda aplicar', () => {
     montar()
     await casilla()
     await act(async () => {
-      await expect(estado.aplicar('nuevo', { marcados: { l1: true }, alta: true })).resolves.toBe(false) // no lanza: dice «no quedó»
+      // no lanza: dice «no quedó»
+      await expect(estado.aplicar('nuevo', { marcados: { l1: true }, base: { l1: false }, alta: true })).resolves.toBe(false)
     })
     expect(toastMock).toHaveBeenCalledWith(expect.objectContaining({ title: 'venderEn.falloAgregar' }))
+  })
+
+  it('si la ruta falla con un motivo del SERVIDOR, el aviso lo dice debajo del título de siempre', async () => {
+    const motivo = 'Un canal necesita al menos un producto; pausa el canal si no quieres vender ahí'
+    svc.ponerProductoEnCanales.mockRejectedValue({ response: { data: { message: motivo } } })
+    svc.getChannels.mockResolvedValue([canal({ config: { productoIds: ['p1'] } })])
+    montar({ id: 'p1' })
+    await casilla()
+    await act(() => estado.aplicar('p1', { marcados: { l1: false }, base: { l1: true }, alta: false }))
+    expect(toastMock).toHaveBeenCalledWith({ title: 'venderEn.falloQuitar', description: motivo, variant: 'destructive' })
+  })
+
+  it('guardar SÓLO la casilla y fallar no dice que el producto se guardó', async () => {
+    svc.ponerProductoEnCanales.mockRejectedValue(new Error('500'))
+    montar({ id: 'p1' })
+    await casilla()
+    await act(() => estado.aplicar('p1', { marcados: { l1: true }, base: { l1: false }, alta: false, soloCanales: true }))
+    expect(toastMock).toHaveBeenCalledWith(expect.objectContaining({ title: 'venderEn.noSePudoAgregar', variant: 'destructive' }))
+    expect(toastMock).not.toHaveBeenCalledWith(expect.objectContaining({ title: 'venderEn.falloAgregar' }))
+  })
+
+  // 🔴 Codex impl r1 #3: A marca sólo Rappi; mientras se guarda el producto, B lo agrega a Uber y la lectura nueva llega antes de
+  // `aplicar`. Comparar contra esa lectura mandaba `Uber: false` y borraba lo de B sin aviso.
+  it('compara contra cómo estaba cada canal AL ENVIAR: un refresco a media guardada no manda el canal que nadie tocó', async () => {
+    const uber = (ids: string[]) => canal({ id: 'l2', provider: 'UBER_EATS', config: { productoIds: ids } })
+    svc.getChannels.mockResolvedValue([canal(), uber(['otro'])])
+    montar({ id: 'p1' })
+    await casilla()
+    act(() => estado.setMarcado('l1', true))
+    const envio = estado.envio()
+    expect(envio).toEqual({ marcados: { l1: true, l2: false }, base: { l1: false, l2: false } })
+
+    svc.getChannels.mockResolvedValue([canal(), uber(['otro', 'p1'])])
+    await act(() => qc.invalidateQueries({ queryKey: ['deliveryChannels', 'v1'] }))
+    await waitFor(() => expect(estado.canales.find(c => c.id === 'l2')?.dentroInicial).toBe(true))
+
+    await act(() => estado.aplicar('p1', { ...envio, alta: false }))
+    expect(svc.ponerProductoEnCanales).toHaveBeenCalledExactlyOnceWith('v1', 'p1', { l1: true })
+  })
+
+  it('lo mismo con el envío escrito a mano: sólo cuenta la base que viajó con él', async () => {
+    svc.getChannels.mockResolvedValue([canal(), canal({ id: 'l2', provider: 'UBER_EATS', config: { productoIds: ['otro', 'p1'] } })])
+    montar({ id: 'p1' })
+    await casilla()
+    await act(() => estado.aplicar('p1', { marcados: { l1: true, l2: false }, base: { l1: false, l2: false }, alta: false }))
+    expect(svc.ponerProductoEnCanales).toHaveBeenCalledExactlyOnceWith('v1', 'p1', { l1: true })
   })
 })

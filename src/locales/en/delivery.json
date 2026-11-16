@@ -60,7 +60,7 @@
     "menuManual": "Manual menu",
     "injectionRate": "Acceptance {{pct}}%",
     "injectionTooltip": "{{aceptados}} of {{recibidos}} orders got through. Below 99% the provider may suspend the integration.",
-    "settingsAction": "Hours, pricing and printing"
+    "settingsAction": "Hours, pricing, products and printing"
   },
   "settings": {
     "title": "Channel hours, pricing, products and printing",
@@ -205,6 +205,8 @@
     "ayuda": "Choose which delivery apps show this product.",
     "avisoTodoElCatalogo": "{{canal}} lists your whole catalog. If you remove it, {{canal}} will list only the products you choose (all except this one).",
     "falloAgregar": "The product was saved, but it couldn't be added to {{canal}}: try again from Delivery",
-    "falloQuitar": "The product was saved, but it couldn't be removed from {{canal}}: try again from Delivery"
+    "falloQuitar": "The product was saved, but it couldn't be removed from {{canal}}: try again from Delivery",
+    "noSePudoAgregar": "Couldn't add it to {{canal}}: try again from Delivery",
+    "noSePudoQuitar": "Couldn't remove it from {{canal}}: try again from Delivery"
   }
 }

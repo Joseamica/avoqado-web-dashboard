@@ -222,7 +222,7 @@ export default function ProductId() {
       queryClient.invalidateQueries({ queryKey: IVA_QUERY_KEY(venueId!) })
       // «Vender en» que viajó con ESTE guardado: se aplica ya guardado el producto (si falla, avisa por canal; no deshace nada).
       // Si quedó, la casilla vuelve a seguir al canal (lo tocado ya está en la lectura nueva); si no, se conserva para reintentar.
-      if (formValues.venderEn && (await venderEn.aplicar(productId!, { marcados: formValues.venderEn, alta: false }))) venderEn.reiniciar()
+      if (formValues.venderEn && (await venderEn.aplicar(productId!, { ...formValues.venderEn, alta: false }))) venderEn.reiniciar()
     },
     onError: (error: any) => {
       if (handleMasterCatalogError(error)) return
@@ -460,7 +460,7 @@ export default function ProductId() {
   function onSubmit(formValues: any) {
     if (!modificadoresListos) return
     // `venderEn` no va en el cuerpo del producto (el payload se arma campo por campo): lo lee el onSuccess de este guardado.
-    const conCanales = venderEn.cambio ? { ...formValues, venderEn: { ...venderEn.marcados } } : formValues
+    const conCanales = venderEn.cambio ? { ...formValues, venderEn: venderEn.envio() } : formValues
     if (pideAvisoIva) {
       setPorConfirmarIva(conCanales) // el guardado espera el «Continuar» del aviso del primer encendido
       return
@@ -472,7 +472,7 @@ export default function ProductId() {
   const soloCanales = venderEn.cambio && !form.formState.isDirty && !ivaCambio
   async function guardarSoloCanales() {
     setGuardandoCanales(true)
-    const quedo = await venderEn.aplicar(productId!, { marcados: { ...venderEn.marcados }, alta: false })
+    const quedo = await venderEn.aplicar(productId!, { ...venderEn.envio(), alta: false, soloCanales: true })
     setGuardandoCanales(false)
     if (!quedo) return // lo marcado se queda para reintentar; el aviso ya salió
     venderEn.reiniciar() // la casilla vuelve a seguir al canal: un cambio posterior desde Delivery se ve tal cual

@@ -60,7 +60,7 @@
     "menuManual": "Menú manual",
     "injectionRate": "Aceptación {{pct}}%",
     "injectionTooltip": "{{aceptados}} de {{recibidos}} pedidos entraron. Por debajo del 99% el proveedor puede suspender la integración.",
-    "settingsAction": "Horario, precios e impresión"
+    "settingsAction": "Horario, precios, productos e impresión"
   },
   "settings": {
     "title": "Horario, precios, productos e impresión del canal",
@@ -205,6 +205,8 @@
     "ayuda": "Elige en qué apps de delivery aparece este producto.",
     "avisoTodoElCatalogo": "{{canal}} publica todo tu catálogo. Si lo quitas, {{canal}} pasará a publicar sólo los productos que elijas (todos menos éste).",
     "falloAgregar": "El producto se guardó, pero no se pudo agregar a {{canal}}: inténtalo desde Delivery",
-    "falloQuitar": "El producto se guardó, pero no se pudo quitar de {{canal}}: inténtalo desde Delivery"
+    "falloQuitar": "El producto se guardó, pero no se pudo quitar de {{canal}}: inténtalo desde Delivery",
+    "noSePudoAgregar": "No se pudo agregar a {{canal}}: inténtalo desde Delivery",
+    "noSePudoQuitar": "No se pudo quitar de {{canal}}: inténtalo desde Delivery"
   }
 }

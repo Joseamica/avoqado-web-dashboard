@@ -22,7 +22,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
 import { VenderEnCanales } from '@/pages/Delivery/components/VenderEnCanales'
-import { useVenderEnCanales } from '@/pages/Delivery/components/useVenderEnCanales'
+import { useVenderEnCanales, type EnvioVenderEn } from '@/pages/Delivery/components/useVenderEnCanales'
 import { useImageUploader } from '@/hooks/use-image-uploader'
 import { useUnitTranslation } from '@/hooks/use-unit-translation'
 import { useTierFeatureAccess } from '@/hooks/use-tier-feature-access'
@@ -494,7 +494,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
       inventory: Step2FormData
       simpleStock?: Step3SimpleStockFormData
       recipe?: Step3RecipeFormData
-      venderEn: Record<string, boolean>
+      venderEn: EnvioVenderEn
     }) => {
       return productWizardApi.createProductWithInventory(venueId, data)
     },
@@ -512,7 +512,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
         variant: 'default',
       })
       // Aunque el asistente ya se haya cerrado o reabierto: lo marcado en ESTE envío.
-      await venderEn.aplicar(productId, { marcados: variables.venderEn, alta: true })
+      await venderEn.aplicar(productId, { ...variables.venderEn, alta: true })
 
       handleWizardComplete(contexto?.sesion, venueId, productId)
     },
@@ -1238,7 +1238,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
       createProductWithInventoryMutation.mutate({
         product: { ...productData, type: effectiveProductType ?? undefined },
         inventory: { useInventory: false },
-        venderEn: { ...venderEn.marcados },
+        venderEn: venderEn.envio(),
       })
       return
     }
@@ -1414,7 +1414,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
         product: { ...productData, type: effectiveProductType ?? undefined },
         inventory: inventoryData,
         simpleStock: simpleStockData,
-        venderEn: { ...venderEn.marcados },
+        venderEn: venderEn.envio(),
       })
     } else if (inventoryMethod === 'RECIPE') {
       const recipeData = step3RecipeForm.getValues()
@@ -1456,7 +1456,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
         product: { ...productData, type: effectiveProductType ?? undefined },
         inventory: inventoryData,
         recipe: cleanedRecipe,
-        venderEn: { ...venderEn.marcados },
+        venderEn: venderEn.envio(),
       })
     }
   }

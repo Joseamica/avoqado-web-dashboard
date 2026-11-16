@@ -23,7 +23,7 @@ import type { Product, ProductType } from '@/types'
 import { ProductWizardDialog } from '@/pages/Inventory/components/ProductWizardDialog'
 import { useMasterCatalogError } from '@/features/master-catalog/use-master-catalog-error'
 import { VenderEnCanales } from '@/pages/Delivery/components/VenderEnCanales'
-import { useVenderEnCanales } from '@/pages/Delivery/components/useVenderEnCanales'
+import { useVenderEnCanales, type EnvioVenderEn } from '@/pages/Delivery/components/useVenderEnCanales'
 import {
   getSkuValidationRules,
   getNameValidationRules,
@@ -80,7 +80,7 @@ export default function CreateProduct() {
   const venderEn = useVenderEnCanales(venueId ?? '', {})
 
   // `venderEn` viaja en las variables (lo marcado al enviar) y no va al SERVIDOR con el producto: se aplica ya creado.
-  const createProductMutation = useMutation<Product, unknown, CreateProductPayload & { venderEn: Record<string, boolean> }>({
+  const createProductMutation = useMutation<Product, unknown, CreateProductPayload & { venderEn: EnvioVenderEn }>({
     mutationFn: async ({ venderEn: _canales, ...payload }) => {
       return await createProductService(venueId!, payload)
     },
@@ -89,7 +89,7 @@ export default function CreateProduct() {
         title: t('products.create.toasts.created', { name: product.name }),
         description: t('products.create.toasts.createdDesc'),
       })
-      await venderEn.aplicar(product.id, { marcados: variables.venderEn, alta: true })
+      await venderEn.aplicar(product.id, { ...variables.venderEn, alta: true })
       navigate(from)
     },
     onError: (error: any) => {
@@ -208,7 +208,7 @@ export default function CreateProduct() {
       // también lo fuerza, pero lo enviamos explícito para dejar el catálogo consistente).
       soldByWeight: formValues.soldByWeight === true,
       ...(formValues.soldByWeight === true ? { unit: 'KILOGRAM' } : {}),
-      venderEn: { ...venderEn.marcados },
+      venderEn: venderEn.envio(),
     })
   }
 

@@ -6,7 +6,9 @@
  * queda como siempre.
  *
  * `aplicar` corre DESPUÉS de guardar el producto y sólo usa lo que recibe (lo marcado en ESE envío, Codex plan r2 #7): una
- * respuesta tardía no aplica lo marcado en otra apertura del asistente. Nunca lanza; si la ruta falla, avisa por canal.
+ * respuesta tardía no aplica lo marcado en otra apertura del asistente. Y compara contra cómo estaba cada canal AL ENVIAR (`base`,
+ * Codex impl r1 #3): contra la lectura viva, un refresco a media guardada mandaba un canal que nadie tocó y borraba lo de otra
+ * persona. Nunca lanza; si la ruta falla, avisa por canal.
  */
 import { useCallback, useMemo, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -26,6 +28,12 @@ export interface CanalVenderEn {
   dentroInicial: boolean
 }
 
+/** Lo que viaja con un guardado: lo marcado y cómo estaba cada canal en ese momento (copias). */
+export interface EnvioVenderEn {
+  marcados: Record<string, boolean>
+  base: Record<string, boolean>
+}
+
 export interface EstadoVenderEn {
   visible: boolean
   canales: CanalVenderEn[]
@@ -33,8 +41,13 @@ export interface EstadoVenderEn {
   cambio: boolean
   setMarcado: (id: string, v: boolean) => void
   reiniciar: () => void
-  /** `true` si no había nada que mandar o todo quedó; `false` si la ruta falló (ya se avisó). Nunca lanza. */
-  aplicar: (productId: string, alEnviar: { marcados: Record<string, boolean>; alta: boolean }) => Promise<boolean>
+  /** Lo que se pone en las variables del guardado, al enviarlo. */
+  envio: () => EnvioVenderEn
+  /**
+   * `true` si no había nada que mandar o todo quedó; `false` si la ruta falló (ya se avisó). Nunca lanza. `soloCanales`: el guardado
+   * no tocó el producto, así que el aviso no dice «El producto se guardó».
+   */
+  aplicar: (productId: string, alEnviar: EnvioVenderEn & { alta: boolean; soloCanales?: boolean }) => Promise<boolean>
 }
 
 /** `activo: false` no consulta los canales (el asistente cerrado o en edición); lo ya leído sigue sirviendo a `aplicar`. */
@@ -79,25 +92,37 @@ export function useVenderEnCanales(venueId: string, producto: { id?: string; sku
   const cambio = canales.some(c => marcados[c.id] !== c.dentroInicial)
   const setMarcado = useCallback((id: string, v: boolean) => setElegidos(previos => ({ ...previos, [id]: v })), [])
   const reiniciar = useCallback(() => setElegidos({}), [])
+  const envio = () => ({ marcados: { ...marcados }, base: Object.fromEntries(canales.map(c => [c.id, c.dentroInicial])) })
 
-  const aplicar: EstadoVenderEn['aplicar'] = async (productId, { marcados: enviados, alta }) => {
+  const aplicar: EstadoVenderEn['aplicar'] = async (productId, { marcados: enviados, base, alta, soloCanales }) => {
     const porId = new Map(canales.map(c => [c.id, c]))
     const enviar: Record<string, boolean> = {}
     for (const [id, dentro] of Object.entries(enviados)) {
       const c = porId.get(id)
       if (!c) continue // el canal ya no está conectado
       // En un alta, un canal con lista que quedó sin marcar también va: así cuenta como revisado y no sale en «nuevos».
-      if (dentro !== c.dentroInicial || (alta && !dentro && !c.todoElCatalogo)) enviar[id] = dentro
+      if (dentro !== base[id] || (alta && !dentro && !c.todoElCatalogo)) enviar[id] = dentro
     }
     if (Object.keys(enviar).length === 0) return true
     try {
       await ponerProductoEnCanales(venueId, productId, enviar)
       return true
-    } catch {
+    } catch (error) {
+      const motivo = (error as { response?: { data?: { message?: string } } })?.response?.data?.message
       for (const [id, dentro] of Object.entries(enviar)) {
-        const c = porId.get(id)!
-        if (dentro === c.dentroInicial) continue // sólo «revisado» en un alta: el producto no estaba ni iba a estar ahí
-        toast({ title: t(dentro ? 'venderEn.falloAgregar' : 'venderEn.falloQuitar', { canal: c.nombre }), variant: 'destructive' })
+        if (dentro === base[id]) continue // sólo «revisado» en un alta: el producto no estaba ni iba a estar ahí
+        const llave = soloCanales
+          ? dentro
+            ? 'venderEn.noSePudoAgregar'
+            : 'venderEn.noSePudoQuitar'
+          : dentro
+            ? 'venderEn.falloAgregar'
+            : 'venderEn.falloQuitar'
+        toast({
+          title: t(llave, { canal: porId.get(id)!.nombre }),
+          ...(motivo ? { description: motivo } : {}),
+          variant: 'destructive',
+        })
       }
       return false
     } finally {
@@ -106,5 +131,5 @@ export function useVenderEnCanales(venueId: string, producto: { id?: string; sku
     }
   }
 
-  return { visible: canales.length > 0, canales, marcados, cambio, setMarcado, reiniciar, aplicar }
+  return { visible: canales.length > 0, canales, marcados, cambio, setMarcado, reiniciar, envio, aplicar }
 }
