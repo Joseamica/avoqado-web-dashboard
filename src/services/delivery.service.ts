@@ -43,7 +43,15 @@ export const updateChannel = async (
   linkId: string,
   // `config` se MEZCLA en el backend, no reemplaza: mandar sólo `deliveryHours` deja
   // `precios` intacto. Mandar `null` sí limpia todo — es el borrado explícito.
-  body: { orderAcceptanceMode?: 'AUTO' | 'MANUAL'; autoSyncMenu?: boolean; config?: DeliveryChannelConfig | null },
+  body: {
+    orderAcceptanceMode?: 'AUTO' | 'MANUAL'
+    autoSyncMenu?: boolean
+    config?: DeliveryChannelConfig | null
+    /** Huella de la selección que vio la pantalla; el servidor responde 409 si ya cambió. */
+    seleccionEsperada?: string
+    /** Ids de productos nuevos que alguien ya revisó y dejó fuera. */
+    marcarRevisados?: string[]
+  },
 ): Promise<DeliveryChannelLink> => (await api.patch(`${base(venueId)}/channels/${linkId}`, body)).data.data
 
 /**
@@ -66,3 +74,11 @@ export const disconnectChannel = async (
 ): Promise<DeliveryChannelLink> =>
   (await api.post(`${base(venueId)}/channels/${linkId}/disconnect`, { conexionId, ...(opciones?.forzar ? { forzar: true } : {}) })).data
     .data
+
+/** PUT .../products/:productId/channels — pone o quita UN producto en varios canales a la vez ({ [linkId]: dentro }). */
+export const ponerProductoEnCanales = async (
+  venueId: string,
+  productId: string,
+  canales: Record<string, boolean>,
+): Promise<Array<{ linkId: string; dentro: boolean }>> =>
+  (await api.put(`${base(venueId)}/products/${productId}/channels`, { canales })).data.data
