@@ -242,6 +242,16 @@ export default function ReservationDetail() {
             <ReservationStatusBadge status={reservation.status} />
           </div>
           <p className="mt-1 text-sm text-muted-foreground md:text-base">{guestName}</p>
+          {/* Asistencia verificada: cómo se demostró la llegada (con su celular, con su teléfono, a mano por quién). */}
+          {reservation.checkInMethod && ['CHECKED_IN', 'COMPLETED'].includes(reservation.status) && (
+            <p className="mt-1 text-xs text-muted-foreground" data-testid="metodo-de-llegada">
+              {reservation.checkInMethod === 'STAFF' || reservation.checkInMethod === 'KIOSK_LIST'
+                ? t(`detail.checkInMethodBy.${reservation.checkInMethod}`, {
+                    name: [reservation.checkedInBy?.firstName, reservation.checkedInBy?.lastName].filter(Boolean).join(' ') || '—',
+                  })
+                : t(`detail.checkInMethod.${reservation.checkInMethod}`)}
+            </p>
+          )}
           {reservation.noShowCorrection && (
             <p className="mt-1 text-xs text-muted-foreground">
               {(() => {
@@ -498,6 +508,7 @@ export default function ReservationDetail() {
                         {entry.by && ` — ${entry.by}`}
                       </div>
                       {entry.reason && <div className="text-sm text-muted-foreground italic">{entry.reason}</div>}
+                      {entry.method && <div className="text-sm text-muted-foreground">{t(`detail.checkInMethod.${entry.method}`)}</div>}
                       {entry.correctionOf && (
                         <div className="text-sm text-muted-foreground italic">{t('undoNoShow.timelineCorrection')}</div>
                       )}

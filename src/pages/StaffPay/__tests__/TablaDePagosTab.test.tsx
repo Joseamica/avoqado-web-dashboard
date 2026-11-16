@@ -67,10 +67,17 @@ describe('TablaDePagosTab', () => {
     fireEvent.change(screen.getByLabelText('grid.simulatorSeats'), { target: { value: '8' } })
     expect(screen.getByTestId('simulator-result')).toHaveTextContent('570')
   })
-  it('«Sólo quien llegó» se ve deshabilitado con su explicación', () => {
+  it('asistencia verificada (16-nov): «Sólo quien llegó» se elige y viaja al guardar', async () => {
     render(<TablaDePagosTab />)
-    expect(screen.getByLabelText('grid.attended')).toBeDisabled()
+    const llegaron = screen.getByLabelText('grid.attended')
+    expect(llegaron).toBeEnabled()
+    expect(screen.getByLabelText('grid.booked')).toBeChecked()
     expect(screen.getByText('grid.attendedHelp')).toBeInTheDocument()
+    fireEvent.click(llegaron)
+    expect(llegaron).toBeChecked()
+    fireEvent.click(screen.getByText('grid.publish'))
+    await waitFor(() => expect(m.publish).toHaveBeenCalled())
+    expect(m.publish.mock.calls[0][0]).toMatchObject({ countMode: 'ATTENDED' })
   })
   it('editar el techo 10 → 1 → 12 no borra montos, y lo guardado no trae filas por encima del techo', async () => {
     render(<TablaDePagosTab />)

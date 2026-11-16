@@ -148,6 +148,8 @@ export function ExcepcionesSheet({ sede, fecha, onClose }: { sede?: string; fech
                         >
                           {t('period.resolveInTable')}
                         </Link>
+                      ) : motivo === 'GRUPO_POR_CONFIRMAR' ? (
+                        <p className="text-xs text-muted-foreground">{t('period.resolveGroup')}</p>
                       ) : (
                         <p className="text-xs text-muted-foreground">{t('period.resolveNoCoach')}</p>
                       )}

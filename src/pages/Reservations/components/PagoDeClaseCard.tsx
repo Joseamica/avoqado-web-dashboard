@@ -1,4 +1,5 @@
 import { falloDeCarga } from '@/lib/falloDeCarga'
+import { textoDeLlegadas } from '@/pages/StaffPay/textoDeLlegadas'
 import { AvisoDeCarga, BotonReintentar } from '@/components/AvisoDeCarga'
 import { useState, type MouseEvent } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -190,6 +191,12 @@ export function PagoDeClaseCard({ sessionId, conSeparador = false }: { sessionId
             )}
             {conteoCorregido && !canceladaTarde && (
               <p className="text-xs text-muted-foreground">{t('classCard.calculated', { count: p.conteoCalculado })}</p>
+            )}
+            {/* Asistencia verificada: en «Sólo quien llegó», cómo llegó cada lugar. */}
+            {p.countMode === 'ATTENDED' && textoDeLlegadas(t, p.llegadas) && (
+              <p className="text-xs text-muted-foreground" data-testid="llegadas-clase">
+                {textoDeLlegadas(t, p.llegadas)}
+              </p>
             )}
             {p.estado === 'OK' ? (
               <>
