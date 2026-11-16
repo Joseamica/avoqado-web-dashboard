@@ -143,6 +143,12 @@ export function DesglosePersona({
               ))}
             </dl>
           )}
+          {/* Asistencia verificada: cómo llegaron sus lugares en todo el recibo (lo suma el server). */}
+          {textoDeLlegadas(t, recibo.data?.llegadas) && (
+            <p className="pt-1 text-sm text-muted-foreground" data-testid="llegadas-recibo">
+              {t('arrivals.receiptTotal', { text: textoDeLlegadas(t, recibo.data?.llegadas) })}
+            </p>
+          )}
           {cerrado && recibo.data && (
             <div className="pt-1">
               {recibo.data.pagadoEn ? (

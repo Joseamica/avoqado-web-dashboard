@@ -147,6 +147,8 @@ export interface ReciboDto {
   parcial: boolean
   /** Fase 3: total por tipo del recibo ENTERO (lo suma la base); un tipo sin renglones no viene. Opcional: server previo. */
   totalesPorTipo?: Partial<Record<TipoRenglon, string>>
+  /** Asistencia verificada: llegadas por método del recibo ENTERO (sólo clases de «Sólo quien llegó»). Opcional. */
+  llegadas?: LlegadasDto | null
   /** B12/B13: devoluciones de esta persona que se descontarán solas en OTRO cierre. null en uno cerrado y en las páginas 2+. */
   pendientes?: DevolucionesPendientesDto | null
 }
