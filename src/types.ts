@@ -666,6 +666,10 @@ export interface VenueSettings {
   exchangesEnabled?: boolean | null
   /** PIN de autorización de gerente. Core (sin candado de plan), nace OFF; el POS sólo lo lee. */
   managerPinOverrideEnabled?: boolean
+  /** Motivo obligatorio en los descuentos del POS (encargo f998c8). Core, nace OFF; no se prende con la lista vacía. */
+  discountReasonRequired?: boolean
+  /** La lista de motivos del negocio (≤ 30, ≤ 60 letras). */
+  discountReasons?: string[]
 
   // Auto Clock-Out (HR automation)
   autoClockOutEnabled: boolean

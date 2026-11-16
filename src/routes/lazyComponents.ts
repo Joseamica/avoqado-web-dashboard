@@ -320,6 +320,7 @@ export const SalesByCategory = lazyWithRetry(() => import('@/pages/Reports/Sales
 export const PaymentMethods = lazyWithRetry(() => import('@/pages/Reports/PaymentMethods'))
 export const Refunds = lazyWithRetry(() => import('@/pages/Reports/Refunds'))
 export const PromotionSales = lazyWithRetry(() => import('@/pages/Reports/PromotionSales'))
+export const AppliedDiscounts = lazyWithRetry(() => import('@/pages/Reports/AppliedDiscounts'))
 export const HomeDashboardCharts = lazyWithRetry(() => import('@/pages/Reports/HomeDashboardCharts'))
 
 // Demo Pages (temporary)
