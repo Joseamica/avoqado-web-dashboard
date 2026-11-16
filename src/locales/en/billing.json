@@ -185,7 +185,7 @@
         "reportsHistory": "Reports and full history",
         "cashCount": "Cash drawer count per shift",
         "bankReconciliation": "Bank reconciliation",
-        "balance": "Available balance and banking hub",
+        "balance": "Available balance",
         "exportTransactions": "Transaction export",
         "cfdi": "CFDI invoicing",
         "seats": "Users",
