@@ -58,6 +58,7 @@ import { VariantNotice } from '@/features/product-variants/components/VariantNot
 import { sinCamposDelPadre } from '@/features/product-variants/families'
 import { codigoDelError } from '@/features/product-variants/errors'
 import { useInvalidarCatalogo } from '@/features/product-variants/hooks'
+import { useVenderEnCanales, VenderEnCanales } from '@/pages/Delivery/components/VenderEnCanales'
 
 // Esquema de validación
 // const FormSchema = z.object({
@@ -144,6 +145,10 @@ export default function ProductId() {
   // Un estado que no dice `encendido: true` (apagado, cargando o con error) nunca se salta el aviso del primer encendido.
   const pideAvisoIva = ivaCambio && iva !== 'IVA_16' && estadoIva.data?.encendido !== true
 
+  // D1 «Vender en»: con la lista vieja por código, el canal reconoce al producto por su código (el de la ficha guardada).
+  const venderEn = useVenderEnCanales(venueId ?? '', { id: productId, sku: data?.sku })
+  const [guardandoCanales, setGuardandoCanales] = useState(false)
+
   // Fetch recipe data if product has RECIPE inventory method
   const recipeQuery = useQuery({
     queryKey: ['product-recipe', venueId, productId],
@@ -205,7 +210,7 @@ export default function ProductId() {
 
       return await updateProduct(venueId!, productId!, esVariante ? sinCamposDelPadre(payload) : payload)
     },
-    onSuccess: () => {
+    onSuccess: async (_data, formValues: any) => {
       toast({
         title: t('products.detail.toasts.saved'),
         description: t('products.detail.toasts.savedDesc'),
@@ -214,6 +219,8 @@ export default function ProductId() {
       setIva(undefined)
       setBloqueosIva(undefined)
       queryClient.invalidateQueries({ queryKey: IVA_QUERY_KEY(venueId!) })
+      // «Vender en» que viajó con ESTE guardado: se aplica ya guardado el producto (si falla, avisa por canal; no deshace nada).
+      if (formValues.venderEn) await venderEn.aplicar(productId!, { marcados: formValues.venderEn, alta: false })
     },
     onError: (error: any) => {
       if (handleMasterCatalogError(error)) return
@@ -450,11 +457,22 @@ export default function ProductId() {
   // function onSubmit(formValues: z.infer<typeof FormSchema>) {
   function onSubmit(formValues: any) {
     if (!modificadoresListos) return
+    // `venderEn` no va en el cuerpo del producto (el payload se arma campo por campo): lo lee el onSuccess de este guardado.
+    const conCanales = venderEn.cambio ? { ...formValues, venderEn: { ...venderEn.marcados } } : formValues
     if (pideAvisoIva) {
-      setPorConfirmarIva(formValues) // el guardado espera el «Continuar» del aviso del primer encendido
+      setPorConfirmarIva(conCanales) // el guardado espera el «Continuar» del aviso del primer encendido
       return
     }
-    saveProduct.mutate(formValues)
+    saveProduct.mutate(conCanales)
+  }
+
+  // Sólo cambió «Vender en»: el producto no se toca (ni se valida), sólo sus canales.
+  const soloCanales = venderEn.cambio && !form.formState.isDirty && !ivaCambio
+  async function guardarSoloCanales() {
+    setGuardandoCanales(true)
+    const quedo = await venderEn.aplicar(productId!, { marcados: { ...venderEn.marcados }, alta: false })
+    setGuardandoCanales(false)
+    if (quedo) toast({ title: t('products.detail.toasts.saved'), description: t('products.detail.toasts.savedDesc') })
   }
 
   // Imagen a mostrar: si hay una nueva (subida) úsala, si no usa la de la BD
@@ -511,13 +529,15 @@ export default function ProductId() {
             {t('products.detail.configureInventory')}
           </Button>
           <LoadingButton
-            loading={saveProduct.isPending}
-            onClick={form.handleSubmit(onSubmit)}
+            loading={saveProduct.isPending || guardandoCanales}
+            onClick={soloCanales ? guardarSoloCanales : form.handleSubmit(onSubmit)}
             variant="default"
             size="sm"
-            disabled={!(form.formState.isDirty || ivaCambio) || saveProduct.isPending || !modificadoresListos}
+            disabled={
+              !(form.formState.isDirty || ivaCambio || venderEn.cambio) || saveProduct.isPending || guardandoCanales || !modificadoresListos
+            }
           >
-            {saveProduct.isPending ? t('products.detail.saving') : t('modifiers.forms.save')}
+            {saveProduct.isPending || guardandoCanales ? t('products.detail.saving') : t('modifiers.forms.save')}
           </LoadingButton>
         </div>
       </div>
@@ -1055,6 +1075,8 @@ export default function ProductId() {
                     </FormItem>
                   )}
                 />
+
+                <VenderEnCanales estado={venderEn} />
               </div>
             )}
 

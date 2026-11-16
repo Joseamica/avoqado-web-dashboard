@@ -21,6 +21,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
+import { useVenderEnCanales, VenderEnCanales } from '@/pages/Delivery/components/VenderEnCanales'
 import { useImageUploader } from '@/hooks/use-image-uploader'
 import { useUnitTranslation } from '@/hooks/use-unit-translation'
 import { useTierFeatureAccess } from '@/hooks/use-tier-feature-access'
@@ -277,6 +278,10 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
     sesionGuardando.current = sesion.current
     return { sesion: sesion.current }
   }
+  // D1 «Vender en» (sólo en el alta de UN producto): lo marcado viaja en las variables del alta, así una respuesta tardía aplica lo de
+  // SU envío y no lo de otra apertura. Con el asistente cerrado o en edición no se consultan los canales.
+  const venderEn = useVenderEnCanales(venueId ?? '', {}, open && mode === 'create')
+  const reiniciarVenderEn = venderEn.reiniciar
   const [selectedInventoryMethod, setSelectedInventoryMethod] = useState<InventoryMethod | null>(null)
   const [addIngredientOpen, setAddIngredientOpen] = useState(false)
   const [conversionDialogOpen, setConversionDialogOpen] = useState(false)
@@ -480,11 +485,15 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
 
   // Single mutation: Create product with inventory in one call
   const createProductWithInventoryMutation = useMutation({
-    mutationFn: (data: {
+    mutationFn: ({
+      venderEn: _canales,
+      ...data
+    }: {
       product: Step1FormData
       inventory: Step2FormData
       simpleStock?: Step3SimpleStockFormData
       recipe?: Step3RecipeFormData
+      venderEn: Record<string, boolean>
     }) => {
       return productWizardApi.createProductWithInventory(venueId, data)
     },
@@ -492,7 +501,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
     onSettled: (_data, _error, _variables, contexto) => {
       if (contexto?.sesion === sesion.current) sesionGuardando.current = null
     },
-    onSuccess: (response, _variables, contexto) => {
+    onSuccess: async (response, variables, contexto) => {
       const productId = response.data.data.productId
       if (contexto?.sesion === sesion.current) setCreatedProductId(productId) // el de un alta anterior no se cuela en la siguiente
 
@@ -501,6 +510,8 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
         description: t('wizard.successMessage'),
         variant: 'default',
       })
+      // Aunque el asistente ya se haya cerrado o reabierto: lo marcado en ESTE envío.
+      await venderEn.aplicar(productId, { marcados: variables.venderEn, alta: true })
 
       handleWizardComplete(contexto?.sesion, venueId, productId)
     },
@@ -798,6 +809,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
     setBloqueosIva(undefined)
     setPorConfirmarIva(null)
     setConVariantes(false) // el asistente sigue montado al cerrarse: el siguiente alta arranca sin la casilla
+    reiniciarVenderEn() // igual: la siguiente apertura arranca con «Vender en» como está cada canal
     enviando.current = false
     setGuardandoProducto(false)
     setVariantes(VARIANTES_INICIALES)
@@ -808,7 +820,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
     step2Form.reset()
     step3SimpleForm.reset()
     step3RecipeForm.reset()
-  }, [productId, step1Form, step2Form, step3SimpleForm, step3RecipeForm, resetImage])
+  }, [productId, step1Form, step2Form, step3SimpleForm, step3RecipeForm, resetImage, reiniciarVenderEn])
 
   // Handle dialog close
   useEffect(() => {
@@ -1225,6 +1237,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
       createProductWithInventoryMutation.mutate({
         product: { ...productData, type: effectiveProductType ?? undefined },
         inventory: { useInventory: false },
+        venderEn: { ...venderEn.marcados },
       })
       return
     }
@@ -1400,6 +1413,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
         product: { ...productData, type: effectiveProductType ?? undefined },
         inventory: inventoryData,
         simpleStock: simpleStockData,
+        venderEn: { ...venderEn.marcados },
       })
     } else if (inventoryMethod === 'RECIPE') {
       const recipeData = step3RecipeForm.getValues()
@@ -1441,6 +1455,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
         product: { ...productData, type: effectiveProductType ?? undefined },
         inventory: inventoryData,
         recipe: cleanedRecipe,
+        venderEn: { ...venderEn.marcados },
       })
     }
   }
@@ -2770,6 +2785,9 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                   </div>
                 </section>
                 {typeFields}
+                {mode === 'create' && !conVariantesActiva && (
+                  <VenderEnCanales estado={venderEn} className="rounded-2xl bg-card sm:p-6" />
+                )}
                 <div data-tour="product-wizard-primary-options" className="min-w-0 space-y-3">{primaryOptions.map(renderOptional)}</div>
                 {moreOptions.length > 0 && <div className="min-w-0 space-y-3">
                   <h2 className="text-sm font-medium text-muted-foreground">{t('wizard.optional.more')}</h2>

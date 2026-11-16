@@ -199,5 +199,12 @@
       "errorCanales": "No se pudieron cargar los canales de delivery.",
       "sinPermiso": "No tienes permiso para ver los canales de delivery."
     }
+  },
+  "venderEn": {
+    "titulo": "Vender en",
+    "ayuda": "Elige en qué apps de delivery aparece este producto.",
+    "avisoTodoElCatalogo": "{{canal}} publica todo tu catálogo. Si lo quitas, {{canal}} pasará a publicar sólo los productos que elijas (todos menos éste).",
+    "falloAgregar": "El producto se guardó, pero no se pudo agregar a {{canal}}: inténtalo desde Delivery",
+    "falloQuitar": "El producto se guardó, pero no se pudo quitar de {{canal}}: inténtalo desde Delivery"
   }
 }

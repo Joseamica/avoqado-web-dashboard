@@ -199,5 +199,12 @@
       "errorCanales": "Couldn't load the delivery channels.",
       "sinPermiso": "You don't have permission to see the delivery channels."
     }
+  },
+  "venderEn": {
+    "titulo": "Sell on",
+    "ayuda": "Choose which delivery apps show this product.",
+    "avisoTodoElCatalogo": "{{canal}} lists your whole catalog. If you remove it, {{canal}} will list only the products you choose (all except this one).",
+    "falloAgregar": "The product was saved, but it couldn't be added to {{canal}}: try again from Delivery",
+    "falloQuitar": "The product was saved, but it couldn't be removed from {{canal}}: try again from Delivery"
   }
 }

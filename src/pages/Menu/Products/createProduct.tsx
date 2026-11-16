@@ -22,6 +22,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import type { Product, ProductType } from '@/types'
 import { ProductWizardDialog } from '@/pages/Inventory/components/ProductWizardDialog'
 import { useMasterCatalogError } from '@/features/master-catalog/use-master-catalog-error'
+import { useVenderEnCanales, VenderEnCanales } from '@/pages/Delivery/components/VenderEnCanales'
 import {
   getSkuValidationRules,
   getNameValidationRules,
@@ -75,16 +76,19 @@ export default function CreateProduct() {
   })
 
   const from = (location.state as any)?.from || '/'
+  const venderEn = useVenderEnCanales(venueId ?? '', {})
 
-  const createProductMutation = useMutation<Product, unknown, CreateProductPayload>({
-    mutationFn: async (payload: CreateProductPayload) => {
+  // `venderEn` viaja en las variables (lo marcado al enviar) y no va al SERVIDOR con el producto: se aplica ya creado.
+  const createProductMutation = useMutation<Product, unknown, CreateProductPayload & { venderEn: Record<string, boolean> }>({
+    mutationFn: async ({ venderEn: _canales, ...payload }) => {
       return await createProductService(venueId!, payload)
     },
-    onSuccess: (product: Product) => {
+    onSuccess: async (product: Product, variables) => {
       toast({
         title: t('products.create.toasts.created', { name: product.name }),
         description: t('products.create.toasts.createdDesc'),
       })
+      await venderEn.aplicar(product.id, { marcados: variables.venderEn, alta: true })
       navigate(from)
     },
     onError: (error: any) => {
@@ -203,6 +207,7 @@ export default function CreateProduct() {
       // también lo fuerza, pero lo enviamos explícito para dejar el catálogo consistente).
       soldByWeight: formValues.soldByWeight === true,
       ...(formValues.soldByWeight === true ? { unit: 'KILOGRAM' } : {}),
+      venderEn: { ...venderEn.marcados },
     })
   }
 
@@ -625,6 +630,8 @@ export default function CreateProduct() {
               </FormItem>
             )}
           />
+
+          <VenderEnCanales estado={venderEn} />
         </form>
       </Form>
 
