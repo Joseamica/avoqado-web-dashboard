@@ -18,6 +18,7 @@ export function HybridBillingPanel({
   timezone,
   checkoutOpen,
   onCheckoutOpenChange,
+  initialSlug,
 }: {
   venueId: string
   canRead: boolean
@@ -25,6 +26,8 @@ export function HybridBillingPanel({
   timezone: string
   checkoutOpen?: boolean
   onCheckoutOpenChange?: (open: boolean) => void
+  /** La oferta que la compra pone primero al abrirse (p. ej. el Plan Básico desde «Tu plan»). */
+  initialSlug?: string
 }) {
   const { t, i18n } = useTranslation('billing')
   const client = useQueryClient()
@@ -188,6 +191,7 @@ export function HybridBillingPanel({
               key={venueId}
               venueId={venueId}
               timezone={timezone}
+              initialSlug={initialSlug}
               onCompleted={async () => {
                 await invalidate()
                 setOpen(false)

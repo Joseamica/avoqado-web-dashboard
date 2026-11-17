@@ -81,7 +81,8 @@
     "ALERT": "Alerta",
     "ATTENDANCE_LATE": "Retardo sin checar",
     "RESERVATION_NO_SHOW_SUMMARY": "Resumen de «No Show» por clase",
-    "RESERVATION_NEEDS_REVIEW": "Llegadas que necesitan revisión"
+    "RESERVATION_NEEDS_REVIEW": "Llegadas que necesitan revisión",
+    "SUBSCRIPTION_CANCELLED": "Avisos del fin de tu prueba y de tu plan"
   },
   "priorities": {
     "LOW": "Baja",
@@ -168,7 +169,8 @@
     "ALERT": "Alertas generales que requieren tu atención",
     "ATTENDANCE_LATE": "Avisar cuando alguien no ha checado y ya pasó su hora de entrada",
     "RESERVATION_NO_SHOW_SUMMARY": "Un correo por clase cuando termina, con quién quedó como «No Show» y su liga para corregirlo. Si lo apagas, dejas de recibir el correo.",
-    "RESERVATION_NEEDS_REVIEW": "Cuando una llegada se corrige y queda algo por revisar (clase sin pagar, multa ya cobrada, llegada del kiosco). Si lo apagas, dejas de recibir el correo."
+    "RESERVATION_NEEDS_REVIEW": "Cuando una llegada se corrige y queda algo por revisar (clase sin pagar, multa ya cobrada, llegada del kiosco). Si lo apagas, dejas de recibir el correo.",
+    "SUBSCRIPTION_CANCELLED": "Te avisamos antes de que termine tu prueba y cuando termina tu plan, para que elijas el Básico. Si lo apagas, dejas de recibir el correo."
   },
   "channelNames": {
     "IN_APP": "Web",

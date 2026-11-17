@@ -411,3 +411,36 @@ export function dependencyFix(issue: DependencyIssue, input: SelectionInput): De
   if (list) return null
   return input.marked.includes(issue.featureCode) ? { kind: 'REMOVE', code: issue.featureCode, entry: entryOf(issue.featureCode) } : null
 }
+
+/**
+ * Plan Básico en «Tu plan» (Task 9). Qué dice la fila y qué botón da, según el plan de hoy:
+ * - CURRENT: un contrato del Básico → «Básico · $499 + IVA» y «Subir a Pro».
+ * - BUY: Gratis con el Básico publicado → «Contratar Básico» (compra híbrida).
+ * - TRIAL_ENDS_FREE: la prueba termina sin cobrar → «Tu prueba termina el…» y «Quedarme en Pro» (= «Reanudar»).
+ * - AFTER_PRO: Pro que ya termina, o de cortesía → «Ese día podrás contratar el Básico», sin botón.
+ * - CAN_END_PRO: Pro mensual en su último periodo con descuento → «Terminar mi Pro al acabar el periodo».
+ * - DISCOUNT_CONTINUES: le quedan meses con descuento → la fecha, sin botón (el SERVIDOR también lo rechaza).
+ */
+export type BasicNotice =
+  | { kind: 'CURRENT'; name: string; price: number | null; active: boolean }
+  | { kind: 'BUY'; price: number }
+  | { kind: 'TRIAL_ENDS_FREE'; date: string | null }
+  | { kind: 'AFTER_PRO'; price: number }
+  | { kind: 'CAN_END_PRO'; price: number }
+  | { kind: 'DISCOUNT_CONTINUES'; date: string | null }
+
+/** Precios sin IVA (se muestran «+ IVA», nunca el total). */
+export function basicNotice(plan: PlanState | undefined, origin: PlanOrigin): BasicNotice | null {
+  if (!plan || plan.grandfathered) return null
+  if (plan.basicPlan)
+    return { kind: 'CURRENT', name: plan.basicPlan.name, price: plan.basicPlan.price?.base ?? null, active: plan.basicPlan.active }
+  if (plan.trialModality === 'ENDS_FREE')
+    return { kind: 'TRIAL_ENDS_FREE', date: plan.trialEndsAt ?? origin.cancelAt ?? origin.currentPeriodEnd }
+  const offer = plan.basicOffer
+  if (!offer) return null
+  const price = offer.price.base
+  if (origin.kind === 'NONE') return offer.availableAt ? null : { kind: 'BUY', price }
+  if (origin.kind === 'COMP' || (origin.kind === 'CLASSIC' && origin.cancelAt)) return { kind: 'AFTER_PRO', price }
+  if (origin.kind !== 'CLASSIC') return null
+  return offer.canEndProNow ? { kind: 'CAN_END_PRO', price } : { kind: 'DISCOUNT_CONTINUES', date: offer.discountEndsAt }
+}

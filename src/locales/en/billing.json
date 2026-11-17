@@ -84,7 +84,22 @@
     "basic": {
       "trialCopy": "30 days free with everything in Pro, no charge. Then get Basic for {{price}} + VAT per month",
       "seatsUnlimited": "Unlimited users · 1 location",
-      "seatsCapped": "Up to {{count}} users · 1 location"
+      "seatsCapped": "Up to {{count}} users · 1 location",
+      "current": "{{name}} · {{price}} + VAT per month",
+      "currentNoPrice": "Your plan is {{name}}.",
+      "inactive": "Your {{name}} gives no access today: check your purchases below.",
+      "upgrade": "Upgrade to Pro",
+      "buyCopy": "Want more than Free? Básico costs {{price}} + VAT per month.",
+      "buy": "Get Básico",
+      "trialEnds": "Your trial ends on {{date}}. That day you can get Básico.",
+      "trialEndsNoDate": "When your trial ends you can get Básico.",
+      "stayPro": "Stay on Pro",
+      "afterPro": "That day you can get Básico for {{price}} + VAT per month.",
+      "preferBasic": "Prefer Básico?",
+      "preferBasicCopy": "It costs {{price}} + VAT per month. Your Pro stays until this period ends and you get Básico that day.",
+      "endPro": "End my Pro at the end of the period",
+      "discountUntil": "Your discount continues until {{date}}. We will remind you beforehand so you can choose Básico.",
+      "discountNoDate": "Your discount is still active. We will remind you beforehand so you can choose Básico."
     },
     "compareCta": "Compare all plans",
     "assistedBody": "We activate your plan with you so everything is perfect. Message us and we'll set it up today.",

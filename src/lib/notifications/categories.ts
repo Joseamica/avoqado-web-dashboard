@@ -258,6 +258,18 @@ export const notificationCategories: NotificationCategory[] = [
         canDisable: true,
         description: 'Celebrate when revenue milestones are reached',
       },
+      {
+        // Plan Básico: «Tu prueba termina», «Tu prueba terminó» y «Tu Pro terminó» (avisos SIN cobro). La campanita siempre
+        // queda (el servidor la usa como marca de «ya se avisó»): sólo se elige el correo, y cada cambio manda sus canales
+        // explícitos ([IN_APP] apagado, [IN_APP, EMAIL] prendido), nunca `enabled` a secas.
+        type: NotificationType.SUBSCRIPTION_CANCELLED,
+        defaultEnabled: true,
+        defaultChannels: [NotificationChannel.IN_APP, NotificationChannel.EMAIL],
+        defaultPriority: NotificationPriority.NORMAL,
+        canDisable: false,
+        availableChannels: [NotificationChannel.EMAIL],
+        description: 'Notices about the end of your trial and your plan (no charge involved)',
+      },
     ],
   },
   {
@@ -298,7 +310,7 @@ export const notificationCategories: NotificationCategory[] = [
         defaultChannels: [NotificationChannel.EMAIL],
         defaultPriority: NotificationPriority.NORMAL,
         canDisable: true,
-        description: 'Nightly email with a summary of the day\'s sales',
+        description: "Nightly email with a summary of the day's sales",
       },
       {
         type: NotificationType.EXPORT_READY,
