@@ -482,6 +482,9 @@ export function OfferStep({
         setRetryToken(n => n + 1)
         return
       }
+      // Plan Básico: si el plan guardado lo eligió (la prueba de Pro que termina sola sin cobrar), viaja en el cuerpo. El
+      // servidor fija la modalidad en el PRIMER create y responde la REAL (`trialModality`).
+      const basico = tier === 'PRO' && data?.plan?.basicPlan === true ? ({ basicPlan: true } as const) : {}
       const cuerpo: ActivatePlanBody = {
         tier,
         interval: 'monthly',
@@ -489,6 +492,7 @@ export function OfferStep({
         paymentMethodId,
         offer: { kind: 'STANDARD', expectedFirstChargeCents: esperado },
         language: idioma,
+        ...basico,
       }
       const plan: NonNullable<SetupData['plan']> = {
         tier,
@@ -496,10 +500,11 @@ export function OfferStep({
         interval: 'monthly',
         payNow: false,
         acceptedAt: new Date().toISOString(),
+        ...basico,
       }
       await cobrar(cuerpo, plan)
     },
-    [cobrar, idioma, oferta, pagarLaOferta, planQuote, t, verEstandar],
+    [cobrar, data?.plan?.basicPlan, idioma, oferta, pagarLaOferta, planQuote, t, verEstandar],
   )
 
   // Abrir la ventana de un plan. Con un cobro sin cerrar no se elige otro (las tarjetas ya están apagadas).

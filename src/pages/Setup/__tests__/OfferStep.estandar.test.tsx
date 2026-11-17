@@ -179,6 +179,27 @@ describe('prueba de 30 días — el camino feliz', () => {
   })
 })
 
+describe('Plan Básico: el plan guardado lo eligió', () => {
+  it('🔴 «Elegir Pro» manda basicPlan en el cuerpo y lo guarda en el respaldo', async () => {
+    activatePlan.mockResolvedValue(exito())
+    pintarEstandar({ data: { plan: { tier: 'PRO', interval: 'monthly', payNow: false, basicPlan: true } } })
+    await empezarPrueba('Pro')
+    await waitFor(() => expect(activatePlan).toHaveBeenCalledTimes(1))
+    expect(activatePlan.mock.calls[0][1]).toEqual({ ...CUERPO_PREMIUM, tier: 'PRO', basicPlan: true })
+    await waitFor(() =>
+      expect(saveStep).toHaveBeenCalledWith('org_1', 10, { plan: expect.objectContaining({ tier: 'PRO', basicPlan: true }) }),
+    )
+  })
+
+  it('con Premium no viaja: el Básico sólo es la prueba de Pro', async () => {
+    activatePlan.mockResolvedValue(exito('PREMIUM'))
+    pintarEstandar({ data: { plan: { tier: 'PRO', basicPlan: true } } })
+    await empezarPrueba('Premium')
+    await waitFor(() => expect(activatePlan).toHaveBeenCalledTimes(1))
+    expect(activatePlan.mock.calls[0][1]).toEqual(CUERPO_PREMIUM)
+  })
+})
+
 describe('prueba de 30 días — lo que dice la ventana', () => {
   it('título, «Hoy pagas $0.00», fecha y precio del primer cobro, y el legal de la prueba con el monto del servidor', async () => {
     pintarEstandar()
