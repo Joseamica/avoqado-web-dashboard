@@ -666,5 +666,23 @@
     "storageUnavailable": "The image service isn't available right now. Contact support."
   },
   "suggestions": "Suggestions",
-  "noResults": "No results"
+  "noResults": "No results",
+  "routeProtection": {
+    "accessDenied": "Access Denied",
+    "noAdminPermission": "You do not have administrator permissions to access this page.",
+    "restrictedAccess": "Restricted Access",
+    "ownerOnlyMessage": "This section is available only for Owners (OWNER) and System Administrators (SUPERADMIN).",
+    "contactOwner": "If you need access to this feature, contact an Owner (OWNER).",
+    "superadminOnlyMessage": "This section is available only for System Administrators (SUPERADMIN).",
+    "contactSuperadmin": "If you need access to this feature, contact a System Administrator (SUPERADMIN).",
+    "managerOnlyMessage": "This section requires Manager level access or higher (MANAGER, ADMIN, OWNER, SUPERADMIN).",
+    "managerOrViewerOnlyMessage": "This section requires Manager level access or Viewer role (MANAGER, ADMIN, OWNER, SUPERADMIN, VIEWER).",
+    "noVenuesAssigned": "You have no venues assigned!",
+    "contactAdminForVenue": "To start using the platform, contact the administrator to have one assigned to you.",
+    "needHelp": "Need help?",
+    "contactUs": "Contact us",
+    "logout": "Log out",
+    "noPermissionSection": "You do not have permission to access this section.",
+    "insufficientPermissions": "You do not have permission to access this page. Contact your administrator if you believe this is an error."
+  }
 }

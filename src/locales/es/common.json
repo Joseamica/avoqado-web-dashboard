@@ -666,5 +666,23 @@
     "storageUnavailable": "El servicio de imágenes no está disponible ahora mismo. Contacta a soporte."
   },
   "suggestions": "Sugerencias",
-  "noResults": "Sin resultados"
+  "noResults": "Sin resultados",
+  "routeProtection": {
+    "accessDenied": "Acceso denegado",
+    "noAdminPermission": "No tienes permisos de administrador para acceder a esta página.",
+    "restrictedAccess": "Acceso restringido",
+    "ownerOnlyMessage": "Esta sección está disponible solo para Propietarios (OWNER) y Administradores de Sistema (SUPERADMIN).",
+    "contactOwner": "Si necesitas acceso a esta funcionalidad, contacta a un Propietario (OWNER).",
+    "superadminOnlyMessage": "Esta sección está disponible solo para Administradores de Sistema (SUPERADMIN).",
+    "contactSuperadmin": "Si necesitas acceso a esta funcionalidad, contacta a un Administrador de Sistema (SUPERADMIN).",
+    "managerOnlyMessage": "Esta sección requiere acceso de nivel Gerente o superior (MANAGER, ADMIN, OWNER, SUPERADMIN).",
+    "managerOrViewerOnlyMessage": "Esta sección requiere acceso de nivel Gerente o rol Visualizador (MANAGER, ADMIN, OWNER, SUPERADMIN, VIEWER).",
+    "noVenuesAssigned": "¡No tienes sucursales asignadas!",
+    "contactAdminForVenue": "Para comenzar a usar la plataforma, contacta al administrador para que te asigne uno.",
+    "needHelp": "¿Necesitas ayuda?",
+    "contactUs": "Contáctanos",
+    "logout": "Cerrar sesión",
+    "noPermissionSection": "No tienes permiso para acceder a esta sección.",
+    "insufficientPermissions": "No tienes permiso para entrar a esta página. Si crees que es un error, pídeselo a tu administrador."
+  }
 }

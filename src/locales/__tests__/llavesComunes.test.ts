@@ -28,3 +28,20 @@ describe.each(['es', 'en'])('common.json en %s', idioma => {
     expect([...pedidas].filter(llave => typeof comun[llave] !== 'string')).toEqual([])
   })
 })
+
+// D6 (16-nov, full-testing de asistencia verificada): la página de permiso negado salía en inglés («Access Denied») con el panel en
+// español. Los guardias de ruta piden `routeProtection.*` por el espacio por defecto (common.json) y esas llaves sólo vivían en
+// superadmin.json: i18next caía al texto en inglés del código o enseñaba la llave cruda.
+const GUARDIAS = ['PermissionProtectedRoute.tsx', 'AdminProtectedRoute.tsx', 'ManagerProtectedRoute.tsx']
+const deLosGuardias = new Set<string>()
+for (const g of GUARDIAS) {
+  for (const m of fs.readFileSync(path.join(SRC, 'routes', g), 'utf8').matchAll(/t\(\s*'routeProtection\.([A-Za-z_]+)'/g))
+    deLosGuardias.add(m[1])
+}
+describe.each(['es', 'en'])('routeProtection en common.json (%s)', idioma => {
+  const llaves = JSON.parse(fs.readFileSync(path.join(SRC, 'locales', idioma, 'common.json'), 'utf8')).routeProtection ?? {}
+  it('tiene todas las llaves que piden los guardias de ruta', () => {
+    expect(deLosGuardias.size).toBeGreaterThan(2)
+    expect([...deLosGuardias].filter(llave => typeof llaves[llave] !== 'string')).toEqual([])
+  })
+})

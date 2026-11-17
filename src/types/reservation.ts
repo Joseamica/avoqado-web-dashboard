@@ -104,6 +104,8 @@ export interface StatusLogEntry {
   status: ReservationStatus
   at: string
   by: string | null
+  /** D6 (16-nov): el nombre corto de quien hizo el cambio (lo pone el SERVIDOR). Opcional: un servidor anterior no lo manda. */
+  byName?: string | null
   reason?: string
   /** D4: la entrada que corrige un «No asistió» trae `'NO_SHOW'`. */
   correctionOf?: 'NO_SHOW'

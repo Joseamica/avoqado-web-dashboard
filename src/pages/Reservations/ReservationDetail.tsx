@@ -139,6 +139,19 @@ export default function ReservationDetail() {
     },
   })
 
+  // D5 (16-nov): lo mismo en Confirmar, Check-in y Completar: `isPending` llega un render tarde y un doble clic mandaba dos POST
+  // (dos avisos de «Check-in realizado»). Un candado síncrono para los tres; se suelta cuando la petición termina.
+  const transicionEnCurso = useRef(false)
+  const unaVez = (m: { mutate: (v: undefined, o: { onSettled: () => void }) => void }) => {
+    if (transicionEnCurso.current) return
+    transicionEnCurso.current = true
+    m.mutate(undefined, {
+      onSettled: () => {
+        transicionEnCurso.current = false
+      },
+    })
+  }
+
   // Un doble clic llegaba antes de que el botón se deshabilitara: dos POST y dos WhatsApp al cliente
   // (medido en el banco, 16-nov). El candado se suelta cuando la petición termina.
   const reagendando = useRef(false)
@@ -222,6 +235,10 @@ export default function ReservationDetail() {
   const guestPhone = reservation.customer?.phone || reservation.guestPhone
   const guestEmail = reservation.customer?.email || reservation.guestEmail
 
+  // D6 (16-nov): quién hizo el cambio, en palabras. El id crudo («cmtw…», «service:kiosk») nunca se enseña.
+  const autorDelHistorial = (entry: { by: string | null; byName?: string | null }) =>
+    entry.byName || (entry.by === 'service:kiosk' ? t('undoNoShow.kiosk') : null)
+
   // Which actions are available based on current status
   const canConfirm = reservation.status === 'PENDING'
   const canCheckIn = reservation.status === 'CONFIRMED'
@@ -270,19 +287,19 @@ export default function ReservationDetail() {
         {/* so the last button doesn't look clipped mid-label ("Cancela..."). */}
         <div className="-mx-4 flex items-center gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:flex-wrap md:justify-end md:overflow-visible md:px-0 md:pb-0">
           {canConfirm && (
-            <Button className="shrink-0" onClick={() => confirmMutation.mutate()} disabled={confirmMutation.isPending}>
+            <Button className="shrink-0" onClick={() => unaVez(confirmMutation)} disabled={confirmMutation.isPending}>
               <Check className="mr-2 h-4 w-4" />
               {t('actions.confirm')}
             </Button>
           )}
           {canCheckIn && (
-            <Button className="shrink-0" onClick={() => checkInMutation.mutate()} disabled={checkInMutation.isPending}>
+            <Button className="shrink-0" onClick={() => unaVez(checkInMutation)} disabled={checkInMutation.isPending}>
               <LogIn className="mr-2 h-4 w-4" />
               {t('actions.checkIn')}
             </Button>
           )}
           {canComplete && (
-            <Button className="shrink-0" onClick={() => completeMutation.mutate()} disabled={completeMutation.isPending}>
+            <Button className="shrink-0" onClick={() => unaVez(completeMutation)} disabled={completeMutation.isPending}>
               <Check className="mr-2 h-4 w-4" />
               {t('actions.complete')}
             </Button>
@@ -505,7 +522,7 @@ export default function ReservationDetail() {
                       <div className="font-medium">{t(`status.${entry.status}`)}</div>
                       <div className="text-sm text-muted-foreground">
                         {formatDate(entry.at)} {formatTime(entry.at)}
-                        {entry.by && ` — ${entry.by}`}
+                        {autorDelHistorial(entry) && ` — ${autorDelHistorial(entry)}`}
                       </div>
                       {entry.reason && <div className="text-sm text-muted-foreground italic">{entry.reason}</div>}
                       {entry.method && <div className="text-sm text-muted-foreground">{t(`detail.checkInMethod.${entry.method}`)}</div>}

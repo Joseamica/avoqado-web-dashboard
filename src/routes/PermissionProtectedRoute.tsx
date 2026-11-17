@@ -23,12 +23,7 @@ interface PermissionProtectedRouteProps {
   fallbackPath?: string
 }
 
-export const PermissionProtectedRoute = ({
-  permission,
-  permissions,
-  requireAll = false,
-  fallbackPath,
-}: PermissionProtectedRouteProps) => {
+export const PermissionProtectedRoute = ({ permission, permissions, requireAll = false, fallbackPath }: PermissionProtectedRouteProps) => {
   const { can, canAny, canAll, isLoading, role } = useAccess()
   const location = useLocation()
   const { t } = useTranslation()
@@ -68,13 +63,8 @@ export const PermissionProtectedRoute = ({
         <div className="p-8 w-full max-w-md">
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
-            <AlertTitle>{t('routeProtection.accessDenied', 'Access Denied')}</AlertTitle>
-            <AlertDescription>
-              {t(
-                'routeProtection.insufficientPermissions',
-                'You do not have permission to access this page. Contact your administrator if you believe this is an error.',
-              )}
-            </AlertDescription>
+            <AlertTitle>{t('routeProtection.accessDenied')}</AlertTitle>
+            <AlertDescription>{t('routeProtection.insufficientPermissions')}</AlertDescription>
           </Alert>
           <div className="mt-6 flex justify-center">
             <Button variant="outline" onClick={() => window.history.back()}>
