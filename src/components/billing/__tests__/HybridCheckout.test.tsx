@@ -259,3 +259,61 @@ it('keeps the review button in a bar that stays in view, and says what is missin
   expect(bar).toHaveTextContent('Your selection · MX$379.50 per month')
   expect(within(bar).getByRole('button', { name: 'Review quote' })).toBeEnabled()
 })
+it('the one-click Plan Básico shows the saved card before accepting and, once paid, offers no payment link', async () => {
+  const user = userEvent.setup()
+  const basicTerms = { ...terms, price: 578.84, promotionCycles: null, renewal: { kind: 'SAME_PRICE' } } as const
+  const basic = {
+    ...offer,
+    id: 'basic',
+    name: 'Plan Básico',
+    slug: 'plan-basico',
+    definition: { schemaVersion: 1, kind: 'FEATURES', featureCodes: ['CFDI', 'LOYALTY_PROGRAM'], terms: basicTerms },
+    includedFeatureCodes: ['CFDI', 'LOYALTY_PROGRAM'],
+    placesRemaining: null,
+    endsAt: null,
+  } as const
+  const quoted = {
+    ...purchase,
+    paymentCard: { last4: '4242', brand: 'visa' },
+    quote: {
+      ...purchase.quote,
+      lines: [
+        { publicationId: 'basic', name: 'Plan Básico', kind: 'FEATURES', featureCodes: basic.includedFeatureCodes, terms: basicTerms },
+      ],
+      total: '578.84',
+      dueNow: '578.84',
+      paymentMethodId: 'pm_saved',
+    },
+  }
+  vi.mocked(hybridBilling.offers).mockResolvedValue({ items: [basic], total: 1, page: 1, pageSize: 6 } as any)
+  vi.mocked(hybridBilling.quote).mockResolvedValue(quoted as any)
+  vi.mocked(hybridBilling.purchase).mockResolvedValue(quoted as any)
+  vi.mocked(hybridBilling.accept).mockImplementation(async (_v, id) => {
+    vi.mocked(hybridBilling.purchase).mockResolvedValue({ ...quoted, status: 'PAID' } as any)
+    return { purchaseId: id, status: 'ACTIVATION_PENDING', paymentUrl: null }
+  })
+  mount()
+  await user.click(await screen.findByRole('button', { name: 'Add offer' }))
+  await user.click(screen.getByRole('button', { name: 'Review quote' }))
+  expect(await screen.findByText('Your card ending in 4242 will be charged today.')).toBeInTheDocument()
+  await user.click(screen.getByRole('checkbox', { name: /I accept today/ }))
+  await user.click(screen.getByRole('button', { name: 'Accept and pay with my card' }))
+  expect(await screen.findByText('Payment received')).toBeInTheDocument()
+  expect(screen.queryByRole('link', { name: 'Open secure payment' })).not.toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: 'Cancel this attempt' })).not.toBeInTheDocument()
+})
+it('a Básico quote that needs 3DS keeps today’s «Pagar» link', async () => {
+  const user = userEvent.setup()
+  const quoted = { ...purchase, quote: { ...purchase.quote, paymentMethodId: 'pm_saved' } }
+  vi.mocked(hybridBilling.quote).mockResolvedValue(quoted as any)
+  vi.mocked(hybridBilling.purchase).mockResolvedValue(quoted as any)
+  mount()
+  await user.click(await screen.findByRole('button', { name: 'Add offer' }))
+  await user.click(screen.getByRole('button', { name: 'Review quote' }))
+  // Reloaded quote (no card ending in the stored view): still says a saved card is charged.
+  expect(await screen.findByText('Your saved card will be charged today.')).toBeInTheDocument()
+  await user.click(screen.getByRole('checkbox', { name: /I accept today/ }))
+  await user.click(screen.getByRole('button', { name: 'Accept and pay with my card' }))
+  expect(await screen.findByRole('link', { name: 'Open secure payment' })).toHaveAttribute('href', 'https://invoice.stripe.com/i/test')
+  expect(screen.getByText('Your purchase is in progress')).toBeInTheDocument()
+})

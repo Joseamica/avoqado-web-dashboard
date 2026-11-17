@@ -287,6 +287,8 @@ export function HybridCheckout({
     }).format(new Date(value))
   const recoveryError = current.isError || (attemptId && status.isError)
   const paymentUrl = safePaymentUrl(payment?.paymentUrl)
+  // The one-click Básico: the saved card already paid the first invoice; nothing to open, delivery follows.
+  const paid = payment?.status === 'ACTIVATION_PENDING'
   const reviewExpired = purchase && new Date(purchase.quoteExpiresAt).getTime() <= now
   return (
     <section className="mx-auto max-w-5xl space-y-6 pb-6" data-tour="hybrid-checkout">
@@ -359,9 +361,9 @@ export function HybridCheckout({
             </div>
           ) : purchase.status !== 'QUOTED' ? (
             <div className="space-y-4 rounded-2xl border border-input p-6">
-              <h2 className="text-2xl font-semibold">{t('hybrid.pending')}</h2>
-              <p className="text-muted-foreground">{t('hybrid.pendingHint')}</p>
-              {paymentUrl && (
+              <h2 className="text-2xl font-semibold">{t(paid ? 'hybrid.paid' : 'hybrid.pending')}</h2>
+              <p className="text-muted-foreground">{t(paid ? 'hybrid.paidHint' : 'hybrid.pendingHint')}</p>
+              {paymentUrl && !paid && (
                 <Button asChild>
                   <a href={paymentUrl} target="_blank" rel="noopener noreferrer" data-tour="hybrid-pay">
                     {t('hybrid.pay')}
@@ -372,19 +374,21 @@ export function HybridCheckout({
                 <Button disabled={busy} onClick={resume} data-tour="hybrid-resume">
                   {t('hybrid.resume')}
                 </Button>
-                <Button
-                  variant="outline"
-                  disabled={busy}
-                  onClick={() =>
-                    action.mutate(async () => {
-                      setPayment(await hybridBilling.cancel(venueId, purchase.id))
-                      await status.refetch()
-                      await current.refetch()
-                    })
-                  }
-                >
-                  {t('hybrid.cancelAttempt')}
-                </Button>
+                {!paid && (
+                  <Button
+                    variant="outline"
+                    disabled={busy}
+                    onClick={() =>
+                      action.mutate(async () => {
+                        setPayment(await hybridBilling.cancel(venueId, purchase.id))
+                        await status.refetch()
+                        await current.refetch()
+                      })
+                    }
+                  >
+                    {t('hybrid.cancelAttempt')}
+                  </Button>
+                )}
               </div>
             </div>
           ) : (
@@ -425,6 +429,13 @@ export function HybridCheckout({
                 </p>
               )}
               <p className="text-sm text-muted-foreground">{t('hybrid.expiry', { date: date(purchase.quoteExpiresAt) })}</p>
+              {purchase.quote.paymentMethodId && (
+                <p className="text-sm font-medium" data-tour="hybrid-quote-card">
+                  {purchase.paymentCard?.last4
+                    ? t('hybrid.savedCard', { last4: purchase.paymentCard.last4 })
+                    : t('hybrid.savedCardUnknown')}
+                </p>
+              )}
               {reviewExpired && <p role="alert">{t('hybrid.expired')}</p>}
               <label className="flex cursor-pointer gap-3">
                 <input
@@ -438,7 +449,7 @@ export function HybridCheckout({
               </label>
               <div className="flex flex-wrap gap-3">
                 <Button disabled={busy || !consent || !!reviewExpired || !!recoveryError} onClick={accept} data-tour="hybrid-accept">
-                  {t('hybrid.accept')}
+                  {t(purchase.quote.paymentMethodId ? 'hybrid.acceptAndCharge' : 'hybrid.accept')}
                 </Button>
                 <Button variant="outline" disabled={busy} onClick={clear}>
                   {t('hybrid.back')}
