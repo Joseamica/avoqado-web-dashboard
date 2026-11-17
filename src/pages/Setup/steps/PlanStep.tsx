@@ -136,6 +136,16 @@ export function PlanStep({
   const inicioRef = useRef<HTMLDivElement | null>(null)
 
   const payNowLabel = payNowLabelFactory(t as unknown as (k: string, o?: Record<string, unknown>) => string, quote)
+  // Precios SIN IVA del servidor (si los manda): la tarjeta habla en «$ + IVA» con el mismo monto que consiente el cobro.
+  const preciosSinIva = (['PRO', 'PREMIUM'] as const).reduce<Partial<Record<TierId, { monthlyNetCents: number; annualNetCents: number }>>>(
+    (acc, id) => {
+      const q = quote?.tiers?.[id]
+      return q?.monthlyNetCents != null && q.annualNetCents != null
+        ? { ...acc, [id]: { monthlyNetCents: q.monthlyNetCents, annualNetCents: q.annualNetCents } }
+        : acc
+    },
+    {},
+  )
   const isPaidTier = selectedTier === 'PRO' || selectedTier === 'PREMIUM'
   const tierName = basico && planBasico ? planBasico.name : tBilling(`plan.tiers.${getTierDef(selectedTier).key}.name`)
 
@@ -150,6 +160,12 @@ export function PlanStep({
         list: formatMXN(quote?.tiers?.PRO?.monthlyCents ?? Number.NaN),
       })
     : t('plan.promoLine', { defaultValue: 'Paga hoy: 3 meses a $599 + IVA, luego $999.' })
+
+  // La nota bajo el precio de la tarjeta no repite montos CON IVA (la tarjeta ya dice «$ + IVA»): el descuento de
+  // introducción sólo trae su monto con IVA, y esos números van en la pantalla de pago.
+  const promoNotaDeTarjeta = introPro
+    ? t('plan.promoNoteCard', { defaultValue: 'Paga hoy y ahorra: {{count}} meses con precio de introducción.', count: introPro.months })
+    : promoLine
 
   // Qué pasa DESPUÉS de cada botón, dicho antes de tocarlo. Con prueba gratis el cargo llega solo el
   // día que termina la prueba (Stripe cobra la tarjeta guardada), y sin descuento de introducción:
@@ -300,7 +316,9 @@ export function PlanStep({
             selectionMode="choice"
             interval={interval}
             onIntervalChange={setInterval}
-            promoNotes={interval === 'monthly' ? { PRO: promoLine } : undefined}
+            promoNotes={interval === 'monthly' && !basico ? { PRO: promoNotaDeTarjeta } : undefined}
+            preciosSinIva={preciosSinIva}
+            intervalLocked={basico}
             onSelectTier={handleSelectTier}
             leadingSelected={basico}
             leadingCard={

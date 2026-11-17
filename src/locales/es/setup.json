@@ -253,6 +253,7 @@
     "retry": "Reintentar",
     "cardError": "No se pudo guardar la tarjeta",
     "promoLineFromQuote": "Paga hoy: {{count}} meses a {{intro}}, luego {{list}} al mes. IVA incluido.",
+    "promoNoteCard": "Paga hoy y ahorra: {{count}} meses con precio de introducción.",
     "chargeError": "No pudimos procesar el pago. Intenta de nuevo.",
     "completeError": "No pudimos terminar tu alta. Intenta de nuevo.",
     "cardSecure": "Tu tarjeta viaja cifrada a Stripe. Avoqado nunca ve el número completo.",

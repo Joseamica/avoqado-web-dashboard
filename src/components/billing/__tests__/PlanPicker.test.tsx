@@ -145,6 +145,21 @@ describe('PlanPicker', () => {
     expect(card('pro')).toHaveAttribute('aria-checked', 'false')
   })
 
+  it('🔴 con precios sin IVA del servidor la tarjeta pinta ESE neto (no el catálogo), mensual y anual', () => {
+    const net = { PRO: { monthlyCents: 0, monthlyNetCents: 123400, annualNetCents: 1200000 } }
+    const { rerender } = render(<PlanPicker currentTier="FREE" onSelectTier={() => {}} preciosSinIva={net} />)
+    expect(screen.getByText('$1,234')).toBeInTheDocument()
+    expect(screen.queryByText('$999')).not.toBeInTheDocument()
+    rerender(<PlanPicker currentTier="FREE" onSelectTier={() => {}} preciosSinIva={net} interval="annual" />)
+    expect(screen.getByText('$1,000')).toBeInTheDocument() // 12,000 ÷ 12
+    expect(screen.getByText('plan.annualEquiv:$12,000')).toBeInTheDocument()
+  })
+
+  it('intervalLocked apaga Mensual/Anual', () => {
+    render(<PlanPicker currentTier="FREE" onSelectTier={() => {}} intervalLocked />)
+    expect(screen.getByText('plan.billing.annual').closest('button')).toBeDisabled()
+  })
+
   it('sin leadingCard la cuadrícula sigue en 4 columnas (regresión)', () => {
     render(<PlanPicker currentTier="PRO" onSelectTier={() => {}} selectionMode="choice" />)
     expect(screen.getByRole('radiogroup').className).toContain('@4xl:grid-cols-4')

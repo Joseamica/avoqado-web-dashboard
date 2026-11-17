@@ -28,8 +28,14 @@ vi.mock('@stripe/react-stripe-js', () => ({
 }))
 // El picker real no importa aquí: sólo que pinte la tarjeta Básico y deje elegir Pro.
 vi.mock('@/components/billing/PlanPicker', () => ({
-  PlanPicker: ({ leadingCard, leadingSelected, onSelectTier }: any) => (
-    <div data-testid="plan-picker" data-leading-selected={String(leadingSelected)}>
+  PlanPicker: ({ leadingCard, leadingSelected, onSelectTier, promoNotes, preciosSinIva, intervalLocked }: any) => (
+    <div
+      data-testid="plan-picker"
+      data-leading-selected={String(leadingSelected)}
+      data-locked={String(!!intervalLocked)}
+      data-promo={promoNotes?.PRO ?? ''}
+      data-net={JSON.stringify(preciosSinIva ?? null)}
+    >
       {leadingCard}
       <button onClick={() => onSelectTier('PRO', 'monthly')}>elegir-pro</button>
     </div>
@@ -136,5 +142,38 @@ describe('PlanStep · Plan Básico', () => {
     render(<PlanStep data={{ hybridOfferSlug: 'paquete-x' }} onNext={vi.fn()} venueId="v1" organizationId="o1" />)
     const card = await screen.findByRole('radio', { name: /Plan Básico/ })
     expect(card).toHaveAttribute('aria-checked', 'false')
+  })
+
+  const QUOTE = {
+    currency: 'MXN' as const,
+    ivaIncluded: true as const,
+    trialDays: 30,
+    tiers: {
+      PRO: {
+        monthlyCents: 120000,
+        annualCents: 1200000,
+        monthlyNetCents: 103448,
+        annualNetCents: 1034480,
+        intro: { monthlyCents: 69484, months: 3, interval: 'monthly' as const, requiresPayNow: true },
+      },
+      PREMIUM: { monthlyCents: 197084, annualCents: 1970840, intro: null },
+    },
+  }
+
+  it('🔴 el precio de la tarjeta sale del NETO del servidor (no del catálogo) y la nota no dice «IVA incluido»', async () => {
+    render(<PlanStep data={{}} onNext={vi.fn()} venueId="v1" organizationId="o1" quote={QUOTE} />)
+    const picker = await screen.findByTestId('plan-picker')
+    // Pro manda su neto; Premium (sin neto en la cotización) no: ahí manda el catálogo.
+    expect(JSON.parse(picker.dataset.net!)).toEqual({ PRO: { monthlyNetCents: 103448, annualNetCents: 1034480 } })
+    expect(picker.dataset.promo).not.toMatch(/IVA incluido/)
+    expect(picker.dataset.promo).toMatch(/3 meses/)
+  })
+
+  it('con el Básico elegido el selector Mensual/Anual queda apagado', async () => {
+    render(<PlanStep data={{}} onNext={vi.fn()} venueId="v1" organizationId="o1" />)
+    const user = userEvent.setup()
+    expect(screen.getByTestId('plan-picker')).toHaveAttribute('data-locked', 'false')
+    await user.click(await screen.findByRole('radio', { name: /Plan Básico/ }))
+    expect(screen.getByTestId('plan-picker')).toHaveAttribute('data-locked', 'true')
   })
 })

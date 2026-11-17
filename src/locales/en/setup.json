@@ -253,6 +253,7 @@
     "retry": "Try again",
     "cardError": "We could not save the card",
     "promoLineFromQuote": "Pay today: {{count}} months at {{intro}}, then {{list}} per month. VAT included.",
+    "promoNoteCard": "Pay today and save: {{count}} months at an introductory price.",
     "chargeError": "We could not process the payment. Try again.",
     "completeError": "We could not finish your sign-up. Try again.",
     "cardSecure": "Your card travels encrypted to Stripe. Avoqado never sees the full number.",
