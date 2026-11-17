@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { textoDeLlegadas } from '../textoDeLlegadas'
+import { textoDeLlegadasDelTotal } from '../textoDeLlegadas'
 import { AlertTriangle, ChevronLeft, ChevronRight, Info, Loader2, Lock, Plus } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -124,8 +124,14 @@ export function PeriodoAbiertoTab({
   const tj = data.tarjetas
   const total = data.personas.total
   // Fase 3 (spec §11): columnas y tarjetas de comisiones y propinas sólo cuando hay; un tipo vacío no aparece.
-  const hayComisiones = hayMonto(tj.comisiones, items.map(p => p.comisiones))
-  const hayPropinas = hayMonto(tj.propinas, items.map(p => p.propinas))
+  const hayComisiones = hayMonto(
+    tj.comisiones,
+    items.map(p => p.comisiones),
+  )
+  const hayPropinas = hayMonto(
+    tj.propinas,
+    items.map(p => p.propinas),
+  )
   const nombre = (n: string) => nombreVisible(t, n)
   // El periodo de hoy no se puede cerrar hasta que termine: se dice desde cuándo, en vez de abrir un cierre bloqueado.
   const terminado = hoyEnSede(venueTimezone) > data.periodo.end
@@ -262,21 +268,33 @@ export function PeriodoAbiertoTab({
                   <td className="py-2 font-medium">
                     {nombre(p.staffName)}
                     {/* Negativo: lo liquidado de periodos anteriores supera lo de éste (QA B-6). La explicación va en el desglose. */}
-                    {Number(p.total) < 0 && <span className="block text-xs font-normal text-muted-foreground">{t('period.negativeShort')}</span>}
+                    {Number(p.total) < 0 && (
+                      <span className="block text-xs font-normal text-muted-foreground">{t('period.negativeShort')}</span>
+                    )}
                     {/* Asistencia verificada: cómo llegaron sus lugares en «Sólo quien llegó» (sumado de sus clases). */}
-                    {textoDeLlegadas(t, p.llegadas) && (
+                    {textoDeLlegadasDelTotal(t, p.llegadas) && (
                       <span className="block text-xs font-normal text-muted-foreground" data-testid="llegadas-persona">
-                        {textoDeLlegadas(t, p.llegadas)}
+                        {textoDeLlegadasDelTotal(t, p.llegadas)}
                       </span>
                     )}
                   </td>
                   <td className="hidden md:table-cell">{p.payLevelName ?? '—'}</td>
                   <td className="hidden text-muted-foreground md:table-cell">{p.venueIds.map(nombreSede).join(', ')}</td>
                   <td className="hidden text-right md:table-cell">{p.clases}</td>
-                  {hayComisiones && <td className="hidden whitespace-nowrap text-right md:table-cell">{Number(p.comisiones ?? 0) !== 0 ? monto(p.comisiones!) : '—'}</td>}
-                  {hayPropinas && <td className="hidden whitespace-nowrap text-right md:table-cell">{Number(p.propinas ?? 0) !== 0 ? monto(p.propinas!) : '—'}</td>}
+                  {hayComisiones && (
+                    <td className="hidden whitespace-nowrap text-right md:table-cell">
+                      {Number(p.comisiones ?? 0) !== 0 ? monto(p.comisiones!) : '—'}
+                    </td>
+                  )}
+                  {hayPropinas && (
+                    <td className="hidden whitespace-nowrap text-right md:table-cell">
+                      {Number(p.propinas ?? 0) !== 0 ? monto(p.propinas!) : '—'}
+                    </td>
+                  )}
                   <td className="hidden text-right md:table-cell">{p.clases === 0 ? '—' : p.promedioLugares}</td>
-                  <td className="hidden whitespace-nowrap text-right md:table-cell">{Number(p.ajustes ?? 0) !== 0 ? conSigno(p.ajustes!) : '—'}</td>
+                  <td className="hidden whitespace-nowrap text-right md:table-cell">
+                    {Number(p.ajustes ?? 0) !== 0 ? conSigno(p.ajustes!) : '—'}
+                  </td>
                   <td className="whitespace-nowrap text-right font-semibold">{monto(p.total)}</td>
                   <td className="text-right">
                     <Button
@@ -325,7 +343,13 @@ export function PeriodoAbiertoTab({
         <div className="flex flex-wrap items-center gap-3 border-t border-border pt-4">
           {can('staffpay:close') ? (
             <>
-              <Button variant="outline" size="sm" className="cursor-pointer" onClick={() => setAjusteAbierto(true)} data-tour="staffpay-period-adjust">
+              <Button
+                variant="outline"
+                size="sm"
+                className="cursor-pointer"
+                onClick={() => setAjusteAbierto(true)}
+                data-tour="staffpay-period-adjust"
+              >
                 <Plus className="mr-1 h-3.5 w-3.5" />
                 {etiqueta ? t('manualAdjust.add', { periodo: etiqueta }) : t('manualAdjust.title')}
               </Button>
@@ -345,7 +369,9 @@ export function PeriodoAbiertoTab({
                     <Lock className="mr-1 h-3.5 w-3.5" />
                     {t('period.close')}
                   </Button>
-                  <p className="text-xs text-muted-foreground">{t('period.closeFrom', { fecha: formatCalendarDate(diaSiguiente(data.periodo.end)) })}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {t('period.closeFrom', { fecha: formatCalendarDate(diaSiguiente(data.periodo.end)) })}
+                  </p>
                 </>
               )}
             </>

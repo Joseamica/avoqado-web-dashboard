@@ -692,6 +692,10 @@
     "corrected_other": "pago corregido a mano a {{count}} lugares",
     "listBy_one": "{{count}} desde la lista (sesión de {{names}})",
     "listBy_other": "{{count}} desde la lista (sesión de {{names}})",
-    "receiptTotal": "Llegadas: {{text}}"
+    "receiptTotal": "Llegadas: {{text}}",
+    "totalRecorded": "Llegadas registradas: {{list}}",
+    "none": "ninguna",
+    "classesCorrected_one": "{{count}} clase con pago corregido a mano",
+    "classesCorrected_other": "{{count}} clases con pago corregido a mano"
   }
 }

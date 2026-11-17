@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { textoDeLlegadas } from '../textoDeLlegadas'
+import { textoDeLlegadas, textoDeLlegadasDelTotal } from '../textoDeLlegadas'
 import es from '@/locales/es/staffPay.json'
 
 // Traductor mínimo con los textos REALES en español (plural _one/_other e interpolación), sin montar i18next.
@@ -30,5 +30,29 @@ describe('textoDeLlegadas — asistencia verificada (16-nov-2026)', () => {
   it('sin desglose (server previo) no dice nada', () => {
     expect(textoDeLlegadas(t, null)).toBeNull()
     expect(textoDeLlegadas(t, { qr: 0, phone: 0, staff: 0, list: 0, pass: 0, sinMetodo: 0 })).toBeNull()
+  })
+})
+
+// D8 (16-nov): el TOTAL de una persona (periodo abierto, cerrado y recibo) decía «5 con celular, 4 con teléfono, 1 a mano» (10)
+// junto a un pago de 8 lugares. Son llegadas REGISTRADAS, y si una clase se corrigió a mano, lo dice.
+describe('textoDeLlegadasDelTotal — el total de la persona (D8)', () => {
+  const l = (x: Record<string, number>) => ({ qr: 0, phone: 0, staff: 0, list: 0, pass: 0, sinMetodo: 0, ...x })
+  it.each([
+    [
+      l({ qr: 5, phone: 4, staff: 1, corregidas: 1 }),
+      'Llegadas registradas: 5 con celular, 4 con teléfono, 1 a mano · 1 clase con pago corregido a mano',
+    ],
+    [
+      l({ qr: 5, phone: 4, staff: 1, corregidas: 2 }),
+      'Llegadas registradas: 5 con celular, 4 con teléfono, 1 a mano · 2 clases con pago corregido a mano',
+    ],
+    [l({ qr: 5 }), 'Llegadas registradas: 5 con celular'],
+    [l({ corregidas: 1 }), 'Llegadas registradas: ninguna · 1 clase con pago corregido a mano'],
+  ])('%o ⇒ %s', (x, esperado) => {
+    expect(textoDeLlegadasDelTotal(t, x)).toBe(esperado)
+  })
+  it('sin desglose no dice nada', () => {
+    expect(textoDeLlegadasDelTotal(t, null)).toBeNull()
+    expect(textoDeLlegadasDelTotal(t, l({}))).toBeNull()
   })
 })
