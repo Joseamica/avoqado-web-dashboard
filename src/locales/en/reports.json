@@ -1447,5 +1447,29 @@
     "updateError": "Could not update the asset",
     "inpcLabel": "INPC factor (optional)",
     "inpcHint": "Inflation update factor (your accountant provides it). Multiplies the tax deduction; empty = 1 (historical cost)."
+  },
+  "appliedDiscounts": {
+    "title": "Discounts",
+    "info": "Discounts given on sales in the period, with their reason, who applied them and who approved them.",
+    "noReason": "No reason",
+    "totalAmount": "Total discounted",
+    "count": "Discounts given",
+    "byReason": "By reason",
+    "filteredHint": "Tap the reason again to see all.",
+    "columns": {
+      "date": "Date",
+      "order": "Order",
+      "discount": "Discount",
+      "reason": "Reason",
+      "amount": "Amount",
+      "appliedBy": "Applied by",
+      "authorizedBy": "Approved by"
+    },
+    "pageInfo": "Page {{page}} of {{totalPages}} · {{total}} discounts",
+    "prev": "Previous",
+    "next": "Next",
+    "noMatches": "No discounts with that reason in the period.",
+    "noData": "No discounts were given in the period.",
+    "reasonsTruncated": "Showing the 100 reasons with the highest amount in the period. The total above includes all of them; shorten the period to see the rest."
   }
 }

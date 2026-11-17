@@ -122,7 +122,8 @@
     "promotions": "Promotions",
     "taxes": "Taxes",
     "voids": "Voids",
-    "modifiers": "Modifiers"
+    "modifiers": "Modifiers",
+    "appliedDiscounts": "Discounts"
   },
   "playtelecom": {
     "title": "PlayTelecom",

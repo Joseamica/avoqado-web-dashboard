@@ -43,6 +43,7 @@ import type { FieldErrors } from 'react-hook-form'
 import { CashReconciliationSetting } from './components/CashReconciliationSetting'
 import { ExchangesSetting, StoreCreditSetting } from './components/ExchangesSetting'
 import { ManagerPinOverrideSetting } from './components/ManagerPinOverrideSetting'
+import { DiscountReasonsSetting } from './components/DiscountReasonsSetting'
 
 const LEGACY_BUSINESS_TYPE_MAP: Record<string, BusinessType> = {
   HOTEL_RESTAURANT: BusinessType.HOTEL,
@@ -1240,6 +1241,16 @@ export default function BasicInfo() {
                     {venueId && (
                       <div className="mt-3">
                         <ManagerPinOverrideSetting venueId={venueId} storedSetting={venue.settings?.managerPinOverrideEnabled ?? false} />
+                      </div>
+                    )}
+                    {/* Motivo obligatorio en los descuentos (encargo f998c8): misma familia que el PIN (control de descuentos). */}
+                    {venueId && (
+                      <div className="mt-3">
+                        <DiscountReasonsSetting
+                          venueId={venueId}
+                          storedRequired={venue.settings?.discountReasonRequired ?? false}
+                          storedReasons={venue.settings?.discountReasons ?? []}
+                        />
                       </div>
                     )}
                     {venueId && venue.exchangesEnabledEffective !== undefined && (

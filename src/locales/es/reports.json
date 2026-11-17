@@ -1447,5 +1447,29 @@
     "updateError": "No se pudo actualizar el activo",
     "inpcLabel": "Factor INPC (opcional)",
     "inpcHint": "Factor de actualización por inflación (te lo da tu contador). Multiplica la deducción fiscal; vacío = 1 (costo histórico)."
+  },
+  "appliedDiscounts": {
+    "title": "Descuentos",
+    "info": "Los descuentos que se dieron en las ventas del periodo, con su motivo, quién lo aplicó y quién lo aprobó.",
+    "noReason": "Sin motivo",
+    "totalAmount": "Total descontado",
+    "count": "Descuentos dados",
+    "byReason": "Por motivo",
+    "filteredHint": "Toca el motivo otra vez para ver todos.",
+    "columns": {
+      "date": "Fecha",
+      "order": "Folio",
+      "discount": "Descuento",
+      "reason": "Motivo",
+      "amount": "Monto",
+      "appliedBy": "Lo aplicó",
+      "authorizedBy": "Lo aprobó"
+    },
+    "pageInfo": "Página {{page}} de {{totalPages}} · {{total}} descuentos",
+    "prev": "Anterior",
+    "next": "Siguiente",
+    "noMatches": "No hay descuentos con ese motivo en el periodo.",
+    "noData": "No se dieron descuentos en el periodo.",
+    "reasonsTruncated": "Se muestran los 100 motivos con más monto del periodo. El total de arriba sí incluye todos; acorta el periodo para ver el resto."
   }
 }

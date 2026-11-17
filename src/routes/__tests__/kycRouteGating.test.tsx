@@ -58,6 +58,7 @@ describe('rutas que el KYC ya NO bloquea (operación diaria)', () => {
     'reports/payment-methods',
     'reports/refunds',
     'reports/promotions',
+    'reports/discounts',
     'reports/pay-later-aging',
     'reports/home-charts',
     'commissions',

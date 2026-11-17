@@ -939,6 +939,13 @@ export function AppSidebar({
         keywords: ['reembolsos', 'devoluciones', 'refunds', 'dinero devuelto'],
       },
       {
+        title: t('sidebar:reportsMenu.appliedDiscounts'),
+        url: 'reports/discounts',
+        icon: Percent,
+        permission: 'reports:read',
+        keywords: ['descuentos', 'motivo de descuento', 'ajuste de precio', 'discounts', 'por qué'],
+      },
+      {
         title: t('sidebar:reportsMenu.promotions'),
         url: 'reports/promotions',
         icon: Tags,

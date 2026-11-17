@@ -126,6 +126,7 @@ import {
   PaymentMethods,
   Refunds,
   PromotionSales,
+  AppliedDiscounts,
   SalesSummary,
   IncomeStatement,
   BankReconciliation,
@@ -321,6 +322,11 @@ export function createVenueRoutes(): RouteObject[] {
     {
       path: 'reports/promotions',
       children: [{ index: true, element: <PromotionSales /> }],
+    },
+    // Descuentos dados en el periodo, agrupados por motivo (encargo f998c8). Todos los planes; permiso reports:read como los demás.
+    {
+      path: 'reports/discounts',
+      children: [{ index: true, element: <AppliedDiscounts /> }],
     },
     // Bancos — hub de banca en vivo (PRO, teaser visible). Permiso financialConnections:manage;
     // el FeatureGate PRO vive dentro de cada página. Distinto de contabilidad/bancos (conciliación).
