@@ -21,6 +21,9 @@ import { AlertCircle, ArrowLeft, Check, RotateCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { PlanPicker } from '@/components/billing/PlanPicker'
 import { PlanComparison } from '@/components/billing/PlanComparison'
+import { BasicPlanCard, fmtPesos } from '@/components/billing/BasicPlanCard'
+import { usePublicBasicPlan } from '@/hooks/usePublicBasicPlan'
+import { readHybridOffer } from '@/lib/hybridIntent'
 import { HybridOnboardingButton } from '@/components/billing/HybridOnboardingButton'
 import { FeatureCatalogBrowser } from '@/components/billing/FeatureCatalogBrowser'
 import { getTierDef, salesWhatsAppLink, type TierId } from '@/config/plan-catalog'
@@ -51,6 +54,8 @@ interface PlanStepProps extends StepProps {
     interval: 'monthly' | 'annual'
     payNow: boolean
     paymentMethodId: string
+    /** Plan Básico: la prueba de Pro que termina sola sin cobrar. */
+    basicPlan?: true
   }) => Promise<void>
   /**
    * Precios del SERVIDOR, con IVA. Presentes ⇒ las líneas promocionales se pintan con ellos en vez
@@ -89,7 +94,20 @@ export function PlanStep({
   const { t } = useTranslation('setup')
   const { t: tBilling } = useTranslation('billing')
   const [selectedTier, setSelectedTier] = useState<SelectableTier>(data.plan?.tier ?? 'PRO')
-  const [interval, setInterval] = useState<'monthly' | 'annual'>(data.plan?.interval ?? 'monthly')
+  const [intervalElegido, setInterval] = useState<'monthly' | 'annual'>(data.plan?.interval ?? 'monthly')
+  // Plan Básico: se elige como una tarjeta más (a la izquierda de Pro), pero por dentro es Pro mensual, sin pagar hoy.
+  const slugRecomendado = data.hybridOfferSlug ?? readHybridOffer()
+  const { plan: planBasico } = usePublicBasicPlan()
+  const [basico, setBasico] = useState(data.plan?.basicPlan === true)
+  const eligioAlgo = useRef(false)
+  useEffect(() => {
+    // La LANDING recomienda el Básico con `hybridOffer=plan-basico`: llega con su tarjeta preseleccionada, salvo que ya
+    // haya elegido otra cosa o guardado otro plan.
+    if (!planBasico || eligioAlgo.current || data.plan?.tier || slugRecomendado !== planBasico.slug) return
+    setBasico(true)
+    setSelectedTier('PRO')
+  }, [planBasico, slugRecomendado, data.plan?.tier])
+  const interval = basico ? 'monthly' : intervalElegido
   const [clientSecret, setClientSecret] = useState<string | null>(null)
   // The SetupIntent can fail (backend flag off → 404) or never start (no provisional venue
   // yet). Both used to leave the step stuck on a permanent "Cargando…" with nothing to
@@ -117,16 +135,8 @@ export function PlanStep({
   const inicioRef = useRef<HTMLDivElement | null>(null)
 
   const payNowLabel = payNowLabelFactory(t as unknown as (k: string, o?: Record<string, unknown>) => string, quote)
-  // Las tarjetas pintan los montos del servidor, con IVA, como el resto de esta pantalla. Sin
-  // cotización quedan los del catálogo («+ IVA»), que es lo que había.
-  const preciosConIva = quote?.tiers
-    ? {
-        PRO: { monthlyCents: quote.tiers.PRO.monthlyCents, annualCents: quote.tiers.PRO.annualCents },
-        PREMIUM: { monthlyCents: quote.tiers.PREMIUM.monthlyCents, annualCents: quote.tiers.PREMIUM.annualCents },
-      }
-    : undefined
   const isPaidTier = selectedTier === 'PRO' || selectedTier === 'PREMIUM'
-  const tierName = tBilling(`plan.tiers.${getTierDef(selectedTier).key}.name`)
+  const tierName = basico && planBasico ? planBasico.name : tBilling(`plan.tiers.${getTierDef(selectedTier).key}.name`)
 
   // Línea promocional: si el servidor mandó su cotización, se pinta con SUS montos (con IVA, que
   // es como se cobra en México). Sin cotización queda el texto de siempre.
@@ -153,8 +163,15 @@ export function PlanStep({
     month: 'long',
     timeZone: 'America/Mexico_City',
   }).format(new Date(Date.now() + trialDays * 24 * 60 * 60 * 1000))
-  const trialHint =
-    precioRecurrente != null
+  const precioBasico = planBasico ? fmtPesos(planBasico.priceWithoutTax) : ''
+  const trialHint = basico
+    ? t('plan.basicTrialHint', {
+        defaultValue:
+          'Hoy no pagas nada. Tienes 30 días de Pro sin cobro; el {{date}} la prueba termina sola y ese día podrás contratar el Básico por {{price}} + IVA al mes.',
+        date: fechaDelCobro,
+        price: precioBasico,
+      })
+    : precioRecurrente != null
       ? t('plan.trialHint', {
           defaultValue:
             'Hoy no pagas nada. El {{date}} se cobran {{price}} {{period}} a esta tarjeta. Cancela antes desde Facturación y no se te cobra.',
@@ -167,7 +184,7 @@ export function PlanStep({
             'Hoy no pagas nada. Al terminar los {{count}} días se cobra el precio del plan a esta tarjeta. Cancela antes desde Facturación y no se te cobra.',
           count: trialDays,
         })
-  const conIntroHoy = selectedTier === 'PRO' && interval === 'monthly'
+  const conIntroHoy = !basico && selectedTier === 'PRO' && interval === 'monthly'
   const payNowHint = conIntroHoy
     ? promoLine
     : precioRecurrente != null
@@ -182,11 +199,15 @@ export function PlanStep({
   // catálogo con «+ IVA», que es lo que había.
   const tierDef = getTierDef(selectedTier)
   const precioVisible =
-    precioRecurrente != null
-      ? `${formatMXN(precioRecurrente)} ${periodo}`
-      : `$${(interval === 'annual' ? tierDef.priceAnnual : tierDef.priceMonthly)?.toLocaleString('es-MX')} ${periodo}`
+    basico && planBasico
+      ? `${precioBasico} ${periodo}`
+      : precioRecurrente != null
+        ? `${formatMXN(precioRecurrente)} ${periodo}`
+        : `$${(interval === 'annual' ? tierDef.priceAnnual : tierDef.priceMonthly)?.toLocaleString('es-MX')} ${periodo}`
   const notaIva =
-    precioRecurrente != null ? t('plan.ivaIncluded', { defaultValue: 'IVA incluido' }) : t('plan.plusIva', { defaultValue: '+ IVA' })
+    basico || precioRecurrente == null
+      ? t('plan.plusIva', { defaultValue: '+ IVA' })
+      : t('plan.ivaIncluded', { defaultValue: 'IVA incluido' })
 
   const irA = (siguiente: 'elegir' | 'pagar') => {
     // Ir A PAGAR el mismo plan nunca cambia nada; lo que se congela es volver a ELEGIR.
@@ -243,6 +264,8 @@ export function PlanStep({
         window.open(salesWhatsAppLink('Hola, me interesa el plan Enterprise de Avoqado para mi negocio.'), '_blank', 'noopener,noreferrer')
         return
       }
+      eligioAlgo.current = true
+      setBasico(false)
       // La siguiente acción (Continuar) vive en la barra fija de abajo: siempre a la vista, sin saltos.
       setSelectedTier(tier)
     },
@@ -277,8 +300,23 @@ export function PlanStep({
             interval={interval}
             onIntervalChange={setInterval}
             promoNotes={interval === 'monthly' ? { PRO: promoLine } : undefined}
-            preciosConIva={preciosConIva}
             onSelectTier={handleSelectTier}
+            leadingSelected={basico}
+            leadingCard={
+              planBasico ? (
+                <BasicPlanCard
+                  plan={planBasico}
+                  selected={basico}
+                  disabled={bloqueado}
+                  onSelect={() => {
+                    if (bloqueado) return
+                    eligioAlgo.current = true
+                    setSelectedTier('PRO')
+                    setBasico(true)
+                  }}
+                />
+              ) : undefined
+            }
           />
         </div>
 
@@ -345,7 +383,7 @@ export function PlanStep({
                 : t('plan.billedMonthly', { defaultValue: 'Se cobra cada mes' })}
             </p>
           </div>
-          {(selectedTier === 'PRO' || selectedTier === 'PREMIUM') && (
+          {!basico && (selectedTier === 'PRO' || selectedTier === 'PREMIUM') && (
             <div data-testid="plan-summary-features" className="flex flex-col gap-3 border-t border-input pt-5">
               <p className="text-sm font-medium">
                 {selectedTier === 'PRO'
@@ -420,8 +458,11 @@ export function PlanStep({
             <Elements key={clientSecret ?? 'sin-intent'} stripe={stripePromise} options={options}>
               <PlanCardForm
                 errorMessage={errorDePago}
-                payNowLabel={payNowLabel(selectedTier, interval)}
-                trialLabel={t('plan.startTrial', { defaultValue: 'Empezar 30 días gratis' })}
+                payNowLabel={
+                  basico ? t('plan.basicStartTrial', { defaultValue: 'Empezar 30 días gratis' }) : payNowLabel(selectedTier, interval)
+                }
+                // Básico: UN solo botón (empezar la prueba); no existe «pagar hoy».
+                trialLabel={basico ? null : t('plan.startTrial', { defaultValue: 'Empezar 30 días gratis' })}
                 trialOptionTitle={t('plan.optionTrial', { defaultValue: '{{count}} días gratis', count: trialDays })}
                 payNowOptionTitle={
                   conIntroHoy
@@ -429,18 +470,26 @@ export function PlanStep({
                     : t('plan.optionPayNow', { defaultValue: 'Pagar hoy' })
                 }
                 trialHint={trialHint}
-                payNowHint={payNowHint}
+                payNowHint={basico ? trialHint : payNowHint}
                 busy={pagoBloqueado ?? cobroEnVuelo}
                 onBusyChange={setCobrando}
                 // Stripe no cargó el formulario: se muestra el «Reintentar» de arriba, que pide un SetupIntent nuevo.
                 onLoadError={() => setIntentStatus('error')}
-                onConfirmed={async (paymentMethodId, payNow) => {
+                onConfirmed={async (paymentMethodId, payNowPedido) => {
+                  // Plan Básico: nunca se paga hoy (el servidor lo rechaza con otra combinación).
+                  const payNow = basico ? false : payNowPedido
                   // 🔴 El cobro va ANTES de avanzar. Si `activateBeforeContinue` lanza, no se llama a
                   // `onNext`: avanzar tras un rechazo dejaría el alta creyendo que hay plan pagado.
                   if (activateBeforeContinue) {
                     setErrorDePago(null)
                     try {
-                      await activateBeforeContinue({ tier: selectedTier, interval, payNow, paymentMethodId })
+                      await activateBeforeContinue({
+                        tier: selectedTier,
+                        interval,
+                        payNow,
+                        paymentMethodId,
+                        ...(basico ? { basicPlan: true as const } : {}),
+                      })
                     } catch (fallo) {
                       // 🔴 El SetupIntent ya quedó CONFIRMADO con esta tarjeta: está gastado. Sin uno nuevo, reintentar con
                       // otra tarjeta daba «Se produjo un error de procesamiento» y sólo salía recargando (full-testing, 26-sep).
@@ -453,7 +502,14 @@ export function PlanStep({
                     }
                   }
                   const termino = await onNext({
-                    plan: { tier: selectedTier, paymentMethodId, interval, payNow, acceptedAt: new Date().toISOString() },
+                    plan: {
+                      tier: selectedTier,
+                      paymentMethodId,
+                      interval,
+                      payNow,
+                      acceptedAt: new Date().toISOString(),
+                      ...(basico ? { basicPlan: true } : {}),
+                    },
                   })
                   // 🔴 Codex R13 — asistente LARGO: aquí el cobro va en la finalización del padre. Si falló, el SetupIntent
                   // ya quedó confirmado con esta tarjeta: se pide uno nuevo y se DICE, en vez de quedarse mudo.

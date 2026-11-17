@@ -1,5 +1,5 @@
 // src/components/billing/PlanPicker.tsx
-import { Fragment, useMemo, useState } from 'react'
+import { Fragment, useMemo, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Check, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -26,15 +26,6 @@ const ACCENT_BG: Record<PlanTierDef['accent'], string> = {
 const PRINCIPALES_VISIBLES = 4
 
 const fmt = (n: number) => `$${n.toLocaleString('es-MX')}`
-/** Centavos del servidor → «$1,158.84». Siempre con los dos decimales: es el monto que se cobra. */
-const fmtCents = (c: number) => `$${(c / 100).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-
-/** Precio de un plan tal como lo cotizó el servidor, en centavos y CON IVA (lo que se cobra). */
-export interface PrecioConIva {
-  monthlyCents: number
-  annualCents: number
-}
-
 /**
  * What `currentTier` means to the caller.
  *
@@ -67,12 +58,12 @@ interface PlanPickerProps {
   /** See {@link PlanSelectionMode}. Defaults to `'owned'` (billing portal semantics). */
   selectionMode?: PlanSelectionMode
   /**
-   * Precios cotizados por el servidor, con IVA. Cuando vienen (el alta), la tarjeta pinta ESE
-   * monto y dice «IVA incluido»: en México el precio que se ve es el que se paga, y la misma
-   * pantalla ya habla en montos con IVA. Sin ellos (Facturación, conversión) se usa el catálogo
-   * «+ IVA» de siempre.
+   * Tarjeta extra a la IZQUIERDA de las demás (el Plan Básico del alta). Con ella la cuadrícula cuenta 4 columnas
+   * contándola, y Pro conserva su «Más popular».
    */
-  preciosConIva?: Partial<Record<TierId, PrecioConIva>>
+  leadingCard?: ReactNode
+  /** La tarjeta de `leadingCard` es la elegida: ninguna de las demás se pinta como elegida. */
+  leadingSelected?: boolean
 }
 
 export function PlanPicker({
@@ -82,7 +73,8 @@ export function PlanPicker({
   onIntervalChange,
   promoNotes,
   selectionMode = 'owned',
-  preciosConIva,
+  leadingCard,
+  leadingSelected = false,
 }: PlanPickerProps) {
   const { t } = useTranslation('billing')
   const [internalInterval, setInternalInterval] = useState<'monthly' | 'annual'>('monthly')
@@ -136,16 +128,16 @@ export function PlanPicker({
         className="grid grid-cols-1 gap-4 @lg:grid-cols-2 @4xl:grid-cols-4"
         {...(selectionMode === 'choice' ? { role: 'radiogroup', 'aria-label': t('plan.chooseAria') } : {})}
       >
+        {leadingCard}
         {tiers.map(tier => (
           <PlanCard
             key={tier.id}
             tier={tier}
             interval={interval}
             selectionMode={selectionMode}
-            isCurrent={tier.id === currentTier}
+            isCurrent={!leadingSelected && tier.id === currentTier}
             isDowngrade={TIER_ORDER.indexOf(tier.id) < TIER_ORDER.indexOf(currentTier)}
             promoNote={promoNotes?.[tier.id]}
-            precioConIva={preciosConIva?.[tier.id]}
             onSelect={() => onSelectTier(tier.id, interval)}
           />
         ))}
@@ -161,7 +153,6 @@ function PlanCard({
   isCurrent,
   isDowngrade,
   promoNote,
-  precioConIva,
   onSelect,
 }: {
   tier: PlanTierDef
@@ -170,7 +161,6 @@ function PlanCard({
   isCurrent: boolean
   isDowngrade: boolean
   promoNote?: string
-  precioConIva?: PrecioConIva
   onSelect: () => void
 }) {
   const { t } = useTranslation('billing')
@@ -269,14 +259,10 @@ function PlanCard({
             <span className="text-xl font-extrabold">{t('plan.cta.contact')}</span>
           ) : (
             <>
-              <span className="text-3xl font-extrabold tracking-tight">
-                {precioConIva
-                  ? fmtCents(interval === 'monthly' ? precioConIva.monthlyCents : Math.round(precioConIva.annualCents / 12))
-                  : fmt(monthlyEquiv)}
-              </span>
+              <span className="text-3xl font-extrabold tracking-tight">{fmt(monthlyEquiv)}</span>
               <span className="whitespace-nowrap text-xs text-muted-foreground">
                 {t('plan.perMonth')}
-                {monthlyEquiv > 0 && <> · {precioConIva ? t('plan.ivaIncluded') : t('plan.plusIva')}</>}
+                {monthlyEquiv > 0 && <> · {t('plan.plusIva')}</>}
               </span>
             </>
           )}
@@ -287,7 +273,7 @@ function PlanCard({
             : tier.priceMonthly === null
               ? ''
               : interval === 'annual' && tier.priceAnnual != null
-                ? t('plan.annualEquiv', { price: precioConIva ? fmtCents(precioConIva.annualCents) : fmt(tier.priceAnnual) })
+                ? t('plan.annualEquiv', { price: fmt(tier.priceAnnual) })
                 : t('plan.billedMonthly')}
         </div>
         {promoNote && <div className="rounded-lg bg-emerald-400/10 px-2.5 py-1.5 text-xs font-medium text-emerald-500">{promoNote}</div>}

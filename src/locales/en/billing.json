@@ -81,6 +81,11 @@
     "annualEquiv": "{{price}}/yr · 2 months free",
     "comingSoon": "Coming soon",
     "popular": "Most popular",
+    "basic": {
+      "trialCopy": "30 days free with everything in Pro, no charge. Then get Basic for {{price}} + VAT per month",
+      "seatsUnlimited": "Unlimited users · 1 location",
+      "seatsCapped": "Up to {{count}} users · 1 location"
+    },
     "compareCta": "Compare all plans",
     "assistedBody": "We activate your plan with you so everything is perfect. Message us and we'll set it up today.",
     "assistedCta": "Talk to an advisor",
@@ -805,6 +810,7 @@
       "MERCHANT_ROUTING_RULES": "Payment routing rules",
       "REFERRAL_PROGRAM": "Referrals",
       "PROMOTIONS": "Promotions",
+      "KITCHEN_DISPLAY": "Kitchen display (KDS)",
       "CUSTOMER_CAMPAIGNS": "Email campaigns to your customers",
       "GOOGLE_REVIEW_REDIRECT": "Google reviews",
       "AUTO_REORDER": "Auto-reorder",

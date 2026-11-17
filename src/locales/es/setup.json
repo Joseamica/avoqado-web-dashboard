@@ -237,6 +237,9 @@
     "promoLine": "Paga hoy: 3 meses a $599 + IVA, luego $999.",
     "selectedPlan": "Plan seleccionado: {{plan}}",
     "startTrial": "Empezar 30 días gratis",
+    "basicSelected": "Plan Básico",
+    "basicTrialHint": "Hoy no pagas nada. Tienes 30 días de Pro sin cobro; el {{date}} la prueba termina sola y ese día podrás contratar el Básico por {{price}} + IVA al mes.",
+    "basicStartTrial": "Empezar 30 días gratis",
     "payNowMonthly": "Pagar hoy y ahorrar (3 meses a $599)",
     "payNowMonthlyFromQuote": "Pagar hoy y ahorrar ({{count}} meses a {{intro}})",
     "payNowAnnual": "Pagar hoy (anual)",
@@ -444,6 +447,9 @@
     "subtitle": "Tu negocio ya está en Avoqado. Entra y empieza a vender.",
     "subtitleNamed": "{{business}} ya está en Avoqado. Entra y empieza a vender.",
     "enter": "Entrar a Avoqado",
+    "trialEndsFree": "Tu prueba de Pro termina el {{date}} sin cobro. Ese día podrás contratar el Básico.",
+    "trialRenews": "Tu prueba de Pro se renueva como Pro el {{date}}.",
+    "trialChange": "Cámbialo en «Tu plan»",
     "completeError": "No pudimos terminar tu alta. Intenta de nuevo en un momento."
   }
 }

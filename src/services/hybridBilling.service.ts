@@ -278,6 +278,19 @@ const featureGridSchema = z.object({
 export const parseFeatureGrid = (value: unknown): FeatureGrid => featureGridSchema.parse(value) as FeatureGrid
 const base = (venueId: string) => `/api/v1/dashboard/venues/${encodeURIComponent(venueId)}/hybrid-billing`
 const data = <T>(response: { data: { data: T } }) => response.data.data
+/** El Plan Básico a la venta (`null` = no hay uno publicado: no hay tarjeta). Precios en pesos, como texto. */
+export type PublicBasicPlan = {
+  slug: string
+  name: string
+  priceWithTax: string
+  priceWithoutTax: string
+  featureCodes: string[]
+  seatCap: number | null
+  trialDays: number
+  publicationId: string
+}
+export const getPublicBasicPlan = (signal?: AbortSignal) =>
+  publicApi.get<{ data: PublicBasicPlan | null }>('/api/v1/public/basic-plan', { signal }).then(data)
 export const hybridBilling = {
   offers: (params: { page: number; pageSize: number; q?: string }, signal?: AbortSignal) =>
     publicApi

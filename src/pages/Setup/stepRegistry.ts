@@ -79,7 +79,12 @@ export interface ShortResumeProgress {
    * la pantalla de pago a alguien que YA pagó — y la oferta se le ofrecería otra vez.
    */
   planActivationStatus?: EstadoDeActivacion | null
-  planActivation?: { status?: EstadoDeActivacion | null } | null
+  planActivation?: {
+    status?: EstadoDeActivacion | null
+    /** Plan Básico: cómo termina la prueba, leído de la suscripción REAL (aditivo). */
+    trialModality?: 'RENEWS_AS_PRO' | 'ENDS_FREE' | null
+    trialEndsAt?: string | null
+  } | null
 }
 
 export function estadoDeActivacion(progress: ShortResumeProgress | null | undefined): EstadoDeActivacion | null {

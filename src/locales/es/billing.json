@@ -81,6 +81,11 @@
     "annualEquiv": "{{price}}/año · 2 meses gratis",
     "comingSoon": "Muy pronto",
     "popular": "Más popular",
+    "basic": {
+      "trialCopy": "30 días gratis con todo Pro, sin cobro. Después, contrata el Básico por {{price}} + IVA al mes",
+      "seatsUnlimited": "Usuarios sin tope · 1 sucursal",
+      "seatsCapped": "Hasta {{count}} usuarios · 1 sucursal"
+    },
     "compareCta": "Compara todos los planes",
     "assistedBody": "Activamos tu plan contigo para que todo quede perfecto. Escríbenos y lo dejamos listo hoy.",
     "assistedCta": "Hablar con un asesor",
@@ -805,6 +810,7 @@
       "MERCHANT_ROUTING_RULES": "Reglas de cobro por comercio",
       "REFERRAL_PROGRAM": "Referidos",
       "PROMOTIONS": "Promociones",
+      "KITCHEN_DISPLAY": "Pantalla de cocina (KDS)",
       "CUSTOMER_CAMPAIGNS": "Campañas por correo a tus clientes",
       "GOOGLE_REVIEW_REDIRECT": "Reseñas en Google",
       "AUTO_REORDER": "Reorden automático",

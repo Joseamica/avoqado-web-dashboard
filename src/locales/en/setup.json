@@ -237,6 +237,9 @@
     "promoLine": "Pay today: 3 months at $599 + tax, then $999.",
     "selectedPlan": "Selected plan: {{plan}}",
     "startTrial": "Start 30-day free trial",
+    "basicSelected": "Basic plan",
+    "basicTrialHint": "You pay nothing today. You get 30 days of Pro at no charge; on {{date}} the trial ends on its own and you can then get Basic for {{price}} + VAT per month.",
+    "basicStartTrial": "Start 30 days free",
     "payNowMonthly": "Pay today and save (3 months at $599)",
     "payNowMonthlyFromQuote": "Pay today and save ({{count}} months at {{intro}})",
     "payNowAnnual": "Pay today (annual)",
@@ -444,6 +447,9 @@
     "subtitle": "Your business is on Avoqado. Go in and start selling.",
     "subtitleNamed": "{{business}} is on Avoqado. Go in and start selling.",
     "enter": "Go to Avoqado",
+    "trialEndsFree": "Your Pro trial ends on {{date}} with no charge. That day you can get Basic.",
+    "trialRenews": "Your Pro trial renews as Pro on {{date}}.",
+    "trialChange": "Change it in \"Your plan\"",
     "completeError": "We could not finish your setup. Try again in a moment."
   }
 }

@@ -1,8 +1,9 @@
-import { lazy, Suspense, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { readHybridOffer, readHybridAttempt } from '@/lib/hybridIntent'
+import { usePublicBasicPlan } from '@/hooks/usePublicBasicPlan'
 import type { SetupData } from '@/pages/Setup/types'
 const Checkout = lazy(() => import('./HybridCheckout').then(module => ({ default: module.HybridCheckout })))
 export function HybridOnboardingButton({
@@ -17,7 +18,17 @@ export function HybridOnboardingButton({
   onNext: (data: Partial<SetupData>) => void | Promise<boolean | void>
 }) {
   const { t } = useTranslation('billing')
-  const [open, setOpen] = useState(() => !!initialSlug || !!readHybridOffer() || !!readHybridAttempt(venueId))
+  // Una recomendación `hybridOffer` abre solita la compra híbrida… salvo la del Plan Básico: esa llega a «Elige tu plan»
+  // con la tarjeta Básico preseleccionada y NO abre ningún cobro. Para saberlo hay que esperar al slug del Básico.
+  const slug = initialSlug ?? readHybridOffer()
+  const { plan: basico, loaded } = usePublicBasicPlan(!!slug)
+  const [open, setOpen] = useState(() => !!readHybridAttempt(venueId))
+  const autoAbierto = useRef(false)
+  useEffect(() => {
+    if (!slug || !loaded || autoAbierto.current) return
+    autoAbierto.current = true
+    if (slug !== basico?.slug) setOpen(true)
+  }, [slug, loaded, basico?.slug])
   return (
     <>
       <Button variant="outline" disabled={disabled || !venueId} onClick={() => setOpen(true)} data-tour="setup-hybrid-offers">
