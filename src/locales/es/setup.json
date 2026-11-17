@@ -422,6 +422,7 @@
       }
     },
     "trialLegal": "Al empezar aceptas que desde el {{fecha}} se cobren {{monto}} al mes a esta tarjeta hasta que canceles. Te avisamos 7 días antes. Cancela cuando quieras desde Facturación.",
+    "basicLegal": "Al empezar tienes 30 días de Pro sin cobro. Tu prueba termina el {{fecha}} sin cobro y ese día podrás contratar el Básico por {{precio}} + IVA al mes. Cancela cuando quieras desde Facturación.",
     "netPlusIva": "{{net}} + IVA = {{gross}}",
     "grossWithIva": "{{gross}} con IVA",
     "pendingTitle": "Tienes un pago sin confirmar",

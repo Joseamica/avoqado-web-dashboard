@@ -125,7 +125,7 @@ describe('PlanPicker', () => {
     expect(screen.getAllByText('plan.perMonth · plan.plusIva')).toHaveLength(2) // Pro y Premium
   })
 
-  it('leadingCard: se pinta ANTES de Free/Pro y Pro conserva «Más popular»; leadingSelected apaga la elección de Pro', () => {
+  it('leadingCard: va entre Gratis y Pro, la cuadrícula tiene 5 columnas, Pro conserva «Más popular» y leadingSelected apaga su elección', () => {
     render(
       <PlanPicker
         currentTier="PRO"
@@ -136,9 +136,18 @@ describe('PlanPicker', () => {
       />,
     )
     const grid = screen.getByRole('radiogroup')
-    expect(grid.firstElementChild).toBe(screen.getByTestId('basico'))
+    const orden = Array.from(grid.children).map(
+      el => (el as HTMLElement).dataset.tour?.replace('plan-card-', '') ?? (el as HTMLElement).dataset.testid,
+    )
+    expect(orden).toEqual(['free', 'basico', 'pro', 'premium', 'enterprise'])
+    expect(grid.className).toContain('@4xl:grid-cols-5')
     expect(screen.getByText('plan.popular')).toBeInTheDocument()
     expect(card('pro')).toHaveAttribute('aria-checked', 'false')
+  })
+
+  it('sin leadingCard la cuadrícula sigue en 4 columnas (regresión)', () => {
+    render(<PlanPicker currentTier="PRO" onSelectTier={() => {}} selectionMode="choice" />)
+    expect(screen.getByRole('radiogroup').className).toContain('@4xl:grid-cols-4')
   })
 
   it('sin precios del servidor (Facturación) sigue igual: «$999» y «+ IVA» (regresión)', () => {

@@ -17,6 +17,8 @@ const activateBeforeContinue = vi.fn()
 vi.mock('@/services/setup.service', () => ({
   setupService: { planSetupIntent: (...a: unknown[]) => planSetupIntent(...a), activatePlan: vi.fn(), saveStep: vi.fn() },
 }))
+// Sin Básico publicado: evita que `usePublicBasicPlan` pegue a la red de verdad.
+vi.mock('@/services/hybridBilling.service', () => ({ getPublicBasicPlan: () => Promise.resolve(null) }))
 const toastEstable = vi.fn()
 vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: toastEstable }) }))
 vi.mock('@stripe/stripe-js', () => ({ loadStripe: () => Promise.resolve(null) }))

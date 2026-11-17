@@ -35,6 +35,9 @@ vi.mock('@/services/setup.service', () => ({
 vi.mock('@/lib/gtag', () => ({ trackPurchase: vi.fn(), trackSignup: vi.fn() }))
 vi.mock('@/lib/posthog', () => ({ track: vi.fn() }))
 const toastEstable = vi.hoisted(() => vi.fn())
+// El Básico no está publicado aquí: sin el mock, `usePublicBasicPlan` pegaría a la red de verdad.
+const getPublicBasicPlan = vi.hoisted(() => vi.fn())
+vi.mock('@/services/hybridBilling.service', () => ({ getPublicBasicPlan: (...a: unknown[]) => getPublicBasicPlan(...a) }))
 vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: toastEstable }) }))
 vi.mock('@stripe/stripe-js', () => ({ loadStripe: () => Promise.resolve(null) }))
 vi.mock('@stripe/react-stripe-js', () => ({
@@ -140,6 +143,7 @@ const CUERPO_PREMIUM = {
 }
 
 beforeEach(() => {
+  getPublicBasicPlan.mockReset().mockResolvedValue(null)
   activatePlan.mockReset()
   saveStep.mockReset().mockResolvedValue({})
   planSetupIntent.mockReset().mockResolvedValue({ data: { data: { clientSecret: 'seti_secret' } } })

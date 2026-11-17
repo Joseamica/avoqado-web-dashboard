@@ -422,6 +422,7 @@
       }
     },
     "trialLegal": "By starting you agree that from {{fecha}} {{monto}} per month will be charged to this card until you cancel. We'll notify you 7 days before. Cancel any time from Billing.",
+    "basicLegal": "By starting you get 30 days of Pro at no charge. Your trial ends on {{fecha}} with no charge and that day you can get Basic for {{precio}} + VAT per month. Cancel any time from Billing.",
     "netPlusIva": "{{net}} + VAT = {{gross}}",
     "grossWithIva": "{{gross}} with VAT",
     "pendingTitle": "You have an unconfirmed payment",

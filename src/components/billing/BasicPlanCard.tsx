@@ -1,14 +1,8 @@
 import { useTranslation } from 'react-i18next'
 import { Check, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { fmtPesos } from '@/utils/pesos'
 import type { PublicBasicPlan } from '@/services/hybridBilling.service'
-
-/** «499.00» → «$499»; con centavos reales se conservan («$499.50»). */
-export const fmtPesos = (value: string) => {
-  const n = Number(value)
-  if (!Number.isFinite(n)) return value
-  return `$${n.toLocaleString('es-MX', { minimumFractionDigits: Number.isInteger(n) ? 0 : 2, maximumFractionDigits: 2 })}`
-}
 
 /**
  * La tarjeta del Plan Básico en «Elige tu plan», a la izquierda de Pro. Mismo molde que las tarjetas de

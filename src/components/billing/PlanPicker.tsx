@@ -125,21 +125,27 @@ export function PlanPicker({
       {/* Cards */}
       <div
         // Todas las tarjetas miden lo mismo de alto (founder, 25-sep): una fila pareja se compara mejor.
-        className="grid grid-cols-1 gap-4 @lg:grid-cols-2 @4xl:grid-cols-4"
+        className={cn(
+          'grid grid-cols-1 gap-4 @lg:grid-cols-2',
+          // Una columna por tarjeta en el ancho máximo: con el Básico son 5 y Enterprise no se queda sola en otra fila.
+          leadingCard ? '@4xl:grid-cols-5' : '@4xl:grid-cols-4',
+        )}
         {...(selectionMode === 'choice' ? { role: 'radiogroup', 'aria-label': t('plan.chooseAria') } : {})}
       >
-        {leadingCard}
         {tiers.map(tier => (
-          <PlanCard
-            key={tier.id}
-            tier={tier}
-            interval={interval}
-            selectionMode={selectionMode}
-            isCurrent={!leadingSelected && tier.id === currentTier}
-            isDowngrade={TIER_ORDER.indexOf(tier.id) < TIER_ORDER.indexOf(currentTier)}
-            promoNote={promoNotes?.[tier.id]}
-            onSelect={() => onSelectTier(tier.id, interval)}
-          />
+          <Fragment key={tier.id}>
+            {/* Gratis · Básico · Pro · Premium · Enterprise: el Básico va justo a la izquierda de Pro. */}
+            {tier.id === 'PRO' && leadingCard}
+            <PlanCard
+              tier={tier}
+              interval={interval}
+              selectionMode={selectionMode}
+              isCurrent={!leadingSelected && tier.id === currentTier}
+              isDowngrade={TIER_ORDER.indexOf(tier.id) < TIER_ORDER.indexOf(currentTier)}
+              promoNote={promoNotes?.[tier.id]}
+              onSelect={() => onSelectTier(tier.id, interval)}
+            />
+          </Fragment>
         ))}
       </div>
     </div>
