@@ -1167,7 +1167,8 @@
     "viewAllModifiers": "Ver todos los modificadores",
     "noModifiersTracked": "Sin Modificadores con Seguimiento de Inventario",
     "noModifiersDescription": "Configura el seguimiento de inventario para modificadores para ver análisis de uso e impacto en costos.",
-    "configureModifiers": "Configurar Modificadores"
+    "configureModifiers": "Configurar Modificadores",
+    "linkedProduct": "Descuenta «{{name}}»"
   },
   "tour": {
     "launchButton": "¿Cómo agregar un ingrediente?",

@@ -89,6 +89,8 @@ export function ModifiersManagerDialog({ venueId, modifierGroupId, onClose }: Mo
             quantityPerUnit: subView.modifier.quantityPerUnit ?? null,
             unit: (subView.modifier.unit as string | null) ?? null,
             inventoryMode: subView.modifier.inventoryMode ?? null,
+            linkedProductId: subView.modifier.linkedProductId ?? null,
+            linkedProduct: subView.modifier.linkedProduct ?? null,
           }
         : null,
     [subView],

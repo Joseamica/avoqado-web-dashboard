@@ -428,7 +428,29 @@
       "quantityPerUnit": "Quantity per modifier",
       "quantityPerUnitDesc": "How much raw material is used per modifier",
       "unit": "Unit",
-      "selectUnit": "Select unit"
+      "selectUnit": "Select unit",
+      "linked": {
+        "title": "This extra is a menu item",
+        "desc": "When sold, it takes that item's inventory down (its pieces or its recipe). It does not count as a sale of that item: its price is the extra's price.",
+        "pick": "Menu item",
+        "search": "Search menu item…",
+        "methodQuantity": "By pieces",
+        "methodRecipe": "By recipe",
+        "showing": "Showing {{shown}} of {{total}}",
+        "loadMore": "Load more",
+        "empty": "No menu items match that name.",
+        "error": "Menu items could not be loaded. Try again.",
+        "retry": "Retry",
+        "blocked": {
+          "NOT_INVENTORIED": "It doesn't track inventory: turn it on in its page (by pieces or by recipe) to link it.",
+          "SOLD_BY_WEIGHT": "It's sold by weight: an extra can't take it down."
+        },
+        "remove": "Remove menu item",
+        "noLongerTracked": "This item no longer tracks inventory: the extra won't take anything down until you turn it back on.",
+        "inactive": "Inactive",
+        "required": "Pick the menu item or turn off “This extra is a menu item”.",
+        "exclusive": "An extra takes down an ingredient or a menu item, not both: turning one on turns the other off."
+      }
     },
     "editor": {
       "subtitle": "Modifiers in this group",

@@ -221,6 +221,9 @@ export function ModifierInventoryAnalytics() {
                           </Badge>
                         )}
                       </p>
+                      {item.linkedProduct && (
+                        <p className="text-xs text-muted-foreground">{t('modifierAnalytics.linkedProduct', { name: item.linkedProduct.name })}</p>
+                      )}
                     </div>
                   </div>
                   <div className="text-right">
