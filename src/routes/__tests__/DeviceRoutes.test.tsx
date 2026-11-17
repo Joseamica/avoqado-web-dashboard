@@ -12,7 +12,7 @@ vi.mock('@/hooks/use-access', () => ({ useAccess: vi.fn() }))
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
-    t: (_key: string, fallback?: string) => fallback ?? 'translated',
+    t: (key: string, fallback?: string) => fallback ?? key,
   }),
 }))
 
@@ -138,7 +138,7 @@ describe('canonical device routes', () => {
     renderVenueRoute(path)
 
     await waitFor(() => expect(screen.queryByTestId('device-page')).not.toBeInTheDocument())
-    expect(screen.getByText('Access Denied')).toBeInTheDocument()
+    expect(screen.getByText('routeProtection.accessDenied')).toBeInTheDocument()
   })
 
   // 🔴 CAMBIO DELIBERADO (§4.4 del spec de campañas ligeras, decisión del founder): el LISTADO de

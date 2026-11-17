@@ -8,7 +8,9 @@ type T = (k: string, o?: Record<string, unknown>) => string
  */
 export function textoDeLlegadas(t: T, l: LlegadasDto | null | undefined): string | null {
   if (!l) return null
-  const aMano = l.aMano?.length ? t('arrivals.byHandBy', { count: l.staff, names: l.aMano.join(', ') }) : t('arrivals.byHand', { count: l.staff })
+  const aMano = l.aMano?.length
+    ? t('arrivals.byHandBy', { count: l.staff, names: l.aMano.join(', ') })
+    : t('arrivals.byHand', { count: l.staff })
   const partes = [
     l.qr ? t('arrivals.qr', { count: l.qr }) : null,
     l.phone ? t('arrivals.phone', { count: l.phone }) : null,
@@ -26,4 +28,17 @@ export function textoDeLlegadas(t: T, l: LlegadasDto | null | undefined): string
     return `${registradas} · ${t('arrivals.corrected', { count: l.corregidoA })}`
   }
   return partes.length ? partes.join(', ') : null
+}
+
+/**
+ * D8 (16-nov): el TOTAL de una persona (periodo abierto, cerrado y recibo). Son llegadas REGISTRADAS; si alguna clase tuvo
+ * «Corregir conteo», lo dice («· 1 clase con pago corregido a mano»), igual que el PDF y el Excel del servidor.
+ */
+export function textoDeLlegadasDelTotal(t: T, l: LlegadasDto | null | undefined): string | null {
+  if (!l) return null
+  const lista = textoDeLlegadas(t, { ...l, corregidoA: null })
+  const corregidas = l.corregidas ?? 0
+  if (!lista && !corregidas) return null
+  const total = t('arrivals.totalRecorded', { list: lista ?? t('arrivals.none') })
+  return corregidas ? `${total} · ${t('arrivals.classesCorrected', { count: corregidas })}` : total
 }

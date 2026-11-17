@@ -1,10 +1,32 @@
-export interface CeldaDto { payLevelId: string; count: number; amount: number }
-export interface NivelDto { id: string; name: string; sortOrder: number; archivedAt: string | null }
-export interface AsignacionVigenteDto { staffId: string; payLevelId: string; payLevelName: string; effectiveFrom: string }
+export interface CeldaDto {
+  payLevelId: string
+  count: number
+  amount: number
+}
+export interface NivelDto {
+  id: string
+  name: string
+  sortOrder: number
+  archivedAt: string | null
+}
+export interface AsignacionVigenteDto {
+  staffId: string
+  payLevelId: string
+  payLevelName: string
+  effectiveFrom: string
+}
 export interface TablaDto {
-  id: string; name: string; productIds: string[]; archivedFrom: string | null
+  id: string
+  name: string
+  productIds: string[]
+  archivedFrom: string | null
   vigente: null | {
-    id: string; effectiveFrom: string; revision: number; countMode: 'BOOKED' | 'ATTENDED'; maxCount: number; cells: CeldaDto[]
+    id: string
+    effectiveFrom: string
+    revision: number
+    countMode: 'BOOKED' | 'ATTENDED'
+    maxCount: number
+    cells: CeldaDto[]
     /** Fase 3 (D4): las reglas de clase de la versión, ANIDADAS aquí. Opcional: un server previo no las manda. */
     reglas?: { coverBonusHours: number | null; coverBonusAmount: number | null; lateCancelHours: number | null }
   }
@@ -15,41 +37,115 @@ export type MotivoExcepcion = 'SIN_COACH' | 'COACH_SIN_NIVEL' | 'SIN_TABLA' | 'S
  * ese número y esto sigue diciendo lo registrado. Opcional en todo: un server previo no lo manda.
  */
 export interface LlegadasDto {
-  qr: number; phone: number; staff: number; list: number; pass: number; sinMetodo: number; aMano?: string[]; corregidoA?: number | null
+  qr: number
+  phone: number
+  staff: number
+  list: number
+  pass: number
+  sinMetodo: number
+  aMano?: string[]
+  corregidoA?: number | null
   /** Con la sesión de quién se tocó la lista de una app vieja. */
   desdeLaLista?: string[]
+  /** D8 (16-nov): en el total de una persona, cuántas clases tuvieron «Corregir conteo». Opcional: un servidor previo no lo manda. */
+  corregidas?: number
 }
 export interface ClaseValoradaDto {
-  classSessionId: string; venueId: string; productName: string; startsAt: string; fechaLocal: string
-  staffId: string | null; staffName: string | null; payLevelName: string | null; countMode: 'BOOKED' | 'ATTENDED' | null
-  conteoCalculado: number; conteo: number; tieneAjuste: boolean; estado: 'OK' | 'EXCLUIDA' | 'EXCEPCION'
-  motivo: MotivoExcepcion | null; monto: string | null
+  classSessionId: string
+  venueId: string
+  productName: string
+  startsAt: string
+  fechaLocal: string
+  staffId: string | null
+  staffName: string | null
+  payLevelName: string | null
+  countMode: 'BOOKED' | 'ATTENDED' | null
+  conteoCalculado: number
+  conteo: number
+  tieneAjuste: boolean
+  estado: 'OK' | 'EXCLUIDA' | 'EXCEPCION'
+  motivo: MotivoExcepcion | null
+  monto: string | null
   /** Fase 3 (D3d): la regla que movió el pago (el server ya la manda en el desglose). Opcional: un server previo no. */
   regla?: ReglaDeClase | null
   llegadas?: LlegadasDto | null
 }
 export interface ReportePeriodoDto {
   periodo: { start: string; end: string; periodicidad: 'MONTHLY' | 'SEMIMONTHLY'; id?: string | null; estado?: 'OPEN' | 'CLOSED' }
-  parcial: boolean; truncado: boolean; venueIds: string[]
+  parcial: boolean
+  truncado: boolean
+  venueIds: string[]
   /** `pagadas` (fase 2) es del periodo entero, no de la página que se ve (Codex R1-23). */
   /** Fase 3 (spec §11): `comisiones` y `propinas` netas, sumadas en la base; opcionales (un server previo no las manda). */
-  tarjetas: { total: string; clases: number; personas: number; excepciones: number; excluidas: number; pagadas?: number; comisiones?: string; propinas?: string }
+  tarjetas: {
+    total: string
+    clases: number
+    personas: number
+    excepciones: number
+    excluidas: number
+    pagadas?: number
+    comisiones?: string
+    propinas?: string
+  }
   /** `staffName` de una persona borrada puede llegar vacío o con el literal del server «Persona dada de baja». `total` ya incluye comisiones y propinas. */
-  personas: { items: Array<{ staffId: string; staffName: string; payLevelName: string | null; venueIds: string[]; clases: number; promedioLugares: number; total: string; ajustes?: string; comisiones?: string; propinas?: string; pagadoEn?: string | null; llegadas?: LlegadasDto | null }>; total: number; offset: number; limit: number }
+  personas: {
+    items: Array<{
+      staffId: string
+      staffName: string
+      payLevelName: string | null
+      venueIds: string[]
+      clases: number
+      promedioLugares: number
+      total: string
+      ajustes?: string
+      comisiones?: string
+      propinas?: string
+      pagadoEn?: string | null
+      llegadas?: LlegadasDto | null
+    }>
+    total: number
+    offset: number
+    limit: number
+  }
   huerfanas: number
 }
-export interface PaginaCursor<T> { items: T[]; nextCursor: string | null }
-export interface PaginaOffset<T> { items: T[]; total: number }
+export interface PaginaCursor<T> {
+  items: T[]
+  nextCursor: string | null
+}
+export interface PaginaOffset<T> {
+  items: T[]
+  total: number
+}
 /** Reserva de clase sin horario (spec §5.5): no cuenta para ningún pago. */
-export interface ReservaHuerfanaDto { reservationId: string; startsAt: string; venueId: string; productName: string | null; guestName: string | null }
+export interface ReservaHuerfanaDto {
+  reservationId: string
+  startsAt: string
+  venueId: string
+  productName: string | null
+  guestName: string | null
+}
 /** La regla de clase que movió el pago (espejo de `ReglaDeClase`, Bloque D3a). `horas` puede ser 0: «menos de 1 h». */
 export type ReglaDeClase = { tipo: 'SUPLENCIA'; horas: number; bono: string } | { tipo: 'CANCELACION_TARDIA'; horas: number }
 export interface PagoDeClaseDto {
   // `FUERA_DEL_SOBRE` (fase 3, B11): sin ancla y su sede no estaba activa en pago al personal ese día.
-  classSessionId: string; estado: 'OK' | 'EXCLUIDA' | 'EXCEPCION' | 'NO_TERMINADA' | 'CANCELADA' | 'FUERA_DEL_SOBRE'
-  motivo: MotivoExcepcion | null; monto: string | null; conteo: number | null; conteoCalculado: number | null
-  maxCount: number | null; countMode: string | null; staffName: string | null; payLevelName: string | null
-  ajuste: { payCountOverride: number | null; payAmountOverride: string | null; payExcluded: boolean; reason: string | null; at: string | null } | null
+  classSessionId: string
+  estado: 'OK' | 'EXCLUIDA' | 'EXCEPCION' | 'NO_TERMINADA' | 'CANCELADA' | 'FUERA_DEL_SOBRE'
+  motivo: MotivoExcepcion | null
+  monto: string | null
+  conteo: number | null
+  conteoCalculado: number | null
+  maxCount: number | null
+  countMode: string | null
+  staffName: string | null
+  payLevelName: string | null
+  ajuste: {
+    payCountOverride: number | null
+    payAmountOverride: string | null
+    payExcluded: boolean
+    reason: string | null
+    at: string | null
+  } | null
   anclada: boolean
   /** Fase 2: opcionales, el server de la fase 1 no los manda y el dashboard puede desplegarse antes. */
   periodoOrigen?: { id: string; start: string; end: string; estado: 'OPEN' | 'CLOSED' } | null
@@ -76,7 +172,10 @@ export interface SimulacionVigenciaDto {
   periodosSinContar?: number
 }
 export interface AjusteClaseInput {
-  payCountOverride: number | null; payAmountOverride: number | null; payExcluded: boolean; reason: string
+  payCountOverride: number | null
+  payAmountOverride: number | null
+  payExcluded: boolean
+  reason: string
   /** Una por apertura del modal (full-testing C14): un reintento del interceptor no duplica el ajuste. Opcional en el server. */
   clientKey?: string
 }
@@ -92,7 +191,9 @@ export type Bloqueo =
   | { codigo: 'SEDE_ACTIVA_SIN_PLAN'; venueIds: string[]; otrasConPlan: boolean }
 /** B12: una sede del cierre (en el orden de `periodo.venueIds`): lo que entra, lo que NO entra en este cierre y sus pendientes. */
 export interface SedeDelCierreDto {
-  venueId: string; nombre: string; estado: EstadoSedeDto
+  venueId: string
+  nombre: string
+  estado: EstadoSedeDto
   /** Lo que el cierre congela de esta sede, neto (las comisiones incluyen sus anulaciones). */
   entra: CuentaDto
   /** completa − real: puede incluir sobrantes de periodos cerrados antes. Se dice «no entra en este cierre». */
@@ -128,12 +229,42 @@ export interface PreviewCierreDto {
   /** B12: devoluciones de las sedes del alcance que este cierre NO descuenta, por destino (fuera de la huella). */
   pendientes?: Pick<DevolucionesPendientesDto, 'n' | 'total' | 'porDestino'>
 }
-export interface ResultadoCierreDto { periodId: string; start: string; end: string; venueIds: string[]; personas: number; total: string; huella: string; yaCerrado: boolean }
-export interface PeriodoListadoDto { id: string | null; start: string; end: string; estado: 'OPEN' | 'CLOSED'; personas: number; pagadas: number; total: string }
-export interface ListaPeriodosDto { periodicidad: 'MONTHLY' | 'SEMIMONTHLY'; puedeCambiarPeriodicidad: boolean; items: PeriodoListadoDto[]; antesDe: string | null }
+export interface ResultadoCierreDto {
+  periodId: string
+  start: string
+  end: string
+  venueIds: string[]
+  personas: number
+  total: string
+  huella: string
+  yaCerrado: boolean
+}
+export interface PeriodoListadoDto {
+  id: string | null
+  start: string
+  end: string
+  estado: 'OPEN' | 'CLOSED'
+  personas: number
+  pagadas: number
+  total: string
+}
+export interface ListaPeriodosDto {
+  periodicidad: 'MONTHLY' | 'SEMIMONTHLY'
+  puedeCambiarPeriodicidad: boolean
+  items: PeriodoListadoDto[]
+  antesDe: string | null
+}
 /** Fase 3 (B5): comisiones y propinas son renglones del recibo; las propinas vienen agrupadas por día (sin hora). */
 export type TipoRenglon = 'CLASE' | 'DIFERENCIA' | 'AJUSTE' | 'COMISION' | 'PROPINA'
-export interface RenglonReciboDto { tipo: TipoRenglon; fecha: string; hora: string | null; sede: string; concepto: string; lugares: number | null; monto: string }
+export interface RenglonReciboDto {
+  tipo: TipoRenglon
+  fecha: string
+  hora: string | null
+  sede: string
+  concepto: string
+  lugares: number | null
+  monto: string
+}
 export interface ReciboDto {
   persona: string
   periodo: { id: string | null; start: string; end: string; estado: 'OPEN' | 'CLOSED' }
@@ -163,30 +294,79 @@ export interface PreviewPagadoDto {
   /** Se manda como `huellaEsperada` al confirmar, con el MISMO `staffId` (o sin él). */
   huella: string
 }
-export interface AjusteManualInput { sede: string; staffId: string; amount: number; reason: string; fecha?: string; clientKey: string }
+export interface AjusteManualInput {
+  sede: string
+  staffId: string
+  amount: number
+  reason: string
+  fecha?: string
+  clientKey: string
+}
 /** Lo que se mandaría al guardar el ajuste (B13: `GET /adjustments/preview` lo valida igual que el POST). */
-export interface AjustePreviewQuery { sede: string; staffId: string; amount: number; reason: string; fecha?: string }
+export interface AjustePreviewQuery {
+  sede: string
+  staffId: string
+  amount: number
+  reason: string
+  fecha?: string
+}
 /** B13: el ajuste tal como se guardaría y, aparte (fuera de su huella), las devoluciones pendientes de esa persona. */
 export interface AjustePreviewDto {
   periodo: { start: string; end: string; estado?: 'OPEN' | 'CLOSED' }
-  staffId: string; persona: string; sede: string; sedeNombre: string; amount: string; reason: string; huella: string
+  staffId: string
+  persona: string
+  sede: string
+  sedeNombre: string
+  amount: string
+  reason: string
+  huella: string
   avisoPendientes: DevolucionesPendientesDto
 }
-export interface AjusteManualDto { id: string; periodId: string; periodo: { start: string; end: string }; staffId: string; sede: string; amount: string; reason: string; yaExistia: boolean }
-export interface LineaContabilizadaDto { concepto: 'SERVICE' | 'RECONCILE'; staffId: string; staffName: string; monto: string; periodo: { start: string; end: string }; pagadoEn: string | null }
+export interface AjusteManualDto {
+  id: string
+  periodId: string
+  periodo: { start: string; end: string }
+  staffId: string
+  sede: string
+  amount: string
+  reason: string
+  yaExistia: boolean
+}
+export interface LineaContabilizadaDto {
+  concepto: 'SERVICE' | 'RECONCILE'
+  staffId: string
+  staffName: string
+  monto: string
+  periodo: { start: string; end: string }
+  pagadoEn: string | null
+}
 
 // ── Fase 2, Bloque B: diferencias pendientes y liquidar ──
 /** Espejo de `FilaDiferencia` del server: una persona de una clase de un periodo cerrado. Montos como texto con 2 decimales. */
 export interface FilaDiferenciaDto {
-  classSessionId: string; venueId: string; productName: string; startsAt: string; fechaLocal: string; fechaValoracion: string
+  classSessionId: string
+  venueId: string
+  productName: string
+  startsAt: string
+  fechaLocal: string
+  fechaValoracion: string
   periodoOrigenId: string | null
   /** null: la clase está en excepción y no hay a quién atribuirla (sin coach y sin líneas). */
-  persona: string | null; personaNombre: string | null; coachActual: string | null
-  estadoClase: 'OK' | 'EXCLUIDA' | 'EXCEPCION'; motivo: MotivoExcepcion | null
-  corresponde: string | null; congelado: string; conciliado: string
+  persona: string | null
+  personaNombre: string | null
+  coachActual: string | null
+  estadoClase: 'OK' | 'EXCLUIDA' | 'EXCEPCION'
+  motivo: MotivoExcepcion | null
+  corresponde: string | null
+  congelado: string
+  conciliado: string
   /** null: la clase está en excepción y no se liquida hasta resolverla. */
   pendiente: string | null
-  payLevelId: string | null; payLevelName: string | null; tableVersionId: string | null; countMode: string | null; conteo: number
+  payLevelId: string | null
+  payLevelName: string | null
+  tableVersionId: string | null
+  countMode: string | null
+  conteo: number
   /** Por qué existe la diferencia de esta persona (opcional: un server previo no lo manda y no se pinta nada). */
   causa?: CausaDiferencia | null
   /** El conteo con el que se congeló la clase (para «Conteo corregido: 8 → 10»). */
@@ -195,7 +375,11 @@ export interface FilaDiferenciaDto {
   coachActualNombre?: string | null
 }
 export type CausaDiferencia = 'CONTEO' | 'COACH_SALE' | 'COACH_ENTRA' | 'CANCELADA' | 'EXCLUIDA' | 'TARDIA' | 'MONTO' | 'REINCLUIDA'
-export interface PaginaDiferenciasDto { items: FilaDiferenciaDto[]; nextCursor: string | null; parcial: boolean }
+export interface PaginaDiferenciasDto {
+  items: FilaDiferenciaDto[]
+  nextCursor: string | null
+  parcial: boolean
+}
 export interface PreviewLiquidacionDto {
   periodoOrigen: { id: string; start: string; end: string } | null
   /** `venueIds`: sólo las sedes del destino que quien lee puede ver. */
@@ -208,8 +392,17 @@ export interface PreviewLiquidacionDto {
   bloqueada: boolean
   huella: string
 }
-export interface LiquidarInput { periodoOrigenId: string; huellaEsperada: string; solicitudId: string; destinoFecha?: string; ampliarAlcance?: boolean }
-export interface ResultadoLiquidacionDto { lineas: Array<{ staffId: string; amount: string }>; yaLiquidada: boolean }
+export interface LiquidarInput {
+  periodoOrigenId: string
+  huellaEsperada: string
+  solicitudId: string
+  destinoFecha?: string
+  ampliarAlcance?: boolean
+}
+export interface ResultadoLiquidacionDto {
+  lineas: Array<{ staffId: string; amount: string }>
+  yaLiquidada: boolean
+}
 
 // ── Fase 3: activación, propinas, sedes y devoluciones pendientes (spec §7.1, §10) ──
 export interface AccesoDto {
@@ -238,20 +431,33 @@ export interface AccesoDto {
   puedeConfigurarOrganizacion?: boolean
 }
 /** Pesos con 2 decimales, NETO. */
-export interface MontoDto { n: number; total: string }
-export interface CuentaDto { clases: MontoDto & { pendientesDeValoracion: number }; comisiones: MontoDto; propinas: MontoDto }
+export interface MontoDto {
+  n: number
+  total: string
+}
+export interface CuentaDto {
+  clases: MontoDto & { pendientesDeValoracion: number }
+  comisiones: MontoDto
+  propinas: MontoDto
+}
 export type EstadoSedeDto = 'ACTIVA' | 'SIN_ACTIVAR' | 'ACTIVA_SIN_PLAN' | 'SIN_PLAN'
 export interface SedeEnPagoAlPersonalDto {
-  venueId: string; nombre: string; zona: string; tienePlan: boolean
+  venueId: string
+  nombre: string
+  zona: string
+  tienePlan: boolean
   estado: EstadoSedeDto
-  desde: string | null; hasta: string | null
+  desde: string | null
+  hasta: string | null
   /** Mínimo EFECTIVO para activar hoy; null si hoy no se puede. */
   minimo: string | null
-  puedeActivar: boolean; puedeDesactivar: boolean
+  puedeActivar: boolean
+  puedeDesactivar: boolean
   fueraEstePeriodo: CuentaDto
 }
 export interface EstadoSedesDto {
-  activado: boolean; startDate: string | null
+  activado: boolean
+  startDate: string | null
   periodo: { start: string; end: string } | null
   sedes: SedeEnPagoAlPersonalDto[]
 }
@@ -261,16 +467,28 @@ export type VistaPreviaParticipacionDto = { fecha: string; minimo: string; maxim
   | { accion: 'desactivar'; dejanDeEntrar: CuentaDto; permanecen: CuentaDto }
 )
 /** `ventana: null` al desactivar = se borró la activación (hasta = desde − 1). */
-export interface ResultadoVentanaDto { ventana: { venueId: string; desde: string; hasta: string | null } | null; minimo: string; minimoEfectivo: string }
+export interface ResultadoVentanaDto {
+  ventana: { venueId: string; desde: string; hasta: string | null } | null
+  minimo: string
+  minimoEfectivo: string
+}
 export type DestinoDto =
-  | { tipo: 'AL_CERRAR'; periodo: { start: string; end: string } }
-  | { tipo: 'PERIODO_POSTERIOR_A'; origen: { start: string; end: string } }
+  { tipo: 'AL_CERRAR'; periodo: { start: string; end: string } } | { tipo: 'PERIODO_POSTERIOR_A'; origen: { start: string; end: string } }
 export interface PendienteDto {
-  fuente: 'TIP' | 'COMMISSION'; sourceId: string; venueId: string; sede: string; staffId: string
-  persona: string; fecha: string; monto: string; seDescuenta: DestinoDto
+  fuente: 'TIP' | 'COMMISSION'
+  sourceId: string
+  venueId: string
+  sede: string
+  staffId: string
+  persona: string
+  fecha: string
+  monto: string
+  seDescuenta: DestinoDto
 }
 export interface DevolucionesPendientesDto {
-  n: number; total: string
+  n: number
+  total: string
   porDestino: Array<{ seDescuenta: DestinoDto; n: number; total: string; porSede: Array<{ venueId: string; n: number; total: string }> }>
-  items: PendienteDto[]; truncado: boolean
+  items: PendienteDto[]
+  truncado: boolean
 }

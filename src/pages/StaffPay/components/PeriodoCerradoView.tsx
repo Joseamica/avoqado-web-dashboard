@@ -1,5 +1,5 @@
 import { falloDeCarga, reintentarSirve } from '@/lib/falloDeCarga'
-import { textoDeLlegadas } from '../textoDeLlegadas'
+import { textoDeLlegadasDelTotal } from '../textoDeLlegadas'
 import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -131,8 +131,14 @@ export function PeriodoCerradoView({ periodId, fecha, etiqueta, etiquetaAbierto 
   const items = data.personas.items
   const total = data.personas.total
   // Fase 3 (spec §11): columnas y tarjetas de comisiones y propinas sólo cuando hay; un tipo vacío no aparece.
-  const hayComisiones = hayMonto(tj.comisiones, items.map(p => p.comisiones))
-  const hayPropinas = hayMonto(tj.propinas, items.map(p => p.propinas))
+  const hayComisiones = hayMonto(
+    tj.comisiones,
+    items.map(p => p.comisiones),
+  )
+  const hayPropinas = hayMonto(
+    tj.propinas,
+    items.map(p => p.propinas),
+  )
   const nombre = (n: string) => nombreVisible(t, n)
   const ocupado = isPlaceholderData || marcar.isPending
 
@@ -215,11 +221,17 @@ export function PeriodoCerradoView({ periodId, fecha, etiqueta, etiquetaAbierto 
         <h3 className={`font-semibold ${ANCLA_FOCO}`} tabIndex={-1} data-staffpay-ancla>
           {t('period.title', { start: formatCalendarDate(data.periodo.start), end: formatCalendarDate(data.periodo.end) })}
         </h3>
-        <span className="rounded-full bg-muted px-2 py-0.5 text-xs">{tj.personas > 0 && pendientes === 0 ? t('periods.paid') : t('closed.badge')}</span>
+        <span className="rounded-full bg-muted px-2 py-0.5 text-xs">
+          {tj.personas > 0 && pendientes === 0 ? t('periods.paid') : t('closed.badge')}
+        </span>
         {data.parcial && (
-          <span className="rounded-full border border-amber-500/40 px-2 py-0.5 text-xs text-amber-700 dark:text-amber-400">{t('period.partial')}</span>
+          <span className="rounded-full border border-amber-500/40 px-2 py-0.5 text-xs text-amber-700 dark:text-amber-400">
+            {t('period.partial')}
+          </span>
         )}
-        {data.parcial && data.venueIds.length > 0 && <span className="text-xs text-muted-foreground">{data.venueIds.map(nombreSede).join(' · ')}</span>}
+        {data.parcial && data.venueIds.length > 0 && (
+          <span className="text-xs text-muted-foreground">{data.venueIds.map(nombreSede).join(' · ')}</span>
+        )}
         {clasesConDiferencia > 0 && (
           <button
             type="button"
@@ -252,7 +264,13 @@ export function PeriodoCerradoView({ periodId, fecha, etiqueta, etiquetaAbierto 
       {puedePagar ? (
         <div className="flex flex-wrap items-center gap-2">
           {!data.parcial && pendientes > 0 && (
-            <Button size="sm" className="cursor-pointer" disabled={ocupado} onClick={() => abrirConfirmacion({})} data-tour="staffpay-closed-mark-all">
+            <Button
+              size="sm"
+              className="cursor-pointer"
+              disabled={ocupado}
+              onClick={() => abrirConfirmacion({})}
+              data-tour="staffpay-closed-mark-all"
+            >
               <CheckCircle2 className="mr-1 h-3.5 w-3.5" />
               {t('closed.markAllPaid')}
             </Button>
@@ -303,11 +321,13 @@ export function PeriodoCerradoView({ periodId, fecha, etiqueta, etiquetaAbierto 
                 <tr key={p.staffId} className="border-b border-border/50">
                   <td className="py-2 font-medium">
                     {nombre(p.staffName)}
-                    {Number(p.total) < 0 && <span className="block text-xs font-normal text-muted-foreground">{t('period.negativeShort')}</span>}
+                    {Number(p.total) < 0 && (
+                      <span className="block text-xs font-normal text-muted-foreground">{t('period.negativeShort')}</span>
+                    )}
                     {/* Asistencia verificada: cómo llegaron sus lugares, de la foto del cierre. */}
-                    {textoDeLlegadas(t, p.llegadas) && (
+                    {textoDeLlegadasDelTotal(t, p.llegadas) && (
                       <span className="block text-xs font-normal text-muted-foreground" data-testid="llegadas-persona">
-                        {textoDeLlegadas(t, p.llegadas)}
+                        {textoDeLlegadasDelTotal(t, p.llegadas)}
                       </span>
                     )}
                     <span className="mt-1 block font-normal md:hidden">{estadoDePago(p.pagadoEn)}</span>
@@ -315,9 +335,19 @@ export function PeriodoCerradoView({ periodId, fecha, etiqueta, etiquetaAbierto 
                   <td className="hidden md:table-cell">{p.payLevelName ?? '—'}</td>
                   <td className="hidden text-muted-foreground md:table-cell">{p.venueIds.map(nombreSede).join(', ')}</td>
                   <td className="hidden text-right md:table-cell">{p.clases}</td>
-                  {hayComisiones && <td className="hidden whitespace-nowrap text-right md:table-cell">{Number(p.comisiones ?? 0) !== 0 ? monto(p.comisiones!) : '—'}</td>}
-                  {hayPropinas && <td className="hidden whitespace-nowrap text-right md:table-cell">{Number(p.propinas ?? 0) !== 0 ? monto(p.propinas!) : '—'}</td>}
-                  <td className="hidden whitespace-nowrap text-right md:table-cell">{Number(p.ajustes ?? 0) !== 0 ? conSigno(p.ajustes!) : '—'}</td>
+                  {hayComisiones && (
+                    <td className="hidden whitespace-nowrap text-right md:table-cell">
+                      {Number(p.comisiones ?? 0) !== 0 ? monto(p.comisiones!) : '—'}
+                    </td>
+                  )}
+                  {hayPropinas && (
+                    <td className="hidden whitespace-nowrap text-right md:table-cell">
+                      {Number(p.propinas ?? 0) !== 0 ? monto(p.propinas!) : '—'}
+                    </td>
+                  )}
+                  <td className="hidden whitespace-nowrap text-right md:table-cell">
+                    {Number(p.ajustes ?? 0) !== 0 ? conSigno(p.ajustes!) : '—'}
+                  </td>
                   <td className="whitespace-nowrap text-right font-semibold">{monto(p.total)}</td>
                   <td className="hidden whitespace-nowrap md:table-cell">{estadoDePago(p.pagadoEn)}</td>
                   <td className="whitespace-nowrap text-right">
@@ -407,7 +437,11 @@ export function PeriodoCerradoView({ periodId, fecha, etiqueta, etiquetaAbierto 
             </AlertDialogDescription>
           </AlertDialogHeader>
           {marcar.isPaused && (
-            <p role="status" className="flex items-start gap-2 rounded-lg border border-amber-500/40 p-3 text-sm" data-tour="staffpay-closed-offline">
+            <p
+              role="status"
+              className="flex items-start gap-2 rounded-lg border border-amber-500/40 p-3 text-sm"
+              data-tour="staffpay-closed-offline"
+            >
               <WifiOff className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
               {t('offline.willSend')}
             </p>
@@ -435,7 +469,9 @@ export function PeriodoCerradoView({ periodId, fecha, etiqueta, etiquetaAbierto 
               {porSigno.pagos.length === 1 && (
                 <p>{t('closed.paysOne', { monto: monto(porSigno.pagos[0].total), nombre: porSigno.pagos[0].nombre })}</p>
               )}
-              {porSigno.pagos.length > 1 && <p>{t('closed.paysMany', { count: porSigno.pagos.length, monto: monto(suma(porSigno.pagos)) })}</p>}
+              {porSigno.pagos.length > 1 && (
+                <p>{t('closed.paysMany', { count: porSigno.pagos.length, monto: monto(suma(porSigno.pagos)) })}</p>
+              )}
               {porSigno.enContra.length === 1 ? (
                 <p>{t('closed.owesOne', { nombre: porSigno.enContra[0].nombre, monto: monto(-Number(porSigno.enContra[0].total)) })}</p>
               ) : (
@@ -462,10 +498,10 @@ export function PeriodoCerradoView({ periodId, fecha, etiqueta, etiquetaAbierto 
                 {negativo
                   ? t('closed.settleNegativeConfirm')
                   : confirmar?.staffId
-                  ? t('closed.markPaidConfirm', { monto: montoVista })
-                  : porSigno
-                  ? t('closed.markAllMixedConfirm', { count: vista?.cantidad ?? pendientes })
-                  : t('closed.markAllPaidConfirm', { count: vista?.cantidad ?? pendientes, monto: montoVista })}
+                    ? t('closed.markPaidConfirm', { monto: montoVista })
+                    : porSigno
+                      ? t('closed.markAllMixedConfirm', { count: vista?.cantidad ?? pendientes })
+                      : t('closed.markAllPaidConfirm', { count: vista?.cantidad ?? pendientes, monto: montoVista })}
               </AlertDialogAction>
             )}
           </AlertDialogFooter>

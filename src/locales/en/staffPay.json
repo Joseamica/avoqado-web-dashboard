@@ -692,6 +692,10 @@
     "corrected_other": "pay corrected by hand to {{count}} spots",
     "listBy_one": "{{count}} from the list (session of {{names}})",
     "listBy_other": "{{count}} from the list (session of {{names}})",
-    "receiptTotal": "Arrivals: {{text}}"
+    "receiptTotal": "Arrivals: {{text}}",
+    "totalRecorded": "Recorded arrivals: {{list}}",
+    "none": "none",
+    "classesCorrected_one": "{{count}} class with pay corrected by hand",
+    "classesCorrected_other": "{{count}} classes with pay corrected by hand"
   }
 }

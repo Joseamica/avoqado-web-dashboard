@@ -25,7 +25,7 @@ import { useNombrePeriodo } from '../useNombrePeriodo'
 import { hayPendientes, lineaDePendiente } from '../pendientes'
 import { nombreVisible } from '../personaBorrada'
 import { porFecha, textoDeRegla } from '../textoDeRegla'
-import { textoDeLlegadas } from '../textoDeLlegadas'
+import { textoDeLlegadas, textoDeLlegadasDelTotal } from '../textoDeLlegadas'
 
 /** Orden fijo de los totales por tipo (no el del JSON): primero lo que se gana, luego lo que lo corrige. */
 const ORDEN_TIPOS: TipoRenglon[] = ['CLASE', 'COMISION', 'PROPINA', 'DIFERENCIA', 'AJUSTE']
@@ -97,7 +97,9 @@ export function DesglosePersona({
     r.tipo === 'AJUSTE'
       ? t('period.capturedOn', { fecha: formatCalendarDate(r.fecha) })
       : r.hora
-        ? DateTime.fromISO(`${r.fecha}T${r.hora}`, { zone: 'utc' }).setLocale(getIntlLocale(i18n?.language)).toLocaleString(DateTime.DATETIME_MED)
+        ? DateTime.fromISO(`${r.fecha}T${r.hora}`, { zone: 'utc' })
+            .setLocale(getIntlLocale(i18n?.language))
+            .toLocaleString(DateTime.DATETIME_MED)
         : formatCalendarDate(r.fecha)
 
   const descargar = async (format: 'pdf' | 'xlsx') => {
@@ -106,14 +108,23 @@ export function DesglosePersona({
     try {
       await staffPayService.downloadReceipt(venueId, staffId, fecha, format, `recibo-${nombre}-${fecha.slice(0, 7)}`)
     } catch (err) {
-      toast({ title: (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? t('errors.generic'), variant: 'destructive' })
+      toast({
+        title: (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? t('errors.generic'),
+        variant: 'destructive',
+      })
     } finally {
       setBajando(null)
     }
   }
 
   const masRenglones = recibo.hasNextPage && (
-    <Button variant="outline" size="sm" className="mt-3 w-full cursor-pointer" disabled={recibo.isFetchingNextPage} onClick={() => recibo.fetchNextPage()}>
+    <Button
+      variant="outline"
+      size="sm"
+      className="mt-3 w-full cursor-pointer"
+      disabled={recibo.isFetchingNextPage}
+      onClick={() => recibo.fetchNextPage()}
+    >
       {recibo.isFetchingNextPage && <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />}
       {t('period.loadMore')}
     </Button>
@@ -130,7 +141,9 @@ export function DesglosePersona({
         <SheetHeader>
           <SheetTitle>{t('period.detailTitle', { name: nombre })}</SheetTitle>
           <SheetDescription>
-            {clases > 0 ? t('period.detailSummary', { count: clases, total: monto(total) }) : t('period.detailSummaryTotal', { total: monto(total) })}
+            {clases > 0
+              ? t('period.detailSummary', { count: clases, total: monto(total) })
+              : t('period.detailSummaryTotal', { total: monto(total) })}
           </SheetDescription>
           {/* Totales por tipo del recibo ENTERO (los suma el server): sólo si hay más de un tipo. */}
           {porTipo.length > 1 && (
@@ -144,9 +157,9 @@ export function DesglosePersona({
             </dl>
           )}
           {/* Asistencia verificada: cómo llegaron sus lugares en todo el recibo (lo suma el server). */}
-          {textoDeLlegadas(t, recibo.data?.llegadas) && (
+          {textoDeLlegadasDelTotal(t, recibo.data?.llegadas) && (
             <p className="pt-1 text-sm text-muted-foreground" data-testid="llegadas-recibo">
-              {t('arrivals.receiptTotal', { text: textoDeLlegadas(t, recibo.data?.llegadas) })}
+              {textoDeLlegadasDelTotal(t, recibo.data?.llegadas)}
             </p>
           )}
           {cerrado && recibo.data && (
@@ -215,7 +228,10 @@ export function DesglosePersona({
             <div role="alert" className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-input p-3 text-sm">
               <div className="flex items-start gap-2">
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
-                <span>{(recibo.error as { response?: { data?: { message?: string } } } | null)?.response?.data?.message ?? t('period.listError')}</span>
+                <span>
+                  {(recibo.error as { response?: { data?: { message?: string } } } | null)?.response?.data?.message ??
+                    t('period.listError')}
+                </span>
               </div>
               <Button variant="outline" size="sm" className="cursor-pointer" onClick={() => recibo.refetch()}>
                 {t('period.retry')}
@@ -370,7 +386,10 @@ export function DesglosePersona({
             )}
             {recibo.data && <AvisoDeCarga query={recibo} hayDatos />}
             {!recibo.data && falloDeCarga(recibo) && (
-              <div role="alert" className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-input p-3 text-sm">
+              <div
+                role="alert"
+                className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-input p-3 text-sm"
+              >
                 <span>{t('period.adjustmentsError')}</span>
                 <Button variant="outline" size="sm" className="cursor-pointer" onClick={() => recibo.refetch()}>
                   {t('period.retry')}

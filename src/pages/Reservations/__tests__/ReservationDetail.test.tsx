@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 
@@ -64,6 +64,9 @@ const svc = vi.hoisted(() => ({
   undoNoShow: vi.fn(),
   resolveNoShowCorrection: vi.fn(),
   reschedule: vi.fn(),
+  checkIn: vi.fn(),
+  confirmReservation: vi.fn(),
+  complete: vi.fn(),
 }))
 vi.mock('@/services/reservation.service', () => ({ default: svc, reservationService: svc }))
 
@@ -317,7 +320,13 @@ describe('ReservationDetail — «Sí llegó» (deshacer un No Show)', () => {
     ...createTestReservation('CHECKED_IN'),
     classSessionId: 'sess-1',
     product: { id: 'p1', name: 'Yoga', price: null },
-    noShowCorrection: { pending: ['CLASS_UNPAID'], resolvedAt: null, source: 'DASHBOARD', createdAt: '2026-03-15T14:40:00.000Z', ...correction },
+    noShowCorrection: {
+      pending: ['CLASS_UNPAID'],
+      resolvedAt: null,
+      source: 'DASHBOARD',
+      createdAt: '2026-03-15T14:40:00.000Z',
+      ...correction,
+    },
   })
   const tocarSiLlego = async () => {
     fireEvent.click(screen.getByRole('button', { name: 'undoNoShow.button' }))
@@ -349,7 +358,9 @@ describe('ReservationDetail — «Sí llegó» (deshacer un No Show)', () => {
 
   it('cuando el plan trae pendientes, la confirmación los dice con su texto (y el depósito sí aparece si aplica)', async () => {
     mockReservation = noShow()
-    svc.previewUndoNoShow.mockResolvedValue({ plan: { creditToReconsume: 0, clearFee: false, restoreDeposit: true, pending: ['CLASS_UNPAID'] } })
+    svc.previewUndoNoShow.mockResolvedValue({
+      plan: { creditToReconsume: 0, clearFee: false, restoreDeposit: true, pending: ['CLASS_UNPAID'] },
+    })
     await renderDetail()
 
     const dialogo = await tocarSiLlego()
@@ -364,7 +375,15 @@ describe('ReservationDetail — «Sí llegó» (deshacer un No Show)', () => {
   it('con monto de multa, monto de depósito y nombre del paquete, los renglones los dicen (formato de dinero del repo)', async () => {
     mockReservation = noShow()
     svc.previewUndoNoShow.mockResolvedValue({
-      plan: { creditToReconsume: 1, clearFee: true, restoreDeposit: true, pending: [], feeAmount: 50, depositAmount: 100, packName: 'Paquete 5 clases' },
+      plan: {
+        creditToReconsume: 1,
+        clearFee: true,
+        restoreDeposit: true,
+        pending: [],
+        feeAmount: 50,
+        depositAmount: 100,
+        packName: 'Paquete 5 clases',
+      },
     })
     await renderDetail()
 
@@ -382,7 +401,15 @@ describe('ReservationDetail — «Sí llegó» (deshacer un No Show)', () => {
   it('con los datos en null (o un plan viejo que no trae las llaves) los renglones quedan genéricos', async () => {
     mockReservation = noShow()
     svc.previewUndoNoShow.mockResolvedValue({
-      plan: { creditToReconsume: 2, clearFee: true, restoreDeposit: true, pending: [], feeAmount: null, depositAmount: null, packName: null },
+      plan: {
+        creditToReconsume: 2,
+        clearFee: true,
+        restoreDeposit: true,
+        pending: [],
+        feeAmount: null,
+        depositAmount: null,
+        packName: null,
+      },
     })
     await renderDetail()
 
@@ -409,7 +436,12 @@ describe('ReservationDetail — «Sí llegó» (deshacer un No Show)', () => {
     svc.previewUndoNoShow.mockResolvedValue({ plan: { ...PLAN_LIMPIO, pending: ['CLASS_UNPAID'] } })
     svc.undoNoShow.mockImplementation(async () => {
       mockReservation = corregida()
-      return { outcome: 'UNDONE', reservation: mockReservation, plan: PLAN_LIMPIO, correction: { id: 'c1', pending: ['CLASS_UNPAID'], resolvedAt: null } }
+      return {
+        outcome: 'UNDONE',
+        reservation: mockReservation,
+        plan: PLAN_LIMPIO,
+        correction: { id: 'c1', pending: ['CLASS_UNPAID'], resolvedAt: null },
+      }
     })
     const { qc } = await renderDetail()
     const invalidar = vi.spyOn(qc, 'invalidateQueries')
@@ -491,7 +523,9 @@ describe('ReservationDetail — «Sí llegó» (deshacer un No Show)', () => {
 
   it('si el servidor rechaza el deshacer (409 NOT_APPLICABLE), sale el texto traducido —no el crudo del servidor—, el diálogo se cierra y se refresca', async () => {
     mockReservation = noShow()
-    svc.undoNoShow.mockRejectedValue({ response: { status: 409, data: { code: 'NO_SHOW_UNDO_NOT_APPLICABLE', message: 'La reservacion cambio mientras se corregia' } } })
+    svc.undoNoShow.mockRejectedValue({
+      response: { status: 409, data: { code: 'NO_SHOW_UNDO_NOT_APPLICABLE', message: 'La reservacion cambio mientras se corregia' } },
+    })
     const { qc } = await renderDetail()
     const invalidar = vi.spyOn(qc, 'invalidateQueries')
     const dialogo = await tocarSiLlego()
@@ -514,13 +548,18 @@ describe('ReservationDetail — «Sí llegó» (deshacer un No Show)', () => {
 
     fireEvent.click(within(dialogo).getByRole('button', { name: 'undoNoShow.confirm' }))
 
-    await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.objectContaining({ description: 'Mensaje crudo del servidor', variant: 'destructive' })))
+    await waitFor(() =>
+      expect(toast).toHaveBeenCalledWith(expect.objectContaining({ description: 'Mensaje crudo del servidor', variant: 'destructive' })),
+    )
   })
 
   it('una reserva de un pase (409 PASS_BOOKING en la vista previa) no abre la confirmación: dice que se corrige desde su app', async () => {
     mockReservation = noShow()
     svc.previewUndoNoShow.mockRejectedValue({
-      response: { status: 409, data: { code: 'NO_SHOW_UNDO_PASS_BOOKING', message: 'Esta reserva vino de un pase (TotalPass/Wellhub); corrígela desde su app' } },
+      response: {
+        status: 409,
+        data: { code: 'NO_SHOW_UNDO_PASS_BOOKING', message: 'Esta reserva vino de un pase (TotalPass/Wellhub); corrígela desde su app' },
+      },
     })
     await renderDetail()
 
@@ -756,5 +795,53 @@ describe('ReservationDetail — Reagendar', () => {
     mockReservation = { ...createTestReservation('CONFIRMED'), guestPhone: null, guestEmail: null }
     await abrirReagendar()
     expect(document.getElementById('reschedule-channel-none')?.getAttribute('data-state')).toBe('checked')
+  })
+})
+
+// D5 (16-nov, full-testing de asistencia verificada): dos clics seguidos en «Check-in» mandaban dos POST (y dos avisos). El botón se
+// deshabilitaba con `isPending`, que llega un render tarde. Dos `.click()` en el MISMO act es el doble clic de verdad.
+describe('ReservationDetail — D5: un doble clic manda UNA petición', () => {
+  beforeEach(() => vi.clearAllMocks())
+  it.each([
+    ['CONFIRMED', 'actions.checkIn', 'checkIn'],
+    ['PENDING', 'actions.confirm', 'confirmReservation'],
+    ['CHECKED_IN', 'actions.complete', 'complete'],
+  ] as const)('%s: dos clics en «%s» ⇒ una sola llamada', async (status, boton, metodo) => {
+    mockReservation = createTestReservation(status)
+    let soltar: () => void = () => {}
+    svc[metodo].mockImplementation(() => new Promise<void>(r => (soltar = r)))
+    await renderDetail()
+    const b = screen.getByRole('button', { name: boton })
+    act(() => {
+      b.click()
+      b.click()
+    })
+    await waitFor(() => expect(svc[metodo]).toHaveBeenCalled())
+    await act(() => new Promise(r => setTimeout(r, 30)))
+    expect(svc[metodo]).toHaveBeenCalledTimes(1)
+    // Cuando la primera termina, el botón vuelve a servir (el candado se suelta).
+    await act(async () => soltar())
+    await waitFor(() => expect(screen.getByRole('button', { name: boton })).not.toBeDisabled())
+  })
+})
+
+// D6 (16-nov, full-testing de asistencia verificada): el historial enseñaba el id de quien hizo el cambio («— cmtwfpan…») o
+// «service:kiosk». Ahora el nombre que manda el SERVIDOR (`byName`), «el kiosco» para el kiosco y nada si no hay a quién nombrar.
+describe('ReservationDetail — D6: el historial dice QUIÉN', () => {
+  beforeEach(() => vi.clearAllMocks())
+  it('nombre de la persona, «el kiosco», y nunca un id crudo', async () => {
+    mockReservation = {
+      ...createTestReservation('CHECKED_IN'),
+      statusLog: [
+        { status: 'CONFIRMED', at: '2026-03-15T10:00:00.000Z', by: 'cmtwfpan0001cc996xpbs7a2c', byName: 'Ana P.' },
+        { status: 'CHECKED_IN', at: '2026-03-15T14:05:00.000Z', by: 'service:kiosk', method: 'PHONE' },
+        { status: 'CHECKED_IN', at: '2026-03-15T14:06:00.000Z', by: 'cmzzzzzzz0001cc996xpbs7a2c' },
+      ] as any,
+    }
+    await renderDetail()
+    const historial = screen.getByText('detail.timeline').parentElement!
+    expect(within(historial).getByText(/— Ana P\./)).toBeDefined()
+    expect(within(historial).getByText(/— undoNoShow\.kiosk/)).toBeDefined()
+    expect(historial.textContent).not.toMatch(/cmtwfpan|cmzzzzzzz|service:kiosk/)
   })
 })
