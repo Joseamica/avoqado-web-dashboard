@@ -10,6 +10,11 @@
   "locationCaptured": "Location captured",
   "autoClosed": "Auto clock-out",
   "photoAlt": "Clock-in photo of {{name}}",
+  "photo": {
+    "open": "View {{name}}'s clock-in photo",
+    "caption": "Clock-in photo · {{time}}",
+    "missing": "No photo"
+  },
   "pendingReview": "{{count}} to review",
   "onShift": {
     "title": "On shift now",

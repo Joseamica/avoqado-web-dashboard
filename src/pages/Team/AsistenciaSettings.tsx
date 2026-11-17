@@ -28,6 +28,8 @@ interface AjustesDeAsistencia {
   attendanceGraceMinutes?: number
   rotatingShiftsEnabled?: boolean
   attendanceLateAlertEnabled?: boolean
+  /** «Foto de entrada»: el POS y la terminal piden una selfie al marcar entrada; se ve en Asistencia. */
+  requireClockInPhoto?: boolean
 }
 
 interface Props {
@@ -45,6 +47,7 @@ export default function AsistenciaSettings({ venueId, settings, canEdit }: Props
   const [tolerancia, setTolerancia] = useState<number | ''>(settings?.attendanceGraceMinutes ?? 10)
   const [aviso, setAviso] = useState(settings?.attendanceLateAlertEnabled ?? false)
   const [turnosRotativos, setTurnosRotativos] = useState(settings?.rotatingShiftsEnabled ?? false)
+  const [foto, setFoto] = useState(settings?.requireClockInPhoto ?? false)
 
   /**
    * 🔴 El estado local es una CAPA OPTIMISTA sobre los ajustes, no una copia que se saca una vez.
@@ -66,6 +69,7 @@ export default function AsistenciaSettings({ venueId, settings, canEdit }: Props
     setTolerancia(settings?.attendanceGraceMinutes ?? 10)
     setAviso(settings?.attendanceLateAlertEnabled ?? false)
     setTurnosRotativos(settings?.rotatingShiftsEnabled ?? false)
+    setFoto(settings?.requireClockInPhoto ?? false)
   }, [venueId, settings])
 
   const guardar = useMutation({
@@ -88,24 +92,32 @@ export default function AsistenciaSettings({ venueId, settings, canEdit }: Props
       if (requested.attendanceLateAlertEnabled !== undefined)
         setAviso(saved.attendanceLateAlertEnabled ?? requested.attendanceLateAlertEnabled)
       if (requested.rotatingShiftsEnabled !== undefined) setTurnosRotativos(saved.rotatingShiftsEnabled ?? requested.rotatingShiftsEnabled)
+      if (requested.requireClockInPhoto !== undefined) setFoto(saved.requireClockInPhoto ?? requested.requireClockInPhoto)
 
       toast({
         title:
-          requested.rotatingShiftsEnabled !== undefined
-            ? requested.rotatingShiftsEnabled
-              ? t('venue:rotatingShifts.toastEnabled')
-              : t('venue:rotatingShifts.toastDisabled')
-            : requested.attendanceLateAlertEnabled !== undefined
-              ? requested.attendanceLateAlertEnabled
-                ? t('venue:attendance.lateAlertToastEnabled')
-                : t('venue:attendance.lateAlertToastDisabled')
-              : requested.attendanceEnabled === undefined
-              ? t('venue:attendance.toastGraceSaved')
-              : requested.attendanceEnabled
-                ? t('venue:attendance.toastEnabled')
-                : t('venue:attendance.toastDisabled'),
+          requested.requireClockInPhoto !== undefined
+            ? requested.requireClockInPhoto
+              ? t('venue:attendance.photoToastEnabled')
+              : t('venue:attendance.photoToastDisabled')
+            : requested.rotatingShiftsEnabled !== undefined
+              ? requested.rotatingShiftsEnabled
+                ? t('venue:rotatingShifts.toastEnabled')
+                : t('venue:rotatingShifts.toastDisabled')
+              : requested.attendanceLateAlertEnabled !== undefined
+                ? requested.attendanceLateAlertEnabled
+                  ? t('venue:attendance.lateAlertToastEnabled')
+                  : t('venue:attendance.lateAlertToastDisabled')
+                : requested.attendanceEnabled === undefined
+                  ? t('venue:attendance.toastGraceSaved')
+                  : requested.attendanceEnabled
+                    ? t('venue:attendance.toastEnabled')
+                    : t('venue:attendance.toastDisabled'),
       })
       queryClient.invalidateQueries({ queryKey: ['get-venue-data', venueId] })
+      // Asistencia lee los ajustes de la sesión (auth/status): sin esto, «Sin foto» y el aviso de checador apagado no
+      // cambiaban hasta recargar la página.
+      queryClient.invalidateQueries({ queryKey: ['status'] })
     },
     onError: () => {
       // 🔴 Se revierte a lo que había: dejar el switch en la posición pedida haría creer que se
@@ -114,6 +126,7 @@ export default function AsistenciaSettings({ venueId, settings, canEdit }: Props
       setTolerancia(settings?.attendanceGraceMinutes ?? 10)
       setAviso(settings?.attendanceLateAlertEnabled ?? false)
       setTurnosRotativos(settings?.rotatingShiftsEnabled ?? false)
+      setFoto(settings?.requireClockInPhoto ?? false)
       toast({ title: t('venue:attendance.toastError'), variant: 'destructive' })
     },
   })
@@ -190,6 +203,28 @@ export default function AsistenciaSettings({ venueId, settings, canEdit }: Props
                   onCheckedChange={checked => {
                     setAviso(checked)
                     guardar.mutate({ attendanceLateAlertEnabled: checked })
+                  }}
+                  disabled={!canEdit || ocupado}
+                />
+              </div>
+            </div>
+
+            {/* Foto de entrada (antifraude): un PIN se presta; una selfie guardada deja huella. Se guarda, no se
+                compara (comparar caras es dato biométrico). Apagada de fábrica (founder, 29-ago). */}
+            <div className="mt-4 flex items-center justify-between gap-4 border-t border-border/50 pt-4">
+              <div className="space-y-0.5">
+                <p className="text-sm font-medium">{t('venue:attendance.photoTitle')}</p>
+                <p className="text-xs text-muted-foreground">{t('venue:attendance.photoDesc')}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                {ocupado && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                <Switch
+                  aria-label={t('venue:attendance.photoTitle')}
+                  data-tour="attendance-clock-in-photo"
+                  checked={foto}
+                  onCheckedChange={checked => {
+                    setFoto(checked)
+                    guardar.mutate({ requireClockInPhoto: checked })
                   }}
                   disabled={!canEdit || ocupado}
                 />

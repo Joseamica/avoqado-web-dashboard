@@ -10,6 +10,11 @@
   "locationCaptured": "Con ubicación",
   "autoClosed": "Salida automática",
   "photoAlt": "Foto de entrada de {{name}}",
+  "photo": {
+    "open": "Ver la foto de entrada de {{name}}",
+    "caption": "Foto de entrada · {{time}}",
+    "missing": "Sin foto"
+  },
   "pendingReview": "{{count}} por revisar",
   "onShift": {
     "title": "Dentro ahora",

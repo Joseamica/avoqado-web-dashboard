@@ -28,6 +28,8 @@ export interface TimeEntry {
   status: TimeEntryStatus
   notes: string | null
   checkInPhotoUrl: string | null
+  /** Foto de entrada lista para pintar (firmada 10 min si es privada). Servidor nuevo; `undefined` en uno viejo. */
+  checkInPhotoViewUrl?: string | null
   checkOutPhotoUrl: string | null
   clockInLatitude: number | null
   clockInLongitude: number | null
@@ -188,7 +190,6 @@ export interface PayrollSummaryResponse {
   endDate: string
 }
 
-
 // ─── Turnos rotativos (fase 1 "como Sesame") ────────────────────────────────────────────
 export interface WorkShiftTemplate {
   id: string
@@ -201,7 +202,10 @@ export interface WorkShiftTemplate {
   active: boolean
   sortOrder: number
 }
-export type WorkShiftTemplateInput = Pick<WorkShiftTemplate, 'name' | 'abbreviation' | 'startTime' | 'endTime'> & { color?: string; sortOrder?: number }
+export type WorkShiftTemplateInput = Pick<WorkShiftTemplate, 'name' | 'abbreviation' | 'startTime' | 'endTime'> & {
+  color?: string
+  sortOrder?: number
+}
 export interface WorkShiftAssignment {
   id: string
   staffVenueId: string
@@ -251,10 +255,7 @@ export const attendanceService = {
       expectedSourceFingerprint?: string
     },
   ): Promise<{ staffVenueId: string; date: string; minutesApproved: number; minutesMeasured: number }> {
-    const response = await api.put(
-      `/api/v1/dashboard/venues/${venueId}/team/${staffVenueId}/overtime-approval`,
-      body,
-    )
+    const response = await api.put(`/api/v1/dashboard/venues/${venueId}/team/${staffVenueId}/overtime-approval`, body)
     return response.data
   },
 
@@ -282,14 +283,20 @@ export const attendanceService = {
   },
   // ─── Turnos rotativos ───
   async getWorkShiftTemplates(venueId: string, includeInactive = false): Promise<WorkShiftTemplate[]> {
-    const response = await api.get(`/api/v1/dashboard/venues/${venueId}/work-shifts/templates`, { params: includeInactive ? { includeInactive: 'true' } : {} })
+    const response = await api.get(`/api/v1/dashboard/venues/${venueId}/work-shifts/templates`, {
+      params: includeInactive ? { includeInactive: 'true' } : {},
+    })
     return response.data?.data ?? []
   },
   async createWorkShiftTemplate(venueId: string, input: WorkShiftTemplateInput): Promise<WorkShiftTemplate> {
     const response = await api.post(`/api/v1/dashboard/venues/${venueId}/work-shifts/templates`, input)
     return response.data?.data
   },
-  async updateWorkShiftTemplate(venueId: string, templateId: string, input: Partial<WorkShiftTemplateInput> & { active?: boolean }): Promise<WorkShiftTemplate> {
+  async updateWorkShiftTemplate(
+    venueId: string,
+    templateId: string,
+    input: Partial<WorkShiftTemplateInput> & { active?: boolean },
+  ): Promise<WorkShiftTemplate> {
     const response = await api.put(`/api/v1/dashboard/venues/${venueId}/work-shifts/templates/${templateId}`, input)
     return response.data?.data
   },
@@ -298,12 +305,18 @@ export const attendanceService = {
     return response.data?.data ?? []
   },
   /** Guarda celdas persona×día como BORRADOR. `templateId: null` vacía la celda. */
-  async replaceWorkShiftAssignments(venueId: string, input: { from: string; to: string; items: Array<{ staffVenueId: string; date: string; templateId: string | null }> }): Promise<WorkShiftAssignment[]> {
+  async replaceWorkShiftAssignments(
+    venueId: string,
+    input: { from: string; to: string; items: Array<{ staffVenueId: string; date: string; templateId: string | null }> },
+  ): Promise<WorkShiftAssignment[]> {
     const response = await api.put(`/api/v1/dashboard/venues/${venueId}/work-shifts/assignments`, input)
     return response.data?.data ?? []
   },
   /** Publicar = "esta semana va": desde aquí cuenta para asistencia y comisiones. */
-  async publishWorkShiftAssignments(venueId: string, input: { from: string; to: string; drafts: Array<{ id: string; updatedAt: string }> }): Promise<{ published: number; cleared: number; skipped: number }> {
+  async publishWorkShiftAssignments(
+    venueId: string,
+    input: { from: string; to: string; drafts: Array<{ id: string; updatedAt: string }> },
+  ): Promise<{ published: number; cleared: number; skipped: number }> {
     const response = await api.post(`/api/v1/dashboard/venues/${venueId}/work-shifts/assignments/publish`, input)
     return response.data?.data ?? { published: 0, cleared: 0, skipped: 0 }
   },

@@ -374,7 +374,9 @@ export default function BasicInfo() {
     onSuccess: ({ requested, saved }) => {
       form.setValue('attendanceEnabled', saved.attendanceEnabled ?? requested.attendanceEnabled ?? true, { shouldDirty: false })
       if (requested.attendanceLateAlertEnabled !== undefined) {
-        form.setValue('attendanceLateAlertEnabled', saved.attendanceLateAlertEnabled ?? requested.attendanceLateAlertEnabled, { shouldDirty: false })
+        form.setValue('attendanceLateAlertEnabled', saved.attendanceLateAlertEnabled ?? requested.attendanceLateAlertEnabled, {
+          shouldDirty: false,
+        })
       }
       if (requested.rotatingShiftsEnabled !== undefined) {
         form.setValue('rotatingShiftsEnabled', saved.rotatingShiftsEnabled ?? requested.rotatingShiftsEnabled, { shouldDirty: false })
@@ -389,10 +391,10 @@ export default function BasicInfo() {
               ? t('venue:rotatingShifts.toastEnabled')
               : t('venue:rotatingShifts.toastDisabled')
             : requested.attendanceEnabled === undefined
-            ? t('venue:attendance.toastGraceSaved')
-            : requested.attendanceEnabled
-              ? t('venue:attendance.toastEnabled')
-              : t('venue:attendance.toastDisabled'),
+              ? t('venue:attendance.toastGraceSaved')
+              : requested.attendanceEnabled
+                ? t('venue:attendance.toastEnabled')
+                : t('venue:attendance.toastDisabled'),
         description: t('venue:attendance.toastSavedDesc'),
       })
       queryClient.invalidateQueries({ queryKey: ['get-venue-data', venueId] })
@@ -405,36 +407,6 @@ export default function BasicInfo() {
       form.setValue('attendanceGraceMinutes', venue.settings?.attendanceGraceMinutes ?? 10, { shouldDirty: false })
       form.setValue('attendanceLateAlertEnabled', venue.settings?.attendanceLateAlertEnabled ?? false, { shouldDirty: false })
       queryClient.invalidateQueries({ queryKey: ['get-venue-data', venueId] })
-    },
-  })
-
-  // Separate mutation for requireClockInPhoto - Anti-fraud: require photo on clock-in
-  const toggleClockInPhoto = useMutation({
-    mutationFn: async (requireClockInPhoto: boolean) => {
-      await api.put(`/api/v1/dashboard/venues/${venueId}/settings`, {
-        requireClockInPhoto,
-      })
-      return requireClockInPhoto
-    },
-    onSuccess: requireClockInPhoto => {
-      form.setValue('requireClockInPhoto', requireClockInPhoto, { shouldDirty: false })
-      toast({
-        title: requireClockInPhoto ? 'Foto de entrada habilitada' : 'Foto de entrada deshabilitada',
-        description: requireClockInPhoto
-          ? 'Los empleados deberán tomar una foto al registrar su entrada.'
-          : 'Ya no se requerirá foto al registrar entrada.',
-      })
-      queryClient.invalidateQueries({ queryKey: ['get-venue-data', venueId] })
-    },
-    onError: (error: any) => {
-      const errorMessage = error?.response?.data?.message || 'Error al guardar la configuración'
-      toast({
-        title: 'Error',
-        description: errorMessage,
-        variant: 'destructive',
-      })
-      queryClient.invalidateQueries({ queryKey: ['get-venue-data', venueId] })
-      console.error('Error toggling clock-in photo:', error)
     },
   })
 
@@ -1080,21 +1052,8 @@ export default function BasicInfo() {
                                 />
                               )}
 
-                              {/* Clock-in photo */}
-                              <div className="flex items-center justify-between">
-                                <div className="space-y-0.5">
-                                  <p className="text-sm font-medium">Foto de Entrada (Anti-fraude)</p>
-                                  <p className="text-xs text-muted-foreground">Requiere foto al registrar entrada.</p>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  {toggleClockInPhoto.isPending && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
-                                  <Switch
-                                    checked={form.watch('requireClockInPhoto') ?? false}
-                                    onCheckedChange={checked => toggleClockInPhoto.mutate(checked)}
-                                    disabled={!canEdit || toggleClockInPhoto.isPending}
-                                  />
-                                </div>
-                              </div>
+                              {/* «Foto de Entrada» se mudó a Equipo → Asistencia con el resto del checador (15-nov,
+                                  encargo b0c1a1): aquí sólo se veía con los turnos de caja prendidos. */}
 
                               {/* Auto clock-out section */}
                               <div className="space-y-3">
@@ -1209,7 +1168,6 @@ export default function BasicInfo() {
                         gente, no del local. Es donde los pone Square (Staff & Payroll → Team).
                         Decisión del founder, 28-ago. Ver `pages/Team/AsistenciaSettings.tsx`. */}
 
-
                     {/* Propiedad de mesas (PRO — Modo restaurante iOS/Android) */}
                     <div className="mt-3 rounded-xl border border-border/50 bg-card shadow-sm">
                       <div className="flex flex-row items-center justify-between p-4">
@@ -1260,7 +1218,11 @@ export default function BasicInfo() {
                     )}
                     {venueId && (
                       <div className="mt-3">
-                        <StoreCreditSetting venueId={venueId} storeCreditOnly={venue.storeCreditOnly ?? false} available={venue.storeCreditAvailable ?? false} />
+                        <StoreCreditSetting
+                          venueId={venueId}
+                          storeCreditOnly={venue.storeCreditOnly ?? false}
+                          available={venue.storeCreditAvailable ?? false}
+                        />
                       </div>
                     )}
                   </div>
