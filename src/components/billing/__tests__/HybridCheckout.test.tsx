@@ -140,15 +140,28 @@ it("says which function the change reprices, from what its contract charged to t
   await user.click(screen.getByRole('button', { name: 'Review quote' }))
   expect(await screen.findByText(/Loyalty program will go from .*599\.00 to .*699\.00 with this change\./)).toBeInTheDocument()
 })
-it.each(['PAYMENT_PENDING', 'PAID', 'DELIVERING', 'REQUIRES_REVIEW'])(
-  'recovers %s from the server after browser storage is lost',
+it.each([
+  ['PAYMENT_PENDING', 'Your purchase is in progress'],
+  ['PAID', 'Payment received'],
+  ['DELIVERING', 'Payment received'],
+  ['REQUIRES_REVIEW', 'Your purchase is in progress'],
+])('recovers %s from the server after browser storage is lost', async (status, title) => {
+  vi.mocked(hybridBilling.current).mockResolvedValue({ ...purchase, status } as any)
+  vi.mocked(hybridBilling.purchase).mockResolvedValue({ ...purchase, status } as any)
+  mount()
+  expect(await screen.findByText(title)).toBeInTheDocument()
+  expect(hybridBilling.accept).not.toHaveBeenCalled()
+  expect(screen.queryByRole('button', { name: 'Review quote' })).not.toBeInTheDocument()
+})
+it.each(['PAID', 'DELIVERING'])(
+  'T5: a %s purchase after a reload says it is activating and offers no «Cancel this attempt»',
   async status => {
     vi.mocked(hybridBilling.current).mockResolvedValue({ ...purchase, status } as any)
     vi.mocked(hybridBilling.purchase).mockResolvedValue({ ...purchase, status } as any)
     mount()
-    expect(await screen.findByText('Your purchase is in progress')).toBeInTheDocument()
-    expect(hybridBilling.accept).not.toHaveBeenCalled()
-    expect(screen.queryByRole('button', { name: 'Review quote' })).not.toBeInTheDocument()
+    expect(await screen.findByText('We charged your card. Your features are being activated; it takes a few seconds.')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Cancel this attempt' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Open secure payment' })).not.toBeInTheDocument()
   },
 )
 it('never treats a return from the hosted invoice as activation', async () => {

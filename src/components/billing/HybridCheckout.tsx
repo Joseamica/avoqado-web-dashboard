@@ -287,8 +287,9 @@ export function HybridCheckout({
     }).format(new Date(value))
   const recoveryError = current.isError || (attemptId && status.isError)
   const paymentUrl = safePaymentUrl(payment?.paymentUrl)
-  // The one-click Básico: the saved card already paid the first invoice; nothing to open, delivery follows.
-  const paid = payment?.status === 'ACTIVATION_PENDING'
+  // The one-click Básico: the saved card already paid the first invoice; nothing to open, delivery follows. Also after a
+  // reload, when only the purchase says it (PAID / DELIVERING): «activando», never «Cancelar este intento».
+  const paid = payment?.status === 'ACTIVATION_PENDING' || purchase?.status === 'PAID' || purchase?.status === 'DELIVERING'
   const reviewExpired = purchase && new Date(purchase.quoteExpiresAt).getTime() <= now
   return (
     <section className="mx-auto max-w-5xl space-y-6 pb-6" data-tour="hybrid-checkout">

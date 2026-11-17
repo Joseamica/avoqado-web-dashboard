@@ -434,8 +434,9 @@ export function basicNotice(plan: PlanState | undefined, origin: PlanOrigin): Ba
   if (!plan || plan.grandfathered) return null
   if (plan.basicPlan)
     return { kind: 'CURRENT', name: plan.basicPlan.name, price: plan.basicPlan.price?.base ?? null, active: plan.basicPlan.active }
+  // «Ese día podrás contratar el Básico» sólo si hay un Básico publicado; si no, la fila dice lo de siempre.
   if (plan.trialModality === 'ENDS_FREE')
-    return { kind: 'TRIAL_ENDS_FREE', date: plan.trialEndsAt ?? origin.cancelAt ?? origin.currentPeriodEnd }
+    return plan.basicOffer ? { kind: 'TRIAL_ENDS_FREE', date: plan.trialEndsAt ?? origin.cancelAt ?? origin.currentPeriodEnd } : null
   const offer = plan.basicOffer
   if (!offer) return null
   const price = offer.price.base

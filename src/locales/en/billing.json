@@ -98,6 +98,7 @@
       "preferBasic": "Prefer Básico?",
       "preferBasicCopy": "It costs {{price}} + VAT per month. Your Pro stays until this period ends and you get Básico that day.",
       "endPro": "End my Pro at the end of the period",
+      "endProSeats": "If you don’t get Básico that day, your team stays at the Free user limit until you do.",
       "discountUntil": "Your discount continues until {{date}}. We will remind you beforehand so you can choose Básico.",
       "discountNoDate": "Your discount is still active. We will remind you beforehand so you can choose Básico."
     },

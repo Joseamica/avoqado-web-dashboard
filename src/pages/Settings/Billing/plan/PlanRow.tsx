@@ -293,6 +293,7 @@ export function PlanRow(props: PlanRowProps) {
               >
                 {t('plan.basic.endPro')}
               </Button>
+              <p className="w-full text-muted-foreground">{t('plan.basic.endProSeats')}</p>
             </>
           )}
           {basic.kind === 'DISCOUNT_CONTINUES' && (

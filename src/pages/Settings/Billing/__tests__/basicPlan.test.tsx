@@ -38,7 +38,8 @@ const { toastSpy } = vi.hoisted(() => ({ toastSpy: vi.fn() }))
 vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: toastSpy }) }))
 vi.mock('@/utils/datetime', () => ({ useVenueDateTime: () => ({ formatDate: (value: string) => value.slice(0, 10) }) }))
 vi.mock('@/lib/hybridIntent', () => ({ saveHybridAttempt: vi.fn() }))
-vi.mock('@/hooks/usePublicBasicPlan', () => ({ usePublicBasicPlan: () => ({ plan: { slug: 'plan-basico' }, loaded: true }) }))
+const publicBasic = vi.hoisted(() => ({ state: { plan: { slug: 'plan-basico' } as { slug: string } | null, loaded: true } }))
+vi.mock('@/hooks/usePublicBasicPlan', () => ({ usePublicBasicPlan: () => publicBasic.state }))
 vi.mock('@/services/features.service', () => ({
   getVenuePlan: vi.fn(),
   createPlanCheckoutSession: vi.fn(),
@@ -118,6 +119,7 @@ const fill = (text: string, values: Record<string, string>) => text.replace(/\{\
 
 beforeEach(() => {
   access.manage = true
+  publicBasic.state = { plan: { slug: 'plan-basico' }, loaded: true }
   toastSpy.mockReset()
   vi.mocked(hybridBilling.featureGrid).mockResolvedValue(GRID as never)
   vi.mocked(hybridBilling.replacements).mockResolvedValue({ standaloneFeatureCodes: [], items: [], total: 0 } as never)
@@ -155,6 +157,28 @@ describe('«Tu plan» con el Plan Básico', () => {
     expect(screen.getByText('checkout abierto plan-basico')).toBeInTheDocument()
   })
 
+  it('T9: «Contratar Básico» queda apagado mientras no llega el slug del Básico (no abre la compra sin él)', async () => {
+    publicBasic.state = { plan: null, loaded: false }
+    vi.mocked(getVenuePlan).mockResolvedValue(plan({}, { basicOffer: offer() }) as never)
+    renderPage()
+    expect(await screen.findByRole('button', { name: B.buy })).toBeDisabled()
+    expect(screen.getByText('checkout cerrado')).toBeInTheDocument()
+  })
+
+  it('T9: prueba que termina sin cobrar SIN Básico publicado → el texto de siempre, sin prometer el Básico', async () => {
+    vi.mocked(getVenuePlan).mockResolvedValue(
+      plan(
+        { ...CLASSIC_PRO, cancelAt: CLASSIC_PRO.currentPeriodEnd },
+        { state: 'trial', trialModality: 'ENDS_FREE', trialEndsAt: '2026-12-01T06:00:00.000Z' },
+      ) as never,
+    )
+    renderPage()
+    expect(await screen.findByRole('button', { name: esBilling.plan.row.resume })).toBeInTheDocument()
+    expect(screen.queryByText(fill(B.trialEnds, { date: '2026-12-01' }))).not.toBeInTheDocument()
+    expect(screen.queryByText(B.trialEndsNoDate)).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: B.stayPro })).not.toBeInTheDocument()
+  })
+
   it('sin permiso: el botón está apagado y dice a quién pedirlo', async () => {
     access.manage = false
     vi.mocked(getVenuePlan).mockResolvedValue(plan({}, { basicOffer: offer() }) as never)
@@ -185,6 +209,8 @@ describe('«Tu plan» con el Plan Básico', () => {
     vi.mocked(getVenuePlan).mockResolvedValue(plan(CLASSIC_PRO, { basicOffer: offer({ canEndProNow: true }) }) as never)
     renderPage()
     expect(await screen.findByText(B.preferBasic)).toBeInTheDocument()
+    // T9/R14: antes de terminar, el aviso de qué pasa con el equipo si no contrata el Básico ese día.
+    expect(screen.getByText(B.endProSeats)).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: B.endPro }))
     await waitFor(() => expect(downgradeVenueToFree).toHaveBeenCalledWith('venue', [], { purpose: 'BASIC_PLAN' }))
   })

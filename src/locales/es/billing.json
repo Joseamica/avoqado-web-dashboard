@@ -98,6 +98,7 @@
       "preferBasic": "¿Prefieres el Básico?",
       "preferBasicCopy": "Cuesta {{price}} + IVA al mes. Tu Pro sigue hasta que acabe este periodo y ese día lo contratas.",
       "endPro": "Terminar mi Pro al acabar el periodo",
+      "endProSeats": "Si no contratas el Básico ese día, tu equipo queda en el tope de Gratis hasta que lo contrates.",
       "discountUntil": "Tu descuento sigue hasta el {{date}}. Te avisaremos antes para que elijas el Básico.",
       "discountNoDate": "Tu descuento sigue vigente. Te avisaremos antes para que elijas el Básico."
     },

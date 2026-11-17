@@ -374,10 +374,15 @@ export default function Subscriptions() {
               onReactivate={() => ops.reactivate.mutate()}
               onUpdatePayment={() => ops.portal.mutate()}
               preferList={preferList}
-              onBuyBasic={() => {
-                setCheckoutSlug(publicBasic?.slug)
-                setCheckoutOpen(true)
-              }}
+              // Apagado hasta tener el slug del Básico: sin él, la compra se abriría sin el Básico arriba.
+              onBuyBasic={
+                publicBasic?.slug
+                  ? () => {
+                      setCheckoutSlug(publicBasic.slug)
+                      setCheckoutOpen(true)
+                    }
+                  : undefined
+              }
               onEndProForBasic={() => void confirmCancel({ purpose: 'BASIC_PLAN' })}
             />
             <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
