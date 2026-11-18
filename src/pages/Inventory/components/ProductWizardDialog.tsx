@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef, useId } from 'react'
 import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -379,8 +379,10 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
     step1Form.setValue('imageUrl', '')
   }
 
-  // Cada apertura del asistente pregunta de nuevo con su PROPIA llave: una respuesta (o una petición en curso) de una apertura anterior
-  // no decide el plan de ésta, aunque llegue después de reabrir (Codex r4 #4 y r5 #2). Mientras tanto, «Cargando…».
+  // Cada ventana del asistente (la de «Editar» y la de «Nuevo» viven montadas a la vez) y cada apertura pregunta de nuevo con su PROPIA
+  // llave: una respuesta (o una petición en curso) de otra ventana o de una apertura anterior no decide el plan de ésta, aunque llegue
+  // después (Codex r4 #4, r5 #2 y r6 #1). Mientras tanto, «Cargando…».
+  const ventana = useId()
   const [apertura, setApertura] = useState(0)
   const [estabaAbierto, setEstabaAbierto] = useState(open)
   if (open !== estabaAbierto) {
@@ -389,7 +391,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
   }
   // Fetch recommendations for inventory usage
   const recomendacionesQuery = useQuery({
-    queryKey: ['inventory-recommendations', venueId, apertura],
+    queryKey: ['inventory-recommendations', venueId, ventana, apertura],
     queryFn: async () => {
       const response = await productWizardApi.shouldUseInventory(venueId)
       return response.data.data
@@ -405,10 +407,12 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
   // recomendación (un SERVIDOR viejo no la habilita sin Premium y todo queda como antes). Editar las piezas de un producto que ya existe
   // sigue siendo Premium: sus rutas del SERVIDOR siguen detrás del candado (Codex r1 de na1d52b5).
   const opcionPiezas = (recommendations?.options as Array<{ type?: string; enabled?: boolean }> | undefined)?.find(o => o.type === 'QUANTITY')
-  // Superadmin de verdad (sin suplantar: el rol del panel ya es el suplantado): todo abierto, como en el candado del SERVIDOR y en el
-  // panel de antes. Cubre un SERVIDOR viejo, cuya recomendación no sabía de superadmin (Codex r5 #4).
+  // El SERVIDOR nuevo contesta por QUIEN PREGUNTA (superadmin incluido, con su rol vigente): su respuesta manda sobre el rol que el panel
+  // tenga guardado (Codex r6 #2). Sólo con un SERVIDOR viejo (sin `segunQuienPregunta`), que no sabía de superadmin, el superadmin del
+  // panel abre todo, como el panel de antes (Codex r5 #4). Sin respuesta todavía, nada se abre por el rol.
   const { role: rolDelPanel } = useAccess()
-  const esSuperadmin = rolDelPanel === 'SUPERADMIN'
+  const esSuperadmin =
+    rolDelPanel === 'SUPERADMIN' && recommendations !== undefined && (recommendations as { segunQuienPregunta?: boolean }).segunQuienPregunta !== true
   const puedeContarPiezas = !!recommendations?.hasInventoryFeature || esSuperadmin || (mode === 'create' && opcionPiezas?.enabled === true)
   // La receta es Premium (INVENTORY_TRACKING) y la decide SÓLO la respuesta del SERVIDOR: el mismo resolver que su candado, con exentos,
   // demo y superadmin. El cálculo del panel fallaba abierto si el plan no cargaba y en marca blanca buscaba otro código, y cerraba la

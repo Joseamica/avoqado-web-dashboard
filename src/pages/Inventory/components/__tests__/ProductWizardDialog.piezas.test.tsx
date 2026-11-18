@@ -292,6 +292,42 @@ describe('na1d52b5 · contar piezas al dar de alta en todos los planes', { timeo
     expect(screen.queryByText('wizard.step2.premiumBadge')).toBeNull()
   })
 
+  it('superadmin guardado en el panel, pero el SERVIDOR nuevo (que contesta por quien pregunta) dice «sin Premium»: manda el SERVIDOR (Codex r6 #2)', async () => {
+    quien.rol = 'SUPERADMIN'
+    inventory.productWizardApi.shouldUseInventory.mockResolvedValue({
+      data: { data: { ...RECOMENDACION_SIN_PREMIUM, segunQuienPregunta: true } },
+    })
+    mount({ productType: 'FOOD_AND_BEV' })
+    await waitFor(() => expect(screen.getAllByText('wizard.step2.premiumBadge').length).toBeGreaterThan(0))
+    expect(opener('recipe')).toBeDisabled()
+  })
+
+  it('«Nuevo producto» no hereda la respuesta que leyó «Editar producto» (las dos ventanas viven montadas a la vez, Codex r6 #1)', async () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
+    const ui = (editar: boolean, nuevo: boolean) => (
+      <QueryClientProvider client={client}>
+        <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+          <ProductWizardDialog open={editar} onOpenChange={() => undefined} mode="edit" productType="REGULAR" productId="p1" />
+          <ProductWizardDialog open={nuevo} onOpenChange={() => undefined} mode="create" productType="FOOD_AND_BEV" />
+        </MemoryRouter>
+      </QueryClientProvider>
+    )
+    inventory.productWizardApi.shouldUseInventory.mockResolvedValue({
+      data: { data: { hasInventoryFeature: true, recommendation: 'wizard.step2.recommendationEnabled', segunQuienPregunta: true } },
+    })
+    // Como en Artículos: las dos ventanas nacen montadas y cerradas, y cada una cuenta sus aperturas desde cero.
+    const vista = render(ui(false, false))
+    vista.rerender(ui(true, false)) // la edición lee «con Premium»
+    await waitFor(() => expect(inventory.productWizardApi.shouldUseInventory).toHaveBeenCalledTimes(1))
+    await new Promise(r => setTimeout(r, 50))
+    vista.rerender(ui(false, false))
+    inventory.productWizardApi.shouldUseInventory.mockReturnValue(new Promise(() => {})) // el negocio bajó a Pro; la respuesta tarda
+    vista.rerender(ui(false, true))
+    await waitFor(() => expect(inventory.productWizardApi.shouldUseInventory).toHaveBeenCalledTimes(2))
+    await new Promise(r => setTimeout(r, 100))
+    expect(opener('recipe')).toBeDisabled() // sin respuesta propia todavía: nada se abre con la de la otra ventana
+  })
+
   it('editar un producto con receta mientras la recomendación no llega: dice «Cargando…», nunca ofrece subir a Premium (Codex r5 #4)', async () => {
     inventory.productWizardApi.shouldUseInventory.mockReturnValue(new Promise(() => {}))
     inventory.productWizardApi.getWizardProgress.mockResolvedValue({ data: { data: { inventoryMethod: 'RECIPE', details: {} } } })
