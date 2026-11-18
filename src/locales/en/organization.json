@@ -1812,6 +1812,7 @@
       "REFUND_AUTHORITY_CHANGED": "Refund on hold: the payment account changed",
       "REFUND_CREATED": "Refund created",
       "REFUND_ISSUED": "Refund issued",
+      "REFUND_METHOD_ACCREDITED_BY_TERMINAL": "Terminal corrected the refund's card type",
       "REFUND_SPLIT_NOT_HONORED": "Refund didn't honor the tip checkbox",
       "REFUND_TO_STORE_CREDIT": "Refund to store credit",
       "RESERVATION_BRANDING_UPDATED": "Reservation branding updated",

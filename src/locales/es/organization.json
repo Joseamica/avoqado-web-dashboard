@@ -1812,6 +1812,7 @@
       "REFUND_AUTHORITY_CHANGED": "Reembolso detenido: cambió la cuenta de cobro",
       "REFUND_CREATED": "Reembolso creado",
       "REFUND_ISSUED": "Reembolso emitido",
+      "REFUND_METHOD_ACCREDITED_BY_TERMINAL": "La terminal corrigió el tipo de tarjeta de la devolución",
       "REFUND_SPLIT_NOT_HONORED": "Reembolso no respetó la casilla de propina",
       "REFUND_TO_STORE_CREDIT": "Reembolso a saldo a favor",
       "RESERVATION_BRANDING_UPDATED": "Marca de reservaciones actualizada",
