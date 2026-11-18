@@ -2037,7 +2037,7 @@
       "TERMINAL_PAYMENT_MANUAL_RELEASED": "Cobro de la terminal liberado a mano",
       "TERMINAL_PAYMENT_NO_INSTRUMENT_AUTH_DENIED": "Permiso negado para declarar «no presentó tarjeta»",
       "TERMINAL_PAYMENT_NO_INSTRUMENT_RESOLVED": "Cobro de la terminal cerrado: no presentó tarjeta",
-      "TERMINAL_PAYMENT_OPERATOR_RECONCILED_UNCHARGED": "Cajero declaró «no se cobró»",
+      "TERMINAL_PAYMENT_OPERATOR_RECONCILED_UNCHARGED": "Se declaró «no se cobró»",
       "TERMINAL_PAYMENT_POSSIBLE_REFERENCE_COLLISION": "Posible cobro con referencia repetida",
       "TERMINAL_PAYMENT_POSSIBLE_SECOND_CAPTURE": "Posible segundo cobro de la misma venta",
       "TERMINAL_PAYMENT_PROBE_CONTRADICTION": "La terminal y el servidor no coinciden sobre un cobro",

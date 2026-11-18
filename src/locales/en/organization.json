@@ -2037,7 +2037,7 @@
       "TERMINAL_PAYMENT_MANUAL_RELEASED": "Terminal charge released manually",
       "TERMINAL_PAYMENT_NO_INSTRUMENT_AUTH_DENIED": "Permission denied to declare “no card presented”",
       "TERMINAL_PAYMENT_NO_INSTRUMENT_RESOLVED": "Terminal charge closed: no card presented",
-      "TERMINAL_PAYMENT_OPERATOR_RECONCILED_UNCHARGED": "Cashier declared “not charged”",
+      "TERMINAL_PAYMENT_OPERATOR_RECONCILED_UNCHARGED": "Declared “not charged”",
       "TERMINAL_PAYMENT_POSSIBLE_REFERENCE_COLLISION": "Possible charge with a repeated reference",
       "TERMINAL_PAYMENT_POSSIBLE_SECOND_CAPTURE": "Possible second charge for the same sale",
       "TERMINAL_PAYMENT_PROBE_CONTRADICTION": "The terminal and the server disagree about a charge",
