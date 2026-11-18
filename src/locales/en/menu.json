@@ -518,7 +518,9 @@
       "saved": "Changes have been saved successfully.",
       "statusError": "Couldn't update the product status.",
       "adjustStockPremiumTitle": "Adjusting stock is part of the Premium plan",
-      "adjustStockPremium": "Nothing changed: the stock stays as it was."
+      "adjustStockPremium": "Nothing changed: the stock stays as it was.",
+      "adjustStockEnDudaTitle": "We couldn't confirm the adjustment was saved",
+      "adjustStockEnDuda": "We couldn't confirm it was saved. Tap Save again: it won't be added twice. If you close the window, check the stock before adjusting again."
     },
     "lowStock": {
       "alert": "{{count}} product is low on stock",

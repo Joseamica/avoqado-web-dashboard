@@ -18,7 +18,7 @@ import {
   X,
   ChevronRight,
 } from 'lucide-react'
-import { createContext, useCallback, useContext, useEffect, useState, useMemo } from 'react'
+import { createContext, useCallback, useContext, useEffect, useRef, useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDebounce } from '@/hooks/useDebounce'
 import { FilterPill, CheckboxFilterContent, ColumnCustomizer } from '@/components/filters'
@@ -83,6 +83,7 @@ import { esAgrupable, sugerirDesdeNombres, type EstadoAgrupar } from '@/features
 import { Checkbox } from '@/components/ui/checkbox'
 import { useAccess } from '@/hooks/use-access'
 import { textoDelServidor } from '@/utils/apiError'
+import { quedoEnDuda, useEnvioUnico } from '@/pages/Commissions/envioUnico'
 
 // 🔴 `flexRender` pinta cada `cell` como componente: si `columns` cambia, React remonta TODAS las celdas y el foco del teclado cae al
 // <body>. Por eso las columnas no dependen de nada que cambie en cada render: la fecha usa su propio hook, el interruptor la `mutate`
@@ -638,26 +639,37 @@ export default function Products() {
     },
   })
 
+  const { enviar: enviarAjuste } = useEnvioUnico()
+  // D2 (Codex r3 #2): la llave es de ESTA ventana abierta y de lo que se guarda. Volver a guardar lo mismo en la misma ventana (tras
+  // perder la respuesta) lleva la misma llave; otra ventana es otro ajuste, aunque sea igual (dos entradas de 5 son dos entradas).
+  const aperturaDelAjuste = useRef('')
   const adjustStockMutation = useMutation({
     mutationFn: async ({
       productId,
       adjustment,
       reason,
       notes,
+      apertura,
     }: {
       productId: string
       adjustment: number
       reason: string
       notes: string
+      apertura: string
     }) => {
       const payload: AdjustInventoryStockDto = {
         type: 'ADJUSTMENT',
         quantity: adjustment,
         reason: `${reason}${notes ? ` - ${notes}` : ''}`,
       }
-      return await productInventoryApi.adjustStock(venueId!, productId, payload)
+      // D2 (Codex r1 #7, r2 #3): una llave por ajuste (`useEnvioUnico`, el de Comisiones). Si la respuesta se pierde, volver a guardar lo
+      // MISMO en la misma ventana lleva la misma llave y el SERVIDOR no lo suma otra vez.
+      const huella = `ajuste:${apertura}:${venueId}:${productId}:${JSON.stringify(payload)}`
+      return await enviarAjuste(huella, paso => paso('ajuste', clave => productInventoryApi.adjustStock(venueId!, productId, payload, clave)))
     },
-    onSuccess: () => {
+    onSuccess: resultado => {
+      // Un segundo envío mientras el primero sigue en vuelo no hace nada (`useEnvioUnico`): no es un «guardado».
+      if (resultado === undefined) return
       setAdjustStockDialogOpen(false)
       setProductToAdjust(null)
       queryClient.invalidateQueries({ queryKey: ['products', venueId] })
@@ -667,11 +679,21 @@ export default function Products() {
       })
     },
     onError: (error: any) => {
-      // na1d52b5 (17-nov-2026, tras la parada de Codex r4): ajustar las piezas de un producto que ya existe sigue siendo Premium. Lo
-      // decide el SERVIDOR al confirmar, en vivo (un candado en la lista con una respuesta guardada se equivocaba al cambiar de plan o
-      // de sesión), y su rechazo de plan, que viene en inglés, se dice aquí en español: no se cambió nada.
-      // Sólo el plan que NO lo incluye (`subscriptionRequired`); una prueba vencida o una suscripción suspendida traen su propio motivo y
-      // cómo recuperarlo, y se muestran como antes (Codex r9 #5).
+      // D2 (18-nov-2026, Codex r1 #7, r3 #2): sin respuesta (o un 5xx) no se sabe si el SERVIDOR ya sumó las piezas. La ventana se
+      // queda abierta con su llave: volver a tocar Guardar no lo suma dos veces. Se releen las existencias y se avisa.
+      if (quedoEnDuda(error)) {
+        queryClient.invalidateQueries({ queryKey: ['products', venueId] })
+        toast({
+          title: t('products.toasts.adjustStockEnDudaTitle'),
+          description: t('products.toasts.adjustStockEnDuda'),
+          variant: 'destructive',
+        })
+        return
+      }
+      // na1d52b5 (17-nov-2026): el SERVIDOR decide el plan al confirmar, en vivo, y su rechazo, que viene en inglés, se dice aquí en
+      // español: no se cambió nada. Desde D2 el ajuste simple de esta lista es de todos los planes; el rechazo sólo sale con un
+      // SERVIDOR anterior a D2. Sólo el plan que NO lo incluye (`subscriptionRequired`); una prueba vencida o una suscripción
+      // suspendida traen su propio motivo y cómo recuperarlo, y se muestran como antes (Codex r9 #5).
       const rechazoDePlan =
         error.response?.status === 403 &&
         error.response?.data?.featureCode === 'INVENTORY_TRACKING' &&
@@ -999,6 +1021,7 @@ export default function Products() {
                   <DropdownMenuItem
                     onClick={e => {
                       e.stopPropagation()
+                      aperturaDelAjuste.current = crypto.randomUUID()
                       setProductToAdjust(product)
                       setAdjustStockDialogOpen(true)
                     }}
@@ -1354,6 +1377,7 @@ export default function Products() {
               adjustment,
               reason,
               notes,
+              apertura: aperturaDelAjuste.current,
             })
           }
         }}

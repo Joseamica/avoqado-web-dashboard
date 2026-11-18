@@ -173,6 +173,8 @@
       "activated": "Raw material activated successfully",
       "deactivated": "Raw material deactivated successfully",
       "stockAdjusted": "Stock adjusted successfully",
+      "stockAdjustEnDudaTitle": "We couldn't confirm the adjustment was saved",
+      "stockAdjustEnDuda": "We couldn't confirm it was saved. Tap Save again: it won't be added twice. If you close the window, check the stock before adjusting again.",
       "skuGenerationFailed": "Could not generate unique SKU. Please try again or enter manually."
     },
     "notFound": "No raw materials found",

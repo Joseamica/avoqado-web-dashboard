@@ -1,12 +1,12 @@
 /**
- * Tarjeta `hz:nube0000:na1d52b5` (17-nov-2026): un producto puede contar piezas en Gratis/Pro (se da de alta así), pero «Ajustar
- * existencias» de un producto que ya existe sigue siendo Premium (INVENTORY_TRACKING). Lo decide el SERVIDOR al confirmar, en vivo: un
+ * Tarjeta `hz:nube0000:na1d52b5` (17-nov-2026): un producto puede contar piezas en Gratis/Pro (se da de alta así). Desde D2 (18-nov)
+ * su ajuste simple también es de todos los planes; el rechazo de plan sólo sale con un SERVIDOR anterior a D2. Lo decide el SERVIDOR al confirmar, en vivo: un
  * candado en la lista con una respuesta guardada se equivocaba al cambiar de plan o de sesión (Codex r4 #4 y #5). Su rechazo de plan
  * viene en inglés y aquí se dice en español: no se cambió nada.
  * Arnés de `Products.filasPorId.test.tsx`; `t` estable; vitest con mockReset.
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -20,7 +20,11 @@ const estables = vi.hoisted(() => {
 
 vi.mock('@/services/menu.service', async importOriginal => ({ ...(await importOriginal<object>()), ...menu }))
 vi.mock('@/hooks/use-current-venue', () => ({ useCurrentVenue: () => ({ venueId: 'v1', fullBasePath: '/venues/mi-tienda' }) }))
-vi.mock('@/hooks/use-access', () => ({ useAccess: () => ({ can: () => true, canAny: () => true, canAll: () => true }) }))
+// D2: un permiso de `acceso.negados` no lo tiene quien usa la pantalla.
+const acceso = vi.hoisted(() => ({ negados: new Set<string>() }))
+vi.mock('@/hooks/use-access', () => ({
+  useAccess: () => ({ can: (p: string) => !acceso.negados.has(p), canAny: () => true, canAll: () => true }),
+}))
 const avisos = vi.hoisted(() => ({ toast: vi.fn() }))
 vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: avisos.toast }) }))
 vi.mock('@/hooks/useDebounce', () => ({ useDebounce: (v: unknown) => v }))
@@ -33,10 +37,11 @@ vi.mock('../../MenuMakerLayout', () => ({ useMenuMakerHeader: () => ({ setHeader
 vi.mock('@/components/onboarding/TourDiscoveryBanner', () => ({ TourDiscoveryBanner: () => null }))
 vi.mock('@/pages/Menu/Products/components/AvisoAparatosIva', () => ({ AvisoAparatosIva: () => null }))
 vi.mock('@/components/inventory/InventoryDetailsModal', () => ({ InventoryDetailsModal: () => null }))
-const ajuste = vi.hoisted(() => ({ props: [] as Array<{ open: boolean; onConfirm: (a: number, r: string, n?: string) => void }> }))
+type PropsDelAjuste = { open: boolean; onConfirm: (a: number, r: string, n?: string) => void; onOpenChange: (o: boolean) => void }
+const ajuste = vi.hoisted(() => ({ props: [] as PropsDelAjuste[] }))
 vi.mock('@/components/AdjustStockDialog', () => ({
-  AdjustStockDialog: (p: { open: boolean; onConfirm: (a: number, r: string, n?: string) => void }) => {
-    ajuste.props.push({ open: p.open, onConfirm: p.onConfirm })
+  AdjustStockDialog: (p: PropsDelAjuste) => {
+    ajuste.props.push({ open: p.open, onConfirm: p.onConfirm, onOpenChange: p.onOpenChange })
     return null
   },
 }))
@@ -53,6 +58,7 @@ vi.mock('@/services/inventory.service', async importOriginal => ({
 }))
 
 import Products from '../Products'
+import { olvidarPendientes } from '@/pages/Commissions/envioUnico'
 
 const conPiezas = (id: string, name: string) => ({
   id,
@@ -91,6 +97,8 @@ async function abrirAjusteDe(nombre: string) {
 const rechazo = (status: number, data: object) => Object.assign(new Error('rechazo'), { response: { status, data } })
 
 beforeEach(() => {
+  olvidarPendientes()
+  acceso.negados.clear()
   ajustar.adjustStock.mockResolvedValue({ data: { message: 'ok' } })
   avisos.toast.mockReset()
   ajuste.props = []
@@ -156,7 +164,88 @@ describe('Products — «Ajustar existencias» sin Premium (na1d52b5)', { timeou
   it('un ajuste que sí pasa se manda con su cantidad y avisa que se guardó', async () => {
     const dialogo = await abrirAjusteDe('Libreta')
     dialogo.onConfirm(5, 'RECOUNT', 'conteo')
-    await waitFor(() => expect(ajustar.adjustStock).toHaveBeenCalledWith('v1', 'a', expect.objectContaining({ quantity: 5 })))
+    // D2: con su llave de un solo envío (4º argumento).
+    await waitFor(() => expect(ajustar.adjustStock).toHaveBeenCalledWith('v1', 'a', expect.objectContaining({ quantity: 5 }), expect.any(String)))
     await waitFor(() => expect(avisos.toast).toHaveBeenLastCalledWith(expect.objectContaining({ title: 'products.toasts.saved' })))
+  })
+
+  // D2 (18-nov-2026, Codex r1 #7): sin respuesta no se sabe si el SERVIDOR ya sumó las piezas; volver a guardar las sumaría otra vez.
+  it.each([
+    ['sin respuesta (red)', Object.assign(new Error('Network Error'), {})],
+    ['un 5xx', rechazo(502, { message: 'Bad Gateway' })],
+  ])('%s: la ventana se queda abierta con su llave, relee la lista y avisa (Codex r3 #2)', async (_c, error) => {
+    ajustar.adjustStock.mockRejectedValue(error)
+    const dialogo = await abrirAjusteDe('Libreta')
+    const lecturas = menu.getProducts.mock.calls.length
+    dialogo.onConfirm(5, 'RECOUNT')
+    await waitFor(() => expect(avisos.toast).toHaveBeenCalled())
+    expect(avisos.toast).toHaveBeenLastCalledWith(
+      expect.objectContaining({ title: 'products.toasts.adjustStockEnDudaTitle', description: 'products.toasts.adjustStockEnDuda' }),
+    )
+    await waitFor(() => expect(menu.getProducts.mock.calls.length).toBeGreaterThan(lecturas))
+    expect(ajuste.props[ajuste.props.length - 1].open).toBe(true)
+  })
+
+  // D2 (Codex r1 #7, r2 #3): cada ajuste lleva su llave; si la respuesta se pierde, volver a guardar lo MISMO lleva la MISMA llave y el
+  // SERVIDOR no lo suma dos veces.
+  it('el ajuste lleva una llave y, tras perder la respuesta, volver a guardar en la MISMA ventana lleva la misma', async () => {
+    ajustar.adjustStock.mockRejectedValueOnce(Object.assign(new Error('Network Error'), {}))
+    const dialogo = await abrirAjusteDe('Libreta')
+    dialogo.onConfirm(5, 'RECOUNT')
+    await waitFor(() => expect(ajustar.adjustStock).toHaveBeenCalledTimes(1))
+    await waitFor(() => expect(avisos.toast).toHaveBeenCalled())
+    ajuste.props[ajuste.props.length - 1].onConfirm(5, 'RECOUNT')
+    await waitFor(() => expect(ajustar.adjustStock).toHaveBeenCalledTimes(2))
+    const [primera, segunda] = ajustar.adjustStock.mock.calls.map(c => c[3])
+    expect(primera).toMatch(/^[0-9a-f-]{36}$/)
+    expect(segunda).toBe(primera)
+  })
+
+  it('dos ventanas con el mismo ajuste son dos ajustes: otra llave, aunque el primero quedara en duda (Codex r3 #2)', async () => {
+    ajustar.adjustStock.mockRejectedValueOnce(Object.assign(new Error('Network Error'), {}))
+    const user = userEvent.setup()
+    pintar()
+    await screen.findByText('Libreta')
+    const abrir = async () => {
+      await user.click(within(screen.getByText('Libreta').closest('tr')!).getByRole('button', { name: 'modifiers.actions.openMenu' }))
+      await user.click(await screen.findByRole('menuitem', { name: /products\.actions\.adjustStock/ }))
+    }
+    const ultima = () => ajuste.props[ajuste.props.length - 1]
+    await abrir()
+    await waitFor(() => expect(ultima().open).toBe(true))
+    ultima().onConfirm(5, 'RECOUNT')
+    await waitFor(() => expect(ajustar.adjustStock).toHaveBeenCalledTimes(1))
+    await waitFor(() => expect(avisos.toast).toHaveBeenCalled())
+    act(() => ultima().onOpenChange(false))
+    await waitFor(() => expect(ultima().open).toBe(false))
+    await abrir()
+    await waitFor(() => expect(ultima().open).toBe(true))
+    ultima().onConfirm(5, 'RECOUNT')
+    await waitFor(() => expect(ajustar.adjustStock).toHaveBeenCalledTimes(2))
+    const [primera, segunda] = ajustar.adjustStock.mock.calls.map(c => c[3])
+    expect(segunda).not.toBe(primera)
+  })
+
+  it('un ajuste distinto lleva otra llave', async () => {
+    const dialogo = await abrirAjusteDe('Libreta')
+    dialogo.onConfirm(5, 'RECOUNT')
+    await waitFor(() => expect(ajustar.adjustStock).toHaveBeenCalledTimes(1))
+    const otra = await abrirAjusteDe('Libreta')
+    otra.onConfirm(7, 'RECOUNT')
+    await waitFor(() => expect(ajustar.adjustStock).toHaveBeenCalledTimes(2))
+    const [primera, segunda] = ajustar.adjustStock.mock.calls.map(c => c[3])
+    expect(segunda).not.toBe(primera)
+  })
+
+  // Codex r2 #4: el botón se queda con el permiso de siempre (`menu:update`); `inventory:adjust` lo filtra la marca blanca en el
+  // DASHBOARD y no en el SERVIDOR, y cambiarlo escondía el botón a quien sí podía guardar.
+  it('sin `menu:update` la opción no aparece (como antes)', async () => {
+    acceso.negados.add('menu:update')
+    const user = userEvent.setup()
+    pintar()
+    await screen.findByText('Libreta')
+    await user.click(within(screen.getByText('Libreta').closest('tr')!).getByRole('button', { name: 'modifiers.actions.openMenu' }))
+    await screen.findByRole('menu')
+    expect(screen.queryByRole('menuitem', { name: /products\.actions\.adjustStock/ })).toBeNull()
   })
 })

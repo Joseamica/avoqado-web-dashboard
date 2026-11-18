@@ -722,13 +722,19 @@ export const productInventoryApi = {
     api.post(`/api/v1/dashboard/venues/${venueId}/inventory/products/${productId}/switch-inventory-method`, { inventoryMethod: newMethod }),
 
   // Adjust stock for QUANTITY product
-  adjustStock: (venueId: string, productId: string, data: AdjustInventoryStockDto) =>
+  // D2 (18-nov-2026): `clave` = `Idempotency-Key` de UN ajuste (`useEnvioUnico`). Un reintento tras perder la respuesta lleva la misma y el
+  // SERVIDOR devuelve la del primero: no suma dos veces. Sin clave, como siempre.
+  adjustStock: (venueId: string, productId: string, data: AdjustInventoryStockDto, clave?: string) =>
     api.post<{
       message: string
       data: { currentStock: number; minimumStock: number; reservedStock: number }
       correlationId?: string
       waste?: WasteSummary
-    }>(`/api/v1/dashboard/venues/${venueId}/inventory/products/${productId}/adjust-stock`, data),
+    }>(
+      `/api/v1/dashboard/venues/${venueId}/inventory/products/${productId}/adjust-stock`,
+      data,
+      clave ? { headers: { 'Idempotency-Key': clave } } : undefined,
+    ),
 
   // Get movements for QUANTITY product
   getMovements: (venueId: string, productId: string) =>

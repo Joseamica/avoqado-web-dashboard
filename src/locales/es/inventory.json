@@ -173,6 +173,8 @@
       "activated": "Ingrediente activada exitosamente",
       "deactivated": "Ingrediente desactivada exitosamente",
       "stockAdjusted": "Stock ajustado exitosamente",
+      "stockAdjustEnDudaTitle": "No supimos si se guardó el ajuste",
+      "stockAdjustEnDuda": "No supimos si se guardó. Toca Guardar otra vez: no se sumará dos veces. Si cierras la ventana, revisa las existencias antes de volver a ajustar.",
       "skuGenerationFailed": "No se pudo generar un SKU único. Por favor intenta de nuevo o ingrésalo manualmente."
     },
     "notFound": "No se encontraron materias primas",

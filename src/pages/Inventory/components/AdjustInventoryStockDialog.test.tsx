@@ -6,6 +6,7 @@ import es from '@/locales/es/inventory.json'
 import esCommon from '@/locales/es/common.json'
 import type { Product } from '@/types'
 import { AdjustInventoryStockDialog } from './AdjustInventoryStockDialog'
+import { olvidarPendientes } from '@/pages/Commissions/envioUnico'
 
 /**
  * «Ajustar existencias» de un PRODUCTO. Lo que fija:
@@ -116,6 +117,46 @@ describe('AdjustInventoryStockDialog', () => {
     await user.click(guardar())
     await waitFor(() => expect(adjustStock).toHaveBeenCalledTimes(1))
     expect(adjustStock.mock.calls[0][2]).toEqual({ type: 'ADJUSTMENT', quantity: 2, reason: '', reference: '' })
+  })
+
+  // D2 (Codex r2 #3): desde D2 un negocio Gratis/Pro también guarda aquí un ajuste simple; si la respuesta se pierde, volver a guardar lo
+  // MISMO lleva la MISMA llave y el SERVIDOR no lo suma dos veces.
+  it('D2: un AJUSTE lleva una llave y, tras perder la respuesta, repetir lo mismo lleva la misma', async () => {
+    olvidarPendientes()
+    adjustStock.mockReset()
+    adjustStock.mockRejectedValueOnce(Object.assign(new Error('Network Error'), {}))
+    adjustStock.mockResolvedValue({ data: { message: 'ok', data: { currentStock: 12, minimumStock: 0, reservedStock: 0 } } })
+    const user = userEvent.setup()
+    const { guardar } = renderDialog(10)
+    cantidad('2')
+    await user.click(guardar())
+    await waitFor(() => expect(adjustStock).toHaveBeenCalledTimes(1))
+    await waitFor(() => expect(guardar()).toBeEnabled())
+    await user.click(guardar())
+    await waitFor(() => expect(adjustStock).toHaveBeenCalledTimes(2))
+    const [primera, segunda] = adjustStock.mock.calls.map(c => c[3])
+    expect(primera).toMatch(UUID)
+    expect(segunda).toBe(primera)
+  })
+
+  it('D2: cerrar y volver a abrir la ventana es otro ajuste: otra llave (Codex r3 #2)', async () => {
+    olvidarPendientes()
+    adjustStock.mockReset()
+    adjustStock.mockRejectedValueOnce(Object.assign(new Error('Network Error'), {}))
+    adjustStock.mockResolvedValue({ data: { message: 'ok', data: { currentStock: 12, minimumStock: 0, reservedStock: 0 } } })
+    const user = userEvent.setup()
+    const { guardar, reabrir } = renderDialog(10)
+    cantidad('2')
+    await user.click(guardar())
+    await waitFor(() => expect(adjustStock).toHaveBeenCalledTimes(1))
+    reabrir()
+    cantidad('2')
+    await waitFor(() => expect(guardar()).toBeEnabled())
+    await user.click(guardar())
+    await waitFor(() => expect(adjustStock).toHaveBeenCalledTimes(2))
+    const [primera, segunda] = adjustStock.mock.calls.map(c => c[3])
+    expect(segunda).not.toBe(primera)
+    expect(adjustStock.mock.calls.map(c => c[1])).toEqual(['p1', 'p1'])
   })
 
   // La vista previa dice lo que hará el SERVIDOR (D4): descuenta lo que hay, el resto «sin existencia».
