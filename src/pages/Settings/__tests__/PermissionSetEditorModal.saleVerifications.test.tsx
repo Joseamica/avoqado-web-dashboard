@@ -13,13 +13,13 @@ import type { PermissionSet } from '@/services/permissionSet.service'
 const ESPERA = { timeout: 15000 }
 vi.setConfig({ testTimeout: 60000 })
 
-const h = vi.hoisted(() => ({ modules: new Set<string>(), update: vi.fn() }))
+const h = vi.hoisted(() => ({ modules: new Set<string>(), update: vi.fn(), create: vi.fn() }))
 
 const auth = { checkModuleAccess: (code: string) => h.modules.has(code) }
 vi.mock('@/context/AuthContext', () => ({ useAuth: () => auth }))
 vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: () => {} }) }))
 vi.mock('@/services/permissionSet.service', () => ({
-  default: { update: (...a: unknown[]) => h.update(...a), create: async () => ({}) },
+  default: { update: (...a: unknown[]) => h.update(...a), create: (...a: unknown[]) => h.create(...a) },
 }))
 
 import PermissionSetEditorModal from '../components/PermissionSetEditorModal'
@@ -37,11 +37,11 @@ const conjunto: PermissionSet = {
   _count: { staffVenues: 0 },
 }
 
-function renderEditor() {
+function renderEditor(permissionSet: PermissionSet | null = conjunto) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
   return render(
     <QueryClientProvider client={qc}>
-      <PermissionSetEditorModal open onClose={() => {}} permissionSet={conjunto} venueId="v-1" />
+      <PermissionSetEditorModal open onClose={() => {}} permissionSet={permissionSet} venueId="v-1" />
     </QueryClientProvider>,
   )
 }
@@ -56,6 +56,8 @@ beforeEach(() => {
   h.modules = new Set()
   h.update.mockReset()
   h.update.mockResolvedValue({ success: true, data: conjunto })
+  h.create.mockReset()
+  h.create.mockResolvedValue({ success: true, data: conjunto })
 })
 
 describe('Conjuntos de permisos — «Verificación de ventas»', () => {
@@ -73,5 +75,22 @@ describe('Conjuntos de permisos — «Verificación de ventas»', () => {
     h.modules = new Set(['SERIALIZED_INVENTORY'])
     renderEditor()
     expect(await screen.findByText('Verificación de ventas', {}, ESPERA)).toBeInTheDocument()
+  })
+})
+
+/**
+ * 🔴 F1 (founder, 17-nov): «no se cobró» lo firma SIEMPRE un gerente con su PIN. El cajero ya no trae de fábrica
+ * `payments:reconcile-uncharged`, y un conjunto NUEVO nace de la plantilla del cajero («Estándar»): si la plantilla lo
+ * conservara, cada conjunto creado desde hoy se lo volvería a dar a un cajero.
+ */
+describe('Conjuntos de permisos — plantilla del cajero (F1)', () => {
+  it('un conjunto nuevo con el nivel «Estándar» NO trae «no se cobró», y sí lo de cobrar', async () => {
+    renderEditor(null)
+    await userEvent.type(await screen.findByPlaceholderText('Ej: Líder de Barra', {}, ESPERA), 'Caja de la tarde')
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar' }))
+    await waitFor(() => expect(h.create).toHaveBeenCalled(), ESPERA)
+    const permisos: string[] = h.create.mock.calls[0][1].permissions
+    expect(permisos).not.toContain('payments:reconcile-uncharged')
+    expect(permisos).toContain('payments:create')
   })
 })
