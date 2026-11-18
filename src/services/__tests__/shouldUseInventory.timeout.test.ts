@@ -10,8 +10,8 @@ vi.mock('@/api', () => ({ default: http }))
 import { productWizardApi } from '@/services/inventory.service'
 
 describe('productWizardApi.shouldUseInventory', () => {
-  it('pide la recomendación con un tiempo límite de 10 s', async () => {
+  it('pide la recomendación con un tiempo límite de 10 s y sin el reintento automático de la red (Codex r5 #3)', async () => {
     await productWizardApi.shouldUseInventory('v1')
-    expect(http.get).toHaveBeenCalledWith('/api/v1/dashboard/venues/v1/inventory/should-use-inventory', { timeout: 10_000 })
+    expect(http.get).toHaveBeenCalledWith('/api/v1/dashboard/venues/v1/inventory/should-use-inventory', { timeout: 10_000, _retry: true })
   })
 })

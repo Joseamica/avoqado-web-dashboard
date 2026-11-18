@@ -60,6 +60,11 @@ vi.mock('@/hooks/use-tier-feature-access', () => ({
     requiredTier: 'PRO',
   }),
 }))
+const quien = vi.hoisted(() => ({ rol: 'OWNER' as string }))
+vi.mock('@/hooks/use-access', async original => {
+  const real = await original<typeof import('@/hooks/use-access')>()
+  return { ...real, useAccess: () => ({ ...real.useAccess(), role: quien.rol }) }
+})
 vi.mock('@/hooks/use-print-stations', () => ({
   usePrintStations: () => ({ data: access.stations ? [{ id: 'station1', name: 'Empaque', active: true }] : [], isLoading: false }),
 }))
@@ -206,6 +211,7 @@ const RECOMENDACION_SIN_PREMIUM = {
 // El asistente es pesado (formulario completo + combobox): con la Mac cargada rozaba los 5 s por defecto.
 describe('na1d52b5 · contar piezas al dar de alta en todos los planes', { timeout: 20_000 }, () => {
   beforeEach(() => {
+    quien.rol = 'OWNER'
     access.inventory = false // Gratis o Pro: sin INVENTORY_TRACKING
     inventory.productWizardApi.shouldUseInventory.mockResolvedValue({ data: { data: RECOMENDACION_SIN_PREMIUM } })
   })
@@ -226,7 +232,8 @@ describe('na1d52b5 · contar piezas al dar de alta en todos los planes', { timeo
   it('Gratis/Pro: la receta sigue cerrada con su etiqueta Premium', async () => {
     mount({ productType: 'FOOD_AND_BEV' })
     await waitFor(() => expect(opener('recipe')).toBeDisabled())
-    expect(screen.getAllByText('wizard.step2.premiumBadge').length).toBeGreaterThan(0)
+    // La etiqueta sale cuando el SERVIDOR contesta «sin Premium», no mientras carga (Codex r5 #4).
+    await waitFor(() => expect(screen.getAllByText('wizard.step2.premiumBadge').length).toBeGreaterThan(0))
   })
 
   it('si la recomendación falla (tras su reintento), la sección dice que no se pudo revisar (no «Cargando…» para siempre)', async () => {
@@ -263,6 +270,44 @@ describe('na1d52b5 · contar piezas al dar de alta en todos los planes', { timeo
     await waitFor(() => expect(opener('inventory')).toHaveTextContent('loading'))
     soltar({ data: { data: { hasInventoryFeature: true, recommendation: 'wizard.step2.recommendationEnabled' } } })
     await waitFor(() => expect(opener('recipe')).toBeEnabled())
+  })
+
+  it('una petición de la apertura ANTERIOR que llega después de reabrir no decide el plan (Codex r5 #2)', async () => {
+    let soltarVieja!: (v: unknown) => void
+    inventory.productWizardApi.shouldUseInventory.mockReturnValueOnce(new Promise(r => (soltarVieja = r)))
+    const asistente = mount({ productType: 'FOOD_AND_BEV' })
+    await waitFor(() => expect(inventory.productWizardApi.shouldUseInventory).toHaveBeenCalledTimes(1))
+    asistente.reopen() // el negocio bajó de plan mientras tanto: la apertura nueva pregunta de nuevo
+    await waitFor(() => expect(inventory.productWizardApi.shouldUseInventory).toHaveBeenCalledTimes(2))
+    await waitFor(() => expect(opener('recipe')).toBeDisabled())
+    soltarVieja({ data: { data: { hasInventoryFeature: true, recommendation: 'wizard.step2.recommendationEnabled' } } })
+    await new Promise(r => setTimeout(r, 150))
+    expect(opener('recipe')).toBeDisabled()
+  })
+
+  it('superadmin de verdad: la receta se abre aunque la recomendación diga «sin Premium» (SERVIDOR viejo, Codex r5 #4)', async () => {
+    quien.rol = 'SUPERADMIN'
+    mount({ productType: 'FOOD_AND_BEV' })
+    await waitFor(() => expect(opener('recipe')).toBeEnabled())
+    expect(screen.queryByText('wizard.step2.premiumBadge')).toBeNull()
+  })
+
+  it('editar un producto con receta mientras la recomendación no llega: dice «Cargando…», nunca ofrece subir a Premium (Codex r5 #4)', async () => {
+    inventory.productWizardApi.shouldUseInventory.mockReturnValue(new Promise(() => {}))
+    inventory.productWizardApi.getWizardProgress.mockResolvedValue({ data: { data: { inventoryMethod: 'RECIPE', details: {} } } })
+    inventory.recipesApi.get.mockResolvedValue({
+      data: {
+        data: {
+          portionYield: 1,
+          lines: [{ rawMaterialId: 'rm1', rawMaterial: { name: 'Café molido' }, quantity: '1', unit: 'KILOGRAM', isOptional: false }],
+        },
+      },
+    })
+    mount({ mode: 'edit' })
+    await screen.findByDisplayValue('Café en grano')
+    await screen.findByTestId('receta-esperando-plan')
+    expect(screen.queryByText('wizard.step2.recipePremiumTitle')).toBeNull()
+    expect(screen.queryByText('wizard.step2.premiumBadge')).toBeNull()
   })
 
   it('sin internet la consulta se pausa: tampoco se queda en «Cargando…» (Codex r2 #6)', async () => {

@@ -617,8 +617,9 @@ export interface CreateProductWithInventoryDto {
 
 export const productWizardApi = {
   // Check if venue should use inventory (returns recommendations)
-  // Con tiempo límite: una petición colgada no deja el asistente en «Cargando…» sin fin (na1d52b5, Codex r3 #7 y r4 #8).
-  shouldUseInventory: (venueId: string) => api.get(`/api/v1/dashboard/venues/${venueId}/inventory/should-use-inventory`, { timeout: 10_000 }),
+  // Con tiempo límite y sin el reintento automático de `api` ante un error de red (`_retry`): una petición colgada no deja el asistente
+  // en «Cargando…» sin fin, y el único reintento es el de la consulta (na1d52b5, Codex r3 #7, r4 #8 y r5 #3).
+  shouldUseInventory: (venueId: string) => api.get(`/api/v1/dashboard/venues/${venueId}/inventory/should-use-inventory`, { timeout: 10_000, _retry: true } as AxiosRequestConfig),
 
   // Step 1: Create basic product
   createProductStep1: (venueId: string, data: ProductWizardStep1Data) => api.post(`/api/v1/dashboard/venues/${venueId}/inventory/wizard/step1`, data),

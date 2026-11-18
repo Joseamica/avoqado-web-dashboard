@@ -26,6 +26,7 @@ import { useVenderEnCanales, type EnvioVenderEn } from '@/pages/Delivery/compone
 import { useImageUploader } from '@/hooks/use-image-uploader'
 import { useUnitTranslation } from '@/hooks/use-unit-translation'
 import { useTierFeatureAccess } from '@/hooks/use-tier-feature-access'
+import { useAccess } from '@/hooks/use-access'
 import {
   productWizardApi,
   rawMaterialsApi,
@@ -378,31 +379,44 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
     step1Form.setValue('imageUrl', '')
   }
 
+  // Cada apertura del asistente pregunta de nuevo con su PROPIA llave: una respuesta (o una petición en curso) de una apertura anterior
+  // no decide el plan de ésta, aunque llegue después de reabrir (Codex r4 #4 y r5 #2). Mientras tanto, «Cargando…».
+  const [apertura, setApertura] = useState(0)
+  const [estabaAbierto, setEstabaAbierto] = useState(open)
+  if (open !== estabaAbierto) {
+    setEstabaAbierto(open)
+    if (open) setApertura(n => n + 1)
+  }
   // Fetch recommendations for inventory usage
   const recomendacionesQuery = useQuery({
-    queryKey: ['inventory-recommendations', venueId],
+    queryKey: ['inventory-recommendations', venueId, apertura],
     queryFn: async () => {
       const response = await productWizardApi.shouldUseInventory(venueId)
       return response.data.data
     },
     enabled: !!venueId && open,
-    // Un reintento como máximo, con el tiempo límite de la petición: el aviso sale en ~21 s, no en un minuto (Codex r4 #8).
+    // Un reintento como máximo (la petición no se repite sola por la red, `shouldUseInventory`), con 10 s cada uno: el aviso sale en
+    // ~21 s, no en un minuto (Codex r4 #8 y r5 #3).
     gcTime: 0,
     retry: 1,
   })
-  // Sólo cuenta una respuesta que llegó con ESTA apertura del asistente: una guardada de antes de cambiar de plan o de sesión decidía
-  // mal mientras llegaba la nueva (Codex r4 #4). Mientras tanto, «Cargando…».
-  const abiertoEn = useMemo(() => (open ? Date.now() : Number.POSITIVE_INFINITY), [open])
-  const recommendations = recomendacionesQuery.dataUpdatedAt >= abiertoEn ? recomendacionesQuery.data : undefined
+  const { data: recommendations } = recomendacionesQuery
   // na1d52b5 (17-nov-2026): contar piezas al DAR DE ALTA es de todos los planes (founder, 29-sep, «B»): lo dice la opción QUANTITY de la
   // recomendación (un SERVIDOR viejo no la habilita sin Premium y todo queda como antes). Editar las piezas de un producto que ya existe
   // sigue siendo Premium: sus rutas del SERVIDOR siguen detrás del candado (Codex r1 de na1d52b5).
   const opcionPiezas = (recommendations?.options as Array<{ type?: string; enabled?: boolean }> | undefined)?.find(o => o.type === 'QUANTITY')
-  const puedeContarPiezas = !!recommendations?.hasInventoryFeature || (mode === 'create' && opcionPiezas?.enabled === true)
+  // Superadmin de verdad (sin suplantar: el rol del panel ya es el suplantado): todo abierto, como en el candado del SERVIDOR y en el
+  // panel de antes. Cubre un SERVIDOR viejo, cuya recomendación no sabía de superadmin (Codex r5 #4).
+  const { role: rolDelPanel } = useAccess()
+  const esSuperadmin = rolDelPanel === 'SUPERADMIN'
+  const puedeContarPiezas = !!recommendations?.hasInventoryFeature || esSuperadmin || (mode === 'create' && opcionPiezas?.enabled === true)
   // La receta es Premium (INVENTORY_TRACKING) y la decide SÓLO la respuesta del SERVIDOR: el mismo resolver que su candado, con exentos,
   // demo y superadmin. El cálculo del panel fallaba abierto si el plan no cargaba y en marca blanca buscaba otro código, y cerraba la
   // receta a quien sí la tenía (Codex r2 #5 y r4 #6 de na1d52b5). Sin respuesta todavía, la sección muestra «Cargando…» o el aviso.
-  const hasInventoryTracking = recommendations?.hasInventoryFeature === true
+  const hasInventoryTracking = recommendations?.hasInventoryFeature === true || esSuperadmin
+  // El aviso de «Premium» sólo cuando el SERVIDOR lo dijo; sin respuesta todavía (o si falló), la sección dice eso y no ofrece subir de
+  // plan a quien quizá ya lo tiene (Codex r5 #4: la sección se abre sola al editar un producto con inventario).
+  const recetaCerradaPorPlan = recommendations?.hasInventoryFeature === false && !esSuperadmin
 
   // Fetch raw materials for recipe ingredients
   const insumosQuery = useQuery({
@@ -1691,9 +1705,11 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
               ? t('wizard.step2.recommendationNoAccess') // sin permiso de inventario (p. ej. marca blanca sin Inventario): no es el plan
               : t('wizard.step2.recommendationError')
             : tCommon('loading')) // sin red la consulta se PAUSA (Codex r2 #6)
-        : opener === 'recipe' && !hasInventoryTracking ? t('wizard.step2.recipePremiumLocked') : undefined
+        : opener === 'recipe' && !hasInventoryTracking
+          ? recetaCerradaPorPlan ? t('wizard.step2.recipePremiumLocked') : falloDeCarga(recomendacionesQuery) ? t('wizard.step2.recommendationError') : tCommon('loading')
+          : undefined
     const tierBadge = id === 'variants' && accesoVariantes.isResolved && !accesoVariantes.hasAccess ? <VenueTierBadge tier="PRO" />
-      : copyId === 'recipe' && !hasInventoryTracking ? <Badge variant="outline">{t('wizard.step2.premiumBadge')}</Badge> : undefined
+      : copyId === 'recipe' && recetaCerradaPorPlan ? <Badge variant="outline">{t('wizard.step2.premiumBadge')}</Badge> : undefined
     return <div key={opener} data-tour={id === 'inventory' && opener === preferredInventory ? 'product-wizard-track-inventory' : undefined} className="min-w-0">
       <ProductOptionalSection id={isOpen ? id : opener} title={t(`wizard.optional.${copyId}.title`)} description={t(`wizard.optional.${copyId}.description`)}
         icon={icons[id]} open={isOpen} onOpen={() => openOptional(opener)} disabledReason={disabledReason} tierBadge={tierBadge}
@@ -2122,7 +2138,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                                 htmlFor="recipe-based-left"
                                 data-tour="product-wizard-method-recipe"
                                 aria-disabled={!hasInventoryTracking}
-                                title={!hasInventoryTracking ? t('wizard.step2.recipePremiumLocked') : undefined}
+                                title={recetaCerradaPorPlan ? t('wizard.step2.recipePremiumLocked') : undefined}
                                 className={cn(
                                   'flex items-center gap-3 p-4 rounded-lg border transition-colors',
                                   !hasInventoryTracking ? 'cursor-not-allowed opacity-60 border-input' : 'cursor-pointer',
@@ -2138,7 +2154,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center gap-1.5">
                                     <p className="text-sm font-medium">{t('wizard.step2.recipeBased')}</p>
-                                    {!hasInventoryTracking && (
+                                    {recetaCerradaPorPlan && (
                                       <Badge
                                         variant="outline"
                                         className="h-4 shrink-0 gap-0.5 border-amber-400/40 px-1.5 text-[10px] text-amber-500"
@@ -2227,7 +2243,12 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                             {/* Grandfathered-edit fallback: the product is already RECIPE-based but this
                               venue lost INVENTORY_TRACKING (e.g. downgraded to Free). Don't hard-crash
                               and don't expose the editable recipe form — show a subtle Premium upsell hint. */}
-                            {step2Form.watch('inventoryMethod') === 'RECIPE' && !hasInventoryTracking && (
+                            {step2Form.watch('inventoryMethod') === 'RECIPE' && !hasInventoryTracking && !recetaCerradaPorPlan && (
+                              <p className="pt-4 text-xs text-muted-foreground" data-testid="receta-esperando-plan">
+                                {falloDeCarga(recomendacionesQuery) ? t('wizard.step2.recommendationError') : tCommon('loading')}
+                              </p>
+                            )}
+                            {step2Form.watch('inventoryMethod') === 'RECIPE' && recetaCerradaPorPlan && (
                               <div className="space-y-3 pt-4 border-t border-border/50">
                                 <div className="flex items-start gap-3 rounded-lg border border-amber-400/40 bg-amber-400/10 p-4">
                                   <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-amber-400/15">
