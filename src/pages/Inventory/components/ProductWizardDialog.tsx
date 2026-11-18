@@ -382,7 +382,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
   }
 
   // Fetch recommendations for inventory usage
-  const { data: recommendations } = useQuery({
+  const recomendacionesQuery = useQuery({
     queryKey: ['inventory-recommendations', venueId],
     queryFn: async () => {
       const response = await productWizardApi.shouldUseInventory(venueId)
@@ -390,6 +390,12 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
     },
     enabled: !!venueId && open,
   })
+  const { data: recommendations } = recomendacionesQuery
+  // na1d52b5 (17-nov-2026): contar piezas al DAR DE ALTA es de todos los planes (founder, 29-sep, «B»): lo dice la opción QUANTITY de la
+  // recomendación (un SERVIDOR viejo no la habilita sin Premium y todo queda como antes). Editar las piezas de un producto que ya existe
+  // sigue siendo Premium: sus rutas del SERVIDOR siguen detrás del candado (Codex r1 de na1d52b5).
+  const opcionPiezas = (recommendations?.options as Array<{ type?: string; enabled?: boolean }> | undefined)?.find(o => o.type === 'QUANTITY')
+  const puedeContarPiezas = !!recommendations?.hasInventoryFeature || (mode === 'create' && opcionPiezas?.enabled === true)
 
   // Fetch raw materials for recipe ingredients
   const insumosQuery = useQuery({
@@ -1581,7 +1587,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
   const openOptional = (opener: OptionalOpener) => {
     const id = opener === 'recipe' ? 'inventory' : opener
     if (id === 'inventory') {
-      if (!recommendations?.hasInventoryFeature || (opener === 'recipe' && !hasInventoryTracking)) return
+      if (!puedeContarPiezas || (opener === 'recipe' && !hasInventoryTracking)) return
       const method = opener === 'recipe' ? 'RECIPE' : 'QUANTITY'
       step2Form.setValue('useInventory', true)
       step2Form.setValue('inventoryMethod', method)
@@ -1669,7 +1675,11 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
       ? step2Form.watch('inventoryMethod') === 'RECIPE' ? 'recipe' : 'inventory'
       : opener
     const disabledReason = id === 'variants' && !puedeVariantes ? (accesoVariantes.isResolved ? tv('alta.casillaBloqueada') : tCommon('loading'))
-      : id === 'inventory' && !recommendations?.hasInventoryFeature ? (recommendations ? t(recommendations.recommendation || 'wizard.step2.useInventoryDesc') : tCommon('loading'))
+      : id === 'inventory' && !puedeContarPiezas ? (
+        // Nunca «Cargando…» para siempre: si la consulta falló, se dice (na1d52b5). Al editar sin Premium, por qué no se ofrece.
+        recommendations
+          ? mode === 'edit' && !recommendations.hasInventoryFeature ? t('wizard.step2.editQuantityPremium') : t(recommendations.recommendation || 'wizard.step2.useInventoryDesc')
+          : recomendacionesQuery.isError ? t('wizard.step2.recommendationError') : tCommon('loading'))
         : opener === 'recipe' && !hasInventoryTracking ? t('wizard.step2.recipePremiumLocked') : undefined
     const tierBadge = id === 'variants' && accesoVariantes.isResolved && !accesoVariantes.hasAccess ? <VenueTierBadge tier="PRO" />
       : copyId === 'recipe' && !hasInventoryTracking ? <Badge variant="outline">{t('wizard.step2.premiumBadge')}</Badge> : undefined
@@ -2051,12 +2061,14 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                         <div
                           className={cn(
                             'text-xs p-2 rounded-lg mb-4',
-                            recommendations.hasInventoryFeature
+                            puedeContarPiezas
                               ? 'bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300'
                               : 'bg-orange-50 dark:bg-orange-950/30 text-orange-700 dark:text-orange-300',
                           )}
                         >
-                          <strong>{t('wizard.step2.recommendation')}:</strong> {t(recommendations.recommendation)}
+                          <strong>{t('wizard.step2.recommendation')}:</strong>{' '}
+                          {/* Sin Premium pero contando piezas, el texto del SERVIDOR («no está habilitada») ya no es verdad (na1d52b5). */}
+                          {recommendations.hasInventoryFeature || !puedeContarPiezas ? t(recommendations.recommendation) : t('wizard.step2.recommendationQuantityOnly')}
                         </div>
                       )}
 

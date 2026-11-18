@@ -82,6 +82,7 @@ import { filasConFamilias, rangoDePrecio, type FilaProducto } from '@/pages/Menu
 import { esAgrupable, sugerirDesdeNombres, type EstadoAgrupar } from '@/features/product-variants/groupExisting'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useAccess } from '@/hooks/use-access'
+import { useTierFeatureAccess } from '@/hooks/use-tier-feature-access'
 import { textoDelServidor } from '@/utils/apiError'
 
 // 🔴 `flexRender` pinta cada `cell` como componente: si `columns` cambia, React remonta TODAS las celdas y el foco del teclado cae al
@@ -177,6 +178,10 @@ export default function Products() {
   const [isInventoryModalOpen, setIsInventoryModalOpen] = useState(false)
   const [adjustStockDialogOpen, setAdjustStockDialogOpen] = useState(false)
   const [productToAdjust, setProductToAdjust] = useState<Product | null>(null)
+  // na1d52b5 (17-nov-2026): un producto puede contar piezas en Gratis/Pro (se da de alta así), pero «Ajustar existencias» del panel llama a
+  // una ruta Premium (INVENTORY_TRACKING). Sin Premium se ve con su candado y no se ofrece algo que terminaría en error (Codex r1 #7).
+  const accesoInventario = useTierFeatureAccess('INVENTORY_TRACKING')
+  const ajusteConCandado = accesoInventario.isResolved && !accesoInventario.hasAccess
   const [showLowStockOnly, setShowLowStockOnly] = useState(false)
   const [typeSelectorOpen, setTypeSelectorOpen] = useState(false)
   const [selectedProductType, setSelectedProductType] = useState<ProductType | null>(null)
@@ -988,8 +993,10 @@ export default function Products() {
               {product.trackInventory && product.inventoryMethod === 'QUANTITY' && (
                 <PermissionGate permission="menu:update">
                   <DropdownMenuItem
+                    disabled={ajusteConCandado}
                     onClick={e => {
                       e.stopPropagation()
+                      if (ajusteConCandado) return
                       setProductToAdjust(product)
                       setAdjustStockDialogOpen(true)
                     }}
@@ -997,6 +1004,7 @@ export default function Products() {
                   >
                     <Package2 className="mr-2 h-4 w-4" />
                     {t('products.actions.adjustStock')}
+                    {ajusteConCandado && <span className="ml-2 text-xs text-muted-foreground">{t('products.actions.adjustStockPremium')}</span>}
                   </DropdownMenuItem>
                 </PermissionGate>
               )}
@@ -1034,7 +1042,7 @@ export default function Products() {
         )
       },
     },
-  ], [hasChatbot, t, tCommon, tV, imageErrors, cambiarActivo, fullBasePath, abrirProducto])
+  ], [hasChatbot, t, tCommon, tV, imageErrors, cambiarActivo, fullBasePath, abrirProducto, ajusteConCandado])
 
   const variantesDesplegadas = useCallback(
     (fila: FilaProducto) => {

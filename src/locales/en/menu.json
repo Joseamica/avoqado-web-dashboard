@@ -489,6 +489,7 @@
     },
     "actions": {
       "adjustStock": "Adjust Stock",
+      "adjustStockPremium": "Premium plan",
       "adjustStockDialog": {
         "title": "Adjust Stock - {{productName}}",
         "currentStock": "Current Stock",
