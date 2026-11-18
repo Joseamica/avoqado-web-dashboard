@@ -513,7 +513,9 @@
       "saved": "Los cambios se han guardado correctamente.",
       "statusError": "No se pudo cambiar el estado del producto.",
       "adjustStockPremiumTitle": "Ajustar existencias es parte del plan Premium",
-      "adjustStockPremium": "No se cambió nada: las piezas siguen como estaban."
+      "adjustStockPremium": "No se cambió nada: las piezas siguen como estaban.",
+      "adjustStockEnDudaTitle": "No supimos si se guardó el ajuste",
+      "adjustStockEnDuda": "No supimos si se guardó. Toca Guardar otra vez: no se sumará dos veces. Si cierras la ventana, revisa las existencias antes de volver a ajustar."
     },
     "lowStock": {
       "alert": "{{count}} producto tiene stock bajo",

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
@@ -20,6 +20,7 @@ import { useUnitTranslation } from '@/hooks/use-unit-translation'
 import { useRecentMovements } from '@/hooks/useRecentMovements'
 import { RecentMovementsSection } from '@/components/inventory/RecentMovementsSection'
 import { WasteReasonSelect } from './WasteReasonSelect'
+import { quedoEnDuda, useEnvioUnico } from '@/pages/Commissions/envioUnico'
 import { useWasteSubmission } from './useWasteSubmission'
 
 interface AdjustInventoryStockDialogProps {
@@ -52,6 +53,7 @@ export function AdjustInventoryStockDialog({ open, onOpenChange, product }: Adju
     movements,
     isLoading: isLoadingMovements,
     hasRecentMovements,
+    isSuccess: historialLeido,
   } = useRecentMovements({
     venueId,
     productId: product?.id ?? null,
@@ -87,18 +89,29 @@ export function AdjustInventoryStockDialog({ open, onOpenChange, product }: Adju
 
   useEffect(() => {
     if (open) {
+      aperturaDelAjuste.current = crypto.randomUUID()
       reset(EMPTY_FORM)
       setShowLargeAdjustmentConfirm(false)
       restart()
     }
   }, [open, reset, restart])
 
-  // Todo lo que NO es merma sigue exactamente como antes.
+  // Todo lo que NO es merma sigue como antes, con una llave por ajuste (D2, Codex r2 #3): desde D2 un negocio Gratis/Pro también puede
+  // guardar aquí un ajuste simple, y si la respuesta se pierde, volver a guardar lo MISMO lleva la misma llave y no se suma dos veces.
+  const { enviar: enviarAjuste } = useEnvioUnico()
+  // D2 (Codex r3 #2 y #5): la llave es de ESTA ventana abierta y de lo que se guarda, y el producto viaja con el envío: un guardado que
+  // quedó en pausa sin red no puede caer en el producto que se abrió después.
+  const aperturaDelAjuste = useRef('')
   const adjustStockMutation = useMutation({
-    mutationFn: (data: AdjustInventoryStockDto) => productInventoryApi.adjustStock(venueId, product!.id, data),
-    onSuccess: () => {
+    mutationFn: ({ data, productId, apertura }: { data: AdjustInventoryStockDto; productId: string; apertura: string }) =>
+      enviarAjuste(`ajuste:${apertura}:${venueId}:${productId}:${JSON.stringify(data)}`, paso =>
+        paso('ajuste', clave => productInventoryApi.adjustStock(venueId, productId, data, clave)),
+      ),
+    onSuccess: (resultado, { productId }) => {
+      // Un segundo envío mientras el primero sigue en vuelo no hace nada (`useEnvioUnico`): no es un «guardado».
+      if (resultado === undefined) return
       queryClient.invalidateQueries({ queryKey: ['products', venueId] })
-      queryClient.invalidateQueries({ queryKey: ['productInventoryMovements', venueId, product?.id] })
+      queryClient.invalidateQueries({ queryKey: ['productInventoryMovements', venueId, productId] })
       toast({
         title: t('rawMaterials.messages.stockAdjusted'),
         variant: 'default',
@@ -107,6 +120,12 @@ export function AdjustInventoryStockDialog({ open, onOpenChange, product }: Adju
       reset(EMPTY_FORM)
     },
     onError: (error: any) => {
+      // D2: sin respuesta (o un 5xx) no se sabe si se guardó; se releen las existencias y se avisa que repetir lo mismo no suma dos veces.
+      if (quedoEnDuda(error)) {
+        queryClient.invalidateQueries({ queryKey: ['products', venueId] })
+        toast({ title: t('rawMaterials.messages.stockAdjustEnDudaTitle'), description: t('rawMaterials.messages.stockAdjustEnDuda'), variant: 'destructive' })
+        return
+      }
       toast({
         title: 'Error',
         description: error.response?.data?.message || 'Failed to adjust stock',
@@ -132,7 +151,7 @@ export function AdjustInventoryStockDialog({ open, onOpenChange, product }: Adju
       return
     }
     const { wasteReason: _wasteReason, ...data } = values
-    adjustStockMutation.mutate(data)
+    adjustStockMutation.mutate({ data, productId: product!.id, apertura: aperturaDelAjuste.current })
   }
 
   if (!product || !product.inventory) return null
@@ -159,12 +178,15 @@ export function AdjustInventoryStockDialog({ open, onOpenChange, product }: Adju
           </DialogDescription>
         </DialogHeader>
 
-        <RecentMovementsSection
-          movements={movements}
-          isLoading={isLoadingMovements}
-          hasRecentMovements={hasRecentMovements}
-          unit={formatUnitWithQuantity(1, unitKey)}
-        />
+        {/* D2 (Codex r3 #9): el historial es Premium; sólo se pinta cargando o leído, nunca «no hay movimientos» sin haberlo leído. */}
+        {(isLoadingMovements || historialLeido) && (
+          <RecentMovementsSection
+            movements={movements}
+            isLoading={isLoadingMovements}
+            hasRecentMovements={hasRecentMovements}
+            unit={formatUnitWithQuantity(1, unitKey)}
+          />
+        )}
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="p-4 rounded-lg bg-muted border border-border">

@@ -30,7 +30,7 @@ export function AdjustStockDialog({ open, onOpenChange, product, onConfirm, isLo
   const [showLargeAdjustmentConfirm, setShowLargeAdjustmentConfirm] = useState(false)
 
   // Fetch recent movements
-  const { movements, isLoading: isLoadingMovements, hasRecentMovements } = useRecentMovements({
+  const { movements, isLoading: isLoadingMovements, hasRecentMovements, isSuccess: historialLeido } = useRecentMovements({
     venueId,
     productId: product?.id ?? null,
     enabled: open,
@@ -53,10 +53,11 @@ export function AdjustStockDialog({ open, onOpenChange, product, onConfirm, isLo
   const currentStock = Number(product.inventory?.currentStock ?? 0)
   const adjustmentNum = parseFloat(adjustment) || 0
   const calculatedNewStock = currentStock + adjustmentNum
-  const newStock = Math.max(0, calculatedNewStock)
+  const newStock = calculatedNewStock
 
-  // Detect issues
-  const wouldBeNegative = calculatedNewStock < 0
+  // Detect issues. La misma regla que el SERVIDOR (D2, Codex r1 #6): un ajuste no lleva a negativo un saldo que estaba en 0 o más,
+  // pero un saldo que una venta ya dejó en negativo sí se corrige aunque no alcance el cero (−5 + 2 = −3).
+  const wouldBeNegative = calculatedNewStock < 0 && currentStock >= 0
   const isLargeAdjustment = currentStock > 0 && Math.abs(adjustmentNum) > (currentStock * 0.5)
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -85,13 +86,15 @@ export function AdjustStockDialog({ open, onOpenChange, product, onConfirm, isLo
           </DialogDescription>
         </DialogHeader>
 
-        {/* Recent Stock Movements */}
-        <RecentMovementsSection
-          movements={movements}
-          isLoading={isLoadingMovements}
-          hasRecentMovements={hasRecentMovements}
-          unit={product.unit || 'units'}
-        />
+        {/* Recent Stock Movements — el historial es Premium (D2): sólo se pinta cargando o leído; si no, no se dice «no hay movimientos». */}
+        {(isLoadingMovements || historialLeido) && (
+          <RecentMovementsSection
+            movements={movements}
+            isLoading={isLoadingMovements}
+            hasRecentMovements={hasRecentMovements}
+            unit={product.unit || 'units'}
+          />
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">

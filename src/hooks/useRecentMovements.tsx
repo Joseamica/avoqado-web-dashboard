@@ -9,7 +9,7 @@ interface UseRecentMovementsOptions {
 }
 
 export function useRecentMovements({ venueId, productId, enabled = true, limit = 5 }: UseRecentMovementsOptions) {
-  const { data: movementsData = [], isLoading } = useQuery({
+  const { data: movementsData = [], isLoading, isError, isSuccess } = useQuery({
     queryKey: ['productInventoryMovements', venueId, productId],
     queryFn: async () => {
       if (!productId) return []
@@ -42,5 +42,9 @@ export function useRecentMovements({ venueId, productId, enabled = true, limit =
     movements: recentMovements,
     isLoading,
     hasRecentMovements,
+    // D2 (Codex r1 #8, r2 #8): sólo una lectura que SÍ llegó dice «no hay movimientos». Sin permiso, sin plan o sin red (la consulta
+    // queda en pausa: ni cargando ni con error), la lista vacía no quiere decir nada.
+    isError,
+    isSuccess,
   }
 }
