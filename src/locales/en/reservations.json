@@ -764,6 +764,7 @@
     "completeSuccess": "Reservation completed",
     "noShowSuccess": "Marked as No Show",
     "rescheduleSuccess": "Reservation rescheduled",
+    "rescheduleTimeDoesNotExist": "That time doesn't exist because of the daylight saving change; choose another",
     "waitlistAddSuccess": "Added to waitlist",
     "waitlistRemoveSuccess": "Removed from waitlist",
     "waitlistPromoteSuccess": "Customer promoted from waitlist",

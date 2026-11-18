@@ -11,7 +11,20 @@ export function horaDelNegocioAUtc(local: string, venueTimezone: string): string
   if (!local) return null
   const dt = DateTime.fromISO(local, { zone: venueTimezone })
   if (!dt.isValid) return null
+  // naa485b3: una hora que no existe (cambio de horario) Luxon la corre en silencio; nunca se manda otra hora.
+  if (horaQueNoExiste(local, venueTimezone)) return null
   return dt.toUTC().toISO()
+}
+
+/**
+ * `true` si la hora del reloj del negocio no existe porque el reloj se la salta (Tijuana, 14-mar-2027: de 02:00 brinca a
+ * 03:00). Se compara la hora de vuelta en la zona con la escrita (hasta el minuto). La que pasa dos veces (otoño) sí existe.
+ */
+export function horaQueNoExiste(local: string, venueTimezone: string): boolean {
+  if (!local) return false
+  const dt = DateTime.fromISO(local, { zone: venueTimezone })
+  if (!dt.isValid) return false
+  return dt.toFormat("yyyy-MM-dd'T'HH:mm") !== local.slice(0, 16)
 }
 
 /** «push» no le llega al cliente (no tiene app con avisos): no se ofrece. */

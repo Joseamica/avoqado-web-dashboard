@@ -764,6 +764,7 @@
     "completeSuccess": "Reservación completada",
     "noShowSuccess": "Marcada como No Show",
     "rescheduleSuccess": "Reservación reagendada",
+    "rescheduleTimeDoesNotExist": "Esa hora no existe por el cambio de horario; elige otra",
     "waitlistAddSuccess": "Agregado a la lista de espera",
     "waitlistRemoveSuccess": "Removido de la lista de espera",
     "waitlistPromoteSuccess": "Cliente promovido de la lista de espera",

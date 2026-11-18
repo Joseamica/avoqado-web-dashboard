@@ -31,7 +31,7 @@ import { Currency } from '@/utils/currency'
 import { useVenueDateTime } from '@/utils/datetime'
 import reservationService from '@/services/reservation.service'
 import type { RescheduleNotificationChannel } from '@/types/reservation'
-import { avisoPorOmision, CANALES_DE_AVISO, horaDelNegocioAUtc } from './reagendar'
+import { avisoPorOmision, CANALES_DE_AVISO, horaDelNegocioAUtc, horaQueNoExiste } from './reagendar'
 
 import { ReservationStatusBadge } from './components/ReservationStatusBadge'
 import { NoShowPendingBanner, UndoNoShowButton } from './components/UndoNoShow'
@@ -169,6 +169,10 @@ export default function ReservationDetail() {
     mutationFn: () => {
       // La hora del formulario es la del reloj del negocio: se manda como instante UTC (igual que
       // «Crear cita»). Sin esto el SERVIDOR la leía en UTC y la cita quedaba 6 h antes.
+      // naa485b3: una hora que no existe por el cambio de horario se dice tal cual (antes la cita se corría en silencio).
+      if (horaQueNoExiste(rescheduleStart, venueTimezone) || horaQueNoExiste(rescheduleEnd, venueTimezone)) {
+        return Promise.reject(Object.assign(new Error(t('toasts.rescheduleTimeDoesNotExist')), { mensajeLocal: true }))
+      }
       const startsAt = horaDelNegocioAUtc(rescheduleStart, venueTimezone)
       const endsAt = horaDelNegocioAUtc(rescheduleEnd, venueTimezone)
       if (!startsAt || !endsAt) return Promise.reject(new Error(t('toasts.error')))
@@ -189,6 +193,10 @@ export default function ReservationDetail() {
       // External Google Calendar busy-block conflict during reschedule —
       // same defensive shape detection as CreateReservation. See
       // avoqado-server `dashboard/reservation.dashboard.service.ts:886`.
+      if (error?.mensajeLocal) {
+        toast({ title: tCommon('error'), description: error.message, variant: 'destructive' })
+        return
+      }
       const status = error?.response?.status
       const message = error?.response?.data?.message ?? ''
       const code = error?.response?.data?.code ?? error?.response?.data?.errorCode ?? error?.response?.data?.error?.code
