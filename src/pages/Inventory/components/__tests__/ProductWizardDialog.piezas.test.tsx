@@ -8,7 +8,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { configure, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
-import { QueryClient, QueryClientProvider, onlineManager } from '@tanstack/react-query'
+import { QueryClient, QueryClientProvider, focusManager, onlineManager } from '@tanstack/react-query'
 
 configure({ asyncUtilTimeout: 5000 })
 
@@ -254,6 +254,40 @@ describe('na1d52b5 · contar piezas al dar de alta en todos los planes', { timeo
     } finally {
       onlineManager.setOnline(true)
     }
+  })
+
+  it('Gratis/Pro con el plan del panel abierto (sin cargar o en marca blanca): al abrir piezas, la receta sigue cerrada, como hoy (Codex r9 #2)', async () => {
+    access.inventory = true // el cálculo del panel falla abierto
+    mount({ productType: 'REGULAR' })
+    await fillProduct()
+    await waitFor(() => expect(opener('inventory')).toBeEnabled())
+    await userEvent.click(opener('inventory'))
+    expect(document.getElementById('recipe-based-left')).toBeDisabled()
+  })
+
+  it('una respuesta guardada no tapa el fallo: si al volver a la pestaña la consulta falla, la sección abierta lo dice (Codex r9 #3)', async () => {
+    mount({ productType: 'REGULAR' })
+    await fillProduct()
+    await waitFor(() => expect(opener('inventory')).toBeEnabled())
+    await userEvent.click(opener('inventory'))
+    inventory.productWizardApi.shouldUseInventory.mockRejectedValue({ response: { status: 503 } })
+    focusManager.setFocused(false)
+    focusManager.setFocused(true)
+    try {
+      await waitFor(() => expect(screen.getByTestId('plan-sin-respuesta')).toHaveTextContent('wizard.step2.recommendationError'), {
+        timeout: 5_000,
+      })
+    } finally {
+      focusManager.setFocused(undefined)
+    }
+  })
+
+  it('SERVIDOR anterior (403 de su candado de plan, con featureCode): dice que no está habilitado, no que falta permiso (Codex r9 #4)', async () => {
+    inventory.productWizardApi.shouldUseInventory.mockRejectedValue({
+      response: { status: 403, data: { featureCode: 'INVENTORY_TRACKING' } },
+    })
+    mount({ productType: 'REGULAR' })
+    await waitFor(() => expect(opener('inventory')).toHaveTextContent('wizard.step2.recommendationDisabled'), { timeout: 5_000 })
   })
 
   it('editar un producto en Gratis/Pro: las piezas siguen siendo Premium y lo dice (no se ofrece algo que fallaría)', async () => {

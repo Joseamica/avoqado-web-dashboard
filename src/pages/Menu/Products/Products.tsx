@@ -670,7 +670,12 @@ export default function Products() {
       // na1d52b5 (17-nov-2026, tras la parada de Codex r4): ajustar las piezas de un producto que ya existe sigue siendo Premium. Lo
       // decide el SERVIDOR al confirmar, en vivo (un candado en la lista con una respuesta guardada se equivocaba al cambiar de plan o
       // de sesión), y su rechazo de plan, que viene en inglés, se dice aquí en español: no se cambió nada.
-      const rechazoDePlan = error.response?.status === 403 && error.response?.data?.featureCode === 'INVENTORY_TRACKING'
+      // Sólo el plan que NO lo incluye (`subscriptionRequired`); una prueba vencida o una suscripción suspendida traen su propio motivo y
+      // cómo recuperarlo, y se muestran como antes (Codex r9 #5).
+      const rechazoDePlan =
+        error.response?.status === 403 &&
+        error.response?.data?.featureCode === 'INVENTORY_TRACKING' &&
+        error.response?.data?.subscriptionRequired === true
       toast({
         title: rechazoDePlan ? t('products.toasts.adjustStockPremiumTitle') : tCommon('error'),
         description: rechazoDePlan ? t('products.toasts.adjustStockPremium') : error.response?.data?.message || 'Failed to adjust stock',

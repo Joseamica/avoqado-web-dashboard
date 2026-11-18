@@ -105,6 +105,7 @@ describe('Products — «Ajustar existencias» sin Premium (na1d52b5)', { timeou
         error: 'Feature not available',
         message: 'This venue does not have access to the INVENTORY_TRACKING feature.',
         featureCode: 'INVENTORY_TRACKING',
+        subscriptionRequired: true,
       }),
     )
     const dialogo = await abrirAjusteDe('Libreta')
@@ -116,6 +117,23 @@ describe('Products — «Ajustar existencias» sin Premium (na1d52b5)', { timeou
         description: 'products.toasts.adjustStockPremium',
         variant: 'destructive',
       }),
+    )
+  })
+
+  it('prueba vencida o suscripción suspendida: se muestra el motivo del SERVIDOR (cómo recuperarlo), no «es Premium» (Codex r9 #5)', async () => {
+    ajustar.adjustStock.mockRejectedValue(
+      rechazo(403, {
+        error: 'Feature trial expired',
+        message: 'Your trial for Inventario has expired. Please add a payment method to continue using this feature.',
+        featureCode: 'INVENTORY_TRACKING',
+        trialExpired: true,
+      }),
+    )
+    const dialogo = await abrirAjusteDe('Libreta')
+    dialogo.onConfirm(5, 'RECOUNT')
+    await waitFor(() => expect(avisos.toast).toHaveBeenCalled())
+    expect(avisos.toast).toHaveBeenLastCalledWith(
+      expect.objectContaining({ title: 'error', description: expect.stringContaining('trial') }),
     )
   })
 
