@@ -1,7 +1,7 @@
 // src/pages/Settings/Billing/__tests__/basicPlan.test.tsx
 // Plan Básico (Task 9): «Tu plan» enseña el Básico por su nombre, lo contrata con un clic desde Gratis, deja quedarse en Pro
 // en la prueba y no deja terminar Pro antes del último periodo con descuento.
-import { render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter } from 'react-router-dom'
@@ -213,6 +213,22 @@ describe('«Tu plan» con el Plan Básico', () => {
     expect(screen.getByText(B.endProSeats)).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: B.endPro }))
     await waitFor(() => expect(downgradeVenueToFree).toHaveBeenCalledWith('venue', [], { purpose: 'BASIC_PLAN' }))
+  })
+
+  it('doble clic en «Terminar mi Pro» manda UN solo downgrade (full-testing 17-nov: salían 2 correos y 2 códigos)', async () => {
+    vi.mocked(getDowngradePreview).mockClear()
+    vi.mocked(getVenuePlan).mockResolvedValue(plan(CLASSIC_PRO, { basicOffer: offer({ canEndProNow: true }) }) as never)
+    renderPage()
+    const boton = await screen.findByRole('button', { name: B.endPro })
+    // Dos clics en el mismo instante: los dos llegan antes de que `busy` vuelva a pintar el botón apagado.
+    act(() => {
+      fireEvent.click(boton)
+      fireEvent.click(boton)
+    })
+    await waitFor(() => expect(downgradeVenueToFree).toHaveBeenCalledTimes(1))
+    await waitFor(() => expect(toastSpy).toHaveBeenCalled())
+    expect(getDowngradePreview).toHaveBeenCalledTimes(1)
+    expect(downgradeVenueToFree).toHaveBeenCalledTimes(1)
   })
 
   it('el SERVIDOR rechaza terminar Pro (409): se enseña su mensaje', async () => {

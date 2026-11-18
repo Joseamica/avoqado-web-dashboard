@@ -316,19 +316,26 @@ describe('TarjetasDePlanes con el Plan Básico', () => {
     expect(document.querySelector('[data-plan="PRO"]')!.parentElement!.className).toContain('lg:grid-cols-4')
   })
 
-  it('tocar la tarjeta Básico avisa onElegirBasico y no elige Pro', async () => {
+  it('«Elegir Plan Básico» (su botón, como las demás tarjetas) avisa onElegirBasico y no elige Pro', async () => {
     const onElegirBasico = vi.fn()
     const { onElegir } = pinta({ planBasico: BASICO, onElegirBasico })
-    await userEvent.click(screen.getByRole('radio', { name: /Plan Básico/ }))
+    // Full-testing 17-nov: la tarjeta Básico del alta corta no tenía botón «Elegir».
+    expect(screen.queryByRole('radio', { name: /Plan Básico/ })).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Elegir Plan Básico' }))
     expect(onElegirBasico).toHaveBeenCalledTimes(1)
     expect(onElegir).not.toHaveBeenCalled()
   })
 
   it('con basicoRecomendado la tarjeta queda marcada y Pro pierde «Recomendado» y su borde fuerte', () => {
     pinta({ planBasico: BASICO, basicoRecomendado: true })
-    expect(screen.getByRole('radio', { name: /Plan Básico/ })).toHaveAttribute('aria-checked', 'true')
+    expect(document.querySelector('[data-tour="plan-card-basic"]')!.className).toContain('border-primary')
     expect(screen.queryByText('Recomendado')).not.toBeInTheDocument()
     expect(tarjeta('PRO').className).not.toContain('border-primary')
+  })
+
+  it('con el cobro bloqueado el botón del Básico también queda apagado', () => {
+    pinta({ planBasico: BASICO, bloqueado: true })
+    expect(screen.getByRole('button', { name: 'Elegir Plan Básico' })).toBeDisabled()
   })
 
   it('sin Básico siguen las 3 tarjetas en 3 columnas (regresión)', () => {

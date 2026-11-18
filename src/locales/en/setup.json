@@ -342,6 +342,7 @@
     "subtitle": "Pro and Premium: 30 days free. Cancel before it ends and you won't be charged.",
     "choosePro": "Choose Pro",
     "choosePremium": "Choose Premium",
+    "chooseBasic": "Choose {{plan}}",
     "chooseOffer": "Choose {{plan}} for {{price}}",
     "talkToSales": "Talk to sales",
     "startTrial": "Start my 30 days free",

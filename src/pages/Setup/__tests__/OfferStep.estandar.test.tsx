@@ -204,6 +204,47 @@ describe('Plan Básico: el plan guardado lo eligió', () => {
   })
 })
 
+describe('Plan Básico en el alta corta (full-testing 17-nov)', () => {
+  const BASICO = {
+    slug: 'plan-basico',
+    name: 'Plan Básico',
+    priceWithTax: '578.84',
+    priceWithoutTax: '499.00',
+    featureCodes: ['KITCHEN_DISPLAY'],
+    seatCap: null,
+    trialDays: 30,
+    publicationId: 'pub_1',
+  }
+
+  it('🔴 la tarjeta Básico lleva su botón «Elegir» como las demás, y abre su ventana', async () => {
+    getPublicBasicPlan.mockResolvedValue(BASICO)
+    pintarEstandar()
+    const user = userEvent.setup()
+    await user.click(await screen.findByRole('button', { name: 'Elegir Plan Básico' }))
+    const ventana = await screen.findByRole('dialog')
+    expect(within(ventana).getByText('Plan Básico')).toBeInTheDocument()
+  })
+
+  it('🔴 la ventana del Básico no promete un cobro que cancelar: dice el texto del Básico', async () => {
+    getPublicBasicPlan.mockResolvedValue(BASICO)
+    pintarEstandar()
+    const user = userEvent.setup()
+    await user.click(await screen.findByRole('button', { name: 'Elegir Plan Básico' }))
+    const ventana = await screen.findByRole('dialog')
+    expect(within(ventana).queryByText(/Cancela antes y no se te cobra/)).not.toBeInTheDocument()
+    expect(
+      within(ventana).getByText('30 días gratis con todo Pro, sin cobro. Después, contrata el Básico por $499 + IVA al mes'),
+    ).toBeInTheDocument()
+  })
+
+  it('regresión: la ventana de Pro sigue diciendo «Cancela antes y no se te cobra»', async () => {
+    getPublicBasicPlan.mockResolvedValue(BASICO)
+    pintarEstandar()
+    await abrir('Pro')
+    expect(within(screen.getByRole('dialog')).getByText('30 días gratis. Cancela antes y no se te cobra.')).toBeInTheDocument()
+  })
+})
+
 describe('prueba de 30 días — lo que dice la ventana', () => {
   it('título, «Hoy pagas $0.00», fecha y precio del primer cobro, y el legal de la prueba con el monto del servidor', async () => {
     pintarEstandar()

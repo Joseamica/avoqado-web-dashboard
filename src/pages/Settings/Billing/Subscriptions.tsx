@@ -271,17 +271,31 @@ export default function Subscriptions() {
     if (op.kind === 'DOWNGRADE_CLASSIC' || op.kind === 'CANCEL_CONTRACT') setCancelOpen(true)
   }
 
+  // Same lock as `review`: two clicks on «Terminar mi Pro» in the same instant sent two downgrades (2 correos, 2 códigos
+  // promocionales; full-testing 17-nov). It is held until the whole operation settles, preview included.
+  const cancelling = useRef(false)
   const confirmCancel = async (input: CancellationInput) => {
+    if (cancelling.current) return
+    cancelling.current = true
+    try {
+      await runCancel(input)
+    } finally {
+      cancelling.current = false
+    }
+  }
+  const runCancel = async (input: CancellationInput) => {
     if (origin.kind === 'CONTRACT' && origin.contractId && origin.contractRevision != null)
-      return ops.cancelContract.mutate(
-        { contractId: origin.contractId, revision: origin.contractRevision, input },
-        {
-          onSuccess: () => {
-            setCancelOpen(false)
-            reset()
+      return ops.cancelContract
+        .mutateAsync(
+          { contractId: origin.contractId, revision: origin.contractRevision, input },
+          {
+            onSuccess: () => {
+              setCancelOpen(false)
+              reset()
+            },
           },
-        },
-      )
+        )
+        .catch(() => undefined)
     const preview = await ops.preview
       .mutateAsync()
       .catch(value => void toast({ title: serverMessage(value, t('plan.downgrade.errorToast')), variant: 'destructive' }))
@@ -290,15 +304,17 @@ export default function Subscriptions() {
       setCancelOpen(false)
       return setReconcile({ preview, purpose: 'CANCEL', input })
     }
-    ops.downgrade.mutate(
-      { keep: [], input },
-      {
-        onSuccess: () => {
-          setCancelOpen(false)
-          reset()
+    await ops.downgrade
+      .mutateAsync(
+        { keep: [], input },
+        {
+          onSuccess: () => {
+            setCancelOpen(false)
+            reset()
+          },
         },
-      },
-    )
+      )
+      .catch(() => undefined)
   }
 
   const confirmKeep = (keep: string[]) => {

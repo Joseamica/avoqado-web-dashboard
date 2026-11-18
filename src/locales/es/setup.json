@@ -342,6 +342,7 @@
     "subtitle": "Pro y Premium: 30 días gratis. Cancela antes y no se te cobra.",
     "choosePro": "Elegir Pro",
     "choosePremium": "Elegir Premium",
+    "chooseBasic": "Elegir {{plan}}",
     "chooseOffer": "Elegir {{plan}} por {{price}}",
     "talkToSales": "Hablar con ventas",
     "startTrial": "Empezar mis 30 días gratis",

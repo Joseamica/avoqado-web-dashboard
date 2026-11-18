@@ -279,6 +279,7 @@
     "noResults": "No se encontraron sucursales.",
     "tier": {
       "free": "Free",
+      "basic": "Básico",
       "pro": "Pro",
       "premium": "Premium",
       "enterprise": "Enterprise"

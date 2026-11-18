@@ -11,9 +11,13 @@ const TIER_STYLES: Record<TierId, string> = {
   PREMIUM: 'border-amber-500/30 text-amber-600 dark:text-amber-400 bg-amber-500/10',
   ENTERPRISE: 'border-indigo-500/30 text-indigo-600 dark:text-indigo-400 bg-indigo-500/10',
 }
+// Plan Básico: a paid offer on top of FREE (not a tier), so it gets its own accent.
+const BASIC_STYLE = 'border-sky-500/30 text-sky-600 dark:text-sky-400 bg-sky-500/10'
 
 interface VenueTierBadgeProps {
   tier: TierId | null | undefined
+  /** Plan Básico vigente: on a FREE tier the pill says «Básico», never «Free». */
+  basic?: boolean
   /** Hide the leading tier icon (e.g. very tight rows). Defaults to showing it. */
   showIcon?: boolean
   className?: string
@@ -24,9 +28,10 @@ interface VenueTierBadgeProps {
  * Renders nothing until a tier is known. Pair with {@link useVenuePlanTier} to resolve the tier
  * for any venue id.
  */
-export function VenueTierBadge({ tier, showIcon = true, className }: VenueTierBadgeProps) {
+export function VenueTierBadge({ tier, basic = false, showIcon = true, className }: VenueTierBadgeProps) {
   const { t } = useTranslation()
   if (!tier) return null
+  const isBasic = basic && tier === 'FREE'
 
   const Icon = getTierDef(tier).icon
 
@@ -34,12 +39,12 @@ export function VenueTierBadge({ tier, showIcon = true, className }: VenueTierBa
     <span
       className={cn(
         'inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-medium leading-none',
-        TIER_STYLES[tier],
+        isBasic ? BASIC_STYLE : TIER_STYLES[tier],
         className,
       )}
     >
       {showIcon && <Icon className="size-2.5 shrink-0" />}
-      {t(`venuesSwitcher.tier.${tier.toLowerCase()}`)}
+      {t(isBasic ? 'venuesSwitcher.tier.basic' : `venuesSwitcher.tier.${tier.toLowerCase()}`)}
     </span>
   )
 }
@@ -54,6 +59,6 @@ interface VenueTierBadgeByIdProps {
 
 /** Self-fetching {@link VenueTierBadge} for a venue id — resolves the tier via {@link useVenuePlanTier}. */
 export function VenueTierBadgeById({ venueId, enabled = true, showIcon = true, className }: VenueTierBadgeByIdProps) {
-  const { tier } = useVenuePlanTier(venueId, enabled)
-  return <VenueTierBadge tier={tier} showIcon={showIcon} className={className} />
+  const { tier, basic } = useVenuePlanTier(venueId, enabled)
+  return <VenueTierBadge tier={tier} basic={basic} showIcon={showIcon} className={className} />
 }

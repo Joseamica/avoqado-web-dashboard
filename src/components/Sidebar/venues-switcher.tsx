@@ -129,7 +129,7 @@ export function VenuesSwitcher({ venues, defaultVenue }: VenuesSwitcherProps) {
   const currentVenue = (venueFromSlug || activeVenue || venueFromStorage || defaultVenue) as Venue | SessionVenue
 
   // Subscription tier of the active venue — shown as a badge on the collapsed trigger card.
-  const { tier: currentVenueTier } = useVenuePlanTier(currentVenue?.id)
+  const { tier: currentVenueTier, basic: currentVenueBasic } = useVenuePlanTier(currentVenue?.id)
 
   useEffect(() => {
     if (!isAuthenticated) return
@@ -210,7 +210,7 @@ export function VenuesSwitcher({ venues, defaultVenue }: VenuesSwitcherProps) {
                       <span className="font-semibold truncate">{currentVenue?.name || t('venuesSwitcher.selectVenue')}</span>
                       <span className="text-xs truncate text-muted-foreground">{currentVenue?.city || ''}</span>
                     </div>
-                    <VenueTierBadge tier={currentVenueTier} className="ml-auto shrink-0" />
+                    <VenueTierBadge tier={currentVenueTier} basic={currentVenueBasic} className="ml-auto shrink-0" />
                     <ChevronsUpDown className="size-4 shrink-0 text-muted-foreground" />
                   </>
                 )}

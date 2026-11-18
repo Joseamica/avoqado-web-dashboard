@@ -240,6 +240,8 @@ export interface VenuePlanTierInfo {
   accessObservedAt?: string
   commercialPlanTier?: 'PRO' | 'PREMIUM' | null
   grantedFeatureCodes?: string[]
+  /** Plan Básico: el Básico del negocio da acceso hoy (no es un tier). Sólo llega en `true`; un servidor anterior no lo manda. */
+  basicPlanActive?: boolean
 }
 
 /** Get the venue's plan-tier gating signal (readable by every role). */
@@ -255,6 +257,7 @@ const accessInfo = z
       .array(z.string().regex(/^[A-Z][A-Z0-9_]{0,63}$/))
       .max(100)
       .optional(),
+    basicPlanActive: z.boolean().optional(),
   })
   .refine(value => value.accessSchemaVersion !== 1 || (value.accessObservedAt !== undefined && value.grantedFeatureCodes !== undefined))
 // Required fields are runtime-validated; this project's non-strict TS mode makes Zod infer optional keys.

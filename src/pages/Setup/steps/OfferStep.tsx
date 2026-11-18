@@ -696,7 +696,11 @@ export function OfferStep({
       }
     : {
         titulo: esBasico && planBasico ? planBasico.name : t('plans.trialTitle', { plan: planElegido ? NOMBRE_DEL_PLAN[planElegido] : '' }),
-        subtitulo: t('plans.trialSubtitle'),
+        // El Básico no tiene cobro que cancelar: su texto aprobado, no «Cancela antes y no se te cobra».
+        subtitulo:
+          esBasico && planBasico
+            ? t('billing:plan.basic.trialCopy', { price: fmtPesos(planBasico.priceWithoutTax) })
+            : t('plans.trialSubtitle'),
         // Prueba de 30 días: hoy no se cobra nada.
         hoyPagasCents: 0,
         primerCobro:

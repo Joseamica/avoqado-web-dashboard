@@ -7,7 +7,7 @@ import userEvent from '@testing-library/user-event'
 import { useEffect } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const stripe = vi.hoisted(() => ({ listo: true, fallaCarga: false, confirmSetup: vi.fn() }))
+const stripe = vi.hoisted(() => ({ listo: true, fallaCarga: false, cargado: true, confirmSetup: vi.fn() }))
 
 vi.mock('@stripe/react-stripe-js', () => ({
   PaymentElement: ({ onReady, onLoadError }: { onReady?: () => void; onLoadError?: (e: unknown) => void }) => {
@@ -21,8 +21,9 @@ vi.mock('@stripe/react-stripe-js', () => ({
     }, [onReady])
     return <div data-testid="payment-element" />
   },
-  useStripe: () => ({ confirmSetup: (...a: unknown[]) => stripe.confirmSetup(...a) }),
-  useElements: () => ({}),
+  // Como el REAL: `null` mientras la librería de Stripe no termina de cargar.
+  useStripe: () => (stripe.cargado ? { confirmSetup: (...a: unknown[]) => stripe.confirmSetup(...a) } : null),
+  useElements: () => (stripe.cargado ? {} : null),
 }))
 const tEstable = (k: string, o?: { defaultValue?: string }) => o?.defaultValue ?? k
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: tEstable }) }))
@@ -32,6 +33,7 @@ import { PlanCardForm } from '../steps/PlanCardForm'
 beforeEach(() => {
   stripe.listo = true
   stripe.fallaCarga = false
+  stripe.cargado = true
   stripe.confirmSetup.mockReset()
 })
 
@@ -51,6 +53,12 @@ describe('PlanCardForm', () => {
     expect(boton).toHaveAttribute('aria-busy', 'false')
     expect(screen.getByRole('alert')).toHaveTextContent('No pudimos preparar el pago con tarjeta')
     expect(onLoadError).toHaveBeenCalledTimes(1)
+  })
+
+  it('🔴 sin la librería de Stripe cargada el botón no se activa (full-testing 17-nov: un toque ahí no hacía nada)', () => {
+    stripe.cargado = false
+    render(<PlanCardForm payNowLabel="Pagar" onConfirmed={vi.fn()} />)
+    expect(screen.getByRole('button', { name: /Pagar/ })).toBeDisabled()
   })
 
   it('con Stripe listo, el botón de pagar funciona', () => {

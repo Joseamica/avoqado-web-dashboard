@@ -160,14 +160,20 @@ export function useVenueTier(): {
 export function useVenuePlanTier(
   venueId: string | undefined,
   enabled = true,
-): { tier: TierId | null; commercialTier: TierId | null; isLoading: boolean } {
+): { tier: TierId | null; commercialTier: TierId | null; basic: boolean; isLoading: boolean } {
   const { data, isLoading } = useQuery({
     queryKey: planTierQueryKey(venueId),
     queryFn: () => getVenuePlanTierInfo(venueId!),
     enabled: enabled && !!venueId,
     staleTime: 5 * 60 * 1000,
   })
-  return { tier: data ? data.tier : null, commercialTier: data?.commercialPlanTier ?? null, isLoading }
+  // Plan Básico: no es un tier (el tier sigue en FREE); el chip lo dice con su nombre.
+  return {
+    tier: data ? data.tier : null,
+    commercialTier: data?.commercialPlanTier ?? null,
+    basic: data?.basicPlanActive === true,
+    isLoading,
+  }
 }
 
 /** Single-feature convenience wrapper around {@link useVenueTier}. */

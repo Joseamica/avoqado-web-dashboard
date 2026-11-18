@@ -127,6 +127,8 @@ export function TarjetasDePlanes({
               selected={basicoRecomendado}
               disabled={bloqueado}
               onSelect={() => onElegirBasico?.()}
+              // Como las demás tarjetas del alta corta: se elige con su botón «Elegir».
+              actionLabel={t('plans.chooseBasic', { plan: planBasico.name })}
             />
           ) : null
 

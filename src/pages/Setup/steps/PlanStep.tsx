@@ -395,11 +395,17 @@ export function PlanStep({
           </div>
           <div>
             <p className="text-3xl font-semibold tabular-nums">{precioVisible}</p>
+            {/* El Básico no cobra nada al terminar la prueba (se contrata ese día): nada de «Se cobra cada mes». */}
             <p className="mt-1 text-sm text-muted-foreground">
               {notaIva} ·{' '}
-              {interval === 'annual'
-                ? t('plan.billedAnnually', { defaultValue: 'Se cobra una vez al año' })
-                : t('plan.billedMonthly', { defaultValue: 'Se cobra cada mes' })}
+              {basico
+                ? tBilling('plan.basic.trialCopy', {
+                    price: precioBasico,
+                    defaultValue: '30 días gratis con todo Pro, sin cobro. Después, contrata el Básico por {{price}} + IVA al mes',
+                  })
+                : interval === 'annual'
+                  ? t('plan.billedAnnually', { defaultValue: 'Se cobra una vez al año' })
+                  : t('plan.billedMonthly', { defaultValue: 'Se cobra cada mes' })}
             </p>
           </div>
           {!basico && (selectedTier === 'PRO' || selectedTier === 'PREMIUM') && (

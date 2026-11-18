@@ -121,7 +121,8 @@ export function PlanCardForm({
   // 🔴 Pagar sólo con el formulario de Stripe LISTO (`onReady`): tocar antes confirmaba contra un iframe sin montar y
   // el clic se perdía en silencio (full-testing 26-sep).
   // Si Stripe no cargó, el botón queda apagado pero NO girando: no hay nada en camino.
-  const esperando = submitting || !!busy || (!listo && !falloCarga)
+  // Y sin la librería de Stripe (`useStripe()` = null) `confirm` no hace nada: el botón no se activa (full-testing 17-nov).
+  const esperando = submitting || !!busy || ((!listo || !stripe || !elements) && !falloCarga)
   const bloqueado = esperando || falloCarga
   useEffect(() => {
     onBusyChange?.(submitting)

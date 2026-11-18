@@ -101,6 +101,28 @@ describe('PlanStep · Plan Básico', () => {
     })
   })
 
+  it('🔴 el resumen con el Básico no promete un cobro: sin «Se cobra cada mes», con el texto del Básico (full-testing 17-nov)', async () => {
+    render(<PlanStep data={{}} onNext={vi.fn()} venueId="v1" organizationId="o1" />)
+    const user = userEvent.setup()
+    await user.click(await screen.findByRole('radio', { name: /Plan Básico/ }))
+    await user.click(screen.getByRole('button', { name: /^Continuar$/ }))
+    await waitFor(() => expect(screen.getByTestId('payment-element')).toBeInTheDocument())
+    expect(screen.queryByText(/Se cobra cada mes/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/Cancela antes/)).not.toBeInTheDocument()
+    expect(
+      screen.getByText(/30 días gratis con todo Pro, sin cobro\. Después, contrata el Básico por \$499 \+ IVA al mes/),
+    ).toBeInTheDocument()
+  })
+
+  it('regresión: con Pro el resumen sigue diciendo «Se cobra cada mes»', async () => {
+    render(<PlanStep data={{}} onNext={vi.fn()} venueId="v1" organizationId="o1" />)
+    const user = userEvent.setup()
+    await user.click(await screen.findByRole('button', { name: 'elegir-pro' }))
+    await user.click(screen.getByRole('button', { name: /^Continuar$/ }))
+    await waitFor(() => expect(screen.getByTestId('payment-element')).toBeInTheDocument())
+    expect(screen.getByText(/Se cobra cada mes/)).toBeInTheDocument()
+  })
+
   it('volver a Pro quita el Básico: no viaja basicPlan', async () => {
     const onNext = vi.fn()
     render(<PlanStep data={{}} onNext={onNext} venueId="v1" organizationId="o1" />)

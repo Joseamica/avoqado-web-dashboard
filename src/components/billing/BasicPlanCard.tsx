@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import { Check, Sparkles } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { fmtPesos } from '@/utils/pesos'
 import type { PublicBasicPlan } from '@/services/hybridBilling.service'
@@ -7,39 +8,49 @@ import type { PublicBasicPlan } from '@/services/hybridBilling.service'
 /**
  * La tarjeta del Plan Básico en «Elige tu plan», a la izquierda de Pro. Mismo molde que las tarjetas de
  * `PlanPicker`: toda la tarjeta es el radio. El precio es SIEMPRE sin IVA, con «+ IVA» en chico (regla del 5-nov).
+ * Con `actionLabel` (alta corta) es como las tarjetas de al lado: se elige con su botón, y la tarjeta ya no es radio.
  */
 export function BasicPlanCard({
   plan,
   selected,
   disabled,
   onSelect,
+  actionLabel,
 }: {
   plan: PublicBasicPlan
   selected: boolean
   disabled?: boolean
   onSelect: () => void
+  /** Texto del botón «Elegir…» (alta corta). Sin él, toda la tarjeta es el radio. */
+  actionLabel?: string
 }) {
   const { t } = useTranslation('billing')
   const price = fmtPesos(plan.priceWithoutTax)
+  const comoRadio = !actionLabel
   return (
     <div
       data-tour="plan-card-basic"
-      role="radio"
-      aria-checked={selected}
-      aria-disabled={disabled || undefined}
-      tabIndex={0}
-      onClick={() => !disabled && onSelect()}
-      onKeyDown={e => {
-        if (e.target !== e.currentTarget) return
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault()
-          if (!disabled) onSelect()
-        }
-      }}
+      {...(comoRadio
+        ? {
+            role: 'radio',
+            'aria-checked': selected,
+            'aria-disabled': disabled || undefined,
+            tabIndex: 0,
+            onClick: () => !disabled && onSelect(),
+            onKeyDown: (e: React.KeyboardEvent<HTMLDivElement>) => {
+              if (e.target !== e.currentTarget) return
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                if (!disabled) onSelect()
+              }
+            },
+          }
+        : {})}
       className={cn(
-        'relative flex cursor-pointer flex-col gap-4 rounded-2xl border border-input bg-card p-5 transition hover:-translate-y-0.5',
+        'relative flex flex-col gap-4 rounded-2xl border border-input bg-card p-5',
+        comoRadio && 'cursor-pointer transition hover:-translate-y-0.5',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-        !selected && 'hover:border-foreground/30',
+        comoRadio && !selected && 'hover:border-foreground/30',
         selected && 'border-primary ring-2 ring-primary/30 hover:translate-y-0',
       )}
     >
@@ -74,6 +85,17 @@ export function BasicPlanCard({
           <span>{plan.seatCap == null ? t('plan.basic.seatsUnlimited') : t('plan.basic.seatsCapped', { count: plan.seatCap })}</span>
         </li>
       </ul>
+      {actionLabel && (
+        <Button
+          data-tour="plan-card-basic-choose"
+          className="mt-auto"
+          variant={selected ? 'default' : 'outline'}
+          disabled={disabled}
+          onClick={onSelect}
+        >
+          {actionLabel}
+        </Button>
+      )}
     </div>
   )
 }
