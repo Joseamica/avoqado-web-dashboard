@@ -1,7 +1,8 @@
 /**
  * Tarjeta `hz:nube0000:na1d52b5` (17-nov-2026): un producto puede contar piezas en Gratis/Pro (se da de alta así), pero «Ajustar
- * existencias» de la lista llama a una ruta Premium (INVENTORY_TRACKING). Sin Premium se ve con su candado y no abre nada que terminaría
- * en error (Codex r1 #7). Lo decide la respuesta del SERVIDOR (`should-use-inventory`), no el cálculo del panel (Codex r2 #1).
+ * existencias» de un producto que ya existe sigue siendo Premium (INVENTORY_TRACKING). Lo decide el SERVIDOR al confirmar, en vivo: un
+ * candado en la lista con una respuesta guardada se equivocaba al cambiar de plan o de sesión (Codex r4 #4 y #5). Su rechazo de plan
+ * viene en inglés y aquí se dice en español: no se cambió nada.
  * Arnés de `Products.filasPorId.test.tsx`; `t` estable; vitest con mockReset.
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -19,8 +20,9 @@ const estables = vi.hoisted(() => {
 
 vi.mock('@/services/menu.service', async importOriginal => ({ ...(await importOriginal<object>()), ...menu }))
 vi.mock('@/hooks/use-current-venue', () => ({ useCurrentVenue: () => ({ venueId: 'v1', fullBasePath: '/venues/mi-tienda' }) }))
-vi.mock('@/hooks/use-access', () => ({ useAccess: () => ({ can: () => true, canAny: () => true, canAll: () => true, role: plan.rol }) }))
-vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: () => {} }) }))
+vi.mock('@/hooks/use-access', () => ({ useAccess: () => ({ can: () => true, canAny: () => true, canAll: () => true }) }))
+const avisos = vi.hoisted(() => ({ toast: vi.fn() }))
+vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: avisos.toast }) }))
 vi.mock('@/hooks/useDebounce', () => ({ useDebounce: (v: unknown) => v }))
 vi.mock('@/hooks/use-menu-socket-events', () => ({ useMenuSocketEvents: () => {} }))
 vi.mock('@/hooks/useProductCreationTour', () => ({ useProductCreationTour: () => ({ start: estables.start }) }))
@@ -44,14 +46,9 @@ vi.mock('@/pages/Inventory/components/ProductWizardDialog', () => ({ ProductWiza
 vi.mock('../components/ProductGroupDialog', () => ({ ProductGroupDialog: () => null }))
 vi.mock('../components/SuggestionsBanner', () => ({ SuggestionsBanner: () => null }))
 vi.mock('react-i18next', () => ({ useTranslation: () => estables.i18n }))
-const plan = vi.hoisted(() => ({
-  respuesta: Promise.resolve({ data: { data: { hasInventoryFeature: false } } }) as Promise<unknown>,
-  rol: null as string | null,
-}))
 const ajustar = vi.hoisted(() => ({ adjustStock: vi.fn() }))
 vi.mock('@/services/inventory.service', async importOriginal => ({
   ...(await importOriginal<object>()),
-  productWizardApi: { shouldUseInventory: () => plan.respuesta },
   productInventoryApi: { adjustStock: ajustar.adjustStock },
 }))
 
@@ -71,7 +68,7 @@ const conPiezas = (id: string, name: string) => ({
 })
 
 function pintar() {
-  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
   render(
     <QueryClientProvider client={qc}>
       <MemoryRouter initialEntries={['/venues/mi-tienda/menumaker/products']}>
@@ -81,83 +78,67 @@ function pintar() {
   )
 }
 
-async function abrirMenuDe(nombre: string) {
+async function abrirAjusteDe(nombre: string) {
   const user = userEvent.setup()
   pintar()
   await screen.findByText(nombre)
   await user.click(within(screen.getByText(nombre).closest('tr')!).getByRole('button', { name: 'modifiers.actions.openMenu' }))
-  return { user, opcion: await screen.findByRole('menuitem', { name: /products\.actions\.adjustStock/ }) }
+  await user.click(await screen.findByRole('menuitem', { name: /products\.actions\.adjustStock/ }))
+  await waitFor(() => expect(ajuste.props.some(p => p.open)).toBe(true))
+  return ajuste.props[ajuste.props.length - 1]
 }
 
-const responde = (hasInventoryFeature: boolean) => Promise.resolve({ data: { data: { hasInventoryFeature } } })
+const rechazo = (status: number, data: object) => Object.assign(new Error('rechazo'), { response: { status, data } })
 
 beforeEach(() => {
   ajustar.adjustStock.mockResolvedValue({ data: { message: 'ok' } })
-  plan.respuesta = responde(false)
-  plan.rol = null
+  avisos.toast.mockReset()
   ajuste.props = []
   menu.getProducts.mockResolvedValue([conPiezas('a', 'Libreta')])
 })
 
 describe('Products — «Ajustar existencias» sin Premium (na1d52b5)', { timeout: 20_000 }, () => {
   // NEW FEATURE TESTS
-  it('el SERVIDOR dice sin Premium: la opción se ve, con la etiqueta del plan, y no abre el ajuste', async () => {
-    const { user, opcion } = await abrirMenuDe('Libreta')
-    await waitFor(() => expect(opcion).toHaveAttribute('aria-disabled', 'true'))
-    expect(opcion).toHaveTextContent('products.actions.adjustStockPremium')
-    await user.click(opcion)
-    expect(ajuste.props.some(p => p.open)).toBe(false)
-  })
-
-  it('si la respuesta llega DESPUÉS de pintar la lista, el candado aparece igual (las columnas se recalculan)', async () => {
-    let soltar!: (v: unknown) => void
-    plan.respuesta = new Promise(r => (soltar = r))
-    const user = userEvent.setup()
-    pintar()
-    await screen.findByText('Libreta') // la lista ya está pintada, sin respuesta del plan
-    soltar({ data: { data: { hasInventoryFeature: false } } })
-    // La respuesta re-pinta la tabla (columnas nuevas): se espera a que termine antes de abrir el menú.
-    await new Promise(r => setTimeout(r, 150))
-    await user.click(within(screen.getByText('Libreta').closest('tr')!).getByRole('button', { name: 'modifiers.actions.openMenu' }))
-    expect(await screen.findByRole('menuitem', { name: /products\.actions\.adjustStock/ })).toHaveAttribute('aria-disabled', 'true')
-  })
-
-  it('el diálogo ya estaba abierto cuando llegó «sin Premium»: confirmar no manda el ajuste (Codex r3 #6)', async () => {
-    let soltar!: (v: unknown) => void
-    plan.respuesta = new Promise(r => (soltar = r))
-    const { user, opcion } = await abrirMenuDe('Libreta')
-    await user.click(opcion) // el plan aún no se sabe: se abre
-    await waitFor(() => expect(ajuste.props.some(p => p.open)).toBe(true))
-    soltar({ data: { data: { hasInventoryFeature: false } } })
-    await new Promise(r => setTimeout(r, 150))
-    const ultimo = ajuste.props[ajuste.props.length - 1]
-    ultimo.onConfirm(5, 'RECOUNT')
-    await new Promise(r => setTimeout(r, 50))
-    expect(ajustar.adjustStock).not.toHaveBeenCalled()
-    expect(ajuste.props[ajuste.props.length - 1].open).toBe(false)
+  it('el SERVIDOR rechaza el ajuste por plan: el aviso lo dice en español (no el inglés del SERVIDOR) y que no cambió nada', async () => {
+    ajustar.adjustStock.mockRejectedValue(
+      rechazo(403, {
+        error: 'Feature not available',
+        message: 'This venue does not have access to the INVENTORY_TRACKING feature.',
+        featureCode: 'INVENTORY_TRACKING',
+      }),
+    )
+    const dialogo = await abrirAjusteDe('Libreta')
+    dialogo.onConfirm(5, 'RECOUNT')
+    await waitFor(() => expect(avisos.toast).toHaveBeenCalled())
+    expect(avisos.toast).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        title: 'products.toasts.adjustStockPremiumTitle',
+        description: 'products.toasts.adjustStockPremium',
+        variant: 'destructive',
+      }),
+    )
   })
 
   // REGRESSION TESTS
-  it('Premium (o marca blanca con acceso, exento o demo: lo resuelve el SERVIDOR): abre el ajuste como siempre', async () => {
-    plan.respuesta = responde(true)
-    const { user, opcion } = await abrirMenuDe('Libreta')
-    await new Promise(r => setTimeout(r, 0))
-    expect(opcion).not.toHaveTextContent('products.actions.adjustStockPremium')
-    await user.click(opcion)
-    await waitFor(() => expect(ajuste.props.some(p => p.open)).toBe(true))
+  it('la opción se ve y abre el ajuste como siempre: no hay candado con una respuesta guardada (Codex r4 #4)', async () => {
+    const dialogo = await abrirAjusteDe('Libreta')
+    expect(dialogo.open).toBe(true)
   })
 
-  it('si la consulta del plan falla, no se pone el candado (el SERVIDOR decide al ajustar)', async () => {
-    plan.respuesta = Promise.reject({ response: { status: 403 } })
-    const { opcion } = await abrirMenuDe('Libreta')
-    await new Promise(r => setTimeout(r, 0))
-    expect(opcion).not.toHaveAttribute('aria-disabled', 'true')
+  it('otro rechazo (p. ej. sin permiso) sigue mostrando el mensaje del SERVIDOR', async () => {
+    ajustar.adjustStock.mockRejectedValue(rechazo(403, { message: 'No tienes permiso para ajustar existencias' }))
+    const dialogo = await abrirAjusteDe('Libreta')
+    dialogo.onConfirm(5, 'RECOUNT')
+    await waitFor(() => expect(avisos.toast).toHaveBeenCalled())
+    expect(avisos.toast).toHaveBeenLastCalledWith(
+      expect.objectContaining({ title: 'error', description: 'No tienes permiso para ajustar existencias', variant: 'destructive' }),
+    )
   })
 
-  it('el superadmin no ve el candado (el SERVIDOR lo deja pasar)', async () => {
-    plan.rol = 'SUPERADMIN'
-    const { opcion } = await abrirMenuDe('Libreta')
-    await new Promise(r => setTimeout(r, 0))
-    expect(opcion).not.toHaveAttribute('aria-disabled', 'true')
+  it('un ajuste que sí pasa se manda con su cantidad y avisa que se guardó', async () => {
+    const dialogo = await abrirAjusteDe('Libreta')
+    dialogo.onConfirm(5, 'RECOUNT', 'conteo')
+    await waitFor(() => expect(ajustar.adjustStock).toHaveBeenCalledWith('v1', 'a', expect.objectContaining({ quantity: 5 })))
+    await waitFor(() => expect(avisos.toast).toHaveBeenLastCalledWith(expect.objectContaining({ title: 'products.toasts.saved' })))
   })
 })

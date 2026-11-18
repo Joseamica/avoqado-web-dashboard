@@ -489,7 +489,6 @@
     },
     "actions": {
       "adjustStock": "Adjust Stock",
-      "adjustStockPremium": "Premium plan",
       "adjustStockDialog": {
         "title": "Adjust Stock - {{productName}}",
         "currentStock": "Current Stock",
@@ -517,7 +516,9 @@
       "activated": "Product activated",
       "deactivated": "Product deactivated",
       "saved": "Changes have been saved successfully.",
-      "statusError": "Couldn't update the product status."
+      "statusError": "Couldn't update the product status.",
+      "adjustStockPremiumTitle": "Adjusting stock is part of the Premium plan",
+      "adjustStockPremium": "Nothing changed: the stock stays as it was."
     },
     "lowStock": {
       "alert": "{{count}} product is low on stock",

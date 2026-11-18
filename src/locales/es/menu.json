@@ -478,7 +478,6 @@
     },
     "actions": {
       "adjustStock": "Ajustar Stock",
-      "adjustStockPremium": "Plan Premium",
       "adjustStockDialog": {
         "title": "Ajustar Stock - {{productName}}",
         "currentStock": "Stock Actual",
@@ -512,7 +511,9 @@
       "activated": "Producto activado",
       "deactivated": "Producto desactivado",
       "saved": "Los cambios se han guardado correctamente.",
-      "statusError": "No se pudo cambiar el estado del producto."
+      "statusError": "No se pudo cambiar el estado del producto.",
+      "adjustStockPremiumTitle": "Ajustar existencias es parte del plan Premium",
+      "adjustStockPremium": "No se cambió nada: las piezas siguen como estaban."
     },
     "lowStock": {
       "alert": "{{count}} producto tiene stock bajo",

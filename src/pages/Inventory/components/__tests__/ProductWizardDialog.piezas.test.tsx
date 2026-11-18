@@ -229,12 +229,40 @@ describe('na1d52b5 · contar piezas al dar de alta en todos los planes', { timeo
     expect(screen.getAllByText('wizard.step2.premiumBadge').length).toBeGreaterThan(0)
   })
 
-  it('si la recomendación falla, la sección dice que no se pudo revisar (no «Cargando…» para siempre)', async () => {
-    inventory.productWizardApi.shouldUseInventory.mockRejectedValue({ response: { status: 403 } })
+  it('si la recomendación falla (tras su reintento), la sección dice que no se pudo revisar (no «Cargando…» para siempre)', async () => {
+    inventory.productWizardApi.shouldUseInventory.mockRejectedValue({ response: { status: 500 } })
     mount({ productType: 'REGULAR' })
-    await waitFor(() => expect(opener('inventory')).toHaveTextContent('wizard.step2.recommendationError'))
+    await waitFor(() => expect(opener('inventory')).toHaveTextContent('wizard.step2.recommendationError'), { timeout: 5_000 })
     expect(opener('inventory')).toBeDisabled()
     expect(opener('inventory')).not.toHaveTextContent('loading')
+    expect(inventory.productWizardApi.shouldUseInventory).toHaveBeenCalledTimes(2) // un reintento y ya (Codex r4 #8)
+  })
+
+  it('sin permiso de inventario (403, p. ej. marca blanca sin Inventario): lo dice, en vez de culpar al plan', async () => {
+    inventory.productWizardApi.shouldUseInventory.mockRejectedValue({ response: { status: 403 } })
+    mount({ productType: 'REGULAR' })
+    await waitFor(() => expect(opener('inventory')).toHaveTextContent('wizard.step2.recommendationNoAccess'), { timeout: 5_000 })
+    expect(opener('inventory')).toBeDisabled()
+  })
+
+  it('marca blanca o exento: el cálculo del panel dice «sin Premium» pero el SERVIDOR dice que sí: la receta se abre (Codex r4 #6)', async () => {
+    access.inventory = false
+    inventory.productWizardApi.shouldUseInventory.mockResolvedValue({
+      data: { data: { hasInventoryFeature: true, recommendation: 'wizard.step2.recommendationEnabled' } },
+    })
+    mount({ productType: 'FOOD_AND_BEV' })
+    await waitFor(() => expect(opener('recipe')).toBeEnabled())
+  })
+
+  it('al volver a abrir no usa la respuesta de la apertura anterior: espera la nueva (Codex r4 #4)', async () => {
+    const asistente = mount({ productType: 'FOOD_AND_BEV' })
+    await waitFor(() => expect(opener('recipe')).toBeDisabled()) // primera apertura: sin Premium
+    let soltar!: (v: unknown) => void
+    inventory.productWizardApi.shouldUseInventory.mockReturnValue(new Promise(r => (soltar = r)))
+    asistente.reopen() // mientras tanto el negocio subió a Premium
+    await waitFor(() => expect(opener('inventory')).toHaveTextContent('loading'))
+    soltar({ data: { data: { hasInventoryFeature: true, recommendation: 'wizard.step2.recommendationEnabled' } } })
+    await waitFor(() => expect(opener('recipe')).toBeEnabled())
   })
 
   it('sin internet la consulta se pausa: tampoco se queda en «Cargando…» (Codex r2 #6)', async () => {

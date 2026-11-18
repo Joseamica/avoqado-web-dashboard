@@ -1,5 +1,5 @@
 import { getProducts, updateProduct, deleteProduct } from '@/services/menu.service'
-import { productInventoryApi, productWizardApi, type AdjustInventoryStockDto } from '@/services/inventory.service'
+import { productInventoryApi, type AdjustInventoryStockDto } from '@/services/inventory.service'
 import { useToast } from '@/hooks/use-toast'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
@@ -177,17 +177,6 @@ export default function Products() {
   const [isInventoryModalOpen, setIsInventoryModalOpen] = useState(false)
   const [adjustStockDialogOpen, setAdjustStockDialogOpen] = useState(false)
   const [productToAdjust, setProductToAdjust] = useState<Product | null>(null)
-  // na1d52b5 (17-nov-2026): un producto puede contar piezas en Gratis/Pro (se da de alta así), pero «Ajustar existencias» del panel llama a
-  // una ruta Premium (INVENTORY_TRACKING). Sin Premium se ve con su candado y no se ofrece algo que terminaría en error (Codex r1 #7).
-  // Lo decide el SERVIDOR (la misma consulta del asistente, mismo resolver que su candado, con exentos y demo), no el cálculo del panel,
-  // que en marca blanca usa otro código (Codex r2 #1). Si no se sabe, no se pone candado (el SERVIDOR decide). El superadmin no lo tiene.
-  const { role: rolActual } = useAccess()
-  const { data: planDeInventario } = useQuery({
-    queryKey: ['inventory-recommendations', venueId],
-    queryFn: async () => (await productWizardApi.shouldUseInventory(venueId!)).data.data,
-    enabled: !!venueId,
-  })
-  const ajusteConCandado = planDeInventario?.hasInventoryFeature === false && rolActual !== 'SUPERADMIN'
   const [showLowStockOnly, setShowLowStockOnly] = useState(false)
   const [typeSelectorOpen, setTypeSelectorOpen] = useState(false)
   const [selectedProductType, setSelectedProductType] = useState<ProductType | null>(null)
@@ -678,9 +667,13 @@ export default function Products() {
       })
     },
     onError: (error: any) => {
+      // na1d52b5 (17-nov-2026, tras la parada de Codex r4): ajustar las piezas de un producto que ya existe sigue siendo Premium. Lo
+      // decide el SERVIDOR al confirmar, en vivo (un candado en la lista con una respuesta guardada se equivocaba al cambiar de plan o
+      // de sesión), y su rechazo de plan, que viene en inglés, se dice aquí en español: no se cambió nada.
+      const rechazoDePlan = error.response?.status === 403 && error.response?.data?.featureCode === 'INVENTORY_TRACKING'
       toast({
-        title: tCommon('error'),
-        description: error.response?.data?.message || 'Failed to adjust stock',
+        title: rechazoDePlan ? t('products.toasts.adjustStockPremiumTitle') : tCommon('error'),
+        description: rechazoDePlan ? t('products.toasts.adjustStockPremium') : error.response?.data?.message || 'Failed to adjust stock',
         variant: 'destructive',
       })
     },
@@ -999,10 +992,8 @@ export default function Products() {
               {product.trackInventory && product.inventoryMethod === 'QUANTITY' && (
                 <PermissionGate permission="menu:update">
                   <DropdownMenuItem
-                    disabled={ajusteConCandado}
                     onClick={e => {
                       e.stopPropagation()
-                      if (ajusteConCandado) return
                       setProductToAdjust(product)
                       setAdjustStockDialogOpen(true)
                     }}
@@ -1010,7 +1001,6 @@ export default function Products() {
                   >
                     <Package2 className="mr-2 h-4 w-4" />
                     {t('products.actions.adjustStock')}
-                    {ajusteConCandado && <span className="ml-2 text-xs text-muted-foreground">{t('products.actions.adjustStockPremium')}</span>}
                   </DropdownMenuItem>
                 </PermissionGate>
               )}
@@ -1048,7 +1038,7 @@ export default function Products() {
         )
       },
     },
-  ], [hasChatbot, t, tCommon, tV, imageErrors, cambiarActivo, fullBasePath, abrirProducto, ajusteConCandado])
+  ], [hasChatbot, t, tCommon, tV, imageErrors, cambiarActivo, fullBasePath, abrirProducto])
 
   const variantesDesplegadas = useCallback(
     (fila: FilaProducto) => {
@@ -1353,8 +1343,6 @@ export default function Products() {
         onOpenChange={setAdjustStockDialogOpen}
         product={productToAdjust}
         onConfirm={(adjustment, reason, notes) => {
-          // El plan pudo llegar con el diálogo ya abierto: con candado no se manda algo que el SERVIDOR rechazaría (Codex r3 #6).
-          if (ajusteConCandado) return setAdjustStockDialogOpen(false)
           if (productToAdjust) {
             adjustStockMutation.mutate({
               productId: productToAdjust.id,

@@ -641,6 +641,7 @@
       "recommendationDisabled": "La gestión de inventario no está habilitada para tu venue. Contacta a soporte para habilitar esta funcionalidad.",
       "recommendationQuantityOnly": "Puedes contar las piezas de este producto. Las recetas son parte del plan Premium.",
       "recommendationError": "No pudimos revisar tu plan. Cierra esta ventana y vuelve a abrirla.",
+      "recommendationNoAccess": "Tu usuario no tiene acceso al inventario de este negocio. Pídeselo a tu administrador.",
       "editQuantityPremium": "Cambiar aquí el inventario de un producto que ya existe es parte del plan Premium.",
       "question": "¿Deseas rastrear el inventario para este producto?",
       "noInventory": "Sin Seguimiento de Inventario",
