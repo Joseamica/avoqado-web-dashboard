@@ -309,11 +309,21 @@ describe('TarjetasDePlanes con el Plan Básico', () => {
   const orden = () =>
     Array.from(document.querySelectorAll<HTMLElement>('[data-plan], [data-tour="plan-card-basic"]')).map(e => e.dataset.plan ?? 'BASICO')
 
-  it('el Básico va justo a la izquierda de Pro, con su precio sin IVA y las 4 tarjetas en una fila', () => {
+  it('el Básico va justo a la izquierda de Pro, con su precio sin IVA y 3 tarjetas en una fila (founder 18-nov, «A»)', () => {
     pinta({ planBasico: BASICO })
-    expect(orden()).toEqual(['BASICO', 'PRO', 'PREMIUM', 'ENTERPRISE'])
+    expect(orden()).toEqual(['BASICO', 'PRO', 'PREMIUM'])
     expect(screen.getByText('$499')).toBeInTheDocument()
-    expect(document.querySelector('[data-plan="PRO"]')!.parentElement!.className).toContain('lg:grid-cols-4')
+    expect(document.querySelector('[data-plan="PRO"]')!.parentElement!.className).toContain('lg:grid-cols-3')
+  })
+
+  it('con el Básico, Enterprise baja a un enlace chico que abre WhatsApp de ventas y no elige plan', async () => {
+    const abrir = vi.spyOn(window, 'open').mockImplementation(() => null)
+    const { onElegir } = pinta({ planBasico: BASICO })
+    expect(screen.queryByRole('heading', { name: 'Enterprise' })).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: '¿Cadena o varias sucursales? Habla con ventas' }))
+    expect(abrir).toHaveBeenCalledTimes(1)
+    expect(decodeURIComponent(String(abrir.mock.calls[0][0]))).toContain('Hola, me interesa el plan Enterprise de Avoqado para mi negocio.')
+    expect(onElegir).not.toHaveBeenCalled()
   })
 
   it('«Elegir Plan Básico» (su botón, como las demás tarjetas) avisa onElegirBasico y no elige Pro', async () => {
@@ -336,11 +346,13 @@ describe('TarjetasDePlanes con el Plan Básico', () => {
   it('con el cobro bloqueado el botón del Básico también queda apagado', () => {
     pinta({ planBasico: BASICO, bloqueado: true })
     expect(screen.getByRole('button', { name: 'Elegir Plan Básico' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: '¿Cadena o varias sucursales? Habla con ventas' })).toBeDisabled()
   })
 
-  it('sin Básico siguen las 3 tarjetas en 3 columnas (regresión)', () => {
+  it('sin Básico siguen las 3 tarjetas en 3 columnas, Enterprise incluida, y sin enlace (regresión)', () => {
     pinta()
     expect(orden()).toEqual(['PRO', 'PREMIUM', 'ENTERPRISE'])
     expect(tarjeta('PRO').parentElement!.className).toContain('lg:grid-cols-3')
+    expect(screen.queryByRole('button', { name: /Cadena o varias sucursales/ })).not.toBeInTheDocument()
   })
 })
