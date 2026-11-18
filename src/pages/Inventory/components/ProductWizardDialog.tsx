@@ -383,6 +383,8 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
   // llave: una respuesta (o una petición en curso) de otra ventana o de una apertura anterior no decide el plan de ésta, aunque llegue
   // después (Codex r4 #4, r5 #2 y r6 #1). Mientras tanto, «Cargando…».
   const ventana = useId()
+  // El rol del panel también va en la llave: al entrar o salir de una suplantación con la ventana abierta, se vuelve a preguntar (r7 #1).
+  const { role: rolDelPanel } = useAccess()
   const [apertura, setApertura] = useState(0)
   const [estabaAbierto, setEstabaAbierto] = useState(open)
   if (open !== estabaAbierto) {
@@ -391,7 +393,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
   }
   // Fetch recommendations for inventory usage
   const recomendacionesQuery = useQuery({
-    queryKey: ['inventory-recommendations', venueId, ventana, apertura],
+    queryKey: ['inventory-recommendations', venueId, ventana, apertura, rolDelPanel],
     queryFn: async () => {
       const response = await productWizardApi.shouldUseInventory(venueId)
       return response.data.data
@@ -402,7 +404,8 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
     gcTime: 0,
     retry: 1,
   })
-  const { data: recommendations } = recomendacionesQuery
+  // Si la consulta (con su reintento) falló, no se usa la respuesta de antes: la sección dice «No pudimos revisar tu plan» (Codex r7 #2).
+  const recommendations = recomendacionesQuery.isError ? undefined : recomendacionesQuery.data
   // na1d52b5 (17-nov-2026): contar piezas al DAR DE ALTA es de todos los planes (founder, 29-sep, «B»): lo dice la opción QUANTITY de la
   // recomendación (un SERVIDOR viejo no la habilita sin Premium y todo queda como antes). Editar las piezas de un producto que ya existe
   // sigue siendo Premium: sus rutas del SERVIDOR siguen detrás del candado (Codex r1 de na1d52b5).
@@ -410,7 +413,6 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
   // El SERVIDOR nuevo contesta por QUIEN PREGUNTA (superadmin incluido, con su rol vigente): su respuesta manda sobre el rol que el panel
   // tenga guardado (Codex r6 #2). Sólo con un SERVIDOR viejo (sin `segunQuienPregunta`), que no sabía de superadmin, el superadmin del
   // panel abre todo, como el panel de antes (Codex r5 #4). Sin respuesta todavía, nada se abre por el rol.
-  const { role: rolDelPanel } = useAccess()
   const esSuperadmin =
     rolDelPanel === 'SUPERADMIN' && recommendations !== undefined && (recommendations as { segunQuienPregunta?: boolean }).segunQuienPregunta !== true
   const puedeContarPiezas = !!recommendations?.hasInventoryFeature || esSuperadmin || (mode === 'create' && opcionPiezas?.enabled === true)

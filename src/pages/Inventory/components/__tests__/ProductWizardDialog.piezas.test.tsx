@@ -8,7 +8,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { configure, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
-import { QueryClient, QueryClientProvider, onlineManager } from '@tanstack/react-query'
+import { QueryClient, QueryClientProvider, focusManager, onlineManager } from '@tanstack/react-query'
 
 configure({ asyncUtilTimeout: 5000 })
 
@@ -326,6 +326,37 @@ describe('na1d52b5 · contar piezas al dar de alta en todos los planes', { timeo
     await waitFor(() => expect(inventory.productWizardApi.shouldUseInventory).toHaveBeenCalledTimes(2))
     await new Promise(r => setTimeout(r, 100))
     expect(opener('recipe')).toBeDisabled() // sin respuesta propia todavía: nada se abre con la de la otra ventana
+  })
+
+  it('con la ventana abierta cambia el rol (sale de una suplantación): vuelve a preguntar y usa la respuesta nueva (Codex r7 #1)', async () => {
+    quien.rol = 'ADMIN'
+    inventory.productWizardApi.shouldUseInventory.mockResolvedValue({
+      data: { data: { ...RECOMENDACION_SIN_PREMIUM, segunQuienPregunta: true } },
+    })
+    const asistente = mount({ productType: 'FOOD_AND_BEV' })
+    await waitFor(() => expect(screen.getAllByText('wizard.step2.premiumBadge').length).toBeGreaterThan(0))
+    quien.rol = 'SUPERADMIN'
+    inventory.productWizardApi.shouldUseInventory.mockResolvedValue({
+      data: { data: { hasInventoryFeature: true, recommendation: 'wizard.step2.recommendationEnabled', segunQuienPregunta: true } },
+    })
+    asistente.refresh()
+    await waitFor(() => expect(opener('recipe')).toBeEnabled())
+  })
+
+  it('si la consulta vuelve a preguntar y falla, no se queda con el «sí» de antes: lo dice y cierra la receta (Codex r7 #2)', async () => {
+    inventory.productWizardApi.shouldUseInventory.mockResolvedValue({
+      data: { data: { hasInventoryFeature: true, recommendation: 'wizard.step2.recommendationEnabled', segunQuienPregunta: true } },
+    })
+    mount({ productType: 'FOOD_AND_BEV' })
+    await waitFor(() => expect(opener('recipe')).toBeEnabled())
+    inventory.productWizardApi.shouldUseInventory.mockRejectedValue({ response: { status: 503 } })
+    focusManager.setFocused(false)
+    focusManager.setFocused(true) // vuelve a la pestaña: la consulta se repite y falla (con su reintento)
+    try {
+      await waitFor(() => expect(opener('recipe')).toBeDisabled(), { timeout: 5_000 })
+    } finally {
+      focusManager.setFocused(undefined)
+    }
   })
 
   it('editar un producto con receta mientras la recomendación no llega: dice «Cargando…», nunca ofrece subir a Premium (Codex r5 #4)', async () => {
