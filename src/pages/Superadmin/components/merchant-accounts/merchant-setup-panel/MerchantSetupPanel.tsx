@@ -20,7 +20,6 @@ import PricingCard from './cards/PricingCard'
 import SettlementCard from './cards/SettlementCard'
 import RevenueShareCard from './cards/RevenueShareCard'
 import TerminalsCard from './cards/TerminalsCard'
-import VenueRosterPanel from '../VenueRosterPanel'
 import { usePositionConfirm } from '../../position-lock/PositionConfirmDialog'
 import { isPositionConfirmCancel, isStalePosition, serverMessage, venueRatesLink } from '../../position-lock/positionLock'
 
@@ -309,13 +308,9 @@ export default function MerchantSetupPanel({
             merchantAccountId={mode === 'edit' ? merchantAccountId : undefined}
           />
           <TerminalsCard state={state} dispatch={dispatch} mode={mode} />
-          {/* Venue-level overview: the full N-account roster + the roster cost-engine
-              rollout flag (PR-2). Full width so the roster list has room. */}
-          {state.venue.id && (
-            <div className="md:col-span-2 xl:col-span-3">
-              <VenueRosterPanel venueId={state.venue.id} />
-            </div>
-          )}
+          {/* Aquí iba «Roster de cuentas» (motor de cobro por roster, PR-2). Se quitó el 18-nov-2026 (tarjeta na60da83): el
+              SERVIDOR nunca tuvo su ruta (vive en la rama vieja `feat/venue-merchant-accounts`) y el recuadro siempre salía en
+              rojo. Si el motor llega al SERVIDOR, vuelve con él (ver src/services/__tests__/rutaRosterNoExiste.test.ts). */}
         </div>
       </div>
 

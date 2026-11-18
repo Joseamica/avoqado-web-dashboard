@@ -120,7 +120,6 @@ import { RoutingTab } from '@/pages/Settings/components/printStations/RoutingTab
 import { DesglosePersona } from '@/pages/StaffPay/components/DesglosePersona'
 import { ExcepcionesSheet, HuerfanasSheet } from '@/pages/StaffPay/components/ListasDelPeriodo'
 import RevenueShareReportSection from '@/pages/Superadmin/components/RevenueShareReportSection'
-import VenueRosterPanel from '@/pages/Superadmin/components/merchant-accounts/VenueRosterPanel'
 import SettlementCard from '@/pages/Superadmin/components/merchant-accounts/merchant-setup-panel/cards/SettlementCard'
 import CampaignDetail from '@/pages/Superadmin/Marketing/CampaignDetail'
 import MarketingPage from '@/pages/Superadmin/Marketing/MarketingPage'
@@ -586,14 +585,6 @@ const casos: Caso[] = [
     ],
     miente: ['Ingresos Totales', 'Venues Activos'],
     sigue: ['Crear Venue'],
-  },
-  {
-    nombre: 'Roster de cuentas (superadmin)',
-    pantalla: () => <VenueRosterPanel venueId="v1" />,
-    caida: /venue-pricing\/roster/,
-    rutas: [[/venue-pricing\/roster/, { data: { accounts: [], count: 0, rosterRolloutEnabled: false, hasConfig: true } }]],
-    miente: ['Sin cuentas en el roster todavía.', '0 cuentas', 'Slots (legacy)'],
-    sigue: ['Motor de cobro por roster'],
   },
 
   // ─── Grupo 5: lo que quedó dudoso ───
