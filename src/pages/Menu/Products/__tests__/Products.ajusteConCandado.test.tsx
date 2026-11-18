@@ -31,10 +31,10 @@ vi.mock('../../MenuMakerLayout', () => ({ useMenuMakerHeader: () => ({ setHeader
 vi.mock('@/components/onboarding/TourDiscoveryBanner', () => ({ TourDiscoveryBanner: () => null }))
 vi.mock('@/pages/Menu/Products/components/AvisoAparatosIva', () => ({ AvisoAparatosIva: () => null }))
 vi.mock('@/components/inventory/InventoryDetailsModal', () => ({ InventoryDetailsModal: () => null }))
-const ajuste = vi.hoisted(() => ({ props: [] as Array<{ open: boolean }> }))
+const ajuste = vi.hoisted(() => ({ props: [] as Array<{ open: boolean; onConfirm: (a: number, r: string, n?: string) => void }> }))
 vi.mock('@/components/AdjustStockDialog', () => ({
-  AdjustStockDialog: (p: { open: boolean }) => {
-    ajuste.props.push({ open: p.open })
+  AdjustStockDialog: (p: { open: boolean; onConfirm: (a: number, r: string, n?: string) => void }) => {
+    ajuste.props.push({ open: p.open, onConfirm: p.onConfirm })
     return null
   },
 }))
@@ -48,9 +48,11 @@ const plan = vi.hoisted(() => ({
   respuesta: Promise.resolve({ data: { data: { hasInventoryFeature: false } } }) as Promise<unknown>,
   rol: null as string | null,
 }))
+const ajustar = vi.hoisted(() => ({ adjustStock: vi.fn() }))
 vi.mock('@/services/inventory.service', async importOriginal => ({
   ...(await importOriginal<object>()),
   productWizardApi: { shouldUseInventory: () => plan.respuesta },
+  productInventoryApi: { adjustStock: ajustar.adjustStock },
 }))
 
 import Products from '../Products'
@@ -90,6 +92,7 @@ async function abrirMenuDe(nombre: string) {
 const responde = (hasInventoryFeature: boolean) => Promise.resolve({ data: { data: { hasInventoryFeature } } })
 
 beforeEach(() => {
+  ajustar.adjustStock.mockResolvedValue({ data: { message: 'ok' } })
   plan.respuesta = responde(false)
   plan.rol = null
   ajuste.props = []
@@ -117,6 +120,21 @@ describe('Products — «Ajustar existencias» sin Premium (na1d52b5)', { timeou
     await new Promise(r => setTimeout(r, 150))
     await user.click(within(screen.getByText('Libreta').closest('tr')!).getByRole('button', { name: 'modifiers.actions.openMenu' }))
     expect(await screen.findByRole('menuitem', { name: /products\.actions\.adjustStock/ })).toHaveAttribute('aria-disabled', 'true')
+  })
+
+  it('el diálogo ya estaba abierto cuando llegó «sin Premium»: confirmar no manda el ajuste (Codex r3 #6)', async () => {
+    let soltar!: (v: unknown) => void
+    plan.respuesta = new Promise(r => (soltar = r))
+    const { user, opcion } = await abrirMenuDe('Libreta')
+    await user.click(opcion) // el plan aún no se sabe: se abre
+    await waitFor(() => expect(ajuste.props.some(p => p.open)).toBe(true))
+    soltar({ data: { data: { hasInventoryFeature: false } } })
+    await new Promise(r => setTimeout(r, 150))
+    const ultimo = ajuste.props[ajuste.props.length - 1]
+    ultimo.onConfirm(5, 'RECOUNT')
+    await new Promise(r => setTimeout(r, 50))
+    expect(ajustar.adjustStock).not.toHaveBeenCalled()
+    expect(ajuste.props[ajuste.props.length - 1].open).toBe(false)
   })
 
   // REGRESSION TESTS

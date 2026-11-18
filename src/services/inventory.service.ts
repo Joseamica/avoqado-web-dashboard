@@ -617,7 +617,8 @@ export interface CreateProductWithInventoryDto {
 
 export const productWizardApi = {
   // Check if venue should use inventory (returns recommendations)
-  shouldUseInventory: (venueId: string) => api.get(`/api/v1/dashboard/venues/${venueId}/inventory/should-use-inventory`),
+  // Con tiempo límite: una petición colgada no deja el asistente en «Cargando…» sin fin (na1d52b5, Codex r3 #7).
+  shouldUseInventory: (venueId: string) => api.get(`/api/v1/dashboard/venues/${venueId}/inventory/should-use-inventory`, { timeout: 15_000 }),
 
   // Step 1: Create basic product
   createProductStep1: (venueId: string, data: ProductWizardStep1Data) => api.post(`/api/v1/dashboard/venues/${venueId}/inventory/wizard/step1`, data),

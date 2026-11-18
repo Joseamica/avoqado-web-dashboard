@@ -1353,6 +1353,8 @@ export default function Products() {
         onOpenChange={setAdjustStockDialogOpen}
         product={productToAdjust}
         onConfirm={(adjustment, reason, notes) => {
+          // El plan pudo llegar con el diálogo ya abierto: con candado no se manda algo que el SERVIDOR rechazaría (Codex r3 #6).
+          if (ajusteConCandado) return setAdjustStockDialogOpen(false)
           if (productToAdjust) {
             adjustStockMutation.mutate({
               productId: productToAdjust.id,

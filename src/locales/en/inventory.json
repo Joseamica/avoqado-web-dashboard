@@ -641,7 +641,7 @@
       "recommendationDisabled": "Inventory management is not enabled for your venue. Contact support to enable this feature.",
       "recommendationQuantityOnly": "You can count this product's pieces. Recipes are part of the Premium plan.",
       "recommendationError": "We couldn't check your plan. Close this window and open it again.",
-      "editQuantityPremium": "Changing an existing product's pieces here is part of the Premium plan. Sales deduct them automatically.",
+      "editQuantityPremium": "Changing the inventory of an existing product here is part of the Premium plan.",
       "question": "Do you want to track inventory for this product?",
       "noInventory": "No Inventory Tracking",
       "noInventoryDesc": "Best for services, classes, or digital products",
