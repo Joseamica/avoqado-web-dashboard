@@ -192,7 +192,6 @@ import ProfitAnalyticsDashboard from '@/pages/Superadmin/ProfitAnalyticsDashboar
 import RevenueDashboard from '@/pages/Superadmin/RevenueDashboard'
 import ServerHealth from '@/pages/Superadmin/ServerHealth'
 import VenueManagement from '@/pages/Superadmin/VenueManagement'
-import VenueRosterPanel from '@/pages/Superadmin/components/merchant-accounts/VenueRosterPanel'
 import { CommandHistoryTable } from '@/pages/Tpv/components/CommandHistoryTable'
 import { TpvMessagesList } from '@/pages/Tpv/components/TpvMessagesList'
 import TpvId from '@/pages/Tpv/TpvId'
@@ -447,15 +446,6 @@ describe('F2 · la primera lectura en camino no afirma nada', () => {
     await unaVueltaAlLazo()
     expect(seVe('Ingresos Totales')).toBe(false)
     expect(seVe('0 de 0')).toBe(false)
-    esperando()
-  })
-
-  it('Cuentas del venue: sin «0 cuentas» ni «Slots (legacy)»', async () => {
-    red.colgada = /venue-pricing\/roster/
-    pintar(<VenueRosterPanel venueId="v1" />)
-    await unaVueltaAlLazo()
-    expect(seVe('0 cuentas')).toBe(false)
-    expect(seVe('Slots (legacy)')).toBe(false)
     esperando()
   })
 
@@ -2054,13 +2044,6 @@ describe('r12 · Más conteos que hablaban mientras esperaban', () => {
     await unaVueltaAlLazo()
     expect(screen.queryAllByTestId('grafica')).toHaveLength(0)
     esperando()
-  })
-
-  it('Motor por roster: sin leer no sale un interruptor apagado', async () => {
-    red.colgada = /roster/
-    pintar(<VenueRosterPanel venueId="v1" venueName="Mi negocio" />)
-    await unaVueltaAlLazo()
-    expect(screen.queryByRole('switch')).toBeNull()
   })
 
   it('Entregas de campaña: en camino espera, sin «No hay entregas»; leída y vacía con la recarga caída, avisa', async () => {

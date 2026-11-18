@@ -34,16 +34,8 @@ const BACKEND_APP_FILE = path.join(BACKEND_DIR, 'app.ts')
 // implement the route, the entry turns STALE and the check FAILS until it is removed
 // here, so the list cannot rot silently.
 // Format: 'METHOD /exact/frontend/path/with/:params'
-const BACKEND_PENDING = new Map([
-  [
-    'GET /api/v1/dashboard/superadmin/venue-pricing/roster/:venueId',
-    'PR-2 N-account merchant roster — backend route pending (frontend shipped in d657c8a9)',
-  ],
-  [
-    'PATCH /api/v1/dashboard/superadmin/venue-pricing/roster/:venueId/rollout',
-    'PR-2 N-account merchant roster — backend route pending (frontend shipped in d657c8a9)',
-  ],
-])
+// (18-nov-2026: se quitaron las dos del roster de cuentas, tarjeta na60da83: el DASHBOARD ya no las llama.)
+const BACKEND_PENDING = new Map([])
 
 // ─────────────────────────────────────────────
 // 1. Frontend endpoint extraction
