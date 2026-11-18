@@ -193,4 +193,9 @@ describe('ProductosDelCanalSection', () => {
     renderSeccion({ lista: ['pX'], productos: [] })
     expect(screen.queryByRole('button', { name: 'settings.productos.publicarTodo' })).not.toBeInTheDocument()
   })
+  // Codex r2 #1: un producto apagado no sale en el menú; con sólo apagados, publicar todo mandaría un menú vacío.
+  it('con lista y sólo productos apagados no ofrece «Publicar todo mi catálogo»', () => {
+    renderSeccion({ lista: ['p1'], productos: [p('p1', 'Latte', 'Bebidas', { active: false })] })
+    expect(screen.queryByRole('button', { name: 'settings.productos.publicarTodo' })).not.toBeInTheDocument()
+  })
 })

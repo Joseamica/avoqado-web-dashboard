@@ -197,8 +197,9 @@ export function ProductosDelCanalSection(props: Props) {
 
         <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-sm text-muted-foreground">
           <span>{t('settings.productos.listaHelp')}</span>
-          {/* Sin ningún producto vivo, publicar todo mandaría un menú vacío al proveedor (Codex D100 r1 #4). */}
-          {productos.length > 0 && (
+          {/* Sin ningún producto activo (sólo los activos salen en el menú), publicar todo mandaría un menú vacío al proveedor
+              (Codex D100 r1 #4 y r2 #1). */}
+          {productos.some(p => p.active) && (
             <Button
               data-tour="delivery-settings-productos-todo"
               variant="link"
