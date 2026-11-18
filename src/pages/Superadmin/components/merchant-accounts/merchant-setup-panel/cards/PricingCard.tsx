@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast'
 import { upsertVenuePricingStructure } from '@/services/cost-management.service'
 import { decimalToPercent, percentToDecimal } from '@/utils/fees'
 import { cn } from '@/lib/utils'
+import { fechaDeVigenciaOHoy } from '../fechaDeVigencia'
 import type { MerchantSlice, PricingSlice, SetupState } from '../types'
 import type { SetupAction } from '../useSetupReducer'
 
@@ -158,8 +159,9 @@ function PricingDialogBody({
 
   // In edit mode the venueId comes from the hydrated venue slice and the
   // accountType comes from the slot we resolved when loading the bundle. The
-  // backend UPSERTs on (venueId, accountType, effectiveFrom) so a same-day
-  // save replaces the row in place.
+  // backend saves in one transaction: same date as a version from TODAY
+  // corrects it in place; a date that already applied is a 409 and a future
+  // one a 400 (never leaves the slot without a rate).
   const venueId = state.venue.id
   const slotAccountType: 'PRIMARY' | 'SECONDARY' | 'TERTIARY' =
     state.slot.mode !== 'empty' ? state.slot.accountType : 'PRIMARY'
@@ -180,7 +182,7 @@ function PricingDialogBody({
         internationalRate: draft.internationalRate!,
         fixedFeePerTransaction: draft.fixedFeePerTransaction,
         monthlyServiceFee: draft.monthlyServiceFee,
-        effectiveFrom: draft.effectiveFrom || new Date().toISOString().slice(0, 10),
+        effectiveFrom: fechaDeVigenciaOHoy(draft.effectiveFrom),
       })
     },
     onSuccess: () => {
