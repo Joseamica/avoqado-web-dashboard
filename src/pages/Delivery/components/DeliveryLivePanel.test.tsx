@@ -116,17 +116,13 @@ describe('DeliveryLivePanel', () => {
   // D11 (27-oct): el dueño cerró la tienda desde el portal de Rappi; el SERVIDOR lo anota en `config.cerradaEnElProveedor`
   // (D4). Sin esto el panel sólo decía «Pausado», sin el porqué ni que «Reanudar» la vuelve a abrir en Rappi.
   it('D11: pausada desde el portal de Rappi → dice que la cerró Rappi y que reanudar la vuelve a abrir', async () => {
-    renderPanel([
-      channel({ provider: 'RAPPI', status: 'PAUSED', config: { cerradaEnElProveedor: { desde: '2026-10-26T18:00:00.000Z' } } }),
-    ])
+    renderPanel([channel({ provider: 'RAPPI', status: 'PAUSED', config: { cerradaEnElProveedor: { desde: '2026-10-26T18:00:00.000Z' } } })])
     expect(await screen.findByText('live.closedByProviderPaused')).toBeInTheDocument()
     expect(screen.queryByText('live.closedByProviderActive')).not.toBeInTheDocument()
   })
 
   it('D11: activa pero con la nota (Rappi la cerró mientras se reabría) → avisa, con el texto de activa', async () => {
-    renderPanel([
-      channel({ provider: 'RAPPI', status: 'ACTIVE', config: { cerradaEnElProveedor: { desde: '2026-10-26T18:00:00.000Z' } } }),
-    ])
+    renderPanel([channel({ provider: 'RAPPI', status: 'ACTIVE', config: { cerradaEnElProveedor: { desde: '2026-10-26T18:00:00.000Z' } } })])
     expect(await screen.findByText('live.closedByProviderActive')).toBeInTheDocument()
     expect(screen.queryByText('live.closedByProviderPaused')).not.toBeInTheDocument()
   })
@@ -139,6 +135,19 @@ describe('DeliveryLivePanel', () => {
     await screen.findByText('live.channelsTitle')
     expect(screen.queryByText('live.closedByProviderPaused')).not.toBeInTheDocument()
     expect(screen.queryByText('live.closedByProviderActive')).not.toBeInTheDocument()
+  })
+
+  // D98 (18-nov): el renglón decía «Pausar» con el interruptor ENCENDIDO en un canal activo, y se leía «pausa: prendida».
+  // Ahora la etiqueta es fija y dice lo que significa encendido: «Recibir pedidos» (encendido = activo, apagado = en pausa).
+  it('D98: el interruptor se llama «Recibir pedidos» activo o en pausa, y encendido = activo', async () => {
+    renderPanel([channel({ id: 'activo', status: 'ACTIVE' }), channel({ id: 'pausado', provider: 'RAPPI', status: 'PAUSED' })])
+
+    const switches = await screen.findAllByRole('switch', { name: 'live.receiveOrders' })
+    expect(switches).toHaveLength(2)
+    expect(switches[0]).toHaveAttribute('data-state', 'checked')
+    expect(switches[1]).toHaveAttribute('data-state', 'unchecked')
+    expect(screen.queryByText('live.pauseAction')).not.toBeInTheDocument()
+    expect(screen.queryByText('live.resumeAction')).not.toBeInTheDocument()
   })
 
   it('toggle de un canal PAUSED → pauseChannel(venueId, linkId, false) (reanudar)', async () => {

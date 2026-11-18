@@ -273,8 +273,12 @@ export function DeliveryLivePanel({ venueId, channels }: DeliveryLivePanelProps)
 
                   {isTogglable && (
                     <div className="flex items-center justify-between border-t border-input pt-3">
-                      <span className="text-sm">{channel.status === 'ACTIVE' ? t('live.pauseAction') : t('live.resumeAction')}</span>
+                      {/* D98: etiqueta fija que dice lo que significa ENCENDIDO. «Pausar» junto a un interruptor prendido se leía «pausa: prendida». */}
+                      <span className="text-sm" id={`delivery-recibir-${channel.id}`}>
+                        {t('live.receiveOrders')}
+                      </span>
                       <Switch
+                        aria-labelledby={`delivery-recibir-${channel.id}`}
                         checked={channel.status === 'ACTIVE'}
                         disabled={isMutatingThis || !canManage}
                         onCheckedChange={checked => pauseMutation.mutate({ linkId: channel.id, paused: !checked })}
