@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { beforeEach, expect, it, vi } from 'vitest'
@@ -329,4 +329,33 @@ it('a Básico quote that needs 3DS keeps today’s «Pagar» link', async () => 
   await user.click(screen.getByRole('button', { name: 'Accept and pay with my card' }))
   expect(await screen.findByRole('link', { name: 'Open secure payment' })).toHaveAttribute('href', 'https://invoice.stripe.com/i/test')
   expect(screen.getByText('Your purchase is in progress')).toBeInTheDocument()
+})
+
+it('a double click on «Accept and pay with my card» sends one accept, not a 409 beside «your purchase is active» (re-prueba 18-nov)', async () => {
+  const user = userEvent.setup()
+  const pending: Array<() => void> = []
+  const release = () => pending.splice(0).forEach(go => go())
+  vi.mocked(hybridBilling.accept).mockImplementation(
+    (_v, id) =>
+      new Promise(resolve => {
+        pending.push(() => {
+          vi.mocked(hybridBilling.purchase).mockResolvedValue({ ...purchase, status: 'PAYMENT_PENDING' } as any)
+          resolve({ purchaseId: id, status: 'PAYMENT_PENDING', paymentUrl: 'https://invoice.stripe.com/i/test' })
+        })
+      }),
+  )
+  mount()
+  await user.click(await screen.findByRole('button', { name: 'Add offer' }))
+  await user.click(screen.getByRole('button', { name: 'Review quote' }))
+  await user.click(await screen.findByRole('checkbox', { name: /I accept today/ }))
+  const accept = screen.getByRole('button', { name: 'Accept terms and continue to payment' })
+  // Two clicks in the same instant: `busy` only disables the button after the next render.
+  act(() => {
+    accept.click()
+    accept.click()
+  })
+  await waitFor(() => expect(hybridBilling.accept).toHaveBeenCalled())
+  await act(async () => release())
+  expect(hybridBilling.accept).toHaveBeenCalledTimes(1)
+  expect(await screen.findByRole('link', { name: 'Open secure payment' })).toBeInTheDocument()
 })
