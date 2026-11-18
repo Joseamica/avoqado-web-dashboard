@@ -219,7 +219,8 @@ describe('ProductWizardDialog · editar un producto', () => {
     [/products\/p1\/recipe/, { data: null }],
     [/menucategories/, []],
     [/modifier-groups/, []],
-    [/should-use-inventory/, { data: { shouldUse: false } }],
+    // Premium según el SERVIDOR: la receta la decide su respuesta (na1d52b5, Codex r4 #6), no el cálculo del panel.
+    [/should-use-inventory/, { data: { shouldUse: false, hasInventoryFeature: true } }],
   ]
   const abrir = () => pintar(<ProductWizardDialog open onOpenChange={() => {}} mode="edit" productId="p1" />, { rutas: RUTAS })
   const guardar = () => screen.findByRole('button', { name: 'save' })
