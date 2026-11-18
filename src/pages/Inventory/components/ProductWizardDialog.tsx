@@ -392,8 +392,12 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
     },
     enabled: !!venueId && open,
     // Un reintento como máximo (la petición no se repite sola por la red, `shouldUseInventory`), con 10 s cada uno: si no contesta,
-    // el aviso sale en ~21 s, no «Cargando…» sin fin (na1d52b5, Codex r4 #8 y r5 #3).
-    retry: 1,
+    // el aviso sale en ~21 s, no «Cargando…» sin fin (na1d52b5, Codex r4 #8 y r5 #3). Un 4xx (p. ej. 403) es definitivo: no se reintenta,
+    // así el «sí» de antes no sigue a la vista mientras se reintenta (Codex r11 #3).
+    retry: (veces, error) => {
+      const estado = (error as { response?: { status?: number } } | null)?.response?.status
+      return veces < 1 && !(estado !== undefined && estado >= 400 && estado < 500)
+    },
   })
   // Si la consulta falló o se pausó sin red (aunque haya una respuesta de antes), no se usa la vieja: la sección lo dice (Codex r9 #3). Y
   // mientras se reintenta tras un error, tampoco: «Cargando…» hasta que conteste (r10 #3).
