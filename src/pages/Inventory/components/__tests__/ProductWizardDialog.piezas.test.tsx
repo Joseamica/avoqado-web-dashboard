@@ -8,7 +8,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { configure, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
-import { QueryClient, QueryClientProvider, focusManager, onlineManager } from '@tanstack/react-query'
+import { QueryClient, QueryClientProvider, onlineManager } from '@tanstack/react-query'
 
 configure({ asyncUtilTimeout: 5000 })
 
@@ -60,11 +60,6 @@ vi.mock('@/hooks/use-tier-feature-access', () => ({
     requiredTier: 'PRO',
   }),
 }))
-const quien = vi.hoisted(() => ({ rol: 'OWNER' as string }))
-vi.mock('@/hooks/use-access', async original => {
-  const real = await original<typeof import('@/hooks/use-access')>()
-  return { ...real, useAccess: () => ({ ...real.useAccess(), role: quien.rol }) }
-})
 vi.mock('@/hooks/use-print-stations', () => ({
   usePrintStations: () => ({ data: access.stations ? [{ id: 'station1', name: 'Empaque', active: true }] : [], isLoading: false }),
 }))
@@ -211,7 +206,6 @@ const RECOMENDACION_SIN_PREMIUM = {
 // El asistente es pesado (formulario completo + combobox): con la Mac cargada rozaba los 5 s por defecto.
 describe('na1d52b5 · contar piezas al dar de alta en todos los planes', { timeout: 20_000 }, () => {
   beforeEach(() => {
-    quien.rol = 'OWNER'
     access.inventory = false // Gratis o Pro: sin INVENTORY_TRACKING
     inventory.productWizardApi.shouldUseInventory.mockResolvedValue({ data: { data: RECOMENDACION_SIN_PREMIUM } })
   })
@@ -252,131 +246,6 @@ describe('na1d52b5 · contar piezas al dar de alta en todos los planes', { timeo
     expect(opener('inventory')).toBeDisabled()
   })
 
-  it('marca blanca o exento: el cálculo del panel dice «sin Premium» pero el SERVIDOR dice que sí: la receta se abre (Codex r4 #6)', async () => {
-    access.inventory = false
-    inventory.productWizardApi.shouldUseInventory.mockResolvedValue({
-      data: { data: { hasInventoryFeature: true, recommendation: 'wizard.step2.recommendationEnabled' } },
-    })
-    mount({ productType: 'FOOD_AND_BEV' })
-    await waitFor(() => expect(opener('recipe')).toBeEnabled())
-  })
-
-  it('al volver a abrir no usa la respuesta de la apertura anterior: espera la nueva (Codex r4 #4)', async () => {
-    const asistente = mount({ productType: 'FOOD_AND_BEV' })
-    await waitFor(() => expect(opener('recipe')).toBeDisabled()) // primera apertura: sin Premium
-    let soltar!: (v: unknown) => void
-    inventory.productWizardApi.shouldUseInventory.mockReturnValue(new Promise(r => (soltar = r)))
-    asistente.reopen() // mientras tanto el negocio subió a Premium
-    await waitFor(() => expect(opener('inventory')).toHaveTextContent('loading'))
-    soltar({ data: { data: { hasInventoryFeature: true, recommendation: 'wizard.step2.recommendationEnabled' } } })
-    await waitFor(() => expect(opener('recipe')).toBeEnabled())
-  })
-
-  it('una petición de la apertura ANTERIOR que llega después de reabrir no decide el plan (Codex r5 #2)', async () => {
-    let soltarVieja!: (v: unknown) => void
-    inventory.productWizardApi.shouldUseInventory.mockReturnValueOnce(new Promise(r => (soltarVieja = r)))
-    const asistente = mount({ productType: 'FOOD_AND_BEV' })
-    await waitFor(() => expect(inventory.productWizardApi.shouldUseInventory).toHaveBeenCalledTimes(1))
-    asistente.reopen() // el negocio bajó de plan mientras tanto: la apertura nueva pregunta de nuevo
-    await waitFor(() => expect(inventory.productWizardApi.shouldUseInventory).toHaveBeenCalledTimes(2))
-    await waitFor(() => expect(opener('recipe')).toBeDisabled())
-    soltarVieja({ data: { data: { hasInventoryFeature: true, recommendation: 'wizard.step2.recommendationEnabled' } } })
-    await new Promise(r => setTimeout(r, 150))
-    expect(opener('recipe')).toBeDisabled()
-  })
-
-  it('superadmin de verdad: la receta se abre aunque la recomendación diga «sin Premium» (SERVIDOR viejo, Codex r5 #4)', async () => {
-    quien.rol = 'SUPERADMIN'
-    mount({ productType: 'FOOD_AND_BEV' })
-    await waitFor(() => expect(opener('recipe')).toBeEnabled())
-    expect(screen.queryByText('wizard.step2.premiumBadge')).toBeNull()
-  })
-
-  it('superadmin guardado en el panel, pero el SERVIDOR nuevo (que contesta por quien pregunta) dice «sin Premium»: manda el SERVIDOR (Codex r6 #2)', async () => {
-    quien.rol = 'SUPERADMIN'
-    inventory.productWizardApi.shouldUseInventory.mockResolvedValue({
-      data: { data: { ...RECOMENDACION_SIN_PREMIUM, segunQuienPregunta: true } },
-    })
-    mount({ productType: 'FOOD_AND_BEV' })
-    await waitFor(() => expect(screen.getAllByText('wizard.step2.premiumBadge').length).toBeGreaterThan(0))
-    expect(opener('recipe')).toBeDisabled()
-  })
-
-  it('«Nuevo producto» no hereda la respuesta que leyó «Editar producto» (las dos ventanas viven montadas a la vez, Codex r6 #1)', async () => {
-    const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
-    const ui = (editar: boolean, nuevo: boolean) => (
-      <QueryClientProvider client={client}>
-        <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-          <ProductWizardDialog open={editar} onOpenChange={() => undefined} mode="edit" productType="REGULAR" productId="p1" />
-          <ProductWizardDialog open={nuevo} onOpenChange={() => undefined} mode="create" productType="FOOD_AND_BEV" />
-        </MemoryRouter>
-      </QueryClientProvider>
-    )
-    inventory.productWizardApi.shouldUseInventory.mockResolvedValue({
-      data: { data: { hasInventoryFeature: true, recommendation: 'wizard.step2.recommendationEnabled', segunQuienPregunta: true } },
-    })
-    // Como en Artículos: las dos ventanas nacen montadas y cerradas, y cada una cuenta sus aperturas desde cero.
-    const vista = render(ui(false, false))
-    vista.rerender(ui(true, false)) // la edición lee «con Premium»
-    await waitFor(() => expect(inventory.productWizardApi.shouldUseInventory).toHaveBeenCalledTimes(1))
-    await new Promise(r => setTimeout(r, 50))
-    vista.rerender(ui(false, false))
-    inventory.productWizardApi.shouldUseInventory.mockReturnValue(new Promise(() => {})) // el negocio bajó a Pro; la respuesta tarda
-    vista.rerender(ui(false, true))
-    await waitFor(() => expect(inventory.productWizardApi.shouldUseInventory).toHaveBeenCalledTimes(2))
-    await new Promise(r => setTimeout(r, 100))
-    expect(opener('recipe')).toBeDisabled() // sin respuesta propia todavía: nada se abre con la de la otra ventana
-  })
-
-  it('con la ventana abierta cambia el rol (sale de una suplantación): vuelve a preguntar y usa la respuesta nueva (Codex r7 #1)', async () => {
-    quien.rol = 'ADMIN'
-    inventory.productWizardApi.shouldUseInventory.mockResolvedValue({
-      data: { data: { ...RECOMENDACION_SIN_PREMIUM, segunQuienPregunta: true } },
-    })
-    const asistente = mount({ productType: 'FOOD_AND_BEV' })
-    await waitFor(() => expect(screen.getAllByText('wizard.step2.premiumBadge').length).toBeGreaterThan(0))
-    quien.rol = 'SUPERADMIN'
-    inventory.productWizardApi.shouldUseInventory.mockResolvedValue({
-      data: { data: { hasInventoryFeature: true, recommendation: 'wizard.step2.recommendationEnabled', segunQuienPregunta: true } },
-    })
-    asistente.refresh()
-    await waitFor(() => expect(opener('recipe')).toBeEnabled())
-  })
-
-  it('si la consulta vuelve a preguntar y falla, no se queda con el «sí» de antes: lo dice y cierra la receta (Codex r7 #2)', async () => {
-    inventory.productWizardApi.shouldUseInventory.mockResolvedValue({
-      data: { data: { hasInventoryFeature: true, recommendation: 'wizard.step2.recommendationEnabled', segunQuienPregunta: true } },
-    })
-    mount({ productType: 'FOOD_AND_BEV' })
-    await waitFor(() => expect(opener('recipe')).toBeEnabled())
-    inventory.productWizardApi.shouldUseInventory.mockRejectedValue({ response: { status: 503 } })
-    focusManager.setFocused(false)
-    focusManager.setFocused(true) // vuelve a la pestaña: la consulta se repite y falla (con su reintento)
-    try {
-      await waitFor(() => expect(opener('recipe')).toBeDisabled(), { timeout: 5_000 })
-    } finally {
-      focusManager.setFocused(undefined)
-    }
-  })
-
-  it('editar un producto con receta mientras la recomendación no llega: dice «Cargando…», nunca ofrece subir a Premium (Codex r5 #4)', async () => {
-    inventory.productWizardApi.shouldUseInventory.mockReturnValue(new Promise(() => {}))
-    inventory.productWizardApi.getWizardProgress.mockResolvedValue({ data: { data: { inventoryMethod: 'RECIPE', details: {} } } })
-    inventory.recipesApi.get.mockResolvedValue({
-      data: {
-        data: {
-          portionYield: 1,
-          lines: [{ rawMaterialId: 'rm1', rawMaterial: { name: 'Café molido' }, quantity: '1', unit: 'KILOGRAM', isOptional: false }],
-        },
-      },
-    })
-    mount({ mode: 'edit' })
-    await screen.findByDisplayValue('Café en grano')
-    await screen.findByTestId('receta-esperando-plan')
-    expect(screen.queryByText('wizard.step2.recipePremiumTitle')).toBeNull()
-    expect(screen.queryByText('wizard.step2.premiumBadge')).toBeNull()
-  })
-
   it('sin internet la consulta se pausa: tampoco se queda en «Cargando…» (Codex r2 #6)', async () => {
     onlineManager.setOnline(false)
     try {
@@ -385,15 +254,6 @@ describe('na1d52b5 · contar piezas al dar de alta en todos los planes', { timeo
     } finally {
       onlineManager.setOnline(true)
     }
-  })
-
-  it('el panel dice «con Premium» (plan sin cargar, marca blanca) pero el SERVIDOR dice que no: la receta sigue cerrada (Codex r2 #5)', async () => {
-    access.inventory = true // el cálculo del panel falla abierto
-    mount({ productType: 'REGULAR' })
-    await fillProduct()
-    await waitFor(() => expect(opener('inventory')).toBeEnabled())
-    await userEvent.click(opener('inventory'))
-    expect(document.getElementById('recipe-based-left')).toBeDisabled()
   })
 
   it('editar un producto en Gratis/Pro: las piezas siguen siendo Premium y lo dice (no se ofrece algo que fallaría)', async () => {
