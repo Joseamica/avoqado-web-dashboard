@@ -157,6 +157,9 @@ export enum NotificationType {
   VENUE_SUSPENDED = 'VENUE_SUSPENDED',
   HIGH_COMMISSION_ALERT = 'HIGH_COMMISSION_ALERT',
   REVENUE_MILESTONE = 'REVENUE_MILESTONE',
+  // Plan Básico: la preferencia de los avisos SIN cobro («Tu prueba termina/terminó», «Tu Pro terminó»). Reservado: nadie manda
+  // avisos con este tipo; sólo se guarda su preferencia, siempre con sus canales explícitos.
+  SUBSCRIPTION_CANCELLED = 'SUBSCRIPTION_CANCELLED',
 
   // General
   ANNOUNCEMENT = 'ANNOUNCEMENT',

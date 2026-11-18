@@ -29,6 +29,8 @@ const confirmSetup = vi.fn()
 const trackPurchase = vi.fn()
 const track = vi.fn()
 
+const getPublicBasicPlan = vi.hoisted(() => vi.fn())
+vi.mock('@/services/hybridBilling.service', () => ({ getPublicBasicPlan: (...a: unknown[]) => getPublicBasicPlan(...a) }))
 const pagoListo = vi.hoisted(() => ({ auto: true, fallaCarga: false }))
 const secretMontado = vi.hoisted(() => ({ actual: undefined as string | undefined }))
 vi.mock('@/services/setup.service', () => ({
@@ -170,6 +172,8 @@ async function pagar() {
 const elegirPremium = () => screen.getByRole('button', { name: 'Elegir Premium' })
 
 beforeEach(() => {
+  getPublicBasicPlan.mockReset().mockResolvedValue(null)
+  localStorage.clear()
   activatePlan.mockReset()
   saveStep.mockReset().mockResolvedValue({})
   planSetupIntent.mockReset().mockResolvedValue({ data: { data: { clientSecret: 'seti_secret' } } })
@@ -1217,5 +1221,66 @@ describe('OfferStep — embudo de la tarjeta en PostHog (27-oct)', () => {
     await screen.findByText(/Confirmando tu pago/i)
     await user.keyboard('{Escape}')
     expect(track).not.toHaveBeenCalledWith('plan_card_closed', expect.anything())
+  })
+})
+
+describe('OfferStep — Plan Básico (alta corta)', () => {
+  const BASICO = {
+    slug: 'plan-basico',
+    name: 'Plan Básico',
+    priceWithTax: '578.84',
+    priceWithoutTax: '499.00',
+    featureCodes: ['KITCHEN_DISPLAY'],
+    seatCap: null,
+    trialDays: 30,
+    publicationId: 'pub_1',
+  }
+
+  it('sin Básico publicado no hay tarjeta (regresión)', async () => {
+    pintar({ launchOffer: null })
+    await screen.findByRole('button', { name: 'Elegir Pro' })
+    expect(screen.queryByText('Plan Básico')).not.toBeInTheDocument()
+  })
+
+  it('elegirlo abre la ventana de la prueba y manda el cuerpo del Básico: Pro mensual, sin pagar hoy, sin la campaña', async () => {
+    getPublicBasicPlan.mockResolvedValue(BASICO)
+    activatePlan.mockResolvedValue({ ...EXITO, data: { data: { ...EXITO.data.data, firstChargeCents: 0, trialModality: 'ENDS_FREE' } } })
+    pintar()
+    const user = userEvent.setup()
+    // Alta corta: el Básico se elige con su botón, como las demás tarjetas (full-testing 17-nov).
+    await user.click(await screen.findByRole('button', { name: 'Elegir Plan Básico' }))
+    await waitFor(() => expect(screen.getByTestId('payment-element')).toBeInTheDocument())
+    const ventana = screen.getByRole('dialog')
+    expect(within(ventana).getByText('Plan Básico')).toBeInTheDocument()
+    await user.click(within(ventana).getByRole('button', { name: /30 días gratis/i }))
+
+    await waitFor(() => expect(activatePlan).toHaveBeenCalledTimes(1))
+    const cuerpo = activatePlan.mock.calls[0][1]
+    expect(cuerpo).toMatchObject({ tier: 'PRO', interval: 'monthly', payNow: false, basicPlan: true, paymentMethodId: 'pm_123' })
+    expect(cuerpo.offer.kind).toBe('STANDARD')
+    await waitFor(() => expect(onActivated).toHaveBeenCalled())
+    expect(onActivated.mock.calls[0][0].trialModality).toBe('ENDS_FREE')
+    expect(saveStep.mock.calls[0][2].plan).toMatchObject({ tier: 'PRO', basicPlan: true, payNow: false })
+  })
+
+  it('elegir Pro normal después NO manda basicPlan', async () => {
+    getPublicBasicPlan.mockResolvedValue(BASICO)
+    activatePlan.mockResolvedValue(EXITO)
+    pintar({ launchOffer: null })
+    const user = userEvent.setup()
+    await user.click(await screen.findByRole('button', { name: 'Elegir Pro' }))
+    await waitFor(() => expect(screen.getByTestId('payment-element')).toBeInTheDocument())
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: /30 días gratis/i }))
+    await waitFor(() => expect(activatePlan).toHaveBeenCalledTimes(1))
+    expect(activatePlan.mock.calls[0][1].basicPlan).toBeUndefined()
+  })
+
+  it('hybridOffer = slug del Básico: su tarjeta llega marcada y Pro pierde el «Recomendado»', async () => {
+    getPublicBasicPlan.mockResolvedValue(BASICO)
+    pintar({ launchOffer: null, data: { hybridOfferSlug: 'plan-basico' } })
+    await waitFor(() => expect(document.querySelector('[data-tour="plan-card-basic"]')!.className).toContain('border-primary'))
+    // Marcada = su botón es el fuerte, como el de la tarjeta destacada.
+    expect(screen.getByRole('button', { name: 'Elegir Plan Básico' }).className).not.toContain('border-input')
+    expect(screen.queryByText('Recomendado')).not.toBeInTheDocument()
   })
 })

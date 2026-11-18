@@ -64,6 +64,8 @@ export interface SetupData {
     interval?: 'monthly' | 'annual'
     payNow?: boolean
     acceptedAt?: string
+    /** Plan Básico: la prueba de Pro que termina sola sin cobrar (sólo PRO mensual, sin pagar hoy). */
+    basicPlan?: boolean
   }
   // Step 9: TPV Purchase (optional)
   // Spec: ../../../avoqado-server/docs/superpowers/specs/2026-05-29-onboarding-tpv-purchase-design.md

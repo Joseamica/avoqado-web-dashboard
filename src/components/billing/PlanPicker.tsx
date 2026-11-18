@@ -1,5 +1,5 @@
 // src/components/billing/PlanPicker.tsx
-import { Fragment, useMemo, useState } from 'react'
+import { Fragment, useMemo, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Check, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -26,15 +26,6 @@ const ACCENT_BG: Record<PlanTierDef['accent'], string> = {
 const PRINCIPALES_VISIBLES = 4
 
 const fmt = (n: number) => `$${n.toLocaleString('es-MX')}`
-/** Centavos del servidor → «$1,158.84». Siempre con los dos decimales: es el monto que se cobra. */
-const fmtCents = (c: number) => `$${(c / 100).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-
-/** Precio de un plan tal como lo cotizó el servidor, en centavos y CON IVA (lo que se cobra). */
-export interface PrecioConIva {
-  monthlyCents: number
-  annualCents: number
-}
-
 /**
  * What `currentTier` means to the caller.
  *
@@ -67,12 +58,19 @@ interface PlanPickerProps {
   /** See {@link PlanSelectionMode}. Defaults to `'owned'` (billing portal semantics). */
   selectionMode?: PlanSelectionMode
   /**
-   * Precios cotizados por el servidor, con IVA. Cuando vienen (el alta), la tarjeta pinta ESE
-   * monto y dice «IVA incluido»: en México el precio que se ve es el que se paga, y la misma
-   * pantalla ya habla en montos con IVA. Sin ellos (Facturación, conversión) se usa el catálogo
-   * «+ IVA» de siempre.
+   * Tarjeta extra a la IZQUIERDA de las demás (el Plan Básico del alta). Con ella la cuadrícula cuenta 4 columnas
+   * contándola, y Pro conserva su «Más popular».
    */
-  preciosConIva?: Partial<Record<TierId, PrecioConIva>>
+  leadingCard?: ReactNode
+  /**
+   * Precios SIN IVA que publica el servidor (el alta). Presentes ⇒ la tarjeta pinta ESE monto + «+ IVA», el mismo que
+   * consiente el cobro; ausentes ⇒ el del catálogo. Nunca se derivan aquí.
+   */
+  preciosSinIva?: Partial<Record<TierId, { monthlyNetCents: number; annualNetCents: number }>>
+  /** El plan elegido sólo existe mensual (el Básico): el selector Mensual/Anual se apaga en vez de no hacer nada. */
+  intervalLocked?: boolean
+  /** La tarjeta de `leadingCard` es la elegida: ninguna de las demás se pinta como elegida. */
+  leadingSelected?: boolean
 }
 
 export function PlanPicker({
@@ -82,7 +80,10 @@ export function PlanPicker({
   onIntervalChange,
   promoNotes,
   selectionMode = 'owned',
-  preciosConIva,
+  leadingCard,
+  leadingSelected = false,
+  preciosSinIva,
+  intervalLocked = false,
 }: PlanPickerProps) {
   const { t } = useTranslation('billing')
   const [internalInterval, setInternalInterval] = useState<'monthly' | 'annual'>('monthly')
@@ -108,9 +109,10 @@ export function PlanPicker({
             <button
               key={i}
               type="button"
+              disabled={intervalLocked}
               onClick={() => setInterval(i)}
               className={cn(
-                'inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-semibold transition cursor-pointer',
+                'inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-semibold transition cursor-pointer disabled:cursor-not-allowed disabled:opacity-50',
                 interval === i ? 'bg-foreground text-background' : 'text-muted-foreground',
               )}
             >
@@ -133,21 +135,28 @@ export function PlanPicker({
       {/* Cards */}
       <div
         // Todas las tarjetas miden lo mismo de alto (founder, 25-sep): una fila pareja se compara mejor.
-        className="grid grid-cols-1 gap-4 @lg:grid-cols-2 @4xl:grid-cols-4"
+        className={cn(
+          'grid grid-cols-1 gap-4 @lg:grid-cols-2',
+          // Una columna por tarjeta en el ancho máximo: con el Básico son 5 y Enterprise no se queda sola en otra fila.
+          leadingCard ? '@4xl:grid-cols-5' : '@4xl:grid-cols-4',
+        )}
         {...(selectionMode === 'choice' ? { role: 'radiogroup', 'aria-label': t('plan.chooseAria') } : {})}
       >
         {tiers.map(tier => (
-          <PlanCard
-            key={tier.id}
-            tier={tier}
-            interval={interval}
-            selectionMode={selectionMode}
-            isCurrent={tier.id === currentTier}
-            isDowngrade={TIER_ORDER.indexOf(tier.id) < TIER_ORDER.indexOf(currentTier)}
-            promoNote={promoNotes?.[tier.id]}
-            precioConIva={preciosConIva?.[tier.id]}
-            onSelect={() => onSelectTier(tier.id, interval)}
-          />
+          <Fragment key={tier.id}>
+            {/* Gratis · Básico · Pro · Premium · Enterprise: el Básico va justo a la izquierda de Pro. */}
+            {tier.id === 'PRO' && leadingCard}
+            <PlanCard
+              tier={tier}
+              interval={interval}
+              selectionMode={selectionMode}
+              isCurrent={!leadingSelected && tier.id === currentTier}
+              isDowngrade={TIER_ORDER.indexOf(tier.id) < TIER_ORDER.indexOf(currentTier)}
+              promoNote={promoNotes?.[tier.id]}
+              precioSinIva={preciosSinIva?.[tier.id]}
+              onSelect={() => onSelectTier(tier.id, interval)}
+            />
+          </Fragment>
         ))}
       </div>
     </div>
@@ -161,7 +170,7 @@ function PlanCard({
   isCurrent,
   isDowngrade,
   promoNote,
-  precioConIva,
+  precioSinIva,
   onSelect,
 }: {
   tier: PlanTierDef
@@ -170,7 +179,7 @@ function PlanCard({
   isCurrent: boolean
   isDowngrade: boolean
   promoNote?: string
-  precioConIva?: PrecioConIva
+  precioSinIva?: { monthlyNetCents: number; annualNetCents: number }
   onSelect: () => void
 }) {
   const { t } = useTranslation('billing')
@@ -178,7 +187,16 @@ function PlanCard({
   const tierName = t(`plan.tiers.${tier.key}.name`)
   // Always show the effective MONTHLY price as the headline; annual shows the per-month
   // equivalent with the yearly total in the subtitle (matches the approved mockup).
-  const monthlyEquiv = interval === 'monthly' ? tier.priceMonthly : tier.priceAnnual != null ? Math.round(tier.priceAnnual / 12) : null
+  const precioAnual = precioSinIva ? precioSinIva.annualNetCents / 100 : tier.priceAnnual
+  const monthlyEquiv = precioSinIva
+    ? interval === 'monthly'
+      ? precioSinIva.monthlyNetCents / 100
+      : Math.round(precioSinIva.annualNetCents / 12) / 100
+    : interval === 'monthly'
+      ? tier.priceMonthly
+      : tier.priceAnnual != null
+        ? Math.round(tier.priceAnnual / 12)
+        : null
 
   const isChoice = selectionMode === 'choice'
   const [verTodos, setVerTodos] = useState(false)
@@ -269,14 +287,10 @@ function PlanCard({
             <span className="text-xl font-extrabold">{t('plan.cta.contact')}</span>
           ) : (
             <>
-              <span className="text-3xl font-extrabold tracking-tight">
-                {precioConIva
-                  ? fmtCents(interval === 'monthly' ? precioConIva.monthlyCents : Math.round(precioConIva.annualCents / 12))
-                  : fmt(monthlyEquiv)}
-              </span>
+              <span className="text-3xl font-extrabold tracking-tight">{fmt(monthlyEquiv)}</span>
               <span className="whitespace-nowrap text-xs text-muted-foreground">
                 {t('plan.perMonth')}
-                {monthlyEquiv > 0 && <> · {precioConIva ? t('plan.ivaIncluded') : t('plan.plusIva')}</>}
+                {monthlyEquiv > 0 && <> · {t('plan.plusIva')}</>}
               </span>
             </>
           )}
@@ -286,8 +300,8 @@ function PlanCard({
             ? t('plan.forever')
             : tier.priceMonthly === null
               ? ''
-              : interval === 'annual' && tier.priceAnnual != null
-                ? t('plan.annualEquiv', { price: precioConIva ? fmtCents(precioConIva.annualCents) : fmt(tier.priceAnnual) })
+              : interval === 'annual' && precioAnual != null
+                ? t('plan.annualEquiv', { price: fmt(precioAnual) })
                 : t('plan.billedMonthly')}
         </div>
         {promoNote && <div className="rounded-lg bg-emerald-400/10 px-2.5 py-1.5 text-xs font-medium text-emerald-500">{promoNote}</div>}

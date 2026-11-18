@@ -59,6 +59,10 @@ export default function ShortSetupWizard({ organizationId }: ShortSetupWizardPro
   const [guardando, setGuardando] = useState(false)
   const [errorFinal, setErrorFinal] = useState<string | null>(null)
   const reclamoIntentado = useRef(false)
+  // Modalidad REAL de la prueba: de la respuesta directa del cobro, o (al reanudar) de `GET progress`.
+  const [modalidadDirecta, setModalidadDirecta] = useState<{ trialModality?: 'RENEWS_AS_PRO' | 'ENDS_FREE'; trialEndsAt?: string } | null>(
+    null,
+  )
 
   const {
     data: progressData,
@@ -246,7 +250,10 @@ export default function ShortSetupWizard({ organizationId }: ShortSetupWizardPro
             launchOffer={launchOffer}
             planQuote={planQuote}
             data={datos}
-            onActivated={() => setPantalla('done')}
+            onActivated={result => {
+              setModalidadDirecta({ trialModality: result?.trialModality, trialEndsAt: result?.trialEndsAt })
+              setPantalla('done')
+            }}
             onFinish={() => void terminar()}
             // Devuelve la PROMESA: «Volver a comprobar» se queda apagado hasta que el progreso llega (Codex R12).
             onRefreshProgress={async () => {
@@ -258,7 +265,14 @@ export default function ShortSetupWizard({ organizationId }: ShortSetupWizardPro
         )}
 
         {pantalla === 'done' && (
-          <SetupDoneStep onFinish={terminar} saving={guardando} error={errorFinal} businessName={datos.businessName} />
+          <SetupDoneStep
+            onFinish={terminar}
+            saving={guardando}
+            error={errorFinal}
+            businessName={datos.businessName}
+            trialModality={modalidadDirecta?.trialModality ?? progress?.planActivation?.trialModality ?? undefined}
+            trialEndsAt={modalidadDirecta?.trialEndsAt ?? progress?.planActivation?.trialEndsAt ?? undefined}
+          />
         )}
       </div>
     </SetupWizardLayout>

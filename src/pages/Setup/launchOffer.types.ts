@@ -87,6 +87,8 @@ export interface ActivatePlanBody {
   paymentMethodId: string
   offer: ActivatePlanOffer
   language?: 'es' | 'en'
+  /** Plan Básico: la prueba de Pro que termina sola sin cobrar. Sólo con PRO mensual y `payNow: false`. */
+  basicPlan?: boolean
 }
 
 export interface ActivatePlanResult {
@@ -97,6 +99,9 @@ export interface ActivatePlanResult {
   firstChargeCents: number
   nextChargeAt: string
   launchOffer?: { code: string; offerVersion: number; months: number; renewalMonthlyCents: number }
+  /** Plan Básico: cómo termina la prueba, leído de la suscripción REAL. Sin prueba no viaja. */
+  trialModality?: 'RENEWS_AS_PRO' | 'ENDS_FREE'
+  trialEndsAt?: string
 }
 
 /** Códigos de error de `activate-plan` que la pantalla trata de forma distinta (§4.5). */

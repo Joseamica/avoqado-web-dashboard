@@ -279,6 +279,7 @@
     "noResults": "No venues found.",
     "tier": {
       "free": "Free",
+      "basic": "Basic",
       "pro": "Pro",
       "premium": "Premium",
       "enterprise": "Enterprise"

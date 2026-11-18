@@ -12,6 +12,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import enSetup from '@/locales/en/setup.json'
 import esSetup from '@/locales/es/setup.json'
+import esBilling from '@/locales/es/billing.json'
 
 import type { LaunchOfferView, PlanQuote } from '../../../launchOffer.types'
 import { TarjetasDePlanes } from '../TarjetasDePlanes'
@@ -24,9 +25,9 @@ beforeAll(async () => {
   await i18n.use(initReactI18next).init({
     lng: 'es',
     fallbackLng: false,
-    ns: ['setup'],
+    ns: ['setup', 'billing'],
     defaultNS: 'setup',
-    resources: { es: { setup: esSetup }, en: { setup: enSetup } },
+    resources: { es: { setup: esSetup, billing: esBilling }, en: { setup: enSetup } },
     interpolation: { escapeValue: false },
   })
 })
@@ -291,5 +292,55 @@ describe('TarjetasDePlanes — viñetas según el giro (D13)', () => {
     } finally {
       await i18n.changeLanguage('es')
     }
+  })
+})
+
+describe('TarjetasDePlanes con el Plan Básico', () => {
+  const BASICO = {
+    slug: 'plan-basico',
+    name: 'Plan Básico',
+    priceWithTax: '578.84',
+    priceWithoutTax: '499.00',
+    featureCodes: ['KITCHEN_DISPLAY'],
+    seatCap: null,
+    trialDays: 30,
+    publicationId: 'pub_1',
+  }
+  const orden = () =>
+    Array.from(document.querySelectorAll<HTMLElement>('[data-plan], [data-tour="plan-card-basic"]')).map(e => e.dataset.plan ?? 'BASICO')
+
+  it('el Básico va justo a la izquierda de Pro, con su precio sin IVA y las 4 tarjetas en una fila', () => {
+    pinta({ planBasico: BASICO })
+    expect(orden()).toEqual(['BASICO', 'PRO', 'PREMIUM', 'ENTERPRISE'])
+    expect(screen.getByText('$499')).toBeInTheDocument()
+    expect(document.querySelector('[data-plan="PRO"]')!.parentElement!.className).toContain('lg:grid-cols-4')
+  })
+
+  it('«Elegir Plan Básico» (su botón, como las demás tarjetas) avisa onElegirBasico y no elige Pro', async () => {
+    const onElegirBasico = vi.fn()
+    const { onElegir } = pinta({ planBasico: BASICO, onElegirBasico })
+    // Full-testing 17-nov: la tarjeta Básico del alta corta no tenía botón «Elegir».
+    expect(screen.queryByRole('radio', { name: /Plan Básico/ })).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Elegir Plan Básico' }))
+    expect(onElegirBasico).toHaveBeenCalledTimes(1)
+    expect(onElegir).not.toHaveBeenCalled()
+  })
+
+  it('con basicoRecomendado la tarjeta queda marcada y Pro pierde «Recomendado» y su borde fuerte', () => {
+    pinta({ planBasico: BASICO, basicoRecomendado: true })
+    expect(document.querySelector('[data-tour="plan-card-basic"]')!.className).toContain('border-primary')
+    expect(screen.queryByText('Recomendado')).not.toBeInTheDocument()
+    expect(tarjeta('PRO').className).not.toContain('border-primary')
+  })
+
+  it('con el cobro bloqueado el botón del Básico también queda apagado', () => {
+    pinta({ planBasico: BASICO, bloqueado: true })
+    expect(screen.getByRole('button', { name: 'Elegir Plan Básico' })).toBeDisabled()
+  })
+
+  it('sin Básico siguen las 3 tarjetas en 3 columnas (regresión)', () => {
+    pinta()
+    expect(orden()).toEqual(['PRO', 'PREMIUM', 'ENTERPRISE'])
+    expect(tarjeta('PRO').parentElement!.className).toContain('lg:grid-cols-3')
   })
 })

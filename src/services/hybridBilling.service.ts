@@ -21,8 +21,9 @@ export type HybridOffer = {
   definition: HybridDefinition
   includedFeatureCodes: string[]
   purchaseAvailable: boolean
-  placesRemaining: number
-  endsAt: string
+  /** null = no seat cap and no end date: the Plan Básico, a list price that never ends. */
+  placesRemaining: number | null
+  endsAt: string | null
 }
 export type HybridPage<T> = { items: T[]; total: number; page: number; pageSize: number; totalPages?: number }
 export type HybridLineInput = { publicationId: string; selectedFeatureCodes: string[] }
@@ -39,6 +40,8 @@ export type HybridQuote = {
   featureCodes: string[]
   /** Spec §4.5: a function a replaced contract paid alone moves to today's price (pesos strings, '599.00'). */
   repriced?: { featureCode: string; from: string; to: string }[]
+  /** The one-click Plan Básico: the saved card frozen in the quote, charged at acceptance (absent = hosted «Pagar»). */
+  paymentMethodId?: string
 }
 export type HybridPurchase = {
   id: string
@@ -48,6 +51,8 @@ export type HybridPurchase = {
   quoteExpiresAt: string
   paymentExpiresAt: string | null
   lastIssue: string | null
+  /** Only on the quote response: the ending of the card `quote.paymentMethodId` charges. */
+  paymentCard?: { last4: string | null; brand: string | null }
 }
 export type HybridPayment = { purchaseId: string; status: string; paymentUrl?: string | null }
 export type HybridContract = {
@@ -159,8 +164,8 @@ const hybridOfferSchema = z.object({
   definition,
   includedFeatureCodes: codes,
   purchaseAvailable: z.boolean(),
-  placesRemaining: z.number().int().nonnegative(),
-  endsAt: z.string().datetime(),
+  placesRemaining: z.number().int().nonnegative().nullable(),
+  endsAt: z.string().datetime().nullable(),
 })
 // Required fields are runtime-validated; this project's non-strict TS mode makes Zod infer optional keys.
 export const parseHybridOffer = (value: unknown): HybridOffer => hybridOfferSchema.parse(value) as HybridOffer
@@ -185,6 +190,7 @@ const hybridPurchaseSchema = z.object({
   quoteExpiresAt: z.string().datetime(),
   paymentExpiresAt: z.string().datetime().nullable(),
   lastIssue: z.string().nullable(),
+  paymentCard: z.object({ last4: z.string().max(4).nullable(), brand: z.string().max(40).nullable() }).optional(),
   quote: z.object({
     schemaVersion: z.literal(1),
     lines: z
@@ -203,6 +209,7 @@ const hybridPurchaseSchema = z.object({
       .array(z.object({ featureCode: z.string().regex(/^[A-Z][A-Z0-9_]{0,63}$/), from: money, to: money }))
       .max(100)
       .optional(),
+    paymentMethodId: z.string().min(1).max(255).optional(),
   }),
 })
 export const parseHybridPurchase = (value: unknown): HybridPurchase => hybridPurchaseSchema.parse(value) as HybridPurchase
@@ -271,12 +278,30 @@ const featureGridSchema = z.object({
 export const parseFeatureGrid = (value: unknown): FeatureGrid => featureGridSchema.parse(value) as FeatureGrid
 const base = (venueId: string) => `/api/v1/dashboard/venues/${encodeURIComponent(venueId)}/hybrid-billing`
 const data = <T>(response: { data: { data: T } }) => response.data.data
+/** El Plan Básico a la venta (`null` = no hay uno publicado: no hay tarjeta). Precios en pesos, como texto. */
+export type PublicBasicPlan = {
+  slug: string
+  name: string
+  priceWithTax: string
+  priceWithoutTax: string
+  featureCodes: string[]
+  seatCap: number | null
+  trialDays: number
+  publicationId: string
+}
+export const getPublicBasicPlan = (signal?: AbortSignal) =>
+  publicApi.get<{ data: PublicBasicPlan | null }>('/api/v1/public/basic-plan', { signal }).then(data)
 export const hybridBilling = {
-  offers: (params: { page: number; pageSize: number; q?: string }, signal?: AbortSignal) =>
-    publicApi
-      .get<{ data: HybridPage<HybridOffer> }>('/api/v1/public/hybrid-offers', { params, signal })
+  offers: (params: { page: number; pageSize: number; q?: string }, signal?: AbortSignal) => {
+    const pedir = (extra: { includeBasic?: 'true' }) =>
+      publicApi.get<{ data: HybridPage<HybridOffer> }>('/api/v1/public/hybrid-offers', { params: { ...params, ...extra }, signal })
+    // includeBasic: the Plan Básico on sale comes pinned first (servers since Task 5). An older server validates the list
+    // strictly and answers 400 to the unknown filter: ask again without it, so this dashboard can ship before that server.
+    return pedir({ includeBasic: 'true' })
+      .catch((error: { response?: { status?: number } }) => (error?.response?.status === 400 ? pedir({}) : Promise.reject(error)))
       .then(data)
-      .then(page => ({ ...page, items: page.items.map(parseHybridOffer) })),
+      .then(page => ({ ...page, items: page.items.map(parseHybridOffer) }))
+  },
   offer: (slug: string, signal?: AbortSignal) =>
     publicApi
       .get<{ data: HybridOffer }>(`/api/v1/public/hybrid-offers/${encodeURIComponent(slug)}`, { signal })

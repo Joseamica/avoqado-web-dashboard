@@ -132,6 +132,11 @@ export type CancellationReason =
 export interface CancellationInput {
   reason?: CancellationReason
   comment?: string
+  /**
+   * Plan Básico: «Terminar mi Pro al acabar el periodo». El SERVIDOR sólo lo deja en el último periodo con descuento (409 si
+   * no). Ausente = «Cancelar plan» de siempre.
+   */
+  purpose?: 'BASIC_PLAN'
 }
 
 /** The one obligation behind "Tu plan" (server PlanState.origin, spec §4.2). */
@@ -192,6 +197,20 @@ export interface PlanState {
   origin?: PlanOrigin
   /** Whether the retention PAUSE can be applied now (the server runs the same checks as applyRetentionOffer). */
   pauseOfferEligible?: boolean
+  /** Plan Básico: cómo termina la prueba de Pro (`ENDS_FREE` = sin cobrar). `null` fuera de una prueba; un servidor anterior no lo manda. */
+  trialModality?: 'RENEWS_AS_PRO' | 'ENDS_FREE' | null
+  /** Plan Básico: el contrato del Básico (no terminado). `active` = alguna de sus funciones cubre hoy; `price.gross` con IVA. */
+  basicPlan?: { active: boolean; name: string; price: { base: number; gross: number; currency: 'MXN' } | null } | null
+  /**
+   * Plan Básico publicado para este negocio: `availableAt` null = se contrata ya (Gratis); con un Pro vivo, el fin de su
+   * periodo. `canEndProNow` = Pro mensual en su último periodo con descuento (o sin descuento). `null` = no se ofrece.
+   */
+  basicOffer?: {
+    availableAt: string | null
+    price: { base: number; gross: number; currency: 'MXN' }
+    canEndProNow: boolean
+    discountEndsAt: string | null
+  } | null
 }
 
 /** Get the venue's base-plan state. */
@@ -221,6 +240,8 @@ export interface VenuePlanTierInfo {
   accessObservedAt?: string
   commercialPlanTier?: 'PRO' | 'PREMIUM' | null
   grantedFeatureCodes?: string[]
+  /** Plan Básico: el Básico del negocio da acceso hoy (no es un tier). Sólo llega en `true`; un servidor anterior no lo manda. */
+  basicPlanActive?: boolean
 }
 
 /** Get the venue's plan-tier gating signal (readable by every role). */
@@ -236,6 +257,7 @@ const accessInfo = z
       .array(z.string().regex(/^[A-Z][A-Z0-9_]{0,63}$/))
       .max(100)
       .optional(),
+    basicPlanActive: z.boolean().optional(),
   })
   .refine(value => value.accessSchemaVersion !== 1 || (value.accessObservedAt !== undefined && value.grantedFeatureCodes !== undefined))
 // Required fields are runtime-validated; this project's non-strict TS mode makes Zod infer optional keys.

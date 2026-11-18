@@ -49,6 +49,9 @@ import {
 import { PlanCardForm } from './PlanCardForm'
 import { FUENTES_DE_TARJETA, localeDeTarjeta, useAparienciaDeTarjeta } from '../offer/stripeAppearance'
 import { HybridOnboardingButton } from '@/components/billing/HybridOnboardingButton'
+import { usePublicBasicPlan } from '@/hooks/usePublicBasicPlan'
+import { readHybridOffer } from '@/lib/hybridIntent'
+import { fmtPesos } from '@/utils/pesos'
 import { TarjetasDePlanes, type JuegoDeBeneficios } from './planes/TarjetasDePlanes'
 import { VentanaDePago } from './planes/VentanaDePago'
 import type { SetupData } from '../types'
@@ -164,6 +167,11 @@ export function OfferStep({
   const [aviso, setAviso] = useState<string | null>(null)
   // El plan cuya ventana para pagar está abierta (null = viendo las 3 tarjetas).
   const [planElegido, setPlanElegido] = useState<PlanDePago | null>(null)
+  // Plan Básico: se elige como una tarjeta más (a la izquierda de Pro), pero por dentro es Pro mensual, sin pagar hoy.
+  const { plan: planBasico } = usePublicBasicPlan()
+  const [esBasico, setEsBasico] = useState(data?.plan?.basicPlan === true)
+  const slugRecomendado = data?.hybridOfferSlug ?? readHybridOffer()
+  const basicoRecomendado = !!planBasico && !!slugRecomendado && slugRecomendado === planBasico.slug
   const [comparando, setComparando] = useState(false)
   const [desenlace, setDesenlace] = useState<Desenlace>({ tipo: 'nada' })
   // 🔴 UNA regla para el candado del plan: desde que sale el cobro hasta que hay RESPUESTA DEFINITIVA,
@@ -470,7 +478,7 @@ export function OfferStep({
    */
   const pagarPlan = useCallback(
     async (tier: PlanDePago, paymentMethodId: string) => {
-      if (oferta && !verEstandar && tier === oferta.planTier) return pagarLaOferta(paymentMethodId)
+      if (!esBasico && oferta && !verEstandar && tier === oferta.planTier) return pagarLaOferta(paymentMethodId)
       const esperado = expectedStandardFirstChargeCents(planQuote, tier, 'monthly', false)
       if (esperado === null) {
         // 🔴 Sin la cotización del servidor no hay monto que consentir, así que NO se cobra ni se avanza.
@@ -482,6 +490,9 @@ export function OfferStep({
         setRetryToken(n => n + 1)
         return
       }
+      // Plan Básico: si el plan guardado lo eligió (la prueba de Pro que termina sola sin cobrar), viaja en el cuerpo. El
+      // servidor fija la modalidad en el PRIMER create y responde la REAL (`trialModality`).
+      const basico = tier === 'PRO' && esBasico ? ({ basicPlan: true } as const) : {}
       const cuerpo: ActivatePlanBody = {
         tier,
         interval: 'monthly',
@@ -489,6 +500,7 @@ export function OfferStep({
         paymentMethodId,
         offer: { kind: 'STANDARD', expectedFirstChargeCents: esperado },
         language: idioma,
+        ...basico,
       }
       const plan: NonNullable<SetupData['plan']> = {
         tier,
@@ -496,15 +508,18 @@ export function OfferStep({
         interval: 'monthly',
         payNow: false,
         acceptedAt: new Date().toISOString(),
+        ...basico,
       }
       await cobrar(cuerpo, plan)
     },
-    [cobrar, idioma, oferta, pagarLaOferta, planQuote, t, verEstandar],
+    [cobrar, esBasico, idioma, oferta, pagarLaOferta, planQuote, t, verEstandar],
   )
 
   // Abrir la ventana de un plan. Con un cobro sin cerrar no se elige otro (las tarjetas ya están apagadas).
-  const elegir = (tier: PlanDePago) => {
+  const elegir = (tier: PlanDePago, basico = false) => {
     if (planBloqueado()) return
+    // Con la tarjeta Básico a la vista, cada clic es una elección explícita; sin ella manda el plan guardado.
+    if (planBasico) setEsBasico(basico && tier === 'PRO')
     setDesenlace({ tipo: 'nada' })
     setPlanElegido(tier)
     // La pantalla de la tarjeta es donde se cae casi todo el alta (7 de 8 el 26-oct): abrirla y cerrarla sin pagar son
@@ -654,7 +669,7 @@ export function OfferStep({
   }
 
   // ── Lo que dice la ventana del plan elegido. Sólo formatea montos del servidor; no calcula ninguno ──
-  const ventanaDeOferta = !!planElegido && mostrarOferta && planElegido === oferta!.planTier
+  const ventanaDeOferta = !!planElegido && !esBasico && mostrarOferta && planElegido === oferta!.planTier
   const cotizado = planElegido ? planQuote?.tiers?.[planElegido] : undefined
   // Informativa: la fecha real del primer cobro la fija Stripe al terminar la prueba.
   const fechaDelCobro = cotizado ? new Date(Date.now() + planQuote!.trialDays * DIA_MS) : null
@@ -680,15 +695,24 @@ export function OfferStep({
         boton: t('offer.payAndEnter', { defaultValue: 'Pagar {{price}} y entrar', price: formatMXN(oferta!.firstChargeCents) }),
       }
     : {
-        titulo: t('plans.trialTitle', { plan: planElegido ? NOMBRE_DEL_PLAN[planElegido] : '' }),
-        subtitulo: t('plans.trialSubtitle'),
+        titulo: esBasico && planBasico ? planBasico.name : t('plans.trialTitle', { plan: planElegido ? NOMBRE_DEL_PLAN[planElegido] : '' }),
+        // El Básico no tiene cobro que cancelar: su texto aprobado, no «Cancela antes y no se te cobra».
+        subtitulo:
+          esBasico && planBasico
+            ? t('billing:plan.basic.trialCopy', { price: fmtPesos(planBasico.priceWithoutTax) })
+            : t('plans.trialSubtitle'),
         // Prueba de 30 días: hoy no se cobra nada.
         hoyPagasCents: 0,
-        primerCobro: cotizado
-          ? { fecha: fechaDelCobro!, texto: textoDePrecio(t, cotizado.monthlyCents, cotizado.monthlyNetCents) }
-          : undefined,
+        primerCobro:
+          cotizado && !esBasico
+            ? { fecha: fechaDelCobro!, texto: textoDePrecio(t, cotizado.monthlyCents, cotizado.monthlyNetCents) }
+            : undefined,
         // Sin cotización no hay monto que consentir (y el cobro tampoco sale): no se inventa un legal.
-        legal: cotizado ? t('plans.trialLegal', { fecha: fechaDelCobroTexto, monto: formatMXN(cotizado.monthlyCents) }) : '',
+        legal: !cotizado
+          ? ''
+          : esBasico && planBasico
+            ? t('plans.basicLegal', { fecha: fechaDelCobroTexto, precio: fmtPesos(planBasico.priceWithoutTax) })
+            : t('plans.trialLegal', { fecha: fechaDelCobroTexto, monto: formatMXN(cotizado.monthlyCents) }),
         boton: t('plans.startTrial'),
       }
 
@@ -742,7 +766,10 @@ export function OfferStep({
           oferta={mostrarOferta ? oferta : null}
           planQuote={planQuote}
           bloqueado={pagoEnVuelo}
-          onElegir={elegir}
+          onElegir={tier => elegir(tier)}
+          planBasico={planBasico}
+          basicoRecomendado={basicoRecomendado}
+          onElegirBasico={() => elegir('PRO', true)}
           beneficios={beneficiosDelGiro(data?.businessType)}
         />
 

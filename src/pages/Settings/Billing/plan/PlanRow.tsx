@@ -10,7 +10,7 @@ import type { FeatureGrid, HybridReplacementOptions } from '@/services/hybridBil
 import { useVenueDateTime } from '@/utils/datetime'
 import { getIntlLocale } from '@/utils/i18n-locale'
 import { sinIva } from '@/lib/sinIva'
-import { planPillPrice, tierFeatureCount, type PlanTarget } from './planActions'
+import { basicNotice, planPillPrice, tierFeatureCount, type PlanTarget } from './planActions'
 
 const TIERS: PlanTarget[] = ['FREE', 'PRO', 'PREMIUM']
 
@@ -33,6 +33,10 @@ export interface PlanRowProps {
   onUpdatePayment: () => void
   /** What the selection quotes at list price (spec §5): the pill shows the price the quote will carry. */
   preferList?: string[]
+  /** Plan Básico: «Contratar Básico» desde Gratis (abre la compra híbrida con el Básico). */
+  onBuyBasic?: () => void
+  /** Plan Básico: «Terminar mi Pro al acabar el periodo» (último periodo con descuento). */
+  onEndProForBasic?: () => void
 }
 
 /** "Tu plan": three choices with what each one costs today, and the status of the one obligation behind it (spec §4.2). */
@@ -76,19 +80,24 @@ export function PlanRow(props: PlanRowProps) {
           ? t('plan.row.discountForever', { price: money(descuento.gross) })
           : t('plan.row.discountOnce', { price: money(descuento.gross), list: money(origin.price.gross) })
       : null
+  const basic = basicNotice(planState, origin)
   const statusText =
-    origin.kind === 'COMP'
-      ? untilText
-        ? t('plan.row.comp', { tier: originTier, date: untilText })
-        : t('plan.row.compNoDate', { tier: originTier })
-      : origin.cancelAt
-        ? t(origin.kind === 'CONTRACT' ? 'plan.row.endsContract' : 'plan.row.endsClassic', { tier: originTier, date: untilText })
-        : untilText
-          ? // D3 full-testing WARN 3: en prueba con tarjeta, esa fecha es el PRIMER cobro, no una renovación.
-            planState?.state === 'trial'
-            ? t('plan.row.firstChargeOn', { date: untilText })
-            : t('currentPlan.renewsOn', { date: untilText })
-          : null
+    basic?.kind === 'TRIAL_ENDS_FREE'
+      ? basic.date
+        ? t('plan.basic.trialEnds', { date: formatDate(basic.date) })
+        : t('plan.basic.trialEndsNoDate')
+      : origin.kind === 'COMP'
+        ? untilText
+          ? t('plan.row.comp', { tier: originTier, date: untilText })
+          : t('plan.row.compNoDate', { tier: originTier })
+        : origin.cancelAt
+          ? t(origin.kind === 'CONTRACT' ? 'plan.row.endsContract' : 'plan.row.endsClassic', { tier: originTier, date: untilText })
+          : untilText
+            ? // D3 full-testing WARN 3: en prueba con tarjeta, esa fecha es el PRIMER cobro, no una renovación.
+              planState?.state === 'trial'
+              ? t('plan.row.firstChargeOn', { date: untilText })
+              : t('currentPlan.renewsOn', { date: untilText })
+            : null
 
   return (
     <section className="space-y-3" data-tour="plan-row">
@@ -98,6 +107,8 @@ export function PlanRow(props: PlanRowProps) {
           {TIERS.map(tier => {
             const price = planPillPrice(tier, priceInput)
             const isSelected = selected === tier
+            // Con un contrato del Básico, «Gratis» ES el Básico: su nombre y su precio + IVA, nunca «Gratis $0».
+            const comoBasico = tier === 'FREE' && basic?.kind === 'CURRENT'
             return (
               <button
                 key={tier}
@@ -118,17 +129,34 @@ export function PlanRow(props: PlanRowProps) {
                   aria-hidden
                   className={cn('h-3.5 w-3.5 rounded-full border', isSelected ? 'border-[5px] border-foreground' : 'border-input')}
                 />
-                <span className="font-semibold">{tierName(tier)}</span>
-                <span className="whitespace-nowrap tabular-nums">
-                  {money(price.ivaAparte ? sinIva(price.amount) : price.amount)}
-                  {tier !== 'FREE' && (price.per === 'year' ? t('plan.perYear') : t('plan.perMonth'))}
-                </span>
-                {tier !== 'FREE' && (
-                  <span className="whitespace-nowrap text-xs text-muted-foreground">
-                    {t(price.ivaAparte ? 'plan.plusIva' : 'plan.ivaIncluded')}
-                  </span>
+                {comoBasico ? (
+                  <>
+                    <span className="font-semibold">{basic.name}</span>
+                    {basic.price != null && (
+                      <>
+                        <span className="whitespace-nowrap tabular-nums">
+                          {money(basic.price)}
+                          {t('plan.perMonth')}
+                        </span>
+                        <span className="whitespace-nowrap text-xs text-muted-foreground">{t('plan.plusIva')}</span>
+                      </>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <span className="font-semibold">{tierName(tier)}</span>
+                    <span className="whitespace-nowrap tabular-nums">
+                      {money(price.ivaAparte ? sinIva(price.amount) : price.amount)}
+                      {tier !== 'FREE' && (price.per === 'year' ? t('plan.perYear') : t('plan.perMonth'))}
+                    </span>
+                    {tier !== 'FREE' && (
+                      <span className="whitespace-nowrap text-xs text-muted-foreground">
+                        {t(price.ivaAparte ? 'plan.plusIva' : 'plan.ivaIncluded')}
+                      </span>
+                    )}
+                  </>
                 )}
-                {props.grid && (
+                {props.grid && !comoBasico && (
                   <span className="text-xs text-muted-foreground">
                     {t('plan.row.features', { count: tierFeatureCount(props.grid.entries, tier) })}
                   </span>
@@ -202,7 +230,7 @@ export function PlanRow(props: PlanRowProps) {
           {origin.kind === 'CLASSIC' &&
             (origin.cancelAt ? (
               <Button size="sm" disabled={!canManage || busy} onClick={props.onReactivate} data-tour="plan-reactivate">
-                {t('plan.row.resume')}
+                {t(basic?.kind === 'TRIAL_ENDS_FREE' ? 'plan.basic.stayPro' : 'plan.row.resume')}
               </Button>
             ) : (
               <Button size="sm" variant="outline" disabled={!canManage || busy} onClick={props.onCancel} data-tour="plan-cancel">
@@ -224,6 +252,57 @@ export function PlanRow(props: PlanRowProps) {
             <Button size="sm" variant="outline" disabled={!canManage || busy} onClick={props.onCancel} data-tour="plan-cancel">
               {t('hybrid.cancelContract')}
             </Button>
+          )}
+        </div>
+      )}
+
+      {basic && basic.kind !== 'TRIAL_ENDS_FREE' && !grandfathered && (
+        <div className="flex flex-wrap items-center gap-3 text-sm" data-tour="plan-basic">
+          {basic.kind === 'CURRENT' && (
+            <>
+              <p className="font-medium">
+                {basic.price != null
+                  ? t('plan.basic.current', { name: basic.name, price: money(basic.price) })
+                  : t('plan.basic.currentNoPrice', { name: basic.name })}
+              </p>
+              {!basic.active && <p className="text-muted-foreground">{t('plan.basic.inactive', { name: basic.name })}</p>}
+              <Button size="sm" disabled={!canManage || busy} onClick={() => props.onSelect('PRO')} data-tour="plan-basic-upgrade">
+                {t('plan.basic.upgrade')}
+              </Button>
+            </>
+          )}
+          {basic.kind === 'BUY' && (
+            <>
+              <p className="text-muted-foreground">{t('plan.basic.buyCopy', { price: money(basic.price) })}</p>
+              <Button size="sm" disabled={!canManage || busy || !props.onBuyBasic} onClick={props.onBuyBasic} data-tour="plan-basic-buy">
+                {t('plan.basic.buy')}
+              </Button>
+            </>
+          )}
+          {basic.kind === 'AFTER_PRO' && <p className="text-muted-foreground">{t('plan.basic.afterPro', { price: money(basic.price) })}</p>}
+          {basic.kind === 'CAN_END_PRO' && (
+            <>
+              <p className="font-medium">{t('plan.basic.preferBasic')}</p>
+              <p className="text-muted-foreground">{t('plan.basic.preferBasicCopy', { price: money(basic.price) })}</p>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={!canManage || busy || !props.onEndProForBasic}
+                onClick={props.onEndProForBasic}
+                data-tour="plan-basic-end-pro"
+              >
+                {t('plan.basic.endPro')}
+              </Button>
+              <p className="w-full text-muted-foreground">{t('plan.basic.endProSeats')}</p>
+            </>
+          )}
+          {basic.kind === 'DISCOUNT_CONTINUES' && (
+            <p className="text-muted-foreground">
+              {basic.date ? t('plan.basic.discountUntil', { date: formatDate(basic.date) }) : t('plan.basic.discountNoDate')}
+            </p>
+          )}
+          {!canManage && ['CURRENT', 'BUY', 'CAN_END_PRO'].includes(basic.kind) && (
+            <p className="w-full text-muted-foreground">{t('hybrid.permission')}</p>
           )}
         </div>
       )}

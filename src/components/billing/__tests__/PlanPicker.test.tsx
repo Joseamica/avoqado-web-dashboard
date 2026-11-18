@@ -118,29 +118,51 @@ describe('PlanPicker', () => {
     expect(onSelect).not.toHaveBeenCalled()
   })
 
-  // ── Precios del servidor, con IVA (alta: México muestra el precio YA con IVA) ──
-  // 🔴 En el alta la tarjeta decía «$999 + IVA» junto a «3 meses a $694.84… IVA incluido»:
-  // la misma tarjeta hablaba en dos idiomas de precio. Con la cotización del servidor se pinta
-  // SU monto con IVA; sin ella (Facturación, conversión) todo queda como estaba.
-  const PRECIOS = {
-    PRO: { monthlyCents: 115884, annualCents: 1158840 },
-    PREMIUM: { monthlyCents: 197084, annualCents: 1970840 },
-  }
-
-  it('con precios del servidor: el monto con IVA y la leyenda «IVA incluido», nunca «+ IVA»', () => {
-    render(<PlanPicker currentTier="PRO" onSelectTier={() => {}} preciosConIva={PRECIOS} />)
-    expect(screen.getByText('$1,158.84')).toBeInTheDocument()
-    expect(screen.getByText('$1,970.84')).toBeInTheDocument()
-    // «/mes · IVA incluido» es UNA pieza (no se parte ni se sale de la tarjeta angosta).
-    expect(screen.getAllByText('plan.perMonth · plan.ivaIncluded')).toHaveLength(2)
-    expect(screen.queryByText(/plan\.plusIva/)).not.toBeInTheDocument()
-    expect(screen.queryByText('$999')).not.toBeInTheDocument()
+  // Regla del 5-nov: planes siempre «$ + IVA» (precio sin IVA, «+ IVA» en chico); nunca «IVA incluido» en la tarjeta.
+  it('nunca dice «IVA incluido»: todas las tarjetas de pago muestran el monto sin IVA y «+ IVA»', () => {
+    render(<PlanPicker currentTier="PRO" onSelectTier={() => {}} />)
+    expect(screen.queryByText(/ivaIncluded/)).not.toBeInTheDocument()
+    expect(screen.getAllByText('plan.perMonth · plan.plusIva')).toHaveLength(2) // Pro y Premium
   })
 
-  it('con precios del servidor en anual: el equivalente mensual y el total del año, con IVA', () => {
-    render(<PlanPicker currentTier="PRO" onSelectTier={() => {}} interval="annual" preciosConIva={PRECIOS} />)
-    expect(screen.getByText('$965.70')).toBeInTheDocument() // 11,588.40 ÷ 12
-    expect(screen.getByText('plan.annualEquiv:$11,588.40')).toBeInTheDocument()
+  it('leadingCard: va entre Gratis y Pro, la cuadrícula tiene 5 columnas, Pro conserva «Más popular» y leadingSelected apaga su elección', () => {
+    render(
+      <PlanPicker
+        currentTier="PRO"
+        onSelectTier={() => {}}
+        selectionMode="choice"
+        leadingCard={<div data-testid="basico" />}
+        leadingSelected
+      />,
+    )
+    const grid = screen.getByRole('radiogroup')
+    const orden = Array.from(grid.children).map(
+      el => (el as HTMLElement).dataset.tour?.replace('plan-card-', '') ?? (el as HTMLElement).dataset.testid,
+    )
+    expect(orden).toEqual(['free', 'basico', 'pro', 'premium', 'enterprise'])
+    expect(grid.className).toContain('@4xl:grid-cols-5')
+    expect(screen.getByText('plan.popular')).toBeInTheDocument()
+    expect(card('pro')).toHaveAttribute('aria-checked', 'false')
+  })
+
+  it('🔴 con precios sin IVA del servidor la tarjeta pinta ESE neto (no el catálogo), mensual y anual', () => {
+    const net = { PRO: { monthlyCents: 0, monthlyNetCents: 123400, annualNetCents: 1200000 } }
+    const { rerender } = render(<PlanPicker currentTier="FREE" onSelectTier={() => {}} preciosSinIva={net} />)
+    expect(screen.getByText('$1,234')).toBeInTheDocument()
+    expect(screen.queryByText('$999')).not.toBeInTheDocument()
+    rerender(<PlanPicker currentTier="FREE" onSelectTier={() => {}} preciosSinIva={net} interval="annual" />)
+    expect(screen.getByText('$1,000')).toBeInTheDocument() // 12,000 ÷ 12
+    expect(screen.getByText('plan.annualEquiv:$12,000')).toBeInTheDocument()
+  })
+
+  it('intervalLocked apaga Mensual/Anual', () => {
+    render(<PlanPicker currentTier="FREE" onSelectTier={() => {}} intervalLocked />)
+    expect(screen.getByText('plan.billing.annual').closest('button')).toBeDisabled()
+  })
+
+  it('sin leadingCard la cuadrícula sigue en 4 columnas (regresión)', () => {
+    render(<PlanPicker currentTier="PRO" onSelectTier={() => {}} selectionMode="choice" />)
+    expect(screen.getByRole('radiogroup').className).toContain('@4xl:grid-cols-4')
   })
 
   it('sin precios del servidor (Facturación) sigue igual: «$999» y «+ IVA» (regresión)', () => {

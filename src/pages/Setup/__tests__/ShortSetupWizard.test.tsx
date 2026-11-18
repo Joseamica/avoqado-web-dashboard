@@ -165,6 +165,17 @@ describe('ShortSetupWizard — dónde reanuda', () => {
     pintar()
     expect(await screen.findByText(/Todo listo/i)).toBeInTheDocument()
   })
+
+  it('al reanudar, «Todo listo» enseña la modalidad REAL de la prueba que manda GET progress', async () => {
+    getProgress.mockResolvedValue(
+      progresoDe({
+        planActivationStatus: 'ACTIVE',
+        planActivation: { status: 'ACTIVE', trialModality: 'ENDS_FREE', trialEndsAt: '2026-12-15T18:00:00.000Z' },
+      }),
+    )
+    pintar()
+    expect(await screen.findByText(/Tu prueba de Pro termina el 15 de diciembre sin cobro/)).toBeInTheDocument()
+  })
 })
 
 describe('ShortSetupWizard — guardados', () => {

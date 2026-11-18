@@ -237,6 +237,9 @@
     "promoLine": "Paga hoy: 3 meses a $599 + IVA, luego $999.",
     "selectedPlan": "Plan seleccionado: {{plan}}",
     "startTrial": "Empezar 30 días gratis",
+    "basicSelected": "Plan Básico",
+    "basicTrialHint": "Hoy no pagas nada. Tienes 30 días de Pro sin cobro; el {{date}} la prueba termina sola y ese día podrás contratar el Básico por {{price}} + IVA al mes.",
+    "basicStartTrial": "Empezar 30 días gratis",
     "payNowMonthly": "Pagar hoy y ahorrar (3 meses a $599)",
     "payNowMonthlyFromQuote": "Pagar hoy y ahorrar ({{count}} meses a {{intro}})",
     "payNowAnnual": "Pagar hoy (anual)",
@@ -250,6 +253,7 @@
     "retry": "Reintentar",
     "cardError": "No se pudo guardar la tarjeta",
     "promoLineFromQuote": "Paga hoy: {{count}} meses a {{intro}}, luego {{list}} al mes. IVA incluido.",
+    "promoNoteCard": "Paga hoy y ahorra: {{count}} meses con precio de introducción.",
     "chargeError": "No pudimos procesar el pago. Intenta de nuevo.",
     "completeError": "No pudimos terminar tu alta. Intenta de nuevo.",
     "cardSecure": "Tu tarjeta viaja cifrada a Stripe. Avoqado nunca ve el número completo.",
@@ -338,6 +342,7 @@
     "subtitle": "Pro y Premium: 30 días gratis. Cancela antes y no se te cobra.",
     "choosePro": "Elegir Pro",
     "choosePremium": "Elegir Premium",
+    "chooseBasic": "Elegir {{plan}}",
     "chooseOffer": "Elegir {{plan}} por {{price}}",
     "talkToSales": "Hablar con ventas",
     "startTrial": "Empezar mis 30 días gratis",
@@ -419,6 +424,7 @@
       }
     },
     "trialLegal": "Al empezar aceptas que desde el {{fecha}} se cobren {{monto}} al mes a esta tarjeta hasta que canceles. Te avisamos 7 días antes. Cancela cuando quieras desde Facturación.",
+    "basicLegal": "Al empezar tienes 30 días de Pro sin cobro. Tu prueba termina el {{fecha}} sin cobro y ese día podrás contratar el Básico por {{precio}} + IVA al mes. Cancela cuando quieras desde Facturación.",
     "netPlusIva": "{{net}} + IVA = {{gross}}",
     "grossWithIva": "{{gross}} con IVA",
     "pendingTitle": "Tienes un pago sin confirmar",
@@ -444,6 +450,9 @@
     "subtitle": "Tu negocio ya está en Avoqado. Entra y empieza a vender.",
     "subtitleNamed": "{{business}} ya está en Avoqado. Entra y empieza a vender.",
     "enter": "Entrar a Avoqado",
+    "trialEndsFree": "Tu prueba de Pro termina el {{date}} sin cobro. Ese día podrás contratar el Básico.",
+    "trialRenews": "Tu prueba de Pro se renueva como Pro el {{date}}.",
+    "trialChange": "Cámbialo en «Tu plan»",
     "completeError": "No pudimos terminar tu alta. Intenta de nuevo en un momento."
   }
 }

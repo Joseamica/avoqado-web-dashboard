@@ -1,12 +1,14 @@
 import { Check } from 'lucide-react'
-import { useId, type ReactNode } from 'react'
+import { Fragment, useId, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { BasicPlanCard } from '@/components/billing/BasicPlanCard'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { salesWhatsAppLink } from '@/config/plan-catalog'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { cn } from '@/lib/utils'
+import type { PublicBasicPlan } from '@/services/hybridBilling.service'
 
 import type { LaunchOfferView, PlanQuote } from '../../launchOffer.types'
 import { formatMXN } from '../../offer/formatMXN'
@@ -81,6 +83,11 @@ interface TarjetasDePlanesProps {
   onElegir: (tier: 'PRO' | 'PREMIUM') => void
   /** Viñetas de Pro y Premium según el giro; las de la campaña (`oferta.copy.bullets`) siguen ganando. */
   beneficios: JuegoDeBeneficios
+  /** El Plan Básico a la venta: su tarjeta va justo a la izquierda de Pro. Sin él, las 3 tarjetas de siempre. */
+  planBasico?: PublicBasicPlan | null
+  /** El Básico llega recomendado (`hybridOffer=plan-basico`): queda marcado y Pro pierde su «Recomendado». */
+  basicoRecomendado?: boolean
+  onElegirBasico?: () => void
 }
 
 /**
@@ -89,7 +96,16 @@ interface TarjetasDePlanesProps {
  * 🔴 Sólo formatea centavos que ya vienen del servidor (`formatMXN` / `textoDePrecio`): no suma ni
  * deriva ningún monto. Si falta la cotización, la línea «Luego …» no se pinta en vez de inventarse.
  */
-export function TarjetasDePlanes({ oferta, planQuote, bloqueado, onElegir, beneficios }: TarjetasDePlanesProps) {
+export function TarjetasDePlanes({
+  oferta,
+  planQuote,
+  bloqueado,
+  onElegir,
+  beneficios,
+  planBasico,
+  basicoRecomendado = false,
+  onElegirBasico,
+}: TarjetasDePlanesProps) {
   const { t } = useTranslation('setup')
   const esCelular = useIsMobile()
   const prefijoDeBeneficios = beneficios === 'restaurante' ? 'plans.benefits' : `plans.benefits.${beneficios}`
@@ -100,9 +116,21 @@ export function TarjetasDePlanes({ oferta, planQuote, bloqueado, onElegir, benef
   const orden = esCelular && oferta ? [oferta.planTier, ...ORDEN.filter(p => p !== oferta.planTier)] : ORDEN
 
   return (
-    <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+    <div className={cn('grid grid-cols-1 gap-4', planBasico ? 'lg:grid-cols-4' : 'lg:grid-cols-3')}>
       {orden.map(plan => {
-        const destacada = plan === planDestacado
+        const destacada = plan === planDestacado && !basicoRecomendado
+        const basico =
+          plan === 'PRO' && planBasico ? (
+            <BasicPlanCard
+              key="BASICO"
+              plan={planBasico}
+              selected={basicoRecomendado}
+              disabled={bloqueado}
+              onSelect={() => onElegirBasico?.()}
+              // Como las demás tarjetas del alta corta: se elige con su botón «Elegir».
+              actionLabel={t('plans.chooseBasic', { plan: planBasico.name })}
+            />
+          ) : null
 
         if (plan === 'ENTERPRISE') {
           return (
@@ -128,11 +156,13 @@ export function TarjetasDePlanes({ oferta, planQuote, bloqueado, onElegir, benef
         const esLaOferta = oferta?.planTier === plan
         const tier = planQuote?.tiers?.[plan]
 
-        return (
+        const tarjetaDelPlan = (
           <Tarjeta
             key={plan}
             plan={plan}
-            etiqueta={esLaOferta ? t('plans.yourOffer') : !oferta && plan === 'PRO' ? t('plans.recommended') : undefined}
+            etiqueta={
+              esLaOferta ? t('plans.yourOffer') : !oferta && plan === 'PRO' && !basicoRecomendado ? t('plans.recommended') : undefined
+            }
             destacada={destacada}
             precio={
               esLaOferta ? (
@@ -171,6 +201,13 @@ export function TarjetasDePlanes({ oferta, planQuote, bloqueado, onElegir, benef
             bloqueado={bloqueado}
             onClick={() => onElegir(plan)}
           />
+        )
+        // Fragment con llave: la tarjeta de Pro no se remonta cuando el Básico llega (un clic en vuelo se perdería).
+        return (
+          <Fragment key={plan}>
+            {basico}
+            {tarjetaDelPlan}
+          </Fragment>
         )
       })}
     </div>

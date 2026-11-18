@@ -237,6 +237,9 @@
     "promoLine": "Pay today: 3 months at $599 + tax, then $999.",
     "selectedPlan": "Selected plan: {{plan}}",
     "startTrial": "Start 30-day free trial",
+    "basicSelected": "Basic plan",
+    "basicTrialHint": "You pay nothing today. You get 30 days of Pro at no charge; on {{date}} the trial ends on its own and you can then get Basic for {{price}} + VAT per month.",
+    "basicStartTrial": "Start 30 days free",
     "payNowMonthly": "Pay today and save (3 months at $599)",
     "payNowMonthlyFromQuote": "Pay today and save ({{count}} months at {{intro}})",
     "payNowAnnual": "Pay today (annual)",
@@ -250,6 +253,7 @@
     "retry": "Try again",
     "cardError": "We could not save the card",
     "promoLineFromQuote": "Pay today: {{count}} months at {{intro}}, then {{list}} per month. VAT included.",
+    "promoNoteCard": "Pay today and save: {{count}} months at an introductory price.",
     "chargeError": "We could not process the payment. Try again.",
     "completeError": "We could not finish your sign-up. Try again.",
     "cardSecure": "Your card travels encrypted to Stripe. Avoqado never sees the full number.",
@@ -338,6 +342,7 @@
     "subtitle": "Pro and Premium: 30 days free. Cancel before it ends and you won't be charged.",
     "choosePro": "Choose Pro",
     "choosePremium": "Choose Premium",
+    "chooseBasic": "Choose {{plan}}",
     "chooseOffer": "Choose {{plan}} for {{price}}",
     "talkToSales": "Talk to sales",
     "startTrial": "Start my 30 days free",
@@ -419,6 +424,7 @@
       }
     },
     "trialLegal": "By starting you agree that from {{fecha}} {{monto}} per month will be charged to this card until you cancel. We'll notify you 7 days before. Cancel any time from Billing.",
+    "basicLegal": "By starting you get 30 days of Pro at no charge. Your trial ends on {{fecha}} with no charge and that day you can get Basic for {{precio}} + VAT per month. Cancel any time from Billing.",
     "netPlusIva": "{{net}} + VAT = {{gross}}",
     "grossWithIva": "{{gross}} with VAT",
     "pendingTitle": "You have an unconfirmed payment",
@@ -444,6 +450,9 @@
     "subtitle": "Your business is on Avoqado. Go in and start selling.",
     "subtitleNamed": "{{business}} is on Avoqado. Go in and start selling.",
     "enter": "Go to Avoqado",
+    "trialEndsFree": "Your Pro trial ends on {{date}} with no charge. That day you can get Basic.",
+    "trialRenews": "Your Pro trial renews as Pro on {{date}}.",
+    "trialChange": "Change it in \"Your plan\"",
     "completeError": "We could not finish your setup. Try again in a moment."
   }
 }

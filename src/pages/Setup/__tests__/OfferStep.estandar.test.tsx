@@ -35,6 +35,9 @@ vi.mock('@/services/setup.service', () => ({
 vi.mock('@/lib/gtag', () => ({ trackPurchase: vi.fn(), trackSignup: vi.fn() }))
 vi.mock('@/lib/posthog', () => ({ track: vi.fn() }))
 const toastEstable = vi.hoisted(() => vi.fn())
+// El Básico no está publicado aquí: sin el mock, `usePublicBasicPlan` pegaría a la red de verdad.
+const getPublicBasicPlan = vi.hoisted(() => vi.fn())
+vi.mock('@/services/hybridBilling.service', () => ({ getPublicBasicPlan: (...a: unknown[]) => getPublicBasicPlan(...a) }))
 vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: toastEstable }) }))
 vi.mock('@stripe/stripe-js', () => ({ loadStripe: () => Promise.resolve(null) }))
 vi.mock('@stripe/react-stripe-js', () => ({
@@ -140,6 +143,7 @@ const CUERPO_PREMIUM = {
 }
 
 beforeEach(() => {
+  getPublicBasicPlan.mockReset().mockResolvedValue(null)
   activatePlan.mockReset()
   saveStep.mockReset().mockResolvedValue({})
   planSetupIntent.mockReset().mockResolvedValue({ data: { data: { clientSecret: 'seti_secret' } } })
@@ -176,6 +180,68 @@ describe('prueba de 30 días — el camino feliz', () => {
     await empezarPrueba('Pro')
     await waitFor(() => expect(activatePlan).toHaveBeenCalledTimes(1))
     expect(activatePlan.mock.calls[0][1]).toEqual({ ...CUERPO_PREMIUM, tier: 'PRO' })
+  })
+})
+
+describe('Plan Básico: el plan guardado lo eligió', () => {
+  it('🔴 «Elegir Pro» manda basicPlan en el cuerpo y lo guarda en el respaldo', async () => {
+    activatePlan.mockResolvedValue(exito())
+    pintarEstandar({ data: { plan: { tier: 'PRO', interval: 'monthly', payNow: false, basicPlan: true } } })
+    await empezarPrueba('Pro')
+    await waitFor(() => expect(activatePlan).toHaveBeenCalledTimes(1))
+    expect(activatePlan.mock.calls[0][1]).toEqual({ ...CUERPO_PREMIUM, tier: 'PRO', basicPlan: true })
+    await waitFor(() =>
+      expect(saveStep).toHaveBeenCalledWith('org_1', 10, { plan: expect.objectContaining({ tier: 'PRO', basicPlan: true }) }),
+    )
+  })
+
+  it('con Premium no viaja: el Básico sólo es la prueba de Pro', async () => {
+    activatePlan.mockResolvedValue(exito('PREMIUM'))
+    pintarEstandar({ data: { plan: { tier: 'PRO', basicPlan: true } } })
+    await empezarPrueba('Premium')
+    await waitFor(() => expect(activatePlan).toHaveBeenCalledTimes(1))
+    expect(activatePlan.mock.calls[0][1]).toEqual(CUERPO_PREMIUM)
+  })
+})
+
+describe('Plan Básico en el alta corta (full-testing 17-nov)', () => {
+  const BASICO = {
+    slug: 'plan-basico',
+    name: 'Plan Básico',
+    priceWithTax: '578.84',
+    priceWithoutTax: '499.00',
+    featureCodes: ['KITCHEN_DISPLAY'],
+    seatCap: null,
+    trialDays: 30,
+    publicationId: 'pub_1',
+  }
+
+  it('🔴 la tarjeta Básico lleva su botón «Elegir» como las demás, y abre su ventana', async () => {
+    getPublicBasicPlan.mockResolvedValue(BASICO)
+    pintarEstandar()
+    const user = userEvent.setup()
+    await user.click(await screen.findByRole('button', { name: 'Elegir Plan Básico' }))
+    const ventana = await screen.findByRole('dialog')
+    expect(within(ventana).getByText('Plan Básico')).toBeInTheDocument()
+  })
+
+  it('🔴 la ventana del Básico no promete un cobro que cancelar: dice el texto del Básico', async () => {
+    getPublicBasicPlan.mockResolvedValue(BASICO)
+    pintarEstandar()
+    const user = userEvent.setup()
+    await user.click(await screen.findByRole('button', { name: 'Elegir Plan Básico' }))
+    const ventana = await screen.findByRole('dialog')
+    expect(within(ventana).queryByText(/Cancela antes y no se te cobra/)).not.toBeInTheDocument()
+    expect(
+      within(ventana).getByText('30 días gratis con todo Pro, sin cobro. Después, contrata el Básico por $499 + IVA al mes'),
+    ).toBeInTheDocument()
+  })
+
+  it('regresión: la ventana de Pro sigue diciendo «Cancela antes y no se te cobra»', async () => {
+    getPublicBasicPlan.mockResolvedValue(BASICO)
+    pintarEstandar()
+    await abrir('Pro')
+    expect(within(screen.getByRole('dialog')).getByText('30 días gratis. Cancela antes y no se te cobra.')).toBeInTheDocument()
   })
 })
 
