@@ -140,7 +140,7 @@
       "publicarTodoDescripcion_one": "Se publica tu producto en {{canal}} y también lo que des de alta después. Tu lista de productos elegidos se deja de usar.",
       "publicarTodoDescripcion_other": "Se publican tus {{count}} productos en {{canal}} y también lo que des de alta después. Tu lista de productos elegidos se deja de usar.",
       "publicarTodoPrecios": "Los precios que pusiste para {{canal}} se conservan y se siguen usando.",
-      "publicarTodoAlGuardar": "El cambio se aplica cuando guardes.",
+      "publicarTodoAlGuardar": "El cambio se guarda cuando presiones «Guardar».",
       "publicarTodoConfirmar": "Publicar todo",
       "cancelar": "Cancelar"
     }

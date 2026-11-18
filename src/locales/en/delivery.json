@@ -140,7 +140,7 @@
       "publicarTodoDescripcion_one": "Your product is published on {{canal}}, and so is anything you add later. Your list of chosen products stops being used.",
       "publicarTodoDescripcion_other": "Your {{count}} products are published on {{canal}}, and so is anything you add later. Your list of chosen products stops being used.",
       "publicarTodoPrecios": "The prices you set for {{canal}} are kept and still used.",
-      "publicarTodoAlGuardar": "The change applies when you save.",
+      "publicarTodoAlGuardar": "The change is saved when you press «Save».",
       "publicarTodoConfirmar": "Publish everything",
       "cancelar": "Cancel"
     }

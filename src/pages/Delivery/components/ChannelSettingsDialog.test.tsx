@@ -439,6 +439,21 @@ describe('ChannelSettingsDialog', () => {
     expect(body.marcarRevisados).toBeUndefined()
   })
 
+  // Codex r1 #3: sin `porProducto` el SERVIDOR conserva los precios guardados; borrar el último y publicar todo lo revivía.
+  it('borrar el único precio por canal y «Publicar todo mi catálogo» manda `porProducto: {}` (el precio no revive)', async () => {
+    mockGetProducts.mockResolvedValue([prod('p1', 'LATTE'), prod('p2', 'TE')])
+    renderDialog(channel({ config: { productoIds: ['p1', 'p2'], precios: { porProducto: { p2: 79 } } } }))
+
+    await screen.findByRole('checkbox', { name: 'TE' })
+    fireEvent.change(within(fila('TE')).getByLabelText('settings.productos.precioDe'), { target: { value: '' } })
+    fireEvent.click(screen.getByRole('button', { name: 'settings.productos.publicarTodo' }))
+    guardar()
+
+    const body = await cuerpo()
+    expect(body.config.productoIds).toBeNull()
+    expect(body.config.precios).toEqual({ porProducto: {} })
+  })
+
   it('lista vieja por código: «Publicar todo mi catálogo» también manda `productoIds: null`', async () => {
     mockGetProducts.mockResolvedValue([prod('p1', 'LATTE'), prod('p2', 'TE')])
     renderDialog(channel({ createdAt: CONECTADO, config: { productos: ['LATTE'] } }))

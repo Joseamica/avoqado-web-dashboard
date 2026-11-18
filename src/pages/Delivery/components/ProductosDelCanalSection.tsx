@@ -197,15 +197,18 @@ export function ProductosDelCanalSection(props: Props) {
 
         <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-sm text-muted-foreground">
           <span>{t('settings.productos.listaHelp')}</span>
-          <Button
-            data-tour="delivery-settings-productos-todo"
-            variant="link"
-            size="sm"
-            className="h-auto cursor-pointer p-0"
-            onClick={publicarTodo}
-          >
-            {t('settings.productos.publicarTodo')}
-          </Button>
+          {/* Sin ningún producto vivo, publicar todo mandaría un menú vacío al proveedor (Codex D100 r1 #4). */}
+          {productos.length > 0 && (
+            <Button
+              data-tour="delivery-settings-productos-todo"
+              variant="link"
+              size="sm"
+              className="h-auto cursor-pointer p-0"
+              onClick={publicarTodo}
+            >
+              {t('settings.productos.publicarTodo')}
+            </Button>
+          )}
         </div>
 
         <AlertDialog open={confirmarTodo} onOpenChange={setConfirmarTodo}>

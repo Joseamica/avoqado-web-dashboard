@@ -188,4 +188,9 @@ describe('ProductosDelCanalSection', () => {
     renderSeccion({ lista: null })
     expect(screen.queryByRole('button', { name: 'settings.productos.publicarTodo' })).not.toBeInTheDocument()
   })
+  // Codex r1 #4: sin ningún producto vivo, publicar todo mandaría un menú vacío al proveedor.
+  it('con lista y sin productos en el catálogo no ofrece «Publicar todo mi catálogo»', () => {
+    renderSeccion({ lista: ['pX'], productos: [] })
+    expect(screen.queryByRole('button', { name: 'settings.productos.publicarTodo' })).not.toBeInTheDocument()
+  })
 })
