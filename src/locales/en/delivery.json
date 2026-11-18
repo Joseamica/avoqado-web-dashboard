@@ -133,7 +133,16 @@
       "yaNoExisten_other": "{{count}} products on the list no longer exist in your catalog",
       "yaNoExistenHelp": "Remove them to keep the list tidy.",
       "yaNoExistenCodigos": "Codes that no longer belong to any product are removed when you save.",
-      "quitarlos": "Remove them"
+      "quitarlos": "Remove them",
+      "listaHelp": "With a list, products you add later are not published automatically.",
+      "publicarTodo": "Publish my whole catalog",
+      "publicarTodoTitulo": "Publish your whole catalog on {{canal}}?",
+      "publicarTodoDescripcion_one": "Your product is published on {{canal}}, and so is anything you add later. Your list of chosen products stops being used.",
+      "publicarTodoDescripcion_other": "Your {{count}} products are published on {{canal}}, and so is anything you add later. Your list of chosen products stops being used.",
+      "publicarTodoPrecios": "The prices you set for {{canal}} are kept and still used.",
+      "publicarTodoAlGuardar": "The change applies when you save.",
+      "publicarTodoConfirmar": "Publish everything",
+      "cancelar": "Cancel"
     }
   },
   "rappi": {

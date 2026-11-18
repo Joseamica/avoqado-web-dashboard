@@ -246,6 +246,9 @@ export function ChannelSettingsDialog({ open, onClose, venueId, channel }: Chann
       const cambio = !mismaLista(sel.lista, sel.listaAlAbrir)
       // La lista vieja por código se manda ya por id; la copia por código la arma el SERVIDOR.
       if (sel.lista !== null && (cambio || sel.porCodigo)) config.productoIds = sel.lista
+      // D100: de una lista guardada (por id o la vieja por código) de regreso a todo el catálogo. El SERVIDOR también limpia la
+      // copia por código (`productos`) y los precios por canal se quedan (van arriba en `porProducto` si se cargaron).
+      if (sel.lista === null && sel.listaAlAbrir !== null) config.productoIds = null
       // Los nuevos que tenía en pantalla y dejó fuera de la lista ACTUAL cuentan como revisados (los creados antes de conectar
       // nunca son nuevos).
       if (cambio) marcarRevisados = idsRecientes(productosNuevos(productos, sel.lista, revisados, canalAlAbrir.createdAt ?? null))

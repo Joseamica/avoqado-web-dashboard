@@ -415,6 +415,54 @@ describe('ChannelSettingsDialog', () => {
     expect((within(fila('TE')).getByLabelText('settings.productos.precioDe') as HTMLInputElement).value).toBe('79')
   })
 
+  // D100 (18-nov): con lista, «Publicar todo mi catálogo» manda `productoIds: null` (el SERVIDOR también limpia la copia por
+  // código); los precios por canal viajan como estaban, no se pierden.
+  it('con lista por id: «Publicar todo mi catálogo» manda `productoIds: null`, conserva los precios y la huella', async () => {
+    mockGetProducts.mockResolvedValue([prod('p1', 'LATTE'), prod('p2', 'TE'), prod('p3', 'MOKA', { createdAt: DESPUES })])
+    renderDialog(
+      channel({
+        createdAt: CONECTADO,
+        seleccionHuella: 'h-abrir',
+        config: { productoIds: ['p1', 'p2'], precios: { markupPercent: 10, porProducto: { p2: 79 } } },
+      }),
+    )
+
+    fireEvent.click(await screen.findByRole('button', { name: 'settings.productos.publicarTodo' }))
+    fireEvent.click(screen.getByRole('button', { name: 'settings.productos.publicarTodoConfirmar' }))
+    expect(screen.getByText('settings.productos.todoElCatalogo')).toBeInTheDocument()
+    guardar()
+
+    const body = await cuerpo()
+    expect(body.config.productoIds).toBeNull()
+    expect(body.config.precios).toEqual({ markupPercent: 10, porProducto: { p2: 79 } })
+    expect(body.seleccionEsperada).toBe('h-abrir')
+    expect(body.marcarRevisados).toBeUndefined()
+  })
+
+  it('lista vieja por código: «Publicar todo mi catálogo» también manda `productoIds: null`', async () => {
+    mockGetProducts.mockResolvedValue([prod('p1', 'LATTE'), prod('p2', 'TE')])
+    renderDialog(channel({ createdAt: CONECTADO, config: { productos: ['LATTE'] } }))
+
+    fireEvent.click(await screen.findByRole('button', { name: 'settings.productos.publicarTodo' }))
+    fireEvent.click(screen.getByRole('button', { name: 'settings.productos.publicarTodoConfirmar' }))
+    guardar()
+
+    const body = await cuerpo()
+    expect(body.config.productoIds).toBeNull()
+  })
+
+  it('sin lista, «Elegir cuáles» y luego «Publicar todo mi catálogo» deja el envío como hoy (no manda `productoIds`)', async () => {
+    mockGetProducts.mockResolvedValue([prod('p1', 'LATTE'), prod('p2', 'TE')])
+    renderDialog(channel({ createdAt: CONECTADO, config: { deliveryHours: HORARIO_GUARDADO } }))
+
+    fireEvent.click(await screen.findByText('settings.productos.elegir'))
+    fireEvent.click(screen.getByRole('button', { name: 'settings.productos.publicarTodo' }))
+    guardar()
+
+    const body = await cuerpo()
+    expect('productoIds' in body.config).toBe(false)
+  })
+
   it('un precio inválido de un producto desmarcado no bloquea «Guardar» ni se manda', async () => {
     mockGetProducts.mockResolvedValue([prod('p1', 'LATTE'), prod('p2', 'TE')])
     renderDialog(channel({ config: { productoIds: ['p1', 'p2'], precios: { porProducto: { p1: 60 } } } }))

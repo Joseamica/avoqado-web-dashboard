@@ -153,4 +153,39 @@ describe('ProductosDelCanalSection', () => {
     fireEvent.change(screen.getByLabelText('settings.productos.precioDe'), { target: { value: '' } })
     expect(props.onPreciosChange).toHaveBeenCalledWith({ p1: undefined })
   })
+  // D100 (18-nov): tras «Elegir cuáles» no había forma de volver a «todo el catálogo» (lo nuevo ya no se publicaba solo).
+  it('con lista: «Publicar todo mi catálogo» con productos fuera pide confirmar y al confirmar regresa a todo el catálogo', () => {
+    const props = renderSeccion({ lista: ['p1'] })
+    fireEvent.click(screen.getByRole('button', { name: 'settings.productos.publicarTodo' }))
+    expect(props.onListaChange).not.toHaveBeenCalled()
+    expect(screen.getByText('settings.productos.publicarTodoTitulo')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'settings.productos.publicarTodoConfirmar' }))
+    expect(props.onListaChange).toHaveBeenCalledWith(null)
+  })
+
+  it('cancelar la confirmación deja la lista como estaba', () => {
+    const props = renderSeccion({ lista: ['p1'] })
+    fireEvent.click(screen.getByRole('button', { name: 'settings.productos.publicarTodo' }))
+    fireEvent.click(screen.getByRole('button', { name: 'settings.productos.cancelar' }))
+    expect(props.onListaChange).not.toHaveBeenCalled()
+  })
+
+  it('con todos marcados y sin precios por canal, «Publicar todo mi catálogo» regresa sin preguntar (no se pierde nada)', () => {
+    const props = renderSeccion({ lista: ['p1', 'p2', 'p3'] })
+    fireEvent.click(screen.getByRole('button', { name: 'settings.productos.publicarTodo' }))
+    expect(props.onListaChange).toHaveBeenCalledWith(null)
+  })
+
+  it('con todos marcados pero con un precio por canal, pide confirmar (el aviso dice que los precios se conservan)', () => {
+    const props = renderSeccion({ lista: ['p1', 'p2', 'p3'], precios: { p2: 79 } })
+    fireEvent.click(screen.getByRole('button', { name: 'settings.productos.publicarTodo' }))
+    expect(props.onListaChange).not.toHaveBeenCalled()
+    expect(screen.getByText('settings.productos.publicarTodoPrecios')).toBeInTheDocument()
+  })
+
+  it('sin lista no aparece «Publicar todo mi catálogo» (ya publica todo)', () => {
+    renderSeccion({ lista: null })
+    expect(screen.queryByRole('button', { name: 'settings.productos.publicarTodo' })).not.toBeInTheDocument()
+  })
 })
