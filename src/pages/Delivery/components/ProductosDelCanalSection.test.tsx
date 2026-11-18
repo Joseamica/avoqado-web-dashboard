@@ -198,4 +198,22 @@ describe('ProductosDelCanalSection', () => {
     renderSeccion({ lista: ['p1'], productos: [p('p1', 'Latte', 'Bebidas', { active: false })] })
     expect(screen.queryByRole('button', { name: 'settings.productos.publicarTodo' })).not.toBeInTheDocument()
   })
+  // Codex r3 #1: el SERVIDOR tampoco publica un producto de una categoría apagada; si es el único activo, el menú saldría vacío.
+  it('con lista y el único producto activo en una categoría apagada no ofrece «Publicar todo mi catálogo»', () => {
+    renderSeccion({
+      lista: ['p1'],
+      productos: [p('p1', 'Latte', 'Bebidas', { category: { name: 'Bebidas', active: false } }), p('p2', 'Té', 'Tés', { active: false })],
+    })
+    expect(screen.queryByRole('button', { name: 'settings.productos.publicarTodo' })).not.toBeInTheDocument()
+  })
+  it('con un producto activo en una categoría prendida sí ofrece «Publicar todo mi catálogo»', () => {
+    renderSeccion({
+      lista: ['p1'],
+      productos: [
+        p('p1', 'Latte', 'Bebidas', { category: { name: 'Bebidas', active: false } }),
+        p('p2', 'Té', 'Tés', { category: { name: 'Tés', active: true } }),
+      ],
+    })
+    expect(screen.getByRole('button', { name: 'settings.productos.publicarTodo' })).toBeInTheDocument()
+  })
 })

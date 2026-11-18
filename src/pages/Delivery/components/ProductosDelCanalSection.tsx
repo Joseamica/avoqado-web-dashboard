@@ -22,7 +22,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { cn, includesNormalized } from '@/lib/utils'
 import type { DeliveryProvider } from '@/types/delivery'
-import { erroresDePrecios, precioGuia, precioQueSePublica, type ProductoDelCanal } from '../productosDelCanal'
+import { entraAlMenu, erroresDePrecios, precioGuia, precioQueSePublica, type ProductoDelCanal } from '../productosDelCanal'
 
 /** Tope de la lista en el SERVIDOR: con un catálogo más grande, «Elegir cuáles» arranca vacío. */
 export const MAX_LISTA = 5000
@@ -197,9 +197,9 @@ export function ProductosDelCanalSection(props: Props) {
 
         <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-sm text-muted-foreground">
           <span>{t('settings.productos.listaHelp')}</span>
-          {/* Sin ningún producto activo (sólo los activos salen en el menú), publicar todo mandaría un menú vacío al proveedor
-              (Codex D100 r1 #4 y r2 #1). */}
-          {productos.some(p => p.active) && (
+          {/* Sin ningún producto que entre al menú (activo y en una categoría activa), publicar todo mandaría un menú vacío al
+              proveedor (Codex D100 r1 #4, r2 #1 y r3 #1). */}
+          {productos.some(entraAlMenu) && (
             <Button
               data-tour="delivery-settings-productos-todo"
               variant="link"

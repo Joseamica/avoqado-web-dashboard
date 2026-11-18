@@ -3,8 +3,12 @@ import type { Product } from '@/types'
 import type { DeliveryChannelConfig, DeliveryProvider } from '@/types/delivery'
 
 export type ProductoDelCanal = Pick<Product, 'id' | 'sku' | 'name' | 'price' | 'active' | 'createdAt' | 'categoryId'> & {
-  category?: { name: string } | null
+  // `active` viene en GET /products (la categoría completa): una categoría apagada no sale en el menú del canal.
+  category?: { name: string; active?: boolean } | null
 }
+
+/** Si el producto entraría al menú del canal: el SERVIDOR sólo publica productos activos de categorías activas. */
+export const entraAlMenu = (p: ProductoDelCanal): boolean => p.active && p.category?.active !== false
 
 /**
  * La lista y los precios de al abrir, IGUAL que los lee el SERVIDOR (Codex impl r1 #1):
