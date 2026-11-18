@@ -252,7 +252,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
   const { hasAccess: hasCfdi } = useTierFeatureAccess('CFDI')
   // Recipe-based products belong to the advanced-inventory feature (INVENTORY_TRACKING = Premium 👑),
   // exactly like the Recipes page. Free venues without an explicit grant cannot build recipe products.
-  const { hasAccess: hasInventoryTracking } = useTierFeatureAccess('INVENTORY_TRACKING')
+  const { hasAccess: accesoPorPlanInventario } = useTierFeatureAccess('INVENTORY_TRACKING')
   const { venue, venueId, venueSlug, fullBasePath } = useCurrentVenue()
   const handleMasterCatalogError = useMasterCatalogError(venue?.organizationId)
   const navigate = useNavigate()
@@ -396,6 +396,10 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
   // sigue siendo Premium: sus rutas del SERVIDOR siguen detrás del candado (Codex r1 de na1d52b5).
   const opcionPiezas = (recommendations?.options as Array<{ type?: string; enabled?: boolean }> | undefined)?.find(o => o.type === 'QUANTITY')
   const puedeContarPiezas = !!recommendations?.hasInventoryFeature || (mode === 'create' && opcionPiezas?.enabled === true)
+  // La receta es Premium: si el SERVIDOR (mismo resolver que su candado, con exentos y demo) dice que no, queda cerrada aunque el cálculo
+  // del panel diga otra cosa (falla abierto si el plan no carga, y en marca blanca usa otro código: Codex r2 #5 de na1d52b5). Antes de
+  // este cambio, con «sin Premium» la sección entera quedaba cerrada: nadie pierde una receta que podía elegir.
+  const hasInventoryTracking = accesoPorPlanInventario && recommendations?.hasInventoryFeature !== false
 
   // Fetch raw materials for recipe ingredients
   const insumosQuery = useQuery({
@@ -1679,7 +1683,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
         // Nunca «Cargando…» para siempre: si la consulta falló, se dice (na1d52b5). Al editar sin Premium, por qué no se ofrece.
         recommendations
           ? mode === 'edit' && !recommendations.hasInventoryFeature ? t('wizard.step2.editQuantityPremium') : t(recommendations.recommendation || 'wizard.step2.useInventoryDesc')
-          : recomendacionesQuery.isError ? t('wizard.step2.recommendationError') : tCommon('loading'))
+          : falloDeCarga(recomendacionesQuery) ? t('wizard.step2.recommendationError') : tCommon('loading')) // sin red la consulta se PAUSA (Codex r2 #6)
         : opener === 'recipe' && !hasInventoryTracking ? t('wizard.step2.recipePremiumLocked') : undefined
     const tierBadge = id === 'variants' && accesoVariantes.isResolved && !accesoVariantes.hasAccess ? <VenueTierBadge tier="PRO" />
       : copyId === 'recipe' && !hasInventoryTracking ? <Badge variant="outline">{t('wizard.step2.premiumBadge')}</Badge> : undefined

@@ -1,5 +1,5 @@
 import { getProducts, updateProduct, deleteProduct } from '@/services/menu.service'
-import { productInventoryApi, type AdjustInventoryStockDto } from '@/services/inventory.service'
+import { productInventoryApi, productWizardApi, type AdjustInventoryStockDto } from '@/services/inventory.service'
 import { useToast } from '@/hooks/use-toast'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
@@ -82,7 +82,6 @@ import { filasConFamilias, rangoDePrecio, type FilaProducto } from '@/pages/Menu
 import { esAgrupable, sugerirDesdeNombres, type EstadoAgrupar } from '@/features/product-variants/groupExisting'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useAccess } from '@/hooks/use-access'
-import { useTierFeatureAccess } from '@/hooks/use-tier-feature-access'
 import { textoDelServidor } from '@/utils/apiError'
 
 // 🔴 `flexRender` pinta cada `cell` como componente: si `columns` cambia, React remonta TODAS las celdas y el foco del teclado cae al
@@ -180,8 +179,15 @@ export default function Products() {
   const [productToAdjust, setProductToAdjust] = useState<Product | null>(null)
   // na1d52b5 (17-nov-2026): un producto puede contar piezas en Gratis/Pro (se da de alta así), pero «Ajustar existencias» del panel llama a
   // una ruta Premium (INVENTORY_TRACKING). Sin Premium se ve con su candado y no se ofrece algo que terminaría en error (Codex r1 #7).
-  const accesoInventario = useTierFeatureAccess('INVENTORY_TRACKING')
-  const ajusteConCandado = accesoInventario.isResolved && !accesoInventario.hasAccess
+  // Lo decide el SERVIDOR (la misma consulta del asistente, mismo resolver que su candado, con exentos y demo), no el cálculo del panel,
+  // que en marca blanca usa otro código (Codex r2 #1). Si no se sabe, no se pone candado (el SERVIDOR decide). El superadmin no lo tiene.
+  const { role: rolActual } = useAccess()
+  const { data: planDeInventario } = useQuery({
+    queryKey: ['inventory-recommendations', venueId],
+    queryFn: async () => (await productWizardApi.shouldUseInventory(venueId!)).data.data,
+    enabled: !!venueId,
+  })
+  const ajusteConCandado = planDeInventario?.hasInventoryFeature === false && rolActual !== 'SUPERADMIN'
   const [showLowStockOnly, setShowLowStockOnly] = useState(false)
   const [typeSelectorOpen, setTypeSelectorOpen] = useState(false)
   const [selectedProductType, setSelectedProductType] = useState<ProductType | null>(null)

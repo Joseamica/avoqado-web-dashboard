@@ -8,7 +8,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { configure, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { QueryClient, QueryClientProvider, onlineManager } from '@tanstack/react-query'
 
 configure({ asyncUtilTimeout: 5000 })
 
@@ -203,7 +203,8 @@ const RECOMENDACION_SIN_PREMIUM = {
   ],
 }
 
-describe('na1d52b5 · contar piezas al dar de alta en todos los planes', () => {
+// El asistente es pesado (formulario completo + combobox): con la Mac cargada rozaba los 5 s por defecto.
+describe('na1d52b5 · contar piezas al dar de alta en todos los planes', { timeout: 20_000 }, () => {
   beforeEach(() => {
     access.inventory = false // Gratis o Pro: sin INVENTORY_TRACKING
     inventory.productWizardApi.shouldUseInventory.mockResolvedValue({ data: { data: RECOMENDACION_SIN_PREMIUM } })
@@ -234,6 +235,25 @@ describe('na1d52b5 · contar piezas al dar de alta en todos los planes', () => {
     await waitFor(() => expect(opener('inventory')).toHaveTextContent('wizard.step2.recommendationError'))
     expect(opener('inventory')).toBeDisabled()
     expect(opener('inventory')).not.toHaveTextContent('loading')
+  })
+
+  it('sin internet la consulta se pausa: tampoco se queda en «Cargando…» (Codex r2 #6)', async () => {
+    onlineManager.setOnline(false)
+    try {
+      mount({ productType: 'REGULAR' })
+      await waitFor(() => expect(opener('inventory')).toHaveTextContent('wizard.step2.recommendationError'))
+    } finally {
+      onlineManager.setOnline(true)
+    }
+  })
+
+  it('el panel dice «con Premium» (plan sin cargar, marca blanca) pero el SERVIDOR dice que no: la receta sigue cerrada (Codex r2 #5)', async () => {
+    access.inventory = true // el cálculo del panel falla abierto
+    mount({ productType: 'REGULAR' })
+    await fillProduct()
+    await waitFor(() => expect(opener('inventory')).toBeEnabled())
+    await userEvent.click(opener('inventory'))
+    expect(document.getElementById('recipe-based-left')).toBeDisabled()
   })
 
   it('editar un producto en Gratis/Pro: las piezas siguen siendo Premium y lo dice (no se ofrece algo que fallaría)', async () => {

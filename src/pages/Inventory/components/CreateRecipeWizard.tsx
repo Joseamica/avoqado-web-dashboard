@@ -28,6 +28,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { SearchCombobox, type SearchComboboxItem } from '@/components/search-combobox'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { useAccess } from '@/hooks/use-access'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useUnitTranslation } from '@/hooks/use-unit-translation'
 import { useToast } from '@/hooks/use-toast'
@@ -76,6 +77,9 @@ interface CreateRecipeWizardProps {
 export function CreateRecipeWizard({ open, onClose }: CreateRecipeWizardProps) {
   const { t } = useTranslation('inventory')
   const { t: tCommon } = useTranslation('common')
+  // Dar de alta el producto desde aquí usa el alta del asistente, que pide `menu:create` como el alta normal (na1d52b5, Codex r2 #2):
+  // sin ese permiso no se ofrece «Crear producto».
+  const puedeCrearProducto = useAccess().can('menu:create')
   const { venueId } = useCurrentVenue()
   const { toast } = useToast()
   const queryClient = useQueryClient()
@@ -408,10 +412,14 @@ export function CreateRecipeWizard({ open, onClose }: CreateRecipeWizardProps) {
                     setSearchTerm('')
                   }
                 }}
-                onCreateNew={() => {
-                  sesion.current += 1
-                  setCreateProductOpen(true)
-                }}
+                onCreateNew={
+                  puedeCrearProducto
+                    ? () => {
+                        sesion.current += 1
+                        setCreateProductOpen(true)
+                      }
+                    : undefined
+                }
                 createNewLabel={term => t('recipeWizard.step1.createProduct', { name: term })}
               />
 
