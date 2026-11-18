@@ -91,7 +91,8 @@ interface TarjetasDePlanesProps {
 }
 
 /**
- * Las 3 tarjetas del paso de planes del alta (Pro, Premium y Enterprise).
+ * Las 3 tarjetas del paso de planes del alta: Pro, Premium y Enterprise, o Básico, Pro y Premium con
+ * Enterprise como enlace debajo.
  *
  * 🔴 Sólo formatea centavos que ya vienen del servidor (`formatMXN` / `textoDePrecio`): no suma ni
  * deriva ningún monto. Si falta la cotización, la línea «Luego …» no se pinta en vez de inventarse.
@@ -112,104 +113,114 @@ export function TarjetasDePlanes({
 
   // La tarjeta de la campaña (Pro o Premium) lleva la oferta y el botón fuerte; sin campaña es Pro.
   const planDestacado: Plan = oferta?.planTier ?? 'PRO'
+  // Con el Básico, Enterprise deja su lugar y baja a un enlace: siempre 3 tarjetas (founder, 18-nov, «A»).
+  const planes = planBasico ? ORDEN.filter(p => p !== 'ENTERPRISE') : ORDEN
   // En celular van apiladas: la de la campaña primero. En computadora el orden no cambia.
-  const orden = esCelular && oferta ? [oferta.planTier, ...ORDEN.filter(p => p !== oferta.planTier)] : ORDEN
+  const orden = esCelular && oferta ? [oferta.planTier, ...planes.filter(p => p !== oferta.planTier)] : planes
+  const abrirVentas = () => window.open(salesWhatsAppLink(TEXTO_ENTERPRISE), '_blank', 'noopener,noreferrer')
 
   return (
-    <div className={cn('grid grid-cols-1 gap-4', planBasico ? 'lg:grid-cols-4' : 'lg:grid-cols-3')}>
-      {orden.map(plan => {
-        const destacada = plan === planDestacado && !basicoRecomendado
-        const basico =
-          plan === 'PRO' && planBasico ? (
-            <BasicPlanCard
-              key="BASICO"
-              plan={planBasico}
-              selected={basicoRecomendado}
-              disabled={bloqueado}
-              onSelect={() => onElegirBasico?.()}
-              // Como las demás tarjetas del alta corta: se elige con su botón «Elegir».
-              actionLabel={t('plans.chooseBasic', { plan: planBasico.name })}
-            />
-          ) : null
+    <div className="flex flex-col items-center gap-3">
+      <div className="grid w-full grid-cols-1 gap-4 lg:grid-cols-3">
+        {orden.map(plan => {
+          const destacada = plan === planDestacado && !basicoRecomendado
+          const basico =
+            plan === 'PRO' && planBasico ? (
+              <BasicPlanCard
+                key="BASICO"
+                plan={planBasico}
+                selected={basicoRecomendado}
+                disabled={bloqueado}
+                onSelect={() => onElegirBasico?.()}
+                // Como las demás tarjetas del alta corta: se elige con su botón «Elegir».
+                actionLabel={t('plans.chooseBasic', { plan: planBasico.name })}
+              />
+            ) : null
 
-        if (plan === 'ENTERPRISE') {
-          return (
+          if (plan === 'ENTERPRISE') {
+            return (
+              <Tarjeta
+                key={plan}
+                plan={plan}
+                destacada={false}
+                precio={
+                  <>
+                    <p className="text-2xl font-semibold">{t('plans.enterprisePrice')}</p>
+                    <p className="text-sm text-muted-foreground">{t('plans.enterpriseSub')}</p>
+                  </>
+                }
+                puntos={[1, 2, 3, 4].map(n => t(`plans.benefits.enterprise.${n}`))}
+                boton={t('plans.talkToSales')}
+                bloqueado={bloqueado}
+                onClick={abrirVentas}
+              />
+            )
+          }
+
+          const clave = plan.toLowerCase()
+          const esLaOferta = oferta?.planTier === plan
+          const tier = planQuote?.tiers?.[plan]
+
+          const tarjetaDelPlan = (
             <Tarjeta
               key={plan}
               plan={plan}
-              destacada={false}
-              precio={
-                <>
-                  <p className="text-2xl font-semibold">{t('plans.enterprisePrice')}</p>
-                  <p className="text-sm text-muted-foreground">{t('plans.enterpriseSub')}</p>
-                </>
+              etiqueta={
+                esLaOferta ? t('plans.yourOffer') : !oferta && plan === 'PRO' && !basicoRecomendado ? t('plans.recommended') : undefined
               }
-              puntos={[1, 2, 3, 4].map(n => t(`plans.benefits.enterprise.${n}`))}
-              boton={t('plans.talkToSales')}
+              destacada={destacada}
+              precio={
+                esLaOferta ? (
+                  <>
+                    <p className="text-2xl font-semibold">
+                      {t('plans.offerPrice', { price: formatMXN(oferta.promo.monthlyCents), count: oferta.promo.months })}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {t('plans.offerRenewal', { price: textoDePrecio(t, oferta.renewal.monthlyCents, oferta.renewal.subtotalCents) })}
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-2xl font-semibold">
+                      {t('plans.trialPrice')}
+                      {oferta && <span className="text-sm font-normal text-muted-foreground"> · {t('plans.withoutOffer')}</span>}
+                    </p>
+                    {tier && (
+                      <p className="text-sm text-muted-foreground">
+                        {t('plans.thenPerMonth', { price: textoDePrecio(t, tier.monthlyCents, tier.monthlyNetCents) })}
+                      </p>
+                    )}
+                  </>
+                )
+              }
+              puntos={
+                esLaOferta && oferta.copy.bullets.length > 0
+                  ? oferta.copy.bullets
+                  : [1, 2, 3, 4].map(n => t(`${prefijoDeBeneficios}.${clave}.${n}`))
+              }
+              boton={
+                esLaOferta
+                  ? t('plans.chooseOffer', { plan: oferta.planName, price: formatMXN(oferta.promo.monthlyCents) })
+                  : t(plan === 'PRO' ? 'plans.choosePro' : 'plans.choosePremium')
+              }
               bloqueado={bloqueado}
-              onClick={() => window.open(salesWhatsAppLink(TEXTO_ENTERPRISE), '_blank', 'noopener,noreferrer')}
+              onClick={() => onElegir(plan)}
             />
           )
-        }
-
-        const clave = plan.toLowerCase()
-        const esLaOferta = oferta?.planTier === plan
-        const tier = planQuote?.tiers?.[plan]
-
-        const tarjetaDelPlan = (
-          <Tarjeta
-            key={plan}
-            plan={plan}
-            etiqueta={
-              esLaOferta ? t('plans.yourOffer') : !oferta && plan === 'PRO' && !basicoRecomendado ? t('plans.recommended') : undefined
-            }
-            destacada={destacada}
-            precio={
-              esLaOferta ? (
-                <>
-                  <p className="text-2xl font-semibold">
-                    {t('plans.offerPrice', { price: formatMXN(oferta.promo.monthlyCents), count: oferta.promo.months })}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    {t('plans.offerRenewal', { price: textoDePrecio(t, oferta.renewal.monthlyCents, oferta.renewal.subtotalCents) })}
-                  </p>
-                </>
-              ) : (
-                <>
-                  <p className="text-2xl font-semibold">
-                    {t('plans.trialPrice')}
-                    {oferta && <span className="text-sm font-normal text-muted-foreground"> · {t('plans.withoutOffer')}</span>}
-                  </p>
-                  {tier && (
-                    <p className="text-sm text-muted-foreground">
-                      {t('plans.thenPerMonth', { price: textoDePrecio(t, tier.monthlyCents, tier.monthlyNetCents) })}
-                    </p>
-                  )}
-                </>
-              )
-            }
-            puntos={
-              esLaOferta && oferta.copy.bullets.length > 0
-                ? oferta.copy.bullets
-                : [1, 2, 3, 4].map(n => t(`${prefijoDeBeneficios}.${clave}.${n}`))
-            }
-            boton={
-              esLaOferta
-                ? t('plans.chooseOffer', { plan: oferta.planName, price: formatMXN(oferta.promo.monthlyCents) })
-                : t(plan === 'PRO' ? 'plans.choosePro' : 'plans.choosePremium')
-            }
-            bloqueado={bloqueado}
-            onClick={() => onElegir(plan)}
-          />
-        )
-        // Fragment con llave: la tarjeta de Pro no se remonta cuando el Básico llega (un clic en vuelo se perdería).
-        return (
-          <Fragment key={plan}>
-            {basico}
-            {tarjetaDelPlan}
-          </Fragment>
-        )
-      })}
+          // Fragment con llave: la tarjeta de Pro no se remonta cuando el Básico llega (un clic en vuelo se perdería).
+          return (
+            <Fragment key={plan}>
+              {basico}
+              {tarjetaDelPlan}
+            </Fragment>
+          )
+        })}
+      </div>
+      {planBasico && (
+        <Button variant="link" size="sm" disabled={bloqueado} onClick={abrirVentas} data-tour="offer-enterprise-link">
+          {t('plans.enterpriseLink')}
+        </Button>
+      )}
     </div>
   )
 }

@@ -225,16 +225,28 @@ export function HybridCheckout({
     leaving.every(code => drop.includes(code))
   const fail = (value: unknown) =>
     setError((value as { response?: { data?: { message?: string } } })?.response?.data?.message ?? t('hybrid.error'))
+  // Every button here goes through `run`. `busy` only disables them after the next render, so two clicks in the same
+  // instant both got through: a double click on «Aceptar y pagar» sent two accepts, and the 409 of the second showed
+  // in red beside «Tu compra está activa» (re-prueba 18-nov).
+  const enVuelo = useRef(false)
   const action = useMutation({
     mutationFn: async (work: () => Promise<void>) => {
       setError(null)
       await work()
     },
     onError: fail,
+    onSettled: () => {
+      enVuelo.current = false
+    },
   })
+  const run = (work: () => Promise<void>) => {
+    if (enVuelo.current) return
+    enVuelo.current = true
+    action.mutate(work)
+  }
   const busy = action.isPending || !online || (!restored && !purchase)
   const review = () =>
-    action.mutate(async () => {
+    run(async () => {
       const result = await hybridBilling.quote(venueId, {
         lines: effectiveCart.map(row => ({ publicationId: row.offer.id, selectedFeatureCodes: row.codes })),
         replaceSubscriptionIds: replace,
@@ -247,7 +259,7 @@ export function HybridCheckout({
       setPayment(null)
     })
   const accept = () =>
-    action.mutate(async () => {
+    run(async () => {
       if (!purchase || !consent || new Date(purchase.quoteExpiresAt).getTime() <= Date.now()) return
       const old = readHybridAttempt(venueId)
       const attempt = old?.id === purchase.id ? old : { id: purchase.id, clientKey: crypto.randomUUID() }
@@ -262,7 +274,7 @@ export function HybridCheckout({
       }
     })
   const resume = () =>
-    action.mutate(async () => {
+    run(async () => {
       if (!purchase) return
       setPayment(await hybridBilling.resume(venueId, purchase.id))
       await status.refetch()
@@ -344,7 +356,7 @@ export function HybridCheckout({
                 data-tour="hybrid-completed-continue"
                 onClick={() =>
                   onCompleted
-                    ? action.mutate(async () => {
+                    ? run(async () => {
                         await onCompleted(purchase.id)
                         clearHybridAttempt(venueId, purchase.id)
                         clearHybridDraft(venueId)
@@ -380,7 +392,7 @@ export function HybridCheckout({
                     variant="outline"
                     disabled={busy}
                     onClick={() =>
-                      action.mutate(async () => {
+                      run(async () => {
                         setPayment(await hybridBilling.cancel(venueId, purchase.id))
                         await status.refetch()
                         await current.refetch()
