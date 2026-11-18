@@ -19,6 +19,7 @@ import { aggregatorAPI, type Aggregator } from '@/services/aggregator.service'
 import { upsertProviderCostStructure } from '@/services/cost-management.service'
 import { decimalToPercent, percentToDecimal } from '@/utils/fees'
 import { cn } from '@/lib/utils'
+import { fechaDeVigenciaOHoy } from '../fechaDeVigencia'
 import type { CostSlice, MerchantSlice, SetupState } from '../types'
 import type { SetupAction } from '../useSetupReducer'
 
@@ -208,9 +209,9 @@ function CostDialogBody({
 
   const canSave = isCostValid(draft)
 
-  // Edit-mode upsert. The backend route UPSERTs based on
-  // (providerId, merchantAccountId, effectiveFrom) so saving the same date
-  // updates the row in place. We invalidate the cost-structures query so the
+  // Edit-mode save. The backend saves in one transaction: same date as a
+  // version from TODAY corrects it in place; a date that already applied is a
+  // 409 and a future one a 400. We invalidate the cost-structures query so the
   // next hydration sees the new values.
   const saveMutation = useMutation({
     mutationFn: () => {
@@ -227,7 +228,7 @@ function CostDialogBody({
         internationalRate: draft.internationalRate!,
         fixedCostPerTransaction: draft.fixedCostPerTransaction,
         monthlyFee: draft.monthlyFee,
-        effectiveFrom: draft.effectiveFrom || new Date().toISOString().slice(0, 10),
+        effectiveFrom: fechaDeVigenciaOHoy(draft.effectiveFrom),
       })
     },
     onSuccess: () => {
