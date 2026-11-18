@@ -641,6 +641,7 @@
       "recommendationDisabled": "Inventory management is not enabled for your venue. Contact support to enable this feature.",
       "recommendationQuantityOnly": "You can count this product's pieces. Recipes are part of the Premium plan.",
       "recommendationError": "We couldn't check your plan. Close this window and open it again.",
+      "quantityNotAllowedNow": "You can no longer track this product's stock: your access or plan changed. Turn off «Inventory» to save it without stock, or ask your administrator.",
       "recommendationNoAccess": "Your user does not have access to this business's inventory. Ask your administrator.",
       "editQuantityPremium": "Changing the inventory of an existing product here is part of the Premium plan.",
       "question": "Do you want to track inventory for this product?",

@@ -401,8 +401,11 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
   })
   // Si la consulta falló o se pausó sin red (aunque haya una respuesta de antes), no se usa la vieja: la sección lo dice (Codex r9 #3). Y
   // mientras se reintenta tras un error, tampoco: «Cargando…» hasta que conteste (r10 #3).
+  // Tampoco mientras espera su reintento tras un fallo (un 503): TanStack sigue en «éxito» con la respuesta de antes (Codex r12 #1).
   const recommendations =
-    recomendacionesQuery.isError || falloDeCarga(recomendacionesQuery) ? undefined : recomendacionesQuery.data
+    recomendacionesQuery.isError || recomendacionesQuery.failureCount > 0 || falloDeCarga(recomendacionesQuery)
+      ? undefined
+      : recomendacionesQuery.data
   // na1d52b5 (17-nov-2026): contar piezas al DAR DE ALTA es de todos los planes (founder, 29-sep, «B»): lo dice la opción QUANTITY de la
   // recomendación, que en un SERVIDOR nuevo no cambia con el plan ni con quien pregunta (una respuesta vieja dice lo mismo; uno viejo no
   // la habilita sin Premium y todo queda como antes). Editar las piezas de un producto que ya existe sigue siendo Premium (Codex r1).
@@ -1430,6 +1433,16 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
 
     // In create mode, submit product with inventory configuration
     if (inventoryMethod === 'QUANTITY') {
+      // La sección pudo abrirse cuando sí se podía: si la respuesta de AHORA ya no deja contar piezas (cambió el acceso o el plan) o no se
+      // pudo revisar, no se manda algo que el SERVIDOR rechazaría; se dice por qué (Codex r12 #2).
+      if (!puedeContarPiezas) {
+        toast({
+          title: tCommon('error'),
+          description: recommendations ? t('wizard.step2.quantityNotAllowedNow') : t('wizard.step2.recommendationError'),
+          variant: 'destructive',
+        })
+        return
+      }
       const simpleStockData = step3SimpleForm.getValues()
       if (!Number.isFinite(simpleStockData.initialStock)) return pedirExistencias()
       createProductWithInventoryMutation.mutate({

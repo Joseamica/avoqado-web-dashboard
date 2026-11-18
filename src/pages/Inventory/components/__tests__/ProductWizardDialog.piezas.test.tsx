@@ -322,6 +322,47 @@ describe('na1d52b5 · contar piezas al dar de alta en todos los planes', { timeo
     }
   })
 
+  it('mientras espera el reintento de un 503, tampoco se ve el «sí» de antes (Codex r12 #1)', async () => {
+    mount({ productType: 'REGULAR' })
+    await fillProduct()
+    await waitFor(() => expect(opener('inventory')).toBeEnabled())
+    await userEvent.click(opener('inventory'))
+    inventory.productWizardApi.shouldUseInventory.mockRejectedValue({ response: { status: 503 } })
+    try {
+      focusManager.setFocused(false)
+      focusManager.setFocused(true)
+      await waitFor(() => expect(screen.getByTestId('plan-sin-respuesta')).toBeInTheDocument(), { timeout: 600 }) // antes del reintento (1 s)
+      expect(screen.queryByText('wizard.step2.recommendationQuantityOnly')).toBeNull()
+    } finally {
+      focusManager.setFocused(undefined)
+    }
+  })
+
+  it('la sección estaba abierta y la respuesta de ahora ya no deja contar piezas: «Guardar» no manda el alta (Codex r12 #2)', async () => {
+    mount({ productType: 'REGULAR' })
+    await fillProduct()
+    await waitFor(() => expect(opener('inventory')).toBeEnabled())
+    await userEvent.click(opener('inventory'))
+    changeValue('initialStock', '10')
+    changeValue('costPerUnit', '5')
+    inventory.productWizardApi.shouldUseInventory.mockResolvedValue({
+      data: {
+        data: { ...RECOMENDACION_SIN_PREMIUM, options: RECOMENDACION_SIN_PREMIUM.options.map(o => ({ ...o, enabled: o.type === 'NONE' })) },
+      },
+    })
+    try {
+      focusManager.setFocused(false)
+      focusManager.setFocused(true) // le retiraron el permiso: la respuesta fresca ya no habilita piezas
+      await waitFor(() => expect(inventory.productWizardApi.shouldUseInventory).toHaveBeenCalledTimes(2))
+      await new Promise(r => setTimeout(r, 100))
+      await userEvent.click(screen.getByRole('button', { name: 'wizard.finish' }))
+      await new Promise(r => setTimeout(r, 200))
+      expect(inventory.productWizardApi.createProductWithInventory).not.toHaveBeenCalled()
+    } finally {
+      focusManager.setFocused(undefined)
+    }
+  })
+
   it('SERVIDOR anterior (403 de su candado de plan, con featureCode): dice que no está habilitado, no que falta permiso (Codex r9 #4)', async () => {
     inventory.productWizardApi.shouldUseInventory.mockRejectedValue({
       response: { status: 403, data: { featureCode: 'INVENTORY_TRACKING' } },
