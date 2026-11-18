@@ -203,6 +203,8 @@ describe('asistente — respuestas y fotos entre aperturas', () => {
 
   it('crear familia cierra sin entregar groupId como si fuera un productId', async () => {
     plan.hasAccess = true
+    // Premium según el SERVIDOR: la receta la decide su respuesta (na1d52b5, Codex r4 #6), no el cálculo del panel.
+    inv.productWizardApi.shouldUseInventory.mockResolvedValue({ data: { data: { hasInventoryFeature: true } } })
     const vista = montar('create')
     await llenarAlta('Familia')
     await userEvent.click(document.querySelector<HTMLButtonElement>('[data-tour="product-wizard-add-variants"]')!)
@@ -711,6 +713,8 @@ describe('asistente — respuestas y fotos entre aperturas', () => {
 
   it('cerrar durante el PUT de una receta: la receta se manda igual', async () => {
     plan.hasAccess = true
+    // Premium según el SERVIDOR: la receta la decide su respuesta (na1d52b5, Codex r4 #6), no el cálculo del panel.
+    inv.productWizardApi.shouldUseInventory.mockResolvedValue({ data: { data: { hasInventoryFeature: true } } })
     inv.productWizardApi.getWizardProgress.mockResolvedValue({ data: { data: { inventoryMethod: 'RECIPE', details: {} } } })
     inv.recipesApi.get.mockResolvedValue({
       data: { data: { portionYield: 1, lines: [{ rawMaterialId: 'rm1', rawMaterial: { name: 'Insumo' }, quantity: '1', unit: 'KILOGRAM', isOptional: false }] } },
@@ -913,6 +917,8 @@ describe('asistente — respuestas y fotos entre aperturas', () => {
       data: { data: { portionYield: 1, lines: [{ rawMaterialId: id, rawMaterial: { name: nombre }, quantity: '1', unit: 'KILOGRAM', isOptional: false }] } },
     })
     plan.hasAccess = true
+    // Premium según el SERVIDOR: la receta la decide su respuesta (na1d52b5, Codex r4 #6), no el cálculo del panel.
+    inv.productWizardApi.shouldUseInventory.mockResolvedValue({ data: { data: { hasInventoryFeature: true } } })
     inv.productWizardApi.getWizardProgress.mockResolvedValue({ data: { data: { inventoryMethod: 'RECIPE', details: {} } } })
     inv.recipesApi.get.mockResolvedValue(receta('Insumo viejo', 'rm1'))
     inv.recipesApi.update.mockResolvedValue({})

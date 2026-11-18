@@ -252,6 +252,8 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
   const { hasAccess: hasCfdi } = useTierFeatureAccess('CFDI')
   // Recipe-based products belong to the advanced-inventory feature (INVENTORY_TRACKING = Premium 👑),
   // exactly like the Recipes page. Free venues without an explicit grant cannot build recipe products.
+  // na1d52b5: la receta (y editar las piezas de un producto que ya existe) siguen COMO HOY: las decide el plan del panel y, al guardar,
+  // el candado del SERVIDOR. Decidirlas con la recomendación del SERVIDOR abría una familia de casos con respuestas viejas (Codex r4-r8).
   const { hasAccess: hasInventoryTracking } = useTierFeatureAccess('INVENTORY_TRACKING')
   const { venue, venueId, venueSlug, fullBasePath } = useCurrentVenue()
   const handleMasterCatalogError = useMasterCatalogError(venue?.organizationId)
@@ -382,14 +384,37 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
   }
 
   // Fetch recommendations for inventory usage
-  const { data: recommendations } = useQuery({
+  const recomendacionesQuery = useQuery({
     queryKey: ['inventory-recommendations', venueId],
     queryFn: async () => {
       const response = await productWizardApi.shouldUseInventory(venueId)
       return response.data.data
     },
     enabled: !!venueId && open,
+    // Un reintento como máximo (la petición no se repite sola por la red, `shouldUseInventory`), con 10 s cada uno: si no contesta,
+    // el aviso sale en ~21 s, no «Cargando…» sin fin (na1d52b5, Codex r4 #8 y r5 #3). Un 4xx (p. ej. 403) es definitivo: no se reintenta,
+    // así el «sí» de antes no sigue a la vista mientras se reintenta (Codex r11 #3).
+    retry: (veces, error) => {
+      const estado = (error as { response?: { status?: number } } | null)?.response?.status
+      return veces < 1 && !(estado !== undefined && estado >= 400 && estado < 500)
+    },
   })
+  // Si la consulta falló o se pausó sin red (aunque haya una respuesta de antes), no se usa la vieja: la sección lo dice (Codex r9 #3). Y
+  // mientras se reintenta tras un error, tampoco: «Cargando…» hasta que conteste (r10 #3).
+  // Tampoco mientras espera su reintento tras un fallo (un 503): TanStack sigue en «éxito» con la respuesta de antes (Codex r12 #1).
+  const recommendations =
+    recomendacionesQuery.isError || recomendacionesQuery.failureCount > 0 || falloDeCarga(recomendacionesQuery)
+      ? undefined
+      : recomendacionesQuery.data
+  // na1d52b5 (17-nov-2026): contar piezas al DAR DE ALTA es de todos los planes (founder, 29-sep, «B»): lo dice la opción QUANTITY de la
+  // recomendación, que en un SERVIDOR nuevo no cambia con el plan ni con quien pregunta (una respuesta vieja dice lo mismo; uno viejo no
+  // la habilita sin Premium y todo queda como antes). Editar las piezas de un producto que ya existe sigue siendo Premium (Codex r1).
+  const opcionPiezas = (recommendations?.options as Array<{ type?: string; enabled?: boolean }> | undefined)?.find(o => o.type === 'QUANTITY')
+  // Como hoy, la sección la abre la respuesta del SERVIDOR (`hasInventoryFeature`); lo nuevo es sólo la opción de piezas al dar de alta.
+  const puedeContarPiezas = !!recommendations?.hasInventoryFeature || (mode === 'create' && opcionPiezas?.enabled === true)
+  // La receta, con la MISMA regla que hoy: al dar de alta la sección sólo se abría con el «sí» del SERVIDOR, y adentro la receta pedía el
+  // plan del panel. Ahora la sección también se abre por piezas: la receta sigue pidiendo los dos (Codex r9 #2). Al editar, como hoy.
+  const recetaDisponible = hasInventoryTracking && (mode === 'edit' || !!recommendations?.hasInventoryFeature)
 
   // Fetch raw materials for recipe ingredients
   const insumosQuery = useQuery({
@@ -1408,6 +1433,16 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
 
     // In create mode, submit product with inventory configuration
     if (inventoryMethod === 'QUANTITY') {
+      // La sección pudo abrirse cuando sí se podía: si la respuesta de AHORA ya no deja contar piezas (cambió el acceso o el plan) o no se
+      // pudo revisar, no se manda algo que el SERVIDOR rechazaría; se dice por qué (Codex r12 #2).
+      if (!puedeContarPiezas) {
+        toast({
+          title: tCommon('error'),
+          description: recommendations ? t('wizard.step2.quantityNotAllowedNow') : t('wizard.step2.recommendationError'),
+          variant: 'destructive',
+        })
+        return
+      }
       const simpleStockData = step3SimpleForm.getValues()
       if (!Number.isFinite(simpleStockData.initialStock)) return pedirExistencias()
       createProductWithInventoryMutation.mutate({
@@ -1581,7 +1616,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
   const openOptional = (opener: OptionalOpener) => {
     const id = opener === 'recipe' ? 'inventory' : opener
     if (id === 'inventory') {
-      if (!recommendations?.hasInventoryFeature || (opener === 'recipe' && !hasInventoryTracking)) return
+      if (!puedeContarPiezas || (opener === 'recipe' && !recetaDisponible)) return
       const method = opener === 'recipe' ? 'RECIPE' : 'QUANTITY'
       step2Form.setValue('useInventory', true)
       step2Form.setValue('inventoryMethod', method)
@@ -1669,10 +1704,22 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
       ? step2Form.watch('inventoryMethod') === 'RECIPE' ? 'recipe' : 'inventory'
       : opener
     const disabledReason = id === 'variants' && !puedeVariantes ? (accesoVariantes.isResolved ? tv('alta.casillaBloqueada') : tCommon('loading'))
-      : id === 'inventory' && !recommendations?.hasInventoryFeature ? (recommendations ? t(recommendations.recommendation || 'wizard.step2.useInventoryDesc') : tCommon('loading'))
-        : opener === 'recipe' && !hasInventoryTracking ? t('wizard.step2.recipePremiumLocked') : undefined
+      : id === 'inventory' && !puedeContarPiezas ? (
+        // Nunca «Cargando…» para siempre: si la consulta falló, se dice (na1d52b5). Al editar sin Premium, por qué no se ofrece.
+        recommendations
+          ? mode === 'edit' ? t('wizard.step2.editQuantityPremium') : t(recommendations.recommendation || 'wizard.step2.useInventoryDesc')
+          : falloDeCarga(recomendacionesQuery)
+            ? (recomendacionesQuery.error as { response?: { status?: number } } | null)?.response?.status === 403
+              ? (recomendacionesQuery.error as { response?: { data?: { featureCode?: string } } }).response?.data?.featureCode
+                ? t('wizard.step2.recommendationDisabled') // SERVIDOR anterior: su candado de plan (Codex r9 #4)
+                : t('wizard.step2.recommendationNoAccess') // sin permiso de inventario (p. ej. marca blanca sin Inventario): no es el plan
+              : t('wizard.step2.recommendationError')
+            : tCommon('loading')) // sin red la consulta se PAUSA (Codex r2 #6)
+        : opener === 'recipe' && !recetaDisponible
+          ? t('wizard.step2.recipePremiumLocked')
+          : undefined
     const tierBadge = id === 'variants' && accesoVariantes.isResolved && !accesoVariantes.hasAccess ? <VenueTierBadge tier="PRO" />
-      : copyId === 'recipe' && !hasInventoryTracking ? <Badge variant="outline">{t('wizard.step2.premiumBadge')}</Badge> : undefined
+      : copyId === 'recipe' && !recetaDisponible ? <Badge variant="outline">{t('wizard.step2.premiumBadge')}</Badge> : undefined
     return <div key={opener} data-tour={id === 'inventory' && opener === preferredInventory ? 'product-wizard-track-inventory' : undefined} className="min-w-0">
       <ProductOptionalSection id={isOpen ? id : opener} title={t(`wizard.optional.${copyId}.title`)} description={t(`wizard.optional.${copyId}.description`)}
         icon={icons[id]} open={isOpen} onOpen={() => openOptional(opener)} disabledReason={disabledReason} tierBadge={tierBadge}
@@ -2046,17 +2093,26 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                     <section className="min-w-0">
                       <SectionHeader icon={Package} title={t('wizard.step2.title', { defaultValue: 'Inventario' })} className="mb-4" />
 
+                      {/* Sin respuesta del plan (cargando, sin red o con error): la sección abierta también lo dice (Codex r9 #2 y #3). */}
+                      {!recommendations && mode === 'create' && (
+                        <div className="text-xs p-2 rounded-lg mb-4 bg-muted text-muted-foreground" data-testid="plan-sin-respuesta">
+                          {falloDeCarga(recomendacionesQuery) ? t('wizard.step2.recommendationError') : tCommon('loading')}
+                        </div>
+                      )}
+
                       {/* Recommendations - compact version */}
                       {recommendations && (
                         <div
                           className={cn(
                             'text-xs p-2 rounded-lg mb-4',
-                            recommendations.hasInventoryFeature
+                            puedeContarPiezas
                               ? 'bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300'
                               : 'bg-orange-50 dark:bg-orange-950/30 text-orange-700 dark:text-orange-300',
                           )}
                         >
-                          <strong>{t('wizard.step2.recommendation')}:</strong> {t(recommendations.recommendation)}
+                          <strong>{t('wizard.step2.recommendation')}:</strong>{' '}
+                          {/* Sin Premium pero contando piezas, el texto del SERVIDOR («no está habilitada») ya no es verdad (na1d52b5). */}
+                          {recommendations.hasInventoryFeature || !puedeContarPiezas ? t(recommendations.recommendation) : t('wizard.step2.recommendationQuantityOnly')}
                         </div>
                       )}
 
@@ -2071,7 +2127,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                               onValueChange={value => {
                                 // RECIPE is a Premium (INVENTORY_TRACKING) capability — block selection
                                 // for Free venues without access (the option is also disabled below).
-                                if (value === 'RECIPE' && !hasInventoryTracking) return
+                                if (value === 'RECIPE' && !recetaDisponible) return
                                 step2Form.setValue('inventoryMethod', value as InventoryMethod, { shouldDirty: true })
                                 setSelectedInventoryMethod(value as InventoryMethod)
                               }}
@@ -2098,24 +2154,24 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                               <Label
                                 htmlFor="recipe-based-left"
                                 data-tour="product-wizard-method-recipe"
-                                aria-disabled={!hasInventoryTracking}
-                                title={!hasInventoryTracking ? t('wizard.step2.recipePremiumLocked') : undefined}
+                                aria-disabled={!recetaDisponible}
+                                title={!recetaDisponible ? t('wizard.step2.recipePremiumLocked') : undefined}
                                 className={cn(
                                   'flex items-center gap-3 p-4 rounded-lg border transition-colors',
-                                  !hasInventoryTracking ? 'cursor-not-allowed opacity-60 border-input' : 'cursor-pointer',
-                                  hasInventoryTracking && step2Form.watch('inventoryMethod') === 'RECIPE'
+                                  !recetaDisponible ? 'cursor-not-allowed opacity-60 border-input' : 'cursor-pointer',
+                                  recetaDisponible && step2Form.watch('inventoryMethod') === 'RECIPE'
                                     ? 'border-orange-500 bg-orange-50 dark:bg-orange-950/30'
-                                    : hasInventoryTracking
+                                    : recetaDisponible
                                       ? 'border-border hover:bg-accent/50'
                                       : '',
                                 )}
                               >
-                                <RadioGroupItem value="RECIPE" id="recipe-based-left" disabled={!hasInventoryTracking} />
+                                <RadioGroupItem value="RECIPE" id="recipe-based-left" disabled={!recetaDisponible} />
                                 <Beef className="h-5 w-5 text-orange-600 dark:text-orange-400 shrink-0" />
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center gap-1.5">
                                     <p className="text-sm font-medium">{t('wizard.step2.recipeBased')}</p>
-                                    {!hasInventoryTracking && (
+                                    {!recetaDisponible && (mode === 'edit' || !!recommendations) && (
                                       <Badge
                                         variant="outline"
                                         className="h-4 shrink-0 gap-0.5 border-amber-400/40 px-1.5 text-[10px] text-amber-500"
@@ -2204,7 +2260,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                             {/* Grandfathered-edit fallback: the product is already RECIPE-based but this
                               venue lost INVENTORY_TRACKING (e.g. downgraded to Free). Don't hard-crash
                               and don't expose the editable recipe form — show a subtle Premium upsell hint. */}
-                            {step2Form.watch('inventoryMethod') === 'RECIPE' && !hasInventoryTracking && (
+                            {step2Form.watch('inventoryMethod') === 'RECIPE' && !recetaDisponible && (mode === 'edit' || !!recommendations) && (
                               <div className="space-y-3 pt-4 border-t border-border/50">
                                 <div className="flex items-start gap-3 rounded-lg border border-amber-400/40 bg-amber-400/10 p-4">
                                   <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-amber-400/15">
@@ -2228,7 +2284,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                               </div>
                             )}
 
-                            {step2Form.watch('inventoryMethod') === 'RECIPE' && hasInventoryTracking && (
+                            {step2Form.watch('inventoryMethod') === 'RECIPE' && recetaDisponible && (
                               <div className="space-y-4 pt-4 border-t border-border/50" data-tour="product-wizard-recipe-section">
                                 {/* Portion Yield */}
                                 <div className="space-y-2" data-tour="product-wizard-portion-yield">
