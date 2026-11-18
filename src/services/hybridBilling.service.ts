@@ -292,12 +292,16 @@ export type PublicBasicPlan = {
 export const getPublicBasicPlan = (signal?: AbortSignal) =>
   publicApi.get<{ data: PublicBasicPlan | null }>('/api/v1/public/basic-plan', { signal }).then(data)
 export const hybridBilling = {
-  offers: (params: { page: number; pageSize: number; q?: string }, signal?: AbortSignal) =>
-    publicApi
-      // includeBasic: the Plan Básico on sale comes pinned first (servers since Task 5; older ones never send it).
-      .get<{ data: HybridPage<HybridOffer> }>('/api/v1/public/hybrid-offers', { params: { ...params, includeBasic: 'true' }, signal })
+  offers: (params: { page: number; pageSize: number; q?: string }, signal?: AbortSignal) => {
+    const pedir = (extra: { includeBasic?: 'true' }) =>
+      publicApi.get<{ data: HybridPage<HybridOffer> }>('/api/v1/public/hybrid-offers', { params: { ...params, ...extra }, signal })
+    // includeBasic: the Plan Básico on sale comes pinned first (servers since Task 5). An older server validates the list
+    // strictly and answers 400 to the unknown filter: ask again without it, so this dashboard can ship before that server.
+    return pedir({ includeBasic: 'true' })
+      .catch((error: { response?: { status?: number } }) => (error?.response?.status === 400 ? pedir({}) : Promise.reject(error)))
       .then(data)
-      .then(page => ({ ...page, items: page.items.map(parseHybridOffer) })),
+      .then(page => ({ ...page, items: page.items.map(parseHybridOffer) }))
+  },
   offer: (slug: string, signal?: AbortSignal) =>
     publicApi
       .get<{ data: HybridOffer }>(`/api/v1/public/hybrid-offers/${encodeURIComponent(slug)}`, { signal })
