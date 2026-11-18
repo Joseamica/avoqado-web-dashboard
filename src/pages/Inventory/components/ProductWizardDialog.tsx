@@ -395,8 +395,10 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
     // el aviso sale en ~21 s, no «Cargando…» sin fin (na1d52b5, Codex r4 #8 y r5 #3).
     retry: 1,
   })
-  // Si la consulta falló o se pausó sin red (aunque haya una respuesta de antes), no se usa la vieja: la sección lo dice (Codex r9 #3).
-  const recommendations = falloDeCarga(recomendacionesQuery) ? undefined : recomendacionesQuery.data
+  // Si la consulta falló o se pausó sin red (aunque haya una respuesta de antes), no se usa la vieja: la sección lo dice (Codex r9 #3). Y
+  // mientras se reintenta tras un error, tampoco: «Cargando…» hasta que conteste (r10 #3).
+  const recommendations =
+    recomendacionesQuery.isError || falloDeCarga(recomendacionesQuery) ? undefined : recomendacionesQuery.data
   // na1d52b5 (17-nov-2026): contar piezas al DAR DE ALTA es de todos los planes (founder, 29-sep, «B»): lo dice la opción QUANTITY de la
   // recomendación, que en un SERVIDOR nuevo no cambia con el plan ni con quien pregunta (una respuesta vieja dice lo mismo; uno viejo no
   // la habilita sin Premium y todo queda como antes). Editar las piezas de un producto que ya existe sigue siendo Premium (Codex r1).

@@ -282,6 +282,28 @@ describe('na1d52b5 · contar piezas al dar de alta en todos los planes', { timeo
     }
   })
 
+  it('tras el fallo, al volver a preguntar no reaparece la respuesta vieja: dice «Cargando…» hasta que conteste (Codex r10 #3)', async () => {
+    mount({ productType: 'REGULAR' })
+    await fillProduct()
+    await waitFor(() => expect(opener('inventory')).toBeEnabled())
+    await userEvent.click(opener('inventory'))
+    inventory.productWizardApi.shouldUseInventory.mockRejectedValue({ response: { status: 503 } })
+    try {
+      focusManager.setFocused(false)
+      focusManager.setFocused(true)
+      await waitFor(() => expect(screen.getByTestId('plan-sin-respuesta')).toHaveTextContent('wizard.step2.recommendationError'), {
+        timeout: 5_000,
+      })
+      inventory.productWizardApi.shouldUseInventory.mockReturnValue(new Promise(() => {})) // la nueva consulta tarda
+      focusManager.setFocused(false)
+      focusManager.setFocused(true)
+      await waitFor(() => expect(screen.getByTestId('plan-sin-respuesta')).toHaveTextContent('loading'))
+      expect(screen.queryByText('wizard.step2.recommendationQuantityOnly')).toBeNull()
+    } finally {
+      focusManager.setFocused(undefined)
+    }
+  })
+
   it('SERVIDOR anterior (403 de su candado de plan, con featureCode): dice que no está habilitado, no que falta permiso (Codex r9 #4)', async () => {
     inventory.productWizardApi.shouldUseInventory.mockRejectedValue({
       response: { status: 403, data: { featureCode: 'INVENTORY_TRACKING' } },
