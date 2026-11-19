@@ -141,6 +141,20 @@ describe('columnasAgrupadas (D103: las clases no desaparecen al agrupar)', () =>
     expect(cols[1].classSessions.map(c => c.id)).toEqual(['c1'])
   })
 
+  it('D112 · una mesa que sólo tiene canceladas ocultas no aparece como columna vacía (Codex compat #3)', () => {
+    const cols = columnasAgrupadas(
+      {
+        'tb-1': [rsv('r1', { tableId: 'tb-1', table: { id: 'tb-1', number: '1', capacity: 4 } } as Partial<Reservation>)],
+        'tb-2': [rsv('r2', { status: 'CANCELLED', tableId: 'tb-2', table: { id: 'tb-2', number: '2', capacity: 4 } } as Partial<Reservation>)],
+      },
+      [],
+      'table',
+      r => r.status !== 'CANCELLED',
+      etiquetas,
+    )
+    expect(cols.map(c => c.headerLabel)).toEqual(['Mesa 1'])
+  })
+
   it('sigue respetando los filtros y deja fuera las reservaciones que viven dentro de una clase', () => {
     const cols = columnasAgrupadas(
       { unassigned: [rsv('ok'), rsv('pendiente', { status: 'PENDING' }), rsv('en-clase', { classSessionId: 'c9' } as Partial<Reservation>)] },

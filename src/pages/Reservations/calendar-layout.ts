@@ -167,8 +167,9 @@ export function columnasAgrupadas(
     }
     col.classSessions.push(s)
   }
+  // Una columna que se queda sin nada que enseñar (p. ej. sólo tenía canceladas y están ocultas) no se dibuja.
   // Primero las columnas con nombre, «Sin asignar» al final.
-  return [...columnas.values()].sort((a, b) => {
+  return [...columnas.values()].filter(c => c.reservations.length > 0 || c.classSessions.length > 0).sort((a, b) => {
     if (esSinAsignar(a.key)) return 1
     if (esSinAsignar(b.key)) return -1
     return a.headerLabel.localeCompare(b.headerLabel)
