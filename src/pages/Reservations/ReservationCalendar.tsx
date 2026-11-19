@@ -28,7 +28,7 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useVenueDateTime } from '@/utils/datetime'
 import { getDateFnsLocale } from '@/utils/i18n-locale'
 import reservationService from '@/services/reservation.service'
-import classSessionService from '@/services/classSession.service'
+import classSessionService, { type ClassSession } from '@/services/classSession.service'
 import googleCalendarService, { type ExternalBusyBlock } from '@/services/googleCalendar.service'
 import type { Reservation, ReservationSettings, ReservationStatus } from '@/types/reservation'
 
@@ -40,6 +40,7 @@ import { ClassSessionPassesLine } from './components/ClassSessionPassesLine'
 import { EditAvailabilityDialog } from './components/EditAvailabilityDialog'
 import { CalendarAttributesDialog, loadAttributes, type CalendarAttributes } from './components/CalendarAttributesDialog'
 import { GoogleCalendarBusyBlock } from './components/GoogleCalendarBusyBlock'
+import { carrilesDe, columnasAgrupadas, horasConEventos, paddingDelCarril, posicionDelCarril, type Carril, type ColumnaAgrupada } from './calendar-layout'
 
 type CalendarView = 'day' | 'week' | '5day' | 'month'
 type GroupByMode = 'none' | 'staff' | 'table'
@@ -136,6 +137,8 @@ function getMonthDays(baseDate: Date): Date[] {
 
 // Padding at top of grid so first hour label isn't clipped
 const GRID_TOP_PAD = 12
+// Lista vacía estable mientras cargan las clases: un `[]` nuevo en cada render recalcularía horas y carriles.
+const SIN_CLASES: ClassSession[] = []
 
 export default function ReservationCalendar() {
   const { t, i18n } = useTranslation('reservations')
@@ -151,9 +154,6 @@ export default function ReservationCalendar() {
     queryKey: ['reservation-settings', venueId],
     queryFn: () => reservationService.getSettings(venueId),
   })
-  const HOURS = useMemo(() => computeHoursFromSettings(settings), [settings])
-  const firstHour = HOURS[0]
-
   const [view, setView] = useState<CalendarView>(loadView)
   const [groupBy, setGroupBy] = useState<GroupByMode>(loadGroupBy)
   const [currentDate, setCurrentDate] = useState(new Date())
@@ -218,6 +218,10 @@ export default function ReservationCalendar() {
     didDrag: boolean
     mode: 'move' | 'resize-top' | 'resize-bottom'
     originalHeight: number
+    /** Cuántos px abajo del borde superior de la tarjeta se agarró: la clase empieza donde queda ese borde, no el ratón. */
+    grabOffset: number
+    /** La columna donde empezó el arrastre (en agrupado hay varias del mismo día). */
+    colEl: HTMLElement | null
   } | null>(null)
   const didDragRef = useRef(false)
   const { toast } = useToast()
@@ -228,6 +232,17 @@ export default function ReservationCalendar() {
   // Calendar attributes dialog state
   const [attributesOpen, setAttributesOpen] = useState(false)
   const [calendarAttrs, setCalendarAttrs] = useState<CalendarAttributes>(loadAttributes)
+  // Qué reservaciones se dibujan según «Atributos de la cita». Las de una clase van dentro de su clase.
+  const mostrarReserva = useCallback(
+    (r: Reservation) => {
+      if (r.classSessionId) return false
+      if (r.status === 'CANCELLED' && !calendarAttrs.showCancelled) return false
+      if (r.status === 'PENDING' && !calendarAttrs.showPending) return false
+      if ((r.status === 'CONFIRMED' || r.status === 'CHECKED_IN' || r.status === 'COMPLETED') && !calendarAttrs.showConfirmed) return false
+      return true
+    },
+    [calendarAttrs.showCancelled, calendarAttrs.showPending, calendarAttrs.showConfirmed],
+  )
 
   // Grid click context menu state (choose event type before opening form)
   const [gridClickMenu, setGridClickMenu] = useState<{
@@ -295,7 +310,21 @@ export default function ReservationCalendar() {
     queryFn: () => classSessionService.getClassSessions(venueId!, { dateFrom, dateTo }),
     enabled: !!dateFrom && !!dateTo && !!venueId,
   })
-  const { data: classSessions = [] } = sessionsQuery
+  const { data: classSessions = SIN_CLASES } = sessionsQuery
+
+  // D104: el horario del negocio, estirado para que quepa todo lo agendado en los días a la vista (una cita de 07:00 con
+  // horario de 09:00 quedaba fuera del área visible). A propósito con TODAS las citas y no sólo las que el filtro deja ver:
+  // así prender o apagar un filtro no cambia el alto de la cuadrícula ni mueve lo que estabas viendo.
+  const HOURS = useMemo(
+    () =>
+      horasConEventos(
+        computeHoursFromSettings(settings),
+        [...reservations.filter(r => !r.classSessionId), ...classSessions],
+        venueTimezone,
+      ),
+    [settings, reservations, classSessions, venueTimezone],
+  )
+  const firstHour = HOURS[0]
 
   // ---------------------------------------------------------------------------
   // Google Calendar external busy blocks for the visible range. Treated as a
@@ -341,22 +370,21 @@ export default function ReservationCalendar() {
 
   useEffect(() => {
     // Find the day column ([data-day-key]) under the cursor
-    function getDayKeyAtPoint(x: number, y: number): string | null {
-      const els = document.elementsFromPoint(x, y)
-      for (const el of els) {
-        const dayKey = (el as HTMLElement).dataset?.dayKey
-        if (dayKey) return dayKey
-      }
+    function getColumnAtPoint(x: number, y: number): HTMLElement | null {
+      for (const el of document.elementsFromPoint(x, y)) if ((el as HTMLElement).dataset?.dayKey) return el as HTMLElement
       return null
+    }
+    function getDayKeyAtPoint(x: number, y: number): string | null {
+      return getColumnAtPoint(x, y)?.dataset.dayKey ?? null
     }
 
     // Compute the time (snapped to 15min) from a Y position inside a day column
-    function getTimeAtPoint(x: number, y: number): number | null {
+    function getTimeAtPoint(x: number, y: number, grabOffset = 0): number | null {
       const els = document.elementsFromPoint(x, y)
       for (const el of els) {
         if (!(el as HTMLElement).dataset?.dayKey) continue
         const rect = el.getBoundingClientRect()
-        const relY = y - rect.top
+        const relY = y - grabOffset - rect.top
         const hourFloat = (relY - GRID_TOP_PAD) / 64 + firstHour
         return Math.round((hourFloat * 60) / 15) * 15 // total minutes, snapped
       }
@@ -423,7 +451,9 @@ export default function ReservationCalendar() {
       drag.el.style.opacity = ''
       drag.el.style.zIndex = ''
       drag.el.style.boxShadow = ''
-      drag.el.style.height = ''
+      // El alto lo pone React en el `style`; si se borra y el cambio no llega a guardarse, React no lo vuelve a poner y la
+      // tarjeta se encoge. Se regresa al de antes.
+      drag.el.style.height = `${drag.originalHeight}px`
       didDragRef.current = wasDrag
       dragRef.current = null
 
@@ -442,10 +472,16 @@ export default function ReservationCalendar() {
 
       if (drag.mode === 'move') {
         // Detect target day column for cross-day drag
-        const targetDayKey = getDayKeyAtPoint(e.clientX, e.clientY)
-        const targetMinutes = getTimeAtPoint(e.clientX, e.clientY)
+        const targetCol = getColumnAtPoint(e.clientX, e.clientY)
+        const targetDayKey = targetCol?.dataset.dayKey ?? null
+        const targetMinutes = getTimeAtPoint(e.clientX, e.clientY, drag.grabOffset)
+        // Agrupado por personal o mesa, todas las columnas son del mismo día: soltar en la de otra persona no reasigna la
+        // clase, así que tampoco se le cambia la hora.
+        if (targetCol && targetDayKey === drag.dayKey && targetCol !== drag.colEl) return
 
         if (targetDayKey && targetMinutes !== null) {
+          // Soltar a las 23:54 redondea a 24:00, que Luxon vuelve las 00:00 del día siguiente: no se mueve de día así.
+          if (targetMinutes < 0 || targetMinutes >= 24 * 60) return
           // Build new start from target day + snapped time
           const targetDate = DateTime.fromISO(targetDayKey, { zone: tz })
           const hour = Math.floor(targetMinutes / 60)
@@ -459,6 +495,7 @@ export default function ReservationCalendar() {
           if (Math.abs(deltaMinutes) < 15) return
           newStart = origStart.plus({ minutes: deltaMinutes })
           newEnd = origEnd.plus({ minutes: deltaMinutes })
+          if (!newStart.hasSame(origStart, 'day')) return
         }
 
         // Check nothing actually changed
@@ -469,12 +506,18 @@ export default function ReservationCalendar() {
         if (Math.abs(deltaMinutes) < 15) return
         newEnd = origEnd.plus({ minutes: deltaMinutes })
         if (newEnd.diff(origStart, 'minutes').minutes < 15) return
+        // Estirar no la pasa al día siguiente (sí puede terminar a las 00:00 en punto); la que ya cruzaba la medianoche
+        // se puede seguir ajustando.
+        const terminaElMismoDia = (fin: DateTime) => fin.minus({ milliseconds: 1 }).hasSame(origStart, 'day')
+        if (terminaElMismoDia(origEnd) && !terminaElMismoDia(newEnd)) return
       } else if (drag.mode === 'resize-top') {
         const deltaY = e.clientY - drag.startY
         const deltaMinutes = Math.round(((deltaY / 64) * 60) / 15) * 15
         if (Math.abs(deltaMinutes) < 15) return
         newStart = origStart.plus({ minutes: deltaMinutes })
         if (origEnd.diff(newStart, 'minutes').minutes < 15) return
+        // Estirar hacia arriba una clase de las 00:00 no la pasa al día anterior.
+        if (!newStart.hasSame(origStart, 'day')) return
       }
 
       // Don't allow before first hour
@@ -521,6 +564,8 @@ export default function ReservationCalendar() {
         didDrag: false,
         mode,
         originalHeight: height,
+        grabOffset: e.clientY - el.getBoundingClientRect().top,
+        colEl: el.closest<HTMLElement>('[data-day-key]'),
       }
     },
     [venueTimezone],
@@ -571,16 +616,13 @@ export default function ReservationCalendar() {
   const reservationsByDay = useMemo(() => {
     const map: Record<string, Reservation[]> = {}
     for (const r of reservations) {
-      if (r.classSessionId) continue
-      if (r.status === 'CANCELLED' && !calendarAttrs.showCancelled) continue
-      if (r.status === 'PENDING' && !calendarAttrs.showPending) continue
-      if ((r.status === 'CONFIRMED' || r.status === 'CHECKED_IN' || r.status === 'COMPLETED') && !calendarAttrs.showConfirmed) continue
+      if (!mostrarReserva(r)) continue
       const dayKey = formatVenueDateISO(r.startsAt)
       if (!map[dayKey]) map[dayKey] = []
       map[dayKey].push(r)
     }
     return map
-  }, [reservations, formatVenueDateISO, calendarAttrs.showCancelled, calendarAttrs.showPending, calendarAttrs.showConfirmed])
+  }, [reservations, formatVenueDateISO, mostrarReserva])
 
   // Group class sessions by day for rendering
   const classSessionsByDay = useMemo(() => {
@@ -606,51 +648,44 @@ export default function ReservationCalendar() {
     return map
   }, [busyBlocks, gcalOverlayVisible, formatVenueDateISO])
 
-  // Compute grouped columns for day view when groupBy is active
+  // Compute grouped columns for day view when groupBy is active. D103: las clases del día también entran a su columna.
+  // Estos dos dependen sólo de los datos y no de `formatVenueDateISO` (una función nueva en cada render): pasar el ratón
+  // por la cuadrícula vuelve a dibujar el calendario y no debe recalcularlos.
+  const diaDelNegocio = useCallback(
+    (iso: string) => DateTime.fromISO(iso, { zone: 'utc' }).setZone(venueTimezone).toISODate() ?? '',
+    [venueTimezone],
+  )
   const groupedColumns = useMemo(() => {
     if (!activeGroupBy || !calendarData?.grouped) return null
-    const entries = Object.entries(calendarData.grouped)
+    const hoy = DateTime.fromJSDate(currentDate).setZone(venueTimezone).toISODate()
+    return columnasAgrupadas(
+      calendarData.grouped,
+      classSessions.filter(s => diaDelNegocio(s.startsAt) === hoy),
+      activeGroupBy,
+      mostrarReserva,
+      { sinAsignar: t('calendar.groupBy.unassigned'), mesa: numero => tableName(t, numero) },
+    )
+  }, [activeGroupBy, calendarData?.grouped, classSessions, currentDate, venueTimezone, diaDelNegocio, mostrarReserva, t])
 
-    // Apply calendar attribute filters to each group
-    const filtered = entries.map(([key, rsvps]) => {
-      const filteredRsvps = rsvps.filter(r => {
-        if (r.classSessionId) return false
-        if (r.status === 'CANCELLED' && !calendarAttrs.showCancelled) return false
-        if (r.status === 'PENDING' && !calendarAttrs.showPending) return false
-        if ((r.status === 'CONFIRMED' || r.status === 'CHECKED_IN' || r.status === 'COMPLETED') && !calendarAttrs.showConfirmed)
-          return false
-        return true
-      })
-
-      // Derive column header from reservation data
-      let headerLabel: string
-      if (key === 'unassigned' || key === 'null') {
-        headerLabel = t('calendar.groupBy.unassigned')
-      } else if (activeGroupBy === 'staff') {
-        const staff = rsvps[0]?.assignedStaff
-        headerLabel = staff ? `${staff.firstName} ${staff.lastName}` : key
-      } else {
-        const table = rsvps[0]?.table
-        headerLabel = table ? tableName(t, table.number) : key
-      }
-
-      return { key, headerLabel, reservations: filteredRsvps }
-    })
-
-    // Sort: named columns first, unassigned last
-    return filtered.sort((a, b) => {
-      if (a.key === 'unassigned' || a.key === 'null') return 1
-      if (b.key === 'unassigned' || b.key === 'null') return -1
-      return a.headerLabel.localeCompare(b.headerLabel)
-    })
-  }, [activeGroupBy, calendarData?.grouped, calendarAttrs.showCancelled, calendarAttrs.showPending, calendarAttrs.showConfirmed, t])
+  // D102: lo que se encima en horario va lado a lado.
+  const carrilesPorDia = useMemo(() => {
+    const porDia = new Map<string, { clases: typeof classSessions; rsvps: Reservation[] }>()
+    const de = (dia: string) => porDia.get(dia) ?? porDia.set(dia, { clases: [], rsvps: [] }).get(dia)!
+    for (const s of classSessions) de(diaDelNegocio(s.startsAt)).clases.push(s)
+    for (const r of reservations) if (mostrarReserva(r)) de(diaDelNegocio(r.startsAt)).rsvps.push(r)
+    return new Map([...porDia].map(([dia, { clases, rsvps }]) => [dia, carrilesDe(clases, rsvps, venueTimezone)]))
+  }, [classSessions, reservations, mostrarReserva, diaDelNegocio, venueTimezone])
+  const carrilesPorColumna = useMemo(
+    () => new Map((groupedColumns ?? []).map(c => [c.key, carrilesDe(c.classSessions, c.reservations, venueTimezone)])),
+    [groupedColumns, venueTimezone],
+  )
 
   // Render a single class session block (purple/violet tones to distinguish from reservations)
-  const renderClassSessionBlock = (session: (typeof classSessions)[0]) => {
+  const renderClassSessionBlock = (session: (typeof classSessions)[0], carril?: Carril) => {
     const start = DateTime.fromISO(session.startsAt, { zone: 'utc' }).setZone(venueTimezone)
     const end = DateTime.fromISO(session.endsAt, { zone: 'utc' }).setZone(venueTimezone)
     const startHour = start.hour + start.minute / 60
-    const endHour = end.hour + end.minute / 60
+    const endHour = end.hasSame(start, 'day') ? end.hour + end.minute / 60 : 24 // lo que pasa de medianoche llega al fondo
     const top = (startHour - firstHour) * 64 + GRID_TOP_PAD
     const height = Math.max((endHour - startHour) * 64, 24)
     const isFull = session.enrolled >= session.capacity
@@ -661,8 +696,8 @@ export default function ReservationCalendar() {
       <div
         key={`cs-${session.id}`}
         data-reservation="true"
-        className={`absolute left-1 right-1 rounded-md border px-2 py-1 text-xs overflow-hidden bg-violet-500/20 border-violet-500/40 text-violet-700 dark:text-violet-300 select-none group ${canDrag ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'}`}
-        style={{ top: `${top}px`, height: `${height}px` }}
+        className={`absolute rounded-md border ${paddingDelCarril(carril)} py-1 text-xs overflow-hidden bg-violet-500/20 border-violet-500/40 text-violet-700 dark:text-violet-300 select-none group ${canDrag ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'} ${session.status === 'CANCELLED' ? 'opacity-60 line-through' : ''}`}
+        style={{ top: `${top}px`, height: `${height}px`, ...posicionDelCarril(carril) }}
         onMouseDown={e => {
           if (e.button !== 0 || !canDrag) return
           handleSessionDragStart(e, session, top, height, 'move')
@@ -725,11 +760,11 @@ export default function ReservationCalendar() {
   }
 
   // Render a single reservation block
-  const renderReservationBlock = (reservation: Reservation) => {
+  const renderReservationBlock = (reservation: Reservation, carril?: Carril) => {
     const start = DateTime.fromISO(reservation.startsAt, { zone: 'utc' }).setZone(venueTimezone)
     const end = DateTime.fromISO(reservation.endsAt, { zone: 'utc' }).setZone(venueTimezone)
     const startHour = start.hour + start.minute / 60
-    const endHour = end.hour + end.minute / 60
+    const endHour = end.hasSame(start, 'day') ? end.hour + end.minute / 60 : 24 // lo que pasa de medianoche llega al fondo
     const top = (startHour - firstHour) * 64 + GRID_TOP_PAD
     const height = Math.max((endHour - startHour) * 64, 24)
 
@@ -767,8 +802,8 @@ export default function ReservationCalendar() {
           <TooltipTrigger asChild>
             <div
               data-reservation="true"
-              className={`absolute left-1 right-1 rounded-md border px-2 py-1 text-xs cursor-pointer transition-opacity hover:opacity-80 overflow-hidden ${statusColorMap[reservation.status]}`}
-              style={{ top: `${top}px`, height: `${height}px` }}
+              className={`absolute rounded-md border ${paddingDelCarril(carril)} py-1 text-xs cursor-pointer transition-opacity hover:opacity-80 overflow-hidden ${statusColorMap[reservation.status]}`}
+              style={{ top: `${top}px`, height: `${height}px`, ...posicionDelCarril(carril) }}
               onClick={() => navigate(`${fullBasePath}/reservations/${reservation.id}`)}
             >
               <div className="font-medium truncate">{guestName}</div>
@@ -854,6 +889,8 @@ export default function ReservationCalendar() {
     const start = DateTime.fromISO(block.startsAt, { zone: 'utc' }).setZone(venueTimezone)
     const end = DateTime.fromISO(block.endsAt, { zone: 'utc' }).setZone(venueTimezone)
     const startHour = start.hour + start.minute / 60
+    // Sin cambio a propósito: un bloqueo de Google que cruza la medianoche y se alargara taparía las citas de debajo
+    // (queda encima y abre Google Calendar). Ese bloqueo largo es otra tarea.
     const endHour = end.hour + end.minute / 60
     const top = (startHour - firstHour) * 64 + GRID_TOP_PAD
     const height = Math.max((endHour - startHour) * 64, 24)
@@ -956,6 +993,7 @@ export default function ReservationCalendar() {
     const dayClassSessions = classSessionsByDay[dayKey] || []
     const dayBusyBlocks = busyBlocksByDay[dayKey] || []
     const dayIsToday = isToday(day)
+    const carriles = carrilesPorDia.get(dayKey)
 
     return (
       <div key={dayKey} className={`relative border-l border-border/30 ${isWide ? 'flex-1' : 'flex-1 min-w-[120px]'}`}>
@@ -1025,20 +1063,22 @@ export default function ReservationCalendar() {
           {dayBusyBlocks.map(renderBusyBlock)}
 
           {/* Class session blocks */}
-          {dayClassSessions.map(renderClassSessionBlock)}
+          {dayClassSessions.map(s => renderClassSessionBlock(s, carriles?.get(`cs-${s.id}`)))}
 
           {/* Reservation blocks */}
-          {dayReservations.map(renderReservationBlock)}
+          {dayReservations.map(r => renderReservationBlock(r, carriles?.get(r.id)))}
         </div>
       </div>
     )
   }
 
   // Render a grouped column (staff/table) for day view
-  const renderGroupedColumn = (col: { key: string; headerLabel: string; reservations: Reservation[] }, day: Date) => {
+  const renderGroupedColumn = (col: ColumnaAgrupada, day: Date) => {
     const dayKey = formatVenueDateISO(day)
     const dayBusyBlocks = busyBlocksByDay[dayKey] || []
     const dayIsToday = isToday(day)
+    const carriles = carrilesPorColumna.get(col.key)
+    const total = col.reservations.length + col.classSessions.length
 
     return (
       <div key={col.key} className="relative border-l border-border/30 flex-1 min-w-[160px]">
@@ -1047,9 +1087,7 @@ export default function ReservationCalendar() {
           className={`sticky top-0 z-10 border-b border-border px-2 py-1.5 text-center ${dayIsToday ? 'bg-primary/5' : 'bg-background'}`}
         >
           <div className="text-sm font-medium truncate">{col.headerLabel}</div>
-          <div className="text-xs text-muted-foreground">
-            {col.reservations.length} {col.reservations.length === 1 ? t('people', { count: 1 }).split(' ').pop() : ''}
-          </div>
+          <div className="text-xs text-muted-foreground">{total}</div>
         </div>
 
         {/* Time grid */}
@@ -1104,8 +1142,9 @@ export default function ReservationCalendar() {
               they're scanning. */}
           {dayBusyBlocks.map(renderBusyBlock)}
 
-          {/* Reservation blocks for this group */}
-          {col.reservations.map(renderReservationBlock)}
+          {/* Class sessions and reservation blocks for this group */}
+          {col.classSessions.map(s => renderClassSessionBlock(s, carriles?.get(`cs-${s.id}`)))}
+          {col.reservations.map(r => renderReservationBlock(r, carriles?.get(r.id)))}
         </div>
       </div>
     )
