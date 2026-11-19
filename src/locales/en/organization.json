@@ -1044,7 +1044,10 @@
       "total": "Total",
       "totalPesos": "Total (MXN)",
       "userRole": "Role",
-      "venueId": "Venue"
+      "venueId": "Venue",
+      "camino": "From",
+      "usosDevueltos": "Uses returned",
+      "porDescuento": "Uses returned per discount"
     },
     "actions": {
       "ACCOUNTING_MAPPING_SEEDED": "Accounting mapping seeded",
@@ -1600,6 +1603,7 @@
       "ORDER_BALANCE_REOPENED_BY_REFUND": "Check owes again after a refund",
       "ORDER_CANCELLED": "Order cancelled",
       "ORDER_CANCELLED_WITH_LIVE_TERMINAL_CHARGE": "Check cancelled with a charge in progress on the terminal",
+      "ORDER_CANCEL_DISCOUNT_USES_RETURNED": "Discount uses returned when the check was cancelled",
       "ORDER_CANCEL_LOYALTY_RETURNED": "Loyalty returned when the check was cancelled",
       "ORDER_COMPED": "Order comped",
       "ORDER_COURTESY_REVIEW_APPLIED": "Courtesy review applied to the check",
