@@ -319,7 +319,8 @@ export default function ReservationCalendar() {
     () =>
       horasConEventos(
         computeHoursFromSettings(settings),
-        [...reservations.filter(r => !r.classSessionId), ...classSessions],
+        // D112: el calendario ya trae canceladas; una cancelada no estira la cuadrícula.
+        [...reservations.filter(r => !r.classSessionId && r.status !== 'CANCELLED'), ...classSessions],
         venueTimezone,
       ),
     [settings, reservations, classSessions, venueTimezone],
