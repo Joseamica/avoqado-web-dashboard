@@ -10,10 +10,19 @@ import { DateTime } from 'luxon'
  * y la devolución desaparecía. Codex D6 r1: sólo cuando las ventas son del periodo (`ventasSonDelFiltro`): con «antes de» / «después
  * de» el servidor responde con el día de hoy, y esas ventas no son del filtro.
  */
-export function seQuedaConElFiltro(checadasEnElFiltro: number, ventas: number, ventasDelFiltro: boolean, efectivo = 0): boolean {
+export function seQuedaConElFiltro(
+  checadasEnElFiltro: number,
+  ventas: number,
+  ventasDelFiltro: boolean,
+  efectivo = 0,
+  checadasDelServidor = 0,
+): boolean {
   // D4c (Codex 4c r2 #1): también con EFECTIVO del rango. Las ventas cuentan a la hora real de la venta y el efectivo a la hora en que
   // llegó: la venta sin internet de ayer subida hoy deja hoy las ventas en $0 y el efectivo en $15, y esa fila no se puede perder.
-  return checadasEnElFiltro > 0 || (ventasDelFiltro && (ventas !== 0 || efectivo !== 0))
+  // Sólo si la fila no trae checadas (Codex 4c r3 #1): si las trae y el panel las dejó fuera del día (Cancún a las 00:30), ese efectivo
+  // es de una checada de otro día y la fila sigue fuera, como antes.
+  const efectivoSinChecadas = checadasDelServidor === 0 && efectivo !== 0
+  return checadasEnElFiltro > 0 || (ventasDelFiltro && (ventas !== 0 || efectivoSinChecadas))
 }
 
 /**

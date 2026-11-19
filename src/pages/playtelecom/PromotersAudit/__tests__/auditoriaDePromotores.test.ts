@@ -27,6 +27,10 @@ describe('D6 · Auditoría de Promotores', () => {
     it('D4c: ese efectivo no basta si las ventas NO son del periodo («antes de»/«después de»)', () => {
       expect(seQuedaConElFiltro(0, 0, false, 15)).toBe(false)
     })
+    it('D4c (Codex 4c r3 #1): el efectivo de una checada que el panel deja fuera del día (Cancún, 00:30) no la trae de vuelta', () => {
+      expect(seQuedaConElFiltro(0, 0, true, 15, 1)).toBe(false)
+      expect(seQuedaConElFiltro(0, 0, true, 15, 0)).toBe(true)
+    })
   })
 
   describe('¿las ventas que manda el servidor son exactamente las del filtro?', () => {

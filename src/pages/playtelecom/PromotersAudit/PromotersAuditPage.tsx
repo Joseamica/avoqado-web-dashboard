@@ -334,7 +334,16 @@ export default function PromotersAuditPage() {
     const ventasDelFiltro = ventasSonDelFiltro(dateFilter.operator)
     return promoters.reduce<PromoterRow[]>((acc, promoter) => {
       const filteredEntries = (promoter.allTimeEntries || []).filter(isEntryInDateFilter)
-      if (!seQuedaConElFiltro(filteredEntries.length, promoter.sales, ventasDelFiltro, promoter.cashSales)) return acc
+      if (
+        !seQuedaConElFiltro(
+          filteredEntries.length,
+          promoter.sales,
+          ventasDelFiltro,
+          promoter.cashSales,
+          (promoter.allTimeEntries || []).length,
+        )
+      )
+        return acc
       if (filteredEntries.length === 0) {
         // D6: sin checadas en el rango pero con ventas (p. ej. la devolución de algo que vendió otro día): se ve, sin datos de checada.
         acc.push({
