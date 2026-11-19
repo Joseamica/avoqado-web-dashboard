@@ -54,7 +54,17 @@ import { ClassSessionPassesLine } from './components/ClassSessionPassesLine'
 import { EditAvailabilityDialog } from './components/EditAvailabilityDialog'
 import { CalendarAttributesDialog, loadAttributes, type CalendarAttributes } from './components/CalendarAttributesDialog'
 import { GoogleCalendarBusyBlock } from './components/GoogleCalendarBusyBlock'
-import { carrilesDe, columnasAgrupadas, horasConEventos, paddingDelCarril, posicionDelCarril, type Carril, type ColumnaAgrupada } from './calendar-layout'
+import {
+  carrilesDe,
+  columnasAgrupadas,
+  diaLocal,
+  fechaDelDia,
+  horasConEventos,
+  paddingDelCarril,
+  posicionDelCarril,
+  type Carril,
+  type ColumnaAgrupada,
+} from './calendar-layout'
 
 type CalendarView = 'day' | 'week' | '5day' | 'month'
 type GroupByMode = 'none' | 'staff' | 'table'
@@ -172,7 +182,8 @@ export default function ReservationCalendar() {
   })
   const [view, setView] = useState<CalendarView>(loadView)
   const [groupBy, setGroupBy] = useState<GroupByMode>(loadGroupBy)
-  const [currentDate, setCurrentDate] = useState(new Date())
+  // D114: el día que se ve arranca en el HOY DEL NEGOCIO (no el de la computadora) y cada columna usa la fecha que se ve.
+  const [currentDate, setCurrentDate] = useState(() => diaLocal(formatVenueDateISO(new Date())))
   // Google Calendar overlay toggle — when off, we skip the network call too
   // (TanStack `enabled: gcalOverlayVisible`) so we don't burn bandwidth on
   // operators who don't care about external blockers.
@@ -292,24 +303,24 @@ export default function ReservationCalendar() {
   // Calculate date range based on view
   const { dateFrom, dateTo, displayDays } = useMemo(() => {
     if (view === 'day') {
-      const iso = formatVenueDateISO(currentDate)
+      const iso = fechaDelDia(currentDate)
       return { dateFrom: iso, dateTo: iso, displayDays: [currentDate] }
     }
     if (view === '5day') {
       const days = get5Days(currentDate)
-      return { dateFrom: formatVenueDateISO(days[0]), dateTo: formatVenueDateISO(days[4]), displayDays: days }
+      return { dateFrom: fechaDelDia(days[0]), dateTo: fechaDelDia(days[4]), displayDays: days }
     }
     if (view === 'month') {
       const days = getMonthDays(currentDate)
-      return { dateFrom: formatVenueDateISO(days[0]), dateTo: formatVenueDateISO(days[days.length - 1]), displayDays: days }
+      return { dateFrom: fechaDelDia(days[0]), dateTo: fechaDelDia(days[days.length - 1]), displayDays: days }
     }
     const days = getWeekDays(currentDate)
     return {
-      dateFrom: formatVenueDateISO(days[0]),
-      dateTo: formatVenueDateISO(days[6]),
+      dateFrom: fechaDelDia(days[0]),
+      dateTo: fechaDelDia(days[6]),
       displayDays: days,
     }
-  }, [view, currentDate, formatVenueDateISO])
+  }, [view, currentDate])
 
   // Fetch calendar data (reservations) — pass groupBy when active for day view
   const activeGroupBy = view === 'day' && groupBy !== 'none' ? groupBy : undefined
@@ -748,7 +759,7 @@ export default function ReservationCalendar() {
   )
   const groupedColumns = useMemo(() => {
     if (!activeGroupBy || !calendarData?.grouped) return null
-    const hoy = DateTime.fromJSDate(currentDate).setZone(venueTimezone).toISODate()
+    const hoy = fechaDelDia(currentDate)
     return columnasAgrupadas(
       calendarData.grouped,
       classSessions.filter(s => diaDelNegocio(s.startsAt) === hoy),
@@ -756,7 +767,7 @@ export default function ReservationCalendar() {
       mostrarReserva,
       { sinAsignar: t('calendar.groupBy.unassigned'), mesa: numero => tableName(t, numero) },
     )
-  }, [activeGroupBy, calendarData?.grouped, classSessions, currentDate, venueTimezone, diaDelNegocio, mostrarReserva, t])
+  }, [activeGroupBy, calendarData?.grouped, classSessions, currentDate, diaDelNegocio, mostrarReserva, t])
 
   // D102: lo que se encima en horario va lado a lado.
   const carrilesPorDia = useMemo(() => {
@@ -1004,7 +1015,7 @@ export default function ReservationCalendar() {
   }
 
   // Check if a date is today
-  const isToday = (day: Date) => formatVenueDateISO(day) === formatVenueDateISO(new Date())
+  const isToday = (day: Date) => fechaDelDia(day) === formatVenueDateISO(new Date()) // hoy del negocio
 
   // Current time position for "now" indicator
   const lastHour = HOURS[HOURS.length - 1]
@@ -1041,10 +1052,10 @@ export default function ReservationCalendar() {
 
       const top = (snappedHour - firstHour) * 64 + (snappedMinutes / 60) * 64 + GRID_TOP_PAD
       const time = `${String(snappedHour).padStart(2, '0')}:${String(snappedMinutes).padStart(2, '0')}`
-      const dayKey = formatVenueDateISO(day)
+      const dayKey = fechaDelDia(day)
       setHoverSlot(prev => (prev?.time === time && prev?.dayKey === dayKey ? prev : { top, time, dayKey }))
     },
-    [firstHour, lastHour, formatVenueDateISO],
+    [firstHour, lastHour],
   )
 
   const handleGridMouseLeave = useCallback(() => setHoverSlot(null), [])
@@ -1073,12 +1084,12 @@ export default function ReservationCalendar() {
       if (snappedHour < firstHour || snappedHour > lastHour) return
 
       const startTime = `${String(snappedHour).padStart(2, '0')}:${String(snappedMinutes).padStart(2, '0')}`
-      const date = formatVenueDateISO(day)
+      const date = fechaDelDia(day)
 
       // Show the event type picker at click position
       setGridClickMenu({ open: true, x: e.clientX, y: e.clientY, date, startTime })
     },
-    [firstHour, lastHour, formatVenueDateISO],
+    [firstHour, lastHour],
   )
 
   const handleGridMenuSelect = useCallback(
@@ -1096,7 +1107,7 @@ export default function ReservationCalendar() {
 
   // Render the day column
   const renderDayColumn = (day: Date, isWide: boolean) => {
-    const dayKey = formatVenueDateISO(day)
+    const dayKey = fechaDelDia(day)
     const dayReservations = reservationsByDay[dayKey] || []
     const dayClassSessions = classSessionsByDay[dayKey] || []
     const dayBusyBlocks = busyBlocksByDay[dayKey] || []
@@ -1182,7 +1193,7 @@ export default function ReservationCalendar() {
 
   // Render a grouped column (staff/table) for day view
   const renderGroupedColumn = (col: ColumnaAgrupada, day: Date) => {
-    const dayKey = formatVenueDateISO(day)
+    const dayKey = fechaDelDia(day)
     const dayBusyBlocks = busyBlocksByDay[dayKey] || []
     const dayIsToday = isToday(day)
     const carriles = carrilesPorColumna.get(col.key)
@@ -1286,7 +1297,7 @@ export default function ReservationCalendar() {
                     <button
                       className="block text-left px-3 py-1.5 text-sm rounded-md hover:bg-accent cursor-pointer whitespace-nowrap"
                       onClick={() => {
-                        setCurrentDate(new Date())
+                        setCurrentDate(diaLocal(formatVenueDateISO(new Date())))
                       }}
                     >
                       {t('tabs.today', { defaultValue: 'Hoy' })}
@@ -1296,7 +1307,7 @@ export default function ReservationCalendar() {
                         key={n}
                         className="block text-left px-3 py-1.5 text-sm rounded-md hover:bg-accent cursor-pointer text-muted-foreground whitespace-nowrap"
                         onClick={() => {
-                          setCurrentDate(addDays(new Date(), n * 7))
+                          setCurrentDate(addDays(diaLocal(formatVenueDateISO(new Date())), n * 7))
                         }}
                       >
                         {t('calendar.inWeeks', { count: n, defaultValue: `En ${n} semana${n > 1 ? 's' : ''}` })}
@@ -1440,7 +1451,7 @@ export default function ReservationCalendar() {
               <DropdownMenuContent align="end" className="w-48">
                 <DropdownMenuItem
                   className="gap-2 cursor-pointer"
-                  onClick={() => setCreateModal({ open: true, date: formatVenueDateISO(currentDate), startTime: '' })}
+                  onClick={() => setCreateModal({ open: true, date: fechaDelDia(currentDate), startTime: '' })}
                 >
                   <CalendarDays className="h-4 w-4 text-muted-foreground" />
                   {t('calendar.createCita', { defaultValue: 'Cita' })}
@@ -1448,7 +1459,7 @@ export default function ReservationCalendar() {
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   className="gap-2 cursor-pointer"
-                  onClick={() => setClassModal({ open: true, date: formatVenueDateISO(currentDate), startTime: '' })}
+                  onClick={() => setClassModal({ open: true, date: fechaDelDia(currentDate), startTime: '' })}
                 >
                   <Users className="h-4 w-4 text-muted-foreground" />
                   {t('calendar.createClase', { defaultValue: 'Clase' })}
@@ -1484,7 +1495,7 @@ export default function ReservationCalendar() {
                 <div key={`pad-${i}`} className="min-h-[100px] border-r border-b border-border/30" />
               ))}
               {displayDays.map(day => {
-                const dayKey = formatVenueDateISO(day)
+                const dayKey = fechaDelDia(day)
                 const dayReservations = reservationsByDay[dayKey] || []
                 const dayClassSessions = classSessionsByDay[dayKey] || []
                 const dayIsToday = isToday(day)

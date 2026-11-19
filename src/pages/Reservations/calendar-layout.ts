@@ -3,6 +3,22 @@ import { DateTime } from 'luxon'
 import type { ClassSession } from '@/services/classSession.service'
 import type { Reservation } from '@/types/reservation'
 
+/**
+ * D114: la fecha de un día del calendario TAL COMO SE VE en pantalla (sus campos locales), sin pasarla por ninguna zona.
+ * Antes se pasaba por la zona del negocio: con la computadora en Madrid, la medianoche del «mié 18» era el martes 17 en
+ * Ciudad de México y la columna pedía y creaba en otro día.
+ */
+export function fechaDelDia(d: Date): string {
+  const p = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
+}
+
+/** D114: el día que se ve para una fecha del negocio (yyyy-MM-dd), a mediodía para que ningún cambio de horario la mueva. */
+export function diaLocal(fecha: string): Date {
+  const [y, m, d] = fecha.split('-').map(Number)
+  return new Date(y, m - 1, d, 12)
+}
+
 /** Un evento del día en minutos desde las 00:00 del negocio. `fin` ya trae el alto mínimo con que se dibuja. */
 export interface Tramo {
   id: string

@@ -1,9 +1,21 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 
 import type { ClassSession } from '@/services/classSession.service'
 import type { Reservation } from '@/types/reservation'
 
-import { carrilesDe, columnasAgrupadas, horasConEventos, paddingDelCarril, posicionDelCarril, repartirCarriles, tramoDelEvento } from '../calendar-layout'
+import { DateTime } from 'luxon'
+
+import {
+  carrilesDe,
+  columnasAgrupadas,
+  diaLocal,
+  fechaDelDia,
+  horasConEventos,
+  paddingDelCarril,
+  posicionDelCarril,
+  repartirCarriles,
+  tramoDelEvento,
+} from '../calendar-layout'
 
 const MX = 'America/Mexico_City' // UTC-6 en noviembre
 const h = (hhmm: string, dia = '2026-11-19') => `${dia}T${hhmm}:00-06:00`
@@ -138,5 +150,29 @@ describe('columnasAgrupadas (D103: las clases no desaparecen al agrupar)', () =>
       etiquetas,
     )
     expect(cols[0].reservations.map(r => r.id)).toEqual(['ok'])
+  })
+})
+
+describe('D114 · la columna usa la fecha que se ve, no la de otra zona', () => {
+  const tzOriginal = process.env.TZ
+  afterEach(() => {
+    process.env.TZ = tzOriginal
+  })
+
+  it('con la computadora en Madrid, el «mié 18» es el 18 (antes se convertía al martes 17 de Ciudad de México)', () => {
+    process.env.TZ = 'Europe/Madrid'
+    const medianocheDel18 = new Date(2026, 10, 18, 0, 0) // como la arma el calendario en el navegador
+    // Lo que hacía antes: pasar ese instante por la zona del negocio.
+    expect(DateTime.fromJSDate(medianocheDel18).setZone('America/Mexico_City').toISODate()).toBe('2026-11-17')
+    // Lo de ahora: la fecha tal como se ve.
+    expect(fechaDelDia(medianocheDel18)).toBe('2026-11-18')
+  })
+
+  it('diaLocal y fechaDelDia van y vuelven sin moverse, en cualquier zona', () => {
+    for (const tz of ['America/Mexico_City', 'Europe/Madrid', 'Pacific/Kiritimati', 'Pacific/Pago_Pago']) {
+      process.env.TZ = tz
+      expect(fechaDelDia(diaLocal('2026-11-18'))).toBe('2026-11-18')
+      expect(fechaDelDia(diaLocal('2027-03-14'))).toBe('2027-03-14')
+    }
   })
 })
