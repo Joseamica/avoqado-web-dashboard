@@ -9,6 +9,8 @@ export interface StoreState {
   reason: string | null
   pausedUntil: string | null
   manualPause: boolean
+  /** D662: la tienda se pausó sola (2 pedidos seguidos sin aceptar) hasta «Reanudar». Un servidor viejo no lo manda. */
+  autoPausedAt?: string | null
 }
 
 export interface OnlineOrderingSettings {

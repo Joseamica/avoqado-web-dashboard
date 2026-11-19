@@ -11,7 +11,7 @@ const OPTIONS: PauseMinutes[] = [15, 30, 60]
 /**
  * Botones de pausa corta de la bandeja (`online-orders:pause`, sin plan: R14). El texto de la pausa lo pone la cabecera
  * (`pauseLabel`). La pausa del gerente (`manualPause`, Configuración) no se quita desde aquí; con la tienda apagada o sin estado
- * no hay nada que pausar.
+ * no hay nada que pausar. D662: la pausa SOLA (2 pedidos seguidos sin aceptar) sólo se quita con «Reanudar».
  */
 export function PauseControl({ venueId, store, canPause }: { venueId: string; store: StoreState | null; canPause: boolean }) {
   const { t } = useTranslation('onlineOrdering')
@@ -34,7 +34,7 @@ export function PauseControl({ venueId, store, canPause }: { venueId: string; st
 
   if (!canPause || !store || store.status === 'DISABLED' || store.manualPause) return null
 
-  if (store.status === 'PAUSED' && store.reason === 'MANUAL_PAUSE' && store.pausedUntil) {
+  if (store.status === 'PAUSED' && (store.autoPausedAt || (store.reason === 'MANUAL_PAUSE' && store.pausedUntil))) {
     return (
       <Button size="sm" variant="outline" disabled={pause.isPending} onClick={() => pause.mutate(null)} data-tour="online-inbox-resume">
         {t('inbox.pause.resume')}
