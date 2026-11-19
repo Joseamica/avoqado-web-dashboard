@@ -10,8 +10,10 @@ import { DateTime } from 'luxon'
  * y la devolución desaparecía. Codex D6 r1: sólo cuando las ventas son del periodo (`ventasSonDelFiltro`): con «antes de» / «después
  * de» el servidor responde con el día de hoy, y esas ventas no son del filtro.
  */
-export function seQuedaConElFiltro(checadasEnElFiltro: number, ventas: number, ventasDelFiltro: boolean): boolean {
-  return checadasEnElFiltro > 0 || (ventasDelFiltro && ventas !== 0)
+export function seQuedaConElFiltro(checadasEnElFiltro: number, ventas: number, ventasDelFiltro: boolean, efectivo = 0): boolean {
+  // D4c (Codex 4c r2 #1): también con EFECTIVO del rango. Las ventas cuentan a la hora real de la venta y el efectivo a la hora en que
+  // llegó: la venta sin internet de ayer subida hoy deja hoy las ventas en $0 y el efectivo en $15, y esa fila no se puede perder.
+  return checadasEnElFiltro > 0 || (ventasDelFiltro && (ventas !== 0 || efectivo !== 0))
 }
 
 /**

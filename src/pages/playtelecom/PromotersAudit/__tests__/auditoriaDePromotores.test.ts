@@ -19,6 +19,13 @@ describe('D6 · Auditoría de Promotores', () => {
     })
     it('sin checadas ni ventas, no', () => {
       expect(seQuedaConElFiltro(0, 0, true)).toBe(false)
+      expect(seQuedaConElFiltro(0, 0, true, 0)).toBe(false)
+    })
+    it('D4c: sin checadas, ventas del día en $0 (la venta sin internet era de ayer) pero con el efectivo que llegó hoy, sí', () => {
+      expect(seQuedaConElFiltro(0, 0, true, 15)).toBe(true)
+    })
+    it('D4c: ese efectivo no basta si las ventas NO son del periodo («antes de»/«después de»)', () => {
+      expect(seQuedaConElFiltro(0, 0, false, 15)).toBe(false)
     })
   })
 
