@@ -281,7 +281,7 @@
     "spotsLeft": "{{count}} spot left",
     "spotsLeft_other": "{{count}} spots left",
     "full": "Full",
-    "enrolledOfCapacity": "{{enrolled}} of {{capacity}} enrolled",
+    "enrolledLabel": "enrolled",
     "schedule": "Schedule",
     "editSuccess": "Class updated successfully",
     "cancelSuccess": "Class cancelled",

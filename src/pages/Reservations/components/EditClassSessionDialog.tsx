@@ -288,13 +288,14 @@ export function EditClassSessionDialog({ open, onOpenChange, sessionId }: EditCl
               <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
                 <Users className="h-5 w-5 text-muted-foreground" />
                 {/* D108: «0/10 plazas disponibles» se leía como clase llena; son inscritos de su cupo. */}
-                <span className="font-medium">
-                  {t('classSession.enrolledOfCapacity', {
-                    enrolled: session.enrolled,
-                    capacity: session.capacity,
-                    defaultValue: '{{enrolled}} de {{capacity}} inscritos',
-                  })}
-                </span>
+                <div>
+                  <span className="font-medium">
+                    {session.enrolled}/{session.capacity}
+                  </span>
+                  <span className="text-muted-foreground text-sm ml-1.5">
+                    {t('classSession.enrolledLabel', { defaultValue: 'inscritos' })}
+                  </span>
+                </div>
                 {session.enrolled >= session.capacity && (
                   <Badge variant="outline" className="ml-auto border-violet-500/40 text-violet-700 dark:text-violet-300">
                     {t('classSession.full')}

@@ -281,7 +281,7 @@
     "spotsLeft": "{{count}} lugar disponible",
     "spotsLeft_other": "{{count}} lugares disponibles",
     "full": "Lleno",
-    "enrolledOfCapacity": "{{enrolled}} de {{capacity}} inscritos",
+    "enrolledLabel": "inscritos",
     "schedule": "Agendar",
     "editSuccess": "Clase actualizada exitosamente",
     "cancelSuccess": "Clase cancelada",
