@@ -1715,6 +1715,7 @@
       "PLATFORM_TAXPROFILE_SAT_REJECTED": "The SAT rejected the tax details",
       "PLATFORM_TAXPROFILE_UPSERTED": "Platform tax profile updated",
       "POS_EXTERNO_RECHAZADO_POR_IVA": "Sale from another POS rejected because of VAT",
+      "POS_LAN_RELEASE_SIGNED": "A manager released a counter check between registers",
       "POS_USER_SWITCHED": "POS user switched",
       "PRICING_POLICY_CREATED": "Pricing policy created",
       "PRICING_POLICY_DELETED": "Pricing policy deleted",
