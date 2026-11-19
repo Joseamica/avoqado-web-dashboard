@@ -226,6 +226,11 @@
     "interval": "Interval",
     "previous": "Previous",
     "next": "Next",
+    "moveCita": {
+      "title": "Move this appointment?",
+      "description": "{{name}}: from {{from}} to {{to}}",
+      "confirm": "Move"
+    },
     "groupBy": {
       "label": "Group by",
       "none": "None",

@@ -19,6 +19,18 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import { Label } from '@/components/ui/label'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 // Select and Tabs removed — view toggle now uses dropdown
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
@@ -30,9 +42,10 @@ import { getDateFnsLocale } from '@/utils/i18n-locale'
 import reservationService from '@/services/reservation.service'
 import classSessionService, { type ClassSession } from '@/services/classSession.service'
 import googleCalendarService, { type ExternalBusyBlock } from '@/services/googleCalendar.service'
-import type { Reservation, ReservationSettings, ReservationStatus } from '@/types/reservation'
+import type { Reservation, ReservationSettings, ReservationStatus, RescheduleNotificationChannel } from '@/types/reservation'
 
 import { CreateReservationForm } from './CreateReservation'
+import { avisoPorOmision, CANALES_DE_AVISO } from './reagendar'
 import { CreateClassSessionDialog } from './components/CreateClassSessionDialog'
 import { EditClassSessionDialog } from './components/EditClassSessionDialog'
 import { useClaseDelEnlace } from './useClaseDelEnlace'
@@ -208,6 +221,8 @@ export default function ReservationCalendar() {
 
   // Drag/resize refs (declared early — handlers are set up after classSessions is available)
   const dragRef = useRef<{
+    /** D107: también las citas se arrastran (sólo para moverlas; reagendar pide confirmar y cómo avisarle al cliente). */
+    kind: 'clase' | 'cita'
     sessionId: string
     startX: number
     startY: number
@@ -460,7 +475,8 @@ export default function ReservationCalendar() {
 
       if (!wasDrag) return
 
-      const session = classSessions.find(s => s.id === drag.sessionId)
+      const session =
+        drag.kind === 'clase' ? classSessions.find(s => s.id === drag.sessionId) : reservations.find(r => r.id === drag.sessionId)
       if (!session) return
 
       const tz = venueTimezone
@@ -524,6 +540,11 @@ export default function ReservationCalendar() {
       // Don't allow before first hour
       if (newStart.hour < firstHour) return
 
+      if (drag.kind === 'cita') {
+        const cita = session as Reservation
+        setMoverCita({ cita, startsAt: newStart.toUTC().toISO()!, endsAt: newEnd.toUTC().toISO()!, canal: avisoPorOmision(cita) })
+        return
+      }
       dragUpdateMutation.mutate({
         sessionId: drag.sessionId,
         startsAt: newStart.toUTC().toISO()!,
@@ -537,25 +558,26 @@ export default function ReservationCalendar() {
       document.removeEventListener('mousemove', handleMouseMove)
       document.removeEventListener('mouseup', handleMouseUp)
     }
-  }, [classSessions, venueTimezone, firstHour, dragUpdateMutation])
+  }, [classSessions, reservations, venueTimezone, firstHour, dragUpdateMutation])
 
-  const handleSessionDragStart = useCallback(
+  const iniciarArrastre = useCallback(
     (
       e: React.MouseEvent,
-      session: (typeof classSessions)[0],
+      item: { id: string; startsAt: string; endsAt: string },
+      kind: 'clase' | 'cita',
       top: number,
       height: number,
       mode: 'move' | 'resize-top' | 'resize-bottom',
     ) => {
-      if (session.status === 'CANCELLED' || session.status === 'COMPLETED') return
       e.stopPropagation()
       e.preventDefault()
       const el = (mode === 'move' ? e.currentTarget : e.currentTarget.parentElement) as HTMLDivElement
-      const start = DateTime.fromISO(session.startsAt, { zone: 'utc' }).setZone(venueTimezone)
-      const end = DateTime.fromISO(session.endsAt, { zone: 'utc' }).setZone(venueTimezone)
+      const start = DateTime.fromISO(item.startsAt, { zone: 'utc' }).setZone(venueTimezone)
+      const end = DateTime.fromISO(item.endsAt, { zone: 'utc' }).setZone(venueTimezone)
       didDragRef.current = false
       dragRef.current = {
-        sessionId: session.id,
+        kind,
+        sessionId: item.id,
         startX: e.clientX,
         startY: e.clientY,
         originalTop: top,
@@ -571,6 +593,54 @@ export default function ReservationCalendar() {
     },
     [venueTimezone],
   )
+
+  const handleSessionDragStart = useCallback(
+    (
+      e: React.MouseEvent,
+      session: (typeof classSessions)[0],
+      top: number,
+      height: number,
+      mode: 'move' | 'resize-top' | 'resize-bottom',
+    ) => {
+      if (session.status === 'CANCELLED' || session.status === 'COMPLETED') return
+      iniciarArrastre(e, session, 'clase', top, height, mode)
+    },
+    [iniciarArrastre],
+  )
+
+  // D107: mover una cita arrastrándola. Al soltar se pide confirmar y cómo avisarle al cliente (como «Reagendar»).
+  const [moverCita, setMoverCita] = useState<{
+    cita: Reservation
+    startsAt: string
+    endsAt: string
+    canal: RescheduleNotificationChannel
+  } | null>(null)
+  const moviendoCita = useRef(false)
+  const moverCitaMutation = useMutation({
+    mutationFn: (m: NonNullable<typeof moverCita>) =>
+      reservationService.reschedule(venueId, m.cita.id, { startsAt: m.startsAt, endsAt: m.endsAt, notificationChannel: m.canal }),
+    onSuccess: () => {
+      toast({ title: t('toasts.rescheduleSuccess') })
+      setMoverCita(null)
+      queryClient.invalidateQueries({ queryKey: ['reservation-calendar', venueId] })
+      queryClient.invalidateQueries({ queryKey: ['reservations', venueId] })
+    },
+    onError: (error: any) => {
+      const status = error?.response?.status
+      const message = error?.response?.data?.message ?? ''
+      const code = error?.response?.data?.code ?? error?.response?.data?.errorCode ?? error?.response?.data?.error?.code
+      if (code === 'external_calendar_busy' || (status === 409 && /calendario\s+externo/i.test(message))) {
+        toast({ title: tGcal('reservationBusyError'), variant: 'destructive' })
+        return
+      }
+      toast({ title: tCommon('error'), description: message || t('toasts.error'), variant: 'destructive' })
+    },
+  })
+  const confirmarMoverCita = () => {
+    if (!moverCita || moviendoCita.current) return
+    moviendoCita.current = true // un doble clic mandaba dos avisos al cliente en «Reagendar» (16-nov)
+    moverCitaMutation.mutate(moverCita, { onSettled: () => (moviendoCita.current = false) })
+  }
 
   // Ref for auto-scroll to current time
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -769,6 +839,8 @@ export default function ReservationCalendar() {
     const endHour = end.hasSame(start, 'day') ? end.hour + end.minute / 60 : 24 // lo que pasa de medianoche llega al fondo
     const top = (startHour - firstHour) * 64 + GRID_TOP_PAD
     const height = Math.max((endHour - startHour) * 64, 24)
+    // D107: sólo lo que todavía no pasa se mueve arrastrando; lo demás se abre con un clic.
+    const seMueve = reservation.status === 'PENDING' || reservation.status === 'CONFIRMED'
 
     const guestName = reservation.customer
       ? `${reservation.customer.firstName} ${reservation.customer.lastName}`
@@ -804,9 +876,19 @@ export default function ReservationCalendar() {
           <TooltipTrigger asChild>
             <div
               data-reservation="true"
-              className={`absolute rounded-md border ${paddingDelCarril(carril)} py-1 text-xs cursor-pointer transition-opacity hover:opacity-80 overflow-hidden ${statusColorMap[reservation.status]}`}
+              className={`absolute rounded-md border ${paddingDelCarril(carril)} py-1 text-xs transition-opacity hover:opacity-80 overflow-hidden select-none ${seMueve ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'} ${statusColorMap[reservation.status]}`}
               style={{ top: `${top}px`, height: `${height}px`, ...posicionDelCarril(carril) }}
-              onClick={() => navigate(`${fullBasePath}/reservations/${reservation.id}`)}
+              onMouseDown={e => {
+                if (e.button !== 0 || !seMueve) return
+                iniciarArrastre(e, reservation, 'cita', top, height, 'move')
+              }}
+              onClick={() => {
+                if (didDragRef.current) {
+                  didDragRef.current = false
+                  return
+                }
+                navigate(`${fullBasePath}/reservations/${reservation.id}`)
+              }}
             >
               <div className="font-medium truncate">{guestName}</div>
               {services.length > 0 && visibleServiceCount > 0 && (
@@ -950,6 +1032,11 @@ export default function ReservationCalendar() {
     (e: React.MouseEvent<HTMLDivElement>, day: Date) => {
       // Don't trigger if user clicked on an existing reservation block OR an
       // external Google Calendar busy block (those are read-only overlays).
+      // D107: soltar algo que se arrastró dispara un «clic» en la cuadrícula; no es para crear nada.
+      if (didDragRef.current) {
+        didDragRef.current = false
+        return
+      }
       const tgt = e.target as HTMLElement
       if (tgt.closest('[data-reservation]') || tgt.closest('[data-gcal-overlay]')) return
 
@@ -1521,6 +1608,58 @@ export default function ReservationCalendar() {
 
         {/* Edit availability dialog */}
         <EditAvailabilityDialog open={availabilityOpen} onOpenChange={setAvailabilityOpen} />
+
+        {/* D107: confirmar mover una cita arrastrada */}
+        <AlertDialog open={!!moverCita} onOpenChange={open => !open && !moverCitaMutation.isPending && setMoverCita(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{t('calendar.moveCita.title')}</AlertDialogTitle>
+              <AlertDialogDescription>
+                {moverCita &&
+                  t('calendar.moveCita.description', {
+                    name: moverCita.cita.customer
+                      ? `${moverCita.cita.customer.firstName} ${moverCita.cita.customer.lastName}`
+                      : moverCita.cita.guestName || t('unnamedGuest'),
+                    from: `${DateTime.fromISO(moverCita.cita.startsAt, { zone: 'utc' }).setZone(venueTimezone).setLocale(locale).toFormat('ccc d LLL')} ${formatTime(moverCita.cita.startsAt)}`,
+                    to: `${DateTime.fromISO(moverCita.startsAt, { zone: 'utc' }).setZone(venueTimezone).setLocale(locale).toFormat('ccc d LLL')} ${formatTime(moverCita.startsAt)}`,
+                  })}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            {moverCita && (
+              <div className="space-y-2">
+                <Label>{t('detail.reschedule.notificationLabel')}</Label>
+                <RadioGroup
+                  value={moverCita.canal}
+                  onValueChange={v => setMoverCita(m => (m ? { ...m, canal: v as RescheduleNotificationChannel } : m))}
+                  className="grid grid-cols-1 gap-2"
+                >
+                  {CANALES_DE_AVISO.map(canal => (
+                    <label
+                      key={canal}
+                      htmlFor={`mover-cita-${canal}`}
+                      className="flex items-center gap-3 rounded-lg border border-input p-3 cursor-pointer hover:bg-muted/40"
+                    >
+                      <RadioGroupItem value={canal} id={`mover-cita-${canal}`} />
+                      <span className="text-sm">{t(`detail.reschedule.channels.${canal}`)}</span>
+                    </label>
+                  ))}
+                </RadioGroup>
+              </div>
+            )}
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={moverCitaMutation.isPending}>{tCommon('cancel')}</AlertDialogCancel>
+              <AlertDialogAction
+                disabled={moverCitaMutation.isPending}
+                onClick={e => {
+                  e.preventDefault() // se cierra al terminar, no antes: si falla, la cita se queda donde estaba y se avisa
+                  confirmarMoverCita()
+                }}
+              >
+                {moverCitaMutation.isPending ? tCommon('loading') : t('calendar.moveCita.confirm')}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {/* Calendar attributes dialog */}
         <CalendarAttributesDialog open={attributesOpen} onOpenChange={setAttributesOpen} onSave={setCalendarAttrs} />

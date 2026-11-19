@@ -226,6 +226,11 @@
     "interval": "Intervalo",
     "previous": "Anterior",
     "next": "Siguiente",
+    "moveCita": {
+      "title": "¿Mover la cita?",
+      "description": "{{name}}: de {{from}} a {{to}}",
+      "confirm": "Mover"
+    },
     "groupBy": {
       "label": "Agrupar por",
       "none": "Sin agrupar",
