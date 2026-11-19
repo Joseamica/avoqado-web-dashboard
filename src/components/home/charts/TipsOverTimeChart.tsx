@@ -9,6 +9,7 @@ import { EmptyChart } from './EmptyChart'
 import { getIntlLocale } from '@/utils/i18n-locale'
 import { useVenueDateTime } from '@/utils/datetime'
 import { DateTime } from 'luxon'
+import { aggregateTipsOverTime } from './tipsOverTimeAggregate'
 
 export const TipsOverTimeChart = ({ data }: { data: any }) => {
   const { t, i18n } = useTranslation('home')
@@ -17,51 +18,10 @@ export const TipsOverTimeChart = ({ data }: { data: any }) => {
 
   const [activeMetric, setActiveMetric] = useState<'tips' | 'tipPercentage'>('tips')
 
-  // Process tips data over time with additional metrics
-  const tipsOverTime = useMemo(() => {
-    const payments = data?.payments || []
-    if (!payments || payments.length === 0) return []
-
-    const tipsByDate = new Map()
-    const revenueByDate = new Map()
-
-    payments.forEach((payment: any) => {
-      const date = new Date(payment.createdAt).toISOString().split('T')[0]
-      const paymentAmount = Number(payment.amount)
-      const tipAmount = payment.tips?.reduce((sum: number, tip: any) => sum + Number(tip.amount), 0) || 0
-
-      // Accumulate tips
-      if (tipsByDate.has(date)) {
-        tipsByDate.set(date, tipsByDate.get(date) + tipAmount)
-      } else {
-        tipsByDate.set(date, tipAmount)
-      }
-
-      // Accumulate revenue
-      if (revenueByDate.has(date)) {
-        revenueByDate.set(date, revenueByDate.get(date) + paymentAmount)
-      } else {
-        revenueByDate.set(date, paymentAmount)
-      }
-    })
-
-    return Array.from(tipsByDate.entries())
-      .map(([date, tips]) => {
-        const revenue = revenueByDate.get(date) || 0
-        const tipPercentage = revenue > 0 ? (tips / revenue) * 100 : 0
-
-        return {
-          date,
-          tips,
-          tipPercentage: Number(tipPercentage.toFixed(2)),
-          formattedDate: DateTime.fromISO(date, { zone: 'utc' })
-            .setZone(venueTimezone)
-            .setLocale(localeCode)
-            .toLocaleString({ month: 'short', day: 'numeric' }),
-        }
-      })
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-  }, [data?.payments, localeCode, venueTimezone])
+  const tipsOverTime = useMemo(
+    () => aggregateTipsOverTime(data?.payments, venueTimezone, localeCode),
+    [data?.payments, venueTimezone, localeCode],
+  )
 
   // Calculate totals
   const stats = useMemo(() => {
@@ -133,8 +93,7 @@ export const TipsOverTimeChart = ({ data }: { data: any }) => {
                     labelFormatter={value => {
                       const matchingData = tipsOverTime.find(d => d.formattedDate === value)
                       if (matchingData) {
-                        return DateTime.fromISO(matchingData.date, { zone: 'utc' })
-                          .setZone(venueTimezone)
+                        return DateTime.fromISO(matchingData.date, { zone: venueTimezone })
                           .setLocale(localeCode)
                           .toLocaleString({ month: 'short', day: 'numeric', year: 'numeric' })
                       }
