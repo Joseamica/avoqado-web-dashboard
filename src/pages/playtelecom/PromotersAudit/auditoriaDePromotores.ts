@@ -14,15 +14,13 @@ export function seQuedaConElFiltro(
   checadasEnElFiltro: number,
   ventas: number,
   ventasDelFiltro: boolean,
-  efectivo = 0,
-  checadasDelServidor = 0,
+  ventasPorLlegada: number = ventas,
 ): boolean {
-  // D4c (Codex 4c r2 #1): también con EFECTIVO del rango. Las ventas cuentan a la hora real de la venta y el efectivo a la hora en que
-  // llegó: la venta sin internet de ayer subida hoy deja hoy las ventas en $0 y el efectivo en $15, y esa fila no se puede perder.
-  // Sólo si la fila no trae checadas (Codex 4c r3 #1): si las trae y el panel las dejó fuera del día (Cancún a las 00:30), ese efectivo
-  // es de una checada de otro día y la fila sigue fuera, como antes.
-  const efectivoSinChecadas = checadasDelServidor === 0 && efectivo !== 0
-  return checadasEnElFiltro > 0 || (ventasDelFiltro && (ventas !== 0 || efectivoSinChecadas))
+  // D4c (Codex 4c r2–r4): `ventas` cuentan a la hora real de la venta (lo vendido sin internet, en el día en que se vendió) y
+  // `ventasPorLlegada` son las mismas a la hora en que llegaron, como antes de D4c. La fila se queda con cualquiera de las dos: con red
+  // son iguales (nada cambia) y la venta sin internet de ayer subida hoy no se pierde hoy (ventas $0, por llegada $15). Un servidor viejo
+  // no las manda: valen lo mismo que `ventas`.
+  return checadasEnElFiltro > 0 || (ventasDelFiltro && (ventas !== 0 || ventasPorLlegada !== 0))
 }
 
 /**
