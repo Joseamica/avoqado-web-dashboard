@@ -585,7 +585,8 @@ export default function ReservationCalendar() {
   }, [isLoading, dateFrom, firstHour, venueTimezone])
 
   // Navigate date
-  const navStep = view === 'day' ? 1 : view === '5day' ? 5 : view === 'month' ? 30 : 7
+  // D113: «5 días» se ancla al lunes, así que avanza de semana en semana; sumar 5 desde un lunes caía en sábado y volvía al mismo lunes.
+  const navStep = view === 'day' ? 1 : view === 'month' ? 30 : 7
   const goPrev = () =>
     setCurrentDate(prev => (view === 'month' ? new Date(prev.getFullYear(), prev.getMonth() - 1, 1) : addDays(prev, -navStep)))
   const goNext = () =>
@@ -1004,7 +1005,7 @@ export default function ReservationCalendar() {
           >
             <div className="text-xs text-muted-foreground">{day.toLocaleDateString(locale, { weekday: 'short' })}</div>
             <div
-              className={`text-sm font-medium ${dayIsToday ? 'bg-primary text-primary-foreground rounded-full w-7 h-7 flex items-center justify-center mx-auto' : ''}`}
+              className={`text-sm font-medium ${dayIsToday ? 'bg-primary text-primary-foreground rounded-full w-7 h-7 -my-1 flex items-center justify-center mx-auto' : ''}`}
             >
               {day.getDate()}
             </div>
@@ -1084,7 +1085,7 @@ export default function ReservationCalendar() {
       <div key={col.key} className="relative border-l border-border/30 flex-1 min-w-[160px]">
         {/* Column header — staff name or table number */}
         <div
-          className={`sticky top-0 z-10 border-b border-border px-2 py-1.5 text-center ${dayIsToday ? 'bg-primary/5' : 'bg-background'}`}
+          className={`sticky top-0 z-10 border-b border-border px-2 py-1 text-center ${dayIsToday ? 'bg-primary/5' : 'bg-background'}`}
         >
           <div className="text-sm font-medium truncate">{col.headerLabel}</div>
           <div className="text-xs text-muted-foreground">{total}</div>
@@ -1157,10 +1158,10 @@ export default function ReservationCalendar() {
     <FeatureGate feature="RESERVATIONS">
       <div className="p-4 bg-background text-foreground" data-tour="reservations-calendar">
         {/* Controls */}
-        <div className="flex items-center justify-between gap-4 mb-4">
-          <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-4 mb-4">
+          <div className="flex flex-wrap items-center gap-2">
             {/* Date navigation with popover picker */}
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={goPrev}>
+            <Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer" onClick={goPrev} aria-label={t('calendar.previous')}>
               <ChevronLeft className="h-4 w-4" />
             </Button>
 
@@ -1211,7 +1212,7 @@ export default function ReservationCalendar() {
               </PopoverContent>
             </Popover>
 
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={goNext}>
+            <Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer" onClick={goNext} aria-label={t('calendar.next')}>
               <ChevronRight className="h-4 w-4" />
             </Button>
 
@@ -1224,7 +1225,7 @@ export default function ReservationCalendar() {
                     {view === 'day'
                       ? t('calendar.views.day')
                       : view === '5day'
-                        ? t('calendar.views.5day', { defaultValue: '5-días' })
+                        ? t('calendar.views.5day', { defaultValue: '5 días' })
                         : view === 'month'
                           ? t('calendar.views.month', { defaultValue: 'Mes' })
                           : t('calendar.views.week')}
@@ -1241,7 +1242,7 @@ export default function ReservationCalendar() {
                     {v === 'day'
                       ? t('calendar.views.day')
                       : v === '5day'
-                        ? t('calendar.views.5day', { defaultValue: '5-días' })
+                        ? t('calendar.views.5day', { defaultValue: '5 días' })
                         : v === 'month'
                           ? t('calendar.views.month', { defaultValue: 'Mes' })
                           : t('calendar.views.week')}
@@ -1281,7 +1282,7 @@ export default function ReservationCalendar() {
             )}
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {/* Google Calendar overlay toggle — Eye icon flips between "blocks
               are visible" and "blocks are hidden". Persists in localStorage
               and gates the network call too. */}
@@ -1304,6 +1305,7 @@ export default function ReservationCalendar() {
               className="h-8 w-8"
               onClick={() => setAttributesOpen(true)}
               title={t('calendarAttributes.title', { defaultValue: 'Atributos de la cita' })}
+              aria-label={t('calendarAttributes.title', { defaultValue: 'Atributos de la cita' })}
             >
               <Settings className="h-4 w-4" />
             </Button>
@@ -1315,6 +1317,7 @@ export default function ReservationCalendar() {
               className="h-8 w-8"
               onClick={() => setAvailabilityOpen(true)}
               title={t('availability.title', { defaultValue: 'Editar disponibilidad' })}
+              aria-label={t('availability.title', { defaultValue: 'Editar disponibilidad' })}
             >
               <Clock className="h-4 w-4" />
             </Button>
@@ -1378,7 +1381,14 @@ export default function ReservationCalendar() {
                 const dayReservations = reservationsByDay[dayKey] || []
                 const dayClassSessions = classSessionsByDay[dayKey] || []
                 const dayIsToday = isToday(day)
-                const totalEvents = dayReservations.length + dayClassSessions.length
+                // D106: citas y clases juntas y en orden de hora; «+N» cuenta exactamente lo que no cupo.
+                const eventosDelDia = [
+                  ...dayReservations.map(r => ({ tipo: 'cita' as const, id: r.id, startsAt: r.startsAt, r })),
+                  ...dayClassSessions.map(s => ({ tipo: 'clase' as const, id: s.id, startsAt: s.startsAt, s })),
+                ].sort((a, b) => a.startsAt.localeCompare(b.startsAt))
+                const CABEN = 4
+                const visibles = eventosDelDia.length > CABEN ? eventosDelDia.slice(0, CABEN - 1) : eventosDelDia
+                const sinCaber = eventosDelDia.length - visibles.length
 
                 return (
                   <div
@@ -1395,23 +1405,24 @@ export default function ReservationCalendar() {
                       {day.getDate()}
                     </div>
                     {/* Compact event indicators */}
-                    {dayReservations.slice(0, 3).map(r => (
-                      <div
-                        key={r.id}
-                        className={`text-[10px] leading-tight truncate rounded px-1 py-0.5 mb-0.5 ${statusColorMap[r.status]}`}
-                      >
-                        {r.customer ? r.customer.firstName : r.guestName || '—'} {formatTime(r.startsAt)}
-                      </div>
-                    ))}
-                    {dayClassSessions.slice(0, 2).map(s => (
-                      <div
-                        key={s.id}
-                        className="text-[10px] leading-tight truncate rounded px-1 py-0.5 mb-0.5 bg-violet-500/20 text-violet-700 dark:text-violet-300"
-                      >
-                        {s.product.name} {formatTime(s.startsAt)}
-                      </div>
-                    ))}
-                    {totalEvents > 5 && <div className="text-[10px] text-muted-foreground">+{totalEvents - 5}</div>}
+                    {visibles.map(e =>
+                      e.tipo === 'cita' ? (
+                        <div
+                          key={e.id}
+                          className={`text-[10px] leading-tight truncate rounded px-1 py-0.5 mb-0.5 ${statusColorMap[e.r.status]}`}
+                        >
+                          {e.r.customer ? e.r.customer.firstName : e.r.guestName || '—'} {formatTime(e.r.startsAt)}
+                        </div>
+                      ) : (
+                        <div
+                          key={`cs-${e.id}`}
+                          className={`text-[10px] leading-tight truncate rounded px-1 py-0.5 mb-0.5 bg-violet-500/20 text-violet-700 dark:text-violet-300 ${e.s.status === 'CANCELLED' ? 'line-through opacity-60' : ''}`}
+                        >
+                          {e.s.product.name} {formatTime(e.s.startsAt)}
+                        </div>
+                      ),
+                    )}
+                    {sinCaber > 0 && <div className="text-[10px] text-muted-foreground">+{sinCaber}</div>}
                   </div>
                 )
               })}
@@ -1422,18 +1433,18 @@ export default function ReservationCalendar() {
           <div ref={scrollRef} className="rounded-xl border border-border overflow-auto max-h-[calc(100vh-220px)]">
             <div className="flex min-w-[600px]">
               {/* Time axis */}
-              <div className="w-14 shrink-0 border-r border-border">
+              <div className="w-[4.75rem] shrink-0 border-r border-border">
                 {(view !== 'day' || (groupedColumns && groupedColumns.length > 0)) && (
-                  <div className="sticky top-0 bg-background z-10 border-b border-border h-[44px]" />
+                  <div className="sticky top-0 bg-background z-10 border-b border-border h-[45px]" />
                 )}
                 <div className="relative" style={{ height: `${HOURS.length * 64 + GRID_TOP_PAD + 8}px` }}>
                   {HOURS.map(hour => (
                     <div
                       key={hour}
-                      className="absolute left-0 right-0 text-xs text-muted-foreground text-right pr-2"
+                      className="absolute left-0 right-0 whitespace-nowrap text-xs text-muted-foreground text-right pr-2"
                       style={{ top: `${(hour - firstHour) * 64 + GRID_TOP_PAD - 8}px` }}
                     >
-                      {`${String(hour).padStart(2, '0')}:00`}
+                      {formatTime(DateTime.fromObject({ hour }, { zone: venueTimezone }).toJSDate())}
                     </div>
                   ))}
                 </div>

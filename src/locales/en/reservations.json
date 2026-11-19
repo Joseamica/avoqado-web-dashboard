@@ -134,7 +134,7 @@
       "existing": "Existing customer",
       "new": "New guest"
     },
-    "noServicesAvailable": "No services created. You can create one in MenuMaker.",
+    "noServicesAvailable": "No services created. You can create one in Menu Maker.",
     "noTablesAvailable": "No tables available for this time",
     "selectService": "Select service",
     "addService": "Add service",
@@ -158,6 +158,7 @@
   },
   "detail": {
     "title": "Reservation {{code}}",
+    "schedule": "Time",
     "confirmationCode": "Confirmation code",
     "timeline": "History",
     "timelineEntry": "{{status}} — {{date}}",
@@ -219,10 +220,12 @@
     "views": {
       "day": "Day",
       "week": "Week",
-      "5day": "5-day",
+      "5day": "5 days",
       "month": "Month"
     },
     "interval": "Interval",
+    "previous": "Previous",
+    "next": "Next",
     "groupBy": {
       "label": "Group by",
       "none": "None",
@@ -273,6 +276,7 @@
     "spotsLeft": "{{count}} spot left",
     "spotsLeft_other": "{{count}} spots left",
     "full": "Full",
+    "enrolledOfCapacity": "{{enrolled}} of {{capacity}} enrolled",
     "schedule": "Schedule",
     "editSuccess": "Class updated successfully",
     "cancelSuccess": "Class cancelled",
