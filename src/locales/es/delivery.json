@@ -132,7 +132,16 @@
       "yaNoExisten_other": "{{count}} productos de la lista ya no existen en tu catálogo",
       "yaNoExistenHelp": "Quítalos para dejar la lista en orden.",
       "yaNoExistenCodigos": "Los códigos que ya no son de ningún producto se quitan solos al guardar.",
-      "quitarlos": "Quitarlos"
+      "quitarlos": "Quitarlos",
+      "listaHelp": "Con una lista, lo que des de alta después no se publica solo.",
+      "publicarTodo": "Publicar todo mi catálogo",
+      "publicarTodoTitulo": "¿Publicar todo tu catálogo en {{canal}}?",
+      "publicarTodoDescripcion_one": "Se publica tu producto en {{canal}} y también lo que des de alta después. Tu lista de productos elegidos se deja de usar.",
+      "publicarTodoDescripcion_other": "Se publican tus {{count}} productos en {{canal}} y también lo que des de alta después. Tu lista de productos elegidos se deja de usar.",
+      "publicarTodoPrecios": "Los precios que pusiste para {{canal}} se conservan y se siguen usando.",
+      "publicarTodoAlGuardar": "El cambio se guarda cuando presiones «Guardar».",
+      "publicarTodoConfirmar": "Publicar todo",
+      "cancelar": "Cancelar"
     }
   },
   "rappi": {

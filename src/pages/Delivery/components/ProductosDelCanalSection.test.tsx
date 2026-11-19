@@ -153,4 +153,67 @@ describe('ProductosDelCanalSection', () => {
     fireEvent.change(screen.getByLabelText('settings.productos.precioDe'), { target: { value: '' } })
     expect(props.onPreciosChange).toHaveBeenCalledWith({ p1: undefined })
   })
+  // D100 (18-nov): tras «Elegir cuáles» no había forma de volver a «todo el catálogo» (lo nuevo ya no se publicaba solo).
+  it('con lista: «Publicar todo mi catálogo» con productos fuera pide confirmar y al confirmar regresa a todo el catálogo', () => {
+    const props = renderSeccion({ lista: ['p1'] })
+    fireEvent.click(screen.getByRole('button', { name: 'settings.productos.publicarTodo' }))
+    expect(props.onListaChange).not.toHaveBeenCalled()
+    expect(screen.getByText('settings.productos.publicarTodoTitulo')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'settings.productos.publicarTodoConfirmar' }))
+    expect(props.onListaChange).toHaveBeenCalledWith(null)
+  })
+
+  it('cancelar la confirmación deja la lista como estaba', () => {
+    const props = renderSeccion({ lista: ['p1'] })
+    fireEvent.click(screen.getByRole('button', { name: 'settings.productos.publicarTodo' }))
+    fireEvent.click(screen.getByRole('button', { name: 'settings.productos.cancelar' }))
+    expect(props.onListaChange).not.toHaveBeenCalled()
+  })
+
+  it('con todos marcados y sin precios por canal, «Publicar todo mi catálogo» regresa sin preguntar (no se pierde nada)', () => {
+    const props = renderSeccion({ lista: ['p1', 'p2', 'p3'] })
+    fireEvent.click(screen.getByRole('button', { name: 'settings.productos.publicarTodo' }))
+    expect(props.onListaChange).toHaveBeenCalledWith(null)
+  })
+
+  it('con todos marcados pero con un precio por canal, pide confirmar (el aviso dice que los precios se conservan)', () => {
+    const props = renderSeccion({ lista: ['p1', 'p2', 'p3'], precios: { p2: 79 } })
+    fireEvent.click(screen.getByRole('button', { name: 'settings.productos.publicarTodo' }))
+    expect(props.onListaChange).not.toHaveBeenCalled()
+    expect(screen.getByText('settings.productos.publicarTodoPrecios')).toBeInTheDocument()
+  })
+
+  it('sin lista no aparece «Publicar todo mi catálogo» (ya publica todo)', () => {
+    renderSeccion({ lista: null })
+    expect(screen.queryByRole('button', { name: 'settings.productos.publicarTodo' })).not.toBeInTheDocument()
+  })
+  // Codex r1 #4: sin ningún producto vivo, publicar todo mandaría un menú vacío al proveedor.
+  it('con lista y sin productos en el catálogo no ofrece «Publicar todo mi catálogo»', () => {
+    renderSeccion({ lista: ['pX'], productos: [] })
+    expect(screen.queryByRole('button', { name: 'settings.productos.publicarTodo' })).not.toBeInTheDocument()
+  })
+  // Codex r2 #1: un producto apagado no sale en el menú; con sólo apagados, publicar todo mandaría un menú vacío.
+  it('con lista y sólo productos apagados no ofrece «Publicar todo mi catálogo»', () => {
+    renderSeccion({ lista: ['p1'], productos: [p('p1', 'Latte', 'Bebidas', { active: false })] })
+    expect(screen.queryByRole('button', { name: 'settings.productos.publicarTodo' })).not.toBeInTheDocument()
+  })
+  // Codex r3 #1: el SERVIDOR tampoco publica un producto de una categoría apagada; si es el único activo, el menú saldría vacío.
+  it('con lista y el único producto activo en una categoría apagada no ofrece «Publicar todo mi catálogo»', () => {
+    renderSeccion({
+      lista: ['p1'],
+      productos: [p('p1', 'Latte', 'Bebidas', { category: { name: 'Bebidas', active: false } }), p('p2', 'Té', 'Tés', { active: false })],
+    })
+    expect(screen.queryByRole('button', { name: 'settings.productos.publicarTodo' })).not.toBeInTheDocument()
+  })
+  it('con un producto activo en una categoría prendida sí ofrece «Publicar todo mi catálogo»', () => {
+    renderSeccion({
+      lista: ['p1'],
+      productos: [
+        p('p1', 'Latte', 'Bebidas', { category: { name: 'Bebidas', active: false } }),
+        p('p2', 'Té', 'Tés', { category: { name: 'Tés', active: true } }),
+      ],
+    })
+    expect(screen.getByRole('button', { name: 'settings.productos.publicarTodo' })).toBeInTheDocument()
+  })
 })

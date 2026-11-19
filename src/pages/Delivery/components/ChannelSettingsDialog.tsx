@@ -242,10 +242,16 @@ export function ChannelSettingsDialog({ open, onClose, venueId, channel }: Chann
     let marcarRevisados: string[] = []
     // Sin productos (cargando o falló) no se toca la selección: se guarda como antes de D1.
     if (sel && productos) {
-      if (sel.lista !== null || Object.keys(preciosAMandar).length > 0) config.precios = { ...margen, porProducto: preciosAMandar }
+      // Con precios guardados al abrir también va (aunque quede vacío): sin `porProducto` el SERVIDOR conserva los guardados, y
+      // borrar el último precio y luego «Publicar todo mi catálogo» lo revivía (Codex D100 r1 #3).
+      const conPrecios = Object.keys(preciosAMandar).length > 0 || Object.keys(sel.preciosAlAbrir).length > 0
+      if (sel.lista !== null || conPrecios) config.precios = { ...margen, porProducto: preciosAMandar }
       const cambio = !mismaLista(sel.lista, sel.listaAlAbrir)
       // La lista vieja por código se manda ya por id; la copia por código la arma el SERVIDOR.
       if (sel.lista !== null && (cambio || sel.porCodigo)) config.productoIds = sel.lista
+      // D100: de una lista guardada (por id o la vieja por código) de regreso a todo el catálogo. El SERVIDOR también limpia la
+      // copia por código (`productos`) y los precios por canal se quedan (van arriba en `porProducto` si se cargaron).
+      if (sel.lista === null && sel.listaAlAbrir !== null) config.productoIds = null
       // Los nuevos que tenía en pantalla y dejó fuera de la lista ACTUAL cuentan como revisados (los creados antes de conectar
       // nunca son nuevos).
       if (cambio) marcarRevisados = idsRecientes(productosNuevos(productos, sel.lista, revisados, canalAlAbrir.createdAt ?? null))
