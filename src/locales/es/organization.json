@@ -1044,7 +1044,10 @@
       "total": "Total",
       "totalPesos": "Total (MXN)",
       "userRole": "Rol",
-      "venueId": "Sucursal"
+      "venueId": "Sucursal",
+      "camino": "Desde",
+      "usosDevueltos": "Usos devueltos",
+      "porDescuento": "Usos devueltos por descuento"
     },
     "actions": {
       "ACCOUNTING_MAPPING_SEEDED": "Mapeo contable generado",
@@ -1600,6 +1603,7 @@
       "ORDER_BALANCE_REOPENED_BY_REFUND": "La cuenta vuelve a deber por un reembolso",
       "ORDER_CANCELLED": "Orden cancelada",
       "ORDER_CANCELLED_WITH_LIVE_TERMINAL_CHARGE": "Cuenta cancelada con un cobro en curso en la terminal",
+      "ORDER_CANCEL_DISCOUNT_USES_RETURNED": "Usos de descuento devueltos al cancelar la cuenta",
       "ORDER_CANCEL_LOYALTY_RETURNED": "Lealtad devuelta al cancelar la cuenta",
       "ORDER_COMPED": "Orden de cortesía",
       "ORDER_COURTESY_REVIEW_APPLIED": "Cortesía revisada y aplicada a la cuenta",
