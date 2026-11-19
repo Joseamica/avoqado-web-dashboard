@@ -19,20 +19,34 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import { Label } from '@/components/ui/label'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 // Select and Tabs removed — view toggle now uses dropdown
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { FeatureGate } from '@/components/billing/FeatureGate'
 import { useToast } from '@/hooks/use-toast'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { useAccess } from '@/hooks/use-access'
 import { useVenueDateTime } from '@/utils/datetime'
 import { getDateFnsLocale } from '@/utils/i18n-locale'
 import reservationService from '@/services/reservation.service'
 import classSessionService, { type ClassSession } from '@/services/classSession.service'
 import googleCalendarService, { type ExternalBusyBlock } from '@/services/googleCalendar.service'
-import type { Reservation, ReservationSettings, ReservationStatus } from '@/types/reservation'
+import type { Reservation, ReservationSettings, ReservationStatus, RescheduleNotificationChannel } from '@/types/reservation'
 
 import { CreateReservationForm } from './CreateReservation'
+import { avisoPorOmision, CANALES_DE_AVISO } from './reagendar'
 import { CreateClassSessionDialog } from './components/CreateClassSessionDialog'
 import { EditClassSessionDialog } from './components/EditClassSessionDialog'
 import { useClaseDelEnlace } from './useClaseDelEnlace'
@@ -143,6 +157,8 @@ const SIN_CLASES: ClassSession[] = []
 export default function ReservationCalendar() {
   const { t, i18n } = useTranslation('reservations')
   const { venueId, fullBasePath } = useCurrentVenue()
+  // D107: sólo quien puede editar reservas las mueve arrastrando; quien sólo las ve, las abre.
+  const puedeMoverCitas = useAccess().can('reservations:update')
   const navigate = useNavigate()
   const { t: tCommon } = useTranslation()
   const { t: tGcal } = useTranslation('googleCalendar')
@@ -208,6 +224,8 @@ export default function ReservationCalendar() {
 
   // Drag/resize refs (declared early — handlers are set up after classSessions is available)
   const dragRef = useRef<{
+    /** D107: también las citas se arrastran (sólo para moverlas; reagendar pide confirmar y cómo avisarle al cliente). */
+    kind: 'clase' | 'cita'
     sessionId: string
     startX: number
     startY: number
@@ -319,10 +337,11 @@ export default function ReservationCalendar() {
     () =>
       horasConEventos(
         computeHoursFromSettings(settings),
-        [...reservations.filter(r => !r.classSessionId), ...classSessions],
+        // D112: el calendario ya trae canceladas; una cancelada sólo estira la cuadrícula si se están mostrando.
+        [...reservations.filter(r => !r.classSessionId && (r.status !== 'CANCELLED' || calendarAttrs.showCancelled)), ...classSessions],
         venueTimezone,
       ),
-    [settings, reservations, classSessions, venueTimezone],
+    [settings, reservations, classSessions, venueTimezone, calendarAttrs.showCancelled],
   )
   const firstHour = HOURS[0]
 
@@ -456,10 +475,14 @@ export default function ReservationCalendar() {
       drag.el.style.height = `${drag.originalHeight}px`
       didDragRef.current = wasDrag
       dragRef.current = null
+      // El clic que sigue al soltar puede caer en otro elemento (el contenedor común) y no limpiaba la marca: el siguiente
+      // clic de verdad se perdía. Se limpia sola después de ese clic.
+      if (wasDrag) setTimeout(() => (didDragRef.current = false), 0)
 
       if (!wasDrag) return
 
-      const session = classSessions.find(s => s.id === drag.sessionId)
+      const session =
+        drag.kind === 'clase' ? classSessions.find(s => s.id === drag.sessionId) : reservations.find(r => r.id === drag.sessionId)
       if (!session) return
 
       const tz = venueTimezone
@@ -478,6 +501,8 @@ export default function ReservationCalendar() {
         // Agrupado por personal o mesa, todas las columnas son del mismo día: soltar en la de otra persona no reasigna la
         // clase, así que tampoco se le cambia la hora.
         if (targetCol && targetDayKey === drag.dayKey && targetCol !== drag.colEl) return
+        // D107: una cita soltada fuera de la cuadrícula (la regla de horas, la cabecera) no se mueve.
+        if (drag.kind === 'cita' && !targetCol) return
 
         if (targetDayKey && targetMinutes !== null) {
           // Soltar a las 23:54 redondea a 24:00, que Luxon vuelve las 00:00 del día siguiente: no se mueve de día así.
@@ -487,6 +512,8 @@ export default function ReservationCalendar() {
           const hour = Math.floor(targetMinutes / 60)
           const minute = targetMinutes % 60
           newStart = targetDate.set({ hour, minute, second: 0, millisecond: 0 })
+          // Una hora que el reloj se salta (cambio de horario) Luxon la corre en silencio: no se manda otra hora.
+          if (newStart.hour !== hour || newStart.minute !== minute) return
           newEnd = newStart.plus({ minutes: durationMin })
         } else {
           // Fallback: same-day vertical drag
@@ -523,6 +550,11 @@ export default function ReservationCalendar() {
       // Don't allow before first hour
       if (newStart.hour < firstHour) return
 
+      if (drag.kind === 'cita') {
+        const cita = session as Reservation
+        setMoverCita({ cita, startsAt: newStart.toUTC().toISO()!, endsAt: newEnd.toUTC().toISO()!, canal: avisoPorOmision(cita) })
+        return
+      }
       dragUpdateMutation.mutate({
         sessionId: drag.sessionId,
         startsAt: newStart.toUTC().toISO()!,
@@ -536,25 +568,26 @@ export default function ReservationCalendar() {
       document.removeEventListener('mousemove', handleMouseMove)
       document.removeEventListener('mouseup', handleMouseUp)
     }
-  }, [classSessions, venueTimezone, firstHour, dragUpdateMutation])
+  }, [classSessions, reservations, venueTimezone, firstHour, dragUpdateMutation])
 
-  const handleSessionDragStart = useCallback(
+  const iniciarArrastre = useCallback(
     (
       e: React.MouseEvent,
-      session: (typeof classSessions)[0],
+      item: { id: string; startsAt: string; endsAt: string },
+      kind: 'clase' | 'cita',
       top: number,
       height: number,
       mode: 'move' | 'resize-top' | 'resize-bottom',
     ) => {
-      if (session.status === 'CANCELLED' || session.status === 'COMPLETED') return
       e.stopPropagation()
       e.preventDefault()
       const el = (mode === 'move' ? e.currentTarget : e.currentTarget.parentElement) as HTMLDivElement
-      const start = DateTime.fromISO(session.startsAt, { zone: 'utc' }).setZone(venueTimezone)
-      const end = DateTime.fromISO(session.endsAt, { zone: 'utc' }).setZone(venueTimezone)
+      const start = DateTime.fromISO(item.startsAt, { zone: 'utc' }).setZone(venueTimezone)
+      const end = DateTime.fromISO(item.endsAt, { zone: 'utc' }).setZone(venueTimezone)
       didDragRef.current = false
       dragRef.current = {
-        sessionId: session.id,
+        kind,
+        sessionId: item.id,
         startX: e.clientX,
         startY: e.clientY,
         originalTop: top,
@@ -571,6 +604,63 @@ export default function ReservationCalendar() {
     [venueTimezone],
   )
 
+  const handleSessionDragStart = useCallback(
+    (
+      e: React.MouseEvent,
+      session: (typeof classSessions)[0],
+      top: number,
+      height: number,
+      mode: 'move' | 'resize-top' | 'resize-bottom',
+    ) => {
+      if (session.status === 'CANCELLED' || session.status === 'COMPLETED') return
+      iniciarArrastre(e, session, 'clase', top, height, mode)
+    },
+    [iniciarArrastre],
+  )
+
+  // D107: mover una cita arrastrándola. Al soltar se pide confirmar y cómo avisarle al cliente (como «Reagendar»).
+  const [moverCita, setMoverCita] = useState<{
+    cita: Reservation
+    startsAt: string
+    endsAt: string
+    canal: RescheduleNotificationChannel
+  } | null>(null)
+  const moviendoCita = useRef(false)
+  const moverCitaMutation = useMutation({
+    mutationFn: (m: NonNullable<typeof moverCita>) =>
+      reservationService.reschedule(venueId, m.cita.id, { startsAt: m.startsAt, endsAt: m.endsAt, notificationChannel: m.canal }),
+    onSuccess: () => {
+      toast({ title: t('toasts.rescheduleSuccess') })
+      setMoverCita(null)
+      queryClient.invalidateQueries({ queryKey: ['reservation-calendar', venueId] })
+      queryClient.invalidateQueries({ queryKey: ['reservations', venueId] })
+    },
+    onError: (error: any) => {
+      // Si la respuesta se perdió, el SERVIDOR pudo haberla movido: se vuelve a leer el calendario para enseñar dónde quedó
+      // de verdad, y se cierra la ventana para no repetirlo a ciegas.
+      setMoverCita(null)
+      queryClient.invalidateQueries({ queryKey: ['reservation-calendar', venueId] })
+      const status = error?.response?.status
+      const message = error?.response?.data?.message ?? ''
+      const code = error?.response?.data?.code ?? error?.response?.data?.errorCode ?? error?.response?.data?.error?.code
+      if (code === 'external_calendar_busy' || (status === 409 && /calendario\s+externo/i.test(message))) {
+        toast({ title: tGcal('reservationBusyError'), variant: 'destructive' })
+        return
+      }
+      toast({ title: tCommon('error'), description: message || t('toasts.error'), variant: 'destructive' })
+    },
+  })
+  // Sólo se ofrece el aviso que de verdad le llega: WhatsApp con teléfono, correo con email.
+  const canalPosible = (cita: Reservation, canal: RescheduleNotificationChannel) =>
+    canal === 'none' ||
+    (canal === 'whatsapp' && !!(cita.customer?.phone || cita.guestPhone)) ||
+    (canal === 'email' && !!(cita.customer?.email || cita.guestEmail))
+  const confirmarMoverCita = () => {
+    if (!moverCita || moviendoCita.current) return
+    moviendoCita.current = true // un doble clic mandaba dos avisos al cliente en «Reagendar» (16-nov)
+    moverCitaMutation.mutate(moverCita, { onSettled: () => (moviendoCita.current = false) })
+  }
+
   // Ref for auto-scroll to current time
   const scrollRef = useRef<HTMLDivElement>(null)
 
@@ -585,7 +675,8 @@ export default function ReservationCalendar() {
   }, [isLoading, dateFrom, firstHour, venueTimezone])
 
   // Navigate date
-  const navStep = view === 'day' ? 1 : view === '5day' ? 5 : view === 'month' ? 30 : 7
+  // D113: «5 días» se ancla al lunes, así que avanza de semana en semana; sumar 5 desde un lunes caía en sábado y volvía al mismo lunes.
+  const navStep = view === 'day' ? 1 : view === 'month' ? 30 : 7
   const goPrev = () =>
     setCurrentDate(prev => (view === 'month' ? new Date(prev.getFullYear(), prev.getMonth() - 1, 1) : addDays(prev, -navStep)))
   const goNext = () =>
@@ -704,10 +795,7 @@ export default function ReservationCalendar() {
         }}
         onClick={e => {
           e.stopPropagation()
-          if (didDragRef.current) {
-            didDragRef.current = false
-            return
-          }
+          if (didDragRef.current) return
           setEditSessionId(session.id)
         }}
       >
@@ -767,6 +855,8 @@ export default function ReservationCalendar() {
     const endHour = end.hasSame(start, 'day') ? end.hour + end.minute / 60 : 24 // lo que pasa de medianoche llega al fondo
     const top = (startHour - firstHour) * 64 + GRID_TOP_PAD
     const height = Math.max((endHour - startHour) * 64, 24)
+    // D107: sólo lo que todavía no pasa se mueve arrastrando; lo demás se abre con un clic.
+    const seMueve = puedeMoverCitas && (reservation.status === 'PENDING' || reservation.status === 'CONFIRMED')
 
     const guestName = reservation.customer
       ? `${reservation.customer.firstName} ${reservation.customer.lastName}`
@@ -802,9 +892,25 @@ export default function ReservationCalendar() {
           <TooltipTrigger asChild>
             <div
               data-reservation="true"
-              className={`absolute rounded-md border ${paddingDelCarril(carril)} py-1 text-xs cursor-pointer transition-opacity hover:opacity-80 overflow-hidden ${statusColorMap[reservation.status]}`}
+              className={`absolute rounded-md border ${paddingDelCarril(carril)} py-1 text-xs transition-opacity hover:opacity-80 overflow-hidden select-none ${seMueve ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'} ${statusColorMap[reservation.status]}`}
               style={{ top: `${top}px`, height: `${height}px`, ...posicionDelCarril(carril) }}
-              onClick={() => navigate(`${fullBasePath}/reservations/${reservation.id}`)}
+              onMouseDown={e => {
+                if (e.button !== 0 || !seMueve) return
+                iniciarArrastre(e, reservation, 'cita', top, height, 'move')
+              }}
+              onClick={() => {
+                if (didDragRef.current) return
+                navigate(`${fullBasePath}/reservations/${reservation.id}`)
+              }}
+              // Con teclado: Tab llega a la cita y Enter la abre (moverla con teclado es «Reagendar» en su detalle).
+              role="button"
+              tabIndex={0}
+              onKeyDown={e => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  navigate(`${fullBasePath}/reservations/${reservation.id}`)
+                }
+              }}
             >
               <div className="font-medium truncate">{guestName}</div>
               {services.length > 0 && visibleServiceCount > 0 && (
@@ -948,6 +1054,8 @@ export default function ReservationCalendar() {
     (e: React.MouseEvent<HTMLDivElement>, day: Date) => {
       // Don't trigger if user clicked on an existing reservation block OR an
       // external Google Calendar busy block (those are read-only overlays).
+      // D107: soltar algo que se arrastró dispara un «clic» en la cuadrícula; no es para crear nada.
+      if (didDragRef.current) return
       const tgt = e.target as HTMLElement
       if (tgt.closest('[data-reservation]') || tgt.closest('[data-gcal-overlay]')) return
 
@@ -1004,7 +1112,7 @@ export default function ReservationCalendar() {
           >
             <div className="text-xs text-muted-foreground">{day.toLocaleDateString(locale, { weekday: 'short' })}</div>
             <div
-              className={`text-sm font-medium ${dayIsToday ? 'bg-primary text-primary-foreground rounded-full w-7 h-7 flex items-center justify-center mx-auto' : ''}`}
+              className={`text-sm font-medium ${dayIsToday ? 'bg-primary text-primary-foreground rounded-full w-7 h-7 -my-1 flex items-center justify-center mx-auto' : ''}`}
             >
               {day.getDate()}
             </div>
@@ -1084,7 +1192,7 @@ export default function ReservationCalendar() {
       <div key={col.key} className="relative border-l border-border/30 flex-1 min-w-[160px]">
         {/* Column header — staff name or table number */}
         <div
-          className={`sticky top-0 z-10 border-b border-border px-2 py-1.5 text-center ${dayIsToday ? 'bg-primary/5' : 'bg-background'}`}
+          className={`sticky top-0 z-10 border-b border-border px-2 py-1 text-center ${dayIsToday ? 'bg-primary/5' : 'bg-background'}`}
         >
           <div className="text-sm font-medium truncate">{col.headerLabel}</div>
           <div className="text-xs text-muted-foreground">{total}</div>
@@ -1157,10 +1265,10 @@ export default function ReservationCalendar() {
     <FeatureGate feature="RESERVATIONS">
       <div className="p-4 bg-background text-foreground" data-tour="reservations-calendar">
         {/* Controls */}
-        <div className="flex items-center justify-between gap-4 mb-4">
-          <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-4 mb-4">
+          <div className="flex flex-wrap items-center gap-2">
             {/* Date navigation with popover picker */}
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={goPrev}>
+            <Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer" onClick={goPrev} aria-label={t('calendar.previous')}>
               <ChevronLeft className="h-4 w-4" />
             </Button>
 
@@ -1211,7 +1319,7 @@ export default function ReservationCalendar() {
               </PopoverContent>
             </Popover>
 
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={goNext}>
+            <Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer" onClick={goNext} aria-label={t('calendar.next')}>
               <ChevronRight className="h-4 w-4" />
             </Button>
 
@@ -1224,7 +1332,7 @@ export default function ReservationCalendar() {
                     {view === 'day'
                       ? t('calendar.views.day')
                       : view === '5day'
-                        ? t('calendar.views.5day', { defaultValue: '5-días' })
+                        ? t('calendar.views.5day', { defaultValue: '5 días' })
                         : view === 'month'
                           ? t('calendar.views.month', { defaultValue: 'Mes' })
                           : t('calendar.views.week')}
@@ -1241,7 +1349,7 @@ export default function ReservationCalendar() {
                     {v === 'day'
                       ? t('calendar.views.day')
                       : v === '5day'
-                        ? t('calendar.views.5day', { defaultValue: '5-días' })
+                        ? t('calendar.views.5day', { defaultValue: '5 días' })
                         : v === 'month'
                           ? t('calendar.views.month', { defaultValue: 'Mes' })
                           : t('calendar.views.week')}
@@ -1281,7 +1389,7 @@ export default function ReservationCalendar() {
             )}
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {/* Google Calendar overlay toggle — Eye icon flips between "blocks
               are visible" and "blocks are hidden". Persists in localStorage
               and gates the network call too. */}
@@ -1304,6 +1412,7 @@ export default function ReservationCalendar() {
               className="h-8 w-8"
               onClick={() => setAttributesOpen(true)}
               title={t('calendarAttributes.title', { defaultValue: 'Atributos de la cita' })}
+              aria-label={t('calendarAttributes.title', { defaultValue: 'Atributos de la cita' })}
             >
               <Settings className="h-4 w-4" />
             </Button>
@@ -1315,6 +1424,7 @@ export default function ReservationCalendar() {
               className="h-8 w-8"
               onClick={() => setAvailabilityOpen(true)}
               title={t('availability.title', { defaultValue: 'Editar disponibilidad' })}
+              aria-label={t('availability.title', { defaultValue: 'Editar disponibilidad' })}
             >
               <Clock className="h-4 w-4" />
             </Button>
@@ -1378,7 +1488,14 @@ export default function ReservationCalendar() {
                 const dayReservations = reservationsByDay[dayKey] || []
                 const dayClassSessions = classSessionsByDay[dayKey] || []
                 const dayIsToday = isToday(day)
-                const totalEvents = dayReservations.length + dayClassSessions.length
+                // D106: citas y clases juntas y en orden de hora; «+N» cuenta exactamente lo que no cupo.
+                const eventosDelDia = [
+                  ...dayReservations.map(r => ({ tipo: 'cita' as const, id: r.id, startsAt: r.startsAt, r })),
+                  ...dayClassSessions.map(s => ({ tipo: 'clase' as const, id: s.id, startsAt: s.startsAt, s })),
+                ].sort((a, b) => a.startsAt.localeCompare(b.startsAt))
+                const CABEN = 4
+                const visibles = eventosDelDia.length > CABEN ? eventosDelDia.slice(0, CABEN - 1) : eventosDelDia
+                const sinCaber = eventosDelDia.length - visibles.length
 
                 return (
                   <div
@@ -1395,23 +1512,24 @@ export default function ReservationCalendar() {
                       {day.getDate()}
                     </div>
                     {/* Compact event indicators */}
-                    {dayReservations.slice(0, 3).map(r => (
-                      <div
-                        key={r.id}
-                        className={`text-[10px] leading-tight truncate rounded px-1 py-0.5 mb-0.5 ${statusColorMap[r.status]}`}
-                      >
-                        {r.customer ? r.customer.firstName : r.guestName || '—'} {formatTime(r.startsAt)}
-                      </div>
-                    ))}
-                    {dayClassSessions.slice(0, 2).map(s => (
-                      <div
-                        key={s.id}
-                        className="text-[10px] leading-tight truncate rounded px-1 py-0.5 mb-0.5 bg-violet-500/20 text-violet-700 dark:text-violet-300"
-                      >
-                        {s.product.name} {formatTime(s.startsAt)}
-                      </div>
-                    ))}
-                    {totalEvents > 5 && <div className="text-[10px] text-muted-foreground">+{totalEvents - 5}</div>}
+                    {visibles.map(e =>
+                      e.tipo === 'cita' ? (
+                        <div
+                          key={e.id}
+                          className={`text-[10px] leading-tight truncate rounded px-1 py-0.5 mb-0.5 ${statusColorMap[e.r.status]}`}
+                        >
+                          {e.r.customer ? e.r.customer.firstName : e.r.guestName || '—'} {formatTime(e.r.startsAt)}
+                        </div>
+                      ) : (
+                        <div
+                          key={`cs-${e.id}`}
+                          className={`text-[10px] leading-tight truncate rounded px-1 py-0.5 mb-0.5 bg-violet-500/20 text-violet-700 dark:text-violet-300 ${e.s.status === 'CANCELLED' ? 'line-through opacity-60' : ''}`}
+                        >
+                          {e.s.product.name} {formatTime(e.s.startsAt)}
+                        </div>
+                      ),
+                    )}
+                    {sinCaber > 0 && <div className="text-[10px] text-muted-foreground">+{sinCaber}</div>}
                   </div>
                 )
               })}
@@ -1422,18 +1540,18 @@ export default function ReservationCalendar() {
           <div ref={scrollRef} className="rounded-xl border border-border overflow-auto max-h-[calc(100vh-220px)]">
             <div className="flex min-w-[600px]">
               {/* Time axis */}
-              <div className="w-14 shrink-0 border-r border-border">
+              <div className="w-[4.75rem] shrink-0 border-r border-border">
                 {(view !== 'day' || (groupedColumns && groupedColumns.length > 0)) && (
-                  <div className="sticky top-0 bg-background z-10 border-b border-border h-[44px]" />
+                  <div className="sticky top-0 bg-background z-10 border-b border-border h-[45px]" />
                 )}
                 <div className="relative" style={{ height: `${HOURS.length * 64 + GRID_TOP_PAD + 8}px` }}>
                   {HOURS.map(hour => (
                     <div
                       key={hour}
-                      className="absolute left-0 right-0 text-xs text-muted-foreground text-right pr-2"
+                      className="absolute left-0 right-0 whitespace-nowrap text-xs text-muted-foreground text-right pr-2"
                       style={{ top: `${(hour - firstHour) * 64 + GRID_TOP_PAD - 8}px` }}
                     >
-                      {`${String(hour).padStart(2, '0')}:00`}
+                      {formatTime(DateTime.fromObject({ hour }, { zone: venueTimezone }).toJSDate())}
                     </div>
                   ))}
                 </div>
@@ -1509,6 +1627,58 @@ export default function ReservationCalendar() {
 
         {/* Edit availability dialog */}
         <EditAvailabilityDialog open={availabilityOpen} onOpenChange={setAvailabilityOpen} />
+
+        {/* D107: confirmar mover una cita arrastrada */}
+        <AlertDialog open={!!moverCita} onOpenChange={open => !open && !moverCitaMutation.isPending && setMoverCita(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{t('calendar.moveCita.title')}</AlertDialogTitle>
+              <AlertDialogDescription>
+                {moverCita &&
+                  t('calendar.moveCita.description', {
+                    name: moverCita.cita.customer
+                      ? `${moverCita.cita.customer.firstName} ${moverCita.cita.customer.lastName}`
+                      : moverCita.cita.guestName || t('unnamedGuest'),
+                    from: `${DateTime.fromISO(moverCita.cita.startsAt, { zone: 'utc' }).setZone(venueTimezone).setLocale(locale).toFormat('ccc d LLL')} ${formatTime(moverCita.cita.startsAt)}`,
+                    to: `${DateTime.fromISO(moverCita.startsAt, { zone: 'utc' }).setZone(venueTimezone).setLocale(locale).toFormat('ccc d LLL')} ${formatTime(moverCita.startsAt)}`,
+                  })}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            {moverCita && (
+              <div className="space-y-2">
+                <Label>{t('detail.reschedule.notificationLabel')}</Label>
+                <RadioGroup
+                  value={moverCita.canal}
+                  onValueChange={v => setMoverCita(m => (m ? { ...m, canal: v as RescheduleNotificationChannel } : m))}
+                  className="grid grid-cols-1 gap-2"
+                >
+                  {CANALES_DE_AVISO.filter(canal => canalPosible(moverCita.cita, canal)).map(canal => (
+                    <label
+                      key={canal}
+                      htmlFor={`mover-cita-${canal}`}
+                      className="flex items-center gap-3 rounded-lg border border-input p-3 cursor-pointer hover:bg-muted/40"
+                    >
+                      <RadioGroupItem value={canal} id={`mover-cita-${canal}`} />
+                      <span className="text-sm">{t(`detail.reschedule.channels.${canal}`)}</span>
+                    </label>
+                  ))}
+                </RadioGroup>
+              </div>
+            )}
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={moverCitaMutation.isPending}>{tCommon('cancel')}</AlertDialogCancel>
+              <AlertDialogAction
+                disabled={moverCitaMutation.isPending}
+                onClick={e => {
+                  e.preventDefault() // se cierra al terminar, no antes: si falla, la cita se queda donde estaba y se avisa
+                  confirmarMoverCita()
+                }}
+              >
+                {moverCitaMutation.isPending ? tCommon('loading') : t('calendar.moveCita.confirm')}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {/* Calendar attributes dialog */}
         <CalendarAttributesDialog open={attributesOpen} onOpenChange={setAttributesOpen} onSave={setCalendarAttrs} />
