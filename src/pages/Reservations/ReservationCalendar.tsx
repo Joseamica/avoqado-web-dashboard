@@ -37,6 +37,7 @@ import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { FeatureGate } from '@/components/billing/FeatureGate'
 import { useToast } from '@/hooks/use-toast'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { useAccess } from '@/hooks/use-access'
 import { useVenueDateTime } from '@/utils/datetime'
 import { getDateFnsLocale } from '@/utils/i18n-locale'
 import reservationService from '@/services/reservation.service'
@@ -156,6 +157,8 @@ const SIN_CLASES: ClassSession[] = []
 export default function ReservationCalendar() {
   const { t, i18n } = useTranslation('reservations')
   const { venueId, fullBasePath } = useCurrentVenue()
+  // D107: sólo quien puede editar reservas las mueve arrastrando; quien sólo las ve, las abre.
+  const puedeMoverCitas = useAccess().can('reservations:update')
   const navigate = useNavigate()
   const { t: tCommon } = useTranslation()
   const { t: tGcal } = useTranslation('googleCalendar')
@@ -334,11 +337,11 @@ export default function ReservationCalendar() {
     () =>
       horasConEventos(
         computeHoursFromSettings(settings),
-        // D112: el calendario ya trae canceladas; una cancelada no estira la cuadrícula.
-        [...reservations.filter(r => !r.classSessionId && r.status !== 'CANCELLED'), ...classSessions],
+        // D112: el calendario ya trae canceladas; una cancelada sólo estira la cuadrícula si se están mostrando.
+        [...reservations.filter(r => !r.classSessionId && (r.status !== 'CANCELLED' || calendarAttrs.showCancelled)), ...classSessions],
         venueTimezone,
       ),
-    [settings, reservations, classSessions, venueTimezone],
+    [settings, reservations, classSessions, venueTimezone, calendarAttrs.showCancelled],
   )
   const firstHour = HOURS[0]
 
@@ -472,6 +475,9 @@ export default function ReservationCalendar() {
       drag.el.style.height = `${drag.originalHeight}px`
       didDragRef.current = wasDrag
       dragRef.current = null
+      // El clic que sigue al soltar puede caer en otro elemento (el contenedor común) y no limpiaba la marca: el siguiente
+      // clic de verdad se perdía. Se limpia sola después de ese clic.
+      if (wasDrag) setTimeout(() => (didDragRef.current = false), 0)
 
       if (!wasDrag) return
 
@@ -495,6 +501,8 @@ export default function ReservationCalendar() {
         // Agrupado por personal o mesa, todas las columnas son del mismo día: soltar en la de otra persona no reasigna la
         // clase, así que tampoco se le cambia la hora.
         if (targetCol && targetDayKey === drag.dayKey && targetCol !== drag.colEl) return
+        // D107: una cita soltada fuera de la cuadrícula (la regla de horas, la cabecera) no se mueve.
+        if (drag.kind === 'cita' && !targetCol) return
 
         if (targetDayKey && targetMinutes !== null) {
           // Soltar a las 23:54 redondea a 24:00, que Luxon vuelve las 00:00 del día siguiente: no se mueve de día así.
@@ -504,6 +512,8 @@ export default function ReservationCalendar() {
           const hour = Math.floor(targetMinutes / 60)
           const minute = targetMinutes % 60
           newStart = targetDate.set({ hour, minute, second: 0, millisecond: 0 })
+          // Una hora que el reloj se salta (cambio de horario) Luxon la corre en silencio: no se manda otra hora.
+          if (newStart.hour !== hour || newStart.minute !== minute) return
           newEnd = newStart.plus({ minutes: durationMin })
         } else {
           // Fallback: same-day vertical drag
@@ -626,6 +636,10 @@ export default function ReservationCalendar() {
       queryClient.invalidateQueries({ queryKey: ['reservations', venueId] })
     },
     onError: (error: any) => {
+      // Si la respuesta se perdió, el SERVIDOR pudo haberla movido: se vuelve a leer el calendario para enseñar dónde quedó
+      // de verdad, y se cierra la ventana para no repetirlo a ciegas.
+      setMoverCita(null)
+      queryClient.invalidateQueries({ queryKey: ['reservation-calendar', venueId] })
       const status = error?.response?.status
       const message = error?.response?.data?.message ?? ''
       const code = error?.response?.data?.code ?? error?.response?.data?.errorCode ?? error?.response?.data?.error?.code
@@ -636,6 +650,11 @@ export default function ReservationCalendar() {
       toast({ title: tCommon('error'), description: message || t('toasts.error'), variant: 'destructive' })
     },
   })
+  // Sólo se ofrece el aviso que de verdad le llega: WhatsApp con teléfono, correo con email.
+  const canalPosible = (cita: Reservation, canal: RescheduleNotificationChannel) =>
+    canal === 'none' ||
+    (canal === 'whatsapp' && !!(cita.customer?.phone || cita.guestPhone)) ||
+    (canal === 'email' && !!(cita.customer?.email || cita.guestEmail))
   const confirmarMoverCita = () => {
     if (!moverCita || moviendoCita.current) return
     moviendoCita.current = true // un doble clic mandaba dos avisos al cliente en «Reagendar» (16-nov)
@@ -776,10 +795,7 @@ export default function ReservationCalendar() {
         }}
         onClick={e => {
           e.stopPropagation()
-          if (didDragRef.current) {
-            didDragRef.current = false
-            return
-          }
+          if (didDragRef.current) return
           setEditSessionId(session.id)
         }}
       >
@@ -840,7 +856,7 @@ export default function ReservationCalendar() {
     const top = (startHour - firstHour) * 64 + GRID_TOP_PAD
     const height = Math.max((endHour - startHour) * 64, 24)
     // D107: sólo lo que todavía no pasa se mueve arrastrando; lo demás se abre con un clic.
-    const seMueve = reservation.status === 'PENDING' || reservation.status === 'CONFIRMED'
+    const seMueve = puedeMoverCitas && (reservation.status === 'PENDING' || reservation.status === 'CONFIRMED')
 
     const guestName = reservation.customer
       ? `${reservation.customer.firstName} ${reservation.customer.lastName}`
@@ -883,11 +899,17 @@ export default function ReservationCalendar() {
                 iniciarArrastre(e, reservation, 'cita', top, height, 'move')
               }}
               onClick={() => {
-                if (didDragRef.current) {
-                  didDragRef.current = false
-                  return
-                }
+                if (didDragRef.current) return
                 navigate(`${fullBasePath}/reservations/${reservation.id}`)
+              }}
+              // Con teclado: Tab llega a la cita y Enter la abre (moverla con teclado es «Reagendar» en su detalle).
+              role="button"
+              tabIndex={0}
+              onKeyDown={e => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  navigate(`${fullBasePath}/reservations/${reservation.id}`)
+                }
               }}
             >
               <div className="font-medium truncate">{guestName}</div>
@@ -1033,10 +1055,7 @@ export default function ReservationCalendar() {
       // Don't trigger if user clicked on an existing reservation block OR an
       // external Google Calendar busy block (those are read-only overlays).
       // D107: soltar algo que se arrastró dispara un «clic» en la cuadrícula; no es para crear nada.
-      if (didDragRef.current) {
-        didDragRef.current = false
-        return
-      }
+      if (didDragRef.current) return
       const tgt = e.target as HTMLElement
       if (tgt.closest('[data-reservation]') || tgt.closest('[data-gcal-overlay]')) return
 
@@ -1633,7 +1652,7 @@ export default function ReservationCalendar() {
                   onValueChange={v => setMoverCita(m => (m ? { ...m, canal: v as RescheduleNotificationChannel } : m))}
                   className="grid grid-cols-1 gap-2"
                 >
-                  {CANALES_DE_AVISO.map(canal => (
+                  {CANALES_DE_AVISO.filter(canal => canalPosible(moverCita.cita, canal)).map(canal => (
                     <label
                       key={canal}
                       htmlFor={`mover-cita-${canal}`}

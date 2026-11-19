@@ -652,7 +652,7 @@ export function CreateReservationForm({
             />
           </div>
           {/* D111: la hora se pintaba en rojo sin decir qué faltaba. */}
-          {errors.startTime?.message && <p className="-mt-2 text-xs text-destructive">{errors.startTime.message}</p>}
+          {errors.startTime && <p className="-mt-2 text-xs text-destructive">{t('form.validation.startTimeRequired')}</p>}
 
           {/* Duration + Party size + End time info */}
           <div className="flex items-center gap-3 flex-wrap">
