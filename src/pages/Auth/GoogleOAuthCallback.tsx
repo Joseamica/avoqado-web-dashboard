@@ -28,9 +28,11 @@ const GoogleOAuthCallback: React.FC = () => {
       // «Continuar con Google» en /signup, el servidor tiene que saberlo para crear el negocio con
       // la campaña del anuncio. Y cualquier fallo regresa al alta, no al login.
       const intentoDeAlta = tomarIntentoDeAltaGoogle()
-      const paginaDeRegreso = intentoDeAlta ? '/signup' : '/login'
+      const supportIntent = !intentoDeAlta && sessionStorage.getItem('avoqado_support_google_intent') === '1'
+      const paginaDeRegreso = intentoDeAlta ? '/signup' : supportIntent ? '/login?returnTo=%2Fsupport%2Fwhatsapp' : '/login'
 
       if (error) {
+        sessionStorage.removeItem('avoqado_support_google_intent')
         clearInviteToken()
         toast({
           title: t('auth.google.error'),
@@ -42,6 +44,7 @@ const GoogleOAuthCallback: React.FC = () => {
       }
 
       if (!code) {
+        sessionStorage.removeItem('avoqado_support_google_intent')
         clearInviteToken()
         toast({
           title: t('auth.google.error'),
@@ -54,7 +57,9 @@ const GoogleOAuthCallback: React.FC = () => {
 
       try {
         // El `state` que Google devolvió: el servidor lo compara con la cookie de este navegador (login CSRF).
-        const result = await authService.googleOAuthCallback(code, searchParams.get('state'), intentoDeAlta ?? undefined)
+        const result = supportIntent
+          ? await authService.googleOAuthCallback(code, searchParams.get('state'), undefined, 'support-whatsapp')
+          : await authService.googleOAuthCallback(code, searchParams.get('state'), intentoDeAlta ?? undefined)
 
         // SECURITY: Use refetchQueries to wait for auth state before navigating
         // invalidateQueries doesn't wait - causes race condition on slow networks
@@ -112,7 +117,7 @@ const GoogleOAuthCallback: React.FC = () => {
         const altaNueva = !!intentoDeAlta && result?.businessCreated === true
         if (altaNueva) trackSignup('google', intentoDeAlta?.launchCampaignCode)
 
-        navigate(inviteRedirect ?? (altaNueva ? '/setup' : '/'), { replace: true })
+        navigate(supportIntent ? '/support/whatsapp' : inviteRedirect ?? (altaNueva ? '/setup' : '/'), { replace: true })
       } catch (error: any) {
         clearInviteToken()
         // Este navegador no empezó este inicio de sesión (una liga ajena, o un intento viejo): se dice claro.
@@ -123,6 +128,8 @@ const GoogleOAuthCallback: React.FC = () => {
           description: stateRechazado ? t('auth.google.stateInvalid') : error.response?.data?.message || t('auth.google.genericError'),
         })
         navigate(paginaDeRegreso, { replace: true })
+      } finally {
+        sessionStorage.removeItem('avoqado_support_google_intent')
       }
     }
 

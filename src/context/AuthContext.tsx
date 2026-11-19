@@ -302,6 +302,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // Efecto para sincronizar el venue activo y manejar redirecciones
   useEffect(() => {
     if (isStatusLoading || !isAuthenticated || !user) return
+    if (location.pathname === '/support/whatsapp' || (location.pathname === '/auth/google/callback' && sessionStorage.getItem('avoqado_support_google_intent') === '1')) return
 
     const userVenues = user.venues || []
     const isSuperAdmin = user.role === 'SUPERADMIN'
@@ -482,7 +483,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // --- MUTACIONES ---
   const loginMutation = useMutation({
-    mutationFn: (credentials: LoginData) => authService.login(credentials),
+    mutationFn: (credentials: LoginData) => authService.login({ ...credentials,
+      ...(new URLSearchParams(location.search).get('returnTo') === '/support/whatsapp' ? { purpose: 'support-whatsapp' as const } : {}),
+    }),
     onSuccess: async data => {
       console.log('[AUTH] ✅ Login successful - showing toast')
 
@@ -950,12 +953,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // Google OAuth login
   const loginWithGoogle = useCallback(async (): Promise<void> => {
     try {
+      if (new URLSearchParams(location.search).get('returnTo') === '/support/whatsapp') sessionStorage.setItem('avoqado_support_google_intent', '1')
+      else sessionStorage.removeItem('avoqado_support_google_intent')
       // Get Google auth URL
       const { authUrl } = await authService.getGoogleAuthUrl()
 
       // Redirect to Google OAuth
       window.location.href = authUrl
     } catch (error: any) {
+      sessionStorage.removeItem('avoqado_support_google_intent')
       toast({
         title: t('toast.auth_error_title'),
         variant: 'destructive',
@@ -963,7 +969,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       })
       throw error
     }
-  }, [toast, t])
+  }, [toast, t, location.search])
 
   // Google One Tap login
   const loginWithOneTap = useCallback(
