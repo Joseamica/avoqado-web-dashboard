@@ -47,6 +47,22 @@ beforeEach(() => {
 })
 
 describe('GoogleOAuthCallback — alta', () => {
+  it('returns a personal support login to its fixed page without recording a signup', async () => {
+    datos.set('avoqado_support_google_intent', '1')
+    googleOAuthCallback.mockResolvedValue({ isNewUser: false })
+    render(<GoogleOAuthCallback />)
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith('/support/whatsapp', { replace: true }))
+    expect(googleOAuthCallback).toHaveBeenCalledWith('c-1', 's-1', undefined, 'support-whatsapp')
+    expect(trackSignup).not.toHaveBeenCalled()
+    expect(datos.has('avoqado_support_google_intent')).toBe(false)
+  })
+  it('clears a failed support intent and preserves the fixed return destination', async () => {
+    datos.set('avoqado_support_google_intent', '1')
+    googleOAuthCallback.mockRejectedValue({ response: { status: 403 } })
+    render(<GoogleOAuthCallback />)
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith('/login?returnTo=%2Fsupport%2Fwhatsapp', { replace: true }))
+    expect(datos.has('avoqado_support_google_intent')).toBe(false)
+  })
   it('🔴 manda el intento del alta, registra la conversión y lleva al asistente', async () => {
     guardarIntentoDeAltaGoogle({ legalVersion: 'v1', launchCampaignCode: 'POS22MX', utm: { utm_source: 'google' }, referrer: 'avoqado.io' })
     googleOAuthCallback.mockResolvedValue({ isNewUser: true, businessCreated: true })

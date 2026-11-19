@@ -56,7 +56,7 @@ export interface AuthStatusResponse {
   allVenues?: Venue[]
 }
 
-export const login = async (credentials: { email: string; password: string; venueId?: string }) => {
+export const login = async (credentials: { email: string; password: string; venueId?: string; purpose?: 'support-whatsapp' }) => {
   const response = await api.post('/api/v1/dashboard/auth/login', credentials)
   return response.data
 }
@@ -101,11 +101,12 @@ export const getGoogleAuthUrl = async (): Promise<{ authUrl: string }> => {
  * `state` es el que Google devolvió en la URL: el servidor sólo canjea el code si coincide con la cookie
  * que puso en ESTE navegador al dar la URL de Google (login CSRF, 27-sep).
  */
-export const googleOAuthCallback = async (code: string, state: string | null, signup?: GoogleSignupIntent): Promise<AuthResponse> => {
+export const googleOAuthCallback = async (code: string, state: string | null, signup?: GoogleSignupIntent, purpose?: 'support-whatsapp'): Promise<AuthResponse> => {
   const response = await api.post('/api/v1/dashboard/auth/google/callback', {
     code,
     ...(state ? { state } : {}),
     ...(signup ? { signup } : {}),
+    ...(purpose ? { purpose } : {}),
   })
   return response.data
 }

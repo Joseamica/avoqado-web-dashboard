@@ -1,4 +1,5 @@
 import api from '@/api'
+import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
@@ -19,7 +20,7 @@ import { GoogleCalendarConnectionCard } from '@/pages/GoogleCalendar/components/
 export default function ProfileSettings() {
   const { t } = useTranslation(['account', 'common'])
   const { t: tGcal } = useTranslation('googleCalendar')
-  const { venueId } = useCurrentVenue()
+  const { venueId, fullBasePath } = useCurrentVenue()
   const { user } = useAuth()
   const { formatDate, formatDateTime } = useVenueDateTime()
   const queryClient = useQueryClient()
@@ -98,6 +99,9 @@ export default function ProfileSettings() {
         <p className="text-muted-foreground mt-2">{t('subtitle')}</p>
       </div>
 
+      <div className="mb-6">
+        <Button variant="outline" asChild><Link to="/support/whatsapp" state={{ returnPath: `${fullBasePath}/settings/profile` }} data-tour="settings-profile-support-whatsapp">{t('supportWhatsapp.open')}</Link></Button>
+      </div>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-1">
           <Card className="border-input">
