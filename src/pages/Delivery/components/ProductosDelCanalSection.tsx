@@ -7,12 +7,22 @@ import { useDeferredValue, useMemo, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { AlertTriangle, ChevronDown, Loader2, Package, Sparkles } from 'lucide-react'
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { cn, includesNormalized } from '@/lib/utils'
 import type { DeliveryProvider } from '@/types/delivery'
-import { erroresDePrecios, precioGuia, precioQueSePublica, type ProductoDelCanal } from '../productosDelCanal'
+import { entraAlMenu, erroresDePrecios, precioGuia, precioQueSePublica, type ProductoDelCanal } from '../productosDelCanal'
 
 /** Tope de la lista en el SERVIDOR: con un catálogo más grande, «Elegir cuáles» arranca vacío. */
 export const MAX_LISTA = 5000
@@ -51,6 +61,8 @@ export function ProductosDelCanalSection(props: Props) {
   /** Ids que dejó «Revisarlos» (los nuevos de ese momento: marcar uno no lo saca de la vista). */
   const [soloIds, setSoloIds] = useState<Set<string> | null>(null)
   const [abiertos, setAbiertos] = useState<Record<string, boolean>>({})
+  /** «Publicar todo mi catálogo» con algo que se dejaría de usar (productos fuera o precios por canal): se confirma antes. */
+  const [confirmarTodo, setConfirmarTodo] = useState(false)
 
   const enLista = useMemo(() => new Set(lista ?? []), [lista])
   const conError = useMemo(() => new Set(erroresDePrecios(precios)), [precios])
@@ -120,6 +132,14 @@ export function ProductosDelCanalSection(props: Props) {
   const marcados = productos.filter(p => enLista.has(p.id)).length
   const cuantosYaNoExisten = props.yaNoExisten.ids.length + props.yaNoExisten.codigos.length
 
+  // D100 (18-nov): sin esto, una lista no tenía regreso a «todo el catálogo» (lo que se da de alta después ya no se publicaba solo).
+  // Sólo se pregunta si algo cambia de verdad: productos que hoy no salen y saldrían, o precios por canal que se siguen usando.
+  const hayPrecios = Object.values(precios).some(v => v !== undefined)
+  const publicarTodo = () => {
+    if (hayPrecios || productos.some(p => !enLista.has(p.id))) setConfirmarTodo(true)
+    else props.onListaChange(null)
+  }
+
   const alternar = (id: string) => props.onListaChange(enLista.has(id) ? lista.filter(x => x !== id) : [...lista, id])
   const alternarGrupo = (ps: ProductoDelCanal[]) => {
     const todos = ps.every(p => enLista.has(p.id))
@@ -174,6 +194,44 @@ export function ProductosDelCanalSection(props: Props) {
           />
           <span className="text-sm font-medium tabular-nums">{t('settings.productos.conteo', { marcados, total: productos.length })}</span>
         </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-sm text-muted-foreground">
+          <span>{t('settings.productos.listaHelp')}</span>
+          {/* Sin ningún producto que entre al menú (activo y en una categoría activa), publicar todo mandaría un menú vacío al
+              proveedor (Codex D100 r1 #4, r2 #1 y r3 #1). */}
+          {productos.some(entraAlMenu) && (
+            <Button
+              data-tour="delivery-settings-productos-todo"
+              variant="link"
+              size="sm"
+              className="h-auto cursor-pointer p-0"
+              onClick={publicarTodo}
+            >
+              {t('settings.productos.publicarTodo')}
+            </Button>
+          )}
+        </div>
+
+        <AlertDialog open={confirmarTodo} onOpenChange={setConfirmarTodo}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{t('settings.productos.publicarTodoTitulo', { canal })}</AlertDialogTitle>
+              <AlertDialogDescription asChild>
+                <div className="space-y-2">
+                  <p>{t('settings.productos.publicarTodoDescripcion', { count: productos.length, canal })}</p>
+                  {hayPrecios && <p>{t('settings.productos.publicarTodoPrecios', { canal })}</p>}
+                  <p>{t('settings.productos.publicarTodoAlGuardar')}</p>
+                </div>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>{t('settings.productos.cancelar')}</AlertDialogCancel>
+              <AlertDialogAction onClick={() => props.onListaChange(null)}>
+                {t('settings.productos.publicarTodoConfirmar')}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {marcados === 0 && <p className="text-sm text-destructive">{t('settings.productos.listaVacia')}</p>}
 

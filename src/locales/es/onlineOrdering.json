@@ -107,42 +107,42 @@
     },
     "unsaved": "Cambios sin guardar",
     "confirm": {
-      "title": "¿Quién confirma los pedidos?",
+      "title": "¿Alguien tiene que aceptar cada pedido?",
       "team": {
-        "label": "Mi equipo",
+        "label": "Sí, alguien del personal lo acepta",
         "help": "Alguien acepta cada pedido en la Bandeja antes de prepararlo. Se puede cobrar al final.",
         "path": "Pide → Lo aceptas → Se prepara → Paga"
       },
       "noOne": {
-        "label": "Nadie",
+        "label": "No, entran solos",
         "help": "El cliente pide y paga en caja; al pagar, se prepara. Si no paga en 30 min, se cancela solo. No hace falta tener la Bandeja abierta.",
         "path": "Pide → Paga en caja → Se prepara"
       },
       "suggested": "Sugerido para tu giro",
-      "noOneNote": "Con \"Nadie\", la clienta paga antes de que se prepare. Si tus clientes piden y pagan al final, elige \"Mi equipo\".",
-      "checklistTitle": "Para recibir pedidos con «Nadie»",
+      "noOneNote": "Si los pedidos entran solos, la clienta paga antes de que se prepare. Si tus clientes piden y pagan al final, elige «Sí, alguien del personal lo acepta».",
+      "checklistTitle": "Para que los pedidos entren solos",
       "allWeek": "lunes a domingo",
       "hoursOk": "Horario de pedidos: {{days}}, {{open}}–{{close}}",
       "hoursCustom": "Horario de pedidos: el que pusiste abajo, en «Horario»",
-      "hoursMissing": "Pon tu horario: con \"Nadie\", los folios se cancelan al cierre",
+      "hoursMissing": "Pon tu horario: si los pedidos entran solos, los folios se cancelan al cierre",
       "hoursLink": "Ir a Horario",
       "deviceOk": "Un aparato que cobra folios se conectó hace {{minutes}} min",
       "deviceOkHours": "Un aparato que cobra folios se conectó hace {{hours}} h",
       "deviceOkDays": "Un aparato que cobra folios se conectó hace {{days}} días",
       "deviceMissing": "Ningún aparato puede cobrar folios todavía: actualiza la terminal o el POS",
-      "deviceWhatToDo": "Qué hacer: Abre la terminal o el POS, ya actualizados, con la caja abierta. Cuando se conecte, aquí dirá «Un aparato que cobra folios se conectó hace N min». Mientras, puedes guardar «Nadie» con la tienda apagada.",
+      "deviceWhatToDo": "Qué hacer: Abre la terminal o el POS, ya actualizados, con la caja abierta. Cuando se conecte, aquí dirá «Un aparato que cobra folios se conectó hace N min». Mientras, puedes guardar «No, entran solos» con la tienda apagada.",
       "enableNoDevice": "Falta un aparato que cobre folios.",
-      "payNoOne": "Con \"Nadie\" se paga en caja.",
-      "cardNoOne": "Con \"Nadie\" se paga en caja. Para cobrar en línea elige \"Mi equipo\".",
+      "payNoOne": "Si los pedidos entran solos, se paga en caja.",
+      "cardNoOne": "Si los pedidos entran solos, se paga en caja. Para cobrar en línea elige «Sí, alguien del personal lo acepta».",
       "toPayNotice": {
         "title_one": "Tienes {{count}} folio por pagar",
         "title_other": "Tienes {{count}} folios por pagar",
-        "body": "Siguen en «Pedidos por pagar» de la terminal y del POS hasta que se cobren o venzan. Los pedidos nuevos los acepta tu equipo en la Bandeja."
+        "body": "Siguen en «Pedidos por pagar» de la terminal y del POS hasta que se cobren o venzan. Los pedidos nuevos los acepta tu personal en la Bandeja."
       },
       "errors": {
         "NO_FOLIO_DEVICE": "Ningún aparato puede cobrar folios todavía: actualiza la terminal o el POS, ábrelo con la caja abierta y vuelve a intentar.",
-        "HOURS_REQUIRED": "Pon tu horario: con \"Nadie\", los folios se cancelan al cierre.",
-        "PAY_AT_PICKUP_REQUIRED": "Con \"Nadie\" se paga en caja, así que «Pagar al recoger» debe quedar prendido."
+        "HOURS_REQUIRED": "Pon tu horario: si los pedidos entran solos, los folios se cancelan al cierre.",
+        "PAY_AT_PICKUP_REQUIRED": "Si los pedidos entran solos, se paga en caja, así que «Pagar al recoger» debe quedar prendido."
       }
     }
   },
@@ -278,7 +278,7 @@
       "resume": "Reanudar",
       "failed": "No se pudo cambiar la pausa. Vuelve a intentar."
     },
-    "keepsOpenNadie": "Con «Nadie», tu tienda sigue abierta mientras una terminal o un POS con «Pedidos por pagar» esté conectado; esta pestaña no la mantiene abierta."
+    "keepsOpenNadie": "Como los pedidos entran solos, tu tienda sigue abierta mientras una terminal o un POS con «Pedidos por pagar» esté conectado; esta pestaña no la mantiene abierta."
   },
   "cardRefund": {
     "open": "Devolver a la tarjeta",
@@ -320,7 +320,7 @@
     }
   },
   "folio": {
-    "note": "Con «Nadie», los folios se cobran en caja (terminal o POS). Aquí los ves, cancelas los falsos y marcas lo entregado.",
+    "note": "Los folios se cobran en caja (terminal o POS). Aquí los ves, cancelas los falsos y marcas lo entregado.",
     "sections": {
       "toPay": "Por pagar",
       "toDeliver": "Por entregar"

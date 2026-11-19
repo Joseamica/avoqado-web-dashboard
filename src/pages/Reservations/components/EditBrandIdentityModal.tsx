@@ -171,10 +171,15 @@ export function EditBrandIdentityModal({ open, onClose }: EditBrandIdentityModal
         <Step1Content
           logoFull={logoFull}
           logoSmall={logoSmall}
+          heroImageUrl={heroImageUrl}
           primaryColor={primaryColor}
           onLogoChange={(slot, url) => {
             if (slot === 'logoFull') setLogoFull(url)
             else setLogoSmall(url)
+            setDirty(true)
+          }}
+          onHeroChange={(url) => {
+            setHeroImageUrl(url)
             setDirty(true)
           }}
           onColorChange={(c) => {
@@ -220,18 +225,22 @@ export function EditBrandIdentityModal({ open, onClose }: EditBrandIdentityModal
 interface Step1Props {
   logoFull: string
   logoSmall: string
+  heroImageUrl: string
   primaryColor: string
   venueSlug: string | null
   onLogoChange: (slot: LogoSlot, url: string) => void
+  onHeroChange: (url: string) => void
   onColorChange: (color: string) => void
 }
 
 function Step1Content({
   logoFull,
   logoSmall,
+  heroImageUrl,
   primaryColor,
   venueSlug,
   onLogoChange,
+  onHeroChange,
   onColorChange,
 }: Step1Props) {
   const { t } = useTranslation('reservations')
@@ -261,6 +270,11 @@ function Step1Content({
           venueSlug={venueSlug}
           onChange={(url) => onLogoChange('logo', url)}
         />
+        {/* La portada también aquí: muchos negocios suben su logo como portada (Mindform, 18-nov) y, si sólo aparecía en
+            el paso 2, al abrir la ventana parecía que no tenían ninguna imagen. Es el mismo valor que edita el paso 2. */}
+        <div className="rounded-2xl border border-input p-4">
+          <HeroImageField value={heroImageUrl} venueSlug={venueSlug} onChange={onHeroChange} />
+        </div>
         <ColorCard
           label={t('onlineBooking.brandIdentity.color')}
           helper={t('onlineBooking.brandIdentity.colorHelper')}

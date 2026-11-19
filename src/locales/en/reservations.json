@@ -134,7 +134,7 @@
       "existing": "Existing customer",
       "new": "New guest"
     },
-    "noServicesAvailable": "No services created. You can create one in MenuMaker.",
+    "noServicesAvailable": "No services created. You can create one in Menu Maker.",
     "noTablesAvailable": "No tables available for this time",
     "selectService": "Select service",
     "addService": "Add service",
@@ -158,6 +158,7 @@
   },
   "detail": {
     "title": "Reservation {{code}}",
+    "schedule": "Time",
     "confirmationCode": "Confirmation code",
     "timeline": "History",
     "timelineEntry": "{{status}} — {{date}}",
@@ -219,10 +220,17 @@
     "views": {
       "day": "Day",
       "week": "Week",
-      "5day": "5-day",
+      "5day": "5 days",
       "month": "Month"
     },
     "interval": "Interval",
+    "previous": "Previous",
+    "next": "Next",
+    "moveCita": {
+      "title": "Move this appointment?",
+      "description": "{{name}}: from {{from}} to {{to}}",
+      "confirm": "Move"
+    },
     "groupBy": {
       "label": "Group by",
       "none": "None",
@@ -273,6 +281,7 @@
     "spotsLeft": "{{count}} spot left",
     "spotsLeft_other": "{{count}} spots left",
     "full": "Full",
+    "enrolledLabel": "enrolled",
     "schedule": "Schedule",
     "editSuccess": "Class updated successfully",
     "cancelSuccess": "Class cancelled",
@@ -448,11 +457,11 @@
       "moreActions": "More actions",
       "editIdentity": "Edit brand identity",
       "step1Title": "Apply your brand design",
-      "step1Heading": "Add your logo and brand color",
+      "step1Heading": "Add your logo, cover photo and brand color",
       "step1Description": "Your business logo and primary color will appear on your public booking page, receipts, and anywhere else your customers interact with your brand.",
       "step2Title": "Preview and adjust",
       "logoFull": "Full logo",
-      "logoFullHelper": "A wide version of your logo. Shown as the hero on the booking page.",
+      "logoFullHelper": "A wide version of your logo. It shows in the top bar of your booking page, in place of your name.",
       "logoSmall": "Small logo",
       "logoSmallHelper": "A square thumbnail. Used on receipts, avatars, and the widget header.",
       "color": "Color",

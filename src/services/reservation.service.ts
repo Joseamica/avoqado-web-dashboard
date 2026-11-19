@@ -153,6 +153,9 @@ export const reservationService = {
   ): Promise<{ reservations: Reservation[]; grouped?: Record<string, Reservation[]> }> {
     const params = new URLSearchParams({ dateFrom, dateTo })
     if (groupBy) params.append('groupBy', groupBy)
+    // D112: también terminadas, «no llegó» y canceladas; el calendario las filtra con «Atributos de la cita». Un SERVIDOR
+    // anterior ignora el parámetro y manda sólo las activas, como siempre.
+    params.append('allStatuses', '1')
     const response = await api.get(`/api/v1/dashboard/venues/${venueId}/reservations/calendar?${params}`)
     return response.data
   },

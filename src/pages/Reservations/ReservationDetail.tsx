@@ -263,10 +263,11 @@ export default function ReservationDetail() {
       <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-            <h1 className="text-xl font-bold md:text-2xl">{t('detail.title', { code: reservation.confirmationCode })}</h1>
+            {/* D111: el nombre de quien reservó es el título; el código, debajo. */}
+            <h1 className="text-xl font-bold md:text-2xl">{guestName}</h1>
             <ReservationStatusBadge status={reservation.status} />
           </div>
-          <p className="mt-1 text-sm text-muted-foreground md:text-base">{guestName}</p>
+          <p className="mt-1 text-sm text-muted-foreground md:text-base">{t('detail.title', { code: reservation.confirmationCode })}</p>
           {/* Asistencia verificada: cómo se demostró la llegada (con su celular, con su teléfono, a mano por quién). */}
           {reservation.checkInMethod && ['CHECKED_IN', 'COMPLETED'].includes(reservation.status) && (
             <p className="mt-1 text-xs text-muted-foreground" data-testid="metodo-de-llegada">
@@ -376,7 +377,7 @@ export default function ReservationDetail() {
               <div className="flex items-center gap-3">
                 <Clock className="h-5 w-5 text-muted-foreground" />
                 <div>
-                  <div className="text-sm text-muted-foreground">{t('form.fields.startTime')}</div>
+                  <div className="text-sm text-muted-foreground">{t('detail.schedule')}</div>
                   <div className="font-medium">
                     {formatTime(reservation.startsAt)} – {formatTime(reservation.endsAt)}
                   </div>

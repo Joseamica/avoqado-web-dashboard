@@ -107,42 +107,42 @@
     },
     "unsaved": "Unsaved changes",
     "confirm": {
-      "title": "Who confirms orders?",
+      "title": "Does someone have to accept each order?",
       "team": {
-        "label": "My team",
+        "label": "Yes, a staff member accepts it",
         "help": "Someone accepts each order in the Inbox before it is prepared. It can be paid at the end.",
         "path": "Orders → You accept → Prepared → Pays"
       },
       "noOne": {
-        "label": "No one",
+        "label": "No, they come in on their own",
         "help": "The customer orders and pays at the register; once paid, it is prepared. If they do not pay within 30 min, it cancels itself. The Inbox does not need to be open.",
         "path": "Orders → Pays at the register → Prepared"
       },
       "suggested": "Suggested for your business type",
-      "noOneNote": "With \"No one\", the customer pays before it is prepared. If your customers order and pay at the end, choose \"My team\".",
-      "checklistTitle": "To receive orders with “No one”",
+      "noOneNote": "When orders come in on their own, the customer pays before it is prepared. If your customers order and pay at the end, choose “Yes, a staff member accepts it”.",
+      "checklistTitle": "For orders to come in on their own",
       "allWeek": "Monday to Sunday",
       "hoursOk": "Ordering hours: {{days}}, {{open}}–{{close}}",
       "hoursCustom": "Ordering hours: the ones you set below, in “Hours”",
-      "hoursMissing": "Set your hours: with \"No one\", unpaid orders are cancelled at closing",
+      "hoursMissing": "Set your hours: when orders come in on their own, unpaid orders are cancelled at closing",
       "hoursLink": "Go to Hours",
       "deviceOk": "A device that takes payment for order numbers connected {{minutes}} min ago",
       "deviceOkHours": "A device that takes payment for order numbers connected {{hours}} h ago",
       "deviceOkDays": "A device that takes payment for order numbers connected {{days}} days ago",
       "deviceMissing": "No device can take payment for order numbers yet: update the terminal or the POS",
-      "deviceWhatToDo": "What to do: Open the terminal or the POS, already updated, with the cash register open. Once it connects, this will say “A device that takes payment for order numbers connected N min ago”. Meanwhile, you can save “No one” with the store turned off.",
+      "deviceWhatToDo": "What to do: Open the terminal or the POS, already updated, with the cash register open. Once it connects, this will say “A device that takes payment for order numbers connected N min ago”. Meanwhile, you can save “No, they come in on their own” with the store turned off.",
       "enableNoDevice": "A device that takes payment for order numbers is missing.",
-      "payNoOne": "With \"No one\", payment is at the register.",
-      "cardNoOne": "With \"No one\", payment is at the register. To charge online, choose \"My team\".",
+      "payNoOne": "When orders come in on their own, payment is at the register.",
+      "cardNoOne": "When orders come in on their own, payment is at the register. To charge online, choose “Yes, a staff member accepts it”.",
       "toPayNotice": {
         "title_one": "You have {{count}} order awaiting payment",
         "title_other": "You have {{count}} orders awaiting payment",
-        "body": "They stay in “Orders to pay” on the terminal and the POS until they are paid or expire. New orders will be accepted by your team in the Inbox."
+        "body": "They stay in “Orders to pay” on the terminal and the POS until they are paid or expire. New orders will be accepted by your staff in the Inbox."
       },
       "errors": {
         "NO_FOLIO_DEVICE": "No device can take payment for order numbers yet: update the terminal or the POS, open it with the cash register open and try again.",
-        "HOURS_REQUIRED": "Set your hours: with \"No one\", unpaid orders are cancelled at closing.",
-        "PAY_AT_PICKUP_REQUIRED": "With \"No one\", payment is at the register, so “Pay at pickup” must stay on."
+        "HOURS_REQUIRED": "Set your hours: when orders come in on their own, unpaid orders are cancelled at closing.",
+        "PAY_AT_PICKUP_REQUIRED": "When orders come in on their own, payment is at the register, so “Pay at pickup” must stay on."
       }
     }
   },
@@ -278,7 +278,7 @@
       "resume": "Resume",
       "failed": "Couldn't change the pause. Try again."
     },
-    "keepsOpenNadie": "With “No one”, your store stays open while a terminal or POS with “Orders to pay” is connected; this tab doesn't keep it open."
+    "keepsOpenNadie": "Since orders come in on their own, your store stays open while a terminal or POS with “Orders to pay” is connected; this tab doesn't keep it open."
   },
   "cardRefund": {
     "open": "Refund to card",
@@ -320,7 +320,7 @@
     }
   },
   "folio": {
-    "note": "With “No one”, folios are paid at the register (terminal or POS). Here you can see them, cancel the fake ones and mark what was handed over.",
+    "note": "Folios are paid at the register (terminal or POS). Here you can see them, cancel the fake ones and mark what was handed over.",
     "sections": {
       "toPay": "To pay",
       "toDeliver": "To hand over"
