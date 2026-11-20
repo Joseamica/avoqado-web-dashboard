@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 
 import { EditBrandIdentityModal } from '../EditBrandIdentityModal'
@@ -31,8 +31,10 @@ describe('EditBrandIdentityModal · la portada que ya existe se ve en el paso 1'
     )
 
     expect(await screen.findByText('onlineBooking.brandIdentity.heroPhoto')).toBeTruthy()
-    // alt="" la vuelve decorativa (sin rol «img»), así que se busca por su liga.
-    expect(Array.from(document.querySelectorAll('img')).filter(i => i.getAttribute('src') === PORTADA)).toHaveLength(1)
+    // alt="" la vuelve decorativa (sin rol «img»), así que se busca por su liga. Se ESPERA: el paso 1 se pinta en cuanto llega la
+    // lectura y la portada entra un render después (el efecto que copia lo leído al formulario). Con el CI cargado, revisar sin
+    // esperar la veía vacía (hz:47b359b5:D10, 20-nov: dos rojos seguidos en develop).
+    await waitFor(() => expect(Array.from(document.querySelectorAll('img')).filter(i => i.getAttribute('src') === PORTADA)).toHaveLength(1))
     expect(screen.getByText('onlineBooking.brandIdentity.replace')).toBeTruthy()
     // Seguimos en el paso 1: el botón para ir al 2 está ahí.
     expect(screen.getByText('onlineBooking.brandIdentity.next')).toBeTruthy()
