@@ -21,6 +21,7 @@
       "PAUSED": "Paused",
       "pausedUntil": "Paused until {{time}}",
       "pausedManual": "Paused from Settings",
+      "pausedMissed": "Paused automatically: 2 orders in a row weren't accepted. Tap “Resume” to take orders again.",
       "pausedBusy": "Paused: too many orders waiting to be accepted",
       "OFFLINE": "No device connected: keep the Tray open and visible on a computer or tablet to receive orders",
       "DISABLED": "Off"

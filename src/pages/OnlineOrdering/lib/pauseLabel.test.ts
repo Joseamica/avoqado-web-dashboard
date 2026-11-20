@@ -22,6 +22,13 @@ describe('pauseLabel', () => {
     })
   })
 
+  it('D662: pausada sola ⇒ «Se pausó sola», aunque además traiga una pausa con hora (ésa no la quita)', () => {
+    expect(pauseLabel(store({ autoPausedAt: '2026-11-18T20:00:00.000Z' }), fmt)).toEqual({ key: 'settings.status.pausedMissed' })
+    expect(pauseLabel(store({ autoPausedAt: '2026-11-18T20:00:00.000Z', pausedUntil: '2026-11-18T20:15:00.000Z' }), fmt)).toEqual({
+      key: 'settings.status.pausedMissed',
+    })
+  })
+
   it('pausa con hora ⇒ «Pausada hasta HH:MM» en la zona del negocio', () => {
     expect(pauseLabel(store({ pausedUntil: '2026-10-17T18:30:00.000Z' }), fmt)).toEqual({
       key: 'settings.status.pausedUntil',
