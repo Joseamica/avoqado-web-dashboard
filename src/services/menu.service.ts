@@ -305,7 +305,8 @@ export interface LinkableProduct {
   categoryName: string | null
   inventoryMethod: 'QUANTITY' | 'RECIPE' | null
   linkable: boolean
-  blockedReason: 'NOT_INVENTORIED' | 'SOLD_BY_WEIGHT' | null
+  /** `DEDUCT_NEEDS_PREMIUM`: lleva inventario y el negocio no tiene Premium (descontar es Premium, founder 20-nov). */
+  blockedReason: 'NOT_INVENTORIED' | 'SOLD_BY_WEIGHT' | 'DEDUCT_NEEDS_PREMIUM' | null
 }
 
 export interface LinkableProductsPage {

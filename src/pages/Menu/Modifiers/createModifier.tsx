@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next'
 import { z } from 'zod'
 
 import { createModifier as createModifierService } from '@/services/menu.service'
+import { salesByItemKeys } from '@/services/reports/salesByItem.service'
 import { rawMaterialsApi, type RawMaterial } from '@/services/inventory.service'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -218,6 +219,10 @@ export default function CreateModifier({ venueId, modifierGroupId, onBack, onSuc
         queryKey: ['modifiers', venueId],
         refetchType: 'all',
       })
+
+      // La liga del extra mueve «Dentro de paquete» de Ventas por artículo (incluso el pasado): que el reporte no reuse su copia
+      // en memoria de hasta 5 min, ni en pantalla ni en el CSV (Codex r1 #11).
+      queryClient.invalidateQueries({ queryKey: salesByItemKeys.all })
 
       // Call the success callback (without arguments as defined in the interface)
       onSuccess()

@@ -301,7 +301,7 @@ const ItemRow: React.FC<{
         <span className="text-sm font-mono">{item.unitsSold}</span>
       </td>
       {showPackageColumns && (
-        <td className="px-4 py-3 text-right hidden sm:table-cell" data-testid="dentro-de-paquete">
+        <td className="px-4 py-3 text-right" data-testid="dentro-de-paquete">
           <span className="text-sm font-mono text-muted-foreground">{item.unitsInsidePackages ? item.unitsInsidePackages : '—'}</span>
         </td>
       )}
@@ -964,8 +964,9 @@ export default function SalesByItem() {
                       align="right"
                     />
                   </th>
+                  {/* Visible en pantallas angostas: es lo que explica un platillo con $0 que sólo salió en paquetes (Codex r1 #13). */}
                   {showPackageColumns && (
-                    <th className="px-4 py-3 text-right hidden sm:table-cell">
+                    <th className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-1">
                         <SortableHeader
                           label={t('salesByItem.columns.insidePackages')}
@@ -1076,7 +1077,7 @@ export default function SalesByItem() {
                     <span className="text-sm font-mono">{apiResponse.totals.unitsSold}</span>
                   </td>
                   {showPackageColumns && (
-                    <td className="px-4 py-3 text-right hidden sm:table-cell">
+                    <td className="px-4 py-3 text-right">
                       <span className="text-sm font-mono">{apiResponse.totals.unitsInsidePackages ?? 0}</span>
                     </td>
                   )}

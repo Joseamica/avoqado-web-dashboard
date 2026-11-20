@@ -443,7 +443,8 @@
         "retry": "Retry",
         "blocked": {
           "NOT_INVENTORIED": "It doesn't track inventory: turn it on in its page (by pieces or by recipe) to link it.",
-          "SOLD_BY_WEIGHT": "It's sold by weight: an extra can't take it down."
+          "SOLD_BY_WEIGHT": "It's sold by weight: an extra can't take it down.",
+          "DEDUCT_NEEDS_PREMIUM": "It tracks inventory: linking it so the extra deducts it is part of the Premium plan. Without inventory, it only counts in the report."
         },
         "remove": "Remove menu item",
         "noInventory": "This item doesn't track inventory: the extra deducts nothing and only counts in Sales by Item, “Inside packages” column. To deduct it, turn on its inventory (Premium plan).",

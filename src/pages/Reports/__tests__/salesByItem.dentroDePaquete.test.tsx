@@ -97,6 +97,8 @@ describe('Ventas por artículo — «Dentro de paquete»', () => {
     expect(within(papa).getByTestId('total-de-unidades')).toHaveTextContent('21')
     // «Unidades vendidas» sigue siendo sólo lo suelto.
     expect(within(papa).getByText('6')).toBeInTheDocument()
+    // Codex r1 #13: «Dentro de paquete» se ve también en pantallas angostas (explica un renglón con $0).
+    expect(within(papa).getByTestId('dentro-de-paquete').className).not.toMatch(/\bhidden\b/)
     // El renglón del paquete: 0 dentro de paquete se pinta como «—».
     const paquete = screen.getByText('Paquete 3 flautas').closest('tr')!
     expect(within(paquete).getByTestId('dentro-de-paquete')).toHaveTextContent('—')

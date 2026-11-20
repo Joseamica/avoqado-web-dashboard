@@ -52,8 +52,17 @@ vi.mock('@/services/menu.service', () => ({
           linkable: false,
           blockedReason: 'SOLD_BY_WEIGHT',
         },
+        {
+          id: 'p-refresco',
+          name: 'Refresco de lata',
+          active: true,
+          categoryName: 'Bebidas',
+          inventoryMethod: 'QUANTITY',
+          linkable: false,
+          blockedReason: 'DEDUCT_NEEDS_PREMIUM',
+        },
       ],
-      total: 3,
+      total: 4,
       hasMore: false,
       nextCursor: null,
     })
@@ -144,9 +153,12 @@ describe('EditModifier — extra ligado a un platillo del menú', () => {
     const user = userEvent.setup()
     renderEdit(BASE)
     await user.click(screen.getByRole('switch', { name: 'Este extra es un platillo del menú' }))
-    expect(await screen.findByText('Mostrando 3 de 3')).toBeInTheDocument()
+    expect(await screen.findByText('Mostrando 4 de 4')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Queso a granel/ })).toBeDisabled()
     expect(screen.getByText(/Se vende por kilo/)).toBeInTheDocument()
+    // Con inventario en un negocio sin Premium sale en gris: descontar es Premium (Codex r1 #1).
+    expect(screen.getByRole('button', { name: /Refresco de lata/ })).toBeDisabled()
+    expect(screen.getByText(/ligarlo para que lo descuente es del plan Premium/)).toBeInTheDocument()
     // Sin inventario ya NO sale en gris: se puede ligar y dice que sólo cuenta en el reporte.
     expect(screen.getByRole('button', { name: /Agua/ })).toBeEnabled()
     expect(screen.getByText('Sin inventario: sólo cuenta en el reporte')).toBeInTheDocument()
@@ -169,6 +181,20 @@ describe('EditModifier — extra ligado a un platillo del menú', () => {
     await user.click(screen.getByRole('button', { name: 'Guardar Cambios' }))
     await waitFor(() => expect(state.updateCalls).toHaveLength(1))
     expect(state.updateCalls[0][3]).toHaveProperty('linkedProductId', 'p-agua')
+  })
+
+  it('Codex r1 #11: guardar el extra marca vieja la copia de Ventas por artículo (la liga mueve «Dentro de paquete»)', async () => {
+    const invalidar = vi.spyOn(QueryClient.prototype, 'invalidateQueries')
+    try {
+      const user = userEvent.setup()
+      renderEdit(BASE)
+      await user.click(screen.getByRole('switch', { name: 'Este extra es un platillo del menú' }))
+      await user.click(await screen.findByRole('button', { name: /Agua/ }))
+      await user.click(screen.getByRole('button', { name: 'Guardar Cambios' }))
+      await waitFor(() => expect(invalidar).toHaveBeenCalledWith({ queryKey: ['salesByItem'] }))
+    } finally {
+      invalidar.mockRestore()
+    }
   })
 
   it('un platillo CON inventario no muestra el aviso de «sólo cuenta»', async () => {

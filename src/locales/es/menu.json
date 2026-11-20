@@ -432,7 +432,8 @@
         "retry": "Reintentar",
         "blocked": {
           "NOT_INVENTORIED": "No lleva inventario: actívaselo en su ficha (por piezas o por receta) para poder ligarlo.",
-          "SOLD_BY_WEIGHT": "Se vende por kilo: un extra no puede descontarlo."
+          "SOLD_BY_WEIGHT": "Se vende por kilo: un extra no puede descontarlo.",
+          "DEDUCT_NEEDS_PREMIUM": "Lleva inventario: ligarlo para que lo descuente es del plan Premium. Sin inventario, sólo cuenta en el reporte."
         },
         "remove": "Quitar platillo",
         "noInventory": "Este platillo no lleva inventario: el extra no descuenta nada y sólo cuenta en Ventas por artículo, columna «Dentro de paquete». Para que lo descuente, actívale el inventario (plan Premium).",
