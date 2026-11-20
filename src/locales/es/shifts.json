@@ -239,7 +239,7 @@
     "loadError": "No se pudo cargar la lista. Revisa tu conexión e inténtalo otra vez.",
     "retry": "Reintentar",
     "empty": "No hay cobros en duda. Todo lo de la máquina está registrado.",
-    "showing": "Mostrando {{shown}} de {{total}} cobros por resolver",
+    "showing": "Mostrando {{shown}} de {{total}} pendientes de la máquina",
     "loadMore": "Cargar más",
     "resolveButton": "Resolver",
     "promotionLine": "Promoción",
@@ -288,14 +288,71 @@
         "changeTooHigh": "No pudo devolver más de {{max}} (lo recibido menos lo que debía).",
         "cancelNeedsLess": "Si recibió todo lo que debía ({{due}}), el cobro no se pudo cancelar: elige «Se cobró».",
         "refundTooHigh": "No pudo devolver más de lo que recibió.",
-        "keptMustBeZero": "Si se quedó con el dinero, lo devuelto es $0."
+        "keptMustBeZero": "Si se quedó con el dinero, lo devuelto es $0.",
+        "cancelModeMismatch": "Lo que hizo la máquina con el dinero no cuadra con lo que elegiste arriba. Revisa la pantalla de la máquina."
       },
       "conflict": {
         "title": "Este cobro ya estaba resuelto así:",
         "received": "Recibió {{amount}}",
         "returned": "Devolvió {{amount}}",
         "evidence": "Lo que vio: {{text}}"
+      },
+      "cancelMode": {
+        "question": "¿Qué hizo la máquina con el dinero?",
+        "1": "Lo devolvió",
+        "2": "Se lo quedó",
+        "NO_SE": "No sé",
+        "unknown": "Si no sabes, deja el cobro en duda y revisa la pantalla de la máquina."
       }
+    },
+    "incidents": {
+      "heading": "Otras incidencias de la máquina",
+      "intro": "La máquina o su PC mandaron algo que no cuadra. Lee lo que llegó y márcalo como revisado; eso no mueve dinero.",
+      "columns": {
+        "kind": "Qué pasó",
+        "createdAt": "Llegó",
+        "times": "Veces"
+      },
+      "times_one": "Llegó {{count}} vez",
+      "times_other": "Llegó {{count}} veces",
+      "repeated_one": "{{count}} repetida",
+      "repeated_other": "{{count}} repetidas",
+      "reviewedBefore_one": "revisada {{count}} vez antes",
+      "reviewedBefore_other": "revisada {{count}} veces antes",
+      "reviewButton": "Revisar",
+      "title": "Revisar la incidencia {{folio}}",
+      "kinds": {
+        "IMPOSIBLE": {
+          "label": "Importes imposibles",
+          "hint": "La máquina mandó importes que no pueden ser, por ejemplo, devolver más de lo que entró."
+        },
+        "CONFLICTO": {
+          "label": "Folio con dos versiones",
+          "hint": "Este folio ya estaba registrado de otra forma o desde otra PC."
+        },
+        "NO_SE_PUDO_REGISTRAR": {
+          "label": "Venta sin registrar",
+          "hint": "La máquina cobró, pero la venta no se pudo registrar (por ejemplo, un producto ya no existe). El dinero quedó anotado aquí."
+        },
+        "TRAS_REVOCAR": {
+          "label": "Folio de una PC desemparejada",
+          "hint": "Llegó un folio de una PC que ya se había desemparejado de la máquina."
+        }
+      },
+      "createdAt": "Llegó el {{time}}.",
+      "arrivedAt": "Recibido el {{time}}",
+      "reason": "Motivo: {{reason}}",
+      "raw": "Ver todo lo que llegó",
+      "evidenceTitle": "Lo que llegó",
+      "firstEvent": "La primera vez",
+      "lastEvent": "La última vez",
+      "previousReviews": "Revisiones anteriores",
+      "reviewLine": "{{time}} · versión {{version}}: {{note}}",
+      "note": "Qué revisaste",
+      "notePlaceholder": "Ej.: revisé la máquina y el comprobante; el dinero cuadra con el corte",
+      "markReviewed": "Marcar como revisada",
+      "reviewed": "Listo: la incidencia {{folio}} quedó revisada",
+      "changed": "Llegó evidencia nueva: revísala otra vez."
     }
   }
 }

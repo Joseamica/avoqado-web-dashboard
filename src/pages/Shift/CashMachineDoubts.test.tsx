@@ -8,8 +8,8 @@ import { Currency } from '@/utils/currency'
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string, o?: Record<string, unknown>) => (o ? `${key}${JSON.stringify(o)}` : key) }),
 }))
-const h = vi.hoisted(() => ({ get: vi.fn() }))
-vi.mock('@/api', () => ({ default: { get: h.get, post: vi.fn() } }))
+const h = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn() }))
+vi.mock('@/api', () => ({ default: { get: h.get, post: h.post } }))
 vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: vi.fn() }) }))
 vi.mock('@/hooks/use-current-venue', () => ({ useCurrentVenue: () => ({ venueId: 'v1' }) }))
 vi.mock('@/utils/datetime', () => ({
@@ -35,6 +35,23 @@ const fila = (n: number, extra: Record<string, unknown> = {}) => ({
   ...extra,
 })
 
+const incidencia = (n: number, extra: Record<string, unknown> = {}) => ({
+  id: `cinc00000000000000000000${n}`,
+  referenceCC: `AQ00000000009${n}`,
+  kind: 'CONFLICTO',
+  status: 'ABIERTO',
+  deviceId: 'd2',
+  createdAt: `2026-11-20T20:0${n}:00.000Z`,
+  veces: 4,
+  version: 2,
+  repetidas: 2,
+  primerEvento: { motivo: 'OTRA_EVIDENCIA' },
+  ultimoEvento: null,
+  revision: null,
+  revisiones: [{ nota: 'antes', en: '2026-11-19T10:00:00.000Z', version: 1 }],
+  ...extra,
+})
+
 function pintar() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   render(
@@ -50,6 +67,7 @@ const texto = () => document.body.textContent ?? ''
 describe('CashMachineDoubts', () => {
   beforeEach(() => {
     h.get.mockReset()
+    h.post.mockReset()
   })
 
   it('pide sólo las ABIERTAS de la sucursal, con su límite', async () => {
@@ -110,11 +128,60 @@ describe('CashMachineDoubts', () => {
     await screen.findByText('AQ000000000001')
   })
 
+  it('las incidencias que no son duda van aparte, de sólo lectura, con veces, repetidas y revisiones previas', async () => {
+    h.get.mockResolvedValueOnce({ data: { success: true, data: [fila(1), incidencia(1)], total: 2, nextCursor: null } })
+    pintar()
+    await screen.findByText('AQ000000000091')
+    expect(texto()).toContain(`${D}showing${JSON.stringify({ shown: 2, total: 2 })}`)
+    expect(texto()).toContain(`${D}incidents.heading`)
+    expect(texto()).toContain(`${D}incidents.kinds.CONFLICTO.label`)
+    expect(texto()).toContain(`${D}incidents.times${JSON.stringify({ count: 4 })}`)
+    expect(texto()).toContain(`${D}incidents.repeated${JSON.stringify({ count: 2 })}`)
+    expect(texto()).toContain(`${D}incidents.reviewedBefore${JSON.stringify({ count: 1 })}`)
+    // La incidencia no se resuelve como duda: sólo la duda tiene «Resolver».
+    expect(screen.getAllByRole('button', { name: `${D}resolveButton` })).toHaveLength(1)
+    expect(screen.getAllByRole('button', { name: `${D}incidents.reviewButton` })).toHaveLength(1)
+  })
+
+  it('sólo incidencias: no dibuja la tabla de dudas ni dice «vacío»', async () => {
+    h.get.mockResolvedValueOnce({ data: { success: true, data: [incidencia(1)], total: 1, nextCursor: null } })
+    pintar()
+    await screen.findByText('AQ000000000091')
+    expect(screen.queryByText(`${D}columns.due`)).not.toBeInTheDocument()
+    expect(screen.queryByText(`${D}empty`)).not.toBeInTheDocument()
+  })
+
+  it('«Revisar» → 409 «llegó evidencia nueva»: vuelve a pedir la lista y la ventana manda la versión NUEVA', async () => {
+    h.get
+      .mockResolvedValueOnce({ data: { success: true, data: [incidencia(1)], total: 1, nextCursor: null } })
+      .mockResolvedValueOnce({ data: { success: true, data: [incidencia(1, { version: 3 })], total: 1, nextCursor: null } })
+    h.post
+      .mockRejectedValueOnce(
+        Object.assign(new Error('409'), {
+          response: { status: 409, data: { code: 'CASH_MACHINE_INCIDENT_CHANGED', details: { version: 3 } } },
+        }),
+      )
+      .mockResolvedValueOnce({ status: 200, data: { success: true, status: 'RESUELTO', version: 3 } })
+    pintar()
+    fireEvent.click(await screen.findByRole('button', { name: `${D}incidents.reviewButton` }))
+    fireEvent.change(screen.getByLabelText(`${D}incidents.note`), { target: { value: 'revisé' } })
+    fireEvent.click(screen.getByRole('button', { name: `${D}incidents.markReviewed` }))
+    expect(await screen.findByRole('alert')).toHaveTextContent(`${D}incidents.changed`)
+    await waitFor(() => expect(h.get).toHaveBeenCalledTimes(2))
+    await waitFor(() => expect(screen.getByRole('button', { name: `${D}incidents.markReviewed` })).toBeEnabled())
+    fireEvent.click(screen.getByRole('button', { name: `${D}incidents.markReviewed` }))
+    await waitFor(() => expect(h.post).toHaveBeenCalledTimes(2))
+    expect(h.post.mock.calls[0][1]).toEqual({ note: 'revisé', version: 2 })
+    expect(h.post.mock.calls[1][1]).toEqual({ note: 'revisé', version: 3 })
+  })
+
   it('«Resolver» abre la ventana de ese folio', async () => {
     h.get.mockResolvedValueOnce({ data: { success: true, data: [fila(1), fila(2)], total: 2, nextCursor: null } })
     pintar()
     await screen.findByText('AQ000000000002')
     fireEvent.click(screen.getAllByRole('button', { name: `${D}resolveButton` })[1])
-    await waitFor(() => expect(screen.getByRole('dialog')).toHaveTextContent(`${D}resolve.title${JSON.stringify({ folio: 'AQ000000000002' })}`))
+    await waitFor(() =>
+      expect(screen.getByRole('dialog')).toHaveTextContent(`${D}resolve.title${JSON.stringify({ folio: 'AQ000000000002' })}`),
+    )
   })
 })

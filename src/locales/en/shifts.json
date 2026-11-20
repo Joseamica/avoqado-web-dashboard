@@ -239,7 +239,7 @@
     "loadError": "The list could not be loaded. Check your connection and try again.",
     "retry": "Retry",
     "empty": "No payments in doubt. Everything from the machine is recorded.",
-    "showing": "Showing {{shown}} of {{total}} payments to resolve",
+    "showing": "Showing {{shown}} of {{total}} pending machine items",
     "loadMore": "Load more",
     "resolveButton": "Resolve",
     "promotionLine": "Promotion",
@@ -288,14 +288,71 @@
         "changeTooHigh": "It could not return more than {{max}} (received minus due).",
         "cancelNeedsLess": "If it received the full amount due ({{due}}), the payment could not be cancelled: choose \"It was paid\".",
         "refundTooHigh": "It could not return more than it received.",
-        "keptMustBeZero": "If it kept the money, the amount returned is $0."
+        "keptMustBeZero": "If it kept the money, the amount returned is $0.",
+        "cancelModeMismatch": "What the machine did with the money doesn't match what you chose above. Check the machine's screen."
       },
       "conflict": {
         "title": "This payment was already resolved as:",
         "received": "Received {{amount}}",
         "returned": "Returned {{amount}}",
         "evidence": "What they saw: {{text}}"
+      },
+      "cancelMode": {
+        "question": "What did the machine do with the money?",
+        "1": "It returned it",
+        "2": "It kept it",
+        "NO_SE": "I don't know",
+        "unknown": "If you don't know, leave the payment in doubt and check the machine's screen."
       }
+    },
+    "incidents": {
+      "heading": "Other machine incidents",
+      "intro": "The machine or its PC sent something that doesn't add up. Read what arrived and mark it as reviewed; that doesn't move any money.",
+      "columns": {
+        "kind": "What happened",
+        "createdAt": "Arrived",
+        "times": "Times"
+      },
+      "times_one": "Arrived {{count}} time",
+      "times_other": "Arrived {{count}} times",
+      "repeated_one": "{{count}} repeated",
+      "repeated_other": "{{count}} repeated",
+      "reviewedBefore_one": "reviewed {{count}} time before",
+      "reviewedBefore_other": "reviewed {{count}} times before",
+      "reviewButton": "Review",
+      "title": "Review incident {{folio}}",
+      "kinds": {
+        "IMPOSIBLE": {
+          "label": "Impossible amounts",
+          "hint": "The machine sent amounts that cannot be right, for example returning more than went in."
+        },
+        "CONFLICTO": {
+          "label": "Reference with two versions",
+          "hint": "This reference was already recorded differently or from another PC."
+        },
+        "NO_SE_PUDO_REGISTRAR": {
+          "label": "Sale not recorded",
+          "hint": "The machine took the payment, but the sale could not be recorded (for example, a product no longer exists). The money is logged here."
+        },
+        "TRAS_REVOCAR": {
+          "label": "Reference from an unpaired PC",
+          "hint": "A reference arrived from a PC that had already been unpaired from the machine."
+        }
+      },
+      "createdAt": "Arrived {{time}}.",
+      "arrivedAt": "Received {{time}}",
+      "reason": "Reason: {{reason}}",
+      "raw": "See everything that arrived",
+      "evidenceTitle": "What arrived",
+      "firstEvent": "The first time",
+      "lastEvent": "The last time",
+      "previousReviews": "Previous reviews",
+      "reviewLine": "{{time}} · version {{version}}: {{note}}",
+      "note": "What you reviewed",
+      "notePlaceholder": "E.g.: I checked the machine and the receipt; the money matches the cash count",
+      "markReviewed": "Mark as reviewed",
+      "reviewed": "Done: incident {{folio}} is reviewed",
+      "changed": "New evidence arrived: review it again."
     }
   }
 }

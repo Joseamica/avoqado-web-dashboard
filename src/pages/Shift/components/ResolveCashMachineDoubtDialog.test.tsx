@@ -64,7 +64,9 @@ function setup() {
 }
 
 const P = 'cashMachineDoubts.resolve.'
-const elegir = (outcome: 'PAGADO' | 'CANCELADO' | 'GUARDADO') => fireEvent.click(screen.getByRole('radio', { name: `${P}outcomes.${outcome}.label` }))
+const elegir = (outcome: 'PAGADO' | 'CANCELADO' | 'GUARDADO') =>
+  fireEvent.click(screen.getByRole('radio', { name: `${P}outcomes.${outcome}.label` }))
+const modo = (m: '1' | '2' | 'NO_SE') => fireEvent.click(screen.getByRole('radio', { name: `${P}cancelMode.${m}` }))
 const recibio = (v: string) => fireEvent.change(screen.getByLabelText(`${P}received`), { target: { value: v } })
 const devolvio = (v: string) => fireEvent.change(screen.getByLabelText(`${P}returned`), { target: { value: v } })
 const hora = (v: string) => fireEvent.change(screen.getByLabelText(`${P}receiptTime`), { target: { value: v } })
@@ -115,6 +117,13 @@ describe('errorDeLaResolucion (espejo de validarCierre del SERVIDOR)', () => {
     expect(errorDeLaResolucion({ outcome: 'GUARDADO', creditCents: 15000, changeCents: 0, dueCents: due })?.key).toBe('cancelNeedsLess')
     expect(errorDeLaResolucion({ outcome: 'GUARDADO', creditCents: 10000, changeCents: 1, dueCents: due })?.key).toBe('keptMustBeZero')
     expect(errorDeLaResolucion({ outcome: 'GUARDADO', creditCents: 10000, changeCents: 0, dueCents: due })).toBeNull()
+  })
+  it('el modo de la cancelación cuadra con el desenlace: CANCELADO ↔ «1», GUARDADO ↔ «2»', () => {
+    const base = { creditCents: 10000, changeCents: 0, dueCents: due }
+    expect(errorDeLaResolucion({ ...base, outcome: 'CANCELADO', cancelMode: '1' })).toBeNull()
+    expect(errorDeLaResolucion({ ...base, outcome: 'CANCELADO', cancelMode: '2' })?.key).toBe('cancelModeMismatch')
+    expect(errorDeLaResolucion({ ...base, outcome: 'GUARDADO', cancelMode: '2' })).toBeNull()
+    expect(errorDeLaResolucion({ ...base, outcome: 'GUARDADO', cancelMode: '1' })?.key).toBe('cancelModeMismatch')
   })
 })
 
@@ -198,6 +207,8 @@ describe('ResolveCashMachineDoubtDialog', () => {
     expect(texto()).toContain(`${P}errors.refundTooHigh`)
     expect(guardar()).toBeDisabled()
     devolvio('100')
+    expect(guardar()).toBeDisabled() // falta decir qué hizo la máquina con el dinero
+    modo('1')
     expect(guardar()).toBeEnabled()
   })
 
@@ -210,6 +221,7 @@ describe('ResolveCashMachineDoubtDialog', () => {
     expect(texto()).toContain(`${P}errors.keptMustBeZero`)
     expect(guardar()).toBeDisabled()
     devolvio('0')
+    modo('2')
     expect(guardar()).toBeEnabled()
   })
 
@@ -248,27 +260,33 @@ describe('ResolveCashMachineDoubtDialog', () => {
   it('sin hora del comprobante no manda occurredAt (el SERVIDOR la deja por conciliar)', async () => {
     const { onOpenChange } = setup()
     elegir('GUARDADO')
+    modo('2')
     recibio('100')
     devolvio('0')
     vio('guardó el dinero')
     expect(texto()).toContain(`${P}receiptTimeHelp`)
     fireEvent.click(guardar())
     await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false))
-    expect(h.calls[0][1]).toEqual({ outcome: 'GUARDADO', creditCents: 10000, changeDispensedCents: 0, evidence: 'guardó el dinero' })
+    expect(h.calls[0][1]).toEqual({
+      outcome: 'GUARDADO',
+      creditCents: 10000,
+      changeDispensedCents: 0,
+      cancelMode: '2',
+      evidence: 'guardó el dinero',
+    })
   })
 
   it('si a la clienta se le debe dinero, el aviso de éxito lo dice', async () => {
     h.impl = () => Promise.resolve({ status: 200, data: { success: true, referenceCC: FOLIO, outcome: 'GUARDADO', owedCents: 10000 } })
     const { onOpenChange } = setup()
     elegir('GUARDADO')
+    modo('2')
     recibio('100')
     devolvio('0')
     vio('guardó')
     fireEvent.click(guardar())
     await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false))
-    expect(h.toast).toHaveBeenCalledWith(
-      expect.objectContaining({ description: `${P}owed${JSON.stringify({ amount: Currency(100) })}` }),
-    )
+    expect(h.toast).toHaveBeenCalledWith(expect.objectContaining({ description: `${P}owed${JSON.stringify({ amount: Currency(100) })}` }))
   })
 
   it('202: la duda se cerró pero la venta no se pudo registrar → lo dice, no lo da por bueno en silencio', async () => {
@@ -291,6 +309,78 @@ describe('ResolveCashMachineDoubtDialog', () => {
     fireEvent.click(guardar())
     await waitFor(() => expect(h.toast).toHaveBeenCalled())
     expect(h.calls).toHaveLength(1)
+  })
+
+  it('cancelación: pregunta qué hizo la máquina con el dinero y lo manda (cancelMode); con «Se cobró» ni se pregunta ni se manda', async () => {
+    const { onOpenChange } = setup()
+    elegir('PAGADO')
+    expect(screen.queryByRole('radio', { name: `${P}cancelMode.1` })).not.toBeInTheDocument()
+    elegir('CANCELADO')
+    expect(texto()).toContain(`${P}cancelMode.question`)
+    recibio('100')
+    devolvio('100')
+    hora('2026-11-20T14:05')
+    vio('regresó los $100')
+    expect(guardar()).toBeDisabled()
+    modo('1')
+    fireEvent.click(guardar())
+    await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false))
+    expect(h.calls[0][1]).toEqual({
+      outcome: 'CANCELADO',
+      creditCents: 10000,
+      changeDispensedCents: 10000,
+      cancelMode: '1',
+      occurredAt: '2026-11-20T20:05:00.000Z',
+      evidence: 'regresó los $100',
+    })
+  })
+
+  it('«No sé» no deja guardar y dice que deje el cobro en duda', () => {
+    setup()
+    elegir('GUARDADO')
+    recibio('100')
+    vio('no vi bien')
+    modo('NO_SE')
+    expect(texto()).toContain(`${P}cancelMode.unknown`)
+    expect(guardar()).toBeDisabled()
+    fireEvent.click(guardar())
+    expect(h.calls).toHaveLength(0)
+    modo('2')
+    expect(screen.queryByText(`${P}cancelMode.unknown`)).not.toBeInTheDocument()
+    expect(guardar()).toBeEnabled()
+  })
+
+  it('lo que hizo la máquina tiene que cuadrar con el desenlace (espejo del SERVIDOR)', () => {
+    setup()
+    elegir('CANCELADO')
+    recibio('100')
+    devolvio('100')
+    vio('x')
+    modo('2')
+    expect(texto()).toContain(`${P}errors.cancelModeMismatch`)
+    expect(guardar()).toBeDisabled()
+    modo('1')
+    expect(guardar()).toBeEnabled()
+  })
+
+  it('409 CASH_MACHINE_CLOSE_RETRY no es «ya estaba resuelto»: enseña el mensaje y deja reintentar', async () => {
+    h.impl = () =>
+      Promise.reject(
+        Object.assign(new Error('409'), {
+          response: {
+            status: 409,
+            data: { message: 'Otro registro de este folio estaba en curso. Intenta otra vez.', code: 'CASH_MACHINE_CLOSE_RETRY' },
+          },
+        }),
+      )
+    setup()
+    elegir('PAGADO')
+    recibio('150')
+    vio('pagado')
+    fireEvent.click(guardar())
+    expect(await screen.findByRole('alert')).toHaveTextContent('Otro registro de este folio estaba en curso. Intenta otra vez.')
+    expect(screen.queryByText(`${P}conflict.title`)).not.toBeInTheDocument()
+    expect(guardar()).toBeEnabled()
   })
 
   it('409: enseña lo que ya estaba registrado para ese folio y refresca la lista', async () => {

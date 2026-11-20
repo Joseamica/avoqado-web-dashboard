@@ -3,7 +3,8 @@
  * (`cash-machine:resolve`), un cobro cuyo final la PC de la máquina no alcanzó a oír. Teclea lo que ve en la máquina; el SERVIDOR
  * registra la venta o el cierre con `resolvedBy GERENTE`. La regla de importes es la de `validarCierre` del SERVIDOR: aquí sólo
  * evita mandar algo imposible (el SERVIDOR igual lo rechaza con 422). Importes en CENTAVOS enteros; la hora del comprobante en la
- * zona del negocio. Sin hora, la venta queda con hora y turno por conciliar (R5#8).
+ * zona del negocio. Sin hora, la venta queda con hora y turno por conciliar (R5#8). Con una cancelación, el gerente dice además qué
+ * VIO hacer a la máquina con el dinero (`cancelMode`, Codex r2 #10): nunca se infiere del desenlace, y «No sé» no deja guardar.
  */
 import { useRef, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
@@ -23,11 +24,15 @@ import { Currency } from '@/utils/currency'
 import { useVenueDateTime } from '@/utils/datetime'
 
 export type CashMachineOutcome = 'PAGADO' | 'CANCELADO' | 'GUARDADO'
+/** Lo que el gerente VIO hacer a la máquina con el dinero de una cancelación: '1' lo devolvió, '2' se lo quedó. */
+export type CashMachineCancelMode = '1' | '2'
+type ModoElegido = CashMachineCancelMode | 'NO_SE'
 
 /** Una fila de `GET /dashboard/venues/:venueId/cash-machine/doubts` (`listarDudasDeLaMaquina`). Importes en CENTAVOS. */
 export interface CashMachineDoubt {
   id: string
   referenceCC: string
+  kind?: 'ESPERANDO'
   status: 'ABIERTO' | 'RESUELTO'
   deviceId: string | null
   createdAt: string
@@ -50,6 +55,10 @@ interface Registrado {
 }
 
 const OUTCOMES: CashMachineOutcome[] = ['PAGADO', 'CANCELADO', 'GUARDADO']
+const MODOS: ModoElegido[] = ['1', '2', 'NO_SE']
+/** El 409 de una resolución que contradice lo ya registrado (antes `…DOUBT_CONFLICT`, hoy `…CLOSE_CONFLICT`). Otro 409 (p. ej.
+ *  `CASH_MACHINE_CLOSE_RETRY`, «intenta otra vez») no es «ya estaba resuelto»: enseña el mensaje del SERVIDOR. */
+const CONFLICTOS = ['CASH_MACHINE_CLOSE_CONFLICT', 'CASH_MACHINE_DOUBT_CONFLICT']
 const MAX_EVIDENCE = 500 // el tope del SERVIDOR (`resolverDudaDeLaMaquinaSchema`)
 
 /** «200.50» → 20050. Exacto (sin `* 100` de punto flotante); null si no es un importe con hasta 2 decimales. */
@@ -67,22 +76,26 @@ export function horaDelComprobante(local: string, zona: string): string | null {
   return dt.isValid ? dt.toUTC().toISO() : null
 }
 
-/** Espejo de `validarCierre` del SERVIDOR con importes del gerente. null = posible. */
+/** Espejo de `validarCierre` del SERVIDOR con importes del gerente. null = posible. `cancelMode` sin elegir no es error aquí. */
 export function errorDeLaResolucion(r: {
   outcome: CashMachineOutcome
   creditCents: number
   changeCents: number
   dueCents: number
+  cancelMode?: CashMachineCancelMode | null
 }): { key: string; params?: Record<string, string> } | null {
-  const { outcome, creditCents, changeCents, dueCents } = r
+  const { outcome, creditCents, changeCents, dueCents, cancelMode } = r
   if (outcome === 'PAGADO') {
     if (creditCents < dueCents) return { key: 'paidNeedsFull', params: { due: Currency(dueCents, true) } }
     if (changeCents > creditCents - dueCents) return { key: 'changeTooHigh', params: { max: Currency(creditCents - dueCents, true) } }
     return null
   }
   if (creditCents >= dueCents) return { key: 'cancelNeedsLess', params: { due: Currency(dueCents, true) } }
-  if (outcome === 'GUARDADO') return changeCents === 0 ? null : { key: 'keptMustBeZero' }
-  return changeCents <= creditCents ? null : { key: 'refundTooHigh' }
+  if (outcome === 'GUARDADO') {
+    if (changeCents !== 0) return { key: 'keptMustBeZero' }
+  } else if (changeCents > creditCents) return { key: 'refundTooHigh' }
+  if (cancelMode && cancelMode !== (outcome === 'GUARDADO' ? '2' : '1')) return { key: 'cancelModeMismatch' }
+  return null
 }
 
 interface Props {
@@ -98,6 +111,7 @@ export function ResolveCashMachineDoubtDialog({ open, onOpenChange, venueId, dou
   const queryClient = useQueryClient()
   const { venueTimezone, formatDateTime } = useVenueDateTime()
   const [outcome, setOutcome] = useState<CashMachineOutcome | null>(null)
+  const [modo, setModo] = useState<ModoElegido | null>(null)
   const [recibido, setRecibido] = useState('')
   const [devuelto, setDevuelto] = useState('0')
   const [hora, setHora] = useState('')
@@ -112,11 +126,14 @@ export function ResolveCashMachineDoubtDialog({ open, onOpenChange, venueId, dou
   const occurredAt = horaDelComprobante(hora, venueTimezone)
   const trimmedEvidence = evidence.trim()
   const montoInvalido = (recibido.trim() !== '' && creditCents === null) || changeCents === null
+  const esCancelacion = outcome === 'CANCELADO' || outcome === 'GUARDADO'
+  const cancelMode = esCancelacion && (modo === '1' || modo === '2') ? modo : null
   const regla =
     outcome && creditCents !== null && changeCents !== null
-      ? errorDeLaResolucion({ outcome, creditCents, changeCents, dueCents: doubt.dueCents })
+      ? errorDeLaResolucion({ outcome, creditCents, changeCents, dueCents: doubt.dueCents, cancelMode })
       : null
   const aviso = montoInvalido ? t(`${P}.errors.invalidAmount`) : regla ? t(`${P}.errors.${regla.key}`, regla.params) : null
+  const noSabe = esCancelacion && modo === 'NO_SE'
   const lastSeen = doubt.lastSeen == null ? '' : typeof doubt.lastSeen === 'string' ? doubt.lastSeen : JSON.stringify(doubt.lastSeen)
 
   const refrescar = () => queryClient.invalidateQueries({ queryKey: cashMachineDoubtsKey(venueId) })
@@ -127,6 +144,7 @@ export function ResolveCashMachineDoubtDialog({ open, onOpenChange, venueId, dou
         outcome,
         creditCents,
         changeDispensedCents: changeCents,
+        ...(cancelMode ? { cancelMode } : {}),
         ...(occurredAt ? { occurredAt } : {}),
         evidence: trimmedEvidence,
       })
@@ -151,7 +169,7 @@ export function ResolveCashMachineDoubtDialog({ open, onOpenChange, venueId, dou
     },
     onError: (e: any) => {
       const data = e?.response?.data
-      if (e?.response?.status === 409) {
+      if (e?.response?.status === 409 && CONFLICTOS.includes(data?.code)) {
         setRegistrado(data?.details?.registrado ?? data?.details?.registrada ?? {})
         refrescar()
         return
@@ -162,7 +180,13 @@ export function ResolveCashMachineDoubtDialog({ open, onOpenChange, venueId, dou
 
   const saving = mutation.isPending
   const canSave =
-    !!outcome && creditCents !== null && !aviso && trimmedEvidence.length > 0 && trimmedEvidence.length <= MAX_EVIDENCE && !saving
+    !!outcome &&
+    (!esCancelacion || !!cancelMode) &&
+    creditCents !== null &&
+    !aviso &&
+    trimmedEvidence.length > 0 &&
+    trimmedEvidence.length <= MAX_EVIDENCE &&
+    !saving
 
   // Mientras se guarda no se cierra (ni con la X ni con Esc): el resultado tiene que verse.
   const cerrar = () => {
@@ -214,9 +238,7 @@ export function ResolveCashMachineDoubtDialog({ open, onOpenChange, venueId, dou
               <p>{t(`${P}.outcomes.${registrado.outcome}.label`)}</p>
             )}
             {typeof registrado.creditCents === 'number' && (
-              <p className="text-muted-foreground">
-                {t(`${P}.conflict.received`, { amount: Currency(registrado.creditCents, true) })}
-              </p>
+              <p className="text-muted-foreground">{t(`${P}.conflict.received`, { amount: Currency(registrado.creditCents, true) })}</p>
             )}
             {typeof registrado.changeDispensedCents === 'number' && (
               <p className="text-muted-foreground">
@@ -262,6 +284,33 @@ export function ResolveCashMachineDoubtDialog({ open, onOpenChange, venueId, dou
                 ))}
               </RadioGroup>
             </section>
+
+            {esCancelacion && (
+              <section className="space-y-3 rounded-2xl border border-border/50 bg-card p-6">
+                <Label>{t(`${P}.cancelMode.question`)}</Label>
+                <RadioGroup
+                  value={modo ?? ''}
+                  onValueChange={v => setModo(v as ModoElegido)}
+                  disabled={saving}
+                  className="grid gap-2 sm:grid-cols-3"
+                  data-tour="cash-machine-doubt-cancel-mode"
+                >
+                  {MODOS.map(m => (
+                    <div key={m} className="flex items-center gap-3 rounded-lg border border-input p-3">
+                      <RadioGroupItem value={m} id={`cash-machine-cancel-mode-${m}`} />
+                      <Label htmlFor={`cash-machine-cancel-mode-${m}`} className="cursor-pointer font-medium">
+                        {t(`${P}.cancelMode.${m}`)}
+                      </Label>
+                    </div>
+                  ))}
+                </RadioGroup>
+                {noSabe && (
+                  <p role="alert" className="text-sm text-destructive">
+                    {t(`${P}.cancelMode.unknown`)}
+                  </p>
+                )}
+              </section>
+            )}
 
             <section className="space-y-4 rounded-2xl border border-border/50 bg-card p-6">
               <div className="grid gap-4 sm:grid-cols-2">
