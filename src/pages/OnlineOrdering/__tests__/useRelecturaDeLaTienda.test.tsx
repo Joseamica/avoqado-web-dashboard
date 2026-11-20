@@ -76,11 +76,16 @@ describe('relectura del estado de la tienda', () => {
       expect(releer).toHaveBeenCalledTimes(2)
       act(() => handlers['order_updated']?.({ venueId: 'venue-1', onlineStatus: 'CANCELLED_BY_CUSTOMER' }))
       expect(releer).toHaveBeenCalledTimes(3)
+      // Un pedido nuevo de la tienda puede traer la próxima hora límite.
+      act(() => handlers['order_created']?.({ venueId: 'venue-1', source: 'POS' }))
+      expect(releer).toHaveBeenCalledTimes(3)
+      act(() => handlers['order_created']?.({ venueId: 'venue-1', source: 'WEB' }))
+      expect(releer).toHaveBeenCalledTimes(4)
       Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'visible' })
       act(() => {
         document.dispatchEvent(new Event('visibilitychange'))
       })
-      expect(releer).toHaveBeenCalledTimes(4)
+      expect(releer).toHaveBeenCalledTimes(5)
     })
 
     it('relee sola justo después de la próxima hora límite', () => {

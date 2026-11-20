@@ -51,7 +51,8 @@ export function laMasNueva<T extends { storeReadAt?: string | null; storeVersion
 /**
  * D662 v4 (hueco 5): el estado de la tienda se vuelve a leer en cuanto puede cambiar, sin esperar el sondeo de 30 s:
  * - el aviso del SERVIDOR (`online_ordering_store_changed`: Reanudar, pausar, ajustes, se pausó sola) y cualquier cambio de un pedido en
- *   línea (`order_updated` con `onlineStatus`: una cancelación tardía también puede pausarla; Codex p2v4-r2 #3), en el cuarto de ESTE
+ *   línea (`order_updated` con `onlineStatus`: una cancelación tardía también puede pausarla; Codex p2v4-r2 #3) o un pedido nuevo
+ *   (`order_created` de la tienda: su hora límite puede ser la próxima), en el cuarto de ESTE
  *   negocio (el socket entra al cuarto aunque la sesión sea de otra sucursal; Codex p2v4-r2 #4);
  * - al reconectarse el socket (un aviso pudo perderse mientras estaba caído);
  * - al volver a la pestaña (el navegador frena los temporizadores de una pestaña oculta);
@@ -80,11 +81,21 @@ export function useRelecturaDeLaTienda(
     const onConectado = () => releerRef.current()
     joinVenueRoom(venueId)
     socket.on('online_ordering_store_changed', onCambio)
-    if (conPedidos) socket.on('order_updated', onPedido)
+    // Un pedido NUEVO trae una hora límite que puede ser la próxima (sin pedidos por aceptar no había relectura programada).
+    const onNuevo = (e: { source?: string; venueId?: string } | undefined) => {
+      if (e?.source === 'WEB' && (!e.venueId || e.venueId === venueId)) releerRef.current()
+    }
+    if (conPedidos) {
+      socket.on('order_updated', onPedido)
+      socket.on('order_created', onNuevo)
+    }
     socket.on('connect', onConectado)
     return () => {
       socket.off('online_ordering_store_changed', onCambio)
-      if (conPedidos) socket.off('order_updated', onPedido)
+      if (conPedidos) {
+        socket.off('order_updated', onPedido)
+        socket.off('order_created', onNuevo)
+      }
       socket.off('connect', onConectado)
       leaveVenueRoom(venueId)
     }
