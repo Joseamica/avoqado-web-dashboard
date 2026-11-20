@@ -2286,8 +2286,8 @@
         "recordOrderPayment": "Cobro registrado",
         "reconcileOrderFromPayments": "Conciliación de pagos",
         "manualPayment": "Pago manual desde el panel",
-        "payCashOrder:cola": "Efectivo cobrado sin internet",
-        "payCashOrder:registro": "Efectivo en el POS"
+        "payCashOrder_cola": "Efectivo cobrado sin internet",
+        "payCashOrder_registro": "Efectivo en el POS"
       },
       "estadoAntes": {
         "ACTIVE": "Activa",

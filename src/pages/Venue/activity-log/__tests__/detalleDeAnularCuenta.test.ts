@@ -1,7 +1,8 @@
+import i18next from 'i18next'
 import { describe, expect, it } from 'vitest'
 import es from '@/locales/es/organization.json'
 import en from '@/locales/en/organization.json'
-import { actionTone, detailValueOf, toDetailRows } from '../formatActivity'
+import { actionTone, detailValueKey, detailValueOf, toDetailRows } from '../formatActivity'
 
 type Bitacora = {
   activityLog: {
@@ -39,7 +40,7 @@ function filas(bundle: unknown, data: Record<string, unknown>) {
     data,
     key => b.detailKeys[key] ?? null,
     w => ({ yes: 'Sí', no: 'No', empty: '—' })[w],
-    (key, value) => b.detailValues[key]?.[value] ?? null,
+    (key, value) => b.detailValues[key]?.[detailValueKey(value)] ?? null,
   )
 }
 
@@ -79,11 +80,16 @@ describe('bitácora: el detalle de anular una cuenta se lee sin códigos ni ids 
     ])
   })
 
-  it('las pantallas leen el mapa del idioma: también un valor con «:» (payCashOrder:cola)', () => {
-    const t = (key: string) => (key === 'activityLog.detailValues' ? (es as unknown as Bitacora).activityLog.detailValues : key)
+  // Con un i18next de verdad: con `returnObjects`, i18next vuelve a traducir cada texto del mapa y un «:» en la llave lo
+  // partía (salía «Desde · cola» en el banco, 20-nov). Un `t` de mentira no lo ve.
+  it('las pantallas leen el mapa del idioma: también un valor con «:» (payCashOrder:cola)', async () => {
+    const i18n = i18next.createInstance()
+    await i18n.init({ lng: 'es', ns: ['organization'], defaultNS: 'organization', resources: { es: { organization: es } } })
+    const t = i18n.t.bind(i18n) as unknown as (key: string, opts?: Record<string, unknown>) => unknown
     const valueOf = detailValueOf(t)
     expect(valueOf('camino', 'cancelOrder')).toBe('Cancelar la cuenta en el POS')
     expect(valueOf('canal', 'payCashOrder:cola')).toBe('Efectivo cobrado sin internet')
+    expect(valueOf('canal', 'payCashOrder:registro')).toBe('Efectivo en el POS')
     expect(valueOf('camino', 'caminoNuevo')).toBeNull()
     expect(detailValueOf(() => 'activityLog.detailValues')('camino', 'cancelOrder')).toBeNull()
   })

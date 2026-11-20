@@ -122,14 +122,17 @@ export function toDetailRows(
 }
 
 /**
- * `valueOf` de `toDetailRows` sacado de `activityLog.detailValues` del idioma activo. Se lee el mapa entero (no `t('…cancelOrder')`)
- * porque un valor puede traer `:` o `.` (`payCashOrder:cola`), que i18next tomaría como espacio de nombres o anidación.
+ * `valueOf` de `toDetailRows` sacado de `activityLog.detailValues` del idioma activo. Un valor puede traer `:` o `.`
+ * (`payCashOrder:cola`), que i18next toma como espacio de nombres o anidación (y lo hace también por dentro del mapa con
+ * `returnObjects`: salía «cola»). Por eso en el JSON esos signos se escriben `_` (`payCashOrder_cola`) y aquí se buscan igual.
  */
+export const detailValueKey = (value: string) => value.replace(/[:.]/g, '_')
+
 export function detailValueOf(t: (key: string, opts?: Record<string, unknown>) => unknown): (key: string, value: string) => string | null {
   const raw = t('activityLog.detailValues', { returnObjects: true })
   const map = raw && typeof raw === 'object' ? (raw as Record<string, Record<string, unknown> | undefined>) : {}
   return (key, value) => {
-    const named = map[key]?.[value]
+    const named = map[key]?.[detailValueKey(value)]
     return typeof named === 'string' && named !== '' ? named : null
   }
 }

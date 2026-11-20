@@ -2286,8 +2286,8 @@
         "recordOrderPayment": "Recorded payment",
         "reconcileOrderFromPayments": "Payment reconciliation",
         "manualPayment": "Manual payment from the dashboard",
-        "payCashOrder:cola": "Cash collected offline",
-        "payCashOrder:registro": "Cash on the POS"
+        "payCashOrder_cola": "Cash collected offline",
+        "payCashOrder_registro": "Cash on the POS"
       },
       "estadoAntes": {
         "ACTIVE": "Active",
