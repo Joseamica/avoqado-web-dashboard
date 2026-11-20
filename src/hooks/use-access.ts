@@ -31,10 +31,9 @@ import { useCurrentVenue } from './use-current-venue'
 import accessService, { UserAccess, FeatureAccessResult } from '@/services/access.service'
 import type { StaffRole } from '@/types'
 
-/**
- * Query key for access data
- */
-export const accessQueryKey = (venueId: string | null) => ['user-access', venueId]
+import { accessQueryKey } from './access-query-key'
+
+export { accessQueryKey }
 
 /**
  * Return type for useAccess hook
