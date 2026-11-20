@@ -15,6 +15,7 @@ import { User, Mail, Shield, Calendar, KeyRound } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useVenueDateTime } from '@/utils/datetime'
 import googleCalendarService from '@/services/googleCalendar.service'
+import { getSupportStatus } from '@/services/supportWhatsapp.service'
 import { GoogleCalendarConnectionCard } from '@/pages/GoogleCalendar/components/GoogleCalendarConnectionCard'
 
 export default function ProfileSettings() {
@@ -22,6 +23,15 @@ export default function ProfileSettings() {
   const { t: tGcal } = useTranslation('googleCalendar')
   const { venueId, fullBasePath } = useCurrentVenue()
   const { user } = useAuth()
+  // El botón del soporte por WhatsApp sólo sale con el soporte prendido (misma consulta y llave que SupportWhatsappCard).
+  const supportStatus = useQuery({
+    queryKey: ['support-whatsapp', user?.id],
+    queryFn: ({ signal }) => getSupportStatus(user!.id, signal),
+    enabled: !!user?.id,
+    retry: 1,
+    staleTime: 30000,
+    refetchOnWindowFocus: false,
+  })
   const { formatDate, formatDateTime } = useVenueDateTime()
   const queryClient = useQueryClient()
   const { toast } = useToast()
@@ -99,9 +109,19 @@ export default function ProfileSettings() {
         <p className="text-muted-foreground mt-2">{t('subtitle')}</p>
       </div>
 
-      <div className="mb-6">
-        <Button variant="outline" asChild><Link to="/support/whatsapp" state={{ returnPath: `${fullBasePath}/settings/profile` }} data-tour="settings-profile-support-whatsapp">{t('supportWhatsapp.open')}</Link></Button>
-      </div>
+      {supportStatus.data?.enabled && (
+        <div className="mb-6">
+          <Button variant="outline" asChild>
+            <Link
+              to="/support/whatsapp"
+              state={{ returnPath: `${fullBasePath}/settings/profile` }}
+              data-tour="settings-profile-support-whatsapp"
+            >
+              {t('supportWhatsapp.open')}
+            </Link>
+          </Button>
+        </div>
+      )}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-1">
           <Card className="border-input">

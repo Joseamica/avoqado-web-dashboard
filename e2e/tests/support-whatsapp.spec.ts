@@ -75,6 +75,14 @@ for (const whiteLabel of [false, true])
     await expect(page.getByRole('link', { name: 'Volver a mi perfil' })).toHaveAttribute('href', profile)
     await expect(page.getByRole('button', { name: 'Pedir código' })).toBeVisible()
   })
+test('with support off, the profile does not show the support entry', async ({ page }) => {
+  const venue = createMockVenue({ slug: 'support-fixture' })
+  await setupApiMocks(page, { userRole: StaffRole.VIEWER, venues: [venue] })
+  await supportApi(page, false)
+  await page.goto(`/venues/${venue.slug}/settings/profile`)
+  await expect(page.getByRole('heading').first()).toBeVisible()
+  await expect(page.locator('[data-tour="settings-profile-support-whatsapp"]')).toHaveCount(0)
+})
 for (const role of [StaffRole.VIEWER, StaffRole.WAITER, StaffRole.MANAGER, StaffRole.OWNER]) {
   for (const venueCount of [0, 1]) {
     test(`${role} remains on personal support with ${venueCount} venues`, async ({ page }) => {
