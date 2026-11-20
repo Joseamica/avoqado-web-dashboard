@@ -569,8 +569,9 @@ export default function SalesByItem() {
             className="h-9 w-9 cursor-pointer"
             onClick={handleExportCSV}
             aria-label={t('salesByItem.actions.exportCSV')}
-            // Mientras se recarga (p. ej. tras cambiar la liga de un extra) no se exporta la copia vieja (Codex r2 #8).
-            disabled={!apiResponse || reportQuery.isFetching}
+            // No se exporta una copia que quizá ya no vale: mientras se recarga (p. ej. tras cambiar la liga de un extra, Codex r2 #8),
+            // si la recarga falló o si quedó en pausa por falta de red (Codex r3 #8).
+            disabled={!apiResponse || reportQuery.isFetching || reportQuery.isError || reportQuery.fetchStatus === 'paused'}
           >
             <Download className="w-4 h-4" />
           </Button>

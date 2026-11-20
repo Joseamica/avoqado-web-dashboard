@@ -142,6 +142,15 @@ describe('Ventas por artículo — «Dentro de paquete»', () => {
     m.pendiente = null
     await act(async () => soltar(m.respuesta))
     await waitFor(() => expect(exportar).toBeEnabled())
+
+    // Codex r3 #8: si la recarga FALLA, la copia de antes se sigue viendo, pero no se exporta.
+    m.pendiente = Promise.reject(new Error('sin red'))
+    m.pendiente.catch(() => {})
+    await act(async () => {
+      void m.client.invalidateQueries({ queryKey: ['salesByItem'] })
+    })
+    await waitFor(() => expect(exportar).toBeDisabled())
+    expect(screen.getByText('Paquete 3 flautas')).toBeInTheDocument()
   })
 
   it('sin extras ligados en el periodo no aparecen (no se llena de ceros el reporte de siempre)', async () => {
