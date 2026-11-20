@@ -8,7 +8,7 @@ describe('juntarExtrasRepetidos (encargo a508f4)', () => {
       { name: 'Flautas Papa', price: 0 },
       { name: 'Flautas Cochinita', price: 0 },
     ])
-    expect(r.map(nombreConVeces)).toEqual(['2 × Flautas Cochinita', 'Flautas Papa'])
+    expect(r.map(nombreConVeces)).toEqual(['2x Flautas Cochinita', 'Flautas Papa'])
   })
 
   it('el precio es el de todas las veces, y respeta una cantidad guardada', () => {

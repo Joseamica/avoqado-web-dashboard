@@ -171,8 +171,9 @@ export function ModifiersManagerDialog({ venueId, modifierGroupId, onClose }: Mo
             minSelections: values.minSelections ?? 0,
             maxSelections,
             allowMultiple: maxSelections > 1,
+            // Sólo si se tocó (Codex r2 #3): otro guardado con el formulario viejo no apaga lo que prendió alguien más (o el MCP).
             // Repetir sólo vale si deja elegir varias; con máximo 1 se guarda apagado.
-            allowRepeat: maxSelections > 1 && values.allowRepeat,
+            ...(form.formState.dirtyFields.allowRepeat ? { allowRepeat: maxSelections > 1 && values.allowRepeat } : {}),
           }),
         )
       }

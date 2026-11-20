@@ -196,8 +196,10 @@ export default function EditModifier({
         sku: normalizeModifierSku(formValues.sku),
         durationMin: formValues.durationMin,
         active: formValues.active,
-        // Sólo si el grupo deja repetir: en los demás el tope no cuenta y no se toca.
-        ...(permiteRepetir ? { maxQuantity: formValues.maxQuantity } : {}),
+        // Sólo si el grupo deja repetir y se CAMBIÓ (Codex r2 #3): guardar el precio no restaura un tope viejo.
+        ...(permiteRepetir && formValues.maxQuantity !== (initialValues.maxQuantity ?? null)
+          ? { maxQuantity: formValues.maxQuantity }
+          : {}),
       }
 
       // Add inventory fields if tracking is enabled

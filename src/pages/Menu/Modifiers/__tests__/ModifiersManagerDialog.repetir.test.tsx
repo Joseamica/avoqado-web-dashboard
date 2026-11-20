@@ -120,3 +120,40 @@ describe('ModifiersManagerDialog — repetir la misma opción', () => {
     expect(screen.queryByLabelText('Veces que se puede elegir')).not.toBeInTheDocument()
   })
 })
+
+describe('ModifiersManagerDialog — guardar otra cosa no pisa la repetición (Codex r2 #3)', () => {
+  beforeAll(async () => {
+    await i18n.changeLanguage('es')
+  })
+  beforeEach(() => {
+    server.groupUpdates.length = 0
+    server.modifierUpdates.length = 0
+  })
+
+  it('cambiar sólo el nombre del grupo no manda allowRepeat', async () => {
+    server.group = flautas()
+    const user = userEvent.setup()
+    renderDialog()
+    const nombre = await screen.findByDisplayValue('Flautas (hasta 3)')
+    await user.type(nombre, ' x')
+    await user.click(screen.getByRole('button', { name: 'Guardar' }))
+    await waitFor(() => expect(server.groupUpdates).toHaveLength(1))
+    expect(server.groupUpdates[0][2]).not.toHaveProperty('allowRepeat')
+  })
+
+  it('cambiar otra cosa de la opción no manda su tope', async () => {
+    server.group = flautas({
+      allowRepeat: true,
+      modifiers: [{ id: 'mod-1', groupId: 'group-1', name: 'Flautas Cochinita', price: 0, active: true, sku: null, maxQuantity: 2 }],
+    })
+    const user = userEvent.setup()
+    renderDialog()
+    await user.click(await screen.findByText('Flautas Cochinita'))
+    expect(await screen.findByLabelText('Veces que se puede elegir')).toHaveValue(2)
+    // Se cambia otra cosa (el nombre): sin cambios el botón no guarda.
+    await user.type(screen.getByPlaceholderText('Nombre del modificador'), ' x')
+    await user.click(screen.getByRole('button', { name: 'Guardar Cambios' }))
+    await waitFor(() => expect(server.modifierUpdates).toHaveLength(1))
+    expect(server.modifierUpdates[0][3]).not.toHaveProperty('maxQuantity')
+  })
+})

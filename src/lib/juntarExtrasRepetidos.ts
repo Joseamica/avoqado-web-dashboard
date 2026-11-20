@@ -1,6 +1,6 @@
 /**
  * La misma opción elegida varias veces (grupo que deja repetir, encargo a508f4) llega como varios renglones iguales: el
- * SERVIDOR guarda uno por vez. Para leerla se junta en uno con su número («2 × Flautas Cochinita»), en el orden en que
+ * SERVIDOR guarda uno por vez. Para leerla se junta en uno con su número («2x Flautas Cochinita»), en el orden en que
  * apareció, como el «Consolidate modifiers» de Toast y el POS de ANDROID. El precio que sale es el de todas las veces.
  */
 export interface ExtraDeLaVenta {
@@ -34,5 +34,5 @@ export function juntarExtrasRepetidos(extras: ExtraDeLaVenta[] | null | undefine
   return [...juntos.values()]
 }
 
-/** «2 × Flautas Cochinita» o el nombre solo si fue una vez. */
-export const nombreConVeces = (extra: ExtraJunto) => (extra.veces > 1 ? `${extra.veces} × ${extra.name}` : extra.name)
+/** «2x Flautas Cochinita» (como el «2x» de Toast; igual que el papel del POS) o el nombre solo si fue una vez. */
+export const nombreConVeces = (extra: ExtraJunto) => (extra.veces > 1 ? `${extra.veces}x ${extra.name}` : extra.name)
