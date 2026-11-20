@@ -360,8 +360,15 @@ export function SettingsTab() {
 
   // D662 (Codex p2-r5 #5): el estado de la tienda se vuelve a leer solo (la pausa sola puede llegar con esta pantalla abierta), en su
   // propia consulta: la del formulario no se refresca para no pisar lo que el gerente está editando.
-  const store =
-    storeQuery.data && storeQuery.dataUpdatedAt > settingsQuery.dataUpdatedAt ? (storeQuery.data.store ?? settings.store) : settings.store
+  // Codex p2-r7 #2: de las dos lecturas gana la que el SERVIDOR hizo más tarde (`storeReadAt`), no la que llegó al último; con un
+  // servidor viejo (sin el campo), la que llegó al último.
+  const sondeoEsMasNuevo = (() => {
+    const s = storeQuery.data
+    if (!s) return false
+    if (s.storeReadAt && settings.storeReadAt) return Date.parse(s.storeReadAt) > Date.parse(settings.storeReadAt)
+    return storeQuery.dataUpdatedAt > settingsQuery.dataUpdatedAt
+  })()
+  const store = sondeoEsMasNuevo ? (storeQuery.data?.store ?? settings.store) : settings.store
   const pause = pauseLabel(store, formatTime)
   const statusText = pause
     ? t(pause.key, pause.params)
