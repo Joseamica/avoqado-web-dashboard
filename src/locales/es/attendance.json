@@ -193,5 +193,19 @@
     "toastTemplateSaved": "Turno guardado",
     "toastSkipped": "{{count}} borrador(es) de otra persona quedaron sin publicar: revísalos y vuelve a publicar",
     "toastConflict": "Alguien cambió un borrador de esta semana mientras la revisabas. Se recargó: revisa las celdas y vuelve a publicar."
+  },
+  "forgotten": {
+    "badge": "Salida olvidada · revisar",
+    "zeroHours": "No marcó su salida y no tiene horario ese día: quedó en 0 horas hasta que la corrijas.",
+    "scheduleEnd": "No marcó su salida: se cerró con la hora de salida de su horario. Corrígela si salió a otra hora.",
+    "fix": "Corregir salida",
+    "dialogTitle": "Salida real de {{name}}",
+    "dialogDesc": "Pon la hora en que salió de verdad (hora del negocio). Las horas trabajadas se recalculan y la marca «revisar» se quita.",
+    "label": "Hora de salida",
+    "cancel": "Cancelar",
+    "save": "Guardar salida",
+    "saved": "Salida de {{name}} corregida",
+    "error": "No se pudo guardar la salida",
+    "invalid": "Escribe una fecha y hora válidas"
   }
 }

@@ -30,6 +30,8 @@ interface AjustesDeAsistencia {
   attendanceLateAlertEnabled?: boolean
   /** «Foto de entrada»: el POS y la terminal piden una selfie al marcar entrada; se ve en Asistencia. */
   requireClockInPhoto?: boolean
+  /** «Salida olvidada»: un turno sin salida se cierra solo al terminar su día. Prendida de fábrica (sin dato = prendida). */
+  salidaOlvidadaEnabled?: boolean
 }
 
 interface Props {
@@ -48,6 +50,7 @@ export default function AsistenciaSettings({ venueId, settings, canEdit }: Props
   const [aviso, setAviso] = useState(settings?.attendanceLateAlertEnabled ?? false)
   const [turnosRotativos, setTurnosRotativos] = useState(settings?.rotatingShiftsEnabled ?? false)
   const [foto, setFoto] = useState(settings?.requireClockInPhoto ?? false)
+  const [salidaOlvidada, setSalidaOlvidada] = useState(settings?.salidaOlvidadaEnabled ?? true)
 
   /**
    * 🔴 El estado local es una CAPA OPTIMISTA sobre los ajustes, no una copia que se saca una vez.
@@ -70,6 +73,7 @@ export default function AsistenciaSettings({ venueId, settings, canEdit }: Props
     setAviso(settings?.attendanceLateAlertEnabled ?? false)
     setTurnosRotativos(settings?.rotatingShiftsEnabled ?? false)
     setFoto(settings?.requireClockInPhoto ?? false)
+    setSalidaOlvidada(settings?.salidaOlvidadaEnabled ?? true)
   }, [venueId, settings])
 
   const guardar = useMutation({
@@ -93,26 +97,31 @@ export default function AsistenciaSettings({ venueId, settings, canEdit }: Props
         setAviso(saved.attendanceLateAlertEnabled ?? requested.attendanceLateAlertEnabled)
       if (requested.rotatingShiftsEnabled !== undefined) setTurnosRotativos(saved.rotatingShiftsEnabled ?? requested.rotatingShiftsEnabled)
       if (requested.requireClockInPhoto !== undefined) setFoto(saved.requireClockInPhoto ?? requested.requireClockInPhoto)
+      if (requested.salidaOlvidadaEnabled !== undefined) setSalidaOlvidada(saved.salidaOlvidadaEnabled ?? requested.salidaOlvidadaEnabled)
 
       toast({
         title:
-          requested.requireClockInPhoto !== undefined
-            ? requested.requireClockInPhoto
-              ? t('venue:attendance.photoToastEnabled')
-              : t('venue:attendance.photoToastDisabled')
-            : requested.rotatingShiftsEnabled !== undefined
-              ? requested.rotatingShiftsEnabled
-                ? t('venue:rotatingShifts.toastEnabled')
-                : t('venue:rotatingShifts.toastDisabled')
-              : requested.attendanceLateAlertEnabled !== undefined
-                ? requested.attendanceLateAlertEnabled
-                  ? t('venue:attendance.lateAlertToastEnabled')
-                  : t('venue:attendance.lateAlertToastDisabled')
-                : requested.attendanceEnabled === undefined
-                  ? t('venue:attendance.toastGraceSaved')
-                  : requested.attendanceEnabled
-                    ? t('venue:attendance.toastEnabled')
-                    : t('venue:attendance.toastDisabled'),
+          requested.salidaOlvidadaEnabled !== undefined
+            ? requested.salidaOlvidadaEnabled
+              ? t('venue:attendance.forgottenToastEnabled')
+              : t('venue:attendance.forgottenToastDisabled')
+            : requested.requireClockInPhoto !== undefined
+              ? requested.requireClockInPhoto
+                ? t('venue:attendance.photoToastEnabled')
+                : t('venue:attendance.photoToastDisabled')
+              : requested.rotatingShiftsEnabled !== undefined
+                ? requested.rotatingShiftsEnabled
+                  ? t('venue:rotatingShifts.toastEnabled')
+                  : t('venue:rotatingShifts.toastDisabled')
+                : requested.attendanceLateAlertEnabled !== undefined
+                  ? requested.attendanceLateAlertEnabled
+                    ? t('venue:attendance.lateAlertToastEnabled')
+                    : t('venue:attendance.lateAlertToastDisabled')
+                  : requested.attendanceEnabled === undefined
+                    ? t('venue:attendance.toastGraceSaved')
+                    : requested.attendanceEnabled
+                      ? t('venue:attendance.toastEnabled')
+                      : t('venue:attendance.toastDisabled'),
       })
       queryClient.invalidateQueries({ queryKey: ['get-venue-data', venueId] })
       // Asistencia lee los ajustes de la sesión (auth/status): sin esto, «Sin foto» y el aviso de checador apagado no
@@ -127,6 +136,7 @@ export default function AsistenciaSettings({ venueId, settings, canEdit }: Props
       setAviso(settings?.attendanceLateAlertEnabled ?? false)
       setTurnosRotativos(settings?.rotatingShiftsEnabled ?? false)
       setFoto(settings?.requireClockInPhoto ?? false)
+      setSalidaOlvidada(settings?.salidaOlvidadaEnabled ?? true)
       toast({ title: t('venue:attendance.toastError'), variant: 'destructive' })
     },
   })
@@ -225,6 +235,28 @@ export default function AsistenciaSettings({ venueId, settings, canEdit }: Props
                   onCheckedChange={checked => {
                     setFoto(checked)
                     guardar.mutate({ requireClockInPhoto: checked })
+                  }}
+                  disabled={!canEdit || ocupado}
+                />
+              </div>
+            </div>
+
+            {/* «Salida olvidada» (hz:f0a89d19:D3): un turno sin salida se cierra solo al terminar su día, con la salida de
+                su horario o en 0 horas, y queda «revisar» en Asistencia. Prendida de fábrica, como Toast y Square. */}
+            <div className="mt-4 flex items-center justify-between gap-4 border-t border-border/50 pt-4">
+              <div className="space-y-0.5">
+                <p className="text-sm font-medium">{t('venue:attendance.forgottenTitle')}</p>
+                <p className="text-xs text-muted-foreground">{t('venue:attendance.forgottenDesc')}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                {ocupado && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                <Switch
+                  aria-label={t('venue:attendance.forgottenTitle')}
+                  data-tour="attendance-forgotten-clock-out"
+                  checked={salidaOlvidada}
+                  onCheckedChange={checked => {
+                    setSalidaOlvidada(checked)
+                    guardar.mutate({ salidaOlvidadaEnabled: checked })
                   }}
                   disabled={!canEdit || ocupado}
                 />

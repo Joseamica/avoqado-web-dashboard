@@ -37,6 +37,8 @@ export interface TimeEntry {
   clockOutLongitude: number | null
   autoClockOut: boolean
   autoClockOutNote: string | null
+  /** «Salida olvidada · revisar»: el sistema la cerró al terminar el día. `undefined` con un servidor viejo. */
+  salidaOlvidada?: boolean
   validationStatus: TimeEntryValidation
   validatedBy: string | null
   validatedAt: string | null
@@ -220,6 +222,11 @@ export interface WorkShiftAssignment {
 }
 
 export const attendanceService = {
+  /** El gerente pone la salida real de una «Salida olvidada · revisar» (attendance:manage). [clockOutTime] en ISO. */
+  async corregirSalidaOlvidada(venueId: string, timeEntryId: string, clockOutTime: string) {
+    const response = await api.put(`/api/v1/dashboard/venues/${venueId}/time-entries/${timeEntryId}/salida-olvidada`, { clockOutTime })
+    return response.data as { timeEntryId: string; clockOutTime: string; totalHours: number }
+  },
   async getTimeEntries(venueId: string, filters: TimeEntryFilters = {}): Promise<{ entries: TimeEntry[]; total: number }> {
     const response = await api.get(`/api/v1/dashboard/venues/${venueId}/time-entries${buildQuery(filters)}`)
     // El motor devuelve `{ timeEntries, total, limit, offset }`. Antes se buscaba `.data`, que

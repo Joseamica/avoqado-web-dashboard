@@ -17,6 +17,8 @@ import { FotoDeEntrada } from './FotoDeEntrada'
 import { PayrollReport } from './PayrollReport'
 import { LoadError, PunctualityReport } from './PunctualityReport'
 import { ShiftPlanner } from './ShiftPlanner'
+import { CorregirSalidaOlvidada, SalidaOlvidadaBadge } from './SalidaOlvidada'
+import { notaDeLaSalidaOlvidada } from './salidaOlvidadaNota'
 import { useAccess } from '@/hooks/use-access'
 
 /**
@@ -249,11 +251,23 @@ export default function Attendance() {
                     <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                       <span>{t('worked', { value: hoursLabel(entry) })}</span>
                       {!!entry.breakMinutes && <span>· {t('breakMinutes', { count: entry.breakMinutes })}</span>}
-                      {entry.autoClockOut && <span>· {t('autoClosed')}</span>}
+                      {entry.autoClockOut && !entry.salidaOlvidada && <span>· {t('autoClosed')}</span>}
                       {fotoPedida && !entry.checkInPhotoViewUrl && <span>· {t('photo.missing')}</span>}
                     </div>
+                    {entry.salidaOlvidada && (
+                      <div className="space-y-1 pt-1">
+                        <SalidaOlvidadaBadge />
+                        <p className="text-xs text-muted-foreground">
+                          {Number(entry.totalHours ?? 0) === 0 ? t('forgotten.zeroHours') : t('forgotten.scheduleEnd')}
+                        </p>
+                        {notaDeLaSalidaOlvidada(entry) && <p className="text-xs text-muted-foreground">{notaDeLaSalidaOlvidada(entry)}</p>}
+                      </div>
+                    )}
                   </div>
                 </div>
+                {entry.salidaOlvidada && can('attendance:manage') && (
+                  <CorregirSalidaOlvidada entry={entry} venueId={venueId!} venueTimezone={venueTimezone} staffName={staffName(entry)} />
+                )}
               </CardContent>
             </Card>
           ))}
