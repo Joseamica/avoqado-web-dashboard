@@ -63,5 +63,13 @@
     "duplicate": "Usa nombres diferentes para cada tiempo.",
     "immediate": "El tiempo inmediato debe permanecer al principio."
   },
-  "sharedList": "Lista compartida para tus sucursales"
+  "sharedList": "Lista compartida para tus sucursales",
+  "kitchenReleaseTitle": "Pantalla de cocina",
+  "kitchenReleaseLabel": "La cocina puede liberar tiempos desde su pantalla",
+  "kitchenReleaseBody": "Apagado, sólo la caja libera el siguiente tiempo de una mesa. Prendido, la cocina también ve «Liberar» en lo que está «En espera de liberar» y no sale el papel de liberación. Funciona igual sin internet.",
+  "kitchenReleaseOn": "La cocina ya puede liberar tiempos",
+  "kitchenReleaseOff": "Sólo la caja libera tiempos",
+  "kitchenReleaseError": "No pudimos guardar el cambio. Inténtalo de nuevo.",
+  "kitchenReleaseNeedsServer": "Disponible cuando se actualice el servidor.",
+  "kitchenReleaseReadOnly": "Para cambiarlo necesitas permiso de configuración."
 }
