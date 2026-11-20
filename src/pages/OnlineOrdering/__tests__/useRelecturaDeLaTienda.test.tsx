@@ -52,7 +52,9 @@ describe('relectura del estado de la tienda', () => {
     expect(laMasNueva(entroAntesLeyoDespues, entroDespuesLeyoAntes)?.id).toBe('abierta')
     expect(laMasNueva(entroDespuesLeyoAntes, entroAntesLeyoDespues)?.id).toBe('abierta')
     // Un SERVIDOR viejo (sin la marca): gana la que llegó al último.
-    expect(laMasNueva({ id: 'a' }, { id: 'b' })?.id).toBe('b')
+    const sinMarcaA: { id: string; storeReadAt?: string } = { id: 'a' }
+    const sinMarcaB: { id: string; storeReadAt?: string } = { id: 'b' }
+    expect(laMasNueva(sinMarcaA, sinMarcaB)?.id).toBe('b')
   })
 
   describe('el gancho', () => {
