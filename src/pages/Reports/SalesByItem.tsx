@@ -306,7 +306,7 @@ const ItemRow: React.FC<{
         </td>
       )}
       {showPackageColumns && (
-        <td className="px-4 py-3 text-right hidden sm:table-cell" data-testid="total-de-unidades">
+        <td className="px-4 py-3 text-right" data-testid="total-de-unidades">
           <span className="text-sm font-mono">{item.totalUnits ?? item.unitsSold}</span>
         </td>
       )}
@@ -568,7 +568,9 @@ export default function SalesByItem() {
             size="icon"
             className="h-9 w-9 cursor-pointer"
             onClick={handleExportCSV}
-            disabled={!apiResponse}
+            aria-label={t('salesByItem.actions.exportCSV')}
+            // Mientras se recarga (p. ej. tras cambiar la liga de un extra) no se exporta la copia vieja (Codex r2 #8).
+            disabled={!apiResponse || reportQuery.isFetching}
           >
             <Download className="w-4 h-4" />
           </Button>
@@ -964,7 +966,8 @@ export default function SalesByItem() {
                       align="right"
                     />
                   </th>
-                  {/* Visible en pantallas angostas: es lo que explica un platillo con $0 que sólo salió en paquetes (Codex r1 #13). */}
+                  {/* Las dos columnas se ven también en pantallas angostas: explican un platillo con $0 que sólo salió en paquetes
+                      (Codex r1 #13 y r2 #9). */}
                   {showPackageColumns && (
                     <th className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-1">
@@ -996,7 +999,7 @@ export default function SalesByItem() {
                     </th>
                   )}
                   {showPackageColumns && (
-                    <th className="px-4 py-3 text-right hidden sm:table-cell">
+                    <th className="px-4 py-3 text-right">
                       <SortableHeader
                         label={t('salesByItem.columns.totalUnits')}
                         field="totalUnits"
@@ -1082,7 +1085,7 @@ export default function SalesByItem() {
                     </td>
                   )}
                   {showPackageColumns && (
-                    <td className="px-4 py-3 text-right hidden sm:table-cell">
+                    <td className="px-4 py-3 text-right">
                       <span className="text-sm font-mono">
                         {apiResponse.totals.totalUnits ?? apiResponse.totals.unitsSold + (apiResponse.totals.unitsInsidePackages ?? 0)}
                       </span>

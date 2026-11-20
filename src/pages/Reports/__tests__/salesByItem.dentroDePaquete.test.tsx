@@ -4,15 +4,19 @@
  */
 import i18n from '@/i18n'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen, within } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { SalesByItemResponse } from '@/services/reports/salesByItem.service'
 
-const m = vi.hoisted(() => ({ respuesta: null as unknown }))
+const m = vi.hoisted(() => ({
+  respuesta: null as unknown,
+  pendiente: null as Promise<unknown> | null,
+  client: null as unknown as import('@tanstack/react-query').QueryClient,
+}))
 
 vi.mock('@/services/reports/salesByItem.service', () => ({
-  fetchSalesByItem: () => Promise.resolve(m.respuesta),
+  fetchSalesByItem: () => m.pendiente ?? Promise.resolve(m.respuesta),
   salesByItemKeys: { all: ['salesByItem'], report: (f: unknown) => ['salesByItem', 'report', f] },
 }))
 vi.mock('@/hooks/use-current-venue', () => ({ useCurrentVenue: () => ({ venueId: 'v1' }) }))
@@ -50,6 +54,7 @@ function respuesta(items: SalesByItemResponse['items'], totals: SalesByItemRespo
 
 function montar() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
+  m.client = client
   render(
     <QueryClientProvider client={client}>
       <MemoryRouter>
@@ -64,6 +69,7 @@ describe('Ventas por artículo — «Dentro de paquete»', () => {
     await i18n.changeLanguage('es')
   })
   beforeEach(() => {
+    m.pendiente = null
     try {
       localStorage.clear() // «Mostrar por» guardado de otra prueba no debe colarse
     } catch {
@@ -99,6 +105,7 @@ describe('Ventas por artículo — «Dentro de paquete»', () => {
     expect(within(papa).getByText('6')).toBeInTheDocument()
     // Codex r1 #13: «Dentro de paquete» se ve también en pantallas angostas (explica un renglón con $0).
     expect(within(papa).getByTestId('dentro-de-paquete').className).not.toMatch(/\bhidden\b/)
+    expect(within(papa).getByTestId('total-de-unidades').className).not.toMatch(/\bhidden\b/)
     // El renglón del paquete: 0 dentro de paquete se pinta como «—».
     const paquete = screen.getByText('Paquete 3 flautas').closest('tr')!
     expect(within(paquete).getByTestId('dentro-de-paquete')).toHaveTextContent('—')
@@ -109,6 +116,32 @@ describe('Ventas por artículo — «Dentro de paquete»', () => {
     const pie = screen.getAllByText('Total').map(n => n.closest('tr')).find(tr => tr?.parentElement?.tagName === 'TFOOT')!
     expect(within(pie).getByText('26')).toBeInTheDocument()
     expect(within(pie).getByText('15')).toBeInTheDocument()
+  })
+
+  it('Codex r2 #8: mientras se recarga (p. ej. tras cambiar una liga) no se puede exportar la copia vieja', async () => {
+    m.respuesta = respuesta([renglon({ unitsInsidePackages: 4, totalUnits: 9 })], {
+      itemsSold: 5,
+      unitsSold: 5,
+      grossSales: 500,
+      discounts: 0,
+      netSales: 500,
+      unitsInsidePackages: 4,
+      totalUnits: 9,
+    })
+    montar()
+    await screen.findByText('Paquete 3 flautas')
+    const exportar = screen.getByRole('button', { name: 'Exportar CSV' })
+    expect(exportar).toBeEnabled()
+
+    let soltar!: (v: unknown) => void
+    m.pendiente = new Promise(r => (soltar = r))
+    await act(async () => {
+      void m.client.invalidateQueries({ queryKey: ['salesByItem'] })
+    })
+    await waitFor(() => expect(exportar).toBeDisabled())
+    m.pendiente = null
+    await act(async () => soltar(m.respuesta))
+    await waitFor(() => expect(exportar).toBeEnabled())
   })
 
   it('sin extras ligados en el periodo no aparecen (no se llena de ceros el reporte de siempre)', async () => {

@@ -66,7 +66,9 @@ export function LinkedProductField({ venueId, enabled, onEnabledChange, value, o
     getNextPageParam: last => (last.hasMore ? last.nextCursor : undefined),
     enabled: !!venueId && enabled && !value,
     placeholderData: keepPreviousData,
-    staleTime: 30_000,
+    // Sin vigencia: la fila «en gris por Premium» depende del plan de HOY; tras subir de plan no se reusa la respuesta vieja
+    // (Codex r2 #2). Es una página acotada de 20, barata de volver a pedir.
+    staleTime: 0,
     retry: 1,
     refetchOnWindowFocus: false,
   })
