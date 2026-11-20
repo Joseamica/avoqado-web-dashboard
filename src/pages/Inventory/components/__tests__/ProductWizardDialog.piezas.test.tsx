@@ -50,7 +50,8 @@ vi.mock('@/hooks/use-current-venue', () => ({
     venue: { id: 'v1', organizationId: 'o1' },
   }),
 }))
-vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: () => undefined }) }))
+const avisos = vi.hoisted(() => ({ toast: vi.fn() }))
+vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: avisos.toast }) }))
 const access = vi.hoisted(() => ({ cfdi: false, variants: true, inventory: true, resolved: true, stations: true }))
 vi.mock('@/hooks/use-tier-feature-access', () => ({
   useTierFeatureAccess: (code: string) => ({
@@ -131,6 +132,7 @@ function mount({ mode = 'create', productType = 'REGULAR' }: { mode?: 'create' |
   const result = render(ui(true))
   return {
     ...result,
+    client,
     reopen: () => {
       result.rerender(ui(false))
       result.rerender(ui(true))
@@ -363,6 +365,51 @@ describe('na1d52b5 · contar piezas al dar de alta en todos los planes', { timeo
     }
   })
 
+  it('mientras la consulta de acceso vuelve a preguntar, «Crear» espera: no manda el alta con el «sí» de antes (encargo 27fd34, Codex r13 #1)', async () => {
+    mount({ productType: 'REGULAR' })
+    await fillProduct()
+    await waitFor(() => expect(opener('inventory')).toBeEnabled())
+    await userEvent.click(opener('inventory'))
+    changeValue('initialStock', '10')
+    changeValue('costPerUnit', '5')
+    let contestar: (v: unknown) => void = () => undefined
+    inventory.productWizardApi.shouldUseInventory.mockImplementation(() => new Promise(r => (contestar = r)))
+    try {
+      focusManager.setFocused(false)
+      focusManager.setFocused(true) // volvió a la pestaña: la pregunta va en camino y nadie ha contestado
+      await waitFor(() => expect(inventory.productWizardApi.shouldUseInventory).toHaveBeenCalledTimes(2))
+      const crear = screen.getByRole('button', { name: 'wizard.finish' })
+      await waitFor(() => expect(crear).toBeDisabled())
+      // Ni con Enter (envío del formulario sin el botón).
+      fireEvent.submit(document.getElementById('step1-form')!)
+      await new Promise(r => setTimeout(r, 150))
+      expect(inventory.productWizardApi.createProductWithInventory).not.toHaveBeenCalled()
+      // Contesta que sí se puede: ahora sí guarda, con la respuesta nueva.
+      contestar({ data: { data: RECOMENDACION_SIN_PREMIUM } })
+      await waitFor(() => expect(crear).toBeEnabled())
+      await saveCreate()
+    } finally {
+      focusManager.setFocused(undefined)
+    }
+  })
+
+  it('sin «Inventario» encendido, «Crear» no espera a la consulta de acceso (regresión)', async () => {
+    mount({ productType: 'REGULAR' })
+    await fillProduct()
+    await waitFor(() => expect(opener('inventory')).toBeEnabled())
+    inventory.productWizardApi.shouldUseInventory.mockImplementation(() => new Promise(() => undefined))
+    try {
+      focusManager.setFocused(false)
+      focusManager.setFocused(true)
+      await waitFor(() => expect(inventory.productWizardApi.shouldUseInventory).toHaveBeenCalledTimes(2))
+      expect(screen.getByRole('button', { name: 'wizard.finish' })).toBeEnabled()
+      const calls = await saveCreate()
+      expect(calls[0][1].inventory).toMatchObject({ useInventory: false })
+    } finally {
+      focusManager.setFocused(undefined)
+    }
+  })
+
   it('SERVIDOR anterior (403 de su candado de plan, con featureCode): dice que no está habilitado, no que falta permiso (Codex r9 #4)', async () => {
     inventory.productWizardApi.shouldUseInventory.mockRejectedValue({
       response: { status: 403, data: { featureCode: 'INVENTORY_TRACKING' } },
@@ -400,5 +447,65 @@ describe('na1d52b5 · contar piezas al dar de alta en todos los planes', { timeo
     mount({ productType: 'REGULAR' })
     await fillProduct()
     await waitFor(() => expect(opener('inventory')).toBeEnabled())
+  })
+})
+
+// Encargo 27fd34 (Codex r1 de la promesa): con Premium también manda el permiso de la persona; y la respuesta cuelga del acceso.
+describe('encargo 27fd34 · Premium: no ofrecer guardar lo que el SERVIDOR va a rechazar', { timeout: 20_000 }, () => {
+  const PREMIUM = {
+    hasInventoryFeature: true,
+    recommendation: 'wizard.step2.recommendationEnabled',
+    options: [
+      { type: 'NONE', enabled: true },
+      { type: 'QUANTITY', enabled: true },
+      { type: 'RECIPE', enabled: true },
+    ],
+  }
+  const PREMIUM_SIN_PERMISO = {
+    ...PREMIUM,
+    recommendation: 'wizard.step2.recommendationNoAccess',
+    options: PREMIUM.options.map(o => ({ ...o, enabled: o.type === 'NONE' })),
+  }
+  beforeEach(() => {
+    avisos.toast.mockReset()
+    access.inventory = true
+    inventory.productWizardApi.shouldUseInventory.mockResolvedValue({ data: { data: PREMIUM } })
+  })
+
+  it('Premium sin permiso de escribir inventario: «Inventario» cerrado, con el porqué del SERVIDOR y sin la etiqueta Premium', async () => {
+    inventory.productWizardApi.shouldUseInventory.mockResolvedValue({ data: { data: PREMIUM_SIN_PERMISO } })
+    mount({ productType: 'FOOD_AND_BEV' })
+    await waitFor(() => expect(screen.getAllByText('wizard.step2.recommendationNoAccess').length).toBeGreaterThan(0))
+    expect(opener('inventory')).toBeDisabled()
+    expect(opener('recipe')).toBeDisabled()
+    expect(screen.queryByText('wizard.step2.premiumBadge')).toBeNull()
+  })
+
+  it('receta elegida y, al volver a preguntar, ya no se puede: «Crear» no la manda y dice por qué (Codex r1 #1)', async () => {
+    mount({ productType: 'FOOD_AND_BEV' })
+    await fillProduct()
+    await waitFor(() => expect(opener('recipe')).toBeEnabled())
+    await userEvent.click(opener('recipe'))
+    inventory.productWizardApi.shouldUseInventory.mockResolvedValue({ data: { data: PREMIUM_SIN_PERMISO } })
+    try {
+      focusManager.setFocused(false)
+      focusManager.setFocused(true)
+      await waitFor(() => expect(inventory.productWizardApi.shouldUseInventory).toHaveBeenCalledTimes(2))
+      await waitFor(() => expect(screen.getByRole('button', { name: 'wizard.finish' })).toBeEnabled())
+      await userEvent.click(screen.getByRole('button', { name: 'wizard.finish' }))
+      await waitFor(() =>
+        expect(avisos.toast).toHaveBeenCalledWith(expect.objectContaining({ description: 'wizard.step2.quantityNotAllowedNow' })),
+      )
+      expect(inventory.productWizardApi.createProductWithInventory).not.toHaveBeenCalled()
+    } finally {
+      focusManager.setFocused(undefined)
+    }
+  })
+
+  it('al cambiar el acceso de la persona (entrar o salir de «ver como», otros permisos) se vuelve a preguntar (Codex r1 #3)', async () => {
+    const { client } = mount({ productType: 'REGULAR' })
+    await waitFor(() => expect(inventory.productWizardApi.shouldUseInventory).toHaveBeenCalledTimes(1))
+    await client.invalidateQueries({ queryKey: ['user-access', 'v1'] })
+    await waitFor(() => expect(inventory.productWizardApi.shouldUseInventory).toHaveBeenCalledTimes(2))
   })
 })
