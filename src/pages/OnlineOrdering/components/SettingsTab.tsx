@@ -33,6 +33,7 @@ import { useVenueDateTime } from '@/utils/datetime'
 
 import { defaultWeek, overnightNotes, validateWeek } from '../lib/hours'
 import { pauseLabel } from '../lib/pauseLabel'
+import { PauseControl } from './PauseControl'
 import { StorefrontShareCard } from './StorefrontShareCard'
 
 const PREP_OPTIONS = [10, 15, 20, 25, 30, 40, 45, 60, 90]
@@ -201,7 +202,7 @@ export function SettingsTab() {
   const { venueId, venueSlug, fullBasePath } = useCurrentVenue()
   const { formatTime } = useVenueDateTime()
   const { toast } = useToast()
-  const { role } = useAccess()
+  const { role, can } = useAccess()
   // La misma regla que la guardia de `settings/local` (AdminProtectedRoute, nivel ADMIN): ADMIN, OWNER o SUPERADMIN.
   const canOpenBusinessSettings = role === StaffRole.ADMIN || role === StaffRole.OWNER || role === StaffRole.SUPERADMIN
   const qc = useQueryClient()
@@ -357,9 +358,13 @@ export function SettingsTab() {
     <form noValidate onSubmit={onSubmit} className="space-y-6 dark:[&_[role=switch][data-state=unchecked]]:bg-muted-foreground/60">
       <AvisoDeCarga query={settingsQuery} hayDatos />
       <div className="sticky top-0 z-10 flex items-center justify-between gap-3 rounded-xl border border-border bg-background/95 p-3 backdrop-blur">
-        <div className="text-sm" data-tour="online-ordering-store-status">
-          <span className="text-muted-foreground">{t('settings.status.label')}: </span>
-          <span className="font-medium">{statusText}</span>
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="text-sm" data-tour="online-ordering-store-status">
+            <span className="text-muted-foreground">{t('settings.status.label')}: </span>
+            <span className="font-medium">{statusText}</span>
+          </div>
+          {/* D662: la pausa SOLA dice «Toca Reanudar»: el botón también está aquí, no sólo en la bandeja (mismo permiso que pausar). */}
+          {store?.autoPausedAt && venueId && <PauseControl venueId={venueId} store={store} canPause={can('online-orders:pause')} />}
         </div>
         <div className="flex items-center gap-3">
           {hasChanges && <span className="text-xs font-medium text-muted-foreground">{t('settings.unsaved')}</span>}
