@@ -38,6 +38,7 @@ vi.mock('@/pages/Customers/components/PrivacyNoticeModal', () => ({
 const getSettings = vi.fn()
 const updateSettings = vi.fn()
 const getToPay = vi.fn()
+const pauseOrdering = vi.fn()
 vi.mock('@/services/onlineOrdering.service', async importOriginal => {
   const actual = await importOriginal<typeof import('@/services/onlineOrdering.service')>()
   return {
@@ -45,6 +46,7 @@ vi.mock('@/services/onlineOrdering.service', async importOriginal => {
     getSettings: (...a: unknown[]) => getSettings(...a),
     updateSettings: (...a: unknown[]) => updateSettings(...a),
     getToPay: (...a: unknown[]) => getToPay(...a),
+    pauseOrdering: (...a: unknown[]) => pauseOrdering(...a),
   }
 })
 
@@ -129,6 +131,62 @@ describe('SettingsTab', () => {
     await formularioCargado()
     expect(await screen.findByText('settings.status.pausedBusy')).toBeInTheDocument()
     expect(screen.queryByText('settings.status.pausedManual')).toBeNull()
+  })
+
+  it('D662: pausada sola ⇒ «Se pausó sola» y el botón «Reanudar» aquí mismo (con permiso de pausar)', async () => {
+    getSettings.mockResolvedValue(
+      base({
+        enabled: true,
+        store: {
+          status: 'PAUSED',
+          reason: 'MANUAL_PAUSE',
+          pausedUntil: null,
+          manualPause: false,
+          autoPausedAt: '2026-11-20T18:00:00.000Z',
+        },
+      }),
+    )
+    pauseOrdering.mockResolvedValue({ pausedUntil: null, manualPause: false })
+    renderTab()
+    await formularioCargado()
+    expect(await screen.findByText('settings.status.pausedMissed')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'inbox.pause.resume' }))
+    await waitFor(() => expect(pauseOrdering).toHaveBeenCalledWith('venue-1', null))
+  })
+
+  it('D662: sin la pausa sola Configuración no muestra «Reanudar» (la pausa corta se quita en la bandeja)', async () => {
+    getSettings.mockResolvedValue(
+      base({
+        enabled: true,
+        store: { status: 'PAUSED', reason: 'MANUAL_PAUSE', pausedUntil: '2026-11-20T18:15:00.000Z', manualPause: false },
+      }),
+    )
+    renderTab()
+    await formularioCargado()
+    expect(screen.queryByRole('button', { name: 'inbox.pause.resume' })).toBeNull()
+  })
+
+  it('D662: sin el permiso de pausar no sale «Reanudar»', async () => {
+    access.denied = ['online-orders:pause']
+    try {
+      getSettings.mockResolvedValue(
+        base({
+          enabled: true,
+          store: {
+            status: 'PAUSED',
+            reason: 'MANUAL_PAUSE',
+            pausedUntil: null,
+            manualPause: false,
+            autoPausedAt: '2026-11-20T18:00:00.000Z',
+          },
+        }),
+      )
+      renderTab()
+      await formularioCargado()
+      expect(screen.queryByRole('button', { name: 'inbox.pause.resume' })).toBeNull()
+    } finally {
+      access.denied = []
+    }
   })
 
   it('guardar manda sólo lo cambiado', async () => {
