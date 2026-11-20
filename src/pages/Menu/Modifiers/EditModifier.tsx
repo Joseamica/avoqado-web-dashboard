@@ -21,6 +21,7 @@ import { Loader2, Search, Package, X } from 'lucide-react'
 import { ModifierInventoryMode, Unit, type Modifier, type ModifierLinkedProduct } from '@/types'
 import { normalizeModifierSku } from './modifierSku'
 import { LinkedProductField } from './LinkedProductField'
+import { MaxVecesField } from './MaxVecesField'
 
 // Define form values type
 type FormValues = {
@@ -30,6 +31,8 @@ type FormValues = {
   sku: string
   /** Minutes this modifier adds to the booked service when picked. Null = price-only. */
   durationMin: number | null
+  /** Veces que se puede elegir en un grupo que deja repetir (encargo a508f4). null = hasta el máximo del grupo. */
+  maxQuantity: number | null
   active: boolean
   // Inventory fields
   trackInventory: boolean
@@ -49,11 +52,14 @@ interface EditModifierProps {
   modifierGroupId: string
   onBack: () => void
   onSuccess: () => void
+  /** El grupo deja repetir la misma opción: enseña «Veces que se puede elegir». */
+  permiteRepetir?: boolean
   initialValues: {
     name: string
     price: number
     sku?: string | null
     durationMin?: number | null
+    maxQuantity?: number | null
     active: boolean
     // Inventory fields (optional - may not be present in older modifiers)
     rawMaterialId?: string | null
@@ -66,7 +72,15 @@ interface EditModifierProps {
   }
 }
 
-export default function EditModifier({ venueId, modifierId, modifierGroupId, onBack, onSuccess, initialValues }: EditModifierProps) {
+export default function EditModifier({
+  venueId,
+  modifierId,
+  modifierGroupId,
+  onBack,
+  onSuccess,
+  initialValues,
+  permiteRepetir = false,
+}: EditModifierProps) {
   const { t } = useTranslation('menu')
   const { t: tInventory } = useTranslation('inventory')
   const { toast } = useToast()
@@ -88,6 +102,7 @@ export default function EditModifier({ venueId, modifierId, modifierGroupId, onB
       price: initialValues.price,
       sku: initialValues.sku ?? '',
       durationMin: initialValues.durationMin ?? null,
+      maxQuantity: initialValues.maxQuantity ?? null,
       active: initialValues.active,
       trackInventory: hasInventoryTracking,
       rawMaterialId: initialValues.rawMaterialId || null,
@@ -127,6 +142,7 @@ export default function EditModifier({ venueId, modifierId, modifierGroupId, onB
       price: initialValues.price,
       sku: initialValues.sku ?? '',
       durationMin: initialValues.durationMin ?? null,
+      maxQuantity: initialValues.maxQuantity ?? null,
       active: initialValues.active,
       trackInventory: Boolean(initialValues.rawMaterialId),
       rawMaterialId: initialValues.rawMaterialId || null,
@@ -180,6 +196,8 @@ export default function EditModifier({ venueId, modifierId, modifierGroupId, onB
         sku: normalizeModifierSku(formValues.sku),
         durationMin: formValues.durationMin,
         active: formValues.active,
+        // Sólo si el grupo deja repetir: en los demás el tope no cuenta y no se toca.
+        ...(permiteRepetir ? { maxQuantity: formValues.maxQuantity } : {}),
       }
 
       // Add inventory fields if tracking is enabled
@@ -333,6 +351,8 @@ export default function EditModifier({ venueId, modifierId, modifierGroupId, onB
                 )}
               />
 
+              {permiteRepetir && <MaxVecesField control={form.control} name="maxQuantity" />}
+
               {/* Duration delta */}
               <FormField
                 control={form.control}
@@ -409,7 +429,9 @@ export default function EditModifier({ venueId, modifierId, modifierGroupId, onB
                   <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
                     <div className="space-y-0.5">
                       <FormLabel>{t('modifiers.inventory.trackInventory', 'Track Inventory')}</FormLabel>
-                      <FormDescription>{t('modifiers.inventory.trackInventoryDesc', 'Automatically deduct raw materials when this modifier is used')}</FormDescription>
+                      <FormDescription>
+                        {t('modifiers.inventory.trackInventoryDesc', 'Automatically deduct raw materials when this modifier is used')}
+                      </FormDescription>
                     </div>
                     <FormControl>
                       <div>
@@ -440,11 +462,7 @@ export default function EditModifier({ venueId, modifierId, modifierGroupId, onB
                       <FormItem className="space-y-3">
                         <FormLabel>{t('modifiers.inventory.mode', 'Inventory Mode')}</FormLabel>
                         <FormControl>
-                          <RadioGroup
-                            onValueChange={field.onChange}
-                            value={field.value || undefined}
-                            className="flex flex-col space-y-1"
-                          >
+                          <RadioGroup onValueChange={field.onChange} value={field.value || undefined} className="flex flex-col space-y-1">
                             <FormItem className="flex items-center space-x-3 space-y-0">
                               <FormControl>
                                 <RadioGroupItem value={ModifierInventoryMode.ADDITION} />
@@ -463,7 +481,10 @@ export default function EditModifier({ venueId, modifierId, modifierGroupId, onB
                               <div className="space-y-0.5">
                                 <FormLabel className="font-normal">{t('modifiers.inventory.modeSubstitution', 'Substitution')}</FormLabel>
                                 <FormDescription className="text-xs">
-                                  {t('modifiers.inventory.modeSubstitutionDesc', 'Replaces a recipe ingredient (e.g., "Almond Milk" instead of regular milk)')}
+                                  {t(
+                                    'modifiers.inventory.modeSubstitutionDesc',
+                                    'Replaces a recipe ingredient (e.g., "Almond Milk" instead of regular milk)',
+                                  )}
                                 </FormDescription>
                               </div>
                             </FormItem>
@@ -485,9 +506,13 @@ export default function EditModifier({ venueId, modifierId, modifierGroupId, onB
                           <div>
                             <p className="text-sm font-medium text-foreground">{selectedRawMaterial.name}</p>
                             <p className="text-xs text-muted-foreground">
-                              {tInventory('rawMaterials.fields.currentStock')}: {Number(selectedRawMaterial.currentStock).toFixed(2)} {formatUnit(selectedRawMaterial.unit)}
+                              {tInventory('rawMaterials.fields.currentStock')}: {Number(selectedRawMaterial.currentStock).toFixed(2)}{' '}
+                              {formatUnit(selectedRawMaterial.unit)}
                               {displayedUnitCost !== null && (
-                                <> · {Currency(displayedUnitCost)} / {formatUnit(selectedRawMaterial.unit)}</>
+                                <>
+                                  {' '}
+                                  · {Currency(displayedUnitCost)} / {formatUnit(selectedRawMaterial.unit)}
+                                </>
                               )}
                             </p>
                           </div>

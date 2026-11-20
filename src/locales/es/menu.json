@@ -454,6 +454,15 @@
       "deleteBlockedByMinimum_other": "Este grupo es obligatorio y pide al menos {{count}} opciones activas. Agrega otra o baja el mínimo antes de quitar esta.",
       "deleteDescription": "\"{{name}}\" ya no se ofrecerá al vender. Las ventas y los reportes anteriores no cambian. Puedes volver a activarlo desde esta lista.",
       "groupSection": "Información del grupo"
+    },
+    "repeat": {
+      "label": "Se puede repetir la misma opción",
+      "desc": "Para «elige 3»: la caja marca 2 de una y 1 de otra con − 2 +. Cada vez cuenta para el mínimo y el máximo y se cobra a su precio. Funciona en el POS de Android y Windows actualizado; en el iPad todavía se elige cada opción una vez.",
+      "needsMax": "Sube el máximo a más de 1 para poder repetir una opción.",
+      "maxQuantity": "Veces que se puede elegir",
+      "maxQuantityPlaceholder": "Sin tope",
+      "maxQuantityDesc": "Vacío = hasta el máximo del grupo. Pon 1 si esta opción sólo puede ir una vez.",
+      "upTo": "hasta {{count}}"
     }
   },
   "products": {

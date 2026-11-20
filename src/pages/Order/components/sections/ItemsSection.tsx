@@ -3,6 +3,7 @@ import type { Order, OrderItem, OrderPromotionSummary } from '@/types'
 import { Currency } from '@/utils/currency'
 import { Tags } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { juntarExtrasRepetidos, nombreConVeces } from '@/lib/juntarExtrasRepetidos'
 
 interface Props {
   order: Order
@@ -45,14 +46,18 @@ const ItemRow = ({ item }: { item: OrderItem }) => {
         {(sku || qty > 1) && (
           <div className="flex justify-between text-xs text-muted-foreground mt-0.5">
             <span>{sku ? `SKU: ${sku}` : ''}</span>
-            {qty > 1 && <span>{Currency(unitPrice)} {t('drawer.items.perUnit')}</span>}
+            {qty > 1 && (
+              <span>
+                {Currency(unitPrice)} {t('drawer.items.perUnit')}
+              </span>
+            )}
           </div>
         )}
         {(item as any).modifiers && (item as any).modifiers.length > 0 && (
           <ul className="mt-1.5 space-y-0.5">
-            {(item as any).modifiers.map((m: any, idx: number) => (
+            {juntarExtrasRepetidos((item as any).modifiers).map((m, idx) => (
               <li key={idx} className="text-xs text-muted-foreground">
-                • {m.name ?? m.modifier?.name} {Number(m.price ?? 0) > 0 && `(+${Currency(Number(m.price))})`}
+                • {nombreConVeces(m)} {m.price > 0 && `(+${Currency(m.price)})`}
               </li>
             ))}
           </ul>
@@ -156,9 +161,7 @@ export function ItemsSection({ order }: Props) {
           {discount > 0 && (
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">
-                {isFullyComped
-                  ? t('drawer.totals.courtesy', { defaultValue: 'Cortesía' })
-                  : t('drawer.totals.discount')}
+                {isFullyComped ? t('drawer.totals.courtesy', { defaultValue: 'Cortesía' }) : t('drawer.totals.discount')}
               </span>
               <span className={isFullyComped ? 'text-emerald-600 dark:text-emerald-400 font-medium' : 'text-foreground'}>
                 -{Currency(discount)}
