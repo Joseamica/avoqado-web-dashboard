@@ -57,10 +57,24 @@ export function redactSensitive(value: unknown): unknown {
 /** Palabras que dependen del idioma; se inyectan para no acoplar el módulo a i18next. */
 export type WordFn = (word: 'yes' | 'no' | 'empty') => string
 
+const isOpaqueIdString = (v: unknown): v is string => typeof v === 'string' && isOpaqueId(v)
+
 export function formatDetailValue(value: unknown, word: WordFn): string {
   if (value === null || value === undefined || value === '') return word('empty')
   if (typeof value === 'boolean') return value ? word('yes') : word('no')
-  if (typeof value === 'object') return JSON.stringify(value)
+  if (Array.isArray(value)) {
+    if (value.length === 0) return word('empty')
+    // hz:nube0000:na9a2722: una lista de ids internos (`orderDiscountIds`) no le dice nada a una persona; cuántos son, sí.
+    if (value.every(isOpaqueIdString)) return String(value.length)
+    if (value.every(v => typeof v === 'string' || typeof v === 'number')) return value.join(', ')
+    return JSON.stringify(value)
+  }
+  if (typeof value === 'object') {
+    // Lo mismo con un mapa por id (`porDescuento: { <id>: 2 }`): se dice de cuántos es.
+    const keys = Object.keys(value as Record<string, unknown>)
+    if (keys.length > 0 && keys.every(isOpaqueId)) return String(keys.length)
+    return JSON.stringify(value)
+  }
   return String(value)
 }
 
@@ -77,11 +91,22 @@ export interface DetailRow {
  * problema: `{"hasPermissionSet": false}` no se lee, "Tiene conjunto de
  * permisos · No" sí.
  */
-export function toDetailRows(data: unknown, labelOf: (key: string) => string | null, word: WordFn): DetailRow[] {
+export function toDetailRows(
+  data: unknown,
+  labelOf: (key: string) => string | null,
+  word: WordFn,
+  /**
+   * Nombre de un valor conocido de ese campo (`camino: 'cancelOrder'` → «Cancelar la cuenta en el POS», hz:nube0000:na9a2722).
+   * `null` = no lo conoce y se muestra como viene: un valor nuevo del servidor nunca se esconde.
+   */
+  valueOf?: (key: string, value: string) => string | null,
+): DetailRow[] {
   if (!data || typeof data !== 'object' || Array.isArray(data)) return []
   const safe = redactSensitive(data) as Record<string, unknown>
   return Object.entries(safe).map(([key, value]) => {
     const label = labelOf(key)
+    const named = typeof value === 'string' && value !== '' ? (valueOf?.(key, value) ?? null) : null
+    if (named) return { key, label: label ?? key, value: named }
     return {
       key,
       // Sin traducción se muestra el nombre crudo del campo, nunca la clave i18n
@@ -94,6 +119,19 @@ export function toDetailRows(data: unknown, labelOf: (key: string) => string | n
       value: label && /Cents$/.test(key) && typeof value === 'number' ? (value / 100).toFixed(2) : formatDetailValue(value, word),
     }
   })
+}
+
+/**
+ * `valueOf` de `toDetailRows` sacado de `activityLog.detailValues` del idioma activo. Se lee el mapa entero (no `t('…cancelOrder')`)
+ * porque un valor puede traer `:` o `.` (`payCashOrder:cola`), que i18next tomaría como espacio de nombres o anidación.
+ */
+export function detailValueOf(t: (key: string, opts?: Record<string, unknown>) => unknown): (key: string, value: string) => string | null {
+  const raw = t('activityLog.detailValues', { returnObjects: true })
+  const map = raw && typeof raw === 'object' ? (raw as Record<string, Record<string, unknown> | undefined>) : {}
+  return (key, value) => {
+    const named = map[key]?.[value]
+    return typeof named === 'string' && named !== '' ? named : null
+  }
 }
 
 // ── Agrupación por día ────────────────────────────────────────────────────────
@@ -152,7 +190,9 @@ export function actionTone(action: string): ActionTone {
   // problema y el servidor ya le avisó al dueño; no se perdió, hay que revisarla.
   // `MASTER_LOGIN` (entrar con la clave maestra) y `ROLE_CHANGED`: la bitácora de
   // la organización ya los resaltaba como lo que un auditor viene a buscar.
-  if (/(COMPED|VOIDED|OVERRIDE|REVERSED|REVERSAL|CLAWBACK|REFUND|DISCREPANC|VARIANCE|WENT_NEGATIVE|OVERPAY|SOBREPAGO|CON_DIFERENCIA|VENTA_SIN_RED_|SUSPENDED|QUARANTINED|STUCK|CAPTURED_OUTSIDE|DOUBLE_PAYMENT|MASTER_LOGIN|ROLE_CHANGED)/.test(a)) {
+  // `SOBRE_TOPE` / `SIN_APROBACION`: un descuento que pasó de su tope o sin el PIN de gerente; `EN_CUENTA_APARTE`: una mesa o
+  // ronda sin internet que el servidor tuvo que poner en otra cuenta (hz:nube0000:nae588e9). Las dos las lee el dueño.
+  if (/(COMPED|VOIDED|OVERRIDE|REVERSED|REVERSAL|CLAWBACK|REFUND|DISCREPANC|VARIANCE|WENT_NEGATIVE|OVERPAY|SOBREPAGO|CON_DIFERENCIA|VENTA_SIN_RED_|SOBRE_TOPE|SIN_APROBACION|EN_CUENTA_APARTE|SUSPENDED|QUARANTINED|STUCK|CAPTURED_OUTSIDE|DOUBLE_PAYMENT|MASTER_LOGIN|ROLE_CHANGED)/.test(a)) {
     return 'attention'
   }
   if (/(CREATED|ADDED|ISSUED|APPROVED|CONFIRMED|COMPLETED|ACTIVATED|ENABLED|GRANTED|PUBLISHED|RECEIVED|ACCEPTED|REACTIVATED|UNLOCKED|GENERATED)/.test(a)) {
