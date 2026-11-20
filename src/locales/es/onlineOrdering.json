@@ -21,6 +21,7 @@
       "PAUSED": "Pausada",
       "pausedUntil": "Pausada hasta {{time}}",
       "pausedManual": "Pausada desde Configuración",
+      "pausedMissed": "Se pausó sola: 2 pedidos seguidos no se aceptaron. Toca «Reanudar» para volver a recibir pedidos.",
       "pausedBusy": "Pausada: muchos pedidos por aceptar",
       "OFFLINE": "Sin aparato conectado: deja la Bandeja abierta y visible en una computadora o tableta para recibir pedidos",
       "DISABLED": "Apagada"

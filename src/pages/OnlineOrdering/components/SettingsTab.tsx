@@ -32,7 +32,9 @@ import type { OperatingHours } from '@/types/reservation'
 import { useVenueDateTime } from '@/utils/datetime'
 
 import { defaultWeek, overnightNotes, validateWeek } from '../lib/hours'
+import { laMasNueva, useRelecturaDeLaTienda } from '../hooks/useRelecturaDeLaTienda'
 import { pauseLabel } from '../lib/pauseLabel'
+import { PauseControl } from './PauseControl'
 import { StorefrontShareCard } from './StorefrontShareCard'
 
 const PREP_OPTIONS = [10, 15, 20, 25, 30, 40, 45, 60, 90]
@@ -201,7 +203,7 @@ export function SettingsTab() {
   const { venueId, venueSlug, fullBasePath } = useCurrentVenue()
   const { formatTime } = useVenueDateTime()
   const { toast } = useToast()
-  const { role } = useAccess()
+  const { role, can } = useAccess()
   // La misma regla que la guardia de `settings/local` (AdminProtectedRoute, nivel ADMIN): ADMIN, OWNER o SUPERADMIN.
   const canOpenBusinessSettings = role === StaffRole.ADMIN || role === StaffRole.OWNER || role === StaffRole.SUPERADMIN
   const qc = useQueryClient()
@@ -218,6 +220,28 @@ export function SettingsTab() {
     enabled: !!venueId,
   })
   const { data: settings } = settingsQuery
+  // Su propia llave (pausar o reanudar también la invalida: `PauseControl`). Arranca con lo ya leído: no hay otra petición al abrir.
+  const storeQuery = useQuery({
+    queryKey: onlineOrderingKeys.storeStatus(venueId ?? ''),
+    queryFn: () => getSettings(venueId!),
+    enabled: !!venueId && !!settings,
+    initialData: settings,
+    staleTime: 30_000,
+    refetchInterval: 30_000,
+    refetchOnWindowFocus: false,
+    retry: 1,
+  })
+
+  // D662 v4 (hueco 5): de las dos lecturas gana la que el SERVIDOR hizo más tarde (su hora se toma ANTES de leer: si es posterior a un
+  // cambio, ya lo trae; Codex p2-r8 #4 y p2v4-r1 #11). Y el estado se vuelve a leer en cuanto puede cambiar, no cada 30 s.
+  // Con un SERVIDOR viejo (sin `storeReadAt`), gana la que llegó al último.
+  const lecturaMasNueva =
+    settings && storeQuery.data && !(settings.storeReadAt && storeQuery.data.storeReadAt)
+      ? storeQuery.dataUpdatedAt > settingsQuery.dataUpdatedAt
+        ? storeQuery.data
+        : settings
+      : laMasNueva(settings, storeQuery.data)
+  useRelecturaDeLaTienda(venueId, lecturaMasNueva, () => void storeQuery.refetch())
 
   const saved = useMemo(() => (settings ? toForm(settings) : undefined), [settings])
   // R37/R66: el servidor nunca pone «Nadie» solo. Sólo si el negocio NO tiene ajustes guardados (`hasSavedSettings === false`) el
@@ -270,6 +294,9 @@ export function SettingsTab() {
         qc.setQueryData(key, merged)
         reset(toForm(merged))
       }
+      // D662 (Codex p2-r6 #4): un sondeo del estado que ya iba en camino trae lo de ANTES de guardar; se cancela para que no pinte
+      // encima (el de los ajustes, recién releído, gana por ser el más nuevo) y el siguiente sondeo ya lee lo guardado.
+      void qc.cancelQueries({ queryKey: onlineOrderingKeys.storeStatus(venueId!) })
       void qc.invalidateQueries({ queryKey: key })
       setServerMissing([])
       setSaveError(null)
@@ -343,7 +370,9 @@ export function SettingsTab() {
   const waitingDevice = noOne && !deviceLive
   const enableBlocked = !settings.enabled && (missing.length > 0 || !hasPayment || waitingDevice)
 
-  const store = settings.store
+  // D662 (Codex p2-r5 #5): el estado de la tienda se vuelve a leer solo (la pausa sola puede llegar con esta pantalla abierta), en su
+  // propia consulta: la del formulario no se refresca para no pisar lo que el gerente está editando.
+  const store = lecturaMasNueva?.store ?? settings.store
   const pause = pauseLabel(store, formatTime)
   const statusText = pause
     ? t(pause.key, pause.params)
@@ -357,9 +386,13 @@ export function SettingsTab() {
     <form noValidate onSubmit={onSubmit} className="space-y-6 dark:[&_[role=switch][data-state=unchecked]]:bg-muted-foreground/60">
       <AvisoDeCarga query={settingsQuery} hayDatos />
       <div className="sticky top-0 z-10 flex items-center justify-between gap-3 rounded-xl border border-border bg-background/95 p-3 backdrop-blur">
-        <div className="text-sm" data-tour="online-ordering-store-status">
-          <span className="text-muted-foreground">{t('settings.status.label')}: </span>
-          <span className="font-medium">{statusText}</span>
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="text-sm" data-tour="online-ordering-store-status">
+            <span className="text-muted-foreground">{t('settings.status.label')}: </span>
+            <span className="font-medium">{statusText}</span>
+          </div>
+          {/* D662: la pausa SOLA dice «Toca Reanudar»: el botón también está aquí, no sólo en la bandeja (mismo permiso que pausar). */}
+          {store?.autoPausedAt && venueId && <PauseControl venueId={venueId} store={store} canPause={can('online-orders:pause')} />}
         </div>
         <div className="flex items-center gap-3">
           {hasChanges && <span className="text-xs font-medium text-muted-foreground">{t('settings.unsaved')}</span>}

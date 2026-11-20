@@ -5,6 +5,7 @@ import { useSocket } from '@/context/SocketContext'
 import { getInbox, onlineOrderingKeys } from '@/services/onlineOrdering.service'
 
 import { invalidateToPay } from '../lib/toPayLive'
+import { useRelecturaDeLaTienda } from './useRelecturaDeLaTienda'
 
 /**
  * El ÚNICO sondeo de la bandeja (cada 10 s, se detiene con la pestaña oculta) más el aviso en vivo del servidor.
@@ -48,6 +49,12 @@ export function useOnlineOrdersInbox(venueId: string, opts: { trayActive: () => 
       leaveVenueRoom(venueId)
     }
   }, [venueId, socket, joinVenueRoom, leaveVenueRoom, queryClient])
+
+  // D662 v4 (hueco 5): la cabecera de la bandeja también dice «se pausó sola» en cuanto pasa (aviso, reconexión, pestaña visible y la
+  // próxima hora límite), sin esperar el sondeo.
+  useRelecturaDeLaTienda(venueId, query.data, () => void queryClient.invalidateQueries({ queryKey: onlineOrderingKeys.inbox(venueId) }), {
+    conPedidos: false,
+  })
 
   return query
 }

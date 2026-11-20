@@ -9,6 +9,8 @@ export interface StoreState {
   reason: string | null
   pausedUntil: string | null
   manualPause: boolean
+  /** D662: la tienda se pausó sola (2 pedidos seguidos sin aceptar) hasta «Reanudar». Un servidor viejo no lo manda. */
+  autoPausedAt?: string | null
 }
 
 export interface OnlineOrderingSettings {
@@ -31,6 +33,14 @@ export interface OnlineOrderingSettings {
   /** `false` = el negocio aún no tiene ajustes guardados (R66); sólo entonces el panel preselecciona la sugerencia. Opcional: servidor viejo. */
   hasSavedSettings?: boolean
   store: StoreState
+  /** D662: cuándo leyó el SERVIDOR `store` (ISO, tomado antes de leer). Un servidor viejo no lo manda. */
+  storeReadAt?: string
+  /** D662 v4: cuándo se guardaron los ajustes que se leyeron (ISO): ordena las lecturas junto con `storeReadAt`. */
+  storeVersion?: string | null
+  /** D662 v4: la hora límite más cercana de un pedido por aceptar (ISO): el panel vuelve a leer justo después. */
+  storeNextDeadlineAt?: string | null
+  /** Sólo del navegador: cuándo salió la petición (no lo manda el SERVIDOR). */
+  enviadoEn?: number
   requirements: Record<StoreRequirement, boolean>
   /** Fase 2: si la tarjeta puede cobrar de verdad (Stripe del negocio). Opcional: un servidor viejo no lo manda. */
   card?: { enabled: boolean; merchantStatus: CardMerchantStatus }
@@ -89,14 +99,7 @@ export interface MenuProductsPage {
 }
 
 export type OnlineOrderStatus =
-  | 'PENDING_ACCEPTANCE'
-  | 'ACCEPTED'
-  | 'READY'
-  | 'COMPLETED'
-  | 'REJECTED'
-  | 'EXPIRED'
-  | 'CANCELLED_BY_CUSTOMER'
-  | 'CANCELLED_BY_STAFF'
+  'PENDING_ACCEPTANCE' | 'ACCEPTED' | 'READY' | 'COMPLETED' | 'REJECTED' | 'EXPIRED' | 'CANCELLED_BY_CUSTOMER' | 'CANCELLED_BY_STAFF'
 
 export interface InboxOrder {
   orderId: string
@@ -139,17 +142,16 @@ export interface InboxOrder {
 }
 
 export type CardChargeStatus =
-  | 'PENDING_AUTH'
-  | 'AUTHORIZED'
-  | 'CAPTURING'
-  | 'CAPTURED'
-  | 'CAPTURE_FAILED'
-  | 'RELEASING'
-  | 'RELEASED'
-  | 'ABANDONED'
+  'PENDING_AUTH' | 'AUTHORIZED' | 'CAPTURING' | 'CAPTURED' | 'CAPTURE_FAILED' | 'RELEASING' | 'RELEASED' | 'ABANDONED'
 
 export interface Inbox {
   serverTime: string
+  /** D662 v4 (con `pausaSola=1`): cuándo leyó el SERVIDOR `store` y la próxima hora límite por aceptar. */
+  storeReadAt?: string
+  storeVersion?: string | null
+  storeNextDeadlineAt?: string | null
+  /** Sólo del navegador: cuándo salió la petición. */
+  enviadoEn?: number
   counts: { pending: number; accepted: number; ready: number; active: number; done: number; acceptedTeam?: number }
   orders: InboxOrder[]
   truncated: boolean
@@ -190,15 +192,7 @@ export type PauseMinutes = 15 | 30 | 60 | null
 
 // ── Devolver a la tarjeta (fase 2). Montos en PESOS como texto con 2 decimales («120.50»), nunca centavos. ──
 export type CardRefundStatus =
-  | 'REQUESTED'
-  | 'SENDING'
-  | 'PENDING'
-  | 'SUCCEEDED'
-  | 'RECORDED'
-  | 'FAILED'
-  | 'CANCELED'
-  | 'REVERSED'
-  | 'RESOLVED'
+  'REQUESTED' | 'SENDING' | 'PENDING' | 'SUCCEEDED' | 'RECORDED' | 'FAILED' | 'CANCELED' | 'REVERSED' | 'RESOLVED'
 export type CardRefundReason = 'RETURNED_GOODS' | 'ACCIDENTAL_CHARGE' | 'CANCELLED_ORDER' | 'FRAUDULENT_CHARGE' | 'OTHER'
 export type CardRefundResolveMethod = 'CASH' | 'BANK_TRANSFER'
 
