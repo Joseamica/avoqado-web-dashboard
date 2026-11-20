@@ -52,7 +52,9 @@ export function useOnlineOrdersInbox(venueId: string, opts: { trayActive: () => 
 
   // D662 v4 (hueco 5): la cabecera de la bandeja también dice «se pausó sola» en cuanto pasa (aviso, reconexión, pestaña visible y la
   // próxima hora límite), sin esperar el sondeo.
-  useRelecturaDeLaTienda(venueId, query.data, () => void queryClient.invalidateQueries({ queryKey: onlineOrderingKeys.inbox(venueId) }))
+  useRelecturaDeLaTienda(venueId, query.data, () => void queryClient.invalidateQueries({ queryKey: onlineOrderingKeys.inbox(venueId) }), {
+    conPedidos: false,
+  })
 
   return query
 }

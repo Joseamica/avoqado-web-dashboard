@@ -10,7 +10,10 @@ const fakeSocket = {
     delete handlers[event]
   },
 }
-vi.mock('@/context/SocketContext', () => ({ useSocket: () => ({ socket: fakeSocket }) }))
+const unido: string[] = []
+const joinVenueRoom = (v: string) => unido.push(v)
+const leaveVenueRoom = () => {}
+vi.mock('@/context/SocketContext', () => ({ useSocket: () => ({ socket: fakeSocket, joinVenueRoom, leaveVenueRoom }) }))
 
 import { esperaHastaLaHoraLimite, laMasNueva, MARGEN_TRAS_LA_HORA_LIMITE_MS, useRelecturaDeLaTienda } from '../hooks/useRelecturaDeLaTienda'
 
@@ -43,6 +46,11 @@ describe('relectura del estado de la tienda', () => {
     expect(laMasNueva(nueva, vieja)?.id).toBe('reanudada')
     expect(laMasNueva(vieja, nueva)?.id).toBe('reanudada')
     expect(laMasNueva(undefined, vieja)?.id).toBe('pausada')
+    // Codex p2v4-r2 #5: la que leyó unos ajustes guardados más tarde gana aunque haya ENTRADO antes (leyó después del «Reanudar»).
+    const entroAntesLeyoDespues = { storeReadAt: '2026-11-20T18:00:01.000Z', storeVersion: '2026-11-20T18:00:03.000Z', id: 'abierta' }
+    const entroDespuesLeyoAntes = { storeReadAt: '2026-11-20T18:00:02.000Z', storeVersion: '2026-11-20T17:59:00.000Z', id: 'pausada' }
+    expect(laMasNueva(entroAntesLeyoDespues, entroDespuesLeyoAntes)?.id).toBe('abierta')
+    expect(laMasNueva(entroDespuesLeyoAntes, entroAntesLeyoDespues)?.id).toBe('abierta')
     // Un SERVIDOR viejo (sin la marca): gana la que llegó al último.
     expect(laMasNueva({ id: 'a' }, { id: 'b' })?.id).toBe('b')
   })
@@ -60,11 +68,17 @@ describe('relectura del estado de la tienda', () => {
       expect(releer).toHaveBeenCalledTimes(1)
       act(() => handlers['connect']?.())
       expect(releer).toHaveBeenCalledTimes(2)
+      // Codex p2v4-r2 #3 y #4: entra al cuarto de ESTE negocio y relee con cualquier cambio de un pedido en línea.
+      expect(unido).toContain('venue-1')
+      act(() => handlers['order_updated']?.({ venueId: 'venue-1' }))
+      expect(releer).toHaveBeenCalledTimes(2)
+      act(() => handlers['order_updated']?.({ venueId: 'venue-1', onlineStatus: 'CANCELLED_BY_CUSTOMER' }))
+      expect(releer).toHaveBeenCalledTimes(3)
       Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'visible' })
       act(() => {
         document.dispatchEvent(new Event('visibilitychange'))
       })
-      expect(releer).toHaveBeenCalledTimes(3)
+      expect(releer).toHaveBeenCalledTimes(4)
     })
 
     it('relee sola justo después de la próxima hora límite', () => {

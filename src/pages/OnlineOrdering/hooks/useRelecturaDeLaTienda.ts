@@ -6,6 +6,8 @@ import { useSocket } from '@/context/SocketContext'
 export interface MarcasDeLectura {
   /** Cuándo leyó el SERVIDOR el estado (su reloj, tomado ANTES de leer). */
   storeReadAt?: string | null
+  /** Cuándo se guardaron los ajustes que leyó (Reanudar, pausar y ajustes la mueven). */
+  storeVersion?: string | null
   /** La hora límite más cercana de un pedido por aceptar (reloj del SERVIDOR). */
   storeNextDeadlineAt?: string | null
   /** Cuándo SALIÓ la petición (reloj del navegador). */
@@ -28,23 +30,42 @@ export function esperaHastaLaHoraLimite(m: MarcasDeLectura, ahora: number = Date
   return Math.max(ESPERA_MINIMA_MS, falta + MARGEN_TRAS_LA_HORA_LIMITE_MS)
 }
 
-/** De dos lecturas, la que el SERVIDOR hizo más tarde (su hora se toma antes de leer: si es posterior a un cambio, ya lo trae). */
-export function laMasNueva<T extends { storeReadAt?: string | null }>(a: T | undefined, b: T | undefined): T | undefined {
+/**
+ * De dos lecturas, la más nueva (Codex p2v4-r2 #5): primero la que leyó unos ajustes guardados más tarde (`storeVersion`: un «Reanudar» o
+ * una pausa ya guardados), y con los mismos ajustes la que el SERVIDOR leyó más tarde (`storeReadAt`: la pausa sola sólo puede aparecer con
+ * el tiempo). Sin marcas (SERVIDOR viejo), la segunda.
+ */
+export function laMasNueva<T extends { storeReadAt?: string | null; storeVersion?: string | null }>(
+  a: T | undefined,
+  b: T | undefined,
+): T | undefined {
   if (!a) return b
   if (!b) return a
+  const va = a.storeVersion ? Date.parse(a.storeVersion) : null
+  const vb = b.storeVersion ? Date.parse(b.storeVersion) : null
+  if (va !== null && vb !== null && va !== vb) return vb > va ? b : a
   if (a.storeReadAt && b.storeReadAt) return Date.parse(b.storeReadAt) > Date.parse(a.storeReadAt) ? b : a
   return b
 }
 
 /**
  * D662 v4 (hueco 5): el estado de la tienda se vuelve a leer en cuanto puede cambiar, sin esperar el sondeo de 30 s:
- * - el aviso del SERVIDOR (`online_ordering_store_changed`: Reanudar, pausar, ajustes, se pausó sola);
+ * - el aviso del SERVIDOR (`online_ordering_store_changed`: Reanudar, pausar, ajustes, se pausó sola) y cualquier cambio de un pedido en
+ *   línea (`order_updated` con `onlineStatus`: una cancelación tardía también puede pausarla; Codex p2v4-r2 #3), en el cuarto de ESTE
+ *   negocio (el socket entra al cuarto aunque la sesión sea de otra sucursal; Codex p2v4-r2 #4);
  * - al reconectarse el socket (un aviso pudo perderse mientras estaba caído);
  * - al volver a la pestaña (el navegador frena los temporizadores de una pestaña oculta);
  * - justo después de la próxima hora límite de un pedido por aceptar (ahí se puede pausar sola).
  */
-export function useRelecturaDeLaTienda(venueId: string | undefined, marcas: MarcasDeLectura | undefined, releer: () => void) {
-  const { socket } = useSocket()
+export function useRelecturaDeLaTienda(
+  venueId: string | undefined,
+  marcas: MarcasDeLectura | undefined,
+  releer: () => void,
+  /** La Bandeja ya relee con cada cambio de pedido (su propio oyente): no hace falta otra relectura. */
+  opts: { conPedidos?: boolean } = {},
+) {
+  const conPedidos = opts.conPedidos !== false
+  const { socket, joinVenueRoom, leaveVenueRoom } = useSocket()
   const releerRef = useRef(releer)
   releerRef.current = releer
 
@@ -53,14 +74,21 @@ export function useRelecturaDeLaTienda(venueId: string | undefined, marcas: Marc
     const onCambio = (e: { venueId?: string } | undefined) => {
       if (!e?.venueId || e.venueId === venueId) releerRef.current()
     }
+    const onPedido = (e: { onlineStatus?: string; venueId?: string } | undefined) => {
+      if (e?.onlineStatus && (!e.venueId || e.venueId === venueId)) releerRef.current()
+    }
     const onConectado = () => releerRef.current()
+    joinVenueRoom(venueId)
     socket.on('online_ordering_store_changed', onCambio)
+    if (conPedidos) socket.on('order_updated', onPedido)
     socket.on('connect', onConectado)
     return () => {
       socket.off('online_ordering_store_changed', onCambio)
+      if (conPedidos) socket.off('order_updated', onPedido)
       socket.off('connect', onConectado)
+      leaveVenueRoom(venueId)
     }
-  }, [venueId, socket])
+  }, [venueId, socket, joinVenueRoom, leaveVenueRoom, conPedidos])
 
   useEffect(() => {
     if (!venueId) return
