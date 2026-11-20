@@ -68,7 +68,19 @@ export default function Attendance() {
     queryFn: () => attendanceService.getTimeEntries(venueId!, { startDate, endDate, limit: 200 }),
     enabled: !!venueId,
   })
-  const { data: page, refetch: refetchEntries } = entriesQuery
+  // «Por revisar» (D3): todas las «Salida olvidada · revisar», de cualquier fecha. El total se ve siempre; la lista sólo al
+  // pedirla. Sin esto, una de hace más de 30 días o detrás de 200 checadas no se podía corregir (Codex r1 #10).
+  const [soloPorRevisar, setSoloPorRevisar] = useState(false)
+  const porRevisarQuery = useQuery({
+    queryKey: ['attendance', 'por-revisar', venueId],
+    queryFn: () => attendanceService.getTimeEntries(venueId!, { salidaOlvidada: true, limit: 200 }),
+    enabled: !!venueId,
+    staleTime: 30_000,
+  })
+  const porRevisar = porRevisarQuery.data?.entries.filter(e => e.salidaOlvidada) ?? []
+  const totalPorRevisar = porRevisar.length === 0 ? 0 : (porRevisarQuery.data?.total ?? porRevisar.length)
+  const { data: pageDelRango, refetch: refetchEntries } = entriesQuery
+  const page = soloPorRevisar && totalPorRevisar > 0 ? porRevisarQuery.data : pageDelRango
   const loadingEntries = page === undefined && !falloDeCarga(entriesQuery)
   const errorEntries = page === undefined && falloDeCarga(entriesQuery)
   const entries = useMemo(() => page?.entries ?? [], [page])
@@ -190,6 +202,21 @@ export default function Attendance() {
         </Tabs>
 
         <div className="flex items-center gap-2">
+          {totalPorRevisar > 0 && view === 'log' && (
+            <button
+              type="button"
+              data-tour="attendance-forgotten-filter"
+              aria-pressed={soloPorRevisar}
+              onClick={() => setSoloPorRevisar(v => !v)}
+              className={`cursor-pointer rounded-full border px-3 py-1 text-xs font-medium ${
+                soloPorRevisar
+                  ? 'border-foreground bg-foreground text-background'
+                  : 'border-amber-500/50 text-amber-700 dark:text-amber-400'
+              }`}
+            >
+              {t('forgotten.filter', { count: totalPorRevisar })}
+            </button>
+          )}
           {truncated && (
             <Badge variant="outline" className="rounded-full">
               {t('truncated', { shown: entries.length, total: page?.total ?? 0 })}

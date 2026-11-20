@@ -59,6 +59,8 @@ export interface TimeEntryFilters {
   status?: TimeEntryStatus
   limit?: number
   offset?: number
+  /** «Por revisar»: sólo las «Salida olvidada · revisar», de cualquier fecha. Un servidor viejo lo ignora. */
+  salidaOlvidada?: boolean
 }
 
 export type AttendanceStatus = 'ON_TIME' | 'LATE' | 'ABSENT' | 'DAY_OFF' | 'NO_SCHEDULE' | 'PENDING'
