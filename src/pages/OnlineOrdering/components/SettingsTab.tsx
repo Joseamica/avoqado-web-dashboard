@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, type RefObject } from 'react'
+import { useEffect, useMemo, useRef, useState, type RefObject } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -32,7 +32,7 @@ import type { OperatingHours } from '@/types/reservation'
 import { useVenueDateTime } from '@/utils/datetime'
 
 import { defaultWeek, overnightNotes, validateWeek } from '../lib/hours'
-import { laMasNueva, useRelecturaDeLaTienda } from '../hooks/useRelecturaDeLaTienda'
+import { laMasNueva, releerSinReusar, useRelecturaDeLaTienda } from '../hooks/useRelecturaDeLaTienda'
 import { pauseLabel } from '../lib/pauseLabel'
 import { PauseControl } from './PauseControl'
 import { StorefrontShareCard } from './StorefrontShareCard'
@@ -241,7 +241,17 @@ export function SettingsTab() {
         ? storeQuery.data
         : settings
       : laMasNueva(settings, storeQuery.data)
-  useRelecturaDeLaTienda(venueId, lecturaMasNueva, () => void storeQuery.refetch())
+  useRelecturaDeLaTienda(venueId, lecturaMasNueva, () => void releerSinReusar(qc, onlineOrderingKeys.storeStatus(venueId ?? '')))
+
+  // D662 v5 (Codex p2v5-r1 #2): UNA sola foto en la pantalla. Si la relectura del estado leyó ajustes GUARDADOS más nuevos (otra persona
+  // apagó, pausó o reanudó), esos ajustes pasan a ser «lo guardado» de esta pantalla: el interruptor, la pausa temporal y el encabezado
+  // salen de la misma lectura. Lo que el gerente está editando se conserva (`keepDirtyValues` del formulario, abajo).
+  const lecturaDelEstado = storeQuery.data
+  useEffect(() => {
+    if (!venueId || !settings || !lecturaDelEstado?.storeVersion || !settings.storeVersion) return
+    if (Date.parse(lecturaDelEstado.storeVersion) <= Date.parse(settings.storeVersion)) return
+    qc.setQueryData(onlineOrderingKeys.settings(venueId), lecturaDelEstado)
+  }, [venueId, settings, lecturaDelEstado, qc])
 
   const saved = useMemo(() => (settings ? toForm(settings) : undefined), [settings])
   // R37/R66: el servidor nunca pone «Nadie» solo. Sólo si el negocio NO tiene ajustes guardados (`hasSavedSettings === false`) el
@@ -249,7 +259,9 @@ export function SettingsTab() {
   // Sin el campo (servidor viejo) o con true: se muestra lo guardado, sin preselección.
   const preselectNoOne = !!settings && settings.hasSavedSettings === false && settings.suggestedRequiresAcceptance === false
   const formValues = useMemo(() => (saved && preselectNoOne ? { ...saved, requiresAcceptance: false } : saved), [saved, preselectNoOne])
-  const form = useForm<FormValues>({ resolver: zodResolver(schema), values: formValues })
+  // `keepDirtyValues`: cuando «lo guardado» cambia por otra persona (arriba), los campos que el gerente NO tocó toman lo nuevo y los que
+  // sí tocó se quedan como los dejó (D662 v5).
+  const form = useForm<FormValues>({ resolver: zodResolver(schema), values: formValues, resetOptions: { keepDirtyValues: true } })
   const { control, watch, setValue, handleSubmit, reset, formState } = form
   const hours = watch('hours')
   const enabled = watch('enabled')

@@ -15,7 +15,7 @@ const fakeSocket = {
 }
 const noop = () => {}
 vi.mock('@/context/SocketContext', () => ({
-  useSocket: () => ({ socket: fakeSocket, isConnected: true, joinVenueRoom: noop, leaveVenueRoom: noop }),
+  useSocket: () => ({ socket: fakeSocket, isConnected: true, joinVenueRoom: noop, leaveVenueRoom: noop, alConfirmarSucursal: () => noop }),
 }))
 
 const getInbox = vi.fn()
@@ -107,3 +107,26 @@ describe('useOnlineOrdersInbox', () => {
     expect(getInbox).toHaveBeenCalledTimes(1)
   })
 })
+
+describe('D662 v5 (Codex p2v4-r5 #3): un aviso con la primera lectura todavía en camino', () => {
+  beforeEach(() => {
+    getInbox.mockReset()
+    setVisibility('visible')
+  })
+
+  it('🔴 lanza una lectura NUEVA (no reusa la que salió antes del aviso) y gana la nueva aunque la vieja llegue después', async () => {
+    let soltarVieja!: (v: unknown) => void
+    getInbox
+      .mockImplementationOnce(() => new Promise(r => (soltarVieja = r)))
+      .mockResolvedValueOnce({ ...inbox, store: { status: 'OPEN', reason: null } })
+    const { result } = renderInbox(() => true)
+    await waitFor(() => expect(getInbox).toHaveBeenCalledTimes(1))
+    // Otra caja tocó «Reanudar»: llega el aviso mientras la primera lectura (que vio «Pausada») sigue en camino sin datos.
+    act(() => handlers['online_ordering_store_changed']({ venueId: 'venue-1' }))
+    await waitFor(() => expect(getInbox).toHaveBeenCalledTimes(2))
+    await waitFor(() => expect(result.current.data?.store?.status).toBe('OPEN'))
+    await act(async () => soltarVieja({ ...inbox, store: { status: 'PAUSED', reason: 'MANUAL_PAUSE' } }))
+    expect(result.current.data?.store?.status).toBe('OPEN')
+  })
+})
+

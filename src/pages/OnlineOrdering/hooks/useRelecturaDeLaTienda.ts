@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import type { QueryClient, QueryKey } from '@tanstack/react-query'
 
 import { useSocket } from '@/context/SocketContext'
 
@@ -49,12 +50,23 @@ export function laMasNueva<T extends { storeReadAt?: string | null; storeVersion
 }
 
 /**
+ * D662 v5 (Codex p2v4-r5 #3): una lectura NUEVA de verdad. `invalidateQueries` a secas reutiliza la petición que ya va en camino cuando la
+ * consulta todavía no tiene datos (TanStack Query, `query.fetch`), y esa petición salió ANTES del cambio que avisa el socket. Se cancela
+ * la que va en camino (su respuesta se descarta) y se pide otra.
+ */
+export function releerSinReusar(qc: QueryClient, queryKey: QueryKey): Promise<void> {
+  return qc.cancelQueries({ queryKey }).then(() => qc.invalidateQueries({ queryKey }))
+}
+
+/**
  * D662 v4 (hueco 5): el estado de la tienda se vuelve a leer en cuanto puede cambiar, sin esperar el sondeo de 30 s:
  * - el aviso del SERVIDOR (`online_ordering_store_changed`: Reanudar, pausar, ajustes, se pausó sola) y cualquier cambio de un pedido en
  *   línea (`order_updated` con `onlineStatus`: una cancelación tardía también puede pausarla; Codex p2v4-r2 #3) o un pedido nuevo
  *   (`order_created` de la tienda: su hora límite puede ser la próxima), en el cuarto de ESTE
  *   negocio (el socket entra al cuarto aunque la sesión sea de otra sucursal; Codex p2v4-r2 #4);
- * - al reconectarse el socket (un aviso pudo perderse mientras estaba caído);
+ * - al reconectarse el socket (un aviso pudo perderse mientras estaba caído) y, sobre todo, cuando el SERVIDOR CONFIRMA la suscripción a
+ *   esta sucursal (al entrar y en cada reconexión; Codex p2v5-r1 #8): una lectura que salió antes de la confirmación pudo perder el aviso;
+ *   la que sale después ya no;
  * - al volver a la pestaña (el navegador frena los temporizadores de una pestaña oculta);
  * - justo después de la próxima hora límite de un pedido por aceptar (ahí se puede pausar sola).
  */
@@ -66,7 +78,7 @@ export function useRelecturaDeLaTienda(
   opts: { conPedidos?: boolean } = {},
 ) {
   const conPedidos = opts.conPedidos !== false
-  const { socket, joinVenueRoom, leaveVenueRoom } = useSocket()
+  const { socket, joinVenueRoom, leaveVenueRoom, alConfirmarSucursal } = useSocket()
   const releerRef = useRef(releer)
   releerRef.current = releer
 
@@ -79,6 +91,7 @@ export function useRelecturaDeLaTienda(
       if (e?.onlineStatus && (!e.venueId || e.venueId === venueId)) releerRef.current()
     }
     const onConectado = () => releerRef.current()
+    const dejarDeEsperar = alConfirmarSucursal(venueId, () => releerRef.current())
     joinVenueRoom(venueId)
     socket.on('online_ordering_store_changed', onCambio)
     // Un pedido NUEVO trae una hora límite que puede ser la próxima (sin pedidos por aceptar no había relectura programada).
@@ -97,9 +110,10 @@ export function useRelecturaDeLaTienda(
         socket.off('order_created', onNuevo)
       }
       socket.off('connect', onConectado)
+      dejarDeEsperar()
       leaveVenueRoom(venueId)
     }
-  }, [venueId, socket, joinVenueRoom, leaveVenueRoom, conPedidos])
+  }, [venueId, socket, joinVenueRoom, leaveVenueRoom, alConfirmarSucursal, conPedidos])
 
   useEffect(() => {
     if (!venueId) return

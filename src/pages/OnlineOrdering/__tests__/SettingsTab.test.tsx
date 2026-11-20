@@ -158,6 +158,36 @@ describe('SettingsTab', () => {
     expect(updateSettings).not.toHaveBeenCalled()
   })
 
+  it('🔴 D662 v5 (Codex p2v5-r1 #2): si la relectura trae ajustes GUARDADOS más nuevos (otra persona apagó), el interruptor y el encabezado salen de la misma lectura; lo que estoy editando se queda', async () => {
+    const leida = (over: Record<string, unknown>) =>
+      base({ storeReadAt: '2026-11-20T18:00:00.000Z', storeNextDeadlineAt: null, enviadoEn: Date.now(), ...over })
+    getSettings.mockResolvedValue(
+      leida({
+        enabled: true,
+        storeVersion: '2026-11-20T17:00:00.000Z',
+        store: { status: 'OPEN', reason: null, pausedUntil: null, manualPause: false },
+      }),
+    )
+    renderTab()
+    await formularioCargado()
+    expect(screen.getByRole('switch', { name: 'settings.enable' })).toBeChecked()
+    // Estoy cambiando el pedido mínimo (sin guardar).
+    const minimo = screen.getByLabelText('settings.minOrder')
+    fireEvent.change(minimo, { target: { value: '80' } })
+    // Otra gerente APAGA la tienda: la relectura del estado trae los ajustes guardados después.
+    getSettings.mockResolvedValue(
+      leida({
+        enabled: false,
+        storeReadAt: '2026-11-20T18:00:10.000Z',
+        storeVersion: '2026-11-20T18:00:05.000Z',
+        store: { status: 'DISABLED', reason: 'NOT_ENABLED', pausedUntil: null, manualPause: false },
+      }),
+    )
+    fireEvent(document, new Event('visibilitychange'))
+    await waitFor(() => expect(screen.getByRole('switch', { name: 'settings.enable' })).not.toBeChecked())
+    expect(screen.getByLabelText('settings.minOrder')).toHaveValue(80)
+  })
+
   it('D662: sin la pausa sola Configuración no muestra «Reanudar» (la pausa corta se quita en la bandeja)', async () => {
     getSettings.mockResolvedValue(
       base({
