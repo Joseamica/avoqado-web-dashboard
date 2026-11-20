@@ -107,6 +107,8 @@ const CURACION = {
   operations: [
     ['SHIFTS', ['shifts'], 'Shifts'],
     ['CASH_DRAWER', ['cash-drawer'], 'Cash drawer'],
+    // Máquina de efectivo (fase 1a): habilitar la PC de la máquina y resolver sus cobros en duda (gerente).
+    ['CASH_MACHINE', ['cash-machine'], 'Máquina de efectivo'],
     ['TPV', ['tpv'], 'TPV Management'],
     ['INVENTORY', ['inventory'], 'Inventory'],
     ['INVENTORY_TRANSFERS', ['inventory-transfers'], 'Inter-venue Transfers'],

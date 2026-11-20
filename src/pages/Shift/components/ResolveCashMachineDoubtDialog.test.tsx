@@ -125,6 +125,29 @@ describe('ResolveCashMachineDoubtDialog', () => {
     h.impl = () => Promise.resolve({ status: 200, data: { success: true, referenceCC: FOLIO, outcome: 'PAGADO', owedCents: 0 } })
   })
 
+  it('es un FullScreenModal: el formulario va dentro, «Guardar» arriba en el encabezado y la X cierra', () => {
+    const { onOpenChange } = setup()
+    const contenido = document.querySelector('[data-fsm-content]')
+    expect(contenido).toContainElement(screen.getByLabelText(`${P}evidence`))
+    expect(contenido).toContainElement(screen.getByRole('radio', { name: `${P}outcomes.PAGADO.label` }))
+    expect(guardar().closest('header')).not.toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'common:close' }))
+    expect(onOpenChange).toHaveBeenCalledWith(false)
+  })
+
+  it('mientras guarda, la X no cierra (el resultado tiene que verse)', async () => {
+    h.impl = () => new Promise(() => {})
+    const { onOpenChange } = setup()
+    elegir('PAGADO')
+    recibio('150')
+    vio('pagado')
+    fireEvent.click(guardar())
+    fireEvent.click(screen.getByRole('button', { name: 'common:close' }))
+    await waitFor(() => expect(guardar()).toBeDisabled())
+    fireEvent.click(screen.getByRole('button', { name: 'common:close' }))
+    expect(onOpenChange).not.toHaveBeenCalled()
+  })
+
   it('enseña el folio, lo que debía (venta + propina) y lo último que vio la PC', () => {
     setup()
     expect(texto()).toContain(FOLIO)
@@ -294,6 +317,9 @@ describe('ResolveCashMachineDoubtDialog', () => {
     expect(texto()).toContain(Currency(50))
     expect(onOpenChange).not.toHaveBeenCalledWith(false)
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ['cash-machine-doubts', 'v1'] })
+    expect(screen.queryByRole('button', { name: `${P}submit` })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: `${P}close` }))
+    expect(onOpenChange).toHaveBeenCalledWith(false)
   })
 
   it('409 de una duda cerrada sin venta: enseña también lo que vio el otro gerente', async () => {

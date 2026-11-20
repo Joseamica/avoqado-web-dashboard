@@ -8,14 +8,16 @@
 import { useRef, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
+import { Loader2 } from 'lucide-react'
 import { DateTime } from 'luxon'
 import api from '@/api'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Textarea } from '@/components/ui/textarea'
+import { cashMachineDoubtsKey } from '@/hooks/use-cash-machine-doubts'
 import { useToast } from '@/hooks/use-toast'
 import { Currency } from '@/utils/currency'
 import { useVenueDateTime } from '@/utils/datetime'
@@ -49,7 +51,6 @@ interface Registrado {
 
 const OUTCOMES: CashMachineOutcome[] = ['PAGADO', 'CANCELADO', 'GUARDADO']
 const MAX_EVIDENCE = 500 // el tope del SERVIDOR (`resolverDudaDeLaMaquinaSchema`)
-export const cashMachineDoubtsKey = (venueId: string) => ['cash-machine-doubts', venueId]
 
 /** «200.50» → 20050. Exacto (sin `* 100` de punto flotante); null si no es un importe con hasta 2 decimales. */
 export function pesosACentavos(texto: string): number | null {
@@ -163,6 +164,11 @@ export function ResolveCashMachineDoubtDialog({ open, onOpenChange, venueId, dou
   const canSave =
     !!outcome && creditCents !== null && !aviso && trimmedEvidence.length > 0 && trimmedEvidence.length <= MAX_EVIDENCE && !saving
 
+  // Mientras se guarda no se cierra (ni con la X ni con Esc): el resultado tiene que verse.
+  const cerrar = () => {
+    if (!saving && !inFlight.current) onOpenChange(false)
+  }
+
   const submit = () => {
     if (!canSave || inFlight.current) return
     inFlight.current = true
@@ -171,22 +177,38 @@ export function ResolveCashMachineDoubtDialog({ open, onOpenChange, venueId, dou
   }
 
   return (
-    <Dialog open={open} onOpenChange={o => !saving && onOpenChange(o)}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{t(`${P}.title`, { folio: doubt.referenceCC })}</DialogTitle>
-          <DialogDescription>
+    <FullScreenModal
+      open={open}
+      onClose={cerrar}
+      title={t(`${P}.title`, { folio: doubt.referenceCC })}
+      contentClassName="bg-muted/30"
+      actions={
+        registrado ? (
+          <Button variant="outline" className="cursor-pointer" onClick={cerrar}>
+            {t(`${P}.close`)}
+          </Button>
+        ) : (
+          <Button className="cursor-pointer" onClick={submit} disabled={!canSave} data-tour="cash-machine-doubt-submit">
+            {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {t(`${P}.submit`)}
+          </Button>
+        )
+      }
+    >
+      <div className="mx-auto max-w-xl space-y-4 p-6">
+        <section className="space-y-1 rounded-2xl border border-border/50 bg-card p-6 text-sm">
+          <p>
             {t(`${P}.due`, {
               due: Currency(doubt.dueCents, true),
               sale: Currency(doubt.saleCents, true),
               tip: Currency(doubt.tipCents, true),
-            })}{' '}
-            {t(`${P}.startedAt`, { time: formatDateTime(doubt.startedAt) })}
-          </DialogDescription>
-        </DialogHeader>
+            })}
+          </p>
+          <p className="text-muted-foreground">{t(`${P}.startedAt`, { time: formatDateTime(doubt.startedAt) })}</p>
+        </section>
 
         {registrado ? (
-          <div className="space-y-2 rounded-lg border border-input p-4 text-sm" data-tour="cash-machine-doubt-conflict">
+          <section className="space-y-2 rounded-2xl border border-border/50 bg-card p-6 text-sm" data-tour="cash-machine-doubt-conflict">
             <p className="font-medium">{t(`${P}.conflict.title`)}</p>
             {registrado.outcome && OUTCOMES.includes(registrado.outcome as CashMachineOutcome) && (
               <p>{t(`${P}.outcomes.${registrado.outcome}.label`)}</p>
@@ -202,17 +224,17 @@ export function ResolveCashMachineDoubtDialog({ open, onOpenChange, venueId, dou
               </p>
             )}
             {registrado.evidence && <p className="text-muted-foreground">{t(`${P}.conflict.evidence`, { text: registrado.evidence })}</p>}
-          </div>
+          </section>
         ) : (
-          <div className="space-y-4">
+          <>
             {lastSeen && (
-              <div className="rounded-lg bg-muted p-3 text-sm">
+              <section className="space-y-1 rounded-2xl border border-border/50 bg-card p-6 text-sm">
                 <p className="text-muted-foreground">{t(`${P}.lastSeen`)}</p>
                 <p className="break-words font-mono text-xs">{lastSeen}</p>
-              </div>
+              </section>
             )}
 
-            <div className="space-y-2">
+            <section className="space-y-3 rounded-2xl border border-border/50 bg-card p-6">
               <Label>{t(`${P}.whatHappened`)}</Label>
               <RadioGroup
                 value={outcome ?? ''}
@@ -239,91 +261,85 @@ export function ResolveCashMachineDoubtDialog({ open, onOpenChange, venueId, dou
                   </div>
                 ))}
               </RadioGroup>
-            </div>
+            </section>
 
-            <div className="grid gap-4 sm:grid-cols-2">
+            <section className="space-y-4 rounded-2xl border border-border/50 bg-card p-6">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="cash-machine-received">{t(`${P}.received`)}</Label>
+                  <Input
+                    id="cash-machine-received"
+                    type="number"
+                    inputMode="decimal"
+                    min={0}
+                    step="0.01"
+                    className="h-12 text-base"
+                    value={recibido}
+                    disabled={saving}
+                    onChange={e => setRecibido(e.target.value)}
+                    data-tour="cash-machine-doubt-received"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="cash-machine-returned">{t(`${P}.returned`)}</Label>
+                  <Input
+                    id="cash-machine-returned"
+                    type="number"
+                    inputMode="decimal"
+                    min={0}
+                    step="0.01"
+                    className="h-12 text-base"
+                    value={devuelto}
+                    disabled={saving}
+                    onChange={e => setDevuelto(e.target.value)}
+                    data-tour="cash-machine-doubt-returned"
+                  />
+                </div>
+              </div>
+
+              {aviso && (
+                <p role="alert" className="text-sm text-destructive">
+                  {aviso}
+                </p>
+              )}
+
               <div className="space-y-2">
-                <Label htmlFor="cash-machine-received">{t(`${P}.received`)}</Label>
+                <Label htmlFor="cash-machine-receipt-time">{t(`${P}.receiptTime`)}</Label>
                 <Input
-                  id="cash-machine-received"
-                  type="number"
-                  inputMode="decimal"
-                  min={0}
-                  step="0.01"
-                  value={recibido}
+                  id="cash-machine-receipt-time"
+                  type="datetime-local"
+                  className="h-12 text-base"
+                  value={hora}
                   disabled={saving}
-                  onChange={e => setRecibido(e.target.value)}
-                  data-tour="cash-machine-doubt-received"
+                  onChange={e => setHora(e.target.value)}
+                  data-tour="cash-machine-doubt-receipt-time"
+                />
+                <p className="text-xs text-muted-foreground">{t(`${P}.receiptTimeHelp`)}</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="cash-machine-evidence">{t(`${P}.evidence`)}</Label>
+                <Textarea
+                  id="cash-machine-evidence"
+                  className="text-base"
+                  value={evidence}
+                  maxLength={MAX_EVIDENCE}
+                  disabled={saving}
+                  placeholder={t(`${P}.evidencePlaceholder`)}
+                  onChange={e => setEvidence(e.target.value)}
+                  data-tour="cash-machine-doubt-evidence"
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="cash-machine-returned">{t(`${P}.returned`)}</Label>
-                <Input
-                  id="cash-machine-returned"
-                  type="number"
-                  inputMode="decimal"
-                  min={0}
-                  step="0.01"
-                  value={devuelto}
-                  disabled={saving}
-                  onChange={e => setDevuelto(e.target.value)}
-                  data-tour="cash-machine-doubt-returned"
-                />
-              </div>
-            </div>
 
-            {aviso && (
-              <p role="alert" className="text-sm text-destructive">
-                {aviso}
-              </p>
-            )}
-
-            <div className="space-y-2">
-              <Label htmlFor="cash-machine-receipt-time">{t(`${P}.receiptTime`)}</Label>
-              <Input
-                id="cash-machine-receipt-time"
-                type="datetime-local"
-                value={hora}
-                disabled={saving}
-                onChange={e => setHora(e.target.value)}
-                data-tour="cash-machine-doubt-receipt-time"
-              />
-              <p className="text-xs text-muted-foreground">{t(`${P}.receiptTimeHelp`)}</p>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="cash-machine-evidence">{t(`${P}.evidence`)}</Label>
-              <Textarea
-                id="cash-machine-evidence"
-                value={evidence}
-                maxLength={MAX_EVIDENCE}
-                disabled={saving}
-                placeholder={t(`${P}.evidencePlaceholder`)}
-                onChange={e => setEvidence(e.target.value)}
-                data-tour="cash-machine-doubt-evidence"
-              />
-            </div>
-
-            {serverError && (
-              <p role="alert" className="text-sm text-destructive">
-                {serverError}
-              </p>
-            )}
-          </div>
+              {serverError && (
+                <p role="alert" className="text-sm text-destructive">
+                  {serverError}
+                </p>
+              )}
+            </section>
+          </>
         )}
-
-        <DialogFooter>
-          {registrado ? (
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
-              {t(`${P}.close`)}
-            </Button>
-          ) : (
-            <Button onClick={submit} disabled={!canSave} data-tour="cash-machine-doubt-submit">
-              {t(`${P}.submit`)}
-            </Button>
-          )}
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </FullScreenModal>
   )
 }

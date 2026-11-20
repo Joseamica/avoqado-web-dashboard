@@ -14,7 +14,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { Currency } from '@/utils/currency'
 import { useVenueDateTime } from '@/utils/datetime'
-import { ResolveCashMachineDoubtDialog, cashMachineDoubtsKey, type CashMachineDoubt } from './components/ResolveCashMachineDoubtDialog'
+import { cashMachineDoubtsKey } from '@/hooks/use-cash-machine-doubts'
+import { ResolveCashMachineDoubtDialog, type CashMachineDoubt } from './components/ResolveCashMachineDoubtDialog'
 
 const PAGE_SIZE = 50
 

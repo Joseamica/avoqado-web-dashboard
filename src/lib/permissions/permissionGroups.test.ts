@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import es from '@/locales/es/settings.json'
+import { PERMISSION_CATEGORIES, SUPER_CATEGORY_KEYS } from './generated/permissionCatalog.generated'
 import { categoriaTrasBuscar, DASHBOARD_SUPER_CATEGORIES, filterPermissionsBySearch, formatPermissionLabel, permisosQueCoinciden } from './permissionGroups'
 
 /** El traductor del panel, con los textos reales en español. */
@@ -69,5 +70,21 @@ describe('categoriaTrasBuscar', () => {
 describe('formatPermissionLabel', () => {
   it('da el texto en español, nunca el nombre interno', () => {
     expect(formatPermissionLabel('giftCards:manage', t)).toBe('Ajustar, bloquear, reponer y cancelar tarjetas de regalo')
+  })
+})
+
+describe('Máquina de efectivo en el editor de roles', () => {
+  it('la categoría existe en Operaciones con sus dos permisos exactos del SERVIDOR y sus textos en español', () => {
+    expect(PERMISSION_CATEGORIES.CASH_MACHINE.permissions).toEqual(['cash-machine:configure', 'cash-machine:resolve'])
+    expect(SUPER_CATEGORY_KEYS.operations).toContain('CASH_MACHINE')
+    expect(DASHBOARD_SUPER_CATEGORIES.flatMap(s => s.categoryKeys as readonly string[])).toContain('CASH_MACHINE')
+    expect(t('rolePermissions.categories.cash_machine')).toBe('Máquina de efectivo')
+    expect(t('rolePermissions.permissionLabels.cash-machine_configure')).toBe('Configurar la máquina en el aparato')
+    expect(t('rolePermissions.permissionLabels.cash-machine_resolve')).toBe('Resolver cobros de la máquina en duda')
+  })
+
+  it('el buscador la encuentra por lo que el dueño lee', () => {
+    expect(categorias('máquina de efectivo')).toEqual(['CASH_MACHINE'])
+    expect(permisosQueCoinciden('CASH_MACHINE', 'cobros de la maquina en duda', t)).toEqual(['cash-machine:resolve'])
   })
 })
