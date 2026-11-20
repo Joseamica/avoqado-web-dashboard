@@ -492,6 +492,9 @@ describe('encargo 27fd34 · Premium: no ofrecer guardar lo que el SERVIDOR va a 
       focusManager.setFocused(true)
       await waitFor(() => expect(inventory.productWizardApi.shouldUseInventory).toHaveBeenCalledTimes(2))
       await waitFor(() => expect(screen.getByRole('button', { name: 'wizard.finish' })).toBeEnabled())
+      // Ya paga Premium: lo que falta es el permiso; nada de «Mejorar a Premium» (Codex r2 #3).
+      expect(screen.queryByText('wizard.step2.recipePremiumTitle')).toBeNull()
+      expect(screen.queryByText('wizard.step2.premiumBadge')).toBeNull()
       await userEvent.click(screen.getByRole('button', { name: 'wizard.finish' }))
       await waitFor(() =>
         expect(avisos.toast).toHaveBeenCalledWith(expect.objectContaining({ description: 'wizard.step2.quantityNotAllowedNow' })),

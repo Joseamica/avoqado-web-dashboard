@@ -429,6 +429,9 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
   const recetaDisponible =
     hasInventoryTracking &&
     (mode === 'edit' || (opcionReceta ? opcionReceta.enabled === true : !!recommendations?.hasInventoryFeature))
+  // Encargo 27fd34 (Codex r2 #3): el negocio ya tiene Premium y lo que falta es el PERMISO de esta persona (o es «ver como»): nada de
+  // «Mejorar a Premium» ni etiqueta Premium; se dice el porqué del SERVIDOR.
+  const recetaSinPermiso = mode === 'create' && !!recommendations?.hasInventoryFeature && hasInventoryTracking && !recetaDisponible
   // Encargo 27fd34 (Codex r13 #1): al dar de alta CON inventario, mientras el SERVIDOR vuelve a contestar si se puede (al regresar a la
   // pestaña, al reintentar), no se guarda con el «sí» de antes: «Crear» espera la respuesta nueva (a quien le quitaron el permiso le
   // saldría un 403). Sin inventario no espera. Si la consulta se pausa sin red, `isFetching` es false y decide `falloDeCarga`, como hoy.
@@ -1751,10 +1754,10 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
               : t('wizard.step2.recommendationError')
             : tCommon('loading')) // sin red la consulta se PAUSA (Codex r2 #6)
         : opener === 'recipe' && !recetaDisponible
-          ? t('wizard.step2.recipePremiumLocked')
+          ? t(recetaSinPermiso ? 'wizard.step2.recommendationNoAccess' : 'wizard.step2.recipePremiumLocked')
           : undefined
     const tierBadge = id === 'variants' && accesoVariantes.isResolved && !accesoVariantes.hasAccess ? <VenueTierBadge tier="PRO" />
-      : copyId === 'recipe' && !recetaDisponible && !(mode === 'create' && recommendations?.hasInventoryFeature && hasInventoryTracking)
+      : copyId === 'recipe' && !recetaDisponible && !recetaSinPermiso
         ? <Badge variant="outline">{t('wizard.step2.premiumBadge')}</Badge> // con Premium y sin permiso no es el plan (encargo 27fd34)
         : undefined
     return <div key={opener} data-tour={id === 'inventory' && opener === preferredInventory ? 'product-wizard-track-inventory' : undefined} className="min-w-0">
@@ -2192,7 +2195,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                                 htmlFor="recipe-based-left"
                                 data-tour="product-wizard-method-recipe"
                                 aria-disabled={!recetaDisponible}
-                                title={!recetaDisponible ? t('wizard.step2.recipePremiumLocked') : undefined}
+                                title={!recetaDisponible ? (recetaSinPermiso ? t('wizard.step2.recommendationNoAccess') : t('wizard.step2.recipePremiumLocked')) : undefined}
                                 className={cn(
                                   'flex items-center gap-3 p-4 rounded-lg border transition-colors',
                                   !recetaDisponible ? 'cursor-not-allowed opacity-60 border-input' : 'cursor-pointer',
@@ -2208,7 +2211,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center gap-1.5">
                                     <p className="text-sm font-medium">{t('wizard.step2.recipeBased')}</p>
-                                    {!recetaDisponible && (mode === 'edit' || !!recommendations) && (
+                                    {!recetaDisponible && !recetaSinPermiso && (mode === 'edit' || !!recommendations) && (
                                       <Badge
                                         variant="outline"
                                         className="h-4 shrink-0 gap-0.5 border-amber-400/40 px-1.5 text-[10px] text-amber-500"
@@ -2297,7 +2300,12 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                             {/* Grandfathered-edit fallback: the product is already RECIPE-based but this
                               venue lost INVENTORY_TRACKING (e.g. downgraded to Free). Don't hard-crash
                               and don't expose the editable recipe form — show a subtle Premium upsell hint. */}
-                            {step2Form.watch('inventoryMethod') === 'RECIPE' && !recetaDisponible && (mode === 'edit' || !!recommendations) && (
+                            {step2Form.watch('inventoryMethod') === 'RECIPE' && recetaSinPermiso && (
+                              <p className="pt-4 border-t border-border/50 text-xs text-muted-foreground" data-testid="receta-sin-permiso">
+                                {t(recommendations?.recommendation || 'wizard.step2.recommendationNoAccess')}
+                              </p>
+                            )}
+                            {step2Form.watch('inventoryMethod') === 'RECIPE' && !recetaDisponible && !recetaSinPermiso && (mode === 'edit' || !!recommendations) && (
                               <div className="space-y-3 pt-4 border-t border-border/50">
                                 <div className="flex items-start gap-3 rounded-lg border border-amber-400/40 bg-amber-400/10 p-4">
                                   <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-amber-400/15">
