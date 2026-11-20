@@ -223,8 +223,9 @@ export function LinkedProductField({ venueId, enabled, onEnabledChange, value, o
                         variant="ghost"
                         size="sm"
                         className="cursor-pointer"
-                        // Mientras se recarga la primera página, «Cargar más» la cancelaría y mezclaría filas viejas con nuevas (Codex r3 #2).
-                        disabled={query.isFetching}
+                        // Mientras se recarga la primera página (o espera la red para hacerlo), «Cargar más» la cancelaría y mezclaría filas
+                        // viejas con nuevas (Codex r3 #2 y r4).
+                        disabled={query.isFetching || query.fetchStatus === 'paused'}
                         onClick={() => query.fetchNextPage()}
                       >
                         {query.isFetchingNextPage ? <Loader2 className="h-4 w-4 animate-spin" /> : t('modifiers.inventory.linked.loadMore')}
