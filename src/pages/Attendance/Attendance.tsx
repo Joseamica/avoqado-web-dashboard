@@ -71,14 +71,17 @@ export default function Attendance() {
   // «Por revisar» (D3): todas las «Salida olvidada · revisar», de cualquier fecha. El total se ve siempre; la lista sólo al
   // pedirla. Sin esto, una de hace más de 30 días o detrás de 200 checadas no se podía corregir (Codex r1 #10).
   const [soloPorRevisar, setSoloPorRevisar] = useState(false)
+  // Páginas de 200 (Codex r2 #10): con más de 200 marcadas, «Siguientes» llega a las más viejas sin corregir otras antes.
+  const [paginaPorRevisar, setPaginaPorRevisar] = useState(0)
   const porRevisarQuery = useQuery({
-    queryKey: ['attendance', 'por-revisar', venueId],
-    queryFn: () => attendanceService.getTimeEntries(venueId!, { salidaOlvidada: true, limit: 200 }),
+    queryKey: ['attendance', 'por-revisar', venueId, paginaPorRevisar],
+    queryFn: () => attendanceService.getTimeEntries(venueId!, { salidaOlvidada: true, limit: 200, offset: paginaPorRevisar * 200 }),
     enabled: !!venueId,
     staleTime: 30_000,
   })
   const porRevisar = porRevisarQuery.data?.entries.filter(e => e.salidaOlvidada) ?? []
-  const totalPorRevisar = porRevisar.length === 0 ? 0 : (porRevisarQuery.data?.total ?? porRevisar.length)
+  const totalPorRevisar = porRevisar.length === 0 && paginaPorRevisar === 0 ? 0 : (porRevisarQuery.data?.total ?? porRevisar.length)
+  const paginasPorRevisar = Math.ceil(totalPorRevisar / 200)
   const { data: pageDelRango, refetch: refetchEntries } = entriesQuery
   const page = soloPorRevisar && totalPorRevisar > 0 ? porRevisarQuery.data : pageDelRango
   const loadingEntries = page === undefined && !falloDeCarga(entriesQuery)
@@ -287,9 +290,10 @@ export default function Attendance() {
                         <p className="text-xs text-muted-foreground">
                           {Number(entry.totalHours ?? 0) === 0 ? t('forgotten.zeroHours') : t('forgotten.scheduleEnd')}
                         </p>
-                        {notaDeLaSalidaOlvidada(entry) && <p className="text-xs text-muted-foreground">{notaDeLaSalidaOlvidada(entry)}</p>}
                       </div>
                     )}
+                    {/* La salida real que llegó tarde se ve aunque ya se haya corregido (Codex r2 #4). */}
+                    {notaDeLaSalidaOlvidada(entry) && <p className="text-xs text-muted-foreground">{notaDeLaSalidaOlvidada(entry)}</p>}
                   </div>
                 </div>
                 {entry.salidaOlvidada && can('attendance:manage') && (
@@ -298,6 +302,27 @@ export default function Attendance() {
               </CardContent>
             </Card>
           ))}
+          {soloPorRevisar && paginasPorRevisar > 1 && (
+            <div className="flex items-center justify-center gap-3 text-sm">
+              <button
+                type="button"
+                className="cursor-pointer rounded-full border border-input px-3 py-1 disabled:opacity-50"
+                disabled={paginaPorRevisar === 0}
+                onClick={() => setPaginaPorRevisar(p => Math.max(0, p - 1))}
+              >
+                {t('forgotten.prev')}
+              </button>
+              <span className="text-muted-foreground">{t('forgotten.page', { page: paginaPorRevisar + 1, pages: paginasPorRevisar })}</span>
+              <button
+                type="button"
+                className="cursor-pointer rounded-full border border-input px-3 py-1 disabled:opacity-50"
+                disabled={paginaPorRevisar + 1 >= paginasPorRevisar}
+                onClick={() => setPaginaPorRevisar(p => p + 1)}
+              >
+                {t('forgotten.next')}
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

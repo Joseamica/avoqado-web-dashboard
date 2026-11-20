@@ -207,6 +207,9 @@
     "saved": "{{name}}'s clock-out fixed",
     "error": "Couldn't save the clock-out",
     "invalid": "Enter a valid date and time",
-    "filter": "To review: {{count}}"
+    "filter": "To review: {{count}}",
+    "prev": "Previous",
+    "next": "Next",
+    "page": "Page {{page}} of {{pages}}"
   }
 }

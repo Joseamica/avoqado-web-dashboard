@@ -207,6 +207,9 @@
     "saved": "Salida de {{name}} corregida",
     "error": "No se pudo guardar la salida",
     "invalid": "Escribe una fecha y hora válidas",
-    "filter": "Por revisar: {{count}}"
+    "filter": "Por revisar: {{count}}",
+    "prev": "Anteriores",
+    "next": "Siguientes",
+    "page": "Página {{page}} de {{pages}}"
   }
 }
