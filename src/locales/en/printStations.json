@@ -73,7 +73,7 @@
     }
   },
   "printers": {
-    "intro": "Register each physical printer in the venue. Connect it over the network (WiFi/Ethernet) or via Bluetooth. The receipt and ticket printer of each register is not listed here: choose it on the register itself, in More › Settings › Printer.",
+    "intro": "Register each physical printer in the venue. Connect it over the network (WiFi/Ethernet) or via Bluetooth. The receipt and ticket printer of each register is not listed here, and neither is one connected by cable (USB) to the register's computer: add them on the register itself, in Más › Ajustes › Impresoras y cajón (More › Settings › Printers and drawer).",
     "empty": "No printers registered yet.",
     "add": "Add printer",
     "createTitle": "New printer",
@@ -93,7 +93,7 @@
       "namePlaceholder": "e.g. Kitchen printer",
       "addressNetwork": "IP address",
       "addressNetworkPlaceholder": "192.168.1.50:9100",
-      "addressNetworkHint": "The printer's IP and its port (optional). Sends raw ESC/POS commands; if you omit the port, 9100 is used by default.",
+      "addressNetworkHint": "The printer's IP and its port (optional). Sends raw ESC/POS commands; if you omit the port, 9100 is used by default. Is your printer connected by cable (USB) to the register's computer? It is not registered here: add it in the POS on that register, in Más › Ajustes › Impresoras y cajón (More › Settings › Printers and drawer).",
       "addressBluetooth": "MAC address",
       "addressBluetoothPlaceholder": "AA:BB:CC:DD:EE:FF",
       "addressBluetoothHint": "The printer must be paired over Bluetooth with the device that prints (the gateway).",

@@ -12,6 +12,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/co
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { Currency } from '@/utils/currency'
@@ -34,6 +35,7 @@ import {
   Package,
   Settings2,
   ArrowUpDown,
+  Info,
 } from 'lucide-react'
 import { SalesByItemChart } from './components/SalesByItemChart'
 import { FeatureGate } from '@/components/billing/FeatureGate'
@@ -44,7 +46,16 @@ import { csvDeVentas } from './salesByItemCsv'
 // Types
 // ============================================
 
-type SortField = 'productName' | 'categoryName' | 'itemsSold' | 'unitsSold' | 'grossSales' | 'discounts' | 'netSales'
+type SortField =
+  | 'productName'
+  | 'categoryName'
+  | 'itemsSold'
+  | 'unitsSold'
+  | 'unitsInsidePackages'
+  | 'totalUnits'
+  | 'grossSales'
+  | 'discounts'
+  | 'netSales'
 type SortDirection = 'asc' | 'desc'
 type HoursFilter = 'all' | 'custom'
 type ControlPanel = 'main' | 'reportType' | 'hoursFilter' | 'groupBy'
@@ -223,9 +234,11 @@ const SortableHeader: React.FC<{
 const ItemRow: React.FC<{
   item: ItemSalesMetrics
   showProductColumns: boolean
+  /** «Dentro de paquete» y «Total» (founder «B», 20-nov): sólo cuando el periodo trae extras ligados. */
+  showPackageColumns: boolean
   isVariant?: boolean
   family?: { open: boolean; count: number; onToggle: () => void }
-}> = ({ item, showProductColumns, isVariant, family }) => {
+}> = ({ item, showProductColumns, showPackageColumns, isVariant, family }) => {
   const { t } = useTranslation('reports')
   const name = <span className="text-sm font-medium">{item.productName}</span>
   return (
@@ -287,6 +300,16 @@ const ItemRow: React.FC<{
       <td className="px-4 py-3 text-right hidden sm:table-cell">
         <span className="text-sm font-mono">{item.unitsSold}</span>
       </td>
+      {showPackageColumns && (
+        <td className="px-4 py-3 text-right" data-testid="dentro-de-paquete">
+          <span className="text-sm font-mono text-muted-foreground">{item.unitsInsidePackages ? item.unitsInsidePackages : '—'}</span>
+        </td>
+      )}
+      {showPackageColumns && (
+        <td className="px-4 py-3 text-right" data-testid="total-de-unidades">
+          <span className="text-sm font-mono">{item.totalUnits ?? item.unitsSold}</span>
+        </td>
+      )}
       <td className="px-4 py-3 text-right">
         <span className="text-sm font-mono">{Currency(item.grossSales)}</span>
       </td>
@@ -471,6 +494,10 @@ export default function SalesByItem() {
     [apiResponse?.items, sort],
   )
 
+  // «Dentro de paquete» (founder «B», 20-nov): las dos columnas salen sólo por producto y cuando el periodo trae extras ligados,
+  // para no llenar de ceros el reporte de quien no liga extras. No cambian ninguna columna de siempre.
+  const showPackageColumns = groupBy === 'none' && (apiResponse?.items ?? []).some(i => (i.unitsInsidePackages ?? 0) > 0)
+
   // Handle date range change
   const handleDateRangeUpdate = (values: { range: { from: Date; to: Date | undefined } }) => {
     if (values.range.from && values.range.to) {
@@ -504,6 +531,9 @@ export default function SalesByItem() {
         descuentos: t('salesByItem.columns.discounts'),
         familia: t('salesByItem.familia'),
         total: t('salesByItem.totals.label'),
+        paquete: showPackageColumns
+          ? { dentro: t('salesByItem.columns.insidePackages'), total: t('salesByItem.columns.totalUnits') }
+          : undefined,
       },
       filas.some(f => f.tipo === 'familia'),
     )
@@ -538,7 +568,10 @@ export default function SalesByItem() {
             size="icon"
             className="h-9 w-9 cursor-pointer"
             onClick={handleExportCSV}
-            disabled={!apiResponse}
+            aria-label={t('salesByItem.actions.exportCSV')}
+            // No se exporta una copia que quizá ya no vale: mientras se recarga (p. ej. tras cambiar la liga de un extra, Codex r2 #8),
+            // si la recarga falló o si quedó en pausa por falta de red (Codex r3 #8).
+            disabled={!apiResponse || reportQuery.isFetching || reportQuery.isError || reportQuery.fetchStatus === 'paused'}
           >
             <Download className="w-4 h-4" />
           </Button>
@@ -934,6 +967,49 @@ export default function SalesByItem() {
                       align="right"
                     />
                   </th>
+                  {/* Las dos columnas se ven también en pantallas angostas: explican un platillo con $0 que sólo salió en paquetes
+                      (Codex r1 #13 y r2 #9). */}
+                  {showPackageColumns && (
+                    <th className="px-4 py-3 text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <SortableHeader
+                          label={t('salesByItem.columns.insidePackages')}
+                          field="unitsInsidePackages"
+                          currentSort={sort}
+                          onSort={handleSort}
+                          align="right"
+                        />
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <button
+                                type="button"
+                                className="cursor-pointer text-muted-foreground hover:text-foreground"
+                                aria-label={t('salesByItem.insidePackagesHelp')}
+                                data-tour="sales-by-item-inside-packages-help"
+                              >
+                                <Info className="w-3 h-3" />
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="max-w-[280px] text-xs">
+                              {t('salesByItem.insidePackagesHelp')}
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                    </th>
+                  )}
+                  {showPackageColumns && (
+                    <th className="px-4 py-3 text-right">
+                      <SortableHeader
+                        label={t('salesByItem.columns.totalUnits')}
+                        field="totalUnits"
+                        currentSort={sort}
+                        onSort={handleSort}
+                        align="right"
+                      />
+                    </th>
+                  )}
                   <th className="px-4 py-3 text-right">
                     <SortableHeader
                       label={t('salesByItem.columns.grossSales')}
@@ -963,6 +1039,7 @@ export default function SalesByItem() {
                         key={`${item.productId || item.productName}-${index}`}
                         item={item}
                         showProductColumns={showProductColumns}
+                        showPackageColumns={showPackageColumns}
                       />
                     )
                   }
@@ -972,6 +1049,7 @@ export default function SalesByItem() {
                       <ItemRow
                         item={fila.metricas}
                         showProductColumns={showProductColumns}
+                        showPackageColumns={showPackageColumns}
                         family={{ open, count: fila.variantes.length, onToggle: () => toggleFamilia(fila.groupId) }}
                       />
                       {open &&
@@ -980,6 +1058,7 @@ export default function SalesByItem() {
                             key={`${variante.productId || variante.productName}-${i}`}
                             item={variante}
                             showProductColumns={showProductColumns}
+                            showPackageColumns={showPackageColumns}
                             isVariant
                           />
                         ))}
@@ -1001,6 +1080,18 @@ export default function SalesByItem() {
                   <td className="px-4 py-3 text-right hidden sm:table-cell">
                     <span className="text-sm font-mono">{apiResponse.totals.unitsSold}</span>
                   </td>
+                  {showPackageColumns && (
+                    <td className="px-4 py-3 text-right">
+                      <span className="text-sm font-mono">{apiResponse.totals.unitsInsidePackages ?? 0}</span>
+                    </td>
+                  )}
+                  {showPackageColumns && (
+                    <td className="px-4 py-3 text-right">
+                      <span className="text-sm font-mono">
+                        {apiResponse.totals.totalUnits ?? apiResponse.totals.unitsSold + (apiResponse.totals.unitsInsidePackages ?? 0)}
+                      </span>
+                    </td>
+                  )}
                   <td className="px-4 py-3 text-right">
                     <span className="text-sm font-mono">{Currency(apiResponse.totals.grossSales)}</span>
                   </td>

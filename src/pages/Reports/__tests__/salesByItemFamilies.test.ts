@@ -93,3 +93,30 @@ describe('agruparVentasPorFamilia', () => {
     expect(porNombre.map(f => (f.tipo === 'familia' ? f.nombre : f.item.productName))).toEqual(['Cinto', 'Gorra', 'Playera'])
   })
 })
+
+describe('agruparVentasPorFamilia — «Dentro de paquete» (founder «B», 20-nov)', () => {
+  it('la familia suma lo de paquete y el total de sus variantes', () => {
+    const v1 = item({ productName: 'Flauta · Papa', productGroupId: 'g1', productGroupName: 'Flauta', unitsSold: 2, unitsInsidePackages: 10, totalUnits: 12 })
+    const v2 = item({ productName: 'Flauta · Pollo', productGroupId: 'g1', productGroupName: 'Flauta', unitsSold: 3, unitsInsidePackages: 0, totalUnits: 3 })
+    const [fila] = agruparVentasPorFamilia([v1, v2], orden)
+    expect(fila.tipo).toBe('familia')
+    if (fila.tipo !== 'familia') return
+    expect(fila.metricas).toMatchObject({ unitsSold: 5, unitsInsidePackages: 10, totalUnits: 15 })
+  })
+
+  it('sin el campo (otro «Mostrar por» o server viejo) la familia tampoco lo inventa', () => {
+    const v1 = item({ productName: 'Playera · S', productGroupId: 'g1', productGroupName: 'Playera' })
+    const v2 = item({ productName: 'Playera · M', productGroupId: 'g1', productGroupName: 'Playera' })
+    const [fila] = agruparVentasPorFamilia([v1, v2], orden)
+    if (fila.tipo !== 'familia') throw new Error('esperaba familia')
+    expect(fila.metricas.unitsInsidePackages).toBeUndefined()
+    expect(fila.metricas.totalUnits).toBeUndefined()
+  })
+
+  it('se puede ordenar por «Dentro de paquete»', () => {
+    const a = item({ productName: 'Paquete', unitsInsidePackages: 0, totalUnits: 5 })
+    const b = item({ productName: 'Flauta de papa', unitsInsidePackages: 12, totalUnits: 12 })
+    const filas = agruparVentasPorFamilia([a, b], { field: 'unitsInsidePackages', direction: 'desc' })
+    expect(filas.map(f => (f.tipo === 'articulo' ? f.item.productName : ''))).toEqual(['Flauta de papa', 'Paquete'])
+  })
+})

@@ -73,7 +73,7 @@
     }
   },
   "printers": {
-    "intro": "Registra cada impresora física del local. Puedes conectarla por red (WiFi/Ethernet) o por Bluetooth. La impresora de recibos y vales de cada caja no va aquí: se elige en la propia caja, en Más › Ajustes › Impresora.",
+    "intro": "Registra cada impresora física del local. Puedes conectarla por red (WiFi/Ethernet) o por Bluetooth. La impresora de recibos y vales de cada caja no va aquí, ni la que va conectada por cable (USB) a la computadora de la caja: se agregan en la propia caja, en Más › Ajustes › Impresoras y cajón.",
     "empty": "Aún no hay impresoras registradas.",
     "add": "Agregar impresora",
     "createTitle": "Nueva impresora",
@@ -93,7 +93,7 @@
       "namePlaceholder": "Ej. Impresora de cocina",
       "addressNetwork": "Dirección IP",
       "addressNetworkPlaceholder": "192.168.1.50:9100",
-      "addressNetworkHint": "IP de la impresora y su puerto (opcional). Se envían comandos ESC/POS sin procesar; si omites el puerto se usa el 9100 por defecto.",
+      "addressNetworkHint": "IP de la impresora y su puerto (opcional). Se envían comandos ESC/POS sin procesar; si omites el puerto se usa el 9100 por defecto. ¿Tu impresora va conectada por cable (USB) a la computadora de la caja? No se registra aquí: agrégala en el POS de esa caja, en Más › Ajustes › Impresoras y cajón.",
       "addressBluetooth": "Dirección MAC",
       "addressBluetoothPlaceholder": "AA:BB:CC:DD:EE:FF",
       "addressBluetoothHint": "La impresora debe estar emparejada por Bluetooth con el dispositivo que imprime (el gateway).",

@@ -83,6 +83,25 @@ describe('csvDeVentas', () => {
     expect(lineas[3]).toBe('"Total","","","","","16","19","1450.50","50.00",""')
   })
 
+  it('«Dentro de paquete» y «Total» (founder «B», 20-nov) van AL FINAL, sin mover las columnas de siempre', () => {
+    const conPaquete: ItemSalesMetrics[] = [
+      { ...filas[0], unitsInsidePackages: 0, totalUnits: 15 },
+      { ...filas[1], productName: 'Flauta de papa', unitsSold: 4, unitsInsidePackages: 12, totalUnits: 16 },
+    ]
+    const tot = { ...totales, unitsInsidePackages: 12, totalUnits: 31 }
+    const paquete = { ...encabezados, paquete: { dentro: 'Dentro de paquete', total: 'Total de unidades' } }
+    const lineas = csvDeVentas(conPaquete, tot, paquete, true).split('\n')
+    expect(lineas[0]).toBe(
+      '\uFEFF"Artículo","SKU","Categoría","Dentro de promoción","Unidad","Artículos vendidos","Unidades vendidas","Ventas brutas","Descuentos","Familia","Dentro de paquete","Total de unidades"',
+    )
+    expect(lineas[1]).toBe('"Café americano","CAF-1","Bebidas","Combo desayuno (3)","c/u","12","15","1350.00","50.00","","0","15"')
+    expect(lineas[2]).toBe('"Flauta de papa","","","","c/u","4","4","100.50","0.00","","12","16"')
+    expect(lineas[3]).toBe('"Total","","","","","16","19","1450.50","50.00","","12","31"')
+    // Sin `paquete`, la salida es la de siempre aunque los renglones traigan los campos.
+    const sinCampos = conPaquete.map(({ unitsInsidePackages: _d, totalUnits: _t, ...resto }) => resto)
+    expect(csvDeVentas(conPaquete, tot, encabezados, false)).toBe(csvDeVentas(sinCampos, totales, encabezados, false))
+  })
+
   it('una comilla en un nombre se duplica y no parte el renglón', () => {
     const conComillas = [{ ...filas[0], productName: 'Playera "Clásica" · S', productGroupId: 'g1', productGroupName: 'Playera "Clásica"' }]
     const lineas = csvDeVentas(conComillas, totales, encabezados, true).split('\n')
