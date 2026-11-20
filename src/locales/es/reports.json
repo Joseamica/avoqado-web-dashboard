@@ -898,6 +898,8 @@
       "unit": "Unidad",
       "itemsSold": "Artículos vendidos",
       "unitsSold": "Unidades vendidas",
+      "insidePackages": "Dentro de paquete",
+      "totalUnits": "Total",
       "grossSales": "Ventas brutas",
       "discounts": "Descuentos",
       "netSales": "Ventas netas"
@@ -969,7 +971,8 @@
     },
     "totals": {
       "label": "Total"
-    }
+    },
+    "insidePackagesHelp": "Unidades que se vendieron como extra ligado a este platillo (por ejemplo, dentro de un paquete). No suman dinero: el precio va en el producto principal. «Total» = unidades vendidas + dentro de paquete. Se usa la liga actual del extra: si la cambias, también cambian los días pasados."
   },
   "salesByCategory": {
     "title": "Ventas por categoría",
