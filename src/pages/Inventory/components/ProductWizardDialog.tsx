@@ -26,7 +26,7 @@ import { useVenderEnCanales, type EnvioVenderEn } from '@/pages/Delivery/compone
 import { useImageUploader } from '@/hooks/use-image-uploader'
 import { useUnitTranslation } from '@/hooks/use-unit-translation'
 import { useTierFeatureAccess } from '@/hooks/use-tier-feature-access'
-import { accessQueryKey } from '@/hooks/use-access'
+import { accessQueryKey } from '@/hooks/access-query-key'
 import {
   productWizardApi,
   rawMaterialsApi,
