@@ -282,6 +282,9 @@ export function SettingsTab() {
         qc.setQueryData(key, merged)
         reset(toForm(merged))
       }
+      // D662 (Codex p2-r6 #4): un sondeo del estado que ya iba en camino trae lo de ANTES de guardar; se cancela para que no pinte
+      // encima (el de los ajustes, recién releído, gana por ser el más nuevo) y el siguiente sondeo ya lee lo guardado.
+      void qc.cancelQueries({ queryKey: onlineOrderingKeys.storeStatus(venueId!) })
       void qc.invalidateQueries({ queryKey: key })
       setServerMissing([])
       setSaveError(null)
