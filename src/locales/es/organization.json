@@ -980,7 +980,17 @@
       "permission": "Permiso",
       "permission-set": "Conjunto de permisos",
       "pos-sync-intent": "Sincronización del punto de venta",
-      "venue-access": "Acceso a la sucursal"
+      "venue-access": "Acceso a la sucursal",
+      "HybridCampaign": "Campaña de plan",
+      "KioskQrKey": "Llave del QR del kiosco",
+      "LoyaltyPromotion": "Promoción de lealtad",
+      "CheckoutSession": "Pago en línea",
+      "MercadoPagoWebhookEvent": "Aviso de Mercado Pago",
+      "OrganizationPaymentConfig": "Cuentas de cobro de la organización",
+      "OrganizationPricingStructure": "Tarifa de la organización",
+      "SupportDataAcceptance": "Aviso de datos del soporte",
+      "SupportDataUnlock": "Datos abiertos al soporte",
+      "SupportWhatsappLink": "WhatsApp del soporte"
     },
     "detailKeys": {
       "amount": "Monto",

@@ -93,6 +93,31 @@ describe('bitácora: el detalle de anular una cuenta se lee sin códigos ni ids 
   })
 })
 
+// Las entidades de las acciones nuevas (encargo 2095be): sin texto, «Sobre qué» decía `LoyaltyPromotion` o `MercadoPagoWebhookEvent`.
+describe('bitácora: «Sobre qué» de las acciones nuevas tiene nombre', () => {
+  const ENTIDADES = [
+    'HybridCampaign',
+    'KioskQrKey',
+    'LoyaltyPromotion',
+    'CheckoutSession',
+    'MercadoPagoWebhookEvent',
+    'OrganizationPaymentConfig',
+    'OrganizationPricingStructure',
+    'SupportDataAcceptance',
+    'SupportDataUnlock',
+    'SupportWhatsappLink',
+  ]
+  for (const [lng, bundle] of [
+    ['es', es],
+    ['en', en],
+  ] as const) {
+    it(lng, () => {
+      const entities = (bundle as unknown as { activityLog: { entities: Record<string, string> } }).activityLog.entities
+      for (const e of ENTIDADES) expect(entities[e], e).toEqual(expect.stringMatching(/\S/))
+    })
+  }
+})
+
 describe('bitácora: lo que el dueño debe revisar (descuento sobre el tope, mesas sin internet) se resalta', () => {
   for (const a of [
     'DESCUENTO_SOBRE_TOPE',

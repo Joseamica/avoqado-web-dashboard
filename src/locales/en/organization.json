@@ -980,7 +980,17 @@
       "permission": "Permission",
       "permission-set": "Permission set",
       "pos-sync-intent": "POS sync",
-      "venue-access": "Venue access"
+      "venue-access": "Venue access",
+      "HybridCampaign": "Plan campaign",
+      "KioskQrKey": "Kiosk QR key",
+      "LoyaltyPromotion": "Loyalty promotion",
+      "CheckoutSession": "Online checkout",
+      "MercadoPagoWebhookEvent": "Mercado Pago notification",
+      "OrganizationPaymentConfig": "Organization payment accounts",
+      "OrganizationPricingStructure": "Organization rates",
+      "SupportDataAcceptance": "Support data notice",
+      "SupportDataUnlock": "Support data access",
+      "SupportWhatsappLink": "Support WhatsApp"
     },
     "detailKeys": {
       "amount": "Amount",
