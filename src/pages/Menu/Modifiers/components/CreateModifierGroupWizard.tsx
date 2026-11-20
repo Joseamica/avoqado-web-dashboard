@@ -58,6 +58,8 @@ const createFormSchema = (t: any) =>
       required: z.boolean().default(false),
       min: z.number().int().min(0).default(0),
       max: z.number().int().min(1).default(1),
+      /** La misma opción se puede elegir varias veces (encargo a508f4). Sólo cuenta con máximo mayor a 1. */
+      allowRepeat: z.boolean().default(false),
       newModifiers: z
         .array(
           z.object({
@@ -154,6 +156,7 @@ export function CreateModifierGroupWizard({ onCancel, onSuccess }: CreateModifie
       required: false,
       min: 0,
       max: 1,
+      allowRepeat: false,
       newModifiers: [{ name: '', extraPrice: 0 }],
       selectedProducts: [],
     },
@@ -252,6 +255,7 @@ export function CreateModifierGroupWizard({ onCancel, onSuccess }: CreateModifie
       name: sanitizeInput(values.name.trim()),
       required: values.required,
       allowMultiple: values.max > 1,
+      allowRepeat: values.max > 1 && values.allowRepeat,
       minSelections: values.min,
       maxSelections: values.max,
       modifiers: validModifiers,
@@ -276,9 +280,7 @@ export function CreateModifierGroupWizard({ onCancel, onSuccess }: CreateModifie
   const watchedProducts = form.watch('selectedProducts')
 
   const previewName = watchedName?.trim() || t('modifiers.createGroup.examples.sampleName')
-  const requiredLabel = watchRequired
-    ? t('modifiers.createGroup.reviewRequiredYes')
-    : t('modifiers.createGroup.reviewRequiredNo')
+  const requiredLabel = watchRequired ? t('modifiers.createGroup.reviewRequiredYes') : t('modifiers.createGroup.reviewRequiredNo')
 
   const selectionMin = typeof watchedMin === 'number' && Number.isFinite(watchedMin) ? watchedMin : 0
   const selectionMax = typeof watchedMax === 'number' && Number.isFinite(watchedMax) ? watchedMax : 0
@@ -362,8 +364,7 @@ export function CreateModifierGroupWizard({ onCancel, onSuccess }: CreateModifie
 
   const currentStepMeta = steps[currentStep - 1]
   const progressPercentage = (currentStep / TOTAL_STEPS) * 100
-  const isLoading =
-    form.formState.isSubmitting || createModifierGroupMutation.isPending
+  const isLoading = form.formState.isSubmitting || createModifierGroupMutation.isPending
 
   const InfoTooltip = ({ content }: { content: string }) => (
     <Tooltip>
@@ -598,6 +599,31 @@ export function CreateModifierGroupWizard({ onCancel, onSuccess }: CreateModifie
                           )}
                         />
                       </div>
+
+                      <FormField
+                        control={form.control}
+                        name="allowRepeat"
+                        render={({ field }) => (
+                          <FormItem
+                            className="mt-4 flex flex-row items-center justify-between rounded-lg border border-input p-3"
+                            data-tour="modifier-group-wizard-allow-repeat"
+                          >
+                            <div className="space-y-0.5">
+                              <FormLabel>{t('modifiers.repeat.label')}</FormLabel>
+                              <FormDescription>
+                                {watchedMax > 1 ? t('modifiers.repeat.desc') : t('modifiers.repeat.needsMax')}
+                              </FormDescription>
+                            </div>
+                            <FormControl>
+                              <Switch
+                                checked={watchedMax > 1 && !!field.value}
+                                disabled={!(watchedMax > 1)}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
                     </CardContent>
                   </Card>
 
@@ -654,7 +680,8 @@ export function CreateModifierGroupWizard({ onCancel, onSuccess }: CreateModifie
                                   size="sm"
                                   onClick={() => remove(index)}
                                   aria-label={t('modifiers.createGroup.removeModifier', {
-                                    name: form.watch(`newModifiers.${index}.name`) || t('modifiers.createGroup.modifier', { index: index + 1 }),
+                                    name:
+                                      form.watch(`newModifiers.${index}.name`) || t('modifiers.createGroup.modifier', { index: index + 1 }),
                                   })}
                                 >
                                   {t('modifiers.createGroup.remove')}
@@ -683,7 +710,10 @@ export function CreateModifierGroupWizard({ onCancel, onSuccess }: CreateModifie
                       </div>
                       <div className="space-y-2">
                         {previewModifiers.map((mod, index) => (
-                          <div key={`${mod.name}-${index}`} className="flex items-center justify-between rounded-md border px-3 py-2 text-xs">
+                          <div
+                            key={`${mod.name}-${index}`}
+                            className="flex items-center justify-between rounded-md border px-3 py-2 text-xs"
+                          >
                             <span className="font-medium">{mod.name}</span>
                             <span className="text-muted-foreground">{formatExtraPrice(mod.extraPrice)}</span>
                           </div>
@@ -741,105 +771,108 @@ export function CreateModifierGroupWizard({ onCancel, onSuccess }: CreateModifie
                 </div>
               )}
 
-              {currentStep === 5 && (() => {
-                const reviewValues = form.getValues()
-                const reviewModifiers = reviewValues.newModifiers.filter(mod => mod.name.trim() !== '')
-                const reviewProducts = reviewValues.selectedProducts ?? []
-                const previewProductLabels = reviewProducts.length > 0 ? reviewProducts.map(product => product.label) : previewProducts
-                const reviewPreviewModifiers = reviewModifiers.length > 0 ? reviewModifiers : previewModifiers
+              {currentStep === 5 &&
+                (() => {
+                  const reviewValues = form.getValues()
+                  const reviewModifiers = reviewValues.newModifiers.filter(mod => mod.name.trim() !== '')
+                  const reviewProducts = reviewValues.selectedProducts ?? []
+                  const previewProductLabels = reviewProducts.length > 0 ? reviewProducts.map(product => product.label) : previewProducts
+                  const reviewPreviewModifiers = reviewModifiers.length > 0 ? reviewModifiers : previewModifiers
 
-                return (
-                  <div className="grid gap-6 lg:grid-cols-[1.35fr_1fr]">
-                    <Card className="border-border/60">
-                      <CardContent className="space-y-6 pt-6">
-                        <div className="grid gap-4 md:grid-cols-2">
-                          <div className="space-y-1">
-                            <p className="text-sm text-muted-foreground">{t('forms.name')}</p>
-                            <p className="font-medium">{reviewValues.name || tCommon('na')}</p>
-                          </div>
-                          <div className="space-y-1">
-                            <p className="text-sm text-muted-foreground">{t('modifiers.createGroup.requiredSelection')}</p>
-                            <p className="font-medium">
-                              {reviewValues.required
-                                ? t('modifiers.createGroup.reviewRequiredYes')
-                                : t('modifiers.createGroup.reviewRequiredNo')}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="grid gap-4 md:grid-cols-2">
-                          <div className="space-y-1">
-                            <p className="text-sm text-muted-foreground">{t('modifiers.createGroup.minSelections')}</p>
-                            <p className="font-medium">{reviewValues.min}</p>
-                          </div>
-                          <div className="space-y-1">
-                            <p className="text-sm text-muted-foreground">{t('modifiers.createGroup.maxSelections')}</p>
-                            <p className="font-medium">{reviewValues.max}</p>
-                          </div>
-                        </div>
-
-                        <div className="space-y-2">
-                          <p className="text-sm text-muted-foreground">{t('modifiers.createGroup.modifiers')}</p>
-                          {reviewModifiers.map((mod, index) => (
-                            <div key={`${mod.name}-${index}`} className="flex items-center justify-between rounded-md border px-3 py-2">
-                              <span className="text-sm font-medium">{mod.name}</span>
-                              <span className="text-sm text-muted-foreground">
-                                {Number.isFinite(mod.extraPrice) ? mod.extraPrice.toFixed(2) : '0.00'}
-                              </span>
+                  return (
+                    <div className="grid gap-6 lg:grid-cols-[1.35fr_1fr]">
+                      <Card className="border-border/60">
+                        <CardContent className="space-y-6 pt-6">
+                          <div className="grid gap-4 md:grid-cols-2">
+                            <div className="space-y-1">
+                              <p className="text-sm text-muted-foreground">{t('forms.name')}</p>
+                              <p className="font-medium">{reviewValues.name || tCommon('na')}</p>
                             </div>
-                          ))}
-                          {reviewModifiers.length === 0 && (
-                            <p className="text-sm text-muted-foreground">{t('modifiers.createGroup.reviewNoModifiers')}</p>
-                          )}
-                        </div>
+                            <div className="space-y-1">
+                              <p className="text-sm text-muted-foreground">{t('modifiers.createGroup.requiredSelection')}</p>
+                              <p className="font-medium">
+                                {reviewValues.required
+                                  ? t('modifiers.createGroup.reviewRequiredYes')
+                                  : t('modifiers.createGroup.reviewRequiredNo')}
+                              </p>
+                            </div>
+                          </div>
 
-                        <div className="space-y-2">
-                          <p className="text-sm text-muted-foreground">{t('modifiers.createGroup.productAssignment')}</p>
-                          {reviewProducts.length > 0 ? (
+                          <div className="grid gap-4 md:grid-cols-2">
+                            <div className="space-y-1">
+                              <p className="text-sm text-muted-foreground">{t('modifiers.createGroup.minSelections')}</p>
+                              <p className="font-medium">{reviewValues.min}</p>
+                            </div>
+                            <div className="space-y-1">
+                              <p className="text-sm text-muted-foreground">{t('modifiers.createGroup.maxSelections')}</p>
+                              <p className="font-medium">{reviewValues.max}</p>
+                            </div>
+                          </div>
+
+                          <div className="space-y-2">
+                            <p className="text-sm text-muted-foreground">{t('modifiers.createGroup.modifiers')}</p>
+                            {reviewModifiers.map((mod, index) => (
+                              <div key={`${mod.name}-${index}`} className="flex items-center justify-between rounded-md border px-3 py-2">
+                                <span className="text-sm font-medium">{mod.name}</span>
+                                <span className="text-sm text-muted-foreground">
+                                  {Number.isFinite(mod.extraPrice) ? mod.extraPrice.toFixed(2) : '0.00'}
+                                </span>
+                              </div>
+                            ))}
+                            {reviewModifiers.length === 0 && (
+                              <p className="text-sm text-muted-foreground">{t('modifiers.createGroup.reviewNoModifiers')}</p>
+                            )}
+                          </div>
+
+                          <div className="space-y-2">
+                            <p className="text-sm text-muted-foreground">{t('modifiers.createGroup.productAssignment')}</p>
+                            {reviewProducts.length > 0 ? (
+                              <div className="flex flex-wrap gap-2">
+                                {reviewProducts.map(product => (
+                                  <span key={product.value} className="rounded-full border px-3 py-1 text-xs text-muted-foreground">
+                                    {product.label}
+                                  </span>
+                                ))}
+                              </div>
+                            ) : (
+                              <p className="text-sm text-muted-foreground">{t('modifiers.createGroup.reviewNoProducts')}</p>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      <ExampleCard title={t('modifiers.createGroup.examples.previewTitle')} icon={CheckCircle2}>
+                        <div className="space-y-3">
+                          <div className="space-y-1">
+                            <p className="text-sm font-semibold">{reviewValues.name || previewName}</p>
+                            <p className="text-xs text-muted-foreground">{selectionSummary}</p>
+                          </div>
+                          <div className="space-y-2">
+                            {reviewPreviewModifiers.map((mod, index) => (
+                              <div
+                                key={`${mod.name}-${index}`}
+                                className="flex items-center justify-between rounded-md border px-3 py-2 text-xs"
+                              >
+                                <span className="font-medium">{mod.name}</span>
+                                <span className="text-muted-foreground">{formatExtraPrice(mod.extraPrice)}</span>
+                              </div>
+                            ))}
+                          </div>
+                          {previewProductLabels.length > 0 && (
                             <div className="flex flex-wrap gap-2">
-                              {reviewProducts.map(product => (
-                                <span key={product.value} className="rounded-full border px-3 py-1 text-xs text-muted-foreground">
-                                  {product.label}
+                              {previewProductLabels.map(product => (
+                                <span key={product} className="rounded-full border px-3 py-1 text-xs text-muted-foreground">
+                                  {product}
                                 </span>
                               ))}
                             </div>
-                          ) : (
-                            <p className="text-sm text-muted-foreground">{t('modifiers.createGroup.reviewNoProducts')}</p>
                           )}
                         </div>
-                      </CardContent>
-                    </Card>
-
-                    <ExampleCard title={t('modifiers.createGroup.examples.previewTitle')} icon={CheckCircle2}>
-                      <div className="space-y-3">
-                        <div className="space-y-1">
-                          <p className="text-sm font-semibold">{reviewValues.name || previewName}</p>
-                          <p className="text-xs text-muted-foreground">{selectionSummary}</p>
-                        </div>
-                        <div className="space-y-2">
-                          {reviewPreviewModifiers.map((mod, index) => (
-                            <div key={`${mod.name}-${index}`} className="flex items-center justify-between rounded-md border px-3 py-2 text-xs">
-                              <span className="font-medium">{mod.name}</span>
-                              <span className="text-muted-foreground">{formatExtraPrice(mod.extraPrice)}</span>
-                            </div>
-                          ))}
-                        </div>
-                        {previewProductLabels.length > 0 && (
-                          <div className="flex flex-wrap gap-2">
-                            {previewProductLabels.map(product => (
-                              <span key={product} className="rounded-full border px-3 py-1 text-xs text-muted-foreground">
-                                {product}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </ExampleCard>
-                  </div>
-                )
-              })()}
+                      </ExampleCard>
+                    </div>
+                  )
+                })()}
             </div>
-
 
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <Button type="button" variant="outline" onClick={handleBack} disabled={currentStep === 1 || isLoading}>
@@ -850,11 +883,7 @@ export function CreateModifierGroupWizard({ onCancel, onSuccess }: CreateModifie
                 <Button type="button" variant="outline" onClick={handleCancel} disabled={isLoading}>
                   {tCommon('cancel')}
                 </Button>
-                <Button
-                  type="button"
-                  onClick={currentStep < TOTAL_STEPS ? handleNext : handleCreate}
-                  disabled={isLoading}
-                >
+                <Button type="button" onClick={currentStep < TOTAL_STEPS ? handleNext : handleCreate} disabled={isLoading}>
                   {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   {currentStep < TOTAL_STEPS ? (
                     <>
@@ -910,15 +939,7 @@ interface ProductMultiPickerProps {
  * supported here — if you need it, swap back to DnDMultipleSelector or add
  * an explicit reorder mode.
  */
-function ProductMultiPicker({
-  products,
-  value,
-  onChange,
-  placeholder,
-  emptyLabel,
-  onViewProduct,
-  onCreateNew,
-}: ProductMultiPickerProps) {
+function ProductMultiPicker({ products, value, onChange, placeholder, emptyLabel, onViewProduct, onCreateNew }: ProductMultiPickerProps) {
   const { t: tv } = useTranslation('variants')
   const [search, setSearch] = useState('')
 
@@ -950,11 +971,7 @@ function ProductMultiPicker({
       {value.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
           {value.map(option => (
-            <Badge
-              key={option.value}
-              variant="secondary"
-              className="h-7 pl-2.5 pr-1 gap-1 font-normal text-xs"
-            >
+            <Badge key={option.value} variant="secondary" className="h-7 pl-2.5 pr-1 gap-1 font-normal text-xs">
               <span className="truncate max-w-[180px]">{option.label}</span>
               {onViewProduct && option.value !== '_new' && (
                 <button

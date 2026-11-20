@@ -53,6 +53,8 @@ type GroupFormValues = {
   required: boolean
   minSelections: number | undefined
   maxSelections: number | undefined
+  /** La misma opción se puede elegir varias veces (encargo a508f4). Sólo cuenta con máximo mayor a 1. */
+  allowRepeat: boolean
   products: Option[]
 }
 
@@ -83,6 +85,7 @@ export function ModifiersManagerDialog({ venueId, modifierGroupId, onClose }: Mo
             price: Number(subView.modifier.price ?? 0),
             sku: subView.modifier.sku ?? null,
             durationMin: (subView.modifier as any).durationMin ?? null,
+            maxQuantity: subView.modifier.maxQuantity ?? null,
             active: subView.modifier.active ?? true,
             rawMaterialId: subView.modifier.rawMaterialId ?? null,
             rawMaterial: subView.modifier.rawMaterial ?? null,
@@ -116,7 +119,7 @@ export function ModifiersManagerDialog({ venueId, modifierGroupId, onClose }: Mo
   const lecturaLista = group !== undefined && allProducts !== undefined
 
   const form = useForm<GroupFormValues>({
-    defaultValues: { name: '', description: '', required: false, minSelections: 0, maxSelections: 1, products: [] },
+    defaultValues: { name: '', description: '', required: false, minSelections: 0, maxSelections: 1, allowRepeat: false, products: [] },
   })
   const watchRequired = form.watch('required')
 
@@ -129,6 +132,7 @@ export function ModifiersManagerDialog({ venueId, modifierGroupId, onClose }: Mo
       required: group.required ?? false,
       minSelections: typeof group.minSelections === 'number' ? group.minSelections : 0,
       maxSelections: typeof group.maxSelections === 'number' ? group.maxSelections : 1,
+      allowRepeat: group.allowRepeat ?? false,
       // Una variante que ya tiene el grupo (lo heredó de su familia) no se quita desde aquí: el server lo rechaza con 409.
       products: allProducts
         .filter(p => p.modifierGroups?.some(mg => mg.groupId === group.id))
@@ -154,7 +158,8 @@ export function ModifiersManagerDialog({ venueId, modifierGroupId, onClose }: Mo
         form.formState.dirtyFields.description ||
         form.formState.dirtyFields.required ||
         form.formState.dirtyFields.minSelections ||
-        form.formState.dirtyFields.maxSelections
+        form.formState.dirtyFields.maxSelections ||
+        form.formState.dirtyFields.allowRepeat
 
       if (groupFieldsDirty) {
         const maxSelections = values.maxSelections ?? 1
@@ -166,15 +171,16 @@ export function ModifiersManagerDialog({ venueId, modifierGroupId, onClose }: Mo
             minSelections: values.minSelections ?? 0,
             maxSelections,
             allowMultiple: maxSelections > 1,
+            // Sólo si se tocó (Codex r2 #3): otro guardado con el formulario viejo no apaga lo que prendió alguien más (o el MCP).
+            // Repetir sólo vale si deja elegir varias; con máximo 1 se guarda apagado.
+            ...(form.formState.dirtyFields.allowRepeat ? { allowRepeat: maxSelections > 1 && values.allowRepeat } : {}),
           }),
         )
       }
 
       if (form.formState.dirtyFields.products) {
         const desiredIds = values.products.map(p => p.value)
-        const currentIds = (allProducts ?? [])
-          .filter(p => p.modifierGroups?.some(mg => mg.groupId === modifierGroupId))
-          .map(p => p.id)
+        const currentIds = (allProducts ?? []).filter(p => p.modifierGroups?.some(mg => mg.groupId === modifierGroupId)).map(p => p.id)
 
         for (const [index, productId] of desiredIds.entries()) {
           if (!currentIds.includes(productId)) {
@@ -235,7 +241,7 @@ export function ModifiersManagerDialog({ venueId, modifierGroupId, onClose }: Mo
     <FullScreenModal
       open={open}
       onClose={handleClose}
-      title={subView.kind === 'edit' ? t('modifiers.editModifier.title') : group?.name ?? ''}
+      title={subView.kind === 'edit' ? t('modifiers.editModifier.title') : (group?.name ?? '')}
       subtitle={subView.kind === 'list' ? t('modifiers.editor.subtitle') : group?.name}
       contentClassName="bg-muted/30"
       actions={
@@ -259,6 +265,7 @@ export function ModifiersManagerDialog({ venueId, modifierGroupId, onClose }: Mo
             <CreateModifier
               venueId={venueId}
               modifierGroupId={modifierGroupId}
+              permiteRepetir={!!group?.allowRepeat}
               onBack={() => setSubView({ kind: 'list' })}
               onSuccess={() => {
                 invalidate()
@@ -274,6 +281,7 @@ export function ModifiersManagerDialog({ venueId, modifierGroupId, onClose }: Mo
               venueId={venueId}
               modifierId={subView.modifier.id}
               modifierGroupId={modifierGroupId}
+              permiteRepetir={!!group?.allowRepeat}
               onBack={() => setSubView({ kind: 'list' })}
               onSuccess={() => {
                 invalidate()
@@ -400,6 +408,30 @@ export function ModifiersManagerDialog({ venueId, modifierGroupId, onClose }: Mo
                       )}
                     />
                   </div>
+
+                  <FormField
+                    control={form.control}
+                    name="allowRepeat"
+                    render={({ field }) => {
+                      const dejaVarias = (form.watch('maxSelections') ?? 1) > 1
+                      return (
+                        <FormItem
+                          className="flex flex-row items-center justify-between rounded-lg border border-input p-3"
+                          data-tour="modifier-group-allow-repeat"
+                        >
+                          <div className="space-y-0.5">
+                            <FormLabel>{t('modifiers.repeat.label')}</FormLabel>
+                            <p className="text-sm text-muted-foreground">
+                              {dejaVarias ? t('modifiers.repeat.desc') : t('modifiers.repeat.needsMax')}
+                            </p>
+                          </div>
+                          <FormControl>
+                            <Switch checked={dejaVarias && !!field.value} disabled={!dejaVarias} onCheckedChange={field.onChange} />
+                          </FormControl>
+                        </FormItem>
+                      )
+                    }}
+                  />
                 </section>
 
                 {/* ── Modifiers in this group ────────────────────────── */}
@@ -410,7 +442,13 @@ export function ModifiersManagerDialog({ venueId, modifierGroupId, onClose }: Mo
                       <h3 className="font-semibold">{t('modifiers.editor.subtitle')}</h3>
                     </div>
                     <PermissionGate permission="menu:create">
-                      <Button type="button" variant="outline" size="sm" data-tour="modifier-editor-add" onClick={() => setSubView({ kind: 'create' })}>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        data-tour="modifier-editor-add"
+                        onClick={() => setSubView({ kind: 'create' })}
+                      >
                         <Plus className="mr-2 h-4 w-4" />
                         {t('modifiers.editor.addModifier')}
                       </Button>
@@ -443,6 +481,11 @@ export function ModifiersManagerDialog({ venueId, modifierGroupId, onClose }: Mo
                           {!modifier.active && (
                             <Badge variant="outline" className="h-4 px-1.5 text-[10px]">
                               {t('modifiers.editor.inactive')}
+                            </Badge>
+                          )}
+                          {group?.allowRepeat && modifier.maxQuantity != null && (
+                            <Badge variant="outline" className="h-4 px-1.5 text-[10px]">
+                              {t('modifiers.repeat.upTo', { count: modifier.maxQuantity })}
                             </Badge>
                           )}
                         </div>

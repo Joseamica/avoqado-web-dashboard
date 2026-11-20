@@ -1396,6 +1396,8 @@ export interface ModifierGroup {
 
   required: boolean
   allowMultiple: boolean
+  /** La misma opción se puede elegir varias veces (encargo a508f4). Servidores viejos no lo mandan. */
+  allowRepeat?: boolean
   minSelections: number
   maxSelections: number | null
 
@@ -1421,6 +1423,8 @@ export interface Modifier {
 
   /** Código del extra en el OTRO sistema de caja (caja externa); sale impreso en el vale. */
   sku?: string | null
+  /** Veces que se puede elegir en un grupo que deja repetir; null = hasta el máximo del grupo (encargo a508f4). */
+  maxQuantity?: number | null
 
   // Inventory tracking fields (Toast/Square pattern)
   rawMaterialId?: string | null

@@ -31,6 +31,7 @@ import { RefundCreditNotePanel } from './RefundCreditNotePanel'
 import { refundableItemsFromOrder } from './refundAmount'
 import { restanteTotal, saldosPorDevolver } from './refundTip'
 import { etiquetaDeMetodo } from './etiquetaDeMetodo'
+import { juntarExtrasRepetidos, nombreConVeces } from '@/lib/juntarExtrasRepetidos'
 
 interface PaymentDrawerContentProps {
   paymentId: string
@@ -208,9 +209,7 @@ export function PaymentDrawerContent({ paymentId, onClose, venueTimezone }: Paym
   // `null` for cash / non-card methods (backend never attaches a merchant
   // account to them), so fall back to a dash instead of showing "N/A".
   const merchantAccount = payment.merchantAccount
-  const merchantAccountLabel = merchantAccount
-    ? merchantAccount.displayName || merchantAccount.externalMerchantId || '-'
-    : '-'
+  const merchantAccountLabel = merchantAccount ? merchantAccount.displayName || merchantAccount.externalMerchantId || '-' : '-'
   const merchantAccountBank = merchantAccount?.bankName || null
 
   // Method label + card detail suffix (e.g. "Tarjeta de crédito · VISA 4242").
@@ -233,10 +232,7 @@ export function PaymentDrawerContent({ paymentId, onClose, venueTimezone }: Paym
 
   const linkedCustomer: Customer | null = payment.order?.customer ?? null
   const linkedCustomerName = linkedCustomer
-    ? `${linkedCustomer.firstName ?? ''} ${linkedCustomer.lastName ?? ''}`.trim() ||
-      linkedCustomer.email ||
-      linkedCustomer.phone ||
-      '—'
+    ? `${linkedCustomer.firstName ?? ''} ${linkedCustomer.lastName ?? ''}`.trim() || linkedCustomer.email || linkedCustomer.phone || '—'
     : null
   const canAttachCustomer = !!orderIdForCustomer
 
@@ -271,7 +267,9 @@ export function PaymentDrawerContent({ paymentId, onClose, venueTimezone }: Paym
                 autoFocus
               />
               <Button type="submit" className="w-full" disabled={!email || sendReceiptMutation.isPending}>
-                {sendReceiptMutation.isPending ? tCommon('sending', { defaultValue: 'Enviando...' }) : tCommon('send', { defaultValue: 'Enviar' })}
+                {sendReceiptMutation.isPending
+                  ? tCommon('sending', { defaultValue: 'Enviando...' })
+                  : tCommon('send', { defaultValue: 'Enviar' })}
               </Button>
             </form>
           </PopoverContent>
@@ -341,9 +339,7 @@ export function PaymentDrawerContent({ paymentId, onClose, venueTimezone }: Paym
             amount={Math.abs(Number(r.amount) || 0)}
             createdAt={r.createdAt}
             methodLabel={formatMethod(r.method, t, r.tenderSystemKind)}
-            reason={
-              (r.processorData as any)?.refundReason as string | undefined
-            }
+            reason={(r.processorData as any)?.refundReason as string | undefined}
             venueName={venue?.name ?? '-'}
             sourceLabel={sourceLabel}
             venueTimezone={venueTimezone}
@@ -406,20 +402,17 @@ export function PaymentDrawerContent({ paymentId, onClose, venueTimezone }: Paym
                   </Badge>
                   <span className="font-medium text-foreground truncate">{item.name}</span>
                   {item.isCourtesy && (
-                    <Badge
-                      variant="outline"
-                      className="shrink-0 border-emerald-500/40 text-emerald-600 dark:text-emerald-400"
-                    >
+                    <Badge variant="outline" className="shrink-0 border-emerald-500/40 text-emerald-600 dark:text-emerald-400">
                       {t('detail.items.courtesy', { defaultValue: 'Cortesía' })}
                     </Badge>
                   )}
                 </div>
                 {item.modifiers.length > 0 && (
                   <div className="mt-2 space-y-1 ml-9">
-                    {item.modifiers.map((m, mi) => (
+                    {juntarExtrasRepetidos(item.modifiers).map((m, mi) => (
                       <div key={mi} className="text-xs text-muted-foreground flex items-center gap-1">
                         <span>•</span>
-                        <span>{m.name}</span>
+                        <span>{nombreConVeces(m)}</span>
                         {m.price > 0 && <span className="text-foreground font-medium">(+{Currency(m.price)})</span>}
                       </div>
                     ))}
