@@ -113,3 +113,24 @@ describe('TpvSettingsFields · editor de porcentajes de propina (tope de 6, como
     expect(screen.queryByText(/tpvSettings\.tipOverMax/)).not.toBeInTheDocument()
   })
 })
+
+describe('TpvSettingsFields · «Órdenes» ya no se ofrece (D34, 20-nov)', () => {
+  it('🔴 aunque la terminal la tenga guardada prendida, no sale el interruptor (el SERVIDOR la apaga siempre)', () => {
+    render(
+      <TpvSettingsFields
+        mode="terminal"
+        disabled={false}
+        settings={{ ...DEFAULT_TPV_SETTINGS, showOrderManagement: true }}
+        onUpdate={() => {}}
+      />,
+    )
+    expect(screen.queryByText('tpvSettings.showOrderManagementLegacy')).not.toBeInTheDocument()
+    expect(screen.queryByText('tpvSettings.showOrderManagement')).not.toBeInTheDocument()
+  })
+
+  it('regresión: Cobrar y Pago rápido siguen en la lista', () => {
+    render(<TpvSettingsFields mode="terminal" disabled={false} settings={{ ...DEFAULT_TPV_SETTINGS }} onUpdate={() => {}} />)
+    expect(screen.getByText('tpvSettings.showCheckout')).toBeInTheDocument()
+    expect(screen.getByText('tpvSettings.showQuickPayment')).toBeInTheDocument()
+  })
+})
