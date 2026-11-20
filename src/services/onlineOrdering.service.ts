@@ -26,6 +26,8 @@ const base = (venueId: string) => `/api/v1/dashboard/venues/${venueId}/online-or
 
 export const onlineOrderingKeys = {
   settings: (v: string) => ['online-ordering', v, 'settings'] as const,
+  /** D662: el estado de la tienda que Configuración vuelve a leer sola (no es hija de `settings`: no pisa el formulario). */
+  storeStatus: (v: string) => ['online-ordering', v, 'store-status'] as const,
   categories: (v: string) => ['online-ordering', v, 'menu', 'categories'] as const,
   products: (v: string, q: object) => ['online-ordering', v, 'menu', 'products', q] as const,
   toPay: (v: string) => ['online-ordering', v, 'to-pay'] as const,
@@ -37,10 +39,8 @@ export const onlineOrderingKeys = {
 export const getSettings = async (venueId: string): Promise<OnlineOrderingSettings> =>
   (await api.get(`${base(venueId)}/settings`)).data.data
 
-export const updateSettings = async (
-  venueId: string,
-  patch: Partial<OnlineOrderingSettingsInput>,
-): Promise<OnlineOrderingSettingsSaved> => (await api.put(`${base(venueId)}/settings`, patch)).data.data
+export const updateSettings = async (venueId: string, patch: Partial<OnlineOrderingSettingsInput>): Promise<OnlineOrderingSettingsSaved> =>
+  (await api.put(`${base(venueId)}/settings`, patch)).data.data
 
 export const getMenuCategories = async (venueId: string): Promise<MenuCategoriesSummary> =>
   (await api.get(`${base(venueId)}/menu/categories`)).data.data
@@ -79,8 +79,10 @@ export const markReady = (venueId: string, orderId: string) => act(venueId, orde
 export const markDelivered = (venueId: string, orderId: string) => act(venueId, orderId, 'delivered')
 export const cancelOrder = (venueId: string, orderId: string) => act(venueId, orderId, 'cancel')
 
-export const pauseOrdering = async (venueId: string, minutes: PauseMinutes): Promise<{ pausedUntil: string | null; manualPause: boolean }> =>
-  (await api.post(`${base(venueId)}/pause`, { minutes })).data.data
+export const pauseOrdering = async (
+  venueId: string,
+  minutes: PauseMinutes,
+): Promise<{ pausedUntil: string | null; manualPause: boolean }> => (await api.post(`${base(venueId)}/pause`, { minutes })).data.data
 
 /**
  * UN pedido en línea por el id de su cuenta, con la forma de la bandeja (la bandeja sólo guarda 24 h). `null` = 404: la cuenta no es

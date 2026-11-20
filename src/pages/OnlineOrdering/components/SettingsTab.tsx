@@ -219,6 +219,17 @@ export function SettingsTab() {
     enabled: !!venueId,
   })
   const { data: settings } = settingsQuery
+  // Su propia llave (pausar o reanudar también la invalida: `PauseControl`). Arranca con lo ya leído: no hay otra petición al abrir.
+  const storeQuery = useQuery({
+    queryKey: onlineOrderingKeys.storeStatus(venueId ?? ''),
+    queryFn: () => getSettings(venueId!),
+    enabled: !!venueId && !!settings,
+    initialData: settings,
+    staleTime: 30_000,
+    refetchInterval: 30_000,
+    refetchOnWindowFocus: false,
+    retry: 1,
+  })
 
   const saved = useMemo(() => (settings ? toForm(settings) : undefined), [settings])
   // R37/R66: el servidor nunca pone «Nadie» solo. Sólo si el negocio NO tiene ajustes guardados (`hasSavedSettings === false`) el
@@ -344,7 +355,10 @@ export function SettingsTab() {
   const waitingDevice = noOne && !deviceLive
   const enableBlocked = !settings.enabled && (missing.length > 0 || !hasPayment || waitingDevice)
 
-  const store = settings.store
+  // D662 (Codex p2-r5 #5): el estado de la tienda se vuelve a leer solo (la pausa sola puede llegar con esta pantalla abierta), en su
+  // propia consulta: la del formulario no se refresca para no pisar lo que el gerente está editando.
+  const store =
+    storeQuery.data && storeQuery.dataUpdatedAt > settingsQuery.dataUpdatedAt ? (storeQuery.data.store ?? settings.store) : settings.store
   const pause = pauseLabel(store, formatTime)
   const statusText = pause
     ? t(pause.key, pause.params)

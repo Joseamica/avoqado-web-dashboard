@@ -25,6 +25,7 @@ export function PauseControl({ venueId, store, canPause }: { venueId: string; st
       Promise.all([
         queryClient.invalidateQueries({ queryKey: onlineOrderingKeys.inbox(venueId) }),
         queryClient.invalidateQueries({ queryKey: onlineOrderingKeys.settings(venueId) }),
+        queryClient.invalidateQueries({ queryKey: onlineOrderingKeys.storeStatus(venueId) }),
       ]),
     onError: (error: unknown) =>
       (error as { response?: unknown })?.response
