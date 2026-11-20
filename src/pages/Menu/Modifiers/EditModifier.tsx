@@ -216,7 +216,7 @@ export default function EditModifier({
         payload.inventoryMode = null
       }
 
-      // El platillo ligado sólo viaja si CAMBIÓ: re-mandar el mismo pediría Premium otra vez a un negocio que ya bajó de plan.
+      // El platillo ligado sólo viaja si CAMBIÓ: re-mandar el mismo pediría el plan otra vez a un negocio que ya bajó de plan.
       const linkedProductId = formValues.linkedEnabled && formValues.linkedProduct ? formValues.linkedProduct.id : null
       if (linkedProductId !== (initialValues.linkedProductId ?? null)) payload.linkedProductId = linkedProductId
 
@@ -637,7 +637,7 @@ export default function EditModifier({
                 </>
               )}
 
-              {/* «Este extra es un platillo del menú» (encargo 27771e): Premium, excluye al ingrediente */}
+              {/* «Este extra es un platillo del menú» (encargo 27771e): Pro y Premium (20-nov), excluye al ingrediente */}
               <LinkedProductField
                 venueId={venueId}
                 enabled={linkedEnabled}

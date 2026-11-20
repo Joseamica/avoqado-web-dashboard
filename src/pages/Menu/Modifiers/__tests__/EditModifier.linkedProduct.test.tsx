@@ -6,12 +6,14 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
-// «Este extra es un platillo del menú» (encargo 27771e; founder 16-nov: como Fudo y Toast, Premium).
+// «Este extra es un platillo del menú» (encargo 27771e; founder 16-nov: como Fudo y Toast). Desde el 20-nov (founder «B» y «A»,
+// Flautas): un platillo sin inventario también se liga (sólo cuenta en «Dentro de paquete») y el plan es Pro y Premium.
 // Los mocks son funciones planas (la config de vitest tiene `mockReset: true`); lo capturado vive en `state`.
 const state = vi.hoisted(() => ({
   updateCalls: [] as unknown[][],
   searchCalls: [] as unknown[][],
   gated: false,
+  gateFeatures: [] as string[],
 }))
 
 vi.mock('@/services/menu.service', () => ({
@@ -38,11 +40,20 @@ vi.mock('@/services/menu.service', () => ({
           active: true,
           categoryName: 'Bebidas',
           inventoryMethod: null,
+          linkable: true,
+          blockedReason: null,
+        },
+        {
+          id: 'p-queso',
+          name: 'Queso a granel',
+          active: true,
+          categoryName: 'Cremería',
+          inventoryMethod: 'QUANTITY',
           linkable: false,
-          blockedReason: 'NOT_INVENTORIED',
+          blockedReason: 'SOLD_BY_WEIGHT',
         },
       ],
-      total: 2,
+      total: 3,
       hasMore: false,
       nextCursor: null,
     })
@@ -52,10 +63,12 @@ vi.mock('@/services/inventory.service', () => ({
   rawMaterialsApi: { getAll: () => Promise.resolve({ data: { data: [] } }) },
 }))
 vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: () => {} }) }))
-// El candado de plan real necesita el enrutador y la sesión: aquí se simula con o sin Premium.
+// El candado de plan real necesita el enrutador y la sesión: aquí se simula con o sin el plan, y se anota qué función pidió.
 vi.mock('@/components/billing/FeatureGate', () => ({
-  FeatureGate: ({ children }: { children: React.ReactNode }) =>
-    state.gated ? <div data-testid="candado-premium">Premium</div> : <>{children}</>,
+  FeatureGate: ({ children, feature }: { children: React.ReactNode; feature: string }) => {
+    state.gateFeatures.push(feature)
+    return state.gated ? <div data-testid="candado-plan">Plan</div> : <>{children}</>
+  },
 }))
 
 import EditModifier from '../EditModifier'
@@ -97,6 +110,7 @@ describe('EditModifier — extra ligado a un platillo del menú', () => {
     state.updateCalls.length = 0
     state.searchCalls.length = 0
     state.gated = false
+    state.gateFeatures.length = 0
   })
 
   it('un extra ya ligado enseña su platillo y cómo descuenta', () => {
@@ -126,14 +140,16 @@ describe('EditModifier — extra ligado a un platillo del menú', () => {
     expect(state.updateCalls[0][3]).toHaveProperty('linkedProductId', null)
   })
 
-  it('prender, buscar en el servidor y elegir un platillo lo manda; uno sin inventario sale en gris con su razón', async () => {
+  it('prender, buscar en el servidor y elegir un platillo lo manda; uno por kilo sale en gris con su razón', async () => {
     const user = userEvent.setup()
     renderEdit(BASE)
     await user.click(screen.getByRole('switch', { name: 'Este extra es un platillo del menú' }))
-    expect(await screen.findByText('Mostrando 2 de 2')).toBeInTheDocument()
-    const agua = screen.getByRole('button', { name: /Agua/ })
-    expect(agua).toBeDisabled()
-    expect(screen.getByText(/No lleva inventario: actívaselo en su ficha/)).toBeInTheDocument()
+    expect(await screen.findByText('Mostrando 3 de 3')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Queso a granel/ })).toBeDisabled()
+    expect(screen.getByText(/Se vende por kilo/)).toBeInTheDocument()
+    // Sin inventario ya NO sale en gris: se puede ligar y dice que sólo cuenta en el reporte.
+    expect(screen.getByRole('button', { name: /Agua/ })).toBeEnabled()
+    expect(screen.getByText('Sin inventario: sólo cuenta en el reporte')).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: /Papas a la francesa/ }))
     await user.click(screen.getByRole('button', { name: 'Guardar Cambios' }))
@@ -141,6 +157,26 @@ describe('EditModifier — extra ligado a un platillo del menú', () => {
     expect(state.updateCalls[0][3]).toHaveProperty('linkedProductId', 'p-papas')
     // El ingrediente queda apagado: un extra descuenta un ingrediente O un platillo.
     expect(state.updateCalls[0][3]).toHaveProperty('rawMaterialId', null)
+  })
+
+  it('founder «B» (20-nov): un platillo SIN inventario se liga y avisa que sólo cuenta en «Dentro de paquete»', async () => {
+    const user = userEvent.setup()
+    renderEdit(BASE)
+    await user.click(screen.getByRole('switch', { name: 'Este extra es un platillo del menú' }))
+    await user.click(await screen.findByRole('button', { name: /Agua/ }))
+    expect(screen.getByRole('status')).toHaveTextContent('no lleva inventario')
+    expect(screen.getByRole('status')).toHaveTextContent('Dentro de paquete')
+    await user.click(screen.getByRole('button', { name: 'Guardar Cambios' }))
+    await waitFor(() => expect(state.updateCalls).toHaveLength(1))
+    expect(state.updateCalls[0][3]).toHaveProperty('linkedProductId', 'p-agua')
+  })
+
+  it('un platillo CON inventario no muestra el aviso de «sólo cuenta»', async () => {
+    const user = userEvent.setup()
+    renderEdit(BASE)
+    await user.click(screen.getByRole('switch', { name: 'Este extra es un platillo del menú' }))
+    await user.click(await screen.findByRole('button', { name: /Papas a la francesa/ }))
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
   })
 
   it('el buscador conserva el foco y busca en el servidor', async () => {
@@ -170,12 +206,15 @@ describe('EditModifier — extra ligado a un platillo del menú', () => {
     expect(screen.getByRole('switch', { name: 'Este extra es un platillo del menú' })).not.toBeChecked()
   })
 
-  it('sin Premium, al prenderlo sale el candado en vez del buscador; uno ya ligado se ve y se puede quitar', async () => {
+  it('sin el plan (Pro y Premium, el del reporte), al prenderlo sale el candado; uno ya ligado se ve y se puede quitar', async () => {
     const user = userEvent.setup()
     state.gated = true
     const { unmount } = renderEdit(BASE)
     await user.click(screen.getByRole('switch', { name: 'Este extra es un platillo del menú' }))
-    expect(screen.getByTestId('candado-premium')).toBeInTheDocument()
+    expect(screen.getByTestId('candado-plan')).toBeInTheDocument()
+    // founder «A» (20-nov): el candado es ADVANCED_REPORTS (Pro y Premium), ya no INVENTORY_TRACKING (sólo Premium).
+    expect(state.gateFeatures).toContain('ADVANCED_REPORTS')
+    expect(state.gateFeatures).not.toContain('INVENTORY_TRACKING')
     expect(screen.queryByLabelText('Buscar platillo…')).not.toBeInTheDocument()
     unmount()
 
@@ -186,6 +225,6 @@ describe('EditModifier — extra ligado a un platillo del menú', () => {
 
   it('si al platillo ligado le apagaron el inventario, lo avisa', () => {
     renderEdit({ ...LIGADO, linkedProduct: { ...LIGADO.linkedProduct, trackInventory: false, inventoryMethod: null } })
-    expect(screen.getByRole('status')).toHaveTextContent('ya no lleva inventario')
+    expect(screen.getByRole('status')).toHaveTextContent('no lleva inventario')
   })
 })

@@ -431,7 +431,7 @@
       "selectUnit": "Select unit",
       "linked": {
         "title": "This extra is a menu item",
-        "desc": "When sold, it takes that item's inventory down (its pieces or its recipe). It does not count as a sale of that item: its price is the extra's price.",
+        "desc": "When sold, its units show in Sales by Item as “Inside packages” (not as a standalone sale of that item) and, if the item tracks inventory, it deducts it (its pieces or its recipe). Its price is the extra's.",
         "pick": "Menu item",
         "search": "Search menu item…",
         "methodQuantity": "By pieces",
@@ -446,10 +446,11 @@
           "SOLD_BY_WEIGHT": "It's sold by weight: an extra can't take it down."
         },
         "remove": "Remove menu item",
-        "noLongerTracked": "This item no longer tracks inventory: the extra won't take anything down until you turn it back on.",
+        "noInventory": "This item doesn't track inventory: the extra deducts nothing and only counts in Sales by Item, “Inside packages” column. To deduct it, turn on its inventory (Premium plan).",
         "inactive": "Inactive",
         "required": "Pick the menu item or turn off “This extra is a menu item”.",
-        "exclusive": "An extra takes down an ingredient or a menu item, not both: turning one on turns the other off."
+        "exclusive": "An extra takes down an ingredient or a menu item, not both: turning one on turns the other off.",
+        "countOnly": "No inventory: it only counts in the report"
       }
     },
     "editor": {

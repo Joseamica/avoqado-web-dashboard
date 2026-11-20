@@ -60,6 +60,14 @@ export interface ItemSalesMetrics {
    */
   productGroupId?: string | null
   productGroupName?: string | null
+  /**
+   * «Dentro de paquete» (founder «B», 20-nov-2026, Flautas): unidades de este platillo vendidas como EXTRA ligado a él (p. ej. la
+   * flauta de papa dentro del paquete). Aparte de `unitsSold`, que no cambia, y sin dinero: el precio va en el producto principal.
+   * El server lo manda sólo con `groupBy = 'none'` (0 si no hay); lee la liga ACTUAL del extra.
+   */
+  unitsInsidePackages?: number
+  /** `unitsSold + unitsInsidePackages`. Sólo con `groupBy = 'none'`. */
+  totalUnits?: number
 }
 
 export interface TimePeriodItemMetrics {
@@ -96,6 +104,9 @@ export interface SalesByItemResponse {
     grossSales: number
     discounts: number
     netSales: number
+    /** Sólo con `groupBy = 'none'` (ver `ItemSalesMetrics.unitsInsidePackages`). */
+    unitsInsidePackages?: number
+    totalUnits?: number
   }
 }
 

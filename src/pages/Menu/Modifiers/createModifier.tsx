@@ -603,7 +603,7 @@ export default function CreateModifier({ venueId, modifierGroupId, onBack, onSuc
                 </>
               )}
 
-              {/* «Este extra es un platillo del menú» (encargo 27771e): Premium, excluye al ingrediente */}
+              {/* «Este extra es un platillo del menú» (encargo 27771e): Pro y Premium (20-nov), excluye al ingrediente */}
               <LinkedProductField
                 venueId={venueId}
                 enabled={linkedEnabled}
