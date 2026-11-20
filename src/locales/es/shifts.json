@@ -230,5 +230,72 @@
       "counted": "Contado",
       "result": "Resultado"
     }
+  },
+  "cashMachineDoubts": {
+    "title": "Cobros de la máquina en duda",
+    "tooltip": "Cobros de la máquina de efectivo cuyo final no alcanzó a registrar la PC.",
+    "intro": "La PC de la máquina de efectivo no alcanzó a saber cómo terminaron estos cobros. Ve a la máquina, revisa su pantalla o su comprobante y registra aquí qué pasó. La PC se entera sola.",
+    "loading": "Cargando cobros en duda…",
+    "loadError": "No se pudo cargar la lista. Revisa tu conexión e inténtalo otra vez.",
+    "retry": "Reintentar",
+    "empty": "No hay cobros en duda. Todo lo de la máquina está registrado.",
+    "showing": "Mostrando {{shown}} de {{total}} cobros por resolver",
+    "loadMore": "Cargar más",
+    "resolveButton": "Resolver",
+    "promotionLine": "Promoción",
+    "columns": {
+      "folio": "Folio",
+      "startedAt": "Hora de inicio",
+      "sale": "Venta",
+      "tip": "Propina",
+      "due": "Debía",
+      "cart": "Carrito"
+    },
+    "resolve": {
+      "title": "Resolver el cobro {{folio}}",
+      "due": "Debía {{due}} (venta {{sale}} + propina {{tip}}).",
+      "startedAt": "Empezó el {{time}}.",
+      "lastSeen": "Lo último que vio la PC:",
+      "whatHappened": "¿Qué pasó en la máquina?",
+      "outcomes": {
+        "PAGADO": {
+          "label": "Se cobró",
+          "hint": "La máquina recibió todo lo que se debía. Se registra la venta."
+        },
+        "CANCELADO": {
+          "label": "Se canceló y devolvió",
+          "hint": "El cobro se canceló y la máquina regresó el dinero que entró."
+        },
+        "GUARDADO": {
+          "label": "Se canceló y se quedó con el dinero",
+          "hint": "El cobro se canceló y la máquina guardó lo que entró sin regresarlo."
+        }
+      },
+      "received": "Recibió $",
+      "returned": "Devolvió $",
+      "receiptTime": "Hora del comprobante (opcional)",
+      "receiptTimeHelp": "Si no la tienes, la venta queda con turno por conciliar.",
+      "evidence": "Qué viste en la máquina",
+      "evidencePlaceholder": "Ej.: la pantalla dice «Pago completado», entró $200 y dio $50 de cambio",
+      "submit": "Guardar",
+      "close": "Cerrar",
+      "saved": "Listo: el cobro {{folio}} quedó resuelto",
+      "owed": "Queda pendiente regresarle {{amount}} al cliente.",
+      "notRegistered": "Se guardó lo que viste, pero la venta no se pudo registrar (por ejemplo, un producto ya no existe). Quedó anotado para revisarlo.",
+      "errors": {
+        "invalidAmount": "Escribe importes en pesos, con hasta 2 decimales.",
+        "paidNeedsFull": "Para «Se cobró», lo recibido tiene que ser al menos lo que debía ({{due}}).",
+        "changeTooHigh": "No pudo devolver más de {{max}} (lo recibido menos lo que debía).",
+        "cancelNeedsLess": "Si recibió todo lo que debía ({{due}}), el cobro no se pudo cancelar: elige «Se cobró».",
+        "refundTooHigh": "No pudo devolver más de lo que recibió.",
+        "keptMustBeZero": "Si se quedó con el dinero, lo devuelto es $0."
+      },
+      "conflict": {
+        "title": "Este cobro ya estaba resuelto así:",
+        "received": "Recibió {{amount}}",
+        "returned": "Devolvió {{amount}}",
+        "evidence": "Lo que vio: {{text}}"
+      }
+    }
   }
 }

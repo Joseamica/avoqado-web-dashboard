@@ -153,6 +153,7 @@ import {
   AccountsPayable,
   ShiftId,
   Shifts,
+  CashMachineDoubts,
   SuppliersPage,
   PurchaseOrdersPage,
   PurchaseOrderDetailPage,
@@ -241,6 +242,14 @@ export function createVenueRoutes(): RouteObject[] {
         { path: 'shifts', element: <Shifts /> },
         { path: 'shifts/:shiftId', element: <ShiftId /> },
       ],
+    },
+
+    // Máquina de efectivo · «Cobros de la máquina en duda» (fase 1a, R4-4): la PC no supo cómo terminó un cobro y un gerente lo
+    // resuelve con SU sesión. El permiso es el EXACTO del servidor; sin él, la guardia explica que no tiene acceso.
+    {
+      path: 'cash-machine-doubts',
+      element: <PermissionProtectedRoute permission="cash-machine:resolve" />,
+      children: [{ index: true, element: <CashMachineDoubts /> }],
     },
 
     // Payments (requires payments:read permission + KYC verification)

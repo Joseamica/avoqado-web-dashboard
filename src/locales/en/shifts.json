@@ -230,5 +230,72 @@
       "counted": "Counted",
       "result": "Result"
     }
+  },
+  "cashMachineDoubts": {
+    "title": "Cash machine payments in doubt",
+    "tooltip": "Cash machine payments whose outcome the PC could not record.",
+    "intro": "The cash machine PC could not tell how these payments ended. Go to the machine, check its screen or receipt, and record here what happened. The PC picks it up automatically.",
+    "loading": "Loading payments in doubt…",
+    "loadError": "The list could not be loaded. Check your connection and try again.",
+    "retry": "Retry",
+    "empty": "No payments in doubt. Everything from the machine is recorded.",
+    "showing": "Showing {{shown}} of {{total}} payments to resolve",
+    "loadMore": "Load more",
+    "resolveButton": "Resolve",
+    "promotionLine": "Promotion",
+    "columns": {
+      "folio": "Reference",
+      "startedAt": "Started at",
+      "sale": "Sale",
+      "tip": "Tip",
+      "due": "Due",
+      "cart": "Cart"
+    },
+    "resolve": {
+      "title": "Resolve payment {{folio}}",
+      "due": "Due {{due}} (sale {{sale}} + tip {{tip}}).",
+      "startedAt": "Started {{time}}.",
+      "lastSeen": "Last thing the PC saw:",
+      "whatHappened": "What happened at the machine?",
+      "outcomes": {
+        "PAGADO": {
+          "label": "It was paid",
+          "hint": "The machine received the full amount due. The sale is recorded."
+        },
+        "CANCELADO": {
+          "label": "Cancelled and refunded",
+          "hint": "The payment was cancelled and the machine returned the money it took."
+        },
+        "GUARDADO": {
+          "label": "Cancelled and kept the money",
+          "hint": "The payment was cancelled and the machine kept what it took without returning it."
+        }
+      },
+      "received": "Received $",
+      "returned": "Returned $",
+      "receiptTime": "Receipt time (optional)",
+      "receiptTimeHelp": "If you don't have it, the sale stays with its shift pending reconciliation.",
+      "evidence": "What you saw on the machine",
+      "evidencePlaceholder": "E.g.: the screen says \"Payment completed\", $200 went in and it gave $50 change",
+      "submit": "Save",
+      "close": "Close",
+      "saved": "Done: payment {{folio}} is resolved",
+      "owed": "{{amount}} still needs to be returned to the customer.",
+      "notRegistered": "What you saw was saved, but the sale could not be recorded (for example, a product no longer exists). It was logged for review.",
+      "errors": {
+        "invalidAmount": "Enter amounts in pesos, with up to 2 decimals.",
+        "paidNeedsFull": "For \"It was paid\", the amount received must be at least the amount due ({{due}}).",
+        "changeTooHigh": "It could not return more than {{max}} (received minus due).",
+        "cancelNeedsLess": "If it received the full amount due ({{due}}), the payment could not be cancelled: choose \"It was paid\".",
+        "refundTooHigh": "It could not return more than it received.",
+        "keptMustBeZero": "If it kept the money, the amount returned is $0."
+      },
+      "conflict": {
+        "title": "This payment was already resolved as:",
+        "received": "Received {{amount}}",
+        "returned": "Returned {{amount}}",
+        "evidence": "What they saw: {{text}}"
+      }
+    }
   }
 }

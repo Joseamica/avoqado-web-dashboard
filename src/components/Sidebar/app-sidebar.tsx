@@ -505,6 +505,13 @@ export function AppSidebar({
             },
           ]
         : []),
+      // Máquina de efectivo (fase 1a, R4-4): cobros cuyo final la PC no alcanzó a oír; los resuelve un gerente.
+      {
+        title: t('sidebar:routes.cashMachineDoubts'),
+        url: 'cash-machine-doubts',
+        permission: 'cash-machine:resolve',
+        keywords: ['maquina de efectivo', 'quickpay', 'en duda', 'esperando', 'efectivo', 'cobro', 'resolver'],
+      },
       {
         title: t('sidebar:salesMenu.paymentLinks', { defaultValue: 'Ligas de Pago' }),
         url: '#payment-links',

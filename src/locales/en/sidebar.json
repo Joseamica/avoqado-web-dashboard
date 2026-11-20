@@ -160,6 +160,7 @@
     "payments": "Payments",
     "orders": "Orders",
     "shifts": "Cash shifts",
+    "cashMachineDoubts": "Cash machine payments in doubt",
     "tpv": "Devices",
     "reviews": "Reviews",
     "settings": "Settings",

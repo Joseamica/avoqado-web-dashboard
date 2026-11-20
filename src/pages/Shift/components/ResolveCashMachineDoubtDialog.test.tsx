@@ -1,0 +1,342 @@
+// Máquina de efectivo · fase 1a · B2 (R4-4): el gerente resuelve un cobro de la máquina que la PC no alcanzó a oír. La ventana
+// replica la regla del SERVIDOR (`validarCierre`) para no mandar importes imposibles, manda CENTAVOS enteros y la hora del
+// comprobante en ISO (zona del negocio), y si el folio ya se resolvió enseña lo que quedó registrado (409).
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { Currency } from '@/utils/currency'
+
+vi.mock('react-i18next', () => ({
+  useTranslation: () => ({ t: (key: string, o?: Record<string, unknown>) => (o ? `${key}${JSON.stringify(o)}` : key) }),
+}))
+const h = vi.hoisted(() => ({
+  impl: (..._a: unknown[]): Promise<unknown> => Promise.resolve({ status: 200, data: {} }),
+  calls: [] as unknown[][],
+  toast: vi.fn(),
+}))
+vi.mock('@/api', () => ({
+  default: {
+    post: (...a: unknown[]) => {
+      h.calls.push(a)
+      return h.impl(...a)
+    },
+  },
+}))
+vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: h.toast }) }))
+vi.mock('@/utils/datetime', () => ({
+  useVenueDateTime: () => ({ venueTimezone: 'America/Mexico_City', formatDateTime: (d: string) => `FECHA(${d})` }),
+}))
+
+import {
+  ResolveCashMachineDoubtDialog,
+  errorDeLaResolucion,
+  horaDelComprobante,
+  pesosACentavos,
+  type CashMachineDoubt,
+} from './ResolveCashMachineDoubtDialog'
+
+const FOLIO = 'AQ0000000000A1'
+const duda: CashMachineDoubt = {
+  id: 'inc1',
+  referenceCC: FOLIO,
+  status: 'ABIERTO',
+  deviceId: 'd1',
+  createdAt: '2026-11-20T19:00:00.000Z',
+  dueCents: 15000,
+  saleCents: 13000,
+  tipCents: 2000,
+  startedAt: '2026-11-20T18:59:00.000Z',
+  lastSeen: 'status: depositing 100',
+  pedido: { items: [{ name: 'Café', quantity: 2 }] },
+  saleShiftId: null,
+}
+
+function setup() {
+  const onOpenChange = vi.fn()
+  const client = new QueryClient()
+  const invalidate = vi.spyOn(client, 'invalidateQueries')
+  render(
+    <QueryClientProvider client={client}>
+      <ResolveCashMachineDoubtDialog open onOpenChange={onOpenChange} venueId="v1" doubt={duda} />
+    </QueryClientProvider>,
+  )
+  return { onOpenChange, invalidate }
+}
+
+const P = 'cashMachineDoubts.resolve.'
+const elegir = (outcome: 'PAGADO' | 'CANCELADO' | 'GUARDADO') => fireEvent.click(screen.getByRole('radio', { name: `${P}outcomes.${outcome}.label` }))
+const recibio = (v: string) => fireEvent.change(screen.getByLabelText(`${P}received`), { target: { value: v } })
+const devolvio = (v: string) => fireEvent.change(screen.getByLabelText(`${P}returned`), { target: { value: v } })
+const hora = (v: string) => fireEvent.change(screen.getByLabelText(`${P}receiptTime`), { target: { value: v } })
+const vio = (v: string) => fireEvent.change(screen.getByLabelText(`${P}evidence`), { target: { value: v } })
+const guardar = () => screen.getByRole('button', { name: `${P}submit` })
+const texto = () => document.body.textContent ?? ''
+
+describe('pesosACentavos', () => {
+  it('convierte a centavos enteros sin errores de punto flotante', () => {
+    expect(pesosACentavos('10')).toBe(1000)
+    expect(pesosACentavos('10.5')).toBe(1050)
+    expect(pesosACentavos('10.05')).toBe(1005)
+    expect(pesosACentavos('0.1')).toBe(10)
+    expect(pesosACentavos('1.15')).toBe(115) // 1.15 * 100 = 114.99999999999999
+    expect(pesosACentavos(' 200.50 ')).toBe(20050)
+  })
+  it('rechaza lo que no es un importe', () => {
+    for (const malo of ['', '  ', '-1', '10.555', 'abc', '1e3', '.5', '1.']) expect(pesosACentavos(malo)).toBeNull()
+  })
+})
+
+describe('horaDelComprobante', () => {
+  it('lee la hora tecleada en la zona del NEGOCIO, no la del navegador', () => {
+    expect(horaDelComprobante('2026-11-20T14:05', 'America/Mexico_City')).toBe('2026-11-20T20:05:00.000Z')
+    expect(horaDelComprobante('2026-11-20T14:05', 'America/Tijuana')).toBe('2026-11-20T22:05:00.000Z')
+  })
+  it('vacía o inválida → null (la venta queda por conciliar)', () => {
+    expect(horaDelComprobante('', 'America/Mexico_City')).toBeNull()
+    expect(horaDelComprobante('ayer', 'America/Mexico_City')).toBeNull()
+  })
+})
+
+describe('errorDeLaResolucion (espejo de validarCierre del SERVIDOR)', () => {
+  const due = 15000
+  it('Se cobró: recibido ≥ debía y 0 ≤ devolvió ≤ recibido − debía', () => {
+    expect(errorDeLaResolucion({ outcome: 'PAGADO', creditCents: 14999, changeCents: 0, dueCents: due })?.key).toBe('paidNeedsFull')
+    expect(errorDeLaResolucion({ outcome: 'PAGADO', creditCents: 20000, changeCents: 5001, dueCents: due })?.key).toBe('changeTooHigh')
+    expect(errorDeLaResolucion({ outcome: 'PAGADO', creditCents: 20000, changeCents: 5000, dueCents: due })).toBeNull()
+    expect(errorDeLaResolucion({ outcome: 'PAGADO', creditCents: 15000, changeCents: 0, dueCents: due })).toBeNull()
+  })
+  it('Se canceló y devolvió: recibido < debía y devolvió ≤ recibido', () => {
+    expect(errorDeLaResolucion({ outcome: 'CANCELADO', creditCents: 15000, changeCents: 0, dueCents: due })?.key).toBe('cancelNeedsLess')
+    expect(errorDeLaResolucion({ outcome: 'CANCELADO', creditCents: 10000, changeCents: 10001, dueCents: due })?.key).toBe('refundTooHigh')
+    expect(errorDeLaResolucion({ outcome: 'CANCELADO', creditCents: 10000, changeCents: 10000, dueCents: due })).toBeNull()
+    expect(errorDeLaResolucion({ outcome: 'CANCELADO', creditCents: 0, changeCents: 0, dueCents: due })).toBeNull()
+  })
+  it('Se canceló y se quedó con el dinero: recibido < debía y devolvió = 0', () => {
+    expect(errorDeLaResolucion({ outcome: 'GUARDADO', creditCents: 15000, changeCents: 0, dueCents: due })?.key).toBe('cancelNeedsLess')
+    expect(errorDeLaResolucion({ outcome: 'GUARDADO', creditCents: 10000, changeCents: 1, dueCents: due })?.key).toBe('keptMustBeZero')
+    expect(errorDeLaResolucion({ outcome: 'GUARDADO', creditCents: 10000, changeCents: 0, dueCents: due })).toBeNull()
+  })
+})
+
+describe('ResolveCashMachineDoubtDialog', () => {
+  beforeEach(() => {
+    h.calls.length = 0
+    h.toast.mockReset()
+    h.impl = () => Promise.resolve({ status: 200, data: { success: true, referenceCC: FOLIO, outcome: 'PAGADO', owedCents: 0 } })
+  })
+
+  it('enseña el folio, lo que debía (venta + propina) y lo último que vio la PC', () => {
+    setup()
+    expect(texto()).toContain(FOLIO)
+    expect(texto()).toContain(Currency(150))
+    expect(texto()).toContain(Currency(130))
+    expect(texto()).toContain(Currency(20))
+    expect(texto()).toContain('status: depositing 100')
+  })
+
+  it('no deja guardar sin elegir qué pasó, sin lo recibido o sin lo que vio', () => {
+    setup()
+    expect(guardar()).toBeDisabled()
+    elegir('PAGADO')
+    expect(guardar()).toBeDisabled()
+    recibio('150')
+    expect(guardar()).toBeDisabled()
+    vio('   ')
+    expect(guardar()).toBeDisabled()
+    vio('La pantalla dice pagado')
+    expect(guardar()).toBeEnabled()
+  })
+
+  it('Se cobró: avisa si recibió menos de lo que debía o si devolvió de más', () => {
+    setup()
+    elegir('PAGADO')
+    vio('pagado')
+    recibio('100')
+    expect(texto()).toContain(`${P}errors.paidNeedsFull`)
+    expect(guardar()).toBeDisabled()
+    recibio('200')
+    devolvio('60')
+    expect(texto()).toContain(`${P}errors.changeTooHigh`)
+    expect(guardar()).toBeDisabled()
+    devolvio('50')
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(guardar()).toBeEnabled()
+  })
+
+  it('Se canceló y devolvió: avisa si recibió todo o si devolvió más de lo recibido', () => {
+    setup()
+    elegir('CANCELADO')
+    vio('cancelado')
+    recibio('150')
+    expect(texto()).toContain(`${P}errors.cancelNeedsLess`)
+    expect(guardar()).toBeDisabled()
+    recibio('100')
+    devolvio('120')
+    expect(texto()).toContain(`${P}errors.refundTooHigh`)
+    expect(guardar()).toBeDisabled()
+    devolvio('100')
+    expect(guardar()).toBeEnabled()
+  })
+
+  it('Se canceló y se quedó con el dinero: lo devuelto tiene que ser $0', () => {
+    setup()
+    elegir('GUARDADO')
+    vio('guardado')
+    recibio('100')
+    devolvio('10')
+    expect(texto()).toContain(`${P}errors.keptMustBeZero`)
+    expect(guardar()).toBeDisabled()
+    devolvio('0')
+    expect(guardar()).toBeEnabled()
+  })
+
+  it('un importe que no es dinero no se manda', () => {
+    setup()
+    elegir('PAGADO')
+    vio('x')
+    recibio('150.555')
+    expect(texto()).toContain(`${P}errors.invalidAmount`)
+    expect(guardar()).toBeDisabled()
+  })
+
+  it('manda CENTAVOS enteros y la hora del comprobante en ISO (zona del negocio)', async () => {
+    const { onOpenChange, invalidate } = setup()
+    elegir('PAGADO')
+    recibio('200.50')
+    devolvio('50.50')
+    hora('2026-11-20T14:05')
+    vio('  La pantalla dice pagado  ')
+    fireEvent.click(guardar())
+    await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false))
+    expect(h.calls).toHaveLength(1)
+    const [url, body] = h.calls[0]
+    expect(url).toBe(`/api/v1/dashboard/venues/v1/cash-machine/doubts/${FOLIO}/resolve`)
+    expect(body).toEqual({
+      outcome: 'PAGADO',
+      creditCents: 20050,
+      changeDispensedCents: 5050,
+      occurredAt: '2026-11-20T20:05:00.000Z',
+      evidence: 'La pantalla dice pagado',
+    })
+    expect(h.toast).toHaveBeenCalledWith(expect.objectContaining({ title: `${P}saved${JSON.stringify({ folio: FOLIO })}` }))
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ['cash-machine-doubts', 'v1'] })
+  })
+
+  it('sin hora del comprobante no manda occurredAt (el SERVIDOR la deja por conciliar)', async () => {
+    const { onOpenChange } = setup()
+    elegir('GUARDADO')
+    recibio('100')
+    devolvio('0')
+    vio('guardó el dinero')
+    expect(texto()).toContain(`${P}receiptTimeHelp`)
+    fireEvent.click(guardar())
+    await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false))
+    expect(h.calls[0][1]).toEqual({ outcome: 'GUARDADO', creditCents: 10000, changeDispensedCents: 0, evidence: 'guardó el dinero' })
+  })
+
+  it('si a la clienta se le debe dinero, el aviso de éxito lo dice', async () => {
+    h.impl = () => Promise.resolve({ status: 200, data: { success: true, referenceCC: FOLIO, outcome: 'GUARDADO', owedCents: 10000 } })
+    const { onOpenChange } = setup()
+    elegir('GUARDADO')
+    recibio('100')
+    devolvio('0')
+    vio('guardó')
+    fireEvent.click(guardar())
+    await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false))
+    expect(h.toast).toHaveBeenCalledWith(
+      expect.objectContaining({ description: `${P}owed${JSON.stringify({ amount: Currency(100) })}` }),
+    )
+  })
+
+  it('202: la duda se cerró pero la venta no se pudo registrar → lo dice, no lo da por bueno en silencio', async () => {
+    h.impl = () => Promise.resolve({ status: 202, data: { success: true, referenceCC: FOLIO, incident: 'NO_SE_PUDO_REGISTRAR' } })
+    const { onOpenChange } = setup()
+    elegir('PAGADO')
+    recibio('150')
+    vio('pagado')
+    fireEvent.click(guardar())
+    await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false))
+    expect(h.toast).toHaveBeenCalledWith(expect.objectContaining({ title: `${P}notRegistered`, variant: 'destructive' }))
+  })
+
+  it('dos clics seguidos mandan UNA sola resolución', async () => {
+    setup()
+    elegir('PAGADO')
+    recibio('150')
+    vio('pagado')
+    fireEvent.click(guardar())
+    fireEvent.click(guardar())
+    await waitFor(() => expect(h.toast).toHaveBeenCalled())
+    expect(h.calls).toHaveLength(1)
+  })
+
+  it('409: enseña lo que ya estaba registrado para ese folio y refresca la lista', async () => {
+    h.impl = () =>
+      Promise.reject(
+        Object.assign(new Error('409'), {
+          response: {
+            status: 409,
+            data: {
+              message: 'Este folio de la máquina ya se registró con otros importes.',
+              code: 'CASH_MACHINE_CLOSE_CONFLICT',
+              details: { registrado: { referenceCC: FOLIO, outcome: 'CANCELADO', creditCents: 5000, changeDispensedCents: 5000 } },
+            },
+          },
+        }),
+      )
+    const { onOpenChange, invalidate } = setup()
+    elegir('PAGADO')
+    recibio('150')
+    vio('pagado')
+    fireEvent.click(guardar())
+    expect(await screen.findByText(`${P}conflict.title`)).toBeInTheDocument()
+    expect(texto()).toContain(`${P}outcomes.CANCELADO.label`)
+    expect(texto()).toContain(Currency(50))
+    expect(onOpenChange).not.toHaveBeenCalledWith(false)
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ['cash-machine-doubts', 'v1'] })
+  })
+
+  it('409 de una duda cerrada sin venta: enseña también lo que vio el otro gerente', async () => {
+    h.impl = () =>
+      Promise.reject(
+        Object.assign(new Error('409'), {
+          response: {
+            status: 409,
+            data: {
+              message: 'Esta duda de la máquina ya se resolvió de otra forma.',
+              code: 'CASH_MACHINE_DOUBT_CONFLICT',
+              details: { registrada: { outcome: 'GUARDADO', creditCents: 8000, changeDispensedCents: 0, evidence: 'Se tragó $80' } },
+            },
+          },
+        }),
+      )
+    setup()
+    elegir('PAGADO')
+    recibio('150')
+    vio('pagado')
+    fireEvent.click(guardar())
+    expect(await screen.findByText(`${P}conflict.title`)).toBeInTheDocument()
+    expect(texto()).toContain(`${P}outcomes.GUARDADO.label`)
+    expect(texto()).toContain(Currency(80))
+    expect(texto()).toContain('Se tragó $80')
+  })
+
+  it('422: enseña el mensaje del SERVIDOR (importes imposibles)', async () => {
+    h.impl = () =>
+      Promise.reject(
+        Object.assign(new Error('422'), {
+          response: {
+            status: 422,
+            data: { message: 'Los importes de este cierre de la máquina no son posibles.', code: 'CASH_MACHINE_CLOSE_IMPOSSIBLE' },
+          },
+        }),
+      )
+    const { onOpenChange } = setup()
+    elegir('PAGADO')
+    recibio('150')
+    vio('pagado')
+    fireEvent.click(guardar())
+    expect(await screen.findByRole('alert')).toHaveTextContent('Los importes de este cierre de la máquina no son posibles.')
+    expect(onOpenChange).not.toHaveBeenCalledWith(false)
+  })
+})
