@@ -150,8 +150,12 @@ describe('SettingsTab', () => {
     renderTab()
     await formularioCargado()
     expect(await screen.findByText('settings.status.pausedMissed')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'inbox.pause.resume' }))
+    const reanudar = screen.getByRole('button', { name: 'inbox.pause.resume' })
+    // Codex p2-r4 #4: vive dentro del formulario; sin `type="button"` lo enviaría con lo que esté sin guardar.
+    expect(reanudar).toHaveAttribute('type', 'button')
+    fireEvent.click(reanudar)
     await waitFor(() => expect(pauseOrdering).toHaveBeenCalledWith('venue-1', null))
+    expect(updateSettings).not.toHaveBeenCalled()
   })
 
   it('D662: sin la pausa sola Configuración no muestra «Reanudar» (la pausa corta se quita en la bandeja)', async () => {

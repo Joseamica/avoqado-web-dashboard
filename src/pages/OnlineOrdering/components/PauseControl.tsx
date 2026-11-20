@@ -36,7 +36,15 @@ export function PauseControl({ venueId, store, canPause }: { venueId: string; st
 
   if (store.status === 'PAUSED' && (store.autoPausedAt || (store.reason === 'MANUAL_PAUSE' && store.pausedUntil))) {
     return (
-      <Button size="sm" variant="outline" disabled={pause.isPending} onClick={() => pause.mutate(null)} data-tour="online-inbox-resume">
+      // D662 (Codex p2-r4 #4): `type="button"`: en Configuración vive dentro del formulario y un botón sin tipo lo enviaría.
+      <Button
+        type="button"
+        size="sm"
+        variant="outline"
+        disabled={pause.isPending}
+        onClick={() => pause.mutate(null)}
+        data-tour="online-inbox-resume"
+      >
         {t('inbox.pause.resume')}
       </Button>
     )
@@ -46,7 +54,15 @@ export function PauseControl({ venueId, store, canPause }: { venueId: string; st
     <div className="flex flex-wrap items-center gap-2" data-tour="online-inbox-pause">
       <span className="text-sm text-muted-foreground">{t('inbox.pause.label')}</span>
       {OPTIONS.map(m => (
-        <Button key={m} size="sm" variant="outline" className="rounded-full" disabled={pause.isPending} onClick={() => pause.mutate(m)}>
+        <Button
+          key={m}
+          type="button"
+          size="sm"
+          variant="outline"
+          className="rounded-full"
+          disabled={pause.isPending}
+          onClick={() => pause.mutate(m)}
+        >
           {t('inbox.pause.minutes', { minutes: m })}
         </Button>
       ))}
