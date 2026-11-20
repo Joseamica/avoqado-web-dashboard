@@ -19,6 +19,21 @@ describe('D6 · Auditoría de Promotores', () => {
     })
     it('sin checadas ni ventas, no', () => {
       expect(seQuedaConElFiltro(0, 0, true)).toBe(false)
+      expect(seQuedaConElFiltro(0, 0, true, 0)).toBe(false)
+    })
+    it('D4c: sin checadas, ventas del día en $0 (la venta sin internet era de ayer) pero vendió $15 que LLEGARON hoy, sí', () => {
+      expect(seQuedaConElFiltro(0, 0, true, 15)).toBe(true)
+    })
+    it('D4c: eso no basta si las ventas NO son del periodo («antes de»/«después de»)', () => {
+      expect(seQuedaConElFiltro(0, 0, false, 15)).toBe(false)
+    })
+    it('D4c (Codex 4c r3/r4): en Cancún, con la checada fuera del día del panel, decide lo mismo que antes: lo que llegó ese día', () => {
+      expect(seQuedaConElFiltro(0, 0, true, 0)).toBe(false) // vendió $15 y devolvió $15: antes tampoco salía
+      expect(seQuedaConElFiltro(0, 0, true, 15)).toBe(true) // la venta sin internet que llegó ese día: antes salía y sigue
+    })
+    it('D4c: un servidor viejo no manda las ventas por llegada y la regla es la de siempre', () => {
+      expect(seQuedaConElFiltro(0, 0, true)).toBe(false)
+      expect(seQuedaConElFiltro(0, 40, true)).toBe(true)
     })
   })
 

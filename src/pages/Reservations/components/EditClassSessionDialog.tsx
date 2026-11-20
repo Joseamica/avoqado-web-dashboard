@@ -287,12 +287,13 @@ export function EditClassSessionDialog({ open, onOpenChange, sessionId }: EditCl
               {/* Enrollment summary */}
               <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
                 <Users className="h-5 w-5 text-muted-foreground" />
+                {/* D108: «0/10 plazas disponibles» se leía como clase llena; son inscritos de su cupo. */}
                 <div>
                   <span className="font-medium">
                     {session.enrolled}/{session.capacity}
                   </span>
                   <span className="text-muted-foreground text-sm ml-1.5">
-                    {t('classSession.fields.capacity', { defaultValue: 'Plazas disponibles' }).toLowerCase()}
+                    {t('classSession.enrolledLabel', { defaultValue: 'inscritos' })}
                   </span>
                 </div>
                 {session.enrolled >= session.capacity && (
@@ -580,7 +581,8 @@ export function EditClassSessionDialog({ open, onOpenChange, sessionId }: EditCl
 
               <div className="flex gap-2 ml-auto">
                 <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isPending}>
-                  {isReadOnly ? tCommon('close', { defaultValue: 'Cerrar' }) : tCommon('cancel')}
+                  {/* D108: «Cancelar» junto a «Cancelar clase» se confundía; este sólo cierra la ventana. */}
+                  {tCommon('close', { defaultValue: 'Cerrar' })}
                 </Button>
                 {!isReadOnly && (
                   <Button type="submit" disabled={isPending || !isDirty}>

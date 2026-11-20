@@ -465,6 +465,15 @@
       "deleteBlockedByMinimum_other": "This group is required and needs at least {{count}} active options. Add another or lower the minimum before removing this one.",
       "deleteDescription": "\"{{name}}\" will no longer be offered at checkout. Past sales and reports stay the same. You can reactivate it from this list.",
       "groupSection": "Group information"
+    },
+    "repeat": {
+      "label": "The same option can be picked more than once",
+      "desc": "For “pick 3”: the register can choose 2 of one and 1 of another with − 2 +. Each pick counts toward the minimum and maximum and is charged at its price. Works on the updated Android and Windows POS; on iPad each option is still picked once.",
+      "needsMax": "Raise the maximum above 1 to allow repeating an option.",
+      "maxQuantity": "Times it can be picked",
+      "maxQuantityPlaceholder": "No limit",
+      "maxQuantityDesc": "Empty = up to the group maximum. Set 1 if this option can only go once.",
+      "upTo": "up to {{count}}"
     }
   },
   "products": {

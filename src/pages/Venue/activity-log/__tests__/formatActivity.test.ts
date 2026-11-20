@@ -83,9 +83,25 @@ describe('formatDetailValue', () => {
     expect(formatDetailValue('WAITER', () => '')).toBe('WAITER')
   })
 
-  it('serializa objetos y arreglos de forma compacta', () => {
+  it('serializa objetos de forma compacta', () => {
     expect(formatDetailValue({ a: 1 }, () => '')).toBe('{"a":1}')
-    expect(formatDetailValue([1, 2], () => '')).toBe('[1,2]')
+    expect(formatDetailValue([{ a: 1 }], () => '')).toBe('[{"a":1}]')
+  })
+
+  it('una lista de textos o números se lee separada por comas, sin corchetes', () => {
+    expect(formatDetailValue([1, 2], () => '')).toBe('1, 2')
+    expect(formatDetailValue(['PLAN_PRO', 'RESERVATIONS'], () => '')).toBe('PLAN_PRO, RESERVATIONS')
+  })
+
+  // hz:nube0000:na9a2722: el detalle de anular la cuenta mostraba `["cmd…","cmd…"]` y `{"cmd…":2}`. Un id interno no le dice
+  // nada a una persona: se dice cuántos son.
+  it('una lista de ids internos se lee como cuántos son', () => {
+    expect(formatDetailValue(['cmhvejgq300ad2gtxbrawgh7w', 'cmtdlxl300aakna2agcago6qk'], () => '')).toBe('2')
+    expect(formatDetailValue({ cmhvejgq300ad2gtxbrawgh7w: 2 }, () => '')).toBe('1')
+  })
+
+  it('una lista vacía se marca vacía', () => {
+    expect(formatDetailValue([], () => '—')).toBe('—')
   })
 })
 
@@ -105,6 +121,12 @@ describe('toDetailRows', () => {
   it('aplica la redacción antes de mostrar', () => {
     const rows = toDetailRows({ password: 'hunter2' }, labelOf, () => '—')
     expect(rows[0].value).toBe('••• redacted')
+  })
+
+  it('pone nombre a un valor conocido y deja como viene el que no conoce', () => {
+    const valueOf = (key: string, value: string) => (key === 'camino' && value === 'cancelOrder' ? 'Cancelar la cuenta en el POS' : null)
+    const rows = toDetailRows({ camino: 'cancelOrder', otro: 'cancelOrder', camino2: 'x' }, labelOf, () => '—', valueOf)
+    expect(rows.map(r => r.value)).toEqual(['Cancelar la cuenta en el POS', 'cancelOrder', 'x'])
   })
 
   it('devuelve vacío cuando no hay datos', () => {

@@ -253,7 +253,8 @@ import '@avoqado/booking-widget'
 										: t('onlineBooking.publicPages.appointments.many', { count: appointmentCount })
 							}
 							url={appointmentsUrl}
-							editTo={`${fullBasePath}/menu`}
+							// `menu` sólo existe en feature-registry, no en el router: daba 404 (18-nov). Los servicios viven en el creador de menú.
+							editTo={`${fullBasePath}/menumaker/services`}
 							editLabel={t('onlineBooking.publicPages.editService')}
 							showLabel={t('onlineBooking.publicPages.show')}
 							copyLabel={t('onlineBooking.publicPages.copyUrl')}

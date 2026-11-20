@@ -65,6 +65,7 @@ interface PromoterRow {
   checkOutLocation?: { lat: number; lng: number }
   checkOutPhotoUrl?: string
   sales: number // Venta del día/período
+  salesAtArrival?: number // D4c: las mismas ventas a la hora en que llegaron (sólo decide si la fila se queda con un filtro)
   cashSales: number // D6: efectivo cobrado (lo que se deposita)
   depositPhotoUrl?: string // D6: foto real del comprobante de depósito
   break: boolean // En descanso
@@ -317,6 +318,7 @@ export default function PromotersAuditPage() {
         checkOutLocation: entryWithCheckout?.clockOutLocation || undefined,
         checkOutPhotoUrl: entryWithCheckout?.checkOutPhotoUrl || undefined,
         sales: staffMember.sales,
+        salesAtArrival: staffMember.salesAtArrival,
         cashSales: staffMember.cashSales ?? 0,
         depositPhotoUrl: staffMember.depositPhotoUrl || undefined,
         break: staffMember.break,
@@ -334,7 +336,8 @@ export default function PromotersAuditPage() {
     const ventasDelFiltro = ventasSonDelFiltro(dateFilter.operator)
     return promoters.reduce<PromoterRow[]>((acc, promoter) => {
       const filteredEntries = (promoter.allTimeEntries || []).filter(isEntryInDateFilter)
-      if (!seQuedaConElFiltro(filteredEntries.length, promoter.sales, ventasDelFiltro)) return acc
+      if (!seQuedaConElFiltro(filteredEntries.length, promoter.sales, ventasDelFiltro, promoter.salesAtArrival ?? promoter.sales))
+        return acc
       if (filteredEntries.length === 0) {
         // D6: sin checadas en el rango pero con ventas (p. ej. la devolución de algo que vendió otro día): se ve, sin datos de checada.
         acc.push({
@@ -595,7 +598,7 @@ export default function PromotersAuditPage() {
       {/* Table */}
       <DataTable
         query={listQuery}
-      isLoading={isLoading}
+        isLoading={isLoading}
         columns={columns}
         data={filteredData}
         rowCount={filteredData.length}

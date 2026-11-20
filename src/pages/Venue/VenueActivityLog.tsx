@@ -23,7 +23,7 @@ import { AlertTriangle, ChevronDown, ChevronLeft, ChevronRight, ScrollText, Sear
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { iconFor, TONE_STYLES } from './activity-log/actionDisplay'
-import { actionLabel, actionTone, dateFilterToRange, formatEntityId, groupByDay, toDetailRows } from './activity-log/formatActivity'
+import { actionLabel, actionTone, dateFilterToRange, formatEntityId, groupByDay, toDetailRows, detailValueOf } from './activity-log/formatActivity'
 
 // ── Pantalla ──────────────────────────────────────────────────────────────────
 
@@ -320,6 +320,7 @@ function ActivityRow({ log }: { log: VenueActivityLogEntry }) {
           return translated === full ? null : translated
         },
         word => t(`activityLog.words.${word}`),
+        detailValueOf(t),
       ),
     [log.data, t],
   )

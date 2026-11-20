@@ -23,6 +23,7 @@ import { Loader2, Search, Package, X } from 'lucide-react'
 import { ModifierInventoryMode, Unit, type ModifierLinkedProduct } from '@/types'
 import { normalizeModifierSku } from './modifierSku'
 import { LinkedProductField } from './LinkedProductField'
+import { MaxVecesField } from './MaxVecesField'
 
 // Schema for the form validation
 // Define form values type
@@ -35,6 +36,8 @@ type FormValues = {
    *  duration impact (price-only modifier). Used by the booking widget to
    *  extend the reservation slot ("Manicura tradicional 25min + Esmalte +35min = 60min"). */
   durationMin: number | null
+  /** Veces que se puede elegir en un grupo que deja repetir (encargo a508f4). null = hasta el máximo del grupo. */
+  maxQuantity: number | null
   active: boolean
   // Inventory fields
   trackInventory: boolean
@@ -56,6 +59,7 @@ const createFormSchema = (t: any) =>
     // Ojo: debe estar declarado aquí — zod descarta las llaves que el esquema no conoce y el SKU no se enviaría.
     sku: z.string().optional(),
     durationMin: z.number().int().min(0).max(480).nullable().default(null),
+    maxQuantity: z.number().int().min(1).max(99).nullable().default(null),
     active: z.boolean().default(true),
     // Inventory fields
     trackInventory: z.boolean().default(false),
@@ -73,9 +77,11 @@ interface CreateModifierProps {
   modifierGroupId: string
   onBack: () => void
   onSuccess: () => void
+  /** El grupo deja repetir la misma opción: enseña «Veces que se puede elegir». */
+  permiteRepetir?: boolean
 }
 
-export default function CreateModifier({ venueId, modifierGroupId, onBack, onSuccess }: CreateModifierProps) {
+export default function CreateModifier({ venueId, modifierGroupId, onBack, onSuccess, permiteRepetir = false }: CreateModifierProps) {
   const { t } = useTranslation('menu')
   const { t: tInventory } = useTranslation('inventory')
   const queryClient = useQueryClient()
@@ -95,6 +101,7 @@ export default function CreateModifier({ venueId, modifierGroupId, onBack, onSuc
       price: 0,
       sku: '',
       durationMin: null,
+      maxQuantity: null,
       active: true,
       trackInventory: false,
       rawMaterialId: null,
@@ -172,6 +179,7 @@ export default function CreateModifier({ venueId, modifierGroupId, onBack, onSuc
         ...(sku ? { sku } : {}),
         durationMin: formValues.durationMin,
         active: formValues.active,
+        ...(permiteRepetir && formValues.maxQuantity != null ? { maxQuantity: formValues.maxQuantity } : {}),
       }
 
       // Add inventory fields if tracking is enabled
@@ -315,6 +323,8 @@ export default function CreateModifier({ venueId, modifierGroupId, onBack, onSuc
                 )}
               />
 
+              {permiteRepetir && <MaxVecesField control={form.control} name="maxQuantity" />}
+
               {/* Duration delta — extends the booked service when picked */}
               <FormField
                 control={form.control}
@@ -392,7 +402,9 @@ export default function CreateModifier({ venueId, modifierGroupId, onBack, onSuc
                   <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
                     <div className="space-y-0.5">
                       <FormLabel>{t('modifiers.inventory.trackInventory', 'Track Inventory')}</FormLabel>
-                      <FormDescription>{t('modifiers.inventory.trackInventoryDesc', 'Automatically deduct raw materials when this modifier is used')}</FormDescription>
+                      <FormDescription>
+                        {t('modifiers.inventory.trackInventoryDesc', 'Automatically deduct raw materials when this modifier is used')}
+                      </FormDescription>
                     </div>
                     <FormControl>
                       <div>
@@ -423,11 +435,7 @@ export default function CreateModifier({ venueId, modifierGroupId, onBack, onSuc
                       <FormItem className="space-y-3">
                         <FormLabel>{t('modifiers.inventory.mode', 'Inventory Mode')}</FormLabel>
                         <FormControl>
-                          <RadioGroup
-                            onValueChange={field.onChange}
-                            value={field.value || undefined}
-                            className="flex flex-col space-y-1"
-                          >
+                          <RadioGroup onValueChange={field.onChange} value={field.value || undefined} className="flex flex-col space-y-1">
                             <FormItem className="flex items-center space-x-3 space-y-0">
                               <FormControl>
                                 <RadioGroupItem value={ModifierInventoryMode.ADDITION} />
@@ -446,7 +454,10 @@ export default function CreateModifier({ venueId, modifierGroupId, onBack, onSuc
                               <div className="space-y-0.5">
                                 <FormLabel className="font-normal">{t('modifiers.inventory.modeSubstitution', 'Substitution')}</FormLabel>
                                 <FormDescription className="text-xs">
-                                  {t('modifiers.inventory.modeSubstitutionDesc', 'Replaces a recipe ingredient (e.g., "Almond Milk" instead of regular milk)')}
+                                  {t(
+                                    'modifiers.inventory.modeSubstitutionDesc',
+                                    'Replaces a recipe ingredient (e.g., "Almond Milk" instead of regular milk)',
+                                  )}
                                 </FormDescription>
                               </div>
                             </FormItem>
@@ -468,7 +479,9 @@ export default function CreateModifier({ venueId, modifierGroupId, onBack, onSuc
                           <div>
                             <p className="text-sm font-medium text-foreground">{selectedRawMaterial.name}</p>
                             <p className="text-xs text-muted-foreground">
-                              {tInventory('rawMaterials.fields.currentStock')}: {Number(selectedRawMaterial.currentStock).toFixed(2)} {formatUnit(selectedRawMaterial.unit)} · {Currency(Number(selectedRawMaterial.costPerUnit))} / {formatUnit(selectedRawMaterial.unit)}
+                              {tInventory('rawMaterials.fields.currentStock')}: {Number(selectedRawMaterial.currentStock).toFixed(2)}{' '}
+                              {formatUnit(selectedRawMaterial.unit)} · {Currency(Number(selectedRawMaterial.costPerUnit))} /{' '}
+                              {formatUnit(selectedRawMaterial.unit)}
                             </p>
                           </div>
                           <Button type="button" variant="ghost" size="sm" onClick={handleClearRawMaterial}>

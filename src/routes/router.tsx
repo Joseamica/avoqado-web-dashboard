@@ -3,6 +3,7 @@
 import { ComingSoon } from '@/components/ComingSoon'
 import { StaffRole } from '@/types'
 import { createBrowserRouter } from 'react-router-dom'
+import { lazy } from 'react'
 
 import {
   AcceptAdminInvitation,
@@ -136,6 +137,8 @@ import { OwnerProtectedRoute } from './OwnerProtectedRoute'
 import { SuperProtectedRoute } from './SuperProtectedRoute'
 import { MasterCatalogProtectedRoute } from './MasterCatalogProtectedRoute'
 
+const SupportWhatsappPage = lazy(() => import('@/pages/Account/SupportWhatsappPage'))
+
 // The bootstrap and history guard load this route in an isolated public entry.
 const router = createBrowserRouter(
   [
@@ -143,6 +146,7 @@ const router = createBrowserRouter(
     {
       element: <Root />, // Root element wraps all routes
       children: [
+        { path: '/support/whatsapp', element: <SupportWhatsappPage /> },
         {
           path: '/login',
           element: <Login />,

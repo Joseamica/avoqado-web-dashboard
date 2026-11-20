@@ -134,7 +134,7 @@
       "existing": "Cliente existente",
       "new": "Nuevo invitado"
     },
-    "noServicesAvailable": "No hay servicios creados. Puedes crear uno en MenuMaker.",
+    "noServicesAvailable": "No hay servicios creados. Puedes crear uno en Creador de menú.",
     "noTablesAvailable": "Sin mesas disponibles para este horario",
     "selectService": "Seleccionar servicio",
     "addService": "Añadir servicio",
@@ -158,6 +158,7 @@
   },
   "detail": {
     "title": "Reservación {{code}}",
+    "schedule": "Horario",
     "confirmationCode": "Código de confirmación",
     "timeline": "Historial",
     "timelineEntry": "{{status}} — {{date}}",
@@ -219,10 +220,17 @@
     "views": {
       "day": "Día",
       "week": "Semana",
-      "5day": "5-días",
+      "5day": "5 días",
       "month": "Mes"
     },
     "interval": "Intervalo",
+    "previous": "Anterior",
+    "next": "Siguiente",
+    "moveCita": {
+      "title": "¿Mover la cita?",
+      "description": "{{name}}: de {{from}} a {{to}}",
+      "confirm": "Mover"
+    },
     "groupBy": {
       "label": "Agrupar por",
       "none": "Sin agrupar",
@@ -273,6 +281,7 @@
     "spotsLeft": "{{count}} lugar disponible",
     "spotsLeft_other": "{{count}} lugares disponibles",
     "full": "Lleno",
+    "enrolledLabel": "inscritos",
     "schedule": "Agendar",
     "editSuccess": "Clase actualizada exitosamente",
     "cancelSuccess": "Clase cancelada",
@@ -448,11 +457,11 @@
       "moreActions": "Más acciones",
       "editIdentity": "Editar identidad de marca",
       "step1Title": "Aplica el diseño de tu marca",
-      "step1Heading": "Añade el logotipo y el color de tu marca",
+      "step1Heading": "Añade el logotipo, la portada y el color de tu marca",
       "step1Description": "El logotipo y el color principal de tu negocio aparecerán en tu página pública de reservas, en los recibos y en cualquier otro espacio en el que tus clientes interactúen con tu marca.",
       "step2Title": "Vista previa y ajustes",
       "logoFull": "Logotipo completo",
-      "logoFullHelper": "Una versión amplia del logotipo. Aparece como hero en la página de reservas.",
+      "logoFullHelper": "Una versión ancha del logotipo. Aparece en la barra de arriba de tu página de reservas, en lugar del nombre.",
       "logoSmall": "Logotipo pequeño",
       "logoSmallHelper": "Una versión cuadrada en miniatura. Se usa en recibos, avatares y la cabecera del widget.",
       "color": "Color",

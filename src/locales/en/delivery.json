@@ -46,10 +46,9 @@
     "modeLabel": "Acceptance mode",
     "modeAuto": "Automatic",
     "modeManual": "Manual",
-    "pauseAction": "Pause",
-    "resumeAction": "Resume",
-    "closedByProviderPaused": "Closed from the {{proveedor}} portal (notice recorded in Avoqado {{fecha}}). Resuming it here reopens it on {{proveedor}}.",
-    "closedByProviderActive": "{{proveedor}} reported that this store was closed from its portal (notice recorded in Avoqado {{fecha}}). To reopen it, pause and resume the channel here.",
+    "receiveOrders": "Accept orders",
+    "closedByProviderPaused": "Closed from the {{proveedor}} portal (notice recorded in Avoqado {{fecha}}). Turning “Accept orders” back on here reopens it on {{proveedor}}.",
+    "closedByProviderActive": "{{proveedor}} reported that this store was closed from its portal (notice recorded in Avoqado {{fecha}}). To reopen it, turn “Accept orders” off and on again here.",
     "pauseToastSuccess": "Channel paused",
     "resumeToastSuccess": "Channel resumed",
     "pauseToastError": "Couldn't update the channel",
@@ -133,7 +132,16 @@
       "yaNoExisten_other": "{{count}} products on the list no longer exist in your catalog",
       "yaNoExistenHelp": "Remove them to keep the list tidy.",
       "yaNoExistenCodigos": "Codes that no longer belong to any product are removed when you save.",
-      "quitarlos": "Remove them"
+      "quitarlos": "Remove them",
+      "listaHelp": "With a list, products you add later are not published automatically.",
+      "publicarTodo": "Publish my whole catalog",
+      "publicarTodoTitulo": "Publish your whole catalog on {{canal}}?",
+      "publicarTodoDescripcion_one": "Your product is published on {{canal}}, and so is anything you add later. Your list of chosen products stops being used.",
+      "publicarTodoDescripcion_other": "Your {{count}} products are published on {{canal}}, and so is anything you add later. Your list of chosen products stops being used.",
+      "publicarTodoPrecios": "The prices you set for {{canal}} are kept and still used.",
+      "publicarTodoAlGuardar": "The change is saved when you press «Save».",
+      "publicarTodoConfirmar": "Publish everything",
+      "cancelar": "Cancel"
     }
   },
   "rappi": {
