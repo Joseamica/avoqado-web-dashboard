@@ -32,6 +32,7 @@ import type { OperatingHours } from '@/types/reservation'
 import { useVenueDateTime } from '@/utils/datetime'
 
 import { defaultWeek, overnightNotes, validateWeek } from '../lib/hours'
+import { laMasNueva, useRelecturaDeLaTienda } from '../hooks/useRelecturaDeLaTienda'
 import { pauseLabel } from '../lib/pauseLabel'
 import { PauseControl } from './PauseControl'
 import { StorefrontShareCard } from './StorefrontShareCard'
@@ -231,6 +232,17 @@ export function SettingsTab() {
     retry: 1,
   })
 
+  // D662 v4 (hueco 5): de las dos lecturas gana la que el SERVIDOR hizo más tarde (su hora se toma ANTES de leer: si es posterior a un
+  // cambio, ya lo trae; Codex p2-r8 #4 y p2v4-r1 #11). Y el estado se vuelve a leer en cuanto puede cambiar, no cada 30 s.
+  // Con un SERVIDOR viejo (sin `storeReadAt`), gana la que llegó al último.
+  const lecturaMasNueva =
+    settings && storeQuery.data && !(settings.storeReadAt && storeQuery.data.storeReadAt)
+      ? storeQuery.dataUpdatedAt > settingsQuery.dataUpdatedAt
+        ? storeQuery.data
+        : settings
+      : laMasNueva(settings, storeQuery.data)
+  useRelecturaDeLaTienda(venueId, lecturaMasNueva, () => void storeQuery.refetch())
+
   const saved = useMemo(() => (settings ? toForm(settings) : undefined), [settings])
   // R37/R66: el servidor nunca pone «Nadie» solo. Sólo si el negocio NO tiene ajustes guardados (`hasSavedSettings === false`) el
   // formulario ARRANCA en lo sugerido para su giro; como difiere de lo guardado, sale «Cambios sin guardar» hasta Guardar.
@@ -360,15 +372,7 @@ export function SettingsTab() {
 
   // D662 (Codex p2-r5 #5): el estado de la tienda se vuelve a leer solo (la pausa sola puede llegar con esta pantalla abierta), en su
   // propia consulta: la del formulario no se refresca para no pisar lo que el gerente está editando.
-  // Codex p2-r7 #2: de las dos lecturas gana la que el SERVIDOR hizo más tarde (`storeReadAt`), no la que llegó al último; con un
-  // servidor viejo (sin el campo), la que llegó al último.
-  const sondeoEsMasNuevo = (() => {
-    const s = storeQuery.data
-    if (!s) return false
-    if (s.storeReadAt && settings.storeReadAt) return Date.parse(s.storeReadAt) > Date.parse(settings.storeReadAt)
-    return storeQuery.dataUpdatedAt > settingsQuery.dataUpdatedAt
-  })()
-  const store = sondeoEsMasNuevo ? (storeQuery.data?.store ?? settings.store) : settings.store
+  const store = lecturaMasNueva?.store ?? settings.store
   const pause = pauseLabel(store, formatTime)
   const statusText = pause
     ? t(pause.key, pause.params)

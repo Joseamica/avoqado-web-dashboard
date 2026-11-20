@@ -36,8 +36,16 @@ export const onlineOrderingKeys = {
   cardRefunds: (v: string, orderId: string) => ['online-ordering', v, 'order', orderId, 'card-refunds'] as const,
 }
 
-export const getSettings = async (venueId: string): Promise<OnlineOrderingSettings> =>
-  (await api.get(`${base(venueId)}/settings`)).data.data
+/**
+ * D662 v4: `pausaSola=1` le dice al SERVIDOR que este panel entiende la pausa sola (sin él, le manda la forma de la pestaña vieja). Va en
+ * la URL y no en una cabecera: el CORS del SERVIDOR no deja pasar cabeceras nuevas. `enviadoEn` (reloj del navegador, al salir) sirve
+ * para volver a leer justo después de la próxima hora límite.
+ */
+export const getSettings = async (venueId: string): Promise<OnlineOrderingSettings> => {
+  const enviadoEn = Date.now()
+  const data: OnlineOrderingSettings = (await api.get(`${base(venueId)}/settings`, { params: { pausaSola: '1' } })).data.data
+  return { ...data, enviadoEn }
+}
 
 export const updateSettings = async (venueId: string, patch: Partial<OnlineOrderingSettingsInput>): Promise<OnlineOrderingSettingsSaved> =>
   (await api.put(`${base(venueId)}/settings`, patch)).data.data
@@ -56,13 +64,16 @@ export const setMenuAvailability = async (
 ): Promise<{ updated: number }> => (await api.put(`${base(venueId)}/menu/availability`, body)).data.data
 
 /** `tray:true` = la bandeja en primer plano: la cabecera le dice al servidor que mantenga abierta la tienda. */
-export const getInbox = async (venueId: string, opts: { tray: boolean; status?: 'all' | 'active'; cursor?: string }): Promise<Inbox> =>
-  (
+export const getInbox = async (venueId: string, opts: { tray: boolean; status?: 'all' | 'active'; cursor?: string }): Promise<Inbox> => {
+  const enviadoEn = Date.now()
+  const data: Inbox = (
     await api.get(`${base(venueId)}/orders`, {
-      params: { status: opts.status ?? 'all', ...(opts.cursor ? { cursor: opts.cursor } : {}) },
+      params: { status: opts.status ?? 'all', pausaSola: '1', ...(opts.cursor ? { cursor: opts.cursor } : {}) },
       ...(opts.tray ? { headers: { 'x-online-orders-tray': '1' } } : {}),
     })
   ).data.data
+  return { ...data, enviadoEn }
+}
 
 /** Folios de «Nadie»: por pagar y por entregar. Sin cabecera de latido a propósito. `section`+`cursor` piden la siguiente página. */
 export const getToPay = async (venueId: string, params?: { section?: 'toPay' | 'toDeliver'; cursor?: string }): Promise<ToPayResponse> =>

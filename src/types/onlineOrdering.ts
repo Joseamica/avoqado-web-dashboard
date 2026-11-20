@@ -33,8 +33,12 @@ export interface OnlineOrderingSettings {
   /** `false` = el negocio aún no tiene ajustes guardados (R66); sólo entonces el panel preselecciona la sugerencia. Opcional: servidor viejo. */
   hasSavedSettings?: boolean
   store: StoreState
-  /** D662: cuándo leyó el SERVIDOR `store` (ISO). Un servidor viejo no lo manda. */
+  /** D662: cuándo leyó el SERVIDOR `store` (ISO, tomado antes de leer). Un servidor viejo no lo manda. */
   storeReadAt?: string
+  /** D662 v4: la hora límite más cercana de un pedido por aceptar (ISO): el panel vuelve a leer justo después. */
+  storeNextDeadlineAt?: string | null
+  /** Sólo del navegador: cuándo salió la petición (no lo manda el SERVIDOR). */
+  enviadoEn?: number
   requirements: Record<StoreRequirement, boolean>
   /** Fase 2: si la tarjeta puede cobrar de verdad (Stripe del negocio). Opcional: un servidor viejo no lo manda. */
   card?: { enabled: boolean; merchantStatus: CardMerchantStatus }
@@ -140,6 +144,11 @@ export type CardChargeStatus =
 
 export interface Inbox {
   serverTime: string
+  /** D662 v4 (con `pausaSola=1`): cuándo leyó el SERVIDOR `store` y la próxima hora límite por aceptar. */
+  storeReadAt?: string
+  storeNextDeadlineAt?: string | null
+  /** Sólo del navegador: cuándo salió la petición. */
+  enviadoEn?: number
   counts: { pending: number; accepted: number; ready: number; active: number; done: number; acceptedTeam?: number }
   orders: InboxOrder[]
   truncated: boolean
