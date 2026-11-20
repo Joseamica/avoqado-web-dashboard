@@ -37,7 +37,7 @@ describe('bitácora: usos de descuento devueltos al cancelar la cuenta (D24)', (
       key => b.detailKeys[key] ?? null,
       w => w,
     )
-    expect(filas.map(f => f.label)).toEqual(['Desde', 'Usos devueltos', 'Usos devueltos por descuento'])
+    expect(filas.map(f => f.label)).toEqual(['Desde', 'Usos devueltos', 'Descuentos'])
     expect(filas[1].value).toBe('2')
   })
 

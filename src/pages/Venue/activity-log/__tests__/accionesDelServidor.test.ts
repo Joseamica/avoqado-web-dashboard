@@ -9,8 +9,8 @@ type Bitacora = { activityLog: { actions: Record<string, string>; detailKeys: Re
  * Todas las acciones que el SERVIDOR escribe en la bitácora (ActivityLog) tienen su texto en español y en inglés.
  *
  * Sin texto, la fila sale con el código traducido a medias («Table opened» en una pantalla en español), como pasó
- * con TABLE_OPENED (hz:8024bc1c:D31). La lista (1,068 acciones) se sacó del código de `avoqado-server` en `develop`
- * (12-nov-2026) con `docs/audit/2026-11-12-bitacora-etiquetas-y-organizacion/acciones-del-servidor.cjs` del workspace:
+ * con TABLE_OPENED (hz:8024bc1c:D31). La lista (1,103 acciones; la primera, de 1,068) se sacó del código de `avoqado-server` en `develop`
+ * (12-nov-2026; otra vez el 20-nov, 864b43072) con `docs/audit/2026-11-12-bitacora-etiquetas-y-organizacion/acciones-del-servidor.cjs` del workspace:
  * lee el AST y junta las acciones de `logAction`, `auditMcpWrite`, `activityLog.create` y sus envoltorios; las que se
  * arman con plantilla (`KITCHEN_${…}`, `SIM_CUSTODY_${…}`, …) están en `acciones-a-mano.txt`, al lado. Al agregar
  * acciones en el servidor, vuelve a correrlo y pon aquí su salida: esta prueba falla hasta que cada una tenga texto.

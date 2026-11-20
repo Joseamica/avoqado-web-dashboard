@@ -22,7 +22,7 @@ import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useParams } from 'react-router-dom'
 import { iconFor, TONE_STYLES } from '@/pages/Venue/activity-log/actionDisplay'
-import { actionLabel, actionTone, formatEntityId, toDetailRows } from '@/pages/Venue/activity-log/formatActivity'
+import { actionLabel, actionTone, formatEntityId, toDetailRows, detailValueOf } from '@/pages/Venue/activity-log/formatActivity'
 
 // ── Component ──
 
@@ -244,6 +244,7 @@ function ActivityLogRow({ log }: { log: OrgActivityLogEntry }) {
           return translated === full ? null : translated
         },
         word => t(`activityLog.words.${word}`),
+        detailValueOf(t),
       ),
     [log.data, t],
   )
