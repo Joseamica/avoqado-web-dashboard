@@ -188,6 +188,43 @@ describe('SettingsTab', () => {
     expect(screen.getByLabelText('settings.minOrder')).toHaveValue(80)
   })
 
+  it('🔴 D662 v5 (Codex p2v5-r2 #10): lo que edité y otra persona guardó IGUAL deja de ser edición: su siguiente guardado sí me llega y «Guardar» no lo revierte', async () => {
+    const leida = (over: Record<string, unknown>) =>
+      base({ enabled: true, storeReadAt: '2026-11-20T18:00:00.000Z', storeNextDeadlineAt: null, enviadoEn: Date.now(), ...over })
+    getSettings.mockResolvedValue(leida({ minOrderAmount: 50, storeVersion: '2026-11-20T17:00:00.000Z' }))
+    renderTab()
+    await formularioCargado()
+    fireEvent.change(screen.getByLabelText('settings.minOrder'), { target: { value: '80' } })
+    expect(await screen.findByText('settings.unsaved')).toBeInTheDocument()
+    // Otra gerente guarda $80.
+    getSettings.mockResolvedValue(leida({ minOrderAmount: 80, storeVersion: '2026-11-20T18:00:01.000Z' }))
+    fireEvent(document, new Event('visibilitychange'))
+    await waitFor(() => expect(screen.queryByText('settings.unsaved')).toBeNull())
+    // Y luego guarda $90: ya no es mi edición, me llega.
+    getSettings.mockResolvedValue(leida({ minOrderAmount: 90, storeVersion: '2026-11-20T18:00:02.000Z' }))
+    fireEvent(document, new Event('visibilitychange'))
+    await waitFor(() => expect(screen.getByLabelText('settings.minOrder')).toHaveValue(90))
+    expect(screen.queryByText('settings.unsaved')).toBeNull()
+  })
+
+  it('D662 v5 (Codex p2v5-r2 #9): si el negocio nunca había guardado y otra persona lo configura y enciende, el interruptor también lo dice', async () => {
+    getSettings.mockResolvedValue(base({ storeReadAt: '2026-11-20T18:00:00.000Z', storeVersion: null, enviadoEn: Date.now() }))
+    renderTab()
+    await formularioCargado()
+    expect(screen.getByRole('switch', { name: 'settings.enable' })).not.toBeChecked()
+    getSettings.mockResolvedValue(
+      base({
+        enabled: true,
+        storeReadAt: '2026-11-20T18:00:10.000Z',
+        storeVersion: '2026-11-20T18:00:05.000Z',
+        enviadoEn: Date.now(),
+        store: { status: 'OPEN', reason: null, pausedUntil: null, manualPause: false },
+      }),
+    )
+    fireEvent(document, new Event('visibilitychange'))
+    await waitFor(() => expect(screen.getByRole('switch', { name: 'settings.enable' })).toBeChecked())
+  })
+
   it('D662: sin la pausa sola Configuración no muestra «Reanudar» (la pausa corta se quita en la bandeja)', async () => {
     getSettings.mockResolvedValue(
       base({

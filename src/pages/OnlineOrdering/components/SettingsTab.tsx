@@ -248,8 +248,9 @@ export function SettingsTab() {
   // salen de la misma lectura. Lo que el gerente está editando se conserva (`keepDirtyValues` del formulario, abajo).
   const lecturaDelEstado = storeQuery.data
   useEffect(() => {
-    if (!venueId || !settings || !lecturaDelEstado?.storeVersion || !settings.storeVersion) return
-    if (Date.parse(lecturaDelEstado.storeVersion) <= Date.parse(settings.storeVersion)) return
+    // Sin versión en lo que se tenía (el negocio nunca había guardado) cualquier versión es más nueva (Codex p2v5-r2 #9).
+    if (!venueId || !settings || !lecturaDelEstado?.storeVersion) return
+    if (settings.storeVersion && Date.parse(lecturaDelEstado.storeVersion) <= Date.parse(settings.storeVersion)) return
     qc.setQueryData(onlineOrderingKeys.settings(venueId), lecturaDelEstado)
   }, [venueId, settings, lecturaDelEstado, qc])
 
@@ -263,6 +264,17 @@ export function SettingsTab() {
   // sí tocó se quedan como los dejó (D662 v5).
   const form = useForm<FormValues>({ resolver: zodResolver(schema), values: formValues, resetOptions: { keepDirtyValues: true } })
   const { control, watch, setValue, handleSubmit, reset, formState } = form
+  // D662 v5 (Codex p2v5-r2 #10): con `keepDirtyValues`, un campo que el gerente editó y que OTRA persona guardó con ese mismo valor ya no
+  // es una edición: se le quita la marca, para que un guardado posterior de esa otra persona sí lo actualice (y «Guardar» no lo revierta).
+  useEffect(() => {
+    if (!formValues) return
+    for (const nombre of Object.keys(formValues) as Array<keyof FormValues>) {
+      if (!form.getFieldState(nombre).isDirty) continue
+      if (JSON.stringify(form.getValues(nombre)) === JSON.stringify(formValues[nombre])) {
+        form.resetField(nombre, { defaultValue: formValues[nombre] })
+      }
+    }
+  }, [formValues, form])
   const hours = watch('hours')
   const enabled = watch('enabled')
   const payAtPickup = !!watch('acceptsPayAtPickup')

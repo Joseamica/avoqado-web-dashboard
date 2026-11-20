@@ -18,6 +18,8 @@ interface SocketContextType {
 const ESPERAS_DE_RECUPERACION_MS = [1_000, 3_000, 10_000, 30_000]
 const VENTANA_ANTI_BUCLE_MS = 120_000
 const MAX_RECREACIONES_EN_VENTANA = 6
+// D662 v5: reintentos de una suscripción a otra sucursal que el SERVIDOR no pudo verificar.
+const ESPERAS_DE_REINTENTO_DE_SUCURSAL_MS = [2_000, 5_000, 15_000, 30_000, 60_000]
 
 const SocketContext = createContext<SocketContextType>({
   socket: null,
@@ -51,10 +53,21 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
   const confirmaciones = useRef(new Map<string, Set<() => void>>())
   const socketVivo = useRef<Socket | null>(null)
   // Estables (sólo usan refs): las pantallas los ponen en las dependencias de sus efectos y no deben salir y entrar en cada render.
-  const pedirSucursal = useCallback((s: Socket, venueId: string) => {
-    s.emit('joinVenueRoom', { venueId }, (r?: { success?: boolean }) => {
-      if (!r?.success || socketVivo.current !== s || !suscripciones.current.has(venueId)) return
-      for (const cb of Array.from(confirmaciones.current.get(venueId) ?? [])) cb()
+  const pedirSucursal = useCallback((s: Socket, venueId: string, intento = 0) => {
+    s.emit('joinVenueRoom', { venueId }, (r?: { success?: boolean; error?: string }) => {
+      if (socketVivo.current !== s || !suscripciones.current.has(venueId)) return
+      if (r?.success) {
+        for (const cb of Array.from(confirmaciones.current.get(venueId) ?? [])) cb()
+        return
+      }
+      // Codex p2v5-r2 #4: si el SERVIDOR no pudo verificar el permiso (la base falló un momento), se vuelve a pedir con esperas
+      // crecientes mientras alguien siga mirando esa sucursal. Un «sin acceso» no se reintenta.
+      if (r?.error === 'No se pudo verificar el acceso') {
+        const espera = ESPERAS_DE_REINTENTO_DE_SUCURSAL_MS[Math.min(intento, ESPERAS_DE_REINTENTO_DE_SUCURSAL_MS.length - 1)]
+        setTimeout(() => {
+          if (socketVivo.current === s && s.connected && suscripciones.current.has(venueId)) pedirSucursal(s, venueId, intento + 1)
+        }, espera)
+      }
     })
   }, [])
 

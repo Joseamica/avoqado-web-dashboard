@@ -130,3 +130,26 @@ describe('SocketProvider · avisos de otra sucursal', () => {
     expect(releer).not.toHaveBeenCalled()
   })
 })
+
+describe('SocketProvider · reintento (Codex p2v5-r2 #4)', () => {
+  it('si el SERVIDOR no pudo verificar el permiso, vuelve a pedir la sucursal con espera; un «sin acceso» no se reintenta', () => {
+    vi.useFakeTimers()
+    try {
+      render(
+        <SocketProvider>
+          <Espia />
+        </SocketProvider>,
+      )
+      conectar(0)
+      act(() => api.joinVenueRoom('venue-b'))
+      act(() => pedidos(0, 'joinVenueRoom')[0].ack?.({ success: false, error: 'No se pudo verificar el acceso' }))
+      act(() => vi.advanceTimersByTime(2_000))
+      expect(pedidos(0, 'joinVenueRoom')).toHaveLength(2)
+      act(() => pedidos(0, 'joinVenueRoom')[1].ack?.({ success: false, error: 'Sin acceso a esta sucursal' }))
+      act(() => vi.advanceTimersByTime(120_000))
+      expect(pedidos(0, 'joinVenueRoom')).toHaveLength(2)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+})
