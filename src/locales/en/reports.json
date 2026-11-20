@@ -898,6 +898,8 @@
       "unit": "Unit",
       "itemsSold": "Items Sold",
       "unitsSold": "Units Sold",
+      "insidePackages": "Inside packages",
+      "totalUnits": "Total",
       "grossSales": "Gross Sales",
       "discounts": "Discounts",
       "netSales": "Net Sales"
@@ -969,7 +971,8 @@
     },
     "totals": {
       "label": "Total"
-    }
+    },
+    "insidePackagesHelp": "Units sold as an extra linked to this item (for example, inside a combo). They add no money: the price is in the main product. “Total” = units sold + inside packages. It uses the extra's current link: if you change it, past days change too."
   },
   "salesByCategory": {
     "title": "Sales by Category",

@@ -17,6 +17,11 @@ export interface EncabezadosCsv {
   /** Columna extra al final, sólo cuando `conFamilia`. */
   familia: string
   total: string
+  /**
+   * «Dentro de paquete» y el total de unidades (founder «B», 20-nov): dos columnas AL FINAL, sólo cuando se pasan (la pantalla las
+   * pasa si el periodo trae extras ligados). Al final para que las columnas de siempre no cambien de lugar.
+   */
+  paquete?: { dentro: string; total: string }
 }
 
 /** Devuelve el texto completo del archivo (con BOM para que Excel lea bien los acentos). */
@@ -37,6 +42,7 @@ export function csvDeVentas(
   headerRow.push(encabezados.unidad, encabezados.articulos, encabezados.unidades, encabezados.brutas, encabezados.descuentos)
   // La familia va AL FINAL: así las columnas de siempre no cambian de lugar cuando el negocio empieza a usar familias.
   if (conFamilia) headerRow.push(encabezados.familia)
+  if (encabezados.paquete) headerRow.push(encabezados.paquete.dentro, encabezados.paquete.total)
   rows.push(headerRow)
 
   // Plano: un renglón por variante (como Square), cada uno con el nombre de su venta.
@@ -47,6 +53,9 @@ export function csvDeVentas(
     }
     dataRow.push(item.unit, item.itemsSold.toString(), item.unitsSold.toString(), item.grossSales.toFixed(2), item.discounts.toFixed(2))
     if (conFamilia) dataRow.push(item.productGroupName || '')
+    if (encabezados.paquete) {
+      dataRow.push(String(item.unitsInsidePackages ?? 0), String(item.totalUnits ?? item.unitsSold + (item.unitsInsidePackages ?? 0)))
+    }
     rows.push(dataRow)
   })
 
@@ -54,6 +63,10 @@ export function csvDeVentas(
   if (encabezados.producto) totalsRow.push('', '', '')
   totalsRow.push('', totales.itemsSold.toString(), totales.unitsSold.toString(), totales.grossSales.toFixed(2), totales.discounts.toFixed(2))
   if (conFamilia) totalsRow.push('')
+  if (encabezados.paquete) {
+    const dentro = totales.unitsInsidePackages ?? 0
+    totalsRow.push(String(dentro), String(totales.totalUnits ?? totales.unitsSold + dentro))
+  }
   rows.push(totalsRow)
 
   // RFC 4180: una comilla dentro de la celda se duplica (antes, un nombre como Playera "Clásica" partía el renglón).

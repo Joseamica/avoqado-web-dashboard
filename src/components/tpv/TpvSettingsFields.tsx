@@ -17,7 +17,6 @@ import {
   Tablet,
   Store,
   CreditCard,
-  UtensilsCrossed,
   Bitcoin,
   Plus,
   X,
@@ -671,18 +670,7 @@ export function TpvSettingsFields({
                 onCheckedChange={checked => handleToggle('showCheckout', checked)}
                 disabled={isDisabled}
               />
-              {/* «Órdenes» es legacy (founder, 8-oct-2026): no se ofrece. Sólo aparece donde ya está
-                  prendida, para poder apagarla; al apagarla desaparece. */}
-              {settings.showOrderManagement && (
-                <SettingRow
-                  icon={UtensilsCrossed}
-                  label={t('tpvSettings.showOrderManagementLegacy')}
-                  description={t('tpvSettings.showOrderManagementDesc')}
-                  checked={settings.showOrderManagement}
-                  onCheckedChange={checked => handleToggle('showOrderManagement', checked)}
-                  disabled={isDisabled}
-                />
-              )}
+              {/* «Órdenes» ya no se ofrece ni se apaga aquí: el SERVIDOR la apaga siempre (D34, 20-nov). */}
               <SettingRow
                 icon={BarChart3}
                 label={t('tpvSettings.showReports')}

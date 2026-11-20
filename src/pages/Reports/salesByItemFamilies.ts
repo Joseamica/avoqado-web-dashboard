@@ -8,7 +8,16 @@
  */
 import type { ItemSalesMetrics } from '@/services/reports/salesByItem.service'
 
-export type CampoOrden = 'productName' | 'categoryName' | 'itemsSold' | 'unitsSold' | 'grossSales' | 'discounts' | 'netSales'
+export type CampoOrden =
+  | 'productName'
+  | 'categoryName'
+  | 'itemsSold'
+  | 'unitsSold'
+  | 'unitsInsidePackages'
+  | 'totalUnits'
+  | 'grossSales'
+  | 'discounts'
+  | 'netSales'
 export interface OrdenVentas {
   field: CampoOrden
   direction: 'asc' | 'desc'
@@ -55,6 +64,9 @@ function armarFamilia(groupId: string, variantes: ItemSalesMetrics[]): Extract<F
   const suma = (campo: 'itemsSold' | 'unitsSold' | 'grossSales' | 'discounts' | 'netSales') =>
     variantes.reduce((acc, v) => acc + v[campo], 0)
   const promotions = fusionarPromociones(variantes)
+  // «Dentro de paquete» sólo si el server lo mandó (con «Mostrar por: ninguno»): sin él, la familia no lo inventa.
+  const conPaquete = variantes.some(v => v.unitsInsidePackages !== undefined)
+  const sumaOpcional = (campo: 'unitsInsidePackages' | 'totalUnits') => variantes.reduce((acc, v) => acc + (v[campo] ?? 0), 0)
   const metricas: ItemSalesMetrics = {
     productId: null,
     productName: nombre,
@@ -69,6 +81,7 @@ function armarFamilia(groupId: string, variantes: ItemSalesMetrics[]): Extract<F
     netSales: suma('netSales'),
     productGroupId: groupId,
     productGroupName: nombre,
+    ...(conPaquete ? { unitsInsidePackages: sumaOpcional('unitsInsidePackages'), totalUnits: sumaOpcional('totalUnits') } : {}),
     // misma convención que el server: `promotionName` = la única promoción; `null` si fueron varias
     ...(promotions.length > 0 ? { promotions, promotionName: promotions.length === 1 ? promotions[0].name : null } : {}),
   }
