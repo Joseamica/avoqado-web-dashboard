@@ -250,8 +250,10 @@ export function SettingsTab() {
     enabled: !!venueId,
     // D661 · Ruling 63: «¿se ofrece la tarjeta AHORA?» es una foto (el SERVIDOR la mide en 90 s) y otra persona puede prenderla: en
     // «Nadie» se vuelve a pedir cada 30 s, prendida o apagada. Lo que se está editando no se pisa (`keepDirtyValues`, abajo).
-    // Ruling 92: con un guardado sin confirmar también se relee así, en los dos modos, hasta saber en qué quedó.
-    refetchInterval: q => (q.state.data?.requiresAcceptance === false || sinConfirmar ? 30_000 : false),
+    // Ruling 92: con un guardado sin confirmar también se relee así, en los dos modos, hasta saber en qué quedó. Ruling 105: sólo mientras
+    // dure la ventana de revisión (si todas las lecturas fallan, en «Mi equipo» no se lee sola para siempre).
+    refetchInterval: q =>
+      q.state.data?.requiresAcceptance === false || (sinConfirmar && Date.now() < sinConfirmar.hasta) ? 30_000 : false,
   })
   const { data: settings } = settingsQuery
   // Ruling 63: «ahora» sólo con una lectura buena de hace ≤ 60 s y sin fallar; si no, la hora de esa lectura. El temporizador vuelve a
@@ -545,7 +547,8 @@ export function SettingsTab() {
 
       {sinConfirmar && (
         <Alert role="status">
-          <AlertDescription>{t('settings.saveUnconfirmed')}</AlertDescription>
+          {/* Ruling 105: pasada la ventana sin una lectura que decida, ya no «seguimos revisando»: sigue sin saberse, y lo tecleado se queda. */}
+          <AlertDescription>{t(Date.now() < sinConfirmar.hasta ? 'settings.saveUnconfirmed' : 'settings.saveUnknown')}</AlertDescription>
         </Alert>
       )}
       {saveError && (

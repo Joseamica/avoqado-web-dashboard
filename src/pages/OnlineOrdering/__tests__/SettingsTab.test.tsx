@@ -1441,6 +1441,38 @@ describe('SettingsTab', () => {
       }
     })
 
+    // Ruling 105 (regresión): en «Mi equipo» con todas las lecturas fallando, la revisión no puede seguir para siempre. Al terminar la
+    // ventana deja de leer sola, conserva lo tecleado y sigue diciendo que no se sabe si se guardó.
+    it('«Mi equipo» y todas las lecturas fallan: al terminar la ventana deja de leer sola, conserva lo tecleado y dice que no se sabe', async () => {
+      expect(esOnline.settings.saveUnknown).toBe(
+        'No se pudo confirmar si se guardó: tus cambios siguen aquí. Revisa tu conexión y vuelve a intentarlo.',
+      )
+      expect(enOnline.settings.saveUnknown).toBe(
+        "We couldn't confirm whether it was saved: your changes are still here. Check your connection and try again.",
+      )
+      vi.useFakeTimers({ shouldAdvanceTime: true })
+      try {
+        getSettings.mockResolvedValueOnce(base()).mockRejectedValue(new Error('Network Error'))
+        updateSettings.mockRejectedValue(sinRed())
+        renderTab()
+        await formularioCargado()
+        fireEvent.change(screen.getByLabelText('settings.minOrder'), { target: { value: '80' } })
+        fireEvent.click(screen.getByRole('button', { name: 'settings.save' }))
+        expect(await screen.findByText('settings.saveUnconfirmed')).toBeInTheDocument()
+        await esperar(10 * 60_000 + 31_000)
+        expect(await screen.findByText('settings.saveUnknown')).toBeInTheDocument()
+        expect(screen.queryByText('settings.saveUnconfirmed')).toBeNull()
+        expect(screen.queryByText('settings.saveNotSaved')).toBeNull()
+        expect(screen.getByLabelText('settings.minOrder')).toHaveValue(80)
+        expect(screen.getByText('settings.unsaved')).toBeInTheDocument()
+        const lecturas = getSettings.mock.calls.length
+        await esperar(2 * 60_000)
+        expect(getSettings).toHaveBeenCalledTimes(lecturas)
+      } finally {
+        vi.useRealTimers()
+      }
+    })
+
     it('en «Mi equipo» (sin sondeo) también se sigue revisando mientras no se confirme; confirmado, deja de leer sola', async () => {
       vi.useFakeTimers({ shouldAdvanceTime: true })
       try {
