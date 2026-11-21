@@ -13,7 +13,7 @@
     "saved": "Settings saved",
     "saveFailed": "Couldn't save. Try again.",
     "saveNotSaved": "It wasn't saved: your changes are still here, save again.",
-    "saveUnknown": "We couldn't confirm whether it was saved: your changes are still here. Check your connection and try again.",
+    "saveUnconfirmed": "We couldn't confirm yet whether it was saved; we're still checking. Your changes are still here.",
     "read": {
       "offline": "Seen at {{time}}; no connection",
       "refreshing": "Updating…",

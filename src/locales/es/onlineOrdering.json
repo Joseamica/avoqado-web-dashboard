@@ -13,7 +13,7 @@
     "saved": "Configuración guardada",
     "saveFailed": "No se pudo guardar. Intenta de nuevo.",
     "saveNotSaved": "No se guardó: tus cambios siguen aquí, vuelve a guardar.",
-    "saveUnknown": "No se pudo confirmar si se guardó: tus cambios siguen aquí. Revisa tu conexión y vuelve a intentarlo.",
+    "saveUnconfirmed": "No se pudo confirmar todavía si se guardó; seguimos revisando. Tus cambios siguen aquí.",
     "read": {
       "offline": "Visto a las {{time}}; sin conexión",
       "refreshing": "Actualizando…",

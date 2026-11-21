@@ -1292,18 +1292,15 @@ describe('SettingsTab', () => {
     })
 
     // Ruling 64: sin respuesta al guardar no se sabe si se guardó. Se relee antes de decir nada. Ronda 3: si no entró, lo tecleado se
-    // queda (sin guardar) y se dice que no se guardó, sin «No hubo respuesta» (un 5xx sí respondió).
+    // queda (sin guardar) y se dice que no se guardó, sin «No hubo respuesta» (un 5xx sí respondió). Ruling 92: «No se guardó» sólo
+    // cuando la petición ya no puede seguir en camino: un 5xx de NUESTRO servidor (con su JSON) ya terminó.
     const sinRed = () => Object.assign(new Error('Network Error'), { code: 'ERR_NETWORK' })
 
-    it.each([
-      ['sin respuesta', sinRed()],
-      ['un 5xx del SERVIDOR', { response: { status: 500, data: { message: 'falló algo' } } }],
-    ])('%s al guardar y no entró: no dice «Guardado»; lo tecleado se queda y dice que no se guardó', async (_n, error) => {
+    it('un 5xx del SERVIDOR al guardar y no entró: no dice «Guardado»; lo tecleado se queda y dice que no se guardó', async () => {
       expect(esOnline.settings.saveNotSaved).toBe('No se guardó: tus cambios siguen aquí, vuelve a guardar.')
       expect(esOnline.settings.saveNotSaved).not.toMatch(/No hubo respuesta/)
-      expect(esOnline.settings.saveUnknown).not.toMatch(/No hubo respuesta/)
       getSettings.mockResolvedValue(nadie({ cardOnlineNadie: false, ...stripeListo }))
-      updateSettings.mockRejectedValue(error)
+      updateSettings.mockRejectedValue({ response: { status: 500, data: { message: 'falló algo' } } })
       renderTab()
       await formularioCargado()
       await userEvent.click(pagarEnLinea())
@@ -1311,10 +1308,99 @@ describe('SettingsTab', () => {
       await userEvent.click(screen.getByRole('button', { name: 'settings.save' }))
       expect(await screen.findByText('settings.saveNotSaved')).toBeInTheDocument()
       expect(getSettings).toHaveBeenCalledTimes(2)
+      expect(screen.queryByText('settings.saveUnconfirmed')).toBeNull()
       expect(pagarEnLinea()).toBeChecked()
       expect(screen.getByLabelText('settings.minOrder')).toHaveValue(80)
       expect(screen.getByText('settings.unsaved')).toBeInTheDocument()
       expect(toast).not.toHaveBeenCalledWith(expect.objectContaining({ title: 'settings.saved' }))
+    })
+
+    // Ruling 92 (regresión del 64): sin respuesta, el guardado puede seguir en el SERVIDOR. Una lectura que todavía no lo trae no dice
+    // que no se guardó: dice que no se pudo confirmar todavía, y se sigue revisando con el sondeo.
+    it('🔴 sin respuesta y la primera lectura todavía no lo trae: «No se pudo confirmar todavía»; cuando el sondeo lo trae, «Guardado»', async () => {
+      expect(esOnline.settings.saveUnconfirmed).toBe(
+        'No se pudo confirmar todavía si se guardó; seguimos revisando. Tus cambios siguen aquí.',
+      )
+      expect(enOnline.settings.saveUnconfirmed).toBe(
+        "We couldn't confirm yet whether it was saved; we're still checking. Your changes are still here.",
+      )
+      vi.useFakeTimers({ shouldAdvanceTime: true })
+      try {
+        getSettings
+          .mockResolvedValueOnce(nadie({ cardOnlineNadie: false, ...stripeListo })) // la carga
+          .mockResolvedValueOnce(nadie({ cardOnlineNadie: false, ...stripeListo })) // la relectura: el PUT sigue en el SERVIDOR
+          .mockResolvedValue(nadie({ cardOnlineNadie: true, ...stripeListo })) // el PUT terminó: el sondeo ya la ve prendida
+        updateSettings.mockRejectedValue(sinRed())
+        renderTab()
+        await formularioCargado()
+        fireEvent.click(pagarEnLinea())
+        fireEvent.click(screen.getByRole('button', { name: 'settings.save' }))
+        await waitFor(() => expect(getSettings).toHaveBeenCalledTimes(2))
+        // Ya releyó (el guardado terminó y «Guardar» vuelve a poder usarse): todavía no se sabe, y lo dice.
+        await waitFor(() => expect(screen.getByRole('button', { name: 'settings.save' })).toBeEnabled())
+        expect(screen.getByText('settings.saveUnconfirmed').closest('[role="status"]')).not.toBeNull()
+        expect(screen.queryByText('settings.saveNotSaved')).toBeNull()
+        expect(pagarEnLinea()).toBeChecked()
+        expect(toast).not.toHaveBeenCalledWith(expect.objectContaining({ title: 'settings.saved' }))
+        await esperar(30_500)
+        await waitFor(() => expect(toast).toHaveBeenCalledWith({ title: 'settings.saved' }))
+        expect(screen.queryByText('settings.saveUnconfirmed')).toBeNull()
+        expect(screen.queryByText('settings.saveNotSaved')).toBeNull()
+        expect(pagarEnLinea()).toBeChecked()
+        expect(screen.queryByText('settings.unsaved')).toBeNull()
+      } finally {
+        vi.useRealTimers()
+      }
+    })
+
+    it('sin respuesta y ninguna lectura lo trae: cuando la petición ya no puede seguir en camino (10 min), «No se guardó»', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true })
+      try {
+        getSettings.mockResolvedValue(nadie({ cardOnlineNadie: false, ...stripeListo }))
+        updateSettings.mockRejectedValue(sinRed())
+        renderTab()
+        await formularioCargado()
+        fireEvent.click(pagarEnLinea())
+        fireEvent.click(screen.getByRole('button', { name: 'settings.save' }))
+        expect(await screen.findByText('settings.saveUnconfirmed')).toBeInTheDocument()
+        await esperar(9 * 60_000)
+        expect(screen.getByText('settings.saveUnconfirmed')).toBeInTheDocument()
+        expect(screen.queryByText('settings.saveNotSaved')).toBeNull()
+        await esperar(90_000)
+        expect(await screen.findByText('settings.saveNotSaved')).toBeInTheDocument()
+        expect(screen.queryByText('settings.saveUnconfirmed')).toBeNull()
+        expect(pagarEnLinea()).toBeChecked()
+        expect(screen.getByText('settings.unsaved')).toBeInTheDocument()
+        expect(toast).not.toHaveBeenCalledWith(expect.objectContaining({ title: 'settings.saved' }))
+      } finally {
+        vi.useRealTimers()
+      }
+    })
+
+    it('en «Mi equipo» (sin sondeo) también se sigue revisando mientras no se confirme; confirmado, deja de leer sola', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true })
+      try {
+        getSettings
+          .mockResolvedValueOnce(base()) // la carga: mínimo $50
+          .mockResolvedValueOnce(base()) // la relectura: todavía $50
+          .mockResolvedValue(base({ minOrderAmount: 80 })) // el guardado terminó en el SERVIDOR
+        updateSettings.mockRejectedValue(sinRed())
+        renderTab()
+        await formularioCargado()
+        fireEvent.change(screen.getByLabelText('settings.minOrder'), { target: { value: '80' } })
+        fireEvent.click(screen.getByRole('button', { name: 'settings.save' }))
+        await waitFor(() => expect(getSettings).toHaveBeenCalledTimes(2))
+        expect(await screen.findByText('settings.saveUnconfirmed')).toBeInTheDocument()
+        await esperar(30_500)
+        await waitFor(() => expect(toast).toHaveBeenCalledWith({ title: 'settings.saved' }))
+        expect(screen.queryByText('settings.saveUnconfirmed')).toBeNull()
+        expect(screen.getByLabelText('settings.minOrder')).toHaveValue(80)
+        const lecturas = getSettings.mock.calls.length
+        await esperar(61_000)
+        expect(getSettings).toHaveBeenCalledTimes(lecturas)
+      } finally {
+        vi.useRealTimers()
+      }
     })
 
     it('sin respuesta al guardar con una lectura ya en camino: se lee otra vez después (nunca la de antes del guardado)', async () => {

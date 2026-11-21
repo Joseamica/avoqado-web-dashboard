@@ -90,6 +90,15 @@ const sinRespuesta = (err: unknown) => {
   const res = (err as { response?: { status?: unknown } } | undefined)?.response
   return !res || (typeof res.status === 'number' && (res.status >= 500 || res.status === 408))
 }
+/**
+ * Ruling 92: si contestó NUESTRO servidor (su error trae JSON), la petición ya terminó. Sin respuesta, o con la página de error de un
+ * intermediario, pudo seguir en el SERVIDOR; pasado este plazo ya no puede estar en camino (el mismo de las devoluciones en duda).
+ */
+const contestoElServidor = (err: unknown) => {
+  const data = (err as { response?: { data?: unknown } } | undefined)?.response?.data
+  return typeof data === 'object' && data !== null
+}
+const EN_CAMINO_MS = 10 * 60_000
 
 /** Patch estricto: sólo lo que cambió. `minOrderAmount` vacío NO se manda (nunca 0 a escondidas). */
 function buildPatch(values: FormValues, saved: FormValues): Partial<OnlineOrderingSettingsInput> {
@@ -217,6 +226,8 @@ export function SettingsTab() {
   const [saveError, setSaveError] = useState<string | null>(null)
   // D661: 409 NO_CARD_ALERT_DEVICE al prender «Pagar en línea»; el aviso va junto a su interruptor.
   const [cardAlertMissing, setCardAlertMissing] = useState(false)
+  // Ruling 92: un guardado sin respuesta cierta, hasta saber en qué quedó: lo mandado, cuándo salió y hasta cuándo pudo seguir en camino.
+  const [sinConfirmar, setSinConfirmar] = useState<{ patch: Partial<FormValues>; salio: number; hasta: number } | null>(null)
   const [noticeOpen, setNoticeOpen] = useState(false)
   const stepsRef = useRef<HTMLDivElement>(null)
   const noticeButtonRef = useRef<HTMLButtonElement>(null)
@@ -239,7 +250,8 @@ export function SettingsTab() {
     enabled: !!venueId,
     // D661 · Ruling 63: «¿se ofrece la tarjeta AHORA?» es una foto (el SERVIDOR la mide en 90 s) y otra persona puede prenderla: en
     // «Nadie» se vuelve a pedir cada 30 s, prendida o apagada. Lo que se está editando no se pisa (`keepDirtyValues`, abajo).
-    refetchInterval: q => (q.state.data?.requiresAcceptance === false ? 30_000 : false),
+    // Ruling 92: con un guardado sin confirmar también se relee así, en los dos modos, hasta saber en qué quedó.
+    refetchInterval: q => (q.state.data?.requiresAcceptance === false || sinConfirmar ? 30_000 : false),
   })
   const { data: settings } = settingsQuery
   // Ruling 63: «ahora» sólo con una lectura buena de hace ≤ 60 s y sin fallar; si no, la hora de esa lectura. El temporizador vuelve a
@@ -309,8 +321,11 @@ export function SettingsTab() {
 
   const mutation = useMutation({
     mutationFn: (patch: Partial<OnlineOrderingSettingsInput>) => updateSettings(venueId!, patch),
-    // Ruling 91: cuándo salió este guardado.
-    onMutate: () => ({ salio: Date.now() }),
+    // Ruling 91: cuándo salió este guardado. Ruling 92: uno nuevo deja atrás lo que no se pudo confirmar del anterior (decide el suyo).
+    onMutate: () => {
+      setSinConfirmar(null)
+      return { salio: Date.now() }
+    },
     onSuccess: (next, _patch, enviado) => {
       // 🔴 La respuesta del PUT puede venir SIN `store`/`requirements` (sólo el GET los trae): se MEZCLA sobre la caché, nunca la
       // reemplaza, y luego se vuelve a pedir el GET como fuente de verdad.
@@ -333,25 +348,21 @@ export function SettingsTab() {
       setCardAlertMissing(false)
       toast({ title: t('settings.saved') })
     },
-    onError: async (error: unknown, patch) => {
+    onError: async (error: unknown, patch, enviado) => {
       // Ruling 64: sin respuesta (o un 5xx) no se sabe si se guardó (el guardado ya no se repite solo). Nada se anuncia hasta releer.
-      // Ronda 3: una lectura que ya iba en camino empezó ANTES del guardado: se cancela y se lee otra vez. Si lo guardado es lo tecleado,
-      // «Guardado»; si no, lo tecleado se queda sin guardar (la relectura no pisa lo que se edita) y se dice que no se guardó.
+      // Ronda 3: una lectura que ya iba en camino empezó ANTES del guardado: se cancela y se lee otra vez. Lo tecleado se queda sin
+      // guardar (la relectura no pisa lo que se edita). Ruling 92: decide cada lectura (ésta y las del sondeo, en el efecto de abajo).
       if (sinRespuesta(error)) {
         const key = onlineOrderingKeys.settings(venueId!)
         await qc.cancelQueries({ queryKey: key })
-        const guardado = await qc.fetchQuery({ queryKey: key, queryFn: () => leerAjustes(), staleTime: 0 }).catch(() => null)
-        if (!guardado) return setSaveError(t('settings.saveUnknown'))
-        const ahora = toForm(guardado)
-        const entro = (Object.keys(patch) as (keyof FormValues)[]).every(
-          k => JSON.stringify(ahora[k]) === JSON.stringify((patch as Partial<FormValues>)[k]),
-        )
-        if (!entro) return setSaveError(t('settings.saveNotSaved'))
-        reset(ahora)
-        setServerMissing([])
-        setCardAlertMissing(false)
+        const salio = enviado?.salio ?? Date.now()
         setSaveError(null)
-        toast({ title: t('settings.saved') })
+        setSinConfirmar({
+          patch: patch as Partial<FormValues>,
+          salio,
+          hasta: contestoElServidor(error) ? Date.now() : salio + EN_CAMINO_MS,
+        })
+        await qc.fetchQuery({ queryKey: key, queryFn: () => leerAjustes(), staleTime: 0 }).catch(() => null)
         return
       }
       const data = (error as { response?: { data?: { code?: string; details?: { missing?: StoreRequirement[] } } } })?.response?.data
@@ -375,6 +386,27 @@ export function SettingsTab() {
       setSaveError(serverMessage(error, t('settings.saveFailed')))
     },
   })
+
+  // Ruling 92: tras un guardado sin respuesta cierta, cada lectura que llega (también la del sondeo, aunque traiga lo mismo) decide:
+  // si trae lo mandado, «Guardado»; si no, y ya empezó cuando la petición no podía seguir en camino, «No se guardó»; si no, sigue «No se
+  // pudo confirmar todavía». Una lectura que empezó antes del guardado no dice nada.
+  useEffect(() => {
+    if (!sinConfirmar || !settings || vistaDesde.current < sinConfirmar.salio) return
+    const ahora = toForm(settings)
+    const trae = (Object.keys(sinConfirmar.patch) as (keyof FormValues)[]).every(
+      k => JSON.stringify(ahora[k]) === JSON.stringify(sinConfirmar.patch[k]),
+    )
+    if (trae) {
+      setSinConfirmar(null)
+      reset(ahora)
+      setServerMissing([])
+      setCardAlertMissing(false)
+      toast({ title: t('settings.saved') })
+    } else if (vistaDesde.current >= sinConfirmar.hasta) {
+      setSinConfirmar(null)
+      setSaveError(t('settings.saveNotSaved'))
+    }
+  }, [leidoEn, settings, sinConfirmar, reset, toast, t])
 
   if (!venueId || (settings === undefined && !falloDeCarga(settingsQuery))) return <Skeleton className="h-64 w-full rounded-xl" />
   // Un refetch fallido deja `isError` en true CON los datos de antes: la pestaña sigue en pie, con su aviso; el error sólo si nunca hubo datos.
@@ -475,6 +507,11 @@ export function SettingsTab() {
         </div>
       </div>
 
+      {sinConfirmar && (
+        <Alert role="status">
+          <AlertDescription>{t('settings.saveUnconfirmed')}</AlertDescription>
+        </Alert>
+      )}
       {saveError && (
         <Alert variant="destructive">
           <AlertDescription>{saveError}</AlertDescription>
