@@ -105,7 +105,8 @@ describe('onlineOrdering.service', () => {
     expect(post).toHaveBeenLastCalledWith(
       `${base}/orders/o1/card-refund`,
       { amount: '120.50', reason: 'RETURNED_GOODS', note: 'faltó un taco', expectedLatestRefundId: 'r1' },
-      { headers: { 'Idempotency-Key': 'llave-123456' } },
+      // D661 · Ruling 61: sin reenvío automático; una respuesta perdida queda en duda y la hoja sólo deja «Reintentar».
+      { headers: { 'Idempotency-Key': 'llave-123456' }, repetible: false },
     )
     expect(typeof post.mock.calls[0][1].amount).toBe('string')
   })

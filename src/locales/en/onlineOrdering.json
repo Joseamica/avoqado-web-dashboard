@@ -12,8 +12,13 @@
   "settings": {
     "saved": "Settings saved",
     "saveFailed": "Couldn't save. Try again.",
-    "saveUnconfirmed": "There was no response when saving. This is what was saved: if your change is missing, make it again.",
-    "saveUnknown": "There was no response when saving and we couldn't check what was saved. Check your connection and try again.",
+    "saveNotSaved": "It wasn't saved: your changes are still here, save again.",
+    "saveUnknown": "We couldn't confirm whether it was saved: your changes are still here. Check your connection and try again.",
+    "read": {
+      "offline": "Seen at {{time}}; no connection",
+      "refreshing": "Updating…",
+      "seen": "Seen at {{time}}"
+    },
     "conflict": "Someone else changed this while you were editing; if you save, yours stays.",
     "loadFailed": "Couldn't load the settings.",
     "save": "Save",
@@ -141,7 +146,6 @@
       "cardNoOneOffered": "Right now your customers see “Pay now”.",
       "cardNoOneNotOffered": "Not offered right now: no register is alerting orders paid online. It comes back on its own as soon as an updated register (terminal or POS) is open on the orders list.",
       "cardNoOneLastAlert": "A register last alerted: {{when}}.",
-      "cardNoOneStale": "Seen at {{time}}; no connection",
       "cardNoOneStore": {
         "DISABLED": "Right now your customers don't see “Pay now”: the store is off.",
         "CLOSED": "Right now your customers don't see “Pay now”: the store is closed (outside hours).",
@@ -322,7 +326,9 @@
     "submit": "Refund to card",
     "sending": "Refunding…",
     "noResponse": "No response. Try again: it won't be refunded twice.",
+    "lockedTitle": "This refund was sent and we don't know yet what happened.",
     "lockedHint": "Until we know what happened to this refund, you can only retry it as it is.",
+    "lockedExit": "If it doesn't resolve, in 10 minutes you'll be able to choose again.",
     "retry": "Retry",
     "close": "Close",
     "error": "Couldn't make the refund. Try again.",

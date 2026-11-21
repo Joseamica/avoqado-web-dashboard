@@ -12,8 +12,13 @@
   "settings": {
     "saved": "Configuración guardada",
     "saveFailed": "No se pudo guardar. Intenta de nuevo.",
-    "saveUnconfirmed": "No hubo respuesta al guardar. Esto es lo que quedó guardado: si falta tu cambio, hazlo otra vez.",
-    "saveUnknown": "No hubo respuesta al guardar y no se pudo revisar qué quedó guardado. Revisa tu conexión y vuelve a intentarlo.",
+    "saveNotSaved": "No se guardó: tus cambios siguen aquí, vuelve a guardar.",
+    "saveUnknown": "No se pudo confirmar si se guardó: tus cambios siguen aquí. Revisa tu conexión y vuelve a intentarlo.",
+    "read": {
+      "offline": "Visto a las {{time}}; sin conexión",
+      "refreshing": "Actualizando…",
+      "seen": "Visto a las {{time}}"
+    },
     "conflict": "Otra persona cambió esto mientras editabas; si guardas, se queda lo tuyo.",
     "loadFailed": "No se pudo cargar la configuración.",
     "save": "Guardar",
@@ -141,7 +146,6 @@
       "cardNoOneOffered": "Ahora tus clientes ven «Pagar ahora».",
       "cardNoOneNotOffered": "Ahora no se ofrece: ninguna caja está avisando los pedidos pagados en línea. Vuelve sola en cuanto una caja actualizada (terminal o POS) esté abierta en la lista de pedidos.",
       "cardNoOneLastAlert": "Una caja avisó por última vez: {{when}}.",
-      "cardNoOneStale": "Visto a las {{time}}; sin conexión",
       "cardNoOneStore": {
         "DISABLED": "Ahora tus clientes no ven «Pagar ahora»: la tienda está apagada.",
         "CLOSED": "Ahora tus clientes no ven «Pagar ahora»: la tienda está cerrada por horario.",
@@ -322,7 +326,9 @@
     "submit": "Devolver a la tarjeta",
     "sending": "Devolviendo…",
     "noResponse": "No hubo respuesta. Vuelve a intentarlo: no se devuelve dos veces.",
+    "lockedTitle": "Esta devolución se mandó y todavía no se sabe qué pasó.",
     "lockedHint": "Hasta saber qué pasó con esta devolución, sólo se puede reintentar igual.",
+    "lockedExit": "Si no se resuelve, en 10 minutos podrás elegir otra vez.",
     "retry": "Reintentar",
     "close": "Cerrar",
     "error": "No se pudo hacer la devolución. Vuelve a intentar.",

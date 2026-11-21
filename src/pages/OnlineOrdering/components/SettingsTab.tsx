@@ -241,7 +241,10 @@ export function SettingsTab() {
     const id = setTimeout(() => repintar(n => n + 1), falta + 50)
     return () => clearTimeout(id)
   }, [leidoEn])
-  const lecturaVieja = settingsQuery.isError || settingsQuery.failureCount > 0 || settingsQuery.isPaused || Date.now() - leidoEn > 60_000
+  // Ronda 3: «sin conexión» sólo si la lectura falla. Una vieja (> 60 s) es la de «Nadie», que se relee sola; en «Mi equipo» una lectura
+  // vieja es lo normal y sólo cuenta si falla.
+  const lecturaFalla = settingsQuery.isError || settingsQuery.failureCount > 0 || settingsQuery.isPaused
+  const lecturaVieja = settingsQuery.data?.requiresAcceptance === false && Date.now() - leidoEn > 60_000
 
   const saved = useMemo(() => (settings ? toForm(settings) : undefined), [settings])
   // R37/R66: el servidor nunca pone «Nadie» solo. Sólo si el negocio NO tiene ajustes guardados (`hasSavedSettings === false`) el
@@ -312,20 +315,22 @@ export function SettingsTab() {
       toast({ title: t('settings.saved') })
     },
     onError: async (error: unknown, patch) => {
-      // Ruling 64: sin respuesta no se sabe si se guardó (el guardado ya no se repite solo). Nada se anuncia hasta releer, y lo que se
-      // enseña es lo que de verdad quedó guardado.
+      // Ruling 64: sin respuesta (o un 5xx) no se sabe si se guardó (el guardado ya no se repite solo). Nada se anuncia hasta releer.
+      // Ronda 3: una lectura que ya iba en camino empezó ANTES del guardado: se cancela y se lee otra vez. Si lo guardado es lo tecleado,
+      // «Guardado»; si no, lo tecleado se queda sin guardar (la relectura no pisa lo que se edita) y se dice que no se guardó.
       if (sinRespuesta(error)) {
         const key = onlineOrderingKeys.settings(venueId!)
+        await qc.cancelQueries({ queryKey: key })
         const guardado = await qc.fetchQuery({ queryKey: key, queryFn: () => getSettings(venueId!), staleTime: 0 }).catch(() => null)
         if (!guardado) return setSaveError(t('settings.saveUnknown'))
         const ahora = toForm(guardado)
-        reset(ahora)
-        setServerMissing([])
-        setCardAlertMissing(false)
         const entro = (Object.keys(patch) as (keyof FormValues)[]).every(
           k => JSON.stringify(ahora[k]) === JSON.stringify((patch as Partial<FormValues>)[k]),
         )
-        if (!entro) return setSaveError(t('settings.saveUnconfirmed'))
+        if (!entro) return setSaveError(t('settings.saveNotSaved'))
+        reset(ahora)
+        setServerMissing([])
+        setCardAlertMissing(false)
         setSaveError(null)
         toast({ title: t('settings.saved') })
         return
@@ -416,6 +421,16 @@ export function SettingsTab() {
         {t('settings.conflict')}
       </p>
     )
+  // Ruling 63 + ronda 3: sin una lectura buena reciente, lo que dice «ahora» (la línea de la tarjeta y «Estado de la tienda») se retira:
+  // falla → «Visto a las HH:MM; sin conexión»; vieja con otra en camino → «Actualizando…»; vieja y quieta → «Visto a las HH:MM».
+  const vistoA = formatTime(new Date(leidoEn).toISOString())
+  const lecturaTexto = lecturaFalla
+    ? t('settings.read.offline', { time: vistoA })
+    : lecturaVieja
+      ? settingsQuery.isFetching
+        ? t('settings.read.refreshing')
+        : t('settings.read.seen', { time: vistoA })
+      : null
   const pause = pauseLabel(store, formatTime)
   const statusText = pause
     ? t(pause.key, pause.params)
@@ -431,7 +446,7 @@ export function SettingsTab() {
       <div className="sticky top-0 z-10 flex items-center justify-between gap-3 rounded-xl border border-border bg-background/95 p-3 backdrop-blur">
         <div className="text-sm" data-tour="online-ordering-store-status">
           <span className="text-muted-foreground">{t('settings.status.label')}: </span>
-          <span className="font-medium">{statusText}</span>
+          <span className="font-medium">{lecturaTexto ?? statusText}</span>
         </div>
         <div className="flex items-center gap-3">
           {hasChanges && <span className="text-xs font-medium text-muted-foreground">{t('settings.unsaved')}</span>}
@@ -699,11 +714,9 @@ export function SettingsTab() {
                   (servidor viejo) no se dice nada. */}
               {noOne && cardAvailable && cardNadieOn && settings.requiresAcceptance === false && settings.cardNadie?.enabled && (
                 <div role="status" className="space-y-0.5 text-xs">
-                  {lecturaVieja ? (
-                    // Ruling 63: sin una lectura buena reciente no se dice «ahora»: sólo cuándo se vio.
-                    <p className="text-muted-foreground">
-                      {t('settings.confirm.cardNoOneStale', { time: formatTime(new Date(leidoEn).toISOString()) })}
-                    </p>
+                  {lecturaTexto ? (
+                    // Ruling 63: sin una lectura buena reciente no se dice «ahora».
+                    <p className="text-muted-foreground">{lecturaTexto}</p>
                   ) : storeStops ? (
                     <p className="font-medium">{t(`settings.confirm.cardNoOneStore.${store?.status}`)}</p>
                   ) : !settings.cardNadie.offeredNow ? (

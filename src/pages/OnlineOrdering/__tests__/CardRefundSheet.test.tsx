@@ -865,7 +865,8 @@ describe('Devolver a la tarjeta', () => {
       await userEvent.click(devolverTodo())
       await waitFor(() => expect(toast).toHaveBeenCalledWith({ title: message }))
       expect(toast).not.toHaveBeenCalledWith(expect.objectContaining({ title: 'cardRefund.noResponse' }))
-      await userEvent.click(devolverTodo())
+      // Ruling 61 (enmendado): una respuesta pasajera no suelta: sólo «Reintentar», con la misma llave.
+      await reintentar()
       await waitFor(() => expect(createCardRefund).toHaveBeenCalledTimes(2))
       expect(createCardRefund.mock.calls[1][3]).toBe(createCardRefund.mock.calls[0][3])
     })
@@ -876,7 +877,7 @@ describe('Devolver a la tarjeta', () => {
         'ORDER_STATE_CHANGED',
         'El pedido cambió mientras se reservaba la devolución (por ejemplo, lo cerró el fin del día). Vuelve a intentarlo; no se aplicó nada.',
       ],
-    ])('%s: dice qué pasó (sin rojo), relee el pedido y deja volver a intentar', async (code, message) => {
+    ])('%s: dice qué pasó (sin rojo), relee el pedido y deja «Reintentar» lo mismo', async (code, message) => {
       createCardRefund.mockRejectedValueOnce(http(409, { code, message }))
       await abrirNadie()
       await userEvent.click(destino('tarjeta'))
@@ -884,7 +885,8 @@ describe('Devolver a la tarjeta', () => {
       await userEvent.click(devolverTodo())
       await waitFor(() => expect(toast).toHaveBeenCalledWith({ title: message }))
       await waitFor(() => expect(listCardRefunds.mock.calls.length).toBeGreaterThanOrEqual(2))
-      expect(devolverTodo()).toBeEnabled()
+      expect(screen.getByRole('button', { name: 'cardRefund.retry' })).toBeEnabled()
+      expect(destino('saldo')).toBeDisabled()
     })
 
     it('FULL_REFUND_ONLY: el texto del servidor dice cuánto queda', async () => {
@@ -940,6 +942,77 @@ describe('Devolver a la tarjeta', () => {
       expect(screen.getByRole('button', { name: 'cardRefund.retry' })).toBeInTheDocument()
       expect(destino('saldo')).toBeDisabled()
       expect(destino('tarjeta')).toHaveAttribute('aria-pressed', 'true')
+    })
+
+    // ── Ruling 61 enmendado (ronda 3): la duda se anota ANTES de mandar; sólo una respuesta definitiva la suelta ──
+    it('🔴 cerrar la hoja mientras dice «Devolviendo…» y volver a abrirla: sale fija, en «Reintentar»', async () => {
+      createCardRefund.mockImplementationOnce(() => new Promise(() => {})) // la primera nunca contesta
+      await abrirNadie()
+      await userEvent.click(destino('tarjeta'))
+      await motivo()
+      await userEvent.click(devolverTodo())
+      await waitFor(() => expect(screen.getByRole('button', { name: 'cardRefund.sending' })).toBeDisabled())
+      await userEvent.keyboard('{Escape}')
+      await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+      await userEvent.click(screen.getByRole('button', { name: 'cardRefund.nadie.cancelAndRefund' }))
+      await listaLeida()
+      expect(screen.getByRole('button', { name: 'cardRefund.retry' })).toBeInTheDocument()
+      expect(screen.getByText('cardRefund.lockedTitle')).toBeInTheDocument()
+      expect(destino('saldo')).toBeDisabled()
+      expect(destino('tarjeta')).toHaveAttribute('aria-pressed', 'true')
+    })
+
+    it.each([
+      ['STRIPE_REFUND_CHECK_UNAVAILABLE', 503],
+      ['PRINT_IN_FLIGHT', 409],
+      ['ORDER_STATE_CHANGED', 409],
+    ])('🔴 bloqueada, un reintento que contesta %s sigue fija (la primera todavía puede ganar)', async (code, status) => {
+      createCardRefund.mockRejectedValueOnce(networkError()).mockRejectedValueOnce(http(status, { code, message: `pasajero ${code}` }))
+      await abrirNadie()
+      await userEvent.click(destino('tarjeta'))
+      await motivo()
+      await userEvent.click(devolverTodo())
+      await reintentar()
+      await waitFor(() => expect(toast).toHaveBeenCalledWith({ title: `pasajero ${code}` }))
+      await waitFor(() => expect(screen.getByRole('button', { name: 'cardRefund.retry' })).toBeEnabled())
+      expect(destino('saldo')).toBeDisabled()
+      expect(createCardRefund.mock.calls[1][3]).toBe(createCardRefund.mock.calls[0][3])
+    })
+
+    it.each([
+      ['EXTERNAL_REFUND_DETECTED', 409],
+      ['FULL_REFUND_ONLY', 400],
+      ['REFUND_DESTINATION_NOT_AVAILABLE', 400],
+      ['STORE_CREDIT_UNAVAILABLE', 422],
+    ])('bloqueada, un rechazo permanente (%s) la suelta', async (code, status) => {
+      createCardRefund.mockRejectedValueOnce(networkError()).mockRejectedValueOnce(http(status, { code, message: `permanente ${code}` }))
+      await abrirNadie()
+      await userEvent.click(destino('saldo'))
+      await motivo()
+      await userEvent.click(devolverTodo())
+      await reintentar()
+      await waitFor(() => expect(screen.queryByRole('button', { name: 'cardRefund.retry' })).toBeNull())
+      expect(screen.queryByText('cardRefund.lockedTitle')).toBeNull()
+    })
+
+    it('🔴 la salida de 10 minutos: una lectura de después, sin devolución nueva, la suelta (y la hoja lo avisa)', async () => {
+      expect(esOnline.cardRefund.lockedExit).toBe('Si no se resuelve, en 10 minutos podrás elegir otra vez.')
+      vi.useFakeTimers({ shouldAdvanceTime: true })
+      try {
+        createCardRefund.mockRejectedValueOnce(networkError())
+        await abrirNadie()
+        await userEvent.click(destino('tarjeta'))
+        await motivo()
+        await userEvent.click(devolverTodo())
+        expect(await screen.findByText('cardRefund.lockedExit')).toBeInTheDocument()
+        await act(async () => void (await vi.advanceTimersByTimeAsync(9 * 60_000)))
+        expect(screen.getByRole('button', { name: 'cardRefund.retry' })).toBeInTheDocument()
+        await act(async () => void (await vi.advanceTimersByTimeAsync(2 * 60_000)))
+        await waitFor(() => expect(screen.queryByRole('button', { name: 'cardRefund.retry' })).toBeNull())
+        expect(destino('saldo')).toBeEnabled()
+      } finally {
+        vi.useRealTimers()
+      }
     })
 
     it('🔴 sin respuesta, si al releer aparece una devolución nueva ya se sabe qué pasó: se suelta y avisa', async () => {

@@ -106,7 +106,8 @@ export const listCardRefunds = async (venueId: string, orderId: string): Promise
 /**
  * 🔴 `amount` en PESOS como texto («120.50»), nunca centavos. La llave y `expectedLatestRefundId` (la última devolución que vio el
  * operador, `null` si ninguna) son los del intento: los MISMOS en sus reintentos. D661: `destino` sólo en un pedido de «Nadie»
- * (sin él, el servidor devuelve a la tarjeta, como siempre).
+ * (sin él, el servidor devuelve a la tarjeta, como siempre). Ruling 61: sin el reenvío automático de `api.ts` (sólo esta petición):
+ * una respuesta perdida queda en duda y la hoja sólo deja «Reintentar» lo mismo.
  */
 export const createCardRefund = async (
   venueId: string,
@@ -114,7 +115,12 @@ export const createCardRefund = async (
   body: { amount: string; reason: CardRefundReason; note?: string; expectedLatestRefundId: string | null; destino?: CardRefundDestino },
   idempotencyKey: string,
 ): Promise<CardRefundResult> =>
-  (await api.post(`${base(venueId)}/orders/${orderId}/card-refund`, body, { headers: { 'Idempotency-Key': idempotencyKey } })).data.data
+  (
+    await api.post(`${base(venueId)}/orders/${orderId}/card-refund`, body, {
+      headers: { 'Idempotency-Key': idempotencyKey },
+      repetible: false,
+    })
+  ).data.data
 
 export const resolveCardRefund = async (
   venueId: string,

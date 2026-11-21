@@ -38,7 +38,7 @@ import type {
 import { Currency } from '@/utils/currency'
 import { useVenueDateTime } from '@/utils/datetime'
 
-import { leerDuda, ponerDuda, quitarDuda } from '../lib/devolucionEnDuda'
+import { ponerDuda, quitarDuda, useDuda } from '../lib/devolucionEnDuda'
 import { marcaDelPedido } from '../lib/marcaDelPedido'
 import { invalidateToPay } from '../lib/toPayLive'
 import { MarcaDelPedido } from './OrderCard'
@@ -120,8 +120,13 @@ const PASAJERO = new Set(['PRINT_IN_FLIGHT', 'ORDER_STATE_CHANGED'])
  * otra vez).
  */
 type Attempt = { key: string; expected: string | null; sig: string }
-/** Ruling 61: lo que se mandó y se quedó sin respuesta; mientras exista, sólo se reintenta eso mismo (`lib/devolucionEnDuda`). */
-type EnDuda = { body: RefundBody; attempt: Attempt }
+/**
+ * Ruling 61: lo que se mandó y todavía no se sabe en qué quedó (se anota ANTES de mandar); mientras exista, sólo se reintenta eso mismo
+ * (`lib/devolucionEnDuda`). `desde`: cuándo salió la última petición con esa llave (la salida de 10 minutos cuenta desde ahí).
+ */
+type EnDuda = { body: RefundBody; attempt: Attempt; desde: number }
+/** Ruling 61: muy por encima de la revisión de Stripe del SERVIDOR, que corre antes de crear la fila. */
+const SALIDA_MS = 10 * 60_000
 
 /** Ruling 60: las devoluciones que siguen en camino (la misma regla que el seguimiento público llama `PENDING`). */
 const EN_CAMINO = new Set(['REQUESTED', 'SENDING', 'PENDING'])
@@ -217,17 +222,11 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
   const [other, setOther] = useState<{ id: string; method: CardRefundResolveMethod } | null>(null)
   const attempt = useRef<Attempt | null>(null)
   const busy = useRef(false) // candado síncrono: `isPending` aún no cambia en el segundo de dos clics pegados
-  // Ruling 61: tras una respuesta perdida la primera petición todavía puede ganar. Destino, monto, motivo, nota y llave quedan fijos
-  // (también si la hoja se cierra y se vuelve a abrir) hasta saber qué pasó: sólo «Reintentar» (lo mismo) y «Cerrar».
-  const [enDuda, setEnDuda] = useState<EnDuda | null>(() => leerDuda<EnDuda>(venueId, order.orderId))
-  const ponerEnDuda = (d: EnDuda) => {
-    ponerDuda(venueId, order.orderId, d)
-    setEnDuda(d)
-  }
-  const soltarDuda = () => {
-    quitarDuda(venueId, order.orderId)
-    setEnDuda(null)
-  }
+  // Ruling 61: lo mandado puede ganar hasta que se sepa qué pasó. Destino, monto, motivo, nota y llave quedan fijos desde que sale (también
+  // si la hoja se cierra y se vuelve a abrir); sin una respuesta definitiva, sólo «Reintentar» (lo mismo) y «Cerrar».
+  const enDuda = useDuda<EnDuda>(venueId, order.orderId)
+  const ponerEnDuda = (d: EnDuda) => ponerDuda(venueId, order.orderId, d)
+  const soltarDuda = () => quitarDuda(venueId, order.orderId)
 
   const listKey = onlineOrderingKeys.cardRefunds(venueId, order.orderId)
   // Cada apertura lee la lista aunque haya caché: lo que se decide debe salir de una lectura de ahora.
@@ -279,19 +278,15 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
         v.body.destino === 'STORE_CREDIT' && res.status === 'RECORDED' ? t('cardRefund.outcome.storeCredit') : t(outcomeKey(res))
       toast({ title, ...(failed ? { variant: 'destructive' as const } : {}) })
     },
-    onError: (err, v) => {
+    onError: err => {
       const code = codeOf(err)
-      // D661: Stripe no contestó al revisar si ya se devolvió por fuera: no se aplicó nada (es definitivo); se reintenta con la MISMA llave.
-      if (code === 'STRIPE_REFUND_CHECK_UNAVAILABLE') {
-        soltarDuda()
-        return toast({ title: serverMessage(err, t('cardRefund.noResponse')) })
+      // Ruling 61 (enmendado): una respuesta pasajera —sin respuesta, 5xx, 408, o el SERVIDOR pidiendo intentar en un momento
+      // (STRIPE_REFUND_CHECK_UNAVAILABLE, PRINT_IN_FLIGHT, ORDER_STATE_CHANGED)— no dice qué pasó con una petición anterior con la misma
+      // llave: la duda (anotada al mandar) se queda y sólo se ofrece «Reintentar». Sin código, «no hubo respuesta»; con él, su texto.
+      if (inDoubt(err) || (typeof code === 'string' && PASAJERO.has(code))) {
+        return toast({ title: typeof code === 'string' ? serverMessage(err, t('cardRefund.noResponse')) : t('cardRefund.noResponse') })
       }
-      // Ruling 61: sin respuesta no se sabe si la primera ganó: todo queda fijo hasta saberlo.
-      if (inDoubt(err)) {
-        ponerEnDuda(v)
-        return toast({ title: t('cardRefund.noResponse') })
-      }
-      soltarDuda()
+      soltarDuda() // un rechazo definitivo: esa llave no hizo ni va a hacer nada
       attempt.current = null
       if (code === 'CARD_REFUND_STALE_VIEW') {
         startOver()
@@ -306,7 +301,6 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
         setDestino('CARD')
         return
       }
-      if (typeof code === 'string' && PASAJERO.has(code)) return toast({ title: serverMessage(err, t('cardRefund.error')) })
       toast({ title: serverMessage(err, t('cardRefund.error')), variant: 'destructive' })
     },
     onSettled: () => {
@@ -332,13 +326,22 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
 
   // Ruling 61: si la lista ya trae una devolución más nueva que la que se vio al mandar, se sabe qué pasó (si no fue esa petición, el
   // SERVIDOR ya no la deja hacer otra: pide la misma «última vista»). Una lista sin nada nuevo NO suelta: la primera petición pudo no
-  // haber creado su fila todavía (el SERVIDOR revisa Stripe antes de crearla).
+  // haber creado su fila todavía (el SERVIDOR revisa Stripe antes de crearla). La salida: una lectura de 10 minutos después de la última
+  // petición, sin nada nuevo, ya no puede cruzarse con ella.
+  const salidaEn = enDuda ? enDuda.desde + SALIDA_MS : null
   useEffect(() => {
-    if (enDuda && latest !== undefined && latest !== enDuda.attempt.expected) {
-      quitarDuda(venueId, order.orderId)
-      setEnDuda(null)
-    }
-  }, [enDuda, latest, venueId, order.orderId])
+    if (!enDuda || latest === undefined) return
+    if (latest !== enDuda.attempt.expected || list.dataUpdatedAt >= enDuda.desde + SALIDA_MS) quitarDuda(venueId, order.orderId)
+  }, [enDuda, latest, list.dataUpdatedAt, venueId, order.orderId])
+  // …y si la hoja sigue abierta, esa lectura se pide sola al cumplirse los 10 minutos.
+  useEffect(() => {
+    if (salidaEn === null || refund.isPending) return
+    const id = setTimeout(
+      () => void qc.invalidateQueries({ queryKey: onlineOrderingKeys.cardRefunds(venueId, order.orderId) }),
+      Math.max(0, salidaEn - Date.now()) + 100,
+    )
+    return () => clearTimeout(id)
+  }, [salidaEn, refund.isPending, qc, venueId, order.orderId])
 
   // Sólo se decide con el historial a la vista: si la relectura falló o está en pausa (sin internet), se oculta y no se manda.
   const canSend = seen !== undefined && !list.isError && !list.isPaused
@@ -365,7 +368,9 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
     setChanged(false)
     if (attempt.current?.sig === sig) {
       busy.current = true
-      return refund.mutate({ body, attempt: attempt.current })
+      const otraVez = { body, attempt: attempt.current, desde: Date.now() }
+      ponerEnDuda(otraVez) // Ruling 61: anotada ANTES de mandar
+      return refund.mutate(otraVez)
     }
     if (!confirmed) {
       const now = Date.now()
@@ -378,15 +383,22 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
     setConfirm(null)
     attempt.current = { key: crypto.randomUUID(), expected: seen, sig }
     busy.current = true
-    refund.mutate({ body, attempt: attempt.current })
+    // Ruling 61: anotada ANTES de mandar: si la hoja se cierra mientras dice «Devolviendo…», al volver a abrirla sale fija.
+    const envio = { body, attempt: attempt.current, desde: Date.now() }
+    ponerEnDuda(envio)
+    refund.mutate(envio)
   }
 
-  /** Ruling 61: lo mismo que se mandó, con la misma llave y la misma «última vista». */
+  /** Ruling 61: lo mismo que se mandó, con la misma llave y la misma «última vista»; los 10 minutos cuentan desde este envío. */
   const retry = () => {
     if (!enDuda || busy.current) return
     busy.current = true
-    refund.mutate(enDuda)
+    const otraVez = { ...enDuda, desde: Date.now() }
+    ponerEnDuda(otraVez)
+    refund.mutate(otraVez)
   }
+  // Fija (sin la petición de esta hoja en camino): lo único que se puede hacer es «Reintentar» o «Cerrar».
+  const fija = !!enDuda && !refund.isPending
 
   // Lo que se ve en el formulario: lo mandado mientras esté en duda; si no, lo que se está llenando.
   const destinoVisto = enDuda ? (enDuda.body.destino ?? null) : destino
@@ -491,11 +503,12 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
               <AlertDescription>{t('cardRefund.changed')}</AlertDescription>
             </Alert>
           )}
-          {enDuda && (
+          {fija && (
             <Alert role="status">
               <AlertDescription className="space-y-1">
-                <p>{t('cardRefund.noResponse')}</p>
+                <p>{t('cardRefund.lockedTitle')}</p>
                 <p>{t('cardRefund.lockedHint')}</p>
+                <p>{t('cardRefund.lockedExit')}</p>
               </AlertDescription>
             </Alert>
           )}
@@ -619,14 +632,14 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
         </div>
 
         <DialogFooter>
-          {enDuda ? (
+          {fija ? (
             // Ruling 61: lo único que se puede hacer hasta saber qué pasó.
             <>
               <Button type="button" variant="outline" onClick={onClose}>
                 {t('cardRefund.close')}
               </Button>
-              <Button type="button" disabled={refund.isPending} onClick={retry}>
-                {refund.isPending ? t('cardRefund.sending') : t('cardRefund.retry')}
+              <Button type="button" onClick={retry}>
+                {t('cardRefund.retry')}
               </Button>
             </>
           ) : (
