@@ -773,7 +773,11 @@ describe('Devolver a la tarjeta', () => {
     const abrirNadie = (o = nadieOrder()) => abrir(o, 'cardRefund.nadie.cancelAndRefund')
     const destino = (d: 'saldo' | 'tarjeta') =>
       screen.getByRole('button', { name: d === 'tarjeta' ? 'cardRefund.destino.card' : 'cardRefund.destino.storeCredit|Taquería' })
-    const devolverTodo = () => screen.getByRole('button', { name: `cardRefund.nadie.submit|${Currency(250)}` })
+    // Ruling 101: el botón dice a dónde va el dinero («… a la tarjeta» / «… como saldo a favor»); sin destino elegido, sólo el monto.
+    const devolverTodo = () =>
+      screen.getByRole('button', {
+        name: n => /^cardRefund\.nadie\.submit(Card|StoreCredit)?\|/.test(n) && n.endsWith(`|${Currency(250)}`),
+      })
     const recorded = { status: 'RECORDED', cardRefundStatus: 'RECORDED', cardRefundId: 'r9', refundId: 'p9', replay: false }
 
     it('el botón: por entregar «Cancelar y devolver»; ya cerrado, «Devolver»; «Mi equipo» sigue en «Devolver a la tarjeta»', () => {
@@ -1083,6 +1087,52 @@ describe('Devolver a la tarjeta', () => {
       await reintentar()
       await waitFor(() => expect(screen.queryByRole('button', { name: 'cardRefund.retry' })).toBeNull())
       expect(screen.queryByText('cardRefund.lockedTitle')).toBeNull()
+    })
+
+    // ── Ruling 101 (rotura de c171d1d4): el rechazo de saldo a favor de un intento VIEJO no cambia lo que la gerente eligió después.
+    // Sólo la hoja que enseña ESE intento pasa a «A su tarjeta»; a las demás, como mucho, se les avisa. ──
+    it('🔴 el 422 atrasado de un intento anterior no cambia a tarjeta lo elegido: el siguiente POST sigue siendo saldo a favor', async () => {
+      expect(esOnline.cardRefund.nadie.submitCard).toBe('Devolver {{amount}} a la tarjeta')
+      expect(esOnline.cardRefund.nadie.submitStoreCredit).toBe('Devolver {{amount}} como saldo a favor')
+      expect(enOnline.cardRefund.nadie.submitCard).toBe('Refund {{amount}} to the card')
+      expect(enOnline.cardRefund.nadie.submitStoreCredit).toBe('Refund {{amount}} as store credit')
+      const bloqueado = 'El saldo de Ana está bloqueado; un gerente lo puede desbloquear.'
+      let fallar: (e: unknown) => void = () => {}
+      createCardRefund
+        .mockImplementationOnce(() => new Promise((_ok, falla) => (fallar = falla))) // el primer intento: su respuesta tarda
+        .mockResolvedValue({ ...recorded, cardRefundStatus: 'RESOLVED' })
+      await abrirNadie()
+      await userEvent.click(destino('saldo'))
+      await motivo()
+      await userEvent.click(devolverTodo())
+      await waitFor(() => expect(createCardRefund).toHaveBeenCalledTimes(1))
+      await userEvent.keyboard('{Escape}')
+      await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+      // Mientras, se publicó una devolución posterior que falló: al reabrir, la hoja deja decidir otra vez.
+      listCardRefunds.mockResolvedValue([refund({ id: 'r8', status: 'FAILED', amount: '250.00', createdAt: '2026-11-02T18:30:00.000Z' })])
+      await userEvent.click(screen.getByRole('button', { name: 'cardRefund.nadie.cancelAndRefund' }))
+      await listaLeida()
+      await waitFor(() => expect(screen.queryByRole('button', { name: 'cardRefund.retry' })).toBeNull())
+      await userEvent.click(destino('saldo'))
+      await motivo('CANCELLED_ORDER')
+      // Llega el 422 atrasado del PRIMER intento: no es el que esta hoja enseña.
+      await act(async () => fallar(http(422, { code: 'STORE_CREDIT_CARD_BLOCKED', message: bloqueado })))
+      expect(destino('saldo')).toHaveAttribute('aria-pressed', 'true')
+      expect(destino('tarjeta')).toHaveAttribute('aria-pressed', 'false')
+      expect(toast).toHaveBeenCalledWith({ title: bloqueado, variant: 'destructive' })
+      await userEvent.click(devolverTodo())
+      await waitFor(() => expect(createCardRefund).toHaveBeenCalledTimes(2))
+      expect(createCardRefund.mock.calls[1][2].destino).toBe('STORE_CREDIT')
+    })
+
+    it('el botón dice a dónde va el dinero', async () => {
+      await abrirNadie()
+      await motivo()
+      expect(screen.getByRole('button', { name: `cardRefund.nadie.submit|${Currency(250)}` })).toBeDisabled()
+      await userEvent.click(destino('saldo'))
+      expect(screen.getByRole('button', { name: `cardRefund.nadie.submitStoreCredit|${Currency(250)}` })).toBeEnabled()
+      await userEvent.click(destino('tarjeta'))
+      expect(screen.getByRole('button', { name: `cardRefund.nadie.submitCard|${Currency(250)}` })).toBeEnabled()
     })
 
     // ── Ruling 98 (resto del 90): una petición de la misma llave que terminó SIN respuesta definitiva pudo seguir en el SERVIDOR (su

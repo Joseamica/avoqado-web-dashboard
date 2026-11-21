@@ -355,7 +355,9 @@
       "amount": "Refunded in full: {{amount}}",
       "nothingLeft": "There is nothing left to refund.",
       "inProcess": "Refund in progress",
-      "submit": "Refund {{amount}}"
+      "submit": "Refund {{amount}}",
+      "submitCard": "Refund {{amount}} to the card",
+      "submitStoreCredit": "Refund {{amount}} as store credit"
     },
     "destino": {
       "title": "Where does it go back?",

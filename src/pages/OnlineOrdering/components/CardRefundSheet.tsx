@@ -34,6 +34,7 @@ import { useVenueDateTime } from '@/utils/datetime'
 import {
   avisarSinSaldo,
   escucharSinSaldo,
+  llaveEnDuda,
   mandarConLlave,
   ponerDuda,
   pudoSeguirEnCamino,
@@ -243,12 +244,15 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
       abierta.current = false
     }
   }, [])
-  // Por qué el saldo a favor no se pudo, aunque lo haya contestado la petición de una hoja ya cerrada de este pedido.
+  // Por qué el saldo a favor no se pudo, aunque lo haya contestado la petición de una hoja ya cerrada de este pedido. Ruling 101: sólo si
+  // es el intento que esta hoja enseña (el que tiene en duda, o el suyo); el de un intento viejo nunca cambia lo que ella eligió después.
   useEffect(
     () =>
-      escucharSinSaldo(venueId, order.orderId, texto => {
+      escucharSinSaldo(venueId, order.orderId, (texto, key) => {
+        if (key !== llaveEnDuda(venueId, order.orderId) && key !== attempt.current?.key) return false
         setSinSaldo(texto)
         setDestino('CARD')
+        return true
       }),
     [venueId, order.orderId],
   )
@@ -329,9 +333,19 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
       if (typeof code === 'string' && code.startsWith('STORE_CREDIT_') && pudoSeguirEnCamino(v.attempt.key)) {
         return toast({ title: serverMessage(err, t('cardRefund.error')), description: t('cardRefund.firstMaybeInFlight') })
       }
+      const texto = serverMessage(err, t('cardRefund.error'))
+      // D661: el saldo a favor no se pudo: se dice por qué, y queda «A su tarjeta» elegida, en la hoja que enseña este intento (la que lo
+      // mandó pudo cerrarse y reabrirse). Ruling 101: se avisa ANTES de soltar la duda (así la hoja reabierta lo reconoce como suyo); si
+      // ninguna hoja lo toma, en un aviso, sin cambiar lo que nadie eligió.
+      if (sinSaldoAFavor(code)) {
+        const tomado = avisarSinSaldo(venueId, order.orderId, texto, v.attempt.key)
+        soltarDuda(v.attempt.key)
+        attempt.current = null
+        if (!tomado) toast({ title: texto, variant: 'destructive' })
+        return
+      }
       soltarDuda(v.attempt.key) // un rechazo definitivo: esa llave no hizo ni va a hacer nada
       attempt.current = null
-      const texto = serverMessage(err, t('cardRefund.error'))
       // Con la hoja ya cerrada, lo que se pinta en ella nadie lo ve: también va en un aviso (que sepa que no se devolvió).
       const siCerrada = () => !abierta.current && toast({ title: texto, variant: 'destructive' })
       // Otra devolución entró primero: la suya no se hizo.
@@ -345,12 +359,6 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
       if (code === 'EXTERNAL_REFUND_DETECTED') {
         setPorFuera(texto)
         siCerrada()
-        return
-      }
-      // D661: el saldo a favor no se pudo: se dice por qué, en la hoja, y queda «A su tarjeta», ya elegida. Va a toda hoja abierta de
-      // este pedido (la que lo mandó pudo cerrarse y reabrirse); si ninguna está abierta, en un aviso.
-      if (sinSaldoAFavor(code)) {
-        if (!avisarSinSaldo(venueId, order.orderId, texto)) toast({ title: texto, variant: 'destructive' })
         return
       }
       toast({ title: texto, variant: 'destructive' })
@@ -709,7 +717,15 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
               {refund.isPending
                 ? t('cardRefund.sending')
                 : nadie
-                  ? t('cardRefund.nadie.submit', { amount: Currency((amountCents ?? 0) / 100) })
+                  ? // Ruling 101: el botón dice a dónde va el dinero.
+                    t(
+                      destino === 'CARD'
+                        ? 'cardRefund.nadie.submitCard'
+                        : destino === 'STORE_CREDIT'
+                          ? 'cardRefund.nadie.submitStoreCredit'
+                          : 'cardRefund.nadie.submit',
+                      { amount: Currency((amountCents ?? 0) / 100) },
+                    )
                   : t('cardRefund.submit')}
             </Button>
           )}

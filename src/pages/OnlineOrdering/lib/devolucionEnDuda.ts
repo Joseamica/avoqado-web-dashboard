@@ -65,12 +65,18 @@ const sinRespuesta = new Set<string>()
 export const quedoSinRespuesta = (key: string) => void sinRespuesta.add(key)
 export const pudoSeguirEnCamino = (key: string) => sinRespuesta.has(key)
 
+/** La llave del envío que está en duda en ese pedido (Ruling 101: qué intento enseña una hoja reabierta). */
+export const llaveEnDuda = (venueId: string, orderId: string) =>
+  (dudas.get(llave(venueId, orderId)) as Duda | undefined)?.attempt.key ?? null
+
 /**
  * Por qué el saldo a favor no se pudo, a las hojas ABIERTAS de ese pedido: la respuesta puede llegarle a una hoja ya cerrada mientras
- * otra (la reabierta) sigue en pantalla. Contesta si alguna lo oyó (si no, quien lo manda lo avisa aparte).
+ * otra (la reabierta) sigue en pantalla. Ruling 101: va con la llave del intento; sólo la hoja que enseña ESE intento lo toma (cambia a
+ * «A su tarjeta»). Contesta si alguna lo tomó (si no, quien lo manda lo avisa aparte).
  */
-const oyentesSinSaldo = new Map<string, Set<(texto: string) => void>>()
-export function escucharSinSaldo(venueId: string, orderId: string, oyente: (texto: string) => void) {
+type OyenteSinSaldo = (texto: string, key: string) => boolean
+const oyentesSinSaldo = new Map<string, Set<OyenteSinSaldo>>()
+export function escucharSinSaldo(venueId: string, orderId: string, oyente: OyenteSinSaldo) {
   const k = llave(venueId, orderId)
   const oyentes = oyentesSinSaldo.get(k) ?? new Set()
   oyentes.add(oyente)
@@ -80,10 +86,12 @@ export function escucharSinSaldo(venueId: string, orderId: string, oyente: (text
     if (!oyentes.size) oyentesSinSaldo.delete(k)
   }
 }
-export function avisarSinSaldo(venueId: string, orderId: string, texto: string) {
-  const oyentes = oyentesSinSaldo.get(llave(venueId, orderId))
-  oyentes?.forEach(oyente => oyente(texto))
-  return !!oyentes?.size
+export function avisarSinSaldo(venueId: string, orderId: string, texto: string, key: string) {
+  let tomado = false
+  oyentesSinSaldo.get(llave(venueId, orderId))?.forEach(oyente => {
+    if (oyente(texto, key)) tomado = true
+  })
+  return tomado
 }
 
 /** Para las pruebas: cada una empieza sin las dudas de otra. */

@@ -355,7 +355,9 @@
       "amount": "Se devuelve completo: {{amount}}",
       "nothingLeft": "Ya no queda nada por devolver.",
       "inProcess": "Devolución en proceso",
-      "submit": "Devolver {{amount}}"
+      "submit": "Devolver {{amount}}",
+      "submitCard": "Devolver {{amount}} a la tarjeta",
+      "submitStoreCredit": "Devolver {{amount}} como saldo a favor"
     },
     "destino": {
       "title": "¿A dónde se devuelve?",
