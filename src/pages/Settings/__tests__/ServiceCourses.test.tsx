@@ -8,6 +8,7 @@ import {
   canManageOrganizationCourses,
   courseValidation,
   getServiceCourses,
+  saveKitchenRelease,
   saveServiceCourses,
   type ServiceCoursesRead,
 } from '@/services/serviceCourses.service'
@@ -17,6 +18,7 @@ vi.mock('@/services/serviceCourses.service', async original => ({
   ...(await original<typeof import('@/services/serviceCourses.service')>()),
   getServiceCourses: vi.fn(),
   saveServiceCourses: vi.fn(),
+  saveKitchenRelease: vi.fn(),
 }))
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string, options?: { index?: number }) => (options?.index ? `${key} ${options.index}` : key) }),
@@ -129,4 +131,28 @@ it('organization ownership is tenant-specific and never granted by venue OWNER a
   expect(canManageOrganizationCourses(user, 'o1')).toBe(true)
   expect(canManageOrganizationCourses(user, 'o2')).toBe(false)
   expect(canManageOrganizationCourses({ role: 'OWNER' } as User, 'o1')).toBe(false)
+})
+
+// D17 (founder, 20-nov-2026; Flautas): «La cocina puede liberar tiempos desde su pantalla».
+it('D17: el interruptor de la cocina se ve apagado de fábrica y al prenderlo guarda la sucursal', async () => {
+  const kitchen = vi.mocked(saveKitchenRelease)
+  kitchen.mockResolvedValue({ ...catalog, kitchenCanRelease: true })
+  renderPage(true, { ...catalog, kitchenCanRelease: false })
+  const toggle = await screen.findByRole('switch', { name: 'kitchenReleaseLabel' })
+  expect(toggle).toHaveAttribute('aria-checked', 'false')
+  expect(screen.getByText('kitchenReleaseBody')).toBeInTheDocument()
+  await userEvent.click(toggle)
+  await waitFor(() => expect(kitchen).toHaveBeenCalledWith('v1', true))
+  await waitFor(() => expect(screen.getByRole('switch', { name: 'kitchenReleaseLabel' })).toHaveAttribute('aria-checked', 'true'))
+})
+
+it('D17: sin permiso, sin Pro o con un servidor viejo el interruptor se ve pero no se puede mover', async () => {
+  renderPage(false, { ...catalog, kitchenCanRelease: true })
+  expect(await screen.findByRole('switch', { name: 'kitchenReleaseLabel' })).toBeDisabled()
+})
+
+it('D17: con un servidor que todavía no lo conoce lo dice en vez de esconderlo', async () => {
+  renderPage(true, { ...catalog })
+  expect(await screen.findByRole('switch', { name: 'kitchenReleaseLabel' })).toBeDisabled()
+  expect(screen.getByText('kitchenReleaseNeedsServer')).toBeInTheDocument()
 })

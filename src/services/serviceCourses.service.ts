@@ -27,6 +27,8 @@ export interface ServiceCoursesRead {
   inheritingVenues?: number
   courses: ServiceCourse[]
   limits: { maxCourses: number; maxLabelLength: number }
+  /** D17: «La cocina puede liberar tiempos desde su pantalla». Sólo en la lectura de una sucursal; servidor viejo = sin campo. */
+  kitchenCanRelease?: boolean
 }
 export type ServiceCourseScope = { kind: 'venue' | 'organization'; id: string }
 export const serviceCourseKey = (scope: ServiceCourseScope) => ['service-courses', scope.kind, scope.id] as const
@@ -41,6 +43,10 @@ export async function saveServiceCourses(
   courses: ServiceCourse[] | null,
 ): Promise<ServiceCoursesRead> {
   return (await api.put(endpoint(scope), { expectedRevision, courses })).data.data
+}
+/** D17: prende o apaga «La cocina puede liberar tiempos desde su pantalla» de UNA sucursal (settings:manage + Pro). */
+export async function saveKitchenRelease(venueId: string, enabled: boolean): Promise<ServiceCoursesRead> {
+  return (await api.put(`/api/v1/dashboard/venues/${venueId}/service-courses/kitchen-release`, { enabled })).data.data
 }
 export function normalizeCourses(courses: ServiceCourse[]): ServiceCourse[] {
   return courses.map(c => ({ ...c, label: c.label.normalize('NFKC').trim().replace(/\s+/gu, ' ') }))

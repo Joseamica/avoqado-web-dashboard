@@ -63,5 +63,13 @@
     "duplicate": "Use a different name for each course.",
     "immediate": "The immediate course must remain first."
   },
-  "sharedList": "Shared list for your branches"
+  "sharedList": "Shared list for your branches",
+  "kitchenReleaseTitle": "Kitchen display",
+  "kitchenReleaseLabel": "The kitchen can release courses from its display",
+  "kitchenReleaseBody": "Off, only the register releases a table's next course. On, the kitchen also sees “Release” on items waiting to be released, and no release slip is printed. Works the same offline.",
+  "kitchenReleaseOn": "The kitchen can now release courses",
+  "kitchenReleaseOff": "Only the register releases courses",
+  "kitchenReleaseError": "We couldn't save the change. Please try again.",
+  "kitchenReleaseNeedsServer": "Available once the server is updated.",
+  "kitchenReleaseReadOnly": "You need settings permission to change it."
 }
