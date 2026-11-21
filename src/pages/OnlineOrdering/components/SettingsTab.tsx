@@ -222,9 +222,20 @@ export function SettingsTab() {
   const noticeButtonRef = useRef<HTMLButtonElement>(null)
   const enableSwitchRef = useRef<HTMLButtonElement>(null)
 
+  // D661 · Ruling 91: lo que se ve sólo lo reemplaza una respuesta que no sea más vieja. El SERVIDOR no manda versión ni `updatedAt` de
+  // los ajustes: cuenta el orden en que EMPEZARON las peticiones. `vistaDesde`: cuándo empezó la petición de lo que se ve (una lectura
+  // cancelada sólo puede subirlo, y eso nada más hace que se lea otra vez).
+  const vistaDesde = useRef(0)
+  const leerAjustes = async () => {
+    const desde = Date.now()
+    const ajustes = await getSettings(venueId!)
+    vistaDesde.current = Math.max(vistaDesde.current, desde)
+    return ajustes
+  }
+
   const settingsQuery = useQuery({
     queryKey: onlineOrderingKeys.settings(venueId ?? ''),
-    queryFn: () => getSettings(venueId!),
+    queryFn: () => leerAjustes(),
     enabled: !!venueId,
     // D661 · Ruling 63: «¿se ofrece la tarjeta AHORA?» es una foto (el SERVIDOR la mide en 90 s) y otra persona puede prenderla: en
     // «Nadie» se vuelve a pedir cada 30 s, prendida o apagada. Lo que se está editando no se pisa (`keepDirtyValues`, abajo).
@@ -298,15 +309,23 @@ export function SettingsTab() {
 
   const mutation = useMutation({
     mutationFn: (patch: Partial<OnlineOrderingSettingsInput>) => updateSettings(venueId!, patch),
-    onSuccess: next => {
+    // Ruling 91: cuándo salió este guardado.
+    onMutate: () => ({ salio: Date.now() }),
+    onSuccess: (next, _patch, enviado) => {
       // 🔴 La respuesta del PUT puede venir SIN `store`/`requirements` (sólo el GET los trae): se MEZCLA sobre la caché, nunca la
       // reemplaza, y luego se vuelve a pedir el GET como fuente de verdad.
+      // Ruling 91: si ya se ve una lectura que empezó DESPUÉS de este guardado, su respuesta es más vieja: no regresa la tarjeta ni el
+      // estado de la tienda. Se queda lo que se ve y se vuelve a leer (ya con lo guardado).
       const key = onlineOrderingKeys.settings(venueId!)
       const cached = qc.getQueryData<OnlineOrderingSettings>(key)
       if (cached) {
-        const merged = { ...cached, ...next }
-        qc.setQueryData(key, merged)
-        reset(toForm(merged))
+        const vigente = enviado.salio >= vistaDesde.current
+        const vista = vigente ? { ...cached, ...next } : cached
+        if (vigente) {
+          vistaDesde.current = enviado.salio
+          qc.setQueryData(key, vista)
+        }
+        reset(toForm(vista))
       }
       void qc.invalidateQueries({ queryKey: key })
       setServerMissing([])
@@ -321,7 +340,7 @@ export function SettingsTab() {
       if (sinRespuesta(error)) {
         const key = onlineOrderingKeys.settings(venueId!)
         await qc.cancelQueries({ queryKey: key })
-        const guardado = await qc.fetchQuery({ queryKey: key, queryFn: () => getSettings(venueId!), staleTime: 0 }).catch(() => null)
+        const guardado = await qc.fetchQuery({ queryKey: key, queryFn: () => leerAjustes(), staleTime: 0 }).catch(() => null)
         if (!guardado) return setSaveError(t('settings.saveUnknown'))
         const ahora = toForm(guardado)
         const entro = (Object.keys(patch) as (keyof FormValues)[]).every(

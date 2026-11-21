@@ -1357,6 +1357,43 @@ describe('SettingsTab', () => {
       expect(screen.queryByText('settings.unsaved')).toBeNull()
     })
 
+    // Ruling 91: la vista conserva el estado MÁS NUEVO. El SERVIDOR no manda versión de los ajustes: cuenta el orden en que EMPEZARON
+    // las peticiones, y la respuesta de un guardado que empezó antes que la lectura que ya se ve no la regresa.
+    it('🔴 PUT viejo → GET nuevo → respuesta del PUT viejo: se queda el estado nuevo (la tarjeta y el estado de la tienda)', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true })
+      try {
+        let responder: (v: unknown) => void = () => {}
+        // Mientras el guardado del mínimo tarda, otra persona apaga «Pagar en línea» y la tienda queda cerrada por horario.
+        const apagada = { enabled: false, lastAlertAt: null, fastAlertAt: null, offeredNow: false }
+        const nuevo = nadie({ ...tienda('CLOSED'), ...stripeListo, cardOnlineNadie: false, cardNadie: apagada, minOrderAmount: 80 })
+        getSettings.mockResolvedValueOnce(nadie({ ...tienda('OPEN'), ...conCaja(true) })).mockResolvedValue(nuevo)
+        updateSettings.mockImplementationOnce(() => new Promise(r => (responder = r)))
+        renderTab()
+        await formularioCargado()
+        expect(screen.getByText('settings.confirm.cardNoOneOffered')).toBeInTheDocument()
+        fireEvent.change(screen.getByLabelText('settings.minOrder'), { target: { value: '80' } })
+        fireEvent.click(screen.getByRole('button', { name: 'settings.save' }))
+        await waitFor(() => expect(updateSettings).toHaveBeenCalledTimes(1))
+        await esperar(30_500) // el sondeo empieza DESPUÉS del guardado y llega antes que su respuesta
+        await waitFor(() => expect(pagarEnLinea()).not.toBeChecked())
+        expect(estadoTienda()).toHaveTextContent('settings.status.CLOSED')
+        // Llega la respuesta del guardado: lo que vio el SERVIDOR al guardar, antes del cambio de la otra persona.
+        await act(async () => responder(nadie({ ...tienda('OPEN'), ...conCaja(true), minOrderAmount: 80 })))
+        await waitFor(() => expect(toast).toHaveBeenCalledWith({ title: 'settings.saved' }))
+        expect(pagarEnLinea()).not.toBeChecked()
+        expect(screen.queryByText('settings.confirm.cardNoOneOffered')).toBeNull()
+        expect(estadoTienda()).toHaveTextContent('settings.status.CLOSED')
+        expect(estadoTienda()).not.toHaveTextContent('settings.status.OPEN')
+        // Y se vuelve a leer: lo de después del guardado.
+        await waitFor(() => expect(getSettings).toHaveBeenCalledTimes(3))
+        expect(pagarEnLinea()).not.toBeChecked()
+        expect(screen.getByLabelText('settings.minOrder')).toHaveValue(80)
+        expect(screen.queryByText('settings.unsaved')).toBeNull()
+      } finally {
+        vi.useRealTimers()
+      }
+    })
+
     it('sin el bloque cardNadie (SERVIDOR viejo) o apagada, no se dice si se ofrece', async () => {
       getSettings.mockResolvedValue(nadie({ cardOnlineNadie: true, ...stripeListo }))
       const { unmount } = renderTab()
