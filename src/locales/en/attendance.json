@@ -193,5 +193,23 @@
     "toastTemplateSaved": "Shift saved",
     "toastSkipped": "{{count}} draft(s) saved by someone else were not published: review them and publish again",
     "toastConflict": "Someone changed a draft this week while you were reviewing it. Reloaded: check the cells and publish again."
+  },
+  "forgotten": {
+    "badge": "Missed clock-out · review",
+    "zeroHours": "Didn't clock out and has no schedule that day: it stays at 0 hours until you fix it.",
+    "scheduleEnd": "Didn't clock out: closed at the end time of their schedule. Fix it if they left at another time.",
+    "fix": "Fix clock-out",
+    "dialogTitle": "{{name}}'s real clock-out",
+    "dialogDesc": "Enter the time they actually left (business time). Hours worked are recalculated and the «review» mark is removed.",
+    "label": "Clock-out time",
+    "cancel": "Cancel",
+    "save": "Save clock-out",
+    "saved": "{{name}}'s clock-out fixed",
+    "error": "Couldn't save the clock-out",
+    "invalid": "Enter a valid date and time",
+    "filter": "To review: {{count}}",
+    "prev": "Previous",
+    "next": "Next",
+    "page": "Page {{page}} of {{pages}}"
   }
 }
