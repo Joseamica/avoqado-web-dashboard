@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, waitFor, fireEvent, within } from '@testing-library/react'
+import { act, render, screen, waitFor, fireEvent, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { QueryClient, QueryClientProvider, focusManager } from '@tanstack/react-query'
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string, o?: Record<string, string>) => (o ? `${key}|${Object.values(o).join(',')}` : key) }),
@@ -10,7 +10,9 @@ vi.mock('react-i18next', () => ({
 vi.mock('@/hooks/use-current-venue', () => ({
   useCurrentVenue: () => ({ venueId: 'venue-1', venueSlug: 'taqueria', fullBasePath: '/venues/taqueria' }),
 }))
-vi.mock('@/utils/datetime', () => ({ useVenueDateTime: () => ({ formatTime: (d: string) => `T(${d})` }) }))
+vi.mock('@/utils/datetime', () => ({
+  useVenueDateTime: () => ({ formatTime: (d: string) => `T(${d})`, formatDateTime: (d: string) => `DT(${d})` }),
+}))
 const toast = vi.fn()
 vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast }) }))
 vi.mock('@/pages/Reservations/components/OperatingHoursEditor', () => ({
@@ -97,6 +99,9 @@ const renderTab = () => {
  */
 const formularioCargado = () => waitFor(() => expect(screen.getByLabelText('settings.minOrder')).not.toHaveValue(null))
 
+/** «Estado de la tienda» en la barra de arriba. */
+const estadoTienda = () => document.querySelector('[data-tour="online-ordering-store-status"]') as HTMLElement
+
 /** El renglón de un paso de la lista («Antes de encender la tienda»). */
 const paso = (r: string) => screen.getByText(`settings.requirements.${r}.label`).closest('li') as HTMLElement
 
@@ -105,6 +110,13 @@ describe('SettingsTab', () => {
     getSettings.mockReset()
     updateSettings.mockReset()
     getToPay.mockReset()
+    // Sin respuesta, una consulta que se dispara (p. ej. al volver a «Mi equipo») deja «Query data cannot be undefined» en la salida.
+    getToPay.mockResolvedValue({
+      counts: { toPay: 0, toDeliver: 0 },
+      toPay: [],
+      toDeliver: [],
+      nextCursors: { toPay: null, toDeliver: null },
+    })
     toast.mockReset()
     access.denied = []
     access.role = 'ADMIN'
@@ -581,9 +593,12 @@ describe('SettingsTab', () => {
     await userEvent.click(screen.getByRole('button', { name: 'cerrar-editor' }))
     const minimo = screen.getByLabelText('settings.minOrder')
     minimo.focus()
-    soltar(base({ requirements: { address: true, phone: true, privacyNotice: false } }))
     await waitFor(() => expect(getSettings).toHaveBeenCalledTimes(2))
-    await new Promise(r => setTimeout(r, 30))
+    // La recarga llega dentro de `act`: la pestaña vuelve a pintar con cada lectura (Ruling 63 lee la hora de la última buena).
+    await act(async () => {
+      soltar(base({ requirements: { address: true, phone: true, privacyNotice: false } }))
+      await new Promise(r => setTimeout(r, 30))
+    })
     expect(document.activeElement).toBe(minimo)
   })
 
@@ -924,7 +939,7 @@ describe('SettingsTab', () => {
       expect(screen.queryByText('settings.confirm.suggested')).toBeNull()
     })
 
-    it('bajo «Nadie»: la nota de R51, «Pagar en caja» prendido y en gris, y la tarjeta en gris con su razón', async () => {
+    it('bajo «Nadie»: la nota de R51 y «Pagar en caja» prendido y en gris', async () => {
       getSettings.mockResolvedValue(
         nadie({ acceptsPayAtPickup: false, acceptsCardOnline: true, card: { enabled: true, merchantStatus: 'READY' } }),
       )
@@ -935,10 +950,766 @@ describe('SettingsTab', () => {
       expect(pay).toBeChecked()
       expect(pay).toBeDisabled()
       expect(screen.getByText('settings.confirm.payNoOne')).toBeInTheDocument()
-      const card = screen.getByRole('switch', { name: 'settings.cardOnline' })
-      expect(card).not.toBeChecked()
-      expect(card).toBeDisabled()
+      // D661: con «Pagar en línea» prendida también se paga en línea; en caja se puede SIEMPRE, no es la única forma.
+      expect(esOnline.settings.confirm.payNoOne).toBe('Si los pedidos entran solos, siempre se puede pagar en caja.')
+      expect(enOnline.settings.confirm.payNoOne).toBe('When orders come in on their own, they can always pay at the register.')
+    })
+
+    // ── D661 · «Pagar en línea» en «No, entran solos»: su propio interruptor (`cardOnlineNadie`), apagado de fábrica ──
+    const pagarEnLinea = () => screen.getByRole('switch', { name: 'settings.confirm.cardNoOneLabel' })
+    const stripeListo = { card: { enabled: true, merchantStatus: 'READY' } }
+
+    it('en «No, entran solos» se puede prender «Pagar en línea» si Stripe está listo; apagado de fábrica', async () => {
+      // La tarjeta de «Mi equipo» prendida (acceptsCardOnline) NO se hereda: el interruptor de «Nadie» nace apagado (r1 #7).
+      getSettings.mockResolvedValue(nadie({ acceptsCardOnline: true, cardOnlineNadie: false, ...stripeListo }))
+      updateSettings.mockResolvedValue(
+        putToday({ requiresAcceptance: false, acceptsCardOnline: true, cardOnlineNadie: true, ...stripeListo }),
+      )
+      renderTab()
+      await formularioCargado()
+      expect(screen.queryByRole('switch', { name: 'settings.cardOnline' })).toBeNull()
+      const sw = pagarEnLinea()
+      expect(sw).not.toBeChecked()
+      expect(sw).toBeEnabled()
+      // Regla 16 del repo: lo que un recorrido guiado señala lleva su `data-tour` estable.
+      expect(sw).toHaveAttribute('data-tour', 'online-ordering-card-no-one')
       expect(screen.getByText('settings.confirm.cardNoOne')).toBeInTheDocument()
+      await userEvent.click(sw)
+      expect(pagarEnLinea()).toBeChecked()
+      await userEvent.click(screen.getByRole('button', { name: 'settings.save' }))
+      await waitFor(() => expect(updateSettings).toHaveBeenCalledWith('venue-1', { cardOnlineNadie: true }))
+    })
+
+    it('«Pagar en línea» apagada y sin un Stripe que cobre: en gris (no se puede prender) y dice qué falta', async () => {
+      getSettings.mockResolvedValue(nadie({ cardOnlineNadie: false, card: { enabled: false, merchantStatus: 'NOT_CONNECTED' } }))
+      renderTab()
+      await formularioCargado()
+      const sw = pagarEnLinea()
+      expect(sw).not.toBeChecked()
+      expect(sw).toBeDisabled()
+      expect(screen.getByText('settings.card.notConnected')).toBeInTheDocument()
+      expect(screen.getByRole('link', { name: 'settings.card.connect' })).toHaveAttribute('href', '/venues/taqueria/settings/integrations')
+    })
+
+    // Ruling 62: el interruptor dice lo GUARDADO. Si Stripe deja de cobrar, sigue prendido (si no, al volver Stripe la tarjeta se
+    // ofrecería sola sin que nadie la viera prendida), explica por qué no se ofrece y se puede apagar; sólo prenderla espera a Stripe.
+    it('guardada prendida y Stripe ya no cobra: se ve prendida, dice por qué y se puede apagar y guardar; luego respeta el apagado', async () => {
+      getSettings
+        .mockResolvedValueOnce(nadie({ cardOnlineNadie: true, card: { enabled: false, merchantStatus: 'NOT_CHARGEABLE' } }))
+        .mockResolvedValue(nadie({ cardOnlineNadie: false, ...stripeListo }))
+      updateSettings.mockResolvedValue(putToday({ requiresAcceptance: false, cardOnlineNadie: false }))
+      renderTab()
+      await formularioCargado()
+      const sw = pagarEnLinea()
+      expect(sw).toBeChecked()
+      expect(sw).toBeEnabled()
+      expect(screen.getByText('settings.card.notChargeable')).toBeInTheDocument()
+      await userEvent.click(sw)
+      expect(pagarEnLinea()).not.toBeChecked()
+      expect(pagarEnLinea()).toBeDisabled() // apagada y sin Stripe: volver a prenderla espera a Stripe
+      await userEvent.click(screen.getByRole('button', { name: 'settings.save' }))
+      await waitFor(() => expect(updateSettings).toHaveBeenCalledWith('venue-1', { cardOnlineNadie: false }))
+      // Stripe vuelve a cobrar: se queda apagada (lo guardado) y ya se puede prender.
+      await waitFor(() => expect(getSettings).toHaveBeenCalledTimes(2))
+      await waitFor(() => expect(pagarEnLinea()).toBeEnabled())
+      expect(pagarEnLinea()).not.toBeChecked()
+    })
+
+    it('un SERVIDOR que no conoce «Pagar en línea» (sin cardOnlineNadie) no deja prenderlo', async () => {
+      getSettings.mockResolvedValue(nadie({ ...stripeListo }))
+      renderTab()
+      await formularioCargado()
+      expect(pagarEnLinea()).toBeDisabled()
+    })
+
+    it('NO_CARD_ALERT_DEVICE → «Actualiza la terminal o el POS para que avise los pedidos pagados»', async () => {
+      expect(esOnline.settings.confirm.cardNoOneNoDevice).toBe('Actualiza la terminal o el POS para que avise los pedidos pagados')
+      getSettings.mockResolvedValue(nadie({ cardOnlineNadie: false, ...stripeListo }))
+      updateSettings.mockRejectedValue({
+        response: { status: 409, data: { code: 'NO_CARD_ALERT_DEVICE', message: 'texto crudo del servidor' } },
+      })
+      renderTab()
+      await formularioCargado()
+      await userEvent.click(pagarEnLinea())
+      await userEvent.click(screen.getByRole('button', { name: 'settings.save' }))
+      // Junto al interruptor, y el interruptor se queda apagado: no queda nada de la tarjeta por guardar.
+      const aviso = await screen.findByText('settings.confirm.cardNoOneNoDevice')
+      expect(pagarEnLinea().closest('div.rounded-lg')).toContainElement(aviso)
+      expect(pagarEnLinea()).not.toBeChecked()
+      expect(screen.getByRole('button', { name: 'settings.save' })).toBeDisabled()
+      expect(screen.queryByText('texto crudo del servidor')).toBeNull()
+    })
+
+    it('NO_CARD_ALERT_DEVICE con «Mi equipo» ya elegido (sin guardar): el aviso sale arriba, no se pierde', async () => {
+      getSettings.mockResolvedValue(nadie({ cardOnlineNadie: false, ...stripeListo }))
+      updateSettings.mockRejectedValue({
+        response: { status: 409, data: { code: 'NO_CARD_ALERT_DEVICE', message: 'texto crudo del servidor' } },
+      })
+      renderTab()
+      await formularioCargado()
+      await userEvent.click(pagarEnLinea())
+      await userEvent.click(radio('team'))
+      await userEvent.click(screen.getByRole('button', { name: 'settings.save' }))
+      await waitFor(() => expect(updateSettings).toHaveBeenCalledWith('venue-1', { requiresAcceptance: true, cardOnlineNadie: true }))
+      expect(await screen.findByText('settings.confirm.cardNoOneNoDevice')).toBeInTheDocument()
+    })
+
+    // «Apagado se ve y se explica»: prendida, la tienda ofrece la tarjeta sólo con una caja avisando a tiempo (bloque `cardNadie`)
+    // Y con la tienda abierta: `offeredNow` no mira la tienda, y con ella apagada, cerrada o en pausa nadie puede pedir (Ruling 47).
+    const RAZON: Record<string, string | null> = {
+      OPEN: null,
+      CLOSED: 'OUTSIDE_HOURS',
+      PAUSED: 'MANUAL_PAUSE',
+      OFFLINE: 'NO_DEVICE',
+      DISABLED: 'NOT_ENABLED',
+    }
+    const tienda = (status: string) => ({
+      enabled: status !== 'DISABLED',
+      store: { status, reason: RAZON[status], pausedUntil: null, manualPause: status === 'PAUSED' },
+    })
+    const conCaja = (offeredNow: boolean, lastAlertAt: string | null = ago(0)) => ({
+      cardOnlineNadie: true,
+      ...stripeListo,
+      cardNadie: { enabled: true, lastAlertAt, fastAlertAt: offeredNow ? ago(0) : null, offeredNow },
+    })
+
+    it('prendida, ofrecida y la tienda abierta: dice que ahora sus clientes ven «Pagar ahora»', async () => {
+      expect(esOnline.settings.confirm.cardNoOneOffered).toContain('«Pagar ahora»')
+      getSettings.mockResolvedValue(nadie({ ...tienda('OPEN'), ...conCaja(true, ago(1)) }))
+      renderTab()
+      await formularioCargado()
+      expect(pagarEnLinea()).toBeChecked()
+      expect(screen.getByText('settings.confirm.cardNoOneOffered')).toBeInTheDocument()
+      expect(screen.queryByText('settings.confirm.cardNoOneNotOffered')).toBeNull()
+    })
+
+    it.each([
+      ['DISABLED', 'Ahora tus clientes no ven «Pagar ahora»: la tienda está apagada.'],
+      ['CLOSED', 'Ahora tus clientes no ven «Pagar ahora»: la tienda está cerrada por horario.'],
+      ['PAUSED', 'Ahora tus clientes no ven «Pagar ahora»: la tienda está en pausa.'],
+    ])('prendida y con una caja avisando, pero la tienda %s: no dice «Pagar ahora», dice por qué y sin rojo', async (status, texto) => {
+      expect(esOnline.settings.confirm.cardNoOneStore[status as keyof typeof esOnline.settings.confirm.cardNoOneStore]).toBe(texto)
+      getSettings.mockResolvedValue(nadie({ ...tienda(status), ...conCaja(true) }))
+      renderTab()
+      await formularioCargado()
+      const linea = screen.getByText(`settings.confirm.cardNoOneStore.${status}`)
+      expect(linea).not.toHaveClass('text-destructive')
+      expect(screen.queryByText('settings.confirm.cardNoOneOffered')).toBeNull()
+      expect(screen.queryByText('settings.confirm.cardNoOneNotOffered')).toBeNull()
+    })
+
+    it('la tienda cerrada manda sobre la caja: sin una caja que avise sólo dice que está cerrada (nada de «vuelve sola»)', async () => {
+      getSettings.mockResolvedValue(nadie({ ...tienda('CLOSED'), ...conCaja(false, ago(45)) }))
+      renderTab()
+      await formularioCargado()
+      expect(screen.getByText('settings.confirm.cardNoOneStore.CLOSED')).toBeInTheDocument()
+      expect(screen.queryByText('settings.confirm.cardNoOneNotOffered')).toBeNull()
+      expect(screen.queryByText(/^settings\.confirm\.cardNoOneLastAlert/)).toBeNull()
+    })
+
+    it('sin aparato (OFFLINE): con una caja avisando no dice «Pagar ahora» sino que la tienda no recibe pedidos', async () => {
+      expect(esOnline.settings.confirm.cardNoOneStore.other).toBe(
+        'Ahora tus clientes no ven «Pagar ahora»: la tienda no está recibiendo pedidos.',
+      )
+      getSettings.mockResolvedValue(nadie({ ...tienda('OFFLINE'), ...conCaja(true) }))
+      renderTab()
+      await formularioCargado()
+      expect(screen.getByText('settings.confirm.cardNoOneStore.other')).toBeInTheDocument()
+      expect(screen.queryByText('settings.confirm.cardNoOneOffered')).toBeNull()
+    })
+
+    it.each(['OPEN', 'OFFLINE'])(
+      'prendida y sin una caja que avise (tienda %s): no se ofrece ahora, qué la regresa y cuándo avisó una caja (hora del negocio), sin rojo',
+      async status => {
+        const last = ago(45)
+        getSettings.mockResolvedValue(nadie({ ...tienda(status), ...conCaja(false, last) }))
+        renderTab()
+        await formularioCargado()
+        const estado = screen.getByText('settings.confirm.cardNoOneNotOffered')
+        expect(estado).not.toHaveClass('text-destructive')
+        expect(screen.getByText(`settings.confirm.cardNoOneLastAlert|DT(${last})`)).toBeInTheDocument()
+        expect(screen.queryByText('settings.confirm.cardNoOneOffered')).toBeNull()
+        // Qué la regresa: una caja actualizada abierta en la lista de pedidos (el mismo criterio que el SERVIDOR).
+        expect(esOnline.settings.confirm.cardNoOneNotOffered).toMatch(/caja actualizada/)
+      },
+    )
+
+    // El estado es una foto: la ventana del SERVIDOR es de 90 s. Ruling 63: en «Nadie» se vuelve a pedir cada 30 s, prendida o
+    // apagada (otra persona puede prenderla), y el «ahora» se retira si la última lectura buena es vieja o la lectura está fallando.
+    const esperar = (ms: number) => act(async () => void (await vi.advanceTimersByTimeAsync(ms)))
+
+    it('prendida en «Nadie»: el estado se vuelve a pedir cada 30 s y se ve el nuevo; un cambio sin guardar no se pierde', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true })
+      try {
+        getSettings
+          .mockResolvedValueOnce(nadie({ ...tienda('OPEN'), ...conCaja(true) }))
+          .mockResolvedValue(nadie({ ...tienda('OPEN'), ...conCaja(false, ago(2)) }))
+        renderTab()
+        await formularioCargado()
+        expect(screen.getByText('settings.confirm.cardNoOneOffered')).toBeInTheDocument()
+        fireEvent.change(screen.getByLabelText('settings.minOrder'), { target: { value: '75' } })
+        expect(getSettings).toHaveBeenCalledTimes(1)
+        await esperar(30_500)
+        expect(getSettings).toHaveBeenCalledTimes(2)
+        expect(await screen.findByText('settings.confirm.cardNoOneNotOffered')).toBeInTheDocument()
+        expect(screen.getByLabelText('settings.minOrder')).toHaveValue(75)
+      } finally {
+        vi.useRealTimers()
+      }
+    })
+
+    it('guardada en «Mi equipo»: el estado no se vuelve a pedir solo', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true })
+      try {
+        getSettings.mockResolvedValue(
+          base({ ...stripeListo, ...tienda('OPEN'), requiresAcceptance: true, cardOnlineNadie: true, cardNadie: { enabled: true } }),
+        )
+        renderTab()
+        await formularioCargado()
+        await esperar(61_000)
+        expect(getSettings).toHaveBeenCalledTimes(1)
+        // «Mi equipo» no se vuelve a leer sola: el estado de la tienda se sigue enseñando como hoy.
+        expect(estadoTienda()).toHaveTextContent('settings.status.OPEN')
+      } finally {
+        vi.useRealTimers()
+      }
+    })
+
+    it('apagada en «Nadie»: otra persona la prende y esta pestaña lo ve en la siguiente lectura', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true })
+      try {
+        getSettings
+          .mockResolvedValueOnce(
+            nadie({ ...stripeListo, ...tienda('OPEN'), cardOnlineNadie: false, cardNadie: { enabled: false, offeredNow: false } }),
+          )
+          .mockResolvedValue(nadie({ ...tienda('OPEN'), ...conCaja(true) }))
+        renderTab()
+        await formularioCargado()
+        expect(pagarEnLinea()).not.toBeChecked()
+        await esperar(30_500)
+        expect(getSettings).toHaveBeenCalledTimes(2)
+        await waitFor(() => expect(pagarEnLinea()).toBeChecked())
+        expect(screen.getByText('settings.confirm.cardNoOneOffered')).toBeInTheDocument()
+      } finally {
+        vi.useRealTimers()
+      }
+    })
+
+    it('una lectura que dijo «Pagar ahora» y la siguiente falla: se retira el «ahora» (y el estado de la tienda) y dice cuándo se vio', async () => {
+      expect(esOnline.settings.read.offline).toBe('Visto a las {{time}}; sin conexión')
+      vi.useFakeTimers({ shouldAdvanceTime: true })
+      try {
+        getSettings.mockResolvedValueOnce(nadie({ ...tienda('OPEN'), ...conCaja(true) })).mockRejectedValue(new Error('Network Error'))
+        renderTab()
+        await formularioCargado()
+        expect(screen.getByText('settings.confirm.cardNoOneOffered')).toBeInTheDocument()
+        expect(estadoTienda()).toHaveTextContent('settings.status.OPEN')
+        await esperar(30_500)
+        expect(await screen.findByText(/^settings\.read\.offline\|T\(/, { selector: 'p' })).toBeInTheDocument()
+        expect(screen.queryByText('settings.confirm.cardNoOneOffered')).toBeNull()
+        // Ronda 3: «Estado de la tienda» tampoco se dice con una lectura que falla.
+        expect(estadoTienda()).toHaveTextContent(/settings\.read\.offline\|T\(/)
+        expect(estadoTienda()).not.toHaveTextContent('settings.status.OPEN')
+      } finally {
+        vi.useRealTimers()
+      }
+    })
+
+    it('una lectura todavía en camino pasados 60 s: dice «Actualizando…», nunca «sin conexión»', async () => {
+      expect(esOnline.settings.read.refreshing).toBe('Actualizando…')
+      vi.useFakeTimers({ shouldAdvanceTime: true })
+      try {
+        getSettings.mockResolvedValueOnce(nadie({ ...tienda('OPEN'), ...conCaja(true) })).mockImplementation(() => new Promise(() => {}))
+        renderTab()
+        await formularioCargado()
+        await esperar(45_000)
+        expect(screen.getByText('settings.confirm.cardNoOneOffered')).toBeInTheDocument()
+        await esperar(20_000)
+        expect(await screen.findByText('settings.read.refreshing', { selector: 'p' })).toBeInTheDocument()
+        expect(screen.queryByText('settings.confirm.cardNoOneOffered')).toBeNull()
+        expect(screen.queryByText(/^settings\.read\.offline/)).toBeNull()
+      } finally {
+        vi.useRealTimers()
+      }
+    })
+
+    it('una lectura de hace más de 60 s sin otra en camino (pestaña en segundo plano): dice «Visto a las…», sin «sin conexión»', async () => {
+      expect(esOnline.settings.read.seen).toBe('Visto a las {{time}}')
+      vi.useFakeTimers({ shouldAdvanceTime: true })
+      focusManager.setFocused(false) // en segundo plano no corre el sondeo de 30 s
+      try {
+        getSettings.mockResolvedValue(nadie({ ...tienda('OPEN'), ...conCaja(true) }))
+        renderTab()
+        await formularioCargado()
+        await esperar(65_000)
+        expect(getSettings).toHaveBeenCalledTimes(1)
+        expect(await screen.findByText(/^settings\.read\.seen\|T\(/, { selector: 'p' })).toBeInTheDocument()
+        expect(screen.queryByText(/^settings\.read\.offline/)).toBeNull()
+      } finally {
+        focusManager.setFocused(undefined)
+        vi.useRealTimers()
+      }
+    })
+
+    // Ruling 65: la lectura de cada 30 s pone lo que cambió otra persona, pero no toca lo que se está editando aquí; si alguien cambió
+    // ESE mismo campo, se avisa antes de guardar.
+    it('editando el mínimo mientras otra persona cambia el tiempo de preparación: se queda lo tecleado y se pone el tiempo nuevo', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true })
+      try {
+        getSettings
+          .mockResolvedValueOnce(nadie({ ...tienda('OPEN'), ...conCaja(true), defaultPrepMinutes: 20 }))
+          .mockResolvedValue(nadie({ ...tienda('OPEN'), ...conCaja(true), defaultPrepMinutes: 30 }))
+        renderTab()
+        await formularioCargado()
+        fireEvent.change(screen.getByLabelText('settings.minOrder'), { target: { value: '75' } })
+        await esperar(30_500)
+        await waitFor(() => expect(screen.getByRole('combobox', { name: 'settings.prepTime' })).toHaveTextContent('settings.prepOption|30'))
+        expect(screen.getByLabelText('settings.minOrder')).toHaveValue(75)
+        expect(screen.queryByText('settings.conflict')).toBeNull()
+      } finally {
+        vi.useRealTimers()
+      }
+    })
+
+    it('el mismo campo cambiado aquí y por otra persona: se queda lo de aquí y avisa antes de guardar', async () => {
+      expect(esOnline.settings.conflict).toBe('Otra persona cambió esto mientras editabas; si guardas, se queda lo tuyo.')
+      vi.useFakeTimers({ shouldAdvanceTime: true })
+      try {
+        getSettings
+          .mockResolvedValueOnce(nadie({ ...tienda('OPEN'), ...conCaja(true), minOrderAmount: 50 }))
+          .mockResolvedValue(nadie({ ...tienda('OPEN'), ...conCaja(true), minOrderAmount: 60 }))
+        renderTab()
+        await formularioCargado()
+        fireEvent.change(screen.getByLabelText('settings.minOrder'), { target: { value: '75' } })
+        expect(screen.queryByText('settings.conflict')).toBeNull()
+        await esperar(30_500)
+        const aviso = await screen.findByText('settings.conflict')
+        expect(screen.getByLabelText('settings.minOrder')).toHaveValue(75)
+        expect(screen.getByLabelText('settings.minOrder').closest('div')).toContainElement(aviso)
+      } finally {
+        vi.useRealTimers()
+      }
+    })
+
+    // Ruling 64: sin respuesta al guardar no se sabe si se guardó. Se relee antes de decir nada. Ronda 3: si no entró, lo tecleado se
+    // queda (sin guardar) y se dice que no se guardó, sin «No hubo respuesta» (un 5xx sí respondió). Ruling 92: «No se guardó» sólo
+    // cuando la petición ya no puede seguir en camino: un 5xx de NUESTRO servidor (con su JSON) ya terminó.
+    const sinRed = () => Object.assign(new Error('Network Error'), { code: 'ERR_NETWORK' })
+
+    it('un 5xx del SERVIDOR al guardar y no entró: no dice «Guardado»; lo tecleado se queda y dice que no se guardó', async () => {
+      expect(esOnline.settings.saveNotSaved).toBe('No se guardó: tus cambios siguen aquí, vuelve a guardar.')
+      expect(esOnline.settings.saveNotSaved).not.toMatch(/No hubo respuesta/)
+      getSettings.mockResolvedValue(nadie({ cardOnlineNadie: false, ...stripeListo }))
+      updateSettings.mockRejectedValue({ response: { status: 500, data: { message: 'falló algo' } } })
+      renderTab()
+      await formularioCargado()
+      await userEvent.click(pagarEnLinea())
+      fireEvent.change(screen.getByLabelText('settings.minOrder'), { target: { value: '80' } })
+      await userEvent.click(screen.getByRole('button', { name: 'settings.save' }))
+      expect(await screen.findByText('settings.saveNotSaved')).toBeInTheDocument()
+      expect(getSettings).toHaveBeenCalledTimes(2)
+      expect(screen.queryByText('settings.saveUnconfirmed')).toBeNull()
+      expect(pagarEnLinea()).toBeChecked()
+      expect(screen.getByLabelText('settings.minOrder')).toHaveValue(80)
+      expect(screen.getByText('settings.unsaved')).toBeInTheDocument()
+      expect(toast).not.toHaveBeenCalledWith(expect.objectContaining({ title: 'settings.saved' }))
+    })
+
+    // Ruling 92 (regresión del 64): sin respuesta, el guardado puede seguir en el SERVIDOR. Una lectura que todavía no lo trae no dice
+    // que no se guardó: dice que no se pudo confirmar todavía, y se sigue revisando con el sondeo.
+    it('🔴 sin respuesta y la primera lectura todavía no lo trae: «No se pudo confirmar todavía»; cuando el sondeo lo trae, «Guardado»', async () => {
+      expect(esOnline.settings.saveUnconfirmed).toBe(
+        'No se pudo confirmar todavía si se guardó; seguimos revisando. Tus cambios siguen aquí.',
+      )
+      expect(enOnline.settings.saveUnconfirmed).toBe(
+        "We couldn't confirm yet whether it was saved; we're still checking. Your changes are still here.",
+      )
+      vi.useFakeTimers({ shouldAdvanceTime: true })
+      try {
+        getSettings
+          .mockResolvedValueOnce(nadie({ cardOnlineNadie: false, ...stripeListo })) // la carga
+          .mockResolvedValueOnce(nadie({ cardOnlineNadie: false, ...stripeListo })) // la relectura: el PUT sigue en el SERVIDOR
+          .mockResolvedValue(nadie({ cardOnlineNadie: true, ...stripeListo })) // el PUT terminó: el sondeo ya la ve prendida
+        updateSettings.mockRejectedValue(sinRed())
+        renderTab()
+        await formularioCargado()
+        fireEvent.click(pagarEnLinea())
+        fireEvent.click(screen.getByRole('button', { name: 'settings.save' }))
+        await waitFor(() => expect(getSettings).toHaveBeenCalledTimes(2))
+        // Ya releyó (el guardado terminó y «Guardar» vuelve a poder usarse): todavía no se sabe, y lo dice.
+        await waitFor(() => expect(screen.getByRole('button', { name: 'settings.save' })).toBeEnabled())
+        expect(screen.getByText('settings.saveUnconfirmed').closest('[role="status"]')).not.toBeNull()
+        expect(screen.queryByText('settings.saveNotSaved')).toBeNull()
+        expect(pagarEnLinea()).toBeChecked()
+        expect(toast).not.toHaveBeenCalledWith(expect.objectContaining({ title: 'settings.saved' }))
+        await esperar(30_500)
+        await waitFor(() => expect(toast).toHaveBeenCalledWith({ title: 'settings.saved' }))
+        expect(screen.queryByText('settings.saveUnconfirmed')).toBeNull()
+        expect(screen.queryByText('settings.saveNotSaved')).toBeNull()
+        expect(pagarEnLinea()).toBeChecked()
+        expect(screen.queryByText('settings.unsaved')).toBeNull()
+      } finally {
+        vi.useRealTimers()
+      }
+    })
+
+    // Ruling 97 (rotura del 92): lo que se edita mientras el aviso dice «Tus cambios siguen aquí» no se borra cuando una lectura confirma
+    // el guardado: lo confirmado se da por guardado y lo demás se queda sin guardar.
+    it('🔴 sin respuesta, se edita otro campo mientras se espera y el sondeo confirma: la edición se queda, marcada sin guardar', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true })
+      try {
+        getSettings
+          .mockResolvedValueOnce(nadie({ cardOnlineNadie: false, ...stripeListo })) // la carga
+          .mockResolvedValueOnce(nadie({ cardOnlineNadie: false, ...stripeListo })) // la relectura: todavía no
+          .mockResolvedValue(nadie({ cardOnlineNadie: true, ...stripeListo })) // el sondeo: la tarjeta ya quedó guardada
+        updateSettings
+          .mockRejectedValueOnce(sinRed())
+          .mockResolvedValue(nadie({ cardOnlineNadie: true, ...stripeListo, minOrderAmount: 75 }))
+        renderTab()
+        await formularioCargado()
+        fireEvent.click(pagarEnLinea())
+        fireEvent.click(screen.getByRole('button', { name: 'settings.save' }))
+        await waitFor(() => expect(getSettings).toHaveBeenCalledTimes(2))
+        await waitFor(() => expect(screen.getByRole('button', { name: 'settings.save' })).toBeEnabled())
+        expect(screen.getByText('settings.saveUnconfirmed')).toBeInTheDocument()
+        // Mientras espera, la dueña cambia el mínimo.
+        fireEvent.change(screen.getByLabelText('settings.minOrder'), { target: { value: '75' } })
+        await esperar(30_500)
+        await waitFor(() => expect(toast).toHaveBeenCalledWith({ title: 'settings.saved' }))
+        expect(screen.getByLabelText('settings.minOrder')).toHaveValue(75)
+        expect(screen.getByText('settings.unsaved')).toBeInTheDocument()
+        expect(pagarEnLinea()).toBeChecked()
+        // Guardar otra vez manda sólo lo que falta: la tarjeta ya quedó guardada.
+        fireEvent.click(screen.getByRole('button', { name: 'settings.save' }))
+        await waitFor(() => expect(updateSettings).toHaveBeenLastCalledWith('venue-1', { minOrderAmount: 75 }))
+      } finally {
+        vi.useRealTimers()
+      }
+    })
+
+    // Ruling 104 (resto del 97): si vuelve a apagar el MISMO interruptor mientras el «prendido» está en duda, «apagado» coincide con la
+    // última lectura y dejaba de contar como editado: al confirmarse el «prendido», la lectura se lo borraba. Su última edición se queda.
+    it('🔴 apaga otra vez el mismo interruptor mientras el «prendido» está en duda; la lectura confirma prendido: se queda apagado, sin guardar', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true })
+      try {
+        getSettings
+          .mockResolvedValueOnce(nadie({ cardOnlineNadie: false, ...stripeListo })) // la carga
+          .mockResolvedValueOnce(nadie({ cardOnlineNadie: false, ...stripeListo })) // la relectura: todavía no
+          .mockResolvedValue(nadie({ cardOnlineNadie: true, ...stripeListo })) // el sondeo: el «prendido» sí quedó guardado
+        updateSettings.mockRejectedValueOnce(sinRed()).mockResolvedValue(nadie({ cardOnlineNadie: false, ...stripeListo }))
+        renderTab()
+        await formularioCargado()
+        fireEvent.click(pagarEnLinea())
+        fireEvent.click(screen.getByRole('button', { name: 'settings.save' }))
+        await waitFor(() => expect(getSettings).toHaveBeenCalledTimes(2))
+        await waitFor(() => expect(screen.getByText('settings.saveUnconfirmed')).toBeInTheDocument())
+        // Mientras espera, se arrepiente: lo apaga otra vez (igual a la última lectura).
+        fireEvent.click(pagarEnLinea())
+        expect(pagarEnLinea()).not.toBeChecked()
+        await esperar(30_500)
+        await waitFor(() => expect(toast).toHaveBeenCalledWith({ title: 'settings.saved' }))
+        expect(pagarEnLinea()).not.toBeChecked()
+        expect(screen.getByText('settings.unsaved')).toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: 'settings.save' }))
+        await waitFor(() => expect(updateSettings).toHaveBeenLastCalledWith('venue-1', { cardOnlineNadie: false }))
+      } finally {
+        vi.useRealTimers()
+      }
+    })
+
+    it('sin respuesta y ninguna lectura lo trae: cuando la petición ya no puede seguir en camino (10 min), «No se guardó»', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true })
+      try {
+        getSettings.mockResolvedValue(nadie({ cardOnlineNadie: false, ...stripeListo }))
+        updateSettings.mockRejectedValue(sinRed())
+        renderTab()
+        await formularioCargado()
+        fireEvent.click(pagarEnLinea())
+        fireEvent.click(screen.getByRole('button', { name: 'settings.save' }))
+        expect(await screen.findByText('settings.saveUnconfirmed')).toBeInTheDocument()
+        await esperar(9 * 60_000)
+        expect(screen.getByText('settings.saveUnconfirmed')).toBeInTheDocument()
+        expect(screen.queryByText('settings.saveNotSaved')).toBeNull()
+        await esperar(90_000)
+        expect(await screen.findByText('settings.saveNotSaved')).toBeInTheDocument()
+        expect(screen.queryByText('settings.saveUnconfirmed')).toBeNull()
+        expect(pagarEnLinea()).toBeChecked()
+        expect(screen.getByText('settings.unsaved')).toBeInTheDocument()
+        expect(toast).not.toHaveBeenCalledWith(expect.objectContaining({ title: 'settings.saved' }))
+      } finally {
+        vi.useRealTimers()
+      }
+    })
+
+    // Ruling 118 (completa el 104): lo que edita mientras el guardado todavía va EN CAMINO (antes de quedar en duda) también se queda.
+    it('🔴 apaga el interruptor mientras el guardado del «prendido» va en camino; queda en duda y el sondeo confirma prendido: se queda apagado', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true })
+      try {
+        let cortar: (e: unknown) => void = () => {}
+        getSettings
+          .mockResolvedValueOnce(nadie({ cardOnlineNadie: false, ...stripeListo })) // la carga
+          .mockResolvedValueOnce(nadie({ cardOnlineNadie: false, ...stripeListo })) // la relectura: todavía no
+          .mockResolvedValue(nadie({ cardOnlineNadie: true, ...stripeListo })) // el sondeo: el «prendido» sí quedó guardado
+        updateSettings
+          .mockImplementationOnce(() => new Promise((_ok, falla) => (cortar = falla))) // el PUT tarda (no tiene tiempo límite)
+          .mockResolvedValue(nadie({ cardOnlineNadie: false, ...stripeListo }))
+        renderTab()
+        await formularioCargado()
+        fireEvent.click(pagarEnLinea())
+        fireEvent.click(screen.getByRole('button', { name: 'settings.save' }))
+        await waitFor(() => expect(updateSettings).toHaveBeenCalledTimes(1))
+        // Con el guardado todavía en camino, lo vuelve a apagar (el interruptor no se bloquea).
+        fireEvent.click(pagarEnLinea())
+        expect(pagarEnLinea()).not.toBeChecked()
+        await act(async () => cortar(sinRed()))
+        await waitFor(() => expect(screen.getByText('settings.saveUnconfirmed')).toBeInTheDocument())
+        await esperar(30_500)
+        await waitFor(() => expect(toast).toHaveBeenCalledWith({ title: 'settings.saved' }))
+        expect(pagarEnLinea()).not.toBeChecked()
+        expect(screen.getByText('settings.unsaved')).toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: 'settings.save' }))
+        await waitFor(() => expect(updateSettings).toHaveBeenLastCalledWith('venue-1', { cardOnlineNadie: false }))
+      } finally {
+        vi.useRealTimers()
+      }
+    })
+
+    it('🔴 guardado normal con una edición hecha mientras iba en camino: la edición se queda, sin guardar', async () => {
+      let responder: (v: unknown) => void = () => {}
+      getSettings.mockResolvedValue(nadie({ ...stripeListo }))
+      updateSettings
+        .mockImplementationOnce(() => new Promise(r => (responder = r)))
+        .mockResolvedValue(nadie({ ...stripeListo, minOrderAmount: 90 }))
+      renderTab()
+      await formularioCargado()
+      fireEvent.change(screen.getByLabelText('settings.minOrder'), { target: { value: '80' } })
+      fireEvent.click(screen.getByRole('button', { name: 'settings.save' }))
+      await waitFor(() => expect(updateSettings).toHaveBeenCalledWith('venue-1', { minOrderAmount: 80 }))
+      // Mientras va en camino, cambia el mínimo otra vez.
+      fireEvent.change(screen.getByLabelText('settings.minOrder'), { target: { value: '90' } })
+      await act(async () => responder(nadie({ ...stripeListo, minOrderAmount: 80 })))
+      await waitFor(() => expect(toast).toHaveBeenCalledWith({ title: 'settings.saved' }))
+      expect(screen.getByLabelText('settings.minOrder')).toHaveValue(90)
+      expect(screen.getByText('settings.unsaved')).toBeInTheDocument()
+      fireEvent.click(screen.getByRole('button', { name: 'settings.save' }))
+      await waitFor(() => expect(updateSettings).toHaveBeenLastCalledWith('venue-1', { minOrderAmount: 90 }))
+    })
+
+    // Un 5xx de NUESTRO servidor ya terminó, pero mientras corre la lectura que decide todavía no se sabe; si esa lectura falla, no se le
+    // echa la culpa a la conexión (contestó el servidor).
+    it('5xx del SERVIDOR: mientras corre la lectura que decide, «No se pudo confirmar todavía»; si falla, sin «revisa tu conexión»', async () => {
+      expect(esOnline.settings.saveUnknownServer).toBe('No se pudo confirmar si se guardó: tus cambios siguen aquí. Vuelve a guardar.')
+      expect(enOnline.settings.saveUnknownServer).toBe("We couldn't confirm whether it was saved: your changes are still here. Save again.")
+      expect(esOnline.settings.saveUnknownServer).not.toMatch(/conexi/)
+      let fallarLectura: () => void = () => {}
+      getSettings
+        .mockResolvedValueOnce(nadie({ cardOnlineNadie: false, ...stripeListo }))
+        .mockImplementationOnce(() => new Promise((_ok, falla) => (fallarLectura = () => falla(new Error('Network Error')))))
+      updateSettings.mockRejectedValue({ response: { status: 500, data: { message: 'falló algo' } } })
+      renderTab()
+      await formularioCargado()
+      fireEvent.click(pagarEnLinea())
+      fireEvent.click(screen.getByRole('button', { name: 'settings.save' }))
+      await waitFor(() => expect(getSettings).toHaveBeenCalledTimes(2))
+      expect(await screen.findByText('settings.saveUnconfirmed')).toBeInTheDocument()
+      expect(screen.queryByText('settings.saveUnknown')).toBeNull()
+      await act(async () => fallarLectura())
+      expect(await screen.findByText('settings.saveUnknownServer')).toBeInTheDocument()
+      expect(screen.queryByText('settings.saveUnknown')).toBeNull()
+      expect(screen.queryByText('settings.saveUnconfirmed')).toBeNull()
+      expect(pagarEnLinea()).toBeChecked()
+    })
+
+    // Ruling 105 (regresión): en «Mi equipo» con todas las lecturas fallando, la revisión no puede seguir para siempre. Al terminar la
+    // ventana deja de leer sola, conserva lo tecleado y sigue diciendo que no se sabe si se guardó.
+    it('«Mi equipo» y todas las lecturas fallan: al terminar la ventana deja de leer sola, conserva lo tecleado y dice que no se sabe', async () => {
+      expect(esOnline.settings.saveUnknown).toBe(
+        'No se pudo confirmar si se guardó: tus cambios siguen aquí. Revisa tu conexión y vuelve a intentarlo.',
+      )
+      expect(enOnline.settings.saveUnknown).toBe(
+        "We couldn't confirm whether it was saved: your changes are still here. Check your connection and try again.",
+      )
+      vi.useFakeTimers({ shouldAdvanceTime: true })
+      try {
+        getSettings.mockResolvedValueOnce(base()).mockRejectedValue(new Error('Network Error'))
+        updateSettings.mockRejectedValue(sinRed())
+        renderTab()
+        await formularioCargado()
+        fireEvent.change(screen.getByLabelText('settings.minOrder'), { target: { value: '80' } })
+        fireEvent.click(screen.getByRole('button', { name: 'settings.save' }))
+        expect(await screen.findByText('settings.saveUnconfirmed')).toBeInTheDocument()
+        await esperar(10 * 60_000 + 31_000)
+        expect(await screen.findByText('settings.saveUnknown')).toBeInTheDocument()
+        expect(screen.queryByText('settings.saveUnconfirmed')).toBeNull()
+        expect(screen.queryByText('settings.saveNotSaved')).toBeNull()
+        expect(screen.getByLabelText('settings.minOrder')).toHaveValue(80)
+        expect(screen.getByText('settings.unsaved')).toBeInTheDocument()
+        const lecturas = getSettings.mock.calls.length
+        await esperar(2 * 60_000)
+        expect(getSettings).toHaveBeenCalledTimes(lecturas)
+      } finally {
+        vi.useRealTimers()
+      }
+    })
+
+    it('en «Mi equipo» (sin sondeo) también se sigue revisando mientras no se confirme; confirmado, deja de leer sola', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true })
+      try {
+        getSettings
+          .mockResolvedValueOnce(base()) // la carga: mínimo $50
+          .mockResolvedValueOnce(base()) // la relectura: todavía $50
+          .mockResolvedValue(base({ minOrderAmount: 80 })) // el guardado terminó en el SERVIDOR
+        updateSettings.mockRejectedValue(sinRed())
+        renderTab()
+        await formularioCargado()
+        fireEvent.change(screen.getByLabelText('settings.minOrder'), { target: { value: '80' } })
+        fireEvent.click(screen.getByRole('button', { name: 'settings.save' }))
+        await waitFor(() => expect(getSettings).toHaveBeenCalledTimes(2))
+        expect(await screen.findByText('settings.saveUnconfirmed')).toBeInTheDocument()
+        await esperar(30_500)
+        await waitFor(() => expect(toast).toHaveBeenCalledWith({ title: 'settings.saved' }))
+        expect(screen.queryByText('settings.saveUnconfirmed')).toBeNull()
+        expect(screen.getByLabelText('settings.minOrder')).toHaveValue(80)
+        const lecturas = getSettings.mock.calls.length
+        await esperar(61_000)
+        expect(getSettings).toHaveBeenCalledTimes(lecturas)
+      } finally {
+        vi.useRealTimers()
+      }
+    })
+
+    it('sin respuesta al guardar con una lectura ya en camino: se lee otra vez después (nunca la de antes del guardado)', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true })
+      try {
+        let vieja: (v: unknown) => void = () => {}
+        getSettings
+          .mockResolvedValueOnce(nadie({ cardOnlineNadie: false, ...stripeListo }))
+          .mockImplementationOnce(() => new Promise(r => (vieja = r))) // el sondeo de 30 s, que empezó antes del guardado
+          .mockResolvedValue(nadie({ cardOnlineNadie: true, ...stripeListo })) // la lectura de después: sí entró
+        updateSettings.mockRejectedValue(sinRed())
+        renderTab()
+        await formularioCargado()
+        await esperar(30_500)
+        expect(getSettings).toHaveBeenCalledTimes(2)
+        fireEvent.click(pagarEnLinea())
+        fireEvent.click(screen.getByRole('button', { name: 'settings.save' }))
+        await waitFor(() => expect(getSettings).toHaveBeenCalledTimes(3))
+        await act(async () => vieja(nadie({ cardOnlineNadie: false, ...stripeListo }))) // llega tarde: no cuenta
+        await waitFor(() => expect(toast).toHaveBeenCalledWith({ title: 'settings.saved' }))
+        expect(pagarEnLinea()).toBeChecked()
+        expect(screen.queryByText('settings.saveNotSaved')).toBeNull()
+      } finally {
+        vi.useRealTimers()
+      }
+    })
+
+    it('sin respuesta al guardar y sí entró: tras releer dice «Guardado» y lo enseña', async () => {
+      getSettings
+        .mockResolvedValueOnce(nadie({ cardOnlineNadie: false, ...stripeListo }))
+        .mockResolvedValue(nadie({ cardOnlineNadie: true, ...stripeListo }))
+      updateSettings.mockRejectedValue(sinRed())
+      renderTab()
+      await formularioCargado()
+      await userEvent.click(pagarEnLinea())
+      await userEvent.click(screen.getByRole('button', { name: 'settings.save' }))
+      await waitFor(() => expect(toast).toHaveBeenCalledWith({ title: 'settings.saved' }))
+      expect(pagarEnLinea()).toBeChecked()
+      expect(screen.queryByText('settings.saveNotSaved')).toBeNull()
+      expect(screen.queryByText('settings.unsaved')).toBeNull()
+    })
+
+    // Ruling 91: la vista conserva el estado MÁS NUEVO. El SERVIDOR no manda versión de los ajustes: cuenta el orden en que EMPEZARON
+    // las peticiones, y la respuesta de un guardado que empezó antes que la lectura que ya se ve no la regresa.
+    it('🔴 PUT viejo → GET nuevo → respuesta del PUT viejo: se queda el estado nuevo (la tarjeta y el estado de la tienda)', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true })
+      try {
+        let responder: (v: unknown) => void = () => {}
+        // Mientras el guardado del mínimo tarda, otra persona apaga «Pagar en línea» y la tienda queda cerrada por horario.
+        const apagada = { enabled: false, lastAlertAt: null, fastAlertAt: null, offeredNow: false }
+        const nuevo = nadie({ ...tienda('CLOSED'), ...stripeListo, cardOnlineNadie: false, cardNadie: apagada, minOrderAmount: 80 })
+        getSettings.mockResolvedValueOnce(nadie({ ...tienda('OPEN'), ...conCaja(true) })).mockResolvedValue(nuevo)
+        updateSettings.mockImplementationOnce(() => new Promise(r => (responder = r)))
+        renderTab()
+        await formularioCargado()
+        expect(screen.getByText('settings.confirm.cardNoOneOffered')).toBeInTheDocument()
+        fireEvent.change(screen.getByLabelText('settings.minOrder'), { target: { value: '80' } })
+        fireEvent.click(screen.getByRole('button', { name: 'settings.save' }))
+        await waitFor(() => expect(updateSettings).toHaveBeenCalledTimes(1))
+        await esperar(30_500) // el sondeo empieza DESPUÉS del guardado y llega antes que su respuesta
+        await waitFor(() => expect(pagarEnLinea()).not.toBeChecked())
+        expect(estadoTienda()).toHaveTextContent('settings.status.CLOSED')
+        // Llega la respuesta del guardado: lo que vio el SERVIDOR al guardar, antes del cambio de la otra persona.
+        await act(async () => responder(nadie({ ...tienda('OPEN'), ...conCaja(true), minOrderAmount: 80 })))
+        await waitFor(() => expect(toast).toHaveBeenCalledWith({ title: 'settings.saved' }))
+        expect(pagarEnLinea()).not.toBeChecked()
+        expect(screen.queryByText('settings.confirm.cardNoOneOffered')).toBeNull()
+        expect(estadoTienda()).toHaveTextContent('settings.status.CLOSED')
+        expect(estadoTienda()).not.toHaveTextContent('settings.status.OPEN')
+        // Y se vuelve a leer: lo de después del guardado.
+        await waitFor(() => expect(getSettings).toHaveBeenCalledTimes(3))
+        expect(pagarEnLinea()).not.toBeChecked()
+        expect(screen.getByLabelText('settings.minOrder')).toHaveValue(80)
+        expect(screen.queryByText('settings.unsaved')).toBeNull()
+      } finally {
+        vi.useRealTimers()
+      }
+    })
+
+    // Ruling 103: el orden vive con la caché de la sucursal, no en la pantalla: salir a «Bandeja» y volver no deja que el guardado
+    // viejo publique «Pagar ahora» en la caché compartida.
+    it('🔴 PUT viejo, salir y volver a Configuración (misma caché), GET nuevo, respuesta del PUT viejo: se queda el estado nuevo', async () => {
+      let responder: (v: unknown) => void = () => {}
+      const apagada = { enabled: false, lastAlertAt: null, fastAlertAt: null, offeredNow: false }
+      const nuevo = nadie({ ...tienda('CLOSED'), ...stripeListo, cardOnlineNadie: false, cardNadie: apagada, minOrderAmount: 80 })
+      getSettings
+        .mockResolvedValueOnce(nadie({ ...tienda('OPEN'), ...conCaja(true) }))
+        .mockResolvedValueOnce(nuevo)
+        .mockImplementation(() => new Promise(() => {})) // la relectura de después del guardado tarda: se mira lo que quedó en pantalla
+      updateSettings.mockImplementationOnce(() => new Promise(r => (responder = r)))
+      const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+      const pestana = () => (
+        <QueryClientProvider client={qc}>
+          <MemoryRouter>
+            <SettingsTab />
+          </MemoryRouter>
+        </QueryClientProvider>
+      )
+      const { unmount } = render(pestana())
+      await formularioCargado()
+      expect(screen.getByText('settings.confirm.cardNoOneOffered')).toBeInTheDocument()
+      fireEvent.change(screen.getByLabelText('settings.minOrder'), { target: { value: '80' } })
+      fireEvent.click(screen.getByRole('button', { name: 'settings.save' }))
+      await waitFor(() => expect(updateSettings).toHaveBeenCalledTimes(1))
+      unmount() // a «Bandeja»
+      render(pestana()) // y de vuelta: la lectura nueva (empezó después del guardado) ya enseña la tarjeta apagada
+      await waitFor(() => expect(getSettings).toHaveBeenCalledTimes(2))
+      await waitFor(() => expect(pagarEnLinea()).not.toBeChecked())
+      expect(estadoTienda()).toHaveTextContent('settings.status.CLOSED')
+      // Llega la respuesta del guardado viejo, con lo que vio el SERVIDOR antes del cambio de la otra persona.
+      await act(async () => responder(nadie({ ...tienda('OPEN'), ...conCaja(true), minOrderAmount: 80 })))
+      await waitFor(() => expect(toast).toHaveBeenCalledWith({ title: 'settings.saved' }))
+      await waitFor(() => expect(getSettings).toHaveBeenCalledTimes(3)) // se vuelve a leer (y esa lectura todavía no llega)
+      expect(pagarEnLinea()).not.toBeChecked()
+      expect(screen.queryByText('settings.confirm.cardNoOneOffered')).toBeNull()
+      expect(estadoTienda()).toHaveTextContent('settings.status.CLOSED')
+    })
+
+    it('sin el bloque cardNadie (SERVIDOR viejo) o apagada, no se dice si se ofrece', async () => {
+      getSettings.mockResolvedValue(nadie({ cardOnlineNadie: true, ...stripeListo }))
+      const { unmount } = renderTab()
+      await formularioCargado()
+      expect(screen.queryByText(/^settings\.confirm\.cardNoOne(Offered|NotOffered|LastAlert)/)).toBeNull()
+      unmount()
+      getSettings.mockResolvedValue(
+        nadie({
+          cardOnlineNadie: false,
+          ...stripeListo,
+          cardNadie: { enabled: false, lastAlertAt: null, fastAlertAt: null, offeredNow: false },
+        }),
+      )
+      renderTab()
+      await formularioCargado()
+      expect(screen.queryByText(/^settings\.confirm\.cardNoOne(Offered|NotOffered|LastAlert)/)).toBeNull()
     })
 
     it('lista «Para recibir pedidos con Nadie»: horario y «Un aparato que cobra folios se conectó hace N min»', async () => {

@@ -122,7 +122,9 @@
     "refund": {
       "full": "Reembolsado",
       "partial": "Reembolso parcial: {{amount}}",
-      "partialLabel": "Reembolso parcial"
+      "partialLabel": "Reembolso parcial",
+      "checking": "Revisando la devolución…",
+      "unchecked": "No se pudo revisar en qué quedó la devolución"
     },
     "totals": {
       "subtotal": "Subtotal",

@@ -7,6 +7,7 @@ import api from '@/api'
 import type {
   ActionResult,
   CardRefund,
+  CardRefundDestino,
   CardRefundReason,
   CardRefundResolveMethod,
   CardRefundResult,
@@ -37,10 +38,12 @@ export const onlineOrderingKeys = {
 export const getSettings = async (venueId: string): Promise<OnlineOrderingSettings> =>
   (await api.get(`${base(venueId)}/settings`)).data.data
 
-export const updateSettings = async (
-  venueId: string,
-  patch: Partial<OnlineOrderingSettingsInput>,
-): Promise<OnlineOrderingSettingsSaved> => (await api.put(`${base(venueId)}/settings`, patch)).data.data
+/**
+ * D661 · Ruling 64: este PUT NO se repite solo tras un corte (sólo él; el cliente global sigue igual). Un reenvío tardío de «prender la
+ * tarjeta» llegaba después de que otra pestaña la apagó y la volvía a prender; la pantalla relee lo guardado antes de decir nada.
+ */
+export const updateSettings = async (venueId: string, patch: Partial<OnlineOrderingSettingsInput>): Promise<OnlineOrderingSettingsSaved> =>
+  (await api.put(`${base(venueId)}/settings`, patch, { repetible: false })).data.data
 
 export const getMenuCategories = async (venueId: string): Promise<MenuCategoriesSummary> =>
   (await api.get(`${base(venueId)}/menu/categories`)).data.data
@@ -79,8 +82,10 @@ export const markReady = (venueId: string, orderId: string) => act(venueId, orde
 export const markDelivered = (venueId: string, orderId: string) => act(venueId, orderId, 'delivered')
 export const cancelOrder = (venueId: string, orderId: string) => act(venueId, orderId, 'cancel')
 
-export const pauseOrdering = async (venueId: string, minutes: PauseMinutes): Promise<{ pausedUntil: string | null; manualPause: boolean }> =>
-  (await api.post(`${base(venueId)}/pause`, { minutes })).data.data
+export const pauseOrdering = async (
+  venueId: string,
+  minutes: PauseMinutes,
+): Promise<{ pausedUntil: string | null; manualPause: boolean }> => (await api.post(`${base(venueId)}/pause`, { minutes })).data.data
 
 /**
  * UN pedido en línea por el id de su cuenta, con la forma de la bandeja (la bandeja sólo guarda 24 h). `null` = 404: la cuenta no es
@@ -100,15 +105,22 @@ export const listCardRefunds = async (venueId: string, orderId: string): Promise
 
 /**
  * 🔴 `amount` en PESOS como texto («120.50»), nunca centavos. La llave y `expectedLatestRefundId` (la última devolución que vio el
- * operador, `null` si ninguna) son los del intento: los MISMOS en sus reintentos.
+ * operador, `null` si ninguna) son los del intento: los MISMOS en sus reintentos. D661: `destino` sólo en un pedido de «Nadie»
+ * (sin él, el servidor devuelve a la tarjeta, como siempre). Ruling 61: sin el reenvío automático de `api.ts` (sólo esta petición):
+ * una respuesta perdida queda en duda y la hoja sólo deja «Reintentar» lo mismo.
  */
 export const createCardRefund = async (
   venueId: string,
   orderId: string,
-  body: { amount: string; reason: CardRefundReason; note?: string; expectedLatestRefundId: string | null },
+  body: { amount: string; reason: CardRefundReason; note?: string; expectedLatestRefundId: string | null; destino?: CardRefundDestino },
   idempotencyKey: string,
 ): Promise<CardRefundResult> =>
-  (await api.post(`${base(venueId)}/orders/${orderId}/card-refund`, body, { headers: { 'Idempotency-Key': idempotencyKey } })).data.data
+  (
+    await api.post(`${base(venueId)}/orders/${orderId}/card-refund`, body, {
+      headers: { 'Idempotency-Key': idempotencyKey },
+      repetible: false,
+    })
+  ).data.data
 
 export const resolveCardRefund = async (
   venueId: string,

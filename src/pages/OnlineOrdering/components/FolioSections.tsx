@@ -13,8 +13,10 @@ import { Currency } from '@/utils/currency'
 import { useVenueDateTime } from '@/utils/datetime'
 
 import { useExtraPages } from '../hooks/useExtraPages'
+import { marcaDelPedido } from '../lib/marcaDelPedido'
 import { toPayModeIsLive } from '../lib/toPayLive'
-import { Beneficios, ConCuenta } from './OrderCard'
+import { CardRefundButton } from './CardRefundSheet'
+import { Beneficios, ConCuenta, MarcaDelPedido } from './OrderCard'
 
 /** Un folio tocado se oculta SÓLO mientras siga en la sección y con el estado que tenía al tocarlo; cuando el servidor lo mueve o lo cambia, se suelta. */
 export type FolioHide = { section: 'toPay' | 'toDeliver'; status: string; remainingCents: number }
@@ -25,6 +27,8 @@ interface Props {
   venueId: string
   canAnswer: boolean
   canCancel: boolean
+  /** D661: `payments:refund` — un pedido de «Nadie» pagado con tarjeta se «cancela y devuelve» desde «Por entregar». */
+  canRefund?: boolean
   busy: boolean
   /** Folios ya tocados con éxito: salen de la lista al instante (también los de «Cargar más» hasta que el sondeo los relea). */
   hidden: ReadonlyMap<string, FolioHide>
@@ -45,6 +49,7 @@ export function FolioSections({
   venueId,
   canAnswer,
   canCancel,
+  canRefund = false,
   busy,
   hidden,
   inboxNadieIds = [],
@@ -176,12 +181,14 @@ export function FolioSections({
                 {list.map(order => (
                   <FolioCard
                     key={order.orderId}
+                    venueId={venueId}
                     order={order}
                     section={section}
                     nowServer={nowServer}
                     stale={isError}
                     canAnswer={canAnswer}
                     canCancel={canCancel}
+                    canRefund={canRefund}
                     busy={busy || actionsLocked}
                     onAct={a => onAct(order, a)}
                   />
@@ -201,6 +208,7 @@ export function FolioSections({
 }
 
 interface CardProps {
+  venueId: string
   order: FolioOrder
   section: Section
   nowServer: number
@@ -208,13 +216,16 @@ interface CardProps {
   stale: boolean
   canAnswer: boolean
   canCancel: boolean
+  canRefund: boolean
   busy: boolean
   onAct: (action: FolioAction) => void
 }
 
-function FolioCard({ order, section, nowServer, stale, canAnswer, canCancel, busy, onAct }: CardProps) {
+function FolioCard({ venueId, order, section, nowServer, stale, canAnswer, canCancel, canRefund, busy, onAct }: CardProps) {
   const { t } = useTranslation('onlineOrdering')
   const { formatTime } = useVenueDateTime()
+  // D661: «Devolviendo…» (la devolución reservada) no se entrega ni se marca «Listo»: el SERVIDOR los rechaza.
+  const marked = !!marcaDelPedido(order)
   const partial = section === 'toPay' && order.remaining > 0 && order.remaining < order.total
   const units = order.items.reduce((n, i) => n + i.quantity, 0)
   const left = order.acceptDeadlineAt ? Date.parse(order.acceptDeadlineAt) - nowServer : null
@@ -235,10 +246,12 @@ function FolioCard({ order, section, nowServer, stale, canAnswer, canCancel, bus
         <div className="shrink-0 text-right">
           <p className="text-xl font-semibold">{Currency(section === 'toPay' ? order.remaining : order.total)}</p>
           {section === 'toDeliver' && (
-            <p className="flex items-center justify-end gap-1.5 text-xs font-medium text-muted-foreground">
+            // `div` y no `p`: las insignias son `div` (un `div` dentro de un `p` no es HTML válido).
+            <div className="flex items-center justify-end gap-1.5 text-xs font-medium text-muted-foreground">
+              <MarcaDelPedido order={order} />
               {order.status === 'READY' && <Badge variant="secondary">{t('folio.readyChip')}</Badge>}
               {t('folio.paidTag')}
-            </p>
+            </div>
           )}
         </div>
       </div>
@@ -288,7 +301,7 @@ function FolioCard({ order, section, nowServer, stale, canAnswer, canCancel, bus
         </div>
       )}
 
-      {section === 'toDeliver' && canAnswer && (
+      {section === 'toDeliver' && canAnswer && !marked && (
         <div className="flex flex-wrap gap-2">
           {order.status !== 'READY' && (
             <Button variant="outline" className="flex-1" disabled={busy} onClick={() => onAct('ready')}>
@@ -300,6 +313,8 @@ function FolioCard({ order, section, nowServer, stale, canAnswer, canCancel, bus
           </Button>
         </div>
       )}
+      {/* D661: un pedido pagado con tarjeta en línea se «cancela y devuelve» aquí (el botón sólo sale con la tarjeta cobrada). */}
+      {section === 'toDeliver' && canRefund && <CardRefundButton venueId={venueId} order={order} />}
     </div>
   )
 }

@@ -121,7 +121,9 @@
     "refund": {
       "full": "Refunded",
       "partial": "Partial refund: {{amount}}",
-      "partialLabel": "Partial refund"
+      "partialLabel": "Partial refund",
+      "checking": "Checking the refund…",
+      "unchecked": "Couldn't check how the refund ended up"
     },
     "totals": {
       "subtotal": "Subtotal",

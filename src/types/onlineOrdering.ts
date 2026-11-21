@@ -34,6 +34,10 @@ export interface OnlineOrderingSettings {
   requirements: Record<StoreRequirement, boolean>
   /** Fase 2: si la tarjeta puede cobrar de verdad (Stripe del negocio). Opcional: un servidor viejo no lo manda. */
   card?: { enabled: boolean; merchantStatus: CardMerchantStatus }
+  /** D661: «Pagar en línea» de «No, entran solos», su propio interruptor (apagado de fábrica). Opcional: un servidor viejo no lo manda. */
+  cardOnlineNadie?: boolean
+  /** D661: ¿esa tarjeta se ofrece AHORA? Sólo mientras una caja actualizada avisa a tiempo. Opcional: un servidor viejo no lo manda. */
+  cardNadie?: { enabled: boolean; lastAlertAt: string | null; fastAlertAt: string | null; offeredNow: boolean }
 }
 
 export type CardMerchantStatus = 'NOT_CONNECTED' | 'NOT_CHARGEABLE' | 'READY'
@@ -48,7 +52,7 @@ export type OnlineOrderingSettingsSaved = Omit<OnlineOrderingSettings, 'store' |
 export type OnlineOrderingSettingsInput = Pick<
   OnlineOrderingSettings,
   'enabled' | 'minOrderAmount' | 'defaultPrepMinutes' | 'acceptsPayAtPickup' | 'acceptsCardOnline' | 'manualPause' | 'pausedUntil' | 'hours'
-> & { requiresAcceptance: boolean }
+> & { requiresAcceptance: boolean; cardOnlineNadie: boolean }
 
 /** 400 del PUT /settings cuando falta algo para abrir la tienda. */
 export interface StoreRequirementsMissingBody {
@@ -89,14 +93,7 @@ export interface MenuProductsPage {
 }
 
 export type OnlineOrderStatus =
-  | 'PENDING_ACCEPTANCE'
-  | 'ACCEPTED'
-  | 'READY'
-  | 'COMPLETED'
-  | 'REJECTED'
-  | 'EXPIRED'
-  | 'CANCELLED_BY_CUSTOMER'
-  | 'CANCELLED_BY_STAFF'
+  'PENDING_ACCEPTANCE' | 'ACCEPTED' | 'READY' | 'COMPLETED' | 'REJECTED' | 'EXPIRED' | 'CANCELLED_BY_CUSTOMER' | 'CANCELLED_BY_STAFF'
 
 export interface InboxOrder {
   orderId: string
@@ -136,17 +133,23 @@ export interface InboxOrder {
   beneficios?: Array<{ nombre: string; monto: number }>
   /** Cuántas filas de descuento tiene la cuenta; si pasa de `beneficios.length`, se dice «y N más». */
   beneficiosTotal?: number
+  // D661 (tarjeta en «Nadie»), ISO o `null`. Opcionales: un servidor viejo no los manda. Manda `refundedAt` > `refundRequestedAt` > `notPickedUpAt`.
+  /** El cierre del día lo dio por «No lo recogió» (pagado con tarjeta y nunca entregado). */
+  notPickedUpAt?: string | null
+  /** «Devolviendo…»: la devolución está reservada; no se entrega. */
+  refundRequestedAt?: string | null
+  /** «Devuelto». */
+  refundedAt?: string | null
+  /**
+   * D661 · Ruling 60: el estado REAL del dinero devuelto, con la misma regla del seguimiento público: `PENDING` en camino, `DONE` hecha,
+   * `REVERSED` el banco la regresó y se le debe a la clienta (`refundedAt` se queda para que el pedido siga cerrado). `null` sin
+   * devolución; ausente en un servidor viejo (entonces mandan las fechas de arriba).
+   */
+  refund?: { status: 'PENDING' | 'DONE' | 'REVERSED'; medio: 'TARJETA' | 'SALDO' | 'EFECTIVO' | 'TRANSFERENCIA' } | null
 }
 
 export type CardChargeStatus =
-  | 'PENDING_AUTH'
-  | 'AUTHORIZED'
-  | 'CAPTURING'
-  | 'CAPTURED'
-  | 'CAPTURE_FAILED'
-  | 'RELEASING'
-  | 'RELEASED'
-  | 'ABANDONED'
+  'PENDING_AUTH' | 'AUTHORIZED' | 'CAPTURING' | 'CAPTURED' | 'CAPTURE_FAILED' | 'RELEASING' | 'RELEASED' | 'ABANDONED'
 
 export interface Inbox {
   serverTime: string
@@ -190,17 +193,11 @@ export type PauseMinutes = 15 | 30 | 60 | null
 
 // ── Devolver a la tarjeta (fase 2). Montos en PESOS como texto con 2 decimales («120.50»), nunca centavos. ──
 export type CardRefundStatus =
-  | 'REQUESTED'
-  | 'SENDING'
-  | 'PENDING'
-  | 'SUCCEEDED'
-  | 'RECORDED'
-  | 'FAILED'
-  | 'CANCELED'
-  | 'REVERSED'
-  | 'RESOLVED'
+  'REQUESTED' | 'SENDING' | 'PENDING' | 'SUCCEEDED' | 'RECORDED' | 'FAILED' | 'CANCELED' | 'REVERSED' | 'RESOLVED'
 export type CardRefundReason = 'RETURNED_GOODS' | 'ACCIDENTAL_CHARGE' | 'CANCELLED_ORDER' | 'FRAUDULENT_CHARGE' | 'OTHER'
 export type CardRefundResolveMethod = 'CASH' | 'BANK_TRANSFER'
+/** D661: a dónde va el dinero. `CARD` (lo de siempre) o `STORE_CREDIT`, saldo a favor en el negocio (sólo pedidos de «Nadie»). */
+export type CardRefundDestino = 'CARD' | 'STORE_CREDIT'
 
 export interface CardRefund {
   id: string
@@ -212,6 +209,8 @@ export interface CardRefund {
   refundPaymentId: string | null
   feeRefunded: string | null
   createdAt: string
+  /** D661: `true` = se devolvió a saldo a favor (nace `RESOLVED`, sin Stripe). Opcional: un servidor viejo no lo manda. */
+  toStoreCredit?: boolean
   /** Sólo si falló DESPUÉS de hecha: «Devolver por otro medio» mientras `resolvedAt` sea null. */
   reversal: {
     failureReason: string | null
