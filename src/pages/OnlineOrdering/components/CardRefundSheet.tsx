@@ -39,6 +39,8 @@ import { Currency } from '@/utils/currency'
 import { useVenueDateTime } from '@/utils/datetime'
 
 import {
+  avisarSinSaldo,
+  escucharSinSaldo,
   mandarConLlave,
   ponerDuda,
   pudoSeguirEnCamino,
@@ -249,6 +251,15 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
       abierta.current = false
     }
   }, [])
+  // Por qué el saldo a favor no se pudo, aunque lo haya contestado la petición de una hoja ya cerrada de este pedido.
+  useEffect(
+    () =>
+      escucharSinSaldo(venueId, order.orderId, texto => {
+        setSinSaldo(texto)
+        setDestino('CARD')
+      }),
+    [venueId, order.orderId],
+  )
 
   const listKey = onlineOrderingKeys.cardRefunds(venueId, order.orderId)
   // Cada apertura lee la lista aunque haya caché: lo que se decide debe salir de una lectura de ahora.
@@ -344,11 +355,10 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
         siCerrada()
         return
       }
-      // D661: el saldo a favor no se pudo: se dice por qué, en la hoja, y queda «A su tarjeta», ya elegida.
+      // D661: el saldo a favor no se pudo: se dice por qué, en la hoja, y queda «A su tarjeta», ya elegida. Va a toda hoja abierta de
+      // este pedido (la que lo mandó pudo cerrarse y reabrirse); si ninguna está abierta, en un aviso.
       if (sinSaldoAFavor(code)) {
-        setSinSaldo(texto)
-        setDestino('CARD')
-        siCerrada()
+        if (!avisarSinSaldo(venueId, order.orderId, texto)) toast({ title: texto, variant: 'destructive' })
         return
       }
       toast({ title: texto, variant: 'destructive' })

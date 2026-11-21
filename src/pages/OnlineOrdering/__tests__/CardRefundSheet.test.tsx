@@ -1185,7 +1185,13 @@ describe('Devolver a la tarjeta', () => {
         } else {
           await act(async () => fallar(http(422, { code: 'STORE_CREDIT_CARD_BLOCKED', message: bloqueado })))
           await waitFor(() => expect(screen.queryByRole('button', { name: 'cardRefund.retry' })).toBeNull())
+          // La respuesta le llegó a la hoja ya cerrada, pero la abierta dice por qué no hay saldo a favor y deja la tarjeta elegida (sin
+          // repetirlo en un aviso: ya está en la hoja).
+          expect(await screen.findByText(bloqueado)).toBeInTheDocument()
+          expect(destino('saldo')).toBeDisabled()
           expect(destino('tarjeta')).toBeEnabled()
+          expect(destino('tarjeta')).toHaveAttribute('aria-pressed', 'true')
+          expect(toast).not.toHaveBeenCalledWith({ title: bloqueado, variant: 'destructive' })
         }
       },
     )

@@ -65,6 +65,27 @@ const sinRespuesta = new Set<string>()
 export const quedoSinRespuesta = (key: string) => void sinRespuesta.add(key)
 export const pudoSeguirEnCamino = (key: string) => sinRespuesta.has(key)
 
+/**
+ * Por qué el saldo a favor no se pudo, a las hojas ABIERTAS de ese pedido: la respuesta puede llegarle a una hoja ya cerrada mientras
+ * otra (la reabierta) sigue en pantalla. Contesta si alguna lo oyó (si no, quien lo manda lo avisa aparte).
+ */
+const oyentesSinSaldo = new Map<string, Set<(texto: string) => void>>()
+export function escucharSinSaldo(venueId: string, orderId: string, oyente: (texto: string) => void) {
+  const k = llave(venueId, orderId)
+  const oyentes = oyentesSinSaldo.get(k) ?? new Set()
+  oyentes.add(oyente)
+  oyentesSinSaldo.set(k, oyentes)
+  return () => {
+    oyentes.delete(oyente)
+    if (!oyentes.size) oyentesSinSaldo.delete(k)
+  }
+}
+export function avisarSinSaldo(venueId: string, orderId: string, texto: string) {
+  const oyentes = oyentesSinSaldo.get(llave(venueId, orderId))
+  oyentes?.forEach(oyente => oyente(texto))
+  return !!oyentes?.size
+}
+
 /** Para las pruebas: cada una empieza sin las dudas de otra. */
 export const olvidarDudas = () => {
   dudas.clear()
