@@ -1387,6 +1387,36 @@ describe('SettingsTab', () => {
       }
     })
 
+    // Ruling 104 (resto del 97): si vuelve a apagar el MISMO interruptor mientras el «prendido» está en duda, «apagado» coincide con la
+    // última lectura y dejaba de contar como editado: al confirmarse el «prendido», la lectura se lo borraba. Su última edición se queda.
+    it('🔴 apaga otra vez el mismo interruptor mientras el «prendido» está en duda; la lectura confirma prendido: se queda apagado, sin guardar', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true })
+      try {
+        getSettings
+          .mockResolvedValueOnce(nadie({ cardOnlineNadie: false, ...stripeListo })) // la carga
+          .mockResolvedValueOnce(nadie({ cardOnlineNadie: false, ...stripeListo })) // la relectura: todavía no
+          .mockResolvedValue(nadie({ cardOnlineNadie: true, ...stripeListo })) // el sondeo: el «prendido» sí quedó guardado
+        updateSettings.mockRejectedValueOnce(sinRed()).mockResolvedValue(nadie({ cardOnlineNadie: false, ...stripeListo }))
+        renderTab()
+        await formularioCargado()
+        fireEvent.click(pagarEnLinea())
+        fireEvent.click(screen.getByRole('button', { name: 'settings.save' }))
+        await waitFor(() => expect(getSettings).toHaveBeenCalledTimes(2))
+        await waitFor(() => expect(screen.getByText('settings.saveUnconfirmed')).toBeInTheDocument())
+        // Mientras espera, se arrepiente: lo apaga otra vez (igual a la última lectura).
+        fireEvent.click(pagarEnLinea())
+        expect(pagarEnLinea()).not.toBeChecked()
+        await esperar(30_500)
+        await waitFor(() => expect(toast).toHaveBeenCalledWith({ title: 'settings.saved' }))
+        expect(pagarEnLinea()).not.toBeChecked()
+        expect(screen.getByText('settings.unsaved')).toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: 'settings.save' }))
+        await waitFor(() => expect(updateSettings).toHaveBeenLastCalledWith('venue-1', { cardOnlineNadie: false }))
+      } finally {
+        vi.useRealTimers()
+      }
+    })
+
     it('sin respuesta y ninguna lectura lo trae: cuando la petición ya no puede seguir en camino (10 min), «No se guardó»', async () => {
       vi.useFakeTimers({ shouldAdvanceTime: true })
       try {

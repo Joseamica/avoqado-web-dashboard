@@ -385,6 +385,35 @@ export function SettingsTab() {
     },
   })
 
+  // Ruling 104: mientras un guardado está en duda, cada edición de la dueña se anota (la última de cada campo), también la que deja un
+  // campo igual a la última lectura (para el formulario eso ya no es «editado», y la lectura que confirma lo pisaría).
+  const tocados = useRef(new Map<keyof FormValues, unknown>())
+  // Al llegar una lectura, react-hook-form pone sus valores con eventos `change` en el efecto de `values` (corre antes que los de aquí):
+  // ésos no son de ella. Se marca en el render en que cambian los datos y se quita después de ese efecto.
+  const leidos = useRef(settings)
+  const sincronizando = useRef(false)
+  if (leidos.current !== settings) {
+    leidos.current = settings
+    sincronizando.current = true
+  }
+  useEffect(() => {
+    sincronizando.current = false
+  })
+  useEffect(() => {
+    if (!sinConfirmar) return
+    tocados.current.clear()
+    const sub = watch((valores, { name, type }) => {
+      if (!name || type !== 'change' || sincronizando.current) return
+      tocados.current.set(name as keyof FormValues, valores[name as keyof FormValues])
+    })
+    return () => sub.unsubscribe()
+  }, [sinConfirmar, watch])
+  /** El horario cambia con `setValue` (no por un `Controller`): también cuenta como edición. */
+  const editarHorario = (h: OperatingHours | null) => {
+    setValue('hours', h, { shouldDirty: true })
+    if (sinConfirmar) tocados.current.set('hours', h)
+  }
+
   // Ruling 92: tras un guardado sin respuesta cierta, cada lectura que llega (también la del sondeo, aunque traiga lo mismo) decide:
   // si trae lo mandado, «Guardado»; si no, y ya empezó cuando la petición no podía seguir en camino, «No se guardó»; si no, sigue «No se
   // pudo confirmar todavía». Una lectura que empezó antes del guardado no dice nada.
@@ -397,10 +426,15 @@ export function SettingsTab() {
     if (trae) {
       setSinConfirmar(null)
       // Ruling 97: sin `reset` de todo el formulario (borraría lo que se editó mientras se esperaba). Lo demás ya lo puso la lectura
-      // (`keepDirtyValues`); aquí sólo se da por guardado lo confirmado que sigue igual.
+      // (`keepDirtyValues`); aquí sólo se da por guardado lo confirmado que sigue igual y que no se volvió a tocar.
       for (const k of Object.keys(sinConfirmar.patch) as (keyof FormValues)[]) {
-        if (JSON.stringify(getValues(k)) === JSON.stringify(ahora[k])) resetField(k, { defaultValue: ahora[k] })
+        if (!tocados.current.has(k) && JSON.stringify(getValues(k)) === JSON.stringify(ahora[k])) {
+          resetField(k, { defaultValue: ahora[k] })
+        }
       }
+      // Ruling 104: lo que tocó mientras esperaba se queda, aunque fuera igual a la lectura de antes (la lectura que confirma lo pisó).
+      tocados.current.forEach((valor, k) => setValue(k, valor as never, { shouldDirty: true }))
+      tocados.current.clear()
       setServerMissing([])
       setCardAlertMissing(false)
       toast({ title: t('settings.saved') })
@@ -408,7 +442,7 @@ export function SettingsTab() {
       setSinConfirmar(null)
       setSaveError(t('settings.saveNotSaved'))
     }
-  }, [leidoEn, settings, sinConfirmar, getValues, resetField, toast, t])
+  }, [leidoEn, settings, sinConfirmar, getValues, resetField, setValue, toast, t])
 
   if (!venueId || (settings === undefined && !falloDeCarga(settingsQuery))) return <Skeleton className="h-64 w-full rounded-xl" />
   // Un refetch fallido deja `isError` en true CON los datos de antes: la pestaña sigue en pie, con su aviso; el error sólo si nunca hubo datos.
@@ -882,14 +916,14 @@ export function SettingsTab() {
               id="oo-hours"
               aria-label={t('settings.hours.use')}
               checked={hours !== null}
-              onCheckedChange={on => setValue('hours', on ? defaultWeek() : null, { shouldDirty: true })}
+              onCheckedChange={on => editarHorario(on ? defaultWeek() : null)}
             />
             <Label htmlFor="oo-hours">{t('settings.hours.use')}</Label>
           </div>
           {avisoOtraPersona('hours')}
           {hours && (
             <>
-              <OperatingHoursEditor value={hours} onChange={next => setValue('hours', next, { shouldDirty: true })} />
+              <OperatingHoursEditor value={hours} onChange={editarHorario} />
               {hourErrors.map(e => (
                 <p key={e} className="text-sm text-destructive">
                   {t(`settings.hours.errors.${e}`)}
