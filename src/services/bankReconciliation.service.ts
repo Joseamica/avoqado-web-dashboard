@@ -29,7 +29,14 @@ export interface BankStatementLine {
   matchStatus: ReconMatchStatus
   matchScore: string | null
   matchedKey: string | null
+  /** D24: la línea no se pudo decidir porque un cobro de su día todavía espera su comisión (se decide sola al calcularse). */
+  costoPendiente?: boolean
 }
+
+/** Lo que la tabla enseña de una línea: mientras espera la comisión de su día no es cierto que esté «sin conciliar» (D24). */
+export type EstadoDeLinea = ReconMatchStatus | 'PENDING_FEE'
+export const estadoDeLinea = (l: Pick<BankStatementLine, 'matchStatus' | 'costoPendiente'>): EstadoDeLinea =>
+  l.costoPendiente ? 'PENDING_FEE' : l.matchStatus
 
 export interface BankStatementDetail extends BankStatementSummary {
   lines: BankStatementLine[]

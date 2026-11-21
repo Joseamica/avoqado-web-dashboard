@@ -29,7 +29,8 @@
       "MATCHED": "Cuadra",
       "CONFIRMED": "Confirmado",
       "DUPLICATE": "Duplicado",
-      "UNMATCHED": "Sin conciliar"
+      "UNMATCHED": "Sin conciliar",
+      "PENDING_FEE": "Esperando comisión"
     }
   },
   "incomeStatement": {

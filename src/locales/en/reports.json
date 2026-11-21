@@ -29,7 +29,8 @@
       "MATCHED": "Matches",
       "CONFIRMED": "Confirmed",
       "DUPLICATE": "Duplicate",
-      "UNMATCHED": "Unmatched"
+      "UNMATCHED": "Unmatched",
+      "PENDING_FEE": "Waiting for fee"
     }
   },
   "incomeStatement": {
