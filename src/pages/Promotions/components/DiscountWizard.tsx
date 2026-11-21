@@ -246,6 +246,9 @@ export function DiscountWizard({ open, onOpenChange, venueId, editDiscount, onSu
       onOpenChange(false)
     },
     onError: (error: any) => {
+      // D37 (Codex r3 #1): si otra persona guardó en medio, se relee lo guardado; si nada cambió, el formulario no se mueve.
+      queryClient.invalidateQueries({ queryKey: ['discount', venueId, editDiscount!.id] })
+      queryClient.invalidateQueries({ queryKey: ['discounts', venueId] })
       toast({
         title: tCommon('common.error'),
         description: error.response?.data?.message || t('discounts.toasts.error'),
