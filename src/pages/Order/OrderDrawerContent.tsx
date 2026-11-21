@@ -41,14 +41,15 @@ export function OrderDrawerContent({ orderId, onClose }: Props) {
   // D661 · Ruling 89: la misma lectura del pedido en línea que hace «Devolver» (una sola petición). Tras una reversa del banco el
   // SERVIDOR conserva el asiento del reembolso, pero a la clienta se le debe: lo dice la marca. Ronda 5: de una cuenta en línea, la
   // etiqueta del reembolso espera a esa lectura («Revisando la devolución…»); si falla, dice que no se pudo revisar.
-  const { aplica: esEnLinea, lectura: enLinea } = usePedidoEnLinea(venueId, orderId, order?.source, !!order)
+  // Ruling 102: sólo con una lectura que terminó después de abrir este detalle (`fresca`), nunca con la de la caché.
+  const { aplica: esEnLinea, lectura: enLinea, fresca } = usePedidoEnLinea(venueId, orderId, order?.source, !!order)
   const devolucion: EstadoDevolucion | undefined = !esEnLinea
     ? undefined
-    : enLinea.data !== undefined
+    : fresca
       ? enLinea.data && marcaDelPedido(enLinea.data) === 'reversed'
         ? 'seLeDebe'
         : undefined
-      : enLinea.isError
+      : enLinea.isError && !enLinea.isFetching
         ? 'sinRevisar'
         : 'revisando'
 

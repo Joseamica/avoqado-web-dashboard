@@ -231,6 +231,54 @@ describe('detalle de la cuenta: «Devolver a la tarjeta» de un pedido en línea
     expect(screen.queryByText(/^drawer\.refund\.(full|partial)/)).toBeNull()
   })
 
+  // Ruling 102: la etiqueta del reembolso sólo sale de una lectura que terminó DESPUÉS de abrir este detalle; la de la caché (de otra
+  // apertura) no cuenta: tras una reversa diría «Reembolsado» aunque se le deba a la clienta.
+  it.each([
+    ['falla', 'drawer.refund.unchecked'],
+    ['trae la reversa', 'inbox.card.mark.reversed'],
+  ])('🔴 con «Devuelto» en la caché, al reabrir el detalle dice «Revisando…» hasta la lectura nueva, que %s', async (desenlace, texto) => {
+    m.order = cuentaDevuelta()
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    const abrir = () =>
+      render(
+        <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+          <QueryClientProvider client={qc}>
+            <OrderDrawerContent orderId="o1" onClose={() => {}} />
+          </QueryClientProvider>
+        </MemoryRouter>,
+      )
+    conDevolucion({ status: 'DONE', medio: 'TARJETA' })
+    const primera = abrir()
+    await screen.findByText('inbox.card.mark.refunded', {}, { timeout: 3000 })
+    primera.unmount()
+    // Después el banco regresa la devolución; al reabrir, la lectura nueva tarda.
+    let responder: (v: unknown) => void = () => {}
+    let fallar: (e: unknown) => void = () => {}
+    m.get.mockImplementation((url: string) => {
+      if (url !== S3) throw new Error(`GET inesperado: ${url}`)
+      return new Promise((ok, falla) => {
+        responder = ok
+        fallar = falla
+      })
+    })
+    abrir()
+    const cabecera = (await screen.findByRole('heading', { level: 1 })).parentElement as HTMLElement
+    const pagos = screen.getByTestId('payments-section')
+    await waitFor(() => expect(within(cabecera).getByText('drawer.refund.checking')).toBeInTheDocument())
+    expect(within(pagos).getByText('drawer.refund.checking')).toBeInTheDocument()
+    expect(screen.queryByText(/^drawer\.refund\.(full|partial)/)).toBeNull()
+    expect(screen.queryByText('inbox.card.mark.refunded')).toBeNull()
+    const revertido = { ...onlineOrder, requiresAcceptance: false, refundedAt: '2026-10-30T18:00:02.000Z' }
+    await act(async () =>
+      desenlace === 'falla'
+        ? fallar(Object.assign(new Error('500'), { response: { status: 500, data: { message: 'falló' } } }))
+        : responder({ data: { success: true, data: { ...revertido, refund: { status: 'REVERSED', medio: 'TARJETA' } } } }),
+    )
+    expect(await within(cabecera).findByText(texto)).toBeInTheDocument()
+    expect(within(pagos).getByText(texto)).toBeInTheDocument()
+    expect(screen.queryByText(/^drawer\.refund\.(full|partial)/)).toBeNull()
+  })
+
   it('una cuenta que no es en línea con reembolso dice «Reembolsado» de una vez, sin leer el pedido en línea', async () => {
     m.order = { ...cuentaDevuelta(), source: 'TPV' }
     mount()

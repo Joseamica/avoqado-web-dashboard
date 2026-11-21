@@ -189,13 +189,16 @@ export function OrderCardRefund({ venueId, orderId, source }: { venueId: string;
   const {
     aplica,
     lectura: { data },
+    fresca,
   } = usePedidoEnLinea(venueId, orderId, source)
   const canRefund = can('payments:refund')
-  if (!aplica || !data || (!(canRefund && isCardCaptured(data)) && !marcaDelPedido(data))) return null
+  // Ruling 102: en qué quedó, sólo con una lectura de esta apertura (la de la caché puede ser de antes de una reversa).
+  const marca = fresca && !!data && !!marcaDelPedido(data)
+  if (!aplica || !data || (!(canRefund && isCardCaptured(data)) && !marca)) return null
   // D661: junto al botón, en qué quedó un pedido de «Nadie» («Devolviendo…», «Devuelto», «No lo recogió»).
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <MarcaDelPedido order={data} />
+      {marca && <MarcaDelPedido order={data} />}
       {canRefund && <CardRefundButton venueId={venueId} order={data} />}
     </div>
   )
