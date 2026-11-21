@@ -373,10 +373,13 @@
       "title": "Devolver por otro medio:",
       "cash": "Efectivo de la caja",
       "transfer": "Transferencia",
-      "confirmCASH": "¿Ya le devolviste {{amount}} al cliente en efectivo? Sale de la caja abierta y no se puede deshacer.",
-      "confirmBANK_TRANSFER": "¿Ya le transferiste {{amount}} al cliente? Queda anotado y no se puede deshacer.",
-      "confirmYes": "Sí, ya se lo devolví",
-      "confirmNo": "Todavía no"
+      "confirmCASH": "Antes de darle el dinero: ¿registras que le devuelves {{amount}} en efectivo de la caja abierta? No se puede deshacer.",
+      "confirmBANK_TRANSFER": "Antes de transferir: ¿registras que le transfieres {{amount}} al cliente? No se puede deshacer.",
+      "confirmYes": "Sí, registrar",
+      "confirmNo": "Todavía no",
+      "doneCASH": "Registrado: ahora sí, dale {{amount}} al cliente",
+      "doneBANK_TRANSFER": "Registrado: ahora sí, transfiérele {{amount}} al cliente",
+      "doneReplay": "Ya estaba registrada: revisa si ya se le entregó; no se lo des otra vez"
     }
   },
   "folio": {

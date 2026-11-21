@@ -249,7 +249,7 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
   }, [])
   // Por qué el saldo a favor no se pudo, aunque lo haya contestado la petición de una hoja ya cerrada de este pedido. Ruling 101: sólo si
   // es el intento que esta hoja enseña (el que tiene en duda, o el suyo); el de un intento viejo nunca cambia lo que ella eligió después.
-  // D1 (full-testing 18-nov): la hoja NO elige la tarjeta por el operador; queda sin destino y «Devolver» apagado hasta que la elija él
+  // D1 (full-testing 21-nov): la hoja NO elige la tarjeta por el operador; queda sin destino y «Devolver» apagado hasta que la elija él
   // (si no, el segundo clic de un doble clic devolvía a la tarjeta sin que nadie la eligiera).
   useEffect(
     () =>
@@ -414,9 +414,15 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
   const canSend = seen !== undefined && !list.isError && !list.isPaused
 
   const resolve = useMutation({
-    mutationFn: (v: { refundId: string; method: CardRefundResolveMethod }) =>
+    mutationFn: (v: { refundId: string; method: CardRefundResolveMethod; amount: string }) =>
       resolveCardRefund(venueId, order.orderId, v.refundId, { method: v.method }),
-    onSuccess: () => toast({ title: t('cardRefund.outcome.resolved') }),
+    // D668: se registra ANTES de entregar: «ahora sí, dale…»; una repetición no dice que se entregue otra vez.
+    onSuccess: (res, v) =>
+      toast({
+        title: res.replay
+          ? t('cardRefund.other.doneReplay')
+          : t(`cardRefund.other.done${v.method}`, { amount: Currency(Number(v.amount)) }),
+      }),
     // 409 CASH_DRAWER_NOT_OPEN y los demás: el texto del servidor. Repetir es idempotente.
     onError: err => toast({ title: serverMessage(err, t('cardRefund.error')), variant: 'destructive' }),
     onSettled: () => {
@@ -542,7 +548,7 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
                             size="sm"
                             variant="destructive"
                             disabled={resolve.isPending}
-                            onClick={() => resolve.mutate({ refundId: r.id, method: other.method })}
+                            onClick={() => resolve.mutate({ refundId: r.id, method: other.method, amount: r.amount })}
                           >
                             {t('cardRefund.other.confirmYes')}
                           </Button>

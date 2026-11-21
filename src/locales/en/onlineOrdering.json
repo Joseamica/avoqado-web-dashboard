@@ -373,10 +373,13 @@
       "title": "Refund another way:",
       "cash": "Cash from the drawer",
       "transfer": "Bank transfer",
-      "confirmCASH": "Did you already give the customer {{amount}} in cash? It comes out of the open drawer and can't be undone.",
-      "confirmBANK_TRANSFER": "Did you already transfer {{amount}} to the customer? It is recorded and can't be undone.",
-      "confirmYes": "Yes, I returned it",
-      "confirmNo": "Not yet"
+      "confirmCASH": "Before you hand over the money: record that you're returning {{amount}} in cash from the open drawer? It can't be undone.",
+      "confirmBANK_TRANSFER": "Before you transfer: record that you're transferring {{amount}} to the customer? It can't be undone.",
+      "confirmYes": "Yes, record it",
+      "confirmNo": "Not yet",
+      "doneCASH": "Recorded: now give the customer {{amount}}",
+      "doneBANK_TRANSFER": "Recorded: now transfer {{amount}} to the customer",
+      "doneReplay": "It was already recorded: check whether the customer already got it; don't give it again"
     }
   },
   "folio": {

@@ -725,12 +725,63 @@ describe('Devolver a la tarjeta', () => {
     await userEvent.click(within(r2).getByRole('button', { name: 'cardRefund.other.cash' }))
     await userEvent.click(within(r2).getByRole('button', { name: 'cardRefund.other.confirmYes' }))
     await waitFor(() => expect(resolveCardRefund).toHaveBeenCalledWith('venue-1', 'o1', 'r2', { method: 'CASH' }))
-    await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'cardRefund.outcome.resolved' })))
+    // D668: se registra ANTES de dar el dinero; el éxito dice que ahora sí se entrega.
+    await waitFor(() => expect(toast).toHaveBeenCalledWith({ title: `cardRefund.other.doneCASH|${Currency(50)}` }))
     await waitFor(() => expect(listCardRefunds).toHaveBeenCalledTimes(2))
     await userEvent.click(await within(r2).findByRole('button', { name: 'cardRefund.other.transfer' }))
     expect(within(r2).getByText(`cardRefund.other.confirmBANK_TRANSFER|${Currency(50)}`)).toBeInTheDocument()
     await userEvent.click(within(r2).getByRole('button', { name: 'cardRefund.other.confirmYes' }))
     await waitFor(() => expect(resolveCardRefund).toHaveBeenLastCalledWith('venue-1', 'o1', 'r2', { method: 'BANK_TRANSFER' }))
+    await waitFor(() => expect(toast).toHaveBeenCalledWith({ title: `cardRefund.other.doneBANK_TRANSFER|${Currency(50)}` }))
+  })
+
+  // D668: la confirmación va ANTES de entregar el dinero (con la revisión de Stripe del SERVIDOR, un 409 llega antes de darlo, no
+  // después). Los textos no prometen esa revisión: esta rama puede unirse antes que el SERVIDOR.
+  it('«Devolver por otro medio»: la confirmación pregunta ANTES de dar el dinero y el éxito dice que ahora sí se entrega', () => {
+    const es = esOnline.cardRefund.other
+    const en = enOnline.cardRefund.other
+    expect(es.confirmCASH).toBe(
+      'Antes de darle el dinero: ¿registras que le devuelves {{amount}} en efectivo de la caja abierta? No se puede deshacer.',
+    )
+    expect(es.confirmBANK_TRANSFER).toBe('Antes de transferir: ¿registras que le transfieres {{amount}} al cliente? No se puede deshacer.')
+    expect(es.confirmYes).toBe('Sí, registrar')
+    expect(es.doneCASH).toBe('Registrado: ahora sí, dale {{amount}} al cliente')
+    expect(es.doneBANK_TRANSFER).toBe('Registrado: ahora sí, transfiérele {{amount}} al cliente')
+    expect(es.doneReplay).toBe('Ya estaba registrada: revisa si ya se le entregó; no se lo des otra vez')
+    expect(en.confirmCASH).toBe(
+      "Before you hand over the money: record that you're returning {{amount}} in cash from the open drawer? It can't be undone.",
+    )
+    expect(en.confirmBANK_TRANSFER).toBe(
+      "Before you transfer: record that you're transferring {{amount}} to the customer? It can't be undone.",
+    )
+    expect(en.confirmYes).toBe('Yes, record it')
+    expect(en.doneCASH).toBe('Recorded: now give the customer {{amount}}')
+    expect(en.doneBANK_TRANSFER).toBe('Recorded: now transfer {{amount}} to the customer')
+    expect(en.doneReplay).toBe("It was already recorded: check whether the customer already got it; don't give it again")
+    for (const t of [es.confirmCASH, es.confirmBANK_TRANSFER, en.confirmCASH, en.confirmBANK_TRANSFER]) expect(t).not.toMatch(/Stripe/)
+  })
+
+  it('«Devolver por otro medio» repetido (replay): «ya estaba registrada», nunca «ahora sí, dale…»', async () => {
+    listCardRefunds.mockResolvedValue([refund({ id: 'r2', status: 'REVERSED', reversal: reversal(null) })])
+    resolveCardRefund.mockResolvedValue({ status: 'RESOLVED', replay: true })
+    await abrir()
+    const r2 = await screen.findByTestId('card-refund-r2')
+    await userEvent.click(within(r2).getByRole('button', { name: 'cardRefund.other.cash' }))
+    await userEvent.click(within(r2).getByRole('button', { name: 'cardRefund.other.confirmYes' }))
+    await waitFor(() => expect(toast).toHaveBeenCalledWith({ title: 'cardRefund.other.doneReplay' }))
+    expect(toast).toHaveBeenCalledTimes(1)
+  })
+
+  it('«Devolver por otro medio» con 409 EXTERNAL_REFUND_DETECTED: el texto del servidor, sin éxito', async () => {
+    const message = 'Este cobro ya tiene $50.00 devueltos directo en Stripe: no pagues los $50.00 otra vez.'
+    listCardRefunds.mockResolvedValue([refund({ id: 'r2', status: 'REVERSED', reversal: reversal(null) })])
+    resolveCardRefund.mockRejectedValue(http(409, { code: 'EXTERNAL_REFUND_DETECTED', message }))
+    await abrir()
+    const r2 = await screen.findByTestId('card-refund-r2')
+    await userEvent.click(within(r2).getByRole('button', { name: 'cardRefund.other.cash' }))
+    await userEvent.click(within(r2).getByRole('button', { name: 'cardRefund.other.confirmYes' }))
+    await waitFor(() => expect(toast).toHaveBeenCalledWith({ title: message, variant: 'destructive' }))
+    expect(toast).toHaveBeenCalledTimes(1)
   })
 
   it('sin payments:refund-to-cash no hay «Efectivo de la caja», sí «Transferencia»', async () => {
@@ -900,7 +951,7 @@ describe('Devolver a la tarjeta', () => {
       await userEvent.click(destino('saldo'))
       await motivo()
       await userEvent.click(devolverTodo())
-      // En la hoja (no sólo en un aviso que se va): qué pasó y el saldo ya no se ofrece. D1 (full-testing 18-nov): la tarjeta NO queda
+      // En la hoja (no sólo en un aviso que se va): qué pasó y el saldo ya no se ofrece. D1 (full-testing 21-nov): la tarjeta NO queda
       // elegida sola (antes sí, y un doble clic devolvía a la tarjeta sin que nadie la eligiera): la elige el operador.
       expect(await screen.findByText(message)).toBeInTheDocument()
       expect(destino('saldo')).toBeDisabled()
@@ -914,7 +965,7 @@ describe('Devolver a la tarjeta', () => {
       expect(createCardRefund.mock.calls[1][3]).not.toBe(createCardRefund.mock.calls[0][3]) // una decisión nueva, otra llave
     })
 
-    // D1 (full-testing 18-nov, dinero): el primer POST a saldo a favor contestó «sin saldo», la hoja cambió sola a tarjeta y el botón se
+    // D1 (full-testing 21-nov, dinero): el primer POST a saldo a favor contestó «sin saldo», la hoja cambió sola a tarjeta y el botón se
     // volvió a prender en el mismo lugar; el segundo clic (~0.7 s) devolvió a la tarjeta. Ahora el botón queda apagado hasta elegir.
     it('🔴 D1 · doble clic en «… como saldo a favor» con respuesta «sin saldo»: el segundo clic no manda nada; la tarjeta sólo con su clic', async () => {
       const message = 'El saldo a favor no está activo en Avoqado para este negocio. Puedes devolverlo a su tarjeta; no se aplicó nada.'
@@ -1344,7 +1395,7 @@ describe('Devolver a la tarjeta', () => {
       for (const otro of ['cardRefund.nadie.inProcess', 'inbox.card.mark.reversed', 'cardRefund.nadie.nothingLeft']) {
         if (otro !== texto) expect(screen.queryByText(otro)).toBeNull()
       }
-      // W7 (full-testing 18-nov): sin nada por devolver no queda un «Devolver $0.00» apagado.
+      // W7 (full-testing 21-nov): sin nada por devolver no queda un «Devolver $0.00» apagado.
       expect(screen.queryByRole('button', { name: /^cardRefund\.nadie\.submit/ })).toBeNull()
     })
 
@@ -1360,7 +1411,7 @@ describe('Devolver a la tarjeta', () => {
       await abrir(devuelto, 'cardRefund.nadie.open')
       expect(within(await screen.findByTestId('card-refund-r1')).getByText('cardRefund.outcome.storeCredit')).toBeInTheDocument()
       expect(screen.getByText('cardRefund.nadie.nothingLeft')).toBeInTheDocument()
-      // W7 (full-testing 18-nov): ya no se enseña un «Devolver $0.00» apagado (antes esta prueba lo fijaba).
+      // W7 (full-testing 21-nov): ya no se enseña un «Devolver $0.00» apagado (antes esta prueba lo fijaba).
       expect(screen.queryByRole('button', { name: /^cardRefund\.nadie\.submit/ })).toBeNull()
     })
   })
