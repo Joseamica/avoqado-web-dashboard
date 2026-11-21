@@ -175,6 +175,39 @@ describe('CashMachineDoubts', () => {
     expect(h.post.mock.calls[1][1]).toEqual({ note: 'revisé', version: 3 })
   })
 
+  it('«Resolver» → 409 «llegó evidencia nueva»: vuelve a pedir la lista, la ventana enseña lo nuevo, conserva lo tecleado y manda la versión NUEVA', async () => {
+    h.get
+      .mockResolvedValueOnce({ data: { success: true, data: [fila(1, { version: 1 })], total: 1, nextCursor: null } })
+      .mockResolvedValueOnce({
+        data: { success: true, data: [fila(1, { version: 2, lastSeen: 'credit 150' })], total: 1, nextCursor: null },
+      })
+    h.post
+      .mockRejectedValueOnce(
+        Object.assign(new Error('409'), {
+          response: { status: 409, data: { code: 'CASH_MACHINE_DOUBT_CHANGED', details: { version: 2 } } },
+        }),
+      )
+      .mockResolvedValueOnce({ status: 200, data: { success: true, ack: 'TERMINADO', owedCents: 0 } })
+    pintar()
+    fireEvent.click(await screen.findByRole('button', { name: `${D}resolveButton` }))
+    const R = `${D}resolve.`
+    // Lo congelado del folio, para compararlo con la pantalla de la máquina.
+    expect(screen.getByRole('dialog')).toHaveTextContent(`${R}cart${JSON.stringify({ items: `2× Café, ${D}promotionLine` })}`)
+    fireEvent.click(screen.getByRole('radio', { name: `${R}outcomes.PAGADO.label` }))
+    fireEvent.change(screen.getByLabelText(`${R}received`), { target: { value: '150.01' } })
+    fireEvent.change(screen.getByLabelText(`${R}evidence`), { target: { value: 'pagado' } })
+    fireEvent.click(screen.getByRole('button', { name: `${R}submit` }))
+    expect(await screen.findByRole('alert')).toHaveTextContent(`${R}changed`)
+    await waitFor(() => expect(h.get).toHaveBeenCalledTimes(2))
+    await waitFor(() => expect(screen.getByRole('dialog')).toHaveTextContent('credit 150'))
+    expect(screen.getByLabelText(`${R}evidence`)).toHaveValue('pagado')
+    await waitFor(() => expect(screen.getByRole('button', { name: `${R}submit` })).toBeEnabled())
+    fireEvent.click(screen.getByRole('button', { name: `${R}submit` }))
+    await waitFor(() => expect(h.post).toHaveBeenCalledTimes(2))
+    expect(h.post.mock.calls[0][1]).toMatchObject({ creditCents: 15001, evidence: 'pagado', version: 1 })
+    expect(h.post.mock.calls[1][1]).toMatchObject({ creditCents: 15001, evidence: 'pagado', version: 2 })
+  })
+
   it('«Resolver» abre la ventana de ese folio', async () => {
     h.get.mockResolvedValueOnce({ data: { success: true, data: [fila(1), fila(2)], total: 2, nextCursor: null } })
     pintar()

@@ -5,6 +5,9 @@
  * evita mandar algo imposible (el SERVIDOR igual lo rechaza con 422). Importes en CENTAVOS enteros; la hora del comprobante en la
  * zona del negocio. Sin hora, la venta queda con hora y turno por conciliar (R5#8). Con una cancelación, el gerente dice además qué
  * VIO hacer a la máquina con el dinero (`cancelMode`, Codex r2 #10): nunca se infiere del desenlace, y «No sé» no deja guardar.
+ * Rediseño r3 del SERVIDOR (r6-4): se manda la `version` de la duda que el gerente está viendo. Si llegó evidencia nueva, 409
+ * `CASH_MACHINE_DOUBT_CHANGED`: se refresca la lista (la página le pasa la fila nueva), lo tecleado se queda y hay que volver a
+ * confirmar con la versión nueva. La respuesta dice si quedó la venta, si quedó como incidencia (dinero sin venta) o si sigue terminándose.
  */
 import { useRef, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
@@ -28,7 +31,8 @@ export type CashMachineOutcome = 'PAGADO' | 'CANCELADO' | 'GUARDADO'
 export type CashMachineCancelMode = '1' | '2'
 type ModoElegido = CashMachineCancelMode | 'NO_SE'
 
-/** Una fila de `GET /dashboard/venues/:venueId/cash-machine/doubts` (`listarDudasDeLaMaquina`). Importes en CENTAVOS. */
+/** Una fila de `GET /dashboard/venues/:venueId/cash-machine/doubts` (`listarDudasDeLaMaquina`). Importes en CENTAVOS, congelados en
+ *  el folio (lo que la PC subió al empezar la duda); null sólo si el folio no existe. */
 export interface CashMachineDoubt {
   id: string
   referenceCC: string
@@ -36,15 +40,21 @@ export interface CashMachineDoubt {
   status: 'ABIERTO' | 'RESUELTO'
   deviceId: string | null
   createdAt: string
-  dueCents: number
-  saleCents: number
-  tipCents: number
+  dueCents: number | null
+  saleCents: number | null
+  tipCents: number | null
   startedAt: string
   lastSeen: unknown
   /** El carrito congelado: el mismo JSON de `POST /orders`. */
-  pedido: { items?: Array<{ name?: string; quantity?: number; promotionRef?: unknown }> } & Record<string, unknown>
+  pedido: ({ items?: Array<{ name?: string; quantity?: number; promotionRef?: unknown }> } & Record<string, unknown>) | null
   saleShiftId: string | null
+  /** La versión de la evidencia (r6-4): la que se manda al resolver (entero ≥ 1). Sube con cada cosa nueva que vio la PC. */
+  version?: number
 }
+
+/** «2× Café, Promoción»: el carrito congelado en una línea (la tabla y la ventana dicen lo mismo). */
+export const carritoDeLaDuda = (pedido: CashMachineDoubt['pedido'], promocion: string) =>
+  (pedido?.items ?? []).map(i => (i.promotionRef ? promocion : `${i.quantity ?? 1}× ${i.name ?? ''}`)).join(', ') || '—'
 
 /** Lo que el SERVIDOR ya tiene para el folio (409): la evidencia del cierre o la resolución de la duda. */
 interface Registrado {
@@ -118,9 +128,13 @@ export function ResolveCashMachineDoubtDialog({ open, onOpenChange, venueId, dou
   const [evidence, setEvidence] = useState('')
   const [serverError, setServerError] = useState<string | null>(null)
   const [registrado, setRegistrado] = useState<Registrado | null>(null)
+  /** Tras un 409 «llegó evidencia nueva»: no se vuelve a mandar hasta que la lista traiga, al menos, la versión que dijo el SERVIDOR. */
+  const [versionMinima, setVersionMinima] = useState(0)
   const inFlight = useRef(false) // isPending es estado: dos clics en el mismo tick lo ven viejo
 
   const P = 'cashMachineDoubts.resolve'
+  const version = doubt.version ?? 1
+  const dueCents = doubt.dueCents
   const creditCents = recibido.trim() === '' ? null : pesosACentavos(recibido)
   const changeCents = devuelto.trim() === '' ? 0 : pesosACentavos(devuelto)
   const occurredAt = horaDelComprobante(hora, venueTimezone)
@@ -129,8 +143,8 @@ export function ResolveCashMachineDoubtDialog({ open, onOpenChange, venueId, dou
   const esCancelacion = outcome === 'CANCELADO' || outcome === 'GUARDADO'
   const cancelMode = esCancelacion && (modo === '1' || modo === '2') ? modo : null
   const regla =
-    outcome && creditCents !== null && changeCents !== null
-      ? errorDeLaResolucion({ outcome, creditCents, changeCents, dueCents: doubt.dueCents, cancelMode })
+    outcome && creditCents !== null && changeCents !== null && dueCents !== null
+      ? errorDeLaResolucion({ outcome, creditCents, changeCents, dueCents, cancelMode })
       : null
   const aviso = montoInvalido ? t(`${P}.errors.invalidAmount`) : regla ? t(`${P}.errors.${regla.key}`, regla.params) : null
   const noSabe = esCancelacion && modo === 'NO_SE'
@@ -147,6 +161,7 @@ export function ResolveCashMachineDoubtDialog({ open, onOpenChange, venueId, dou
         ...(cancelMode ? { cancelMode } : {}),
         ...(occurredAt ? { occurredAt } : {}),
         evidence: trimmedEvidence,
+        version,
       })
       return res
     },
@@ -154,21 +169,34 @@ export function ResolveCashMachineDoubtDialog({ open, onOpenChange, venueId, dou
       inFlight.current = false
     },
     onSuccess: res => {
-      if (res.status === 202 || res.data?.incident) {
-        // La duda se cerró, pero la venta ya no se pudo armar (un producto borrado, un permiso): quedó como incidencia.
-        toast({ title: t(`${P}.notRegistered`), variant: 'destructive' })
-      } else {
-        const owed = Number(res.data?.owedCents ?? 0)
+      const d = res.data ?? {}
+      const owed = Number(d.owedCents ?? 0)
+      const debe = owed > 0 ? { description: t(`${P}.owed`, { amount: Currency(owed, true) }) } : {}
+      if (d.ack === 'RECIBIDO') {
+        // 202 RECIBIDO: lo que vio el gerente quedó guardado; la venta se termina sola (la PC la reanuda al volver a preguntar).
+        toast({ title: t(`${P}.processing`) })
+      } else if (d.incident || res.status === 202) {
+        // 202 TERMINADO sin venta: el dinero quedó anotado como incidencia (un descuento, un producto borrado…), con lo que se debe.
+        const motivo = typeof d.motivo === 'string' ? d.motivo : 'VENTA_RECHAZADA'
         toast({
-          title: t(`${P}.saved`, { folio: doubt.referenceCC }),
-          ...(owed > 0 ? { description: t(`${P}.owed`, { amount: Currency(owed, true) }) } : {}),
+          title: t(`${P}.notRegistered`, { motivo: t(`${P}.motivos.${motivo}`, { defaultValue: motivo }) }),
+          variant: 'destructive',
+          ...debe,
         })
+      } else {
+        toast({ title: t(`${P}.saved`, { folio: doubt.referenceCC }), ...debe })
       }
       refrescar()
       onOpenChange(false)
     },
     onError: (e: any) => {
       const data = e?.response?.data
+      if (e?.response?.status === 409 && data?.code === 'CASH_MACHINE_DOUBT_CHANGED') {
+        setVersionMinima(Math.max(Number(data?.details?.version) || 0, version + 1))
+        setServerError(t(`${P}.changed`))
+        refrescar()
+        return
+      }
       if (e?.response?.status === 409 && CONFLICTOS.includes(data?.code)) {
         setRegistrado(data?.details?.registrado ?? data?.details?.registrada ?? {})
         refrescar()
@@ -183,6 +211,8 @@ export function ResolveCashMachineDoubtDialog({ open, onOpenChange, venueId, dou
     !!outcome &&
     (!esCancelacion || !!cancelMode) &&
     creditCents !== null &&
+    dueCents !== null &&
+    version >= versionMinima &&
     !aviso &&
     trimmedEvidence.length > 0 &&
     trimmedEvidence.length <= MAX_EVIDENCE &&
@@ -227,6 +257,9 @@ export function ResolveCashMachineDoubtDialog({ open, onOpenChange, venueId, dou
               sale: Currency(doubt.saleCents, true),
               tip: Currency(doubt.tipCents, true),
             })}
+          </p>
+          <p className="text-muted-foreground" data-tour="cash-machine-doubt-cart">
+            {t(`${P}.cart`, { items: carritoDeLaDuda(doubt.pedido, t('cashMachineDoubts.promotionLine')) })}
           </p>
           <p className="text-muted-foreground">{t(`${P}.startedAt`, { time: formatDateTime(doubt.startedAt) })}</p>
         </section>

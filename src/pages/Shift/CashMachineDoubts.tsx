@@ -17,7 +17,7 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { Currency } from '@/utils/currency'
 import { useVenueDateTime } from '@/utils/datetime'
 import { cashMachineDoubtsKey } from '@/hooks/use-cash-machine-doubts'
-import { ResolveCashMachineDoubtDialog, type CashMachineDoubt } from './components/ResolveCashMachineDoubtDialog'
+import { ResolveCashMachineDoubtDialog, carritoDeLaDuda, type CashMachineDoubt } from './components/ResolveCashMachineDoubtDialog'
 import { ReviewCashMachineIncidentDialog, type CashMachineIncident } from './components/ReviewCashMachineIncidentDialog'
 
 const PAGE_SIZE = 50
@@ -64,13 +64,13 @@ export default function CashMachineDoubts() {
   const dudas = useMemo(() => filas.filter(esDuda), [filas])
   const incidencias = useMemo(() => filas.filter((f): f is CashMachineIncident => !esDuda(f)), [filas])
   const revisando = revisandoId ? incidencias.find(i => i.id === revisandoId) : undefined
+  // La fila VIVA de la duda abierta: tras un 409 «llegó evidencia nueva» la lista se refresca y la ventana recibe la versión y lo que
+  // vio la PC nuevos, sin perder lo tecleado (misma `key`). Si la duda ya salió de la lista, se queda con la última que se vio.
+  const dudaAbierta = abierta ? (dudas.find(d => d.id === abierta.id) ?? abierta) : null
   const total = query.data?.pages[0]?.total ?? 0
   const tipo = (kind: string) => t(`cashMachineDoubts.incidents.kinds.${kind}.label`, { defaultValue: kind })
 
-  const carrito = (d: CashMachineDoubt) =>
-    (d.pedido?.items ?? [])
-      .map(i => (i.promotionRef ? t('cashMachineDoubts.promotionLine') : `${i.quantity ?? 1}× ${i.name ?? ''}`))
-      .join(', ') || '—'
+  const carrito = (d: CashMachineDoubt) => carritoDeLaDuda(d.pedido, t('cashMachineDoubts.promotionLine'))
 
   return (
     <div className="p-4 bg-background text-foreground">
@@ -182,8 +182,14 @@ export default function CashMachineDoubts() {
         </div>
       )}
 
-      {abierta && venueId && (
-        <ResolveCashMachineDoubtDialog key={abierta.id} open onOpenChange={o => !o && setAbierta(null)} venueId={venueId} doubt={abierta} />
+      {dudaAbierta && venueId && (
+        <ResolveCashMachineDoubtDialog
+          key={dudaAbierta.id}
+          open
+          onOpenChange={o => !o && setAbierta(null)}
+          venueId={venueId}
+          doubt={dudaAbierta}
+        />
       )}
       {revisando && venueId && (
         <ReviewCashMachineIncidentDialog

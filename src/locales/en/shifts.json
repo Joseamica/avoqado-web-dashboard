@@ -255,6 +255,7 @@
       "title": "Resolve payment {{folio}}",
       "due": "Due {{due}} (sale {{sale}} + tip {{tip}}).",
       "startedAt": "Started {{time}}.",
+      "cart": "Being charged: {{items}}",
       "lastSeen": "Last thing the PC saw:",
       "whatHappened": "What happened at the machine?",
       "outcomes": {
@@ -281,7 +282,19 @@
       "close": "Close",
       "saved": "Done: payment {{folio}} is resolved",
       "owed": "{{amount}} still needs to be returned to the customer.",
-      "notRegistered": "What you saw was saved, but the sale could not be recorded (for example, a product no longer exists). It was logged for review.",
+      "notRegistered": "Logged as an incident: {{motivo}}",
+      "motivos": {
+        "DESCUENTO": "the cash machine doesn't take sales with discounts",
+        "PC_REVOCADA": "the PC had already been unpaired from the machine",
+        "SIN_SALDAR": "what went in wasn't enough to pay the check",
+        "SIN_CARRITO": "the payment arrived without its products",
+        "CARRITO_ILEGIBLE": "the payment's products couldn't be read",
+        "VENTA_RECHAZADA": "the sale could no longer be recorded (for example, a product no longer exists)",
+        "PREMIO_PENDIENTE": "the payment included a stamp reward",
+        "LLAVE_OCUPADA": "the folio already belonged to another sale"
+      },
+      "processing": "Received: it's still being recorded.",
+      "changed": "New evidence arrived: review it again.",
       "errors": {
         "invalidAmount": "Enter amounts in pesos, with up to 2 decimals.",
         "paidNeedsFull": "For \"It was paid\", the amount received must be at least the amount due ({{due}}).",

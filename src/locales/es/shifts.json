@@ -255,6 +255,7 @@
       "title": "Resolver el cobro {{folio}}",
       "due": "Debía {{due}} (venta {{sale}} + propina {{tip}}).",
       "startedAt": "Empezó el {{time}}.",
+      "cart": "Lo que se cobraba: {{items}}",
       "lastSeen": "Lo último que vio la PC:",
       "whatHappened": "¿Qué pasó en la máquina?",
       "outcomes": {
@@ -281,7 +282,19 @@
       "close": "Cerrar",
       "saved": "Listo: el cobro {{folio}} quedó resuelto",
       "owed": "Queda pendiente regresarle {{amount}} al cliente.",
-      "notRegistered": "Se guardó lo que viste, pero la venta no se pudo registrar (por ejemplo, un producto ya no existe). Quedó anotado para revisarlo.",
+      "notRegistered": "Registrado como incidencia: {{motivo}}",
+      "motivos": {
+        "DESCUENTO": "la máquina no cobra ventas con descuento",
+        "PC_REVOCADA": "la PC ya estaba desemparejada de la máquina",
+        "SIN_SALDAR": "lo que entró no alcanzó para pagar la cuenta",
+        "SIN_CARRITO": "el cobro llegó sin sus productos",
+        "CARRITO_ILEGIBLE": "no se pudieron leer los productos del cobro",
+        "VENTA_RECHAZADA": "la venta ya no se pudo registrar (por ejemplo, un producto ya no existe)",
+        "PREMIO_PENDIENTE": "el cobro traía un premio de sellos",
+        "LLAVE_OCUPADA": "el folio ya era de otra venta"
+      },
+      "processing": "Recibido: se está terminando de registrar.",
+      "changed": "Llegó evidencia nueva: revísala otra vez.",
       "errors": {
         "invalidAmount": "Escribe importes en pesos, con hasta 2 decimales.",
         "paidNeedsFull": "Para «Se cobró», lo recibido tiene que ser al menos lo que debía ({{due}}).",

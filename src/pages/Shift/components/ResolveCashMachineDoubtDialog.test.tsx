@@ -1,7 +1,9 @@
 // Máquina de efectivo · fase 1a · B2 (R4-4): el gerente resuelve un cobro de la máquina que la PC no alcanzó a oír. La ventana
 // replica la regla del SERVIDOR (`validarCierre`) para no mandar importes imposibles, manda CENTAVOS enteros y la hora del
-// comprobante en ISO (zona del negocio), y si el folio ya se resolvió enseña lo que quedó registrado (409).
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+// comprobante en ISO (zona del negocio), y si el folio ya se resolvió enseña lo que quedó registrado (409). Rediseño r3 del SERVIDOR:
+// manda la `version` que ve el gerente; con 409 «llegó evidencia nueva» conserva lo tecleado y pide confirmar con la nueva; y dice si
+// quedó la venta, una incidencia (dinero sin venta, con lo que se debe) o si se sigue terminando (202 RECIBIDO).
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { Currency } from '@/utils/currency'
@@ -49,19 +51,25 @@ const duda: CashMachineDoubt = {
   lastSeen: 'status: depositing 100',
   pedido: { items: [{ name: 'Café', quantity: 2 }] },
   saleShiftId: null,
+  version: 4,
 }
 
-function setup() {
+function setup(doubt: CashMachineDoubt = duda) {
   const onOpenChange = vi.fn()
   const client = new QueryClient()
   const invalidate = vi.spyOn(client, 'invalidateQueries')
-  render(
+  const ventana = (d: CashMachineDoubt) => (
     <QueryClientProvider client={client}>
-      <ResolveCashMachineDoubtDialog open onOpenChange={onOpenChange} venueId="v1" doubt={duda} />
-    </QueryClientProvider>,
+      <ResolveCashMachineDoubtDialog open onOpenChange={onOpenChange} venueId="v1" doubt={d} />
+    </QueryClientProvider>
   )
-  return { onOpenChange, invalidate }
+  const { rerender } = render(ventana(doubt))
+  // La página le pasa la fila nueva de la lista (misma `key`): lo tecleado se queda.
+  return { onOpenChange, invalidate, cambiarFila: (d: CashMachineDoubt) => rerender(ventana(d)) }
 }
+
+const rechazo = (status: number, data: Record<string, unknown>) =>
+  Promise.reject(Object.assign(new Error(String(status)), { response: { status, data } }))
 
 const P = 'cashMachineDoubts.resolve.'
 const elegir = (outcome: 'PAGADO' | 'CANCELADO' | 'GUARDADO') =>
@@ -131,7 +139,8 @@ describe('ResolveCashMachineDoubtDialog', () => {
   beforeEach(() => {
     h.calls.length = 0
     h.toast.mockReset()
-    h.impl = () => Promise.resolve({ status: 200, data: { success: true, referenceCC: FOLIO, outcome: 'PAGADO', owedCents: 0 } })
+    h.impl = () =>
+      Promise.resolve({ status: 200, data: { success: true, ack: 'TERMINADO', referenceCC: FOLIO, outcome: 'PAGADO', owedCents: 0 } })
   })
 
   it('es un FullScreenModal: el formulario va dentro, «Guardar» arriba en el encabezado y la X cierra', () => {
@@ -157,13 +166,23 @@ describe('ResolveCashMachineDoubtDialog', () => {
     expect(onOpenChange).not.toHaveBeenCalled()
   })
 
-  it('enseña el folio, lo que debía (venta + propina) y lo último que vio la PC', () => {
+  it('enseña lo congelado del folio para compararlo con la máquina: debía (venta + propina), el carrito y lo último que vio la PC', () => {
     setup()
     expect(texto()).toContain(FOLIO)
     expect(texto()).toContain(Currency(150))
     expect(texto()).toContain(Currency(130))
     expect(texto()).toContain(Currency(20))
+    expect(texto()).toContain(`${P}cart${JSON.stringify({ items: '2× Café' })}`)
     expect(texto()).toContain('status: depositing 100')
+  })
+
+  it('sin los importes del folio no deja guardar (no hay contra qué comparar)', () => {
+    setup({ ...duda, dueCents: null, saleCents: null, tipCents: null, pedido: null })
+    elegir('PAGADO')
+    recibio('150')
+    vio('pagado')
+    expect(texto()).toContain(`${P}cart${JSON.stringify({ items: '—' })}`)
+    expect(guardar()).toBeDisabled()
   })
 
   it('no deja guardar sin elegir qué pasó, sin lo recibido o sin lo que vio', () => {
@@ -252,6 +271,7 @@ describe('ResolveCashMachineDoubtDialog', () => {
       changeDispensedCents: 5050,
       occurredAt: '2026-11-20T20:05:00.000Z',
       evidence: 'La pantalla dice pagado',
+      version: 4,
     })
     expect(h.toast).toHaveBeenCalledWith(expect.objectContaining({ title: `${P}saved${JSON.stringify({ folio: FOLIO })}` }))
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ['cash-machine-doubts', 'v1'] })
@@ -273,11 +293,16 @@ describe('ResolveCashMachineDoubtDialog', () => {
       changeDispensedCents: 0,
       cancelMode: '2',
       evidence: 'guardó el dinero',
+      version: 4,
     })
   })
 
   it('si a la clienta se le debe dinero, el aviso de éxito lo dice', async () => {
-    h.impl = () => Promise.resolve({ status: 200, data: { success: true, referenceCC: FOLIO, outcome: 'GUARDADO', owedCents: 10000 } })
+    h.impl = () =>
+      Promise.resolve({
+        status: 200,
+        data: { success: true, status: 'RESUELTO', ack: 'TERMINADO', referenceCC: FOLIO, outcome: 'GUARDADO', owedCents: 10000 },
+      })
     const { onOpenChange } = setup()
     elegir('GUARDADO')
     modo('2')
@@ -289,15 +314,116 @@ describe('ResolveCashMachineDoubtDialog', () => {
     expect(h.toast).toHaveBeenCalledWith(expect.objectContaining({ description: `${P}owed${JSON.stringify({ amount: Currency(100) })}` }))
   })
 
-  it('202: la duda se cerró pero la venta no se pudo registrar → lo dice, no lo da por bueno en silencio', async () => {
-    h.impl = () => Promise.resolve({ status: 202, data: { success: true, referenceCC: FOLIO, incident: 'NO_SE_PUDO_REGISTRAR' } })
-    const { onOpenChange } = setup()
+  it('202 TERMINADO sin venta: «Registrado como incidencia: <motivo>» y lo que se le debe al cliente', async () => {
+    h.impl = () =>
+      Promise.resolve({
+        status: 202,
+        data: {
+          success: true,
+          ack: 'TERMINADO',
+          referenceCC: FOLIO,
+          incident: 'NO_SE_PUDO_REGISTRAR',
+          incidentId: 'cinc1',
+          motivo: 'DESCUENTO',
+          outcome: 'PAGADO',
+          owedKind: 'CAMBIO',
+          owedCents: 5000,
+        },
+      })
+    const { onOpenChange, invalidate } = setup()
+    elegir('PAGADO')
+    recibio('200')
+    vio('pagado')
+    fireEvent.click(guardar())
+    await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false))
+    const motivo = `${P}motivos.DESCUENTO${JSON.stringify({ defaultValue: 'DESCUENTO' })}`
+    expect(h.toast).toHaveBeenCalledWith({
+      title: `${P}notRegistered${JSON.stringify({ motivo })}`,
+      variant: 'destructive',
+      description: `${P}owed${JSON.stringify({ amount: Currency(50) })}`,
+    })
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ['cash-machine-doubts', 'v1'] })
+  })
+
+  it('202 TERMINADO sin venta y sin deuda: no inventa un monto, y un 202 nunca dice «Listo»', async () => {
+    h.impl = () =>
+      Promise.resolve({ status: 202, data: { success: true, ack: 'TERMINADO', incident: 'NO_SE_PUDO_REGISTRAR', owedCents: 0 } })
+    setup()
+    elegir('PAGADO')
+    recibio('150')
+    vio('pagado')
+    fireEvent.click(guardar())
+    await waitFor(() => expect(h.toast).toHaveBeenCalled())
+    const aviso = h.toast.mock.calls[0][0]
+    expect(aviso.title).toContain(`${P}notRegistered`)
+    expect(aviso.title).toContain(`${P}motivos.VENTA_RECHAZADA`)
+    expect(aviso).not.toHaveProperty('description')
+  })
+
+  it('202 RECIBIDO: «Recibido: se está terminando de registrar» y refresca la lista', async () => {
+    h.impl = () => Promise.resolve({ status: 202, data: { success: true, ack: 'RECIBIDO', referenceCC: FOLIO, outcome: 'PAGADO' } })
+    const { onOpenChange, invalidate } = setup()
     elegir('PAGADO')
     recibio('150')
     vio('pagado')
     fireEvent.click(guardar())
     await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false))
-    expect(h.toast).toHaveBeenCalledWith(expect.objectContaining({ title: `${P}notRegistered`, variant: 'destructive' }))
+    expect(h.toast).toHaveBeenCalledWith({ title: `${P}processing` })
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ['cash-machine-doubts', 'v1'] })
+  })
+
+  it('409 «llegó evidencia nueva»: lo dice, refresca, conserva lo tecleado y pide confirmar otra vez con la versión NUEVA', async () => {
+    h.impl = () => rechazo(409, { code: 'CASH_MACHINE_DOUBT_CHANGED', message: 'Llegó evidencia nueva…', details: { version: 5 } })
+    const { onOpenChange, invalidate, cambiarFila } = setup()
+    elegir('CANCELADO')
+    modo('1')
+    recibio('100')
+    devolvio('100')
+    hora('2026-11-20T14:05')
+    vio('regresó los $100')
+    fireEvent.click(guardar())
+    expect(await screen.findByRole('alert')).toHaveTextContent(`${P}changed`)
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ['cash-machine-doubts', 'v1'] })
+    expect(onOpenChange).not.toHaveBeenCalled()
+    // Mientras la lista no traiga la versión nueva, no se vuelve a mandar la vieja.
+    await waitFor(() => expect(guardar()).toBeDisabled())
+    fireEvent.click(guardar())
+    expect(h.calls).toHaveLength(1)
+
+    h.impl = () => Promise.resolve({ status: 200, data: { success: true, ack: 'TERMINADO', referenceCC: FOLIO, owedCents: 0 } })
+    act(() => cambiarFila({ ...duda, version: 5, lastSeen: 'status: credit 100, cancelled' }))
+    expect(texto()).toContain('status: credit 100, cancelled') // lo nuevo que vio la PC
+    expect(screen.getByLabelText(`${P}received`)).toHaveValue(100)
+    expect(screen.getByLabelText(`${P}evidence`)).toHaveValue('regresó los $100')
+    expect(guardar()).toBeEnabled()
+    fireEvent.click(guardar())
+    await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false))
+    expect(h.calls).toHaveLength(2)
+    expect(h.calls[0][1]).toMatchObject({ version: 4 })
+    expect(h.calls[1][1]).toEqual({
+      outcome: 'CANCELADO',
+      creditCents: 10000,
+      changeDispensedCents: 10000,
+      cancelMode: '1',
+      occurredAt: '2026-11-20T20:05:00.000Z',
+      evidence: 'regresó los $100',
+      version: 5,
+    })
+  })
+
+  it('409 «llegó evidencia nueva» sin versión en la respuesta: espera una MAYOR que la que mandó', async () => {
+    h.impl = () => rechazo(409, { code: 'CASH_MACHINE_DOUBT_CHANGED' })
+    const { cambiarFila } = setup()
+    elegir('PAGADO')
+    recibio('150')
+    vio('pagado')
+    fireEvent.click(guardar())
+    expect(await screen.findByRole('alert')).toHaveTextContent(`${P}changed`)
+    await waitFor(() => expect(guardar()).toBeDisabled())
+    act(() => cambiarFila({ ...duda })) // la lista volvió con la MISMA versión: sigue sin dejar
+    expect(guardar()).toBeDisabled()
+    act(() => cambiarFila({ ...duda, version: 5 }))
+    expect(guardar()).toBeEnabled()
   })
 
   it('dos clics seguidos mandan UNA sola resolución', async () => {
@@ -332,6 +458,7 @@ describe('ResolveCashMachineDoubtDialog', () => {
       cancelMode: '1',
       occurredAt: '2026-11-20T20:05:00.000Z',
       evidence: 'regresó los $100',
+      version: 4,
     })
   })
 
