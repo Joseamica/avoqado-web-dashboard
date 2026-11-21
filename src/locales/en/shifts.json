@@ -249,7 +249,8 @@
       "sale": "Sale",
       "tip": "Tip",
       "due": "Due",
-      "cart": "Cart"
+      "cart": "Cart",
+      "seen": "PC saw go in"
     },
     "resolve": {
       "title": "Resolve payment {{folio}}",
@@ -316,7 +317,20 @@
         "2": "It kept it",
         "NO_SE": "I don't know",
         "unknown": "If you don't know, leave the payment in doubt and check the machine's screen."
-      }
+      },
+      "seen": "The PC saw {{amount}} go in"
+    },
+    "toFinish": {
+      "label": "Cash machine payment to finish: the PC was replaced before it was recorded",
+      "intro": "The machine already closed these payments and reported how they ended, but the PC was replaced before the sale was recorded. Check what the machine reported and tap \"Finish\": it is recorded as is, without typing any amounts.",
+      "columns": {
+        "machineSaid": "What the machine reported"
+      },
+      "button": "Finish",
+      "title": "Finish payment {{folio}}",
+      "explain": "It is recorded with what the machine already reported; you don't need to type anything. If something new arrives from the machine while you read it, we'll ask you to confirm again.",
+      "receiptTime": "Receipt time: {{time}}.",
+      "noReceiptTime": "No receipt time: the sale stays with its shift pending reconciliation."
     },
     "incidents": {
       "heading": "Other machine incidents",

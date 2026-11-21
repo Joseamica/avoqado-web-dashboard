@@ -176,6 +176,33 @@ describe('ResolveCashMachineDoubtDialog', () => {
     expect(texto()).toContain('status: depositing 100')
   })
 
+  it('H1: enseña, a la vista, lo MÁS que la PC vio entrar (y nada si la PC no lo dijo en números); no lo pre-llena', () => {
+    const { cambiarFila } = setup({ ...duda, creditCents: 12000, lastSeen: 'status: credit 120' })
+    expect(texto()).toContain(`${P}seen${JSON.stringify({ amount: Currency(120) })}`)
+    expect(texto()).toContain('status: credit 120')
+    expect(screen.getByLabelText(`${P}received`)).toHaveValue(null)
+    act(() => cambiarFila({ ...duda, creditCents: null }))
+    expect(texto()).not.toContain(`${P}seen`)
+  })
+
+  it('venta y propina en null (el reparto no llegó en números): «—», nunca «N/A»; y un TERMINADO con ellas en null no truena', async () => {
+    h.impl = () =>
+      Promise.resolve({
+        status: 200,
+        data: { success: true, ack: 'TERMINADO', referenceCC: FOLIO, outcome: 'PAGADO', saleCents: null, tipCents: null, owedCents: 0 },
+      })
+    const { onOpenChange } = setup({ ...duda, saleCents: null, tipCents: null })
+    expect(texto()).toContain(`${P}due${JSON.stringify({ due: Currency(150), sale: '—', tip: '—' })}`)
+    expect(texto()).not.toContain('N/A')
+    elegir('PAGADO')
+    recibio('150')
+    vio('pagado')
+    expect(guardar()).toBeEnabled() // el adeudo basta para resolver
+    fireEvent.click(guardar())
+    await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false))
+    expect(h.toast).toHaveBeenCalledWith({ title: `${P}saved${JSON.stringify({ folio: FOLIO })}` })
+  })
+
   it('sin los importes del folio no deja guardar (no hay contra qué comparar)', () => {
     setup({ ...duda, dueCents: null, saleCents: null, tipCents: null, pedido: null })
     elegir('PAGADO')

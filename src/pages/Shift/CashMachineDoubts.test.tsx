@@ -1,6 +1,6 @@
 // Máquina de efectivo · fase 1a · B2 (R4-4): «Cobros de la máquina en duda». Lista acotada del SERVIDOR (≤ 100 por página, con
 // total y cursor): se ve el total, «Cargar más» trae la siguiente página con el cursor y nunca se recorta en silencio.
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { Currency } from '@/utils/currency'
@@ -50,6 +50,26 @@ const incidencia = (n: number, extra: Record<string, unknown> = {}) => ({
   revision: null,
   revisiones: [{ nota: 'antes', en: '2026-11-19T10:00:00.000Z', version: 1 }],
   ...extra,
+})
+
+// H5 del SERVIDOR: la máquina ya cerró el cobro, pero relevaron su PC antes de registrar la venta.
+const porTerminar = (n: number) => ({
+  id: `cinc00000000000000000pt${n}`,
+  referenceCC: `AQ00000000007${n}`,
+  kind: 'POR_TERMINAR',
+  status: 'ABIERTO',
+  deviceId: 'd3',
+  createdAt: `2026-11-20T21:0${n}:00.000Z`,
+  dueCents: 15000,
+  saleCents: null,
+  tipCents: null,
+  pedido: { items: [{ name: 'Té', quantity: 1 }] },
+  saleShiftId: null,
+  outcome: 'PAGADO',
+  creditCents: 20000,
+  changeDispensedCents: 5000,
+  occurredAt: null,
+  version: 7,
 })
 
 function pintar() {
@@ -206,6 +226,55 @@ describe('CashMachineDoubts', () => {
     await waitFor(() => expect(h.post).toHaveBeenCalledTimes(2))
     expect(h.post.mock.calls[0][1]).toMatchObject({ creditCents: 15001, evidence: 'pagado', version: 1 })
     expect(h.post.mock.calls[1][1]).toMatchObject({ creditCents: 15001, evidence: 'pagado', version: 2 })
+  })
+
+  it('H1: la fila de la duda enseña lo MÁS que la PC vio entrar; sin número, «—»', async () => {
+    h.get.mockResolvedValueOnce({
+      data: { success: true, data: [fila(1, { creditCents: 12345 }), fila(2, { creditCents: null })], total: 2, nextCursor: null },
+    })
+    pintar()
+    await screen.findByText('AQ000000000002')
+    expect(texto()).toContain(`${D}columns.seen`)
+    const [conNumero, sinNumero] = document.querySelectorAll('[data-tour="cash-machine-doubt-seen"]')
+    expect(conNumero).toHaveTextContent(Currency(123.45))
+    expect(sinNumero).toHaveTextContent('—')
+  })
+
+  it('venta y propina en null: «—», nunca «N/A», y la página no truena', async () => {
+    h.get.mockResolvedValueOnce({
+      data: { success: true, data: [fila(1, { saleCents: null, tipCents: null })], total: 1, nextCursor: null },
+    })
+    pintar()
+    await screen.findByText('AQ000000000001')
+    expect(texto()).toContain(Currency(150.01))
+    expect(texto()).not.toContain('N/A')
+  })
+
+  it('POR_TERMINAR: va en su propia tabla con la etiqueta, lo que dijo la máquina y «Terminar» (nunca «Revisar» ni «Resolver»)', async () => {
+    const pt = porTerminar(1)
+    h.get.mockResolvedValueOnce({ data: { success: true, data: [pt], total: 1, nextCursor: null } })
+    pintar()
+    await screen.findByText(pt.referenceCC)
+    expect(texto()).toContain(`${D}toFinish.label`)
+    expect(texto()).toContain(`${D}resolve.outcomes.PAGADO.label`)
+    expect(texto()).toContain(`${D}resolve.conflict.received${JSON.stringify({ amount: Currency(200) })}`)
+    expect(texto()).not.toContain('N/A') // venta y propina en null → «—»
+    expect(screen.queryByRole('button', { name: `${D}incidents.reviewButton` })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: `${D}resolveButton` })).not.toBeInTheDocument()
+    expect(screen.queryByText(`${D}incidents.heading`)).not.toBeInTheDocument()
+    expect(texto()).toContain(`${D}showing${JSON.stringify({ shown: 1, total: 1 })}`)
+  })
+
+  it('«Terminar» abre la ventana de ese folio y manda SÓLO su versión', async () => {
+    const pt = porTerminar(1)
+    h.get.mockResolvedValue({ data: { success: true, data: [fila(1), pt, incidencia(1)], total: 3, nextCursor: null } })
+    h.post.mockResolvedValueOnce({ status: 200, data: { success: true, ack: 'TERMINADO', owedCents: 0 } })
+    pintar()
+    fireEvent.click(await screen.findByRole('button', { name: `${D}toFinish.button` }))
+    expect(screen.getByRole('dialog')).toHaveTextContent(`${D}toFinish.title${JSON.stringify({ folio: pt.referenceCC })}`)
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: `${D}toFinish.button` }))
+    await waitFor(() => expect(h.post).toHaveBeenCalledTimes(1))
+    expect(h.post).toHaveBeenCalledWith(`/api/v1/dashboard/venues/v1/cash-machine/doubts/${pt.referenceCC}/resolve`, { version: 7 })
   })
 
   it('«Resolver» abre la ventana de ese folio', async () => {

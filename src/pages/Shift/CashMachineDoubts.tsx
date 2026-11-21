@@ -5,6 +5,8 @@
  * nunca se recorta en silencio. La PC se entera sola de la resolución en su siguiente consulta.
  * La MISMA lista trae también las incidencias abiertas que no son duda (Codex r1 #7: imposible, conflicto, sin registrar, tras
  * desemparejar), cada una con su `kind`: van en su propia tabla, de sólo lectura, con «Revisar» para marcarlas como revisadas.
+ * H1/H5 del SERVIDOR (Codex servidor r5): la duda dice lo MÁS que la PC vio entrar (`creditCents`), y los folios `POR_TERMINAR` (la
+ * máquina ya cerró el cobro pero relevaron su PC antes de registrar la venta) van en su propia tabla con «Terminar»: nunca «Revisar».
  */
 import { useMemo, useState } from 'react'
 import { useInfiniteQuery } from '@tanstack/react-query'
@@ -14,16 +16,26 @@ import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
-import { Currency } from '@/utils/currency'
 import { useVenueDateTime } from '@/utils/datetime'
 import { cashMachineDoubtsKey } from '@/hooks/use-cash-machine-doubts'
-import { ResolveCashMachineDoubtDialog, carritoDeLaDuda, type CashMachineDoubt } from './components/ResolveCashMachineDoubtDialog'
+import {
+  ResolveCashMachineDoubtDialog,
+  carritoDeLaDuda,
+  pesosOGuion,
+  type CashMachineDoubt,
+} from './components/ResolveCashMachineDoubtDialog'
 import { ReviewCashMachineIncidentDialog, type CashMachineIncident } from './components/ReviewCashMachineIncidentDialog'
+import {
+  FinishCashMachineFolioDialog,
+  useLoQueDijoLaMaquina,
+  type CashMachineFolioToFinish,
+} from './components/FinishCashMachineFolioDialog'
 
 const PAGE_SIZE = 50
 
-type Fila = CashMachineDoubt | CashMachineIncident
+type Fila = CashMachineDoubt | CashMachineIncident | CashMachineFolioToFinish
 const esDuda = (f: Fila): f is CashMachineDoubt => !f.kind || f.kind === 'ESPERANDO'
+const esPorTerminar = (f: Fila): f is CashMachineFolioToFinish => f.kind === 'POR_TERMINAR'
 
 interface DoubtsPage {
   data: Fila[]
@@ -38,6 +50,8 @@ export default function CashMachineDoubts() {
   const [abierta, setAbierta] = useState<CashMachineDoubt | null>(null)
   // Por id, no por copia: tras un 409 «llegó evidencia nueva» la lista se refresca y la ventana recibe la fila (y versión) nueva.
   const [revisandoId, setRevisandoId] = useState<string | null>(null)
+  const [terminandoId, setTerminandoId] = useState<string | null>(null)
+  const loQueDijo = useLoQueDijoLaMaquina()
 
   const query = useInfiniteQuery({
     queryKey: cashMachineDoubtsKey(venueId ?? ''),
@@ -62,15 +76,18 @@ export default function CashMachineDoubts() {
     return [...porId.values()]
   }, [query.data])
   const dudas = useMemo(() => filas.filter(esDuda), [filas])
-  const incidencias = useMemo(() => filas.filter((f): f is CashMachineIncident => !esDuda(f)), [filas])
+  const porTerminar = useMemo(() => filas.filter(esPorTerminar), [filas])
+  const incidencias = useMemo(() => filas.filter((f): f is CashMachineIncident => !esDuda(f) && !esPorTerminar(f)), [filas])
   const revisando = revisandoId ? incidencias.find(i => i.id === revisandoId) : undefined
+  // Por id, como «Revisar»: tras un 409 la ventana recibe la versión nueva. Si ya salió de la lista, no se vuelve a abrir.
+  const terminando = terminandoId ? porTerminar.find(f => f.id === terminandoId) : undefined
   // La fila VIVA de la duda abierta: tras un 409 «llegó evidencia nueva» la lista se refresca y la ventana recibe la versión y lo que
   // vio la PC nuevos, sin perder lo tecleado (misma `key`). Si la duda ya salió de la lista, se queda con la última que se vio.
   const dudaAbierta = abierta ? (dudas.find(d => d.id === abierta.id) ?? abierta) : null
   const total = query.data?.pages[0]?.total ?? 0
   const tipo = (kind: string) => t(`cashMachineDoubts.incidents.kinds.${kind}.label`, { defaultValue: kind })
 
-  const carrito = (d: CashMachineDoubt) => carritoDeLaDuda(d.pedido, t('cashMachineDoubts.promotionLine'))
+  const carrito = (d: Pick<CashMachineDoubt, 'pedido'>) => carritoDeLaDuda(d.pedido, t('cashMachineDoubts.promotionLine'))
 
   return (
     <div className="p-4 bg-background text-foreground">
@@ -107,6 +124,7 @@ export default function CashMachineDoubts() {
                     <TableHead className="text-right">{t('cashMachineDoubts.columns.sale')}</TableHead>
                     <TableHead className="text-right">{t('cashMachineDoubts.columns.tip')}</TableHead>
                     <TableHead className="text-right">{t('cashMachineDoubts.columns.due')}</TableHead>
+                    <TableHead className="text-right">{t('cashMachineDoubts.columns.seen')}</TableHead>
                     <TableHead>{t('cashMachineDoubts.columns.cart')}</TableHead>
                     <TableHead />
                   </TableRow>
@@ -116,9 +134,12 @@ export default function CashMachineDoubts() {
                     <TableRow key={d.id}>
                       <TableCell className="font-mono text-xs">{d.referenceCC}</TableCell>
                       <TableCell className="whitespace-nowrap">{formatDateTime(d.startedAt)}</TableCell>
-                      <TableCell className="text-right">{Currency(d.saleCents, true)}</TableCell>
-                      <TableCell className="text-right">{Currency(d.tipCents, true)}</TableCell>
-                      <TableCell className="text-right font-medium">{Currency(d.dueCents, true)}</TableCell>
+                      <TableCell className="text-right">{pesosOGuion(d.saleCents)}</TableCell>
+                      <TableCell className="text-right">{pesosOGuion(d.tipCents)}</TableCell>
+                      <TableCell className="text-right font-medium">{pesosOGuion(d.dueCents)}</TableCell>
+                      <TableCell className="text-right font-semibold" data-tour="cash-machine-doubt-seen">
+                        {pesosOGuion(d.creditCents)}
+                      </TableCell>
                       <TableCell className="max-w-xs truncate" title={carrito(d)}>
                         {carrito(d)}
                       </TableCell>
@@ -132,6 +153,46 @@ export default function CashMachineDoubts() {
                 </TableBody>
               </Table>
             </div>
+          )}
+          {porTerminar.length > 0 && (
+            <section className="space-y-2" data-tour="cash-machine-folios-to-finish">
+              <h2 className="text-base font-semibold">{t('cashMachineDoubts.toFinish.label')}</h2>
+              <p className="max-w-3xl text-sm text-muted-foreground">{t('cashMachineDoubts.toFinish.intro')}</p>
+              <div className="rounded-lg border border-input">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>{t('cashMachineDoubts.columns.folio')}</TableHead>
+                      <TableHead>{t('cashMachineDoubts.toFinish.columns.machineSaid')}</TableHead>
+                      <TableHead className="text-right">{t('cashMachineDoubts.columns.sale')}</TableHead>
+                      <TableHead className="text-right">{t('cashMachineDoubts.columns.tip')}</TableHead>
+                      <TableHead className="text-right">{t('cashMachineDoubts.columns.due')}</TableHead>
+                      <TableHead>{t('cashMachineDoubts.columns.cart')}</TableHead>
+                      <TableHead />
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {porTerminar.map(f => (
+                      <TableRow key={f.id}>
+                        <TableCell className="font-mono text-xs">{f.referenceCC}</TableCell>
+                        <TableCell className="font-medium">{loQueDijo(f)}</TableCell>
+                        <TableCell className="text-right">{pesosOGuion(f.saleCents)}</TableCell>
+                        <TableCell className="text-right">{pesosOGuion(f.tipCents)}</TableCell>
+                        <TableCell className="text-right font-medium">{pesosOGuion(f.dueCents)}</TableCell>
+                        <TableCell className="max-w-xs truncate" title={carrito(f)}>
+                          {carrito(f)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button size="sm" onClick={() => setTerminandoId(f.id)} data-tour="cash-machine-folio-finish">
+                            {t('cashMachineDoubts.toFinish.button')}
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </section>
           )}
           {incidencias.length > 0 && (
             <section className="space-y-2" data-tour="cash-machine-incidents">
@@ -189,6 +250,15 @@ export default function CashMachineDoubts() {
           onOpenChange={o => !o && setAbierta(null)}
           venueId={venueId}
           doubt={dudaAbierta}
+        />
+      )}
+      {terminando && venueId && (
+        <FinishCashMachineFolioDialog
+          key={terminando.id}
+          open
+          onOpenChange={o => !o && setTerminandoId(null)}
+          venueId={venueId}
+          folio={terminando}
         />
       )}
       {revisando && venueId && (

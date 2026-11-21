@@ -249,7 +249,8 @@
       "sale": "Venta",
       "tip": "Propina",
       "due": "Debía",
-      "cart": "Carrito"
+      "cart": "Carrito",
+      "seen": "La PC vio entrar"
     },
     "resolve": {
       "title": "Resolver el cobro {{folio}}",
@@ -316,7 +317,20 @@
         "2": "Se lo quedó",
         "NO_SE": "No sé",
         "unknown": "Si no sabes, deja el cobro en duda y revisa la pantalla de la máquina."
-      }
+      },
+      "seen": "La PC vio entrar {{amount}}"
+    },
+    "toFinish": {
+      "label": "Cobro de la máquina por terminar: la PC se cambió antes de registrarlo",
+      "intro": "La máquina ya cerró estos cobros y dijo cómo terminaron, pero la PC se cambió antes de registrar la venta. Revisa lo que dijo la máquina y toca «Terminar»: se registra tal cual, sin teclear importes.",
+      "columns": {
+        "machineSaid": "Lo que dijo la máquina"
+      },
+      "button": "Terminar",
+      "title": "Terminar el cobro {{folio}}",
+      "explain": "Se registra con lo que la máquina ya dijo; no tienes que teclear nada. Si llega algo nuevo de la máquina mientras lo lees, te pedimos confirmarlo otra vez.",
+      "receiptTime": "Hora del comprobante: {{time}}.",
+      "noReceiptTime": "Sin hora del comprobante: la venta queda con turno por conciliar."
     },
     "incidents": {
       "heading": "Otras incidencias de la máquina",

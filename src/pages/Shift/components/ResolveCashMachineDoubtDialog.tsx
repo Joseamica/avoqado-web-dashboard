@@ -8,6 +8,7 @@
  * Rediseño r3 del SERVIDOR (r6-4): se manda la `version` de la duda que el gerente está viendo. Si llegó evidencia nueva, 409
  * `CASH_MACHINE_DOUBT_CHANGED`: se refresca la lista (la página le pasa la fila nueva), lo tecleado se queda y hay que volver a
  * confirmar con la versión nueva. La respuesta dice si quedó la venta, si quedó como incidencia (dinero sin venta) o si sigue terminándose.
+ * H1 del SERVIDOR: la ventana enseña a la vista lo MÁS que la PC vio entrar (`creditCents`), sin pre-llenar lo que teclea el gerente.
  */
 import { useRef, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
@@ -44,7 +45,10 @@ export interface CashMachineDoubt {
   saleCents: number | null
   tipCents: number | null
   startedAt: string
+  /** Lo que vio la PC junto con el MAYOR crédito que vio (H1 del SERVIDOR). */
   lastSeen: unknown
+  /** H1 del SERVIDOR: lo MÁS que la PC vio entrar en este folio, en centavos; null = ninguna PC lo dijo en números. */
+  creditCents?: number | null
   /** El carrito congelado: el mismo JSON de `POST /orders`. */
   pedido: ({ items?: Array<{ name?: string; quantity?: number; promotionRef?: unknown }> } & Record<string, unknown>) | null
   saleShiftId: string | null
@@ -55,6 +59,39 @@ export interface CashMachineDoubt {
 /** «2× Café, Promoción»: el carrito congelado en una línea (la tabla y la ventana dicen lo mismo). */
 export const carritoDeLaDuda = (pedido: CashMachineDoubt['pedido'], promocion: string) =>
   (pedido?.items ?? []).map(i => (i.promotionRef ? promocion : `${i.quantity ?? 1}× ${i.name ?? ''}`)).join(', ') || '—'
+
+/** Centavos en pesos; lo que el SERVIDOR no sabe (null: p. ej. un reparto venta/propina que no llegó en números) es «—». */
+export const pesosOGuion = (centavos: number | null | undefined) => (typeof centavos === 'number' ? Currency(centavos, true) : '—')
+
+const P = 'cashMachineDoubts.resolve'
+
+/**
+ * El aviso de cómo quedó el folio: 200/202 TERMINADO (con o sin venta, y lo que se le debe al cliente) o 202 RECIBIDO. Es la MISMA
+ * respuesta al resolver una duda y al terminar un folio «por terminar», así que las dos ventanas dicen lo mismo.
+ */
+export function useAvisoDelResultado() {
+  const { t } = useTranslation('shifts')
+  const { toast } = useToast()
+  return (res: { status?: number; data?: any }, folio: string) => {
+    const d = res.data ?? {}
+    const owed = Number(d.owedCents ?? 0)
+    const debe = owed > 0 ? { description: t(`${P}.owed`, { amount: Currency(owed, true) }) } : {}
+    if (d.ack === 'RECIBIDO') {
+      // 202 RECIBIDO: lo que vio el gerente quedó guardado; la venta se termina sola (la PC la reanuda al volver a preguntar).
+      toast({ title: t(`${P}.processing`) })
+    } else if (d.incident || res.status === 202) {
+      // 202 TERMINADO sin venta: el dinero quedó anotado como incidencia (un descuento, un producto borrado…), con lo que se debe.
+      const motivo = typeof d.motivo === 'string' ? d.motivo : 'VENTA_RECHAZADA'
+      toast({
+        title: t(`${P}.notRegistered`, { motivo: t(`${P}.motivos.${motivo}`, { defaultValue: motivo }) }),
+        variant: 'destructive',
+        ...debe,
+      })
+    } else {
+      toast({ title: t(`${P}.saved`, { folio }), ...debe })
+    }
+  }
+}
 
 /** Lo que el SERVIDOR ya tiene para el folio (409): la evidencia del cierre o la resolución de la duda. */
 interface Registrado {
@@ -117,7 +154,7 @@ interface Props {
 
 export function ResolveCashMachineDoubtDialog({ open, onOpenChange, venueId, doubt }: Props) {
   const { t } = useTranslation('shifts')
-  const { toast } = useToast()
+  const avisar = useAvisoDelResultado()
   const queryClient = useQueryClient()
   const { venueTimezone, formatDateTime } = useVenueDateTime()
   const [outcome, setOutcome] = useState<CashMachineOutcome | null>(null)
@@ -132,7 +169,6 @@ export function ResolveCashMachineDoubtDialog({ open, onOpenChange, venueId, dou
   const [versionMinima, setVersionMinima] = useState(0)
   const inFlight = useRef(false) // isPending es estado: dos clics en el mismo tick lo ven viejo
 
-  const P = 'cashMachineDoubts.resolve'
   const version = doubt.version ?? 1
   const dueCents = doubt.dueCents
   const creditCents = recibido.trim() === '' ? null : pesosACentavos(recibido)
@@ -169,23 +205,7 @@ export function ResolveCashMachineDoubtDialog({ open, onOpenChange, venueId, dou
       inFlight.current = false
     },
     onSuccess: res => {
-      const d = res.data ?? {}
-      const owed = Number(d.owedCents ?? 0)
-      const debe = owed > 0 ? { description: t(`${P}.owed`, { amount: Currency(owed, true) }) } : {}
-      if (d.ack === 'RECIBIDO') {
-        // 202 RECIBIDO: lo que vio el gerente quedó guardado; la venta se termina sola (la PC la reanuda al volver a preguntar).
-        toast({ title: t(`${P}.processing`) })
-      } else if (d.incident || res.status === 202) {
-        // 202 TERMINADO sin venta: el dinero quedó anotado como incidencia (un descuento, un producto borrado…), con lo que se debe.
-        const motivo = typeof d.motivo === 'string' ? d.motivo : 'VENTA_RECHAZADA'
-        toast({
-          title: t(`${P}.notRegistered`, { motivo: t(`${P}.motivos.${motivo}`, { defaultValue: motivo }) }),
-          variant: 'destructive',
-          ...debe,
-        })
-      } else {
-        toast({ title: t(`${P}.saved`, { folio: doubt.referenceCC }), ...debe })
-      }
+      avisar(res, doubt.referenceCC)
       refrescar()
       onOpenChange(false)
     },
@@ -253,11 +273,16 @@ export function ResolveCashMachineDoubtDialog({ open, onOpenChange, venueId, dou
         <section className="space-y-1 rounded-2xl border border-border/50 bg-card p-6 text-sm">
           <p>
             {t(`${P}.due`, {
-              due: Currency(doubt.dueCents, true),
-              sale: Currency(doubt.saleCents, true),
-              tip: Currency(doubt.tipCents, true),
+              due: pesosOGuion(doubt.dueCents),
+              sale: pesosOGuion(doubt.saleCents),
+              tip: pesosOGuion(doubt.tipCents),
             })}
           </p>
+          {typeof doubt.creditCents === 'number' && (
+            <p className="text-base font-semibold" data-tour="cash-machine-doubt-seen">
+              {t(`${P}.seen`, { amount: Currency(doubt.creditCents, true) })}
+            </p>
+          )}
           <p className="text-muted-foreground" data-tour="cash-machine-doubt-cart">
             {t(`${P}.cart`, { items: carritoDeLaDuda(doubt.pedido, t('cashMachineDoubts.promotionLine')) })}
           </p>
