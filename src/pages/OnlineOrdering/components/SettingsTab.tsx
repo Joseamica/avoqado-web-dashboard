@@ -227,7 +227,15 @@ export function SettingsTab() {
   // D661: 409 NO_CARD_ALERT_DEVICE al prender «Pagar en línea»; el aviso va junto a su interruptor.
   const [cardAlertMissing, setCardAlertMissing] = useState(false)
   // Ruling 92: un guardado sin respuesta cierta, hasta saber en qué quedó: lo mandado, cuándo salió y hasta cuándo pudo seguir en camino.
-  const [sinConfirmar, setSinConfirmar] = useState<{ patch: Partial<FormValues>; salio: number; hasta: number } | null>(null)
+  const [sinConfirmar, setSinConfirmar] = useState<{
+    patch: Partial<FormValues>
+    salio: number
+    hasta: number
+    /** Contestó NUESTRO servidor (un 5xx con JSON): si no se pudo confirmar, no es la conexión. */
+    contesto: boolean
+  } | null>(null)
+  // Mientras corre la relectura que decide un guardado incierto: todavía no se sabe (aunque ya no pueda seguir en camino).
+  const [releyendo, setReleyendo] = useState(false)
   const [noticeOpen, setNoticeOpen] = useState(false)
   const stepsRef = useRef<HTMLDivElement>(null)
   const noticeButtonRef = useRef<HTMLButtonElement>(null)
@@ -365,13 +373,12 @@ export function SettingsTab() {
         const key = onlineOrderingKeys.settings(venueId!)
         await qc.cancelQueries({ queryKey: key })
         const salio = enviado?.salio ?? Date.now()
+        const contesto = contestoElServidor(error)
         setSaveError(null)
-        setSinConfirmar({
-          patch: patch as Partial<FormValues>,
-          salio,
-          hasta: contestoElServidor(error) ? Date.now() : salio + EN_CAMINO_MS,
-        })
+        setSinConfirmar({ patch: patch as Partial<FormValues>, salio, hasta: contesto ? Date.now() : salio + EN_CAMINO_MS, contesto })
+        setReleyendo(true)
         await qc.fetchQuery({ queryKey: key, queryFn: () => leerAjustes(), staleTime: 0 }).catch(() => null)
+        setReleyendo(false)
         return
       }
       const data = (error as { response?: { data?: { code?: string; details?: { missing?: StoreRequirement[] } } } })?.response?.data
@@ -552,8 +559,17 @@ export function SettingsTab() {
 
       {sinConfirmar && (
         <Alert role="status">
-          {/* Ruling 105: pasada la ventana sin una lectura que decida, ya no «seguimos revisando»: sigue sin saberse, y lo tecleado se queda. */}
-          <AlertDescription>{t(Date.now() < sinConfirmar.hasta ? 'settings.saveUnconfirmed' : 'settings.saveUnknown')}</AlertDescription>
+          {/* Ruling 105: pasada la ventana sin una lectura que decida, ya no «seguimos revisando»: sigue sin saberse, y lo tecleado se queda.
+              Mientras corre la relectura que decide, todavía se revisa; si contestó el servidor (5xx), no se culpa a la conexión. */}
+          <AlertDescription>
+            {t(
+              releyendo || Date.now() < sinConfirmar.hasta
+                ? 'settings.saveUnconfirmed'
+                : sinConfirmar.contesto
+                  ? 'settings.saveUnknownServer'
+                  : 'settings.saveUnknown',
+            )}
+          </AlertDescription>
         </Alert>
       )}
       {saveError && (

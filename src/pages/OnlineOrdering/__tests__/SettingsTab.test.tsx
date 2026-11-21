@@ -1495,6 +1495,31 @@ describe('SettingsTab', () => {
       await waitFor(() => expect(updateSettings).toHaveBeenLastCalledWith('venue-1', { minOrderAmount: 90 }))
     })
 
+    // Un 5xx de NUESTRO servidor ya terminó, pero mientras corre la lectura que decide todavía no se sabe; si esa lectura falla, no se le
+    // echa la culpa a la conexión (contestó el servidor).
+    it('5xx del SERVIDOR: mientras corre la lectura que decide, «No se pudo confirmar todavía»; si falla, sin «revisa tu conexión»', async () => {
+      expect(esOnline.settings.saveUnknownServer).toBe('No se pudo confirmar si se guardó: tus cambios siguen aquí. Vuelve a guardar.')
+      expect(enOnline.settings.saveUnknownServer).toBe("We couldn't confirm whether it was saved: your changes are still here. Save again.")
+      expect(esOnline.settings.saveUnknownServer).not.toMatch(/conexi/)
+      let fallarLectura: () => void = () => {}
+      getSettings
+        .mockResolvedValueOnce(nadie({ cardOnlineNadie: false, ...stripeListo }))
+        .mockImplementationOnce(() => new Promise((_ok, falla) => (fallarLectura = () => falla(new Error('Network Error')))))
+      updateSettings.mockRejectedValue({ response: { status: 500, data: { message: 'falló algo' } } })
+      renderTab()
+      await formularioCargado()
+      fireEvent.click(pagarEnLinea())
+      fireEvent.click(screen.getByRole('button', { name: 'settings.save' }))
+      await waitFor(() => expect(getSettings).toHaveBeenCalledTimes(2))
+      expect(await screen.findByText('settings.saveUnconfirmed')).toBeInTheDocument()
+      expect(screen.queryByText('settings.saveUnknown')).toBeNull()
+      await act(async () => fallarLectura())
+      expect(await screen.findByText('settings.saveUnknownServer')).toBeInTheDocument()
+      expect(screen.queryByText('settings.saveUnknown')).toBeNull()
+      expect(screen.queryByText('settings.saveUnconfirmed')).toBeNull()
+      expect(pagarEnLinea()).toBeChecked()
+    })
+
     // Ruling 105 (regresión): en «Mi equipo» con todas las lecturas fallando, la revisión no puede seguir para siempre. Al terminar la
     // ventana deja de leer sola, conserva lo tecleado y sigue diciendo que no se sabe si se guardó.
     it('«Mi equipo» y todas las lecturas fallan: al terminar la ventana deja de leer sola, conserva lo tecleado y dice que no se sabe', async () => {

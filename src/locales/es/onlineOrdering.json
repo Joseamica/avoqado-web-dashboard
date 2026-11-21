@@ -15,6 +15,7 @@
     "saveNotSaved": "No se guardó: tus cambios siguen aquí, vuelve a guardar.",
     "saveUnconfirmed": "No se pudo confirmar todavía si se guardó; seguimos revisando. Tus cambios siguen aquí.",
     "saveUnknown": "No se pudo confirmar si se guardó: tus cambios siguen aquí. Revisa tu conexión y vuelve a intentarlo.",
+    "saveUnknownServer": "No se pudo confirmar si se guardó: tus cambios siguen aquí. Vuelve a guardar.",
     "read": {
       "offline": "Visto a las {{time}}; sin conexión",
       "refreshing": "Actualizando…",
