@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
 
 import { useAccess } from '@/hooks/use-access'
@@ -13,7 +13,11 @@ import { getOnlineOrder, onlineOrderingKeys } from '@/services/onlineOrdering.se
  */
 export function usePedidoEnLinea(venueId: string, orderId: string, source: string | null | undefined, cuentaLista = true) {
   const { can } = useAccess()
-  const [abiertoEn] = useState(() => Date.now())
+  // La apertura es de ESTA cuenta: el mismo detalle puede pasar de una cuenta a otra (una liga de cambio) y volver; al cambiar de cuenta,
+  // cuenta desde ahí.
+  const apertura = useRef({ orderId, en: Date.now() })
+  if (apertura.current.orderId !== orderId) apertura.current = { orderId, en: Date.now() }
+  const abiertoEn = apertura.current.en
   const aplica = cuentaLista && !!venueId && can('orders:read') && (!source || source === 'WEB')
   const lectura = useQuery({
     queryKey: onlineOrderingKeys.order(venueId, orderId),

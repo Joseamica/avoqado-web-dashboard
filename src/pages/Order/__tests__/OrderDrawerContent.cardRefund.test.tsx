@@ -17,7 +17,7 @@ vi.mock('@/hooks/use-current-venue', () => ({
 vi.mock('@/utils/datetime', () => ({ useVenueDateTime: () => ({ formatDateTime: (d: string) => d }) }))
 vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: () => {} }) }))
 vi.mock('@/context/BreadcrumbContext', () => ({ useBreadcrumb: () => ({ setCustomSegment: () => {}, clearCustomSegment: () => {} }) }))
-vi.mock('@/services/order.service', () => ({ getOrder: async () => m.order }))
+vi.mock('@/services/order.service', () => ({ getOrder: async (_v: string, id: string) => ({ ...m.order, id }) }))
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string, o?: Record<string, unknown>) => (o ? `${key}|${Object.values(o).join(',')}` : key) }),
 }))
@@ -276,6 +276,45 @@ describe('detalle de la cuenta: «Devolver a la tarjeta» de un pedido en línea
     )
     expect(await within(cabecera).findByText(texto)).toBeInTheDocument()
     expect(within(pagos).getByText(texto)).toBeInTheDocument()
+    expect(screen.queryByText(/^drawer\.refund\.(full|partial)/)).toBeNull()
+  })
+
+  // La apertura cuenta por cuenta: el mismo detalle va de A a B (una liga de cambio) y vuelve a A; la lectura de A de antes no es «de esta
+  // apertura».
+  it('🔴 el detalle pasa de A a B y vuelve a A: la lectura vieja de A no cuenta, dice «Revisando…» hasta la nueva', async () => {
+    m.order = cuentaDevuelta()
+    const S3B = '/api/v1/dashboard/venues/v1/online-ordering/orders/o2'
+    const devuelto = {
+      ...onlineOrder,
+      requiresAcceptance: false,
+      refundedAt: '2026-10-30T18:00:02.000Z',
+      refund: { status: 'DONE', medio: 'TARJETA' },
+    }
+    let retenerA = false
+    m.get.mockImplementation(async (url: string) => {
+      if (url === S3 && retenerA) return new Promise(() => {}) // la relectura de A al volver tarda
+      if (url === S3) return { data: { success: true, data: devuelto } }
+      if (url === S3B) return { data: { success: true, data: { ...devuelto, orderId: 'o2' } } }
+      throw new Error(`GET inesperado: ${url}`)
+    })
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    const arbol = (orderId: string) => (
+      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <QueryClientProvider client={qc}>
+          <OrderDrawerContent orderId={orderId} onClose={() => {}} />
+        </QueryClientProvider>
+      </MemoryRouter>
+    )
+    const { rerender } = render(arbol('o1'))
+    await screen.findByText('inbox.card.mark.refunded', {}, { timeout: 3000 })
+    rerender(arbol('o2'))
+    await waitFor(() => expect(m.get).toHaveBeenCalledWith(S3B))
+    await screen.findByText('inbox.card.mark.refunded', {}, { timeout: 3000 })
+    retenerA = true
+    rerender(arbol('o1'))
+    const cabecera = (await screen.findByRole('heading', { level: 1 })).parentElement as HTMLElement
+    await waitFor(() => expect(within(cabecera).getByText('drawer.refund.checking')).toBeInTheDocument())
+    expect(within(screen.getByTestId('payments-section')).getByText('drawer.refund.checking')).toBeInTheDocument()
     expect(screen.queryByText(/^drawer\.refund\.(full|partial)/)).toBeNull()
   })
 
