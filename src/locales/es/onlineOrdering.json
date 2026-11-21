@@ -115,7 +115,7 @@
       },
       "noOne": {
         "label": "No, entran solos",
-        "help": "El cliente pide y paga en caja; al pagar, se prepara. Si no paga en 30 min, se cancela solo. No hace falta tener la Bandeja abierta.",
+        "help": "El cliente pide y paga en caja, o en línea si prendes «Pagar en línea»; ya pagado, se prepara. Si no paga en 30 min, se cancela solo. No hace falta tener la Bandeja abierta.",
         "path": "Pide → Paga en caja → Se prepara"
       },
       "suggested": "Sugerido para tu giro",
@@ -133,7 +133,12 @@
       "deviceWhatToDo": "Qué hacer: Abre la terminal o el POS, ya actualizados, con la caja abierta. Cuando se conecte, aquí dirá «Un aparato que cobra folios se conectó hace N min». Mientras, puedes guardar «No, entran solos» con la tienda apagada.",
       "enableNoDevice": "Falta un aparato que cobre folios.",
       "payNoOne": "Si los pedidos entran solos, se paga en caja.",
-      "cardNoOne": "Si los pedidos entran solos, se paga en caja. Para cobrar en línea elige «Sí, alguien del personal lo acepta».",
+      "cardNoOneLabel": "Pagar en línea",
+      "cardNoOne": "La clienta paga con tarjeta al pedir: su dinero se aparta y se cobra cuando una caja abre su pedido. Si nadie lo abre en 10 minutos, se libera y no se le cobra.",
+      "cardNoOneOffered": "Ahora tus clientes ven «Pagar ahora».",
+      "cardNoOneNotOffered": "Ahora no se ofrece: ninguna caja está avisando los pedidos pagados en línea. Vuelve sola en cuanto una caja actualizada (terminal o POS) esté abierta en la lista de pedidos.",
+      "cardNoOneLastAlert": "Una caja avisó por última vez: {{when}}.",
+      "cardNoOneNoDevice": "Actualiza la terminal o el POS para que avise los pedidos pagados",
       "toPayNotice": {
         "title_one": "Tienes {{count}} folio por pagar",
         "title_other": "Tienes {{count}} folios por pagar",

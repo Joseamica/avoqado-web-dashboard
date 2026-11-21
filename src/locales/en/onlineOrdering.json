@@ -115,7 +115,7 @@
       },
       "noOne": {
         "label": "No, they come in on their own",
-        "help": "The customer orders and pays at the register; once paid, it is prepared. If they do not pay within 30 min, it cancels itself. The Inbox does not need to be open.",
+        "help": "The customer orders and pays at the register, or online if you turn on “Pay online”; once paid, it is prepared. If they do not pay within 30 min, it cancels itself. The Inbox does not need to be open.",
         "path": "Orders → Pays at the register → Prepared"
       },
       "suggested": "Suggested for your business type",
@@ -133,7 +133,12 @@
       "deviceWhatToDo": "What to do: Open the terminal or the POS, already updated, with the cash register open. Once it connects, this will say “A device that takes payment for order numbers connected N min ago”. Meanwhile, you can save “No, they come in on their own” with the store turned off.",
       "enableNoDevice": "A device that takes payment for order numbers is missing.",
       "payNoOne": "When orders come in on their own, payment is at the register.",
-      "cardNoOne": "When orders come in on their own, payment is at the register. To charge online, choose “Yes, a staff member accepts it”.",
+      "cardNoOneLabel": "Pay online",
+      "cardNoOne": "The customer pays by card when ordering: the money is held and charged when a register opens the order. If nobody opens it within 10 minutes, the hold is released and they are not charged.",
+      "cardNoOneOffered": "Right now your customers see “Pay now”.",
+      "cardNoOneNotOffered": "Not offered right now: no register is alerting orders paid online. It comes back on its own as soon as an updated register (terminal or POS) is open on the orders list.",
+      "cardNoOneLastAlert": "A register last alerted: {{when}}.",
+      "cardNoOneNoDevice": "Update the terminal or the POS so it alerts paid orders",
       "toPayNotice": {
         "title_one": "You have {{count}} order awaiting payment",
         "title_other": "You have {{count}} orders awaiting payment",

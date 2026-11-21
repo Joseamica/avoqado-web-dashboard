@@ -10,7 +10,9 @@ vi.mock('react-i18next', () => ({
 vi.mock('@/hooks/use-current-venue', () => ({
   useCurrentVenue: () => ({ venueId: 'venue-1', venueSlug: 'taqueria', fullBasePath: '/venues/taqueria' }),
 }))
-vi.mock('@/utils/datetime', () => ({ useVenueDateTime: () => ({ formatTime: (d: string) => `T(${d})` }) }))
+vi.mock('@/utils/datetime', () => ({
+  useVenueDateTime: () => ({ formatTime: (d: string) => `T(${d})`, formatDateTime: (d: string) => `DT(${d})` }),
+}))
 const toast = vi.fn()
 vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast }) }))
 vi.mock('@/pages/Reservations/components/OperatingHoursEditor', () => ({
@@ -924,7 +926,7 @@ describe('SettingsTab', () => {
       expect(screen.queryByText('settings.confirm.suggested')).toBeNull()
     })
 
-    it('bajo «Nadie»: la nota de R51, «Pagar en caja» prendido y en gris, y la tarjeta en gris con su razón', async () => {
+    it('bajo «Nadie»: la nota de R51 y «Pagar en caja» prendido y en gris', async () => {
       getSettings.mockResolvedValue(
         nadie({ acceptsPayAtPickup: false, acceptsCardOnline: true, card: { enabled: true, merchantStatus: 'READY' } }),
       )
@@ -935,10 +937,133 @@ describe('SettingsTab', () => {
       expect(pay).toBeChecked()
       expect(pay).toBeDisabled()
       expect(screen.getByText('settings.confirm.payNoOne')).toBeInTheDocument()
-      const card = screen.getByRole('switch', { name: 'settings.cardOnline' })
-      expect(card).not.toBeChecked()
-      expect(card).toBeDisabled()
+    })
+
+    // ── D661 · «Pagar en línea» en «No, entran solos»: su propio interruptor (`cardOnlineNadie`), apagado de fábrica ──
+    const pagarEnLinea = () => screen.getByRole('switch', { name: 'settings.confirm.cardNoOneLabel' })
+    const stripeListo = { card: { enabled: true, merchantStatus: 'READY' } }
+
+    it('en «No, entran solos» se puede prender «Pagar en línea» si Stripe está listo; apagado de fábrica', async () => {
+      // La tarjeta de «Mi equipo» prendida (acceptsCardOnline) NO se hereda: el interruptor de «Nadie» nace apagado (r1 #7).
+      getSettings.mockResolvedValue(nadie({ acceptsCardOnline: true, cardOnlineNadie: false, ...stripeListo }))
+      updateSettings.mockResolvedValue(
+        putToday({ requiresAcceptance: false, acceptsCardOnline: true, cardOnlineNadie: true, ...stripeListo }),
+      )
+      renderTab()
+      await formularioCargado()
+      expect(screen.queryByRole('switch', { name: 'settings.cardOnline' })).toBeNull()
+      const sw = pagarEnLinea()
+      expect(sw).not.toBeChecked()
+      expect(sw).toBeEnabled()
       expect(screen.getByText('settings.confirm.cardNoOne')).toBeInTheDocument()
+      await userEvent.click(sw)
+      expect(pagarEnLinea()).toBeChecked()
+      await userEvent.click(screen.getByRole('button', { name: 'settings.save' }))
+      await waitFor(() => expect(updateSettings).toHaveBeenCalledWith('venue-1', { cardOnlineNadie: true }))
+    })
+
+    it('«Pagar en línea» sin un Stripe que cobre: apagado, en gris y dice qué falta', async () => {
+      getSettings.mockResolvedValue(nadie({ cardOnlineNadie: true, card: { enabled: false, merchantStatus: 'NOT_CONNECTED' } }))
+      renderTab()
+      await formularioCargado()
+      const sw = pagarEnLinea()
+      expect(sw).not.toBeChecked()
+      expect(sw).toBeDisabled()
+      expect(screen.getByText('settings.card.notConnected')).toBeInTheDocument()
+      expect(screen.getByRole('link', { name: 'settings.card.connect' })).toHaveAttribute('href', '/venues/taqueria/settings/integrations')
+    })
+
+    it('un SERVIDOR que no conoce «Pagar en línea» (sin cardOnlineNadie) no deja prenderlo', async () => {
+      getSettings.mockResolvedValue(nadie({ ...stripeListo }))
+      renderTab()
+      await formularioCargado()
+      expect(pagarEnLinea()).toBeDisabled()
+    })
+
+    it('NO_CARD_ALERT_DEVICE → «Actualiza la terminal o el POS para que avise los pedidos pagados»', async () => {
+      expect(esOnline.settings.confirm.cardNoOneNoDevice).toBe('Actualiza la terminal o el POS para que avise los pedidos pagados')
+      getSettings.mockResolvedValue(nadie({ cardOnlineNadie: false, ...stripeListo }))
+      updateSettings.mockRejectedValue({
+        response: { status: 409, data: { code: 'NO_CARD_ALERT_DEVICE', message: 'texto crudo del servidor' } },
+      })
+      renderTab()
+      await formularioCargado()
+      await userEvent.click(pagarEnLinea())
+      await userEvent.click(screen.getByRole('button', { name: 'settings.save' }))
+      // Junto al interruptor, y el interruptor se queda apagado: no queda nada de la tarjeta por guardar.
+      const aviso = await screen.findByText('settings.confirm.cardNoOneNoDevice')
+      expect(pagarEnLinea().closest('div.rounded-lg')).toContainElement(aviso)
+      expect(pagarEnLinea()).not.toBeChecked()
+      expect(screen.getByRole('button', { name: 'settings.save' })).toBeDisabled()
+      expect(screen.queryByText('texto crudo del servidor')).toBeNull()
+    })
+
+    it('NO_CARD_ALERT_DEVICE con «Mi equipo» ya elegido (sin guardar): el aviso sale arriba, no se pierde', async () => {
+      getSettings.mockResolvedValue(nadie({ cardOnlineNadie: false, ...stripeListo }))
+      updateSettings.mockRejectedValue({
+        response: { status: 409, data: { code: 'NO_CARD_ALERT_DEVICE', message: 'texto crudo del servidor' } },
+      })
+      renderTab()
+      await formularioCargado()
+      await userEvent.click(pagarEnLinea())
+      await userEvent.click(radio('team'))
+      await userEvent.click(screen.getByRole('button', { name: 'settings.save' }))
+      await waitFor(() => expect(updateSettings).toHaveBeenCalledWith('venue-1', { requiresAcceptance: true, cardOnlineNadie: true }))
+      expect(await screen.findByText('settings.confirm.cardNoOneNoDevice')).toBeInTheDocument()
+    })
+
+    // «Apagado se ve y se explica»: prendida, la tienda ofrece la tarjeta sólo con una caja avisando a tiempo (bloque `cardNadie`).
+    it('prendida y ofrecida: dice que ahora sus clientes ven «Pagar ahora»', async () => {
+      expect(esOnline.settings.confirm.cardNoOneOffered).toContain('«Pagar ahora»')
+      getSettings.mockResolvedValue(
+        nadie({
+          cardOnlineNadie: true,
+          ...stripeListo,
+          cardNadie: { enabled: true, lastAlertAt: ago(1), fastAlertAt: ago(0), offeredNow: true },
+        }),
+      )
+      renderTab()
+      await formularioCargado()
+      expect(pagarEnLinea()).toBeChecked()
+      expect(screen.getByText('settings.confirm.cardNoOneOffered')).toBeInTheDocument()
+      expect(screen.queryByText('settings.confirm.cardNoOneNotOffered')).toBeNull()
+    })
+
+    it('prendida y sin una caja que avise: no se ofrece ahora, qué la regresa y cuándo avisó una caja (hora del negocio), sin rojo', async () => {
+      const last = ago(45)
+      getSettings.mockResolvedValue(
+        nadie({
+          cardOnlineNadie: true,
+          ...stripeListo,
+          cardNadie: { enabled: true, lastAlertAt: last, fastAlertAt: null, offeredNow: false },
+        }),
+      )
+      renderTab()
+      await formularioCargado()
+      const estado = screen.getByText('settings.confirm.cardNoOneNotOffered')
+      expect(estado).not.toHaveClass('text-destructive')
+      expect(screen.getByText(`settings.confirm.cardNoOneLastAlert|DT(${last})`)).toBeInTheDocument()
+      expect(screen.queryByText('settings.confirm.cardNoOneOffered')).toBeNull()
+      // Qué la regresa: una caja actualizada abierta en la lista de pedidos (el mismo criterio que el SERVIDOR).
+      expect(esOnline.settings.confirm.cardNoOneNotOffered).toMatch(/caja actualizada/)
+    })
+
+    it('sin el bloque cardNadie (SERVIDOR viejo) o apagada, no se dice si se ofrece', async () => {
+      getSettings.mockResolvedValue(nadie({ cardOnlineNadie: true, ...stripeListo }))
+      const { unmount } = renderTab()
+      await formularioCargado()
+      expect(screen.queryByText(/^settings\.confirm\.cardNoOne(Offered|NotOffered|LastAlert)/)).toBeNull()
+      unmount()
+      getSettings.mockResolvedValue(
+        nadie({
+          cardOnlineNadie: false,
+          ...stripeListo,
+          cardNadie: { enabled: false, lastAlertAt: null, fastAlertAt: null, offeredNow: false },
+        }),
+      )
+      renderTab()
+      await formularioCargado()
+      expect(screen.queryByText(/^settings\.confirm\.cardNoOne(Offered|NotOffered|LastAlert)/)).toBeNull()
     })
 
     it('lista «Para recibir pedidos con Nadie»: horario y «Un aparato que cobra folios se conectó hace N min»', async () => {

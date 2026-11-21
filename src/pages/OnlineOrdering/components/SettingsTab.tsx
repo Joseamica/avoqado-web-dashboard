@@ -49,6 +49,7 @@ const schema = z.object({
   acceptsPayAtPickup: z.boolean(),
   acceptsCardOnline: z.boolean(),
   requiresAcceptance: z.boolean(),
+  cardOnlineNadie: z.boolean(),
   manualPause: z.boolean(),
   minOrderAmount: z
     .number({ invalid_type_error: 'range' })
@@ -66,6 +67,7 @@ const toForm = (s: OnlineOrderingSettings): FormValues => ({
   acceptsPayAtPickup: s.acceptsPayAtPickup,
   acceptsCardOnline: !!s.acceptsCardOnline, // `!!`: un servidor sin fase 2 no lo manda y zod no deja guardar con undefined
   requiresAcceptance: s.requiresAcceptance !== false, // sin el campo (servidor viejo) = «Mi equipo»
+  cardOnlineNadie: s.cardOnlineNadie === true, // D661: apagado de fábrica; sin el campo (servidor viejo), apagado
   manualPause: s.manualPause,
   minOrderAmount: s.minOrderAmount,
   defaultPrepMinutes: s.defaultPrepMinutes,
@@ -199,7 +201,7 @@ export function SettingsTab() {
   const { t } = useTranslation('onlineOrdering')
   const { t: tRes } = useTranslation('reservations')
   const { venueId, venueSlug, fullBasePath } = useCurrentVenue()
-  const { formatTime } = useVenueDateTime()
+  const { formatTime, formatDateTime } = useVenueDateTime()
   const { toast } = useToast()
   const { role } = useAccess()
   // La misma regla que la guardia de `settings/local` (AdminProtectedRoute, nivel ADMIN): ADMIN, OWNER o SUPERADMIN.
@@ -207,6 +209,8 @@ export function SettingsTab() {
   const qc = useQueryClient()
   const [serverMissing, setServerMissing] = useState<StoreRequirement[]>([])
   const [saveError, setSaveError] = useState<string | null>(null)
+  // D661: 409 NO_CARD_ALERT_DEVICE al prender «Pagar en línea»; el aviso va junto a su interruptor.
+  const [cardAlertMissing, setCardAlertMissing] = useState(false)
   const [noticeOpen, setNoticeOpen] = useState(false)
   const stepsRef = useRef<HTMLDivElement>(null)
   const noticeButtonRef = useRef<HTMLButtonElement>(null)
@@ -232,6 +236,7 @@ export function SettingsTab() {
   const payAtPickup = !!watch('acceptsPayAtPickup')
   const cardOn = !!watch('acceptsCardOnline')
   const noOne = watch('requiresAcceptance') === false
+  const cardNadieOn = !!watch('cardOnlineNadie')
   const merchantStatus = settings?.card?.merchantStatus ?? 'NOT_CONNECTED'
   // Sólo con un Stripe que cobra se puede usar el switch; sin él va apagado y en gris (founder, 3-nov).
   const cardAvailable = merchantStatus === 'READY'
@@ -273,6 +278,7 @@ export function SettingsTab() {
       void qc.invalidateQueries({ queryKey: key })
       setServerMissing([])
       setSaveError(null)
+      setCardAlertMissing(false)
       toast({ title: t('settings.saved') })
     },
     onError: (error: unknown) => {
@@ -280,6 +286,14 @@ export function SettingsTab() {
       if (data?.code === 'STORE_REQUIREMENTS_MISSING') {
         setServerMissing(data.details?.missing ?? [])
         setSaveError(null)
+        return
+      }
+      // D661: nada se guardó. «Pagar en línea» se queda apagado y lo demás sin guardar sigue ahí para volver a guardarlo. El aviso va
+      // junto al interruptor; si ya se eligió «Mi equipo» (el interruptor no se ve), arriba, para que no se pierda.
+      if (data?.code === 'NO_CARD_ALERT_DEVICE') {
+        setValue('cardOnlineNadie', false)
+        setCardAlertMissing(true)
+        setSaveError(noOne ? null : t('settings.confirm.cardNoOneNoDevice'))
         return
       }
       if (data?.code && CONFIRM_ERROR_CODES.includes(data.code)) {
@@ -560,39 +574,84 @@ export function SettingsTab() {
             </div>
             <div className="space-y-1.5 rounded-lg border border-input p-3">
               <div className="flex items-center justify-between gap-4">
-                <Label htmlFor="oo-card">{t('settings.cardOnline')}</Label>
-                <Controller
-                  control={control}
-                  name="acceptsCardOnline"
-                  render={({ field }) => (
-                    // El valor guardado no se toca: nace prendido de fábrica (paso 5) y, al conectar Stripe, la tarjeta queda lista sola.
-                    <Switch
-                      id="oo-card"
-                      aria-label={t('settings.cardOnline')}
-                      checked={!noOne && cardAvailable && !!field.value}
-                      disabled={!cardAvailable || noOne}
-                      onCheckedChange={field.onChange}
-                    />
-                  )}
-                />
+                {/* D661: con «Nadie» es OTRO interruptor, «Pagar en línea» (`cardOnlineNadie`): la tarjeta de «Mi equipo» no se hereda. */}
+                <Label htmlFor="oo-card">{t(noOne ? 'settings.confirm.cardNoOneLabel' : 'settings.cardOnline')}</Label>
+                {noOne ? (
+                  <Controller
+                    key="nadie"
+                    control={control}
+                    name="cardOnlineNadie"
+                    render={({ field }) => (
+                      // Un SERVIDOR que no manda el campo no lo conoce: no se deja prender.
+                      <Switch
+                        id="oo-card"
+                        aria-label={t('settings.confirm.cardNoOneLabel')}
+                        checked={cardAvailable && !!field.value}
+                        disabled={!cardAvailable || settings.cardOnlineNadie === undefined}
+                        onCheckedChange={on => {
+                          setCardAlertMissing(false)
+                          field.onChange(on)
+                        }}
+                      />
+                    )}
+                  />
+                ) : (
+                  <Controller
+                    key="equipo"
+                    control={control}
+                    name="acceptsCardOnline"
+                    render={({ field }) => (
+                      // El valor guardado no se toca: nace prendido de fábrica (paso 5) y, al conectar Stripe, la tarjeta queda lista sola.
+                      <Switch
+                        id="oo-card"
+                        aria-label={t('settings.cardOnline')}
+                        checked={cardAvailable && !!field.value}
+                        disabled={!cardAvailable}
+                        onCheckedChange={field.onChange}
+                      />
+                    )}
+                  />
+                )}
               </div>
-              {/* Sin Stripe que cobre: la línea dice qué falta y que Mercado Pago viene después. Con Stripe: el valor VIVO del switch. */}
-              {noOne ? (
-                <p className="text-xs text-muted-foreground">{t('settings.confirm.cardNoOne')}</p>
-              ) : (
-                <p className="text-xs text-muted-foreground">
-                  {!cardAvailable
-                    ? t(merchantStatus === 'NOT_CHARGEABLE' ? 'settings.card.notChargeable' : 'settings.card.notConnected')
+              {/* Sin Stripe que cobre (los dos modos): la línea dice qué falta y que Mercado Pago viene después. Con Stripe: en «Mi equipo»,
+                  el valor VIVO del switch; en «Nadie», cómo funciona «Pagar en línea». */}
+              <p className="text-xs text-muted-foreground">
+                {!cardAvailable
+                  ? t(merchantStatus === 'NOT_CHARGEABLE' ? 'settings.card.notChargeable' : 'settings.card.notConnected')
+                  : noOne
+                    ? t('settings.confirm.cardNoOne')
                     : cardOn
                       ? t('settings.card.ready')
                       : t('settings.card.off')}{' '}
-                  {!cardAvailable && canOpenBusinessSettings && (
-                    // Integraciones es de ADMIN o más (la misma guardia que la configuración del negocio): sin ella, ni liga.
-                    <Link to={`${fullBasePath}/settings/integrations`} className="text-primary underline underline-offset-2">
-                      {t(merchantStatus === 'NOT_CHARGEABLE' ? 'settings.card.review' : 'settings.card.connect')}
-                    </Link>
+                {!cardAvailable && canOpenBusinessSettings && (
+                  // Integraciones es de ADMIN o más (la misma guardia que la configuración del negocio): sin ella, ni liga.
+                  <Link to={`${fullBasePath}/settings/integrations`} className="text-primary underline underline-offset-2">
+                    {t(merchantStatus === 'NOT_CHARGEABLE' ? 'settings.card.review' : 'settings.card.connect')}
+                  </Link>
+                )}
+                {!cardAvailable && <span className="block">{t('settings.card.mercadoPagoSoon')}</span>}
+              </p>
+              {/* D661 · apagado se ve y se explica: prendida (y guardada así en «Nadie»), ¿la tienda la ofrece AHORA? Lo dice el SERVIDOR
+                  con la misma regla de la tienda. Es un estado, nunca un error. Sin el bloque (servidor viejo) no se dice nada. */}
+              {noOne && cardAvailable && cardNadieOn && settings.requiresAcceptance === false && settings.cardNadie?.enabled && (
+                <div role="status" className="space-y-0.5 text-xs">
+                  {settings.cardNadie.offeredNow ? (
+                    <p className="font-medium">{t('settings.confirm.cardNoOneOffered')}</p>
+                  ) : (
+                    <>
+                      <p className="font-medium">{t('settings.confirm.cardNoOneNotOffered')}</p>
+                      {settings.cardNadie.lastAlertAt && (
+                        <p className="text-muted-foreground">
+                          {t('settings.confirm.cardNoOneLastAlert', { when: formatDateTime(settings.cardNadie.lastAlertAt) })}
+                        </p>
+                      )}
+                    </>
                   )}
-                  {!cardAvailable && <span className="block">{t('settings.card.mercadoPagoSoon')}</span>}
+                </div>
+              )}
+              {noOne && cardAlertMissing && (
+                <p role="alert" className="text-xs text-destructive">
+                  {t('settings.confirm.cardNoOneNoDevice')}
                 </p>
               )}
             </div>
