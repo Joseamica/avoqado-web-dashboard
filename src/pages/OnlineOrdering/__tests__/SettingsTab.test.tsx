@@ -13,8 +13,21 @@ vi.mock('@/hooks/use-current-venue', () => ({
 vi.mock('@/utils/datetime', () => ({ useVenueDateTime: () => ({ formatTime: (d: string) => `T(${d})` }) }))
 const toast = vi.fn()
 vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast }) }))
+// El editor real tiene sus propias pruebas. Aquí sólo dice a qué hora abre el lunes y deja cambiarla a las 10:00 (Codex p2v5-r3 #3).
 vi.mock('@/pages/Reservations/components/OperatingHoursEditor', () => ({
-  OperatingHoursEditor: () => <div data-testid="hours-editor" />,
+  OperatingHoursEditor: ({
+    value,
+    onChange,
+  }: {
+    value: Record<string, { enabled: boolean; ranges: { open: string; close: string }[] }> | null
+    onChange: (next: unknown) => void
+  }) => (
+    <div data-testid="hours-editor" data-open={value?.monday?.ranges[0]?.open}>
+      <button type="button" onClick={() => onChange({ ...value, monday: { enabled: true, ranges: [{ open: '10:00', close: '21:00' }] } })}>
+        abrir-a-las-10
+      </button>
+    </div>
+  ),
 }))
 vi.mock('qrcode.react', () => ({ QRCodeCanvas: ({ value }: { value: string }) => <canvas data-testid="qr" data-value={value} /> }))
 const access = { denied: [] as string[], role: 'ADMIN' }
@@ -38,6 +51,7 @@ vi.mock('@/pages/Customers/components/PrivacyNoticeModal', () => ({
 const getSettings = vi.fn()
 const updateSettings = vi.fn()
 const getToPay = vi.fn()
+const pauseOrdering = vi.fn()
 vi.mock('@/services/onlineOrdering.service', async importOriginal => {
   const actual = await importOriginal<typeof import('@/services/onlineOrdering.service')>()
   return {
@@ -45,6 +59,7 @@ vi.mock('@/services/onlineOrdering.service', async importOriginal => {
     getSettings: (...a: unknown[]) => getSettings(...a),
     updateSettings: (...a: unknown[]) => updateSettings(...a),
     getToPay: (...a: unknown[]) => getToPay(...a),
+    pauseOrdering: (...a: unknown[]) => pauseOrdering(...a),
   }
 })
 
@@ -129,6 +144,160 @@ describe('SettingsTab', () => {
     await formularioCargado()
     expect(await screen.findByText('settings.status.pausedBusy')).toBeInTheDocument()
     expect(screen.queryByText('settings.status.pausedManual')).toBeNull()
+  })
+
+  it('D662: pausada sola ⇒ «Se pausó sola» y el botón «Reanudar» aquí mismo (con permiso de pausar)', async () => {
+    getSettings.mockResolvedValue(
+      base({
+        enabled: true,
+        store: {
+          status: 'PAUSED',
+          reason: 'MANUAL_PAUSE',
+          pausedUntil: null,
+          manualPause: false,
+          autoPausedAt: '2026-11-20T18:00:00.000Z',
+        },
+      }),
+    )
+    pauseOrdering.mockResolvedValue({ pausedUntil: null, manualPause: false })
+    renderTab()
+    await formularioCargado()
+    expect(await screen.findByText('settings.status.pausedMissed')).toBeInTheDocument()
+    const reanudar = screen.getByRole('button', { name: 'inbox.pause.resume' })
+    // Codex p2-r4 #4: vive dentro del formulario; sin `type="button"` lo enviaría con lo que esté sin guardar.
+    expect(reanudar).toHaveAttribute('type', 'button')
+    fireEvent.click(reanudar)
+    await waitFor(() => expect(pauseOrdering).toHaveBeenCalledWith('venue-1', null))
+    expect(updateSettings).not.toHaveBeenCalled()
+  })
+
+  it('🔴 D662 v5 (Codex p2v5-r1 #2): si la relectura trae ajustes GUARDADOS más nuevos (otra persona apagó), el interruptor y el encabezado salen de la misma lectura; lo que estoy editando se queda', async () => {
+    const leida = (over: Record<string, unknown>) =>
+      base({ storeReadAt: '2026-11-20T18:00:00.000Z', storeNextDeadlineAt: null, enviadoEn: Date.now(), ...over })
+    getSettings.mockResolvedValue(
+      leida({
+        enabled: true,
+        storeVersion: '2026-11-20T17:00:00.000Z',
+        store: { status: 'OPEN', reason: null, pausedUntil: null, manualPause: false },
+      }),
+    )
+    renderTab()
+    await formularioCargado()
+    expect(screen.getByRole('switch', { name: 'settings.enable' })).toBeChecked()
+    // Estoy cambiando el pedido mínimo (sin guardar).
+    const minimo = screen.getByLabelText('settings.minOrder')
+    fireEvent.change(minimo, { target: { value: '80' } })
+    // Otra gerente APAGA la tienda: la relectura del estado trae los ajustes guardados después.
+    getSettings.mockResolvedValue(
+      leida({
+        enabled: false,
+        storeReadAt: '2026-11-20T18:00:10.000Z',
+        storeVersion: '2026-11-20T18:00:05.000Z',
+        store: { status: 'DISABLED', reason: 'NOT_ENABLED', pausedUntil: null, manualPause: false },
+      }),
+    )
+    fireEvent(document, new Event('visibilitychange'))
+    await waitFor(() => expect(screen.getByRole('switch', { name: 'settings.enable' })).not.toBeChecked())
+    expect(screen.getByLabelText('settings.minOrder')).toHaveValue(80)
+  })
+
+  it('🔴 D662 v5 (Codex p2v5-r2 #10): lo que edité y otra persona guardó IGUAL deja de ser edición: su siguiente guardado sí me llega y «Guardar» no lo revierte', async () => {
+    const leida = (over: Record<string, unknown>) =>
+      base({ enabled: true, storeReadAt: '2026-11-20T18:00:00.000Z', storeNextDeadlineAt: null, enviadoEn: Date.now(), ...over })
+    getSettings.mockResolvedValue(leida({ minOrderAmount: 50, storeVersion: '2026-11-20T17:00:00.000Z' }))
+    renderTab()
+    await formularioCargado()
+    fireEvent.change(screen.getByLabelText('settings.minOrder'), { target: { value: '80' } })
+    expect(await screen.findByText('settings.unsaved')).toBeInTheDocument()
+    // Otra gerente guarda $80.
+    getSettings.mockResolvedValue(leida({ minOrderAmount: 80, storeVersion: '2026-11-20T18:00:01.000Z' }))
+    fireEvent(document, new Event('visibilitychange'))
+    await waitFor(() => expect(screen.queryByText('settings.unsaved')).toBeNull())
+    // Y luego guarda $90: ya no es mi edición, me llega.
+    getSettings.mockResolvedValue(leida({ minOrderAmount: 90, storeVersion: '2026-11-20T18:00:02.000Z' }))
+    fireEvent(document, new Event('visibilitychange'))
+    await waitFor(() => expect(screen.getByLabelText('settings.minOrder')).toHaveValue(90))
+    expect(screen.queryByText('settings.unsaved')).toBeNull()
+  })
+
+  it('🔴 D662 v5 (Codex p2v5-r3 #3): el HORARIO que edité y otra persona guardó igual deja de ser edición: su cambio posterior me llega y guardar el mínimo no lo revierte', async () => {
+    const semana = (open: string) => ({ monday: { enabled: true, ranges: [{ open, close: '21:00' }] } })
+    const leida = (over: Record<string, unknown>) =>
+      base({ enabled: true, storeReadAt: '2026-11-20T18:00:00.000Z', storeNextDeadlineAt: null, enviadoEn: Date.now(), ...over })
+    getSettings.mockResolvedValue(leida({ hours: semana('09:00'), storeVersion: '2026-11-20T17:00:00.000Z' }))
+    renderTab()
+    await formularioCargado()
+    // Yo cambio la apertura a las 10:00 (sin guardar).
+    fireEvent.click(screen.getByRole('button', { name: 'abrir-a-las-10' }))
+    expect(await screen.findByText('settings.unsaved')).toBeInTheDocument()
+    // Otra gerente guarda las 10:00…
+    getSettings.mockResolvedValue(leida({ hours: semana('10:00'), storeVersion: '2026-11-20T18:00:01.000Z' }))
+    fireEvent(document, new Event('visibilitychange'))
+    await waitFor(() => expect(screen.queryByText('settings.unsaved')).toBeNull())
+    // …y luego las 11:00: ya no es mi edición, me llega.
+    getSettings.mockResolvedValue(leida({ hours: semana('11:00'), storeVersion: '2026-11-20T18:00:02.000Z' }))
+    fireEvent(document, new Event('visibilitychange'))
+    await waitFor(() => expect(screen.getByTestId('hours-editor')).toHaveAttribute('data-open', '11:00'))
+    expect(screen.queryByText('settings.unsaved')).toBeNull()
+    // Guardo el pedido mínimo: sólo va el mínimo, el horario de 11:00 no vuelve a las 10:00.
+    updateSettings.mockResolvedValue(putToday({ enabled: true, hours: semana('11:00'), minOrderAmount: 80 }))
+    fireEvent.change(screen.getByLabelText('settings.minOrder'), { target: { value: '80' } })
+    await userEvent.click(screen.getByRole('button', { name: 'settings.save' }))
+    await waitFor(() => expect(updateSettings).toHaveBeenCalledTimes(1))
+    expect(updateSettings).toHaveBeenCalledWith('venue-1', { minOrderAmount: 80 })
+  })
+
+  it('D662 v5 (Codex p2v5-r2 #9): si el negocio nunca había guardado y otra persona lo configura y enciende, el interruptor también lo dice', async () => {
+    getSettings.mockResolvedValue(base({ storeReadAt: '2026-11-20T18:00:00.000Z', storeVersion: null, enviadoEn: Date.now() }))
+    renderTab()
+    await formularioCargado()
+    expect(screen.getByRole('switch', { name: 'settings.enable' })).not.toBeChecked()
+    getSettings.mockResolvedValue(
+      base({
+        enabled: true,
+        storeReadAt: '2026-11-20T18:00:10.000Z',
+        storeVersion: '2026-11-20T18:00:05.000Z',
+        enviadoEn: Date.now(),
+        store: { status: 'OPEN', reason: null, pausedUntil: null, manualPause: false },
+      }),
+    )
+    fireEvent(document, new Event('visibilitychange'))
+    await waitFor(() => expect(screen.getByRole('switch', { name: 'settings.enable' })).toBeChecked())
+  })
+
+  it('D662: sin la pausa sola Configuración no muestra «Reanudar» (la pausa corta se quita en la bandeja)', async () => {
+    getSettings.mockResolvedValue(
+      base({
+        enabled: true,
+        store: { status: 'PAUSED', reason: 'MANUAL_PAUSE', pausedUntil: '2026-11-20T18:15:00.000Z', manualPause: false },
+      }),
+    )
+    renderTab()
+    await formularioCargado()
+    expect(screen.queryByRole('button', { name: 'inbox.pause.resume' })).toBeNull()
+  })
+
+  it('D662: sin el permiso de pausar no sale «Reanudar»', async () => {
+    access.denied = ['online-orders:pause']
+    try {
+      getSettings.mockResolvedValue(
+        base({
+          enabled: true,
+          store: {
+            status: 'PAUSED',
+            reason: 'MANUAL_PAUSE',
+            pausedUntil: null,
+            manualPause: false,
+            autoPausedAt: '2026-11-20T18:00:00.000Z',
+          },
+        }),
+      )
+      renderTab()
+      await formularioCargado()
+      expect(screen.queryByRole('button', { name: 'inbox.pause.resume' })).toBeNull()
+    } finally {
+      access.denied = []
+    }
   })
 
   it('guardar manda sólo lo cambiado', async () => {

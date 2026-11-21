@@ -11,7 +11,7 @@ const OPTIONS: PauseMinutes[] = [15, 30, 60]
 /**
  * Botones de pausa corta de la bandeja (`online-orders:pause`, sin plan: R14). El texto de la pausa lo pone la cabecera
  * (`pauseLabel`). La pausa del gerente (`manualPause`, Configuración) no se quita desde aquí; con la tienda apagada o sin estado
- * no hay nada que pausar.
+ * no hay nada que pausar. D662: la pausa SOLA (2 pedidos seguidos sin aceptar) sólo se quita con «Reanudar».
  */
 export function PauseControl({ venueId, store, canPause }: { venueId: string; store: StoreState | null; canPause: boolean }) {
   const { t } = useTranslation('onlineOrdering')
@@ -25,6 +25,7 @@ export function PauseControl({ venueId, store, canPause }: { venueId: string; st
       Promise.all([
         queryClient.invalidateQueries({ queryKey: onlineOrderingKeys.inbox(venueId) }),
         queryClient.invalidateQueries({ queryKey: onlineOrderingKeys.settings(venueId) }),
+        queryClient.invalidateQueries({ queryKey: onlineOrderingKeys.storeStatus(venueId) }),
       ]),
     onError: (error: unknown) =>
       (error as { response?: unknown })?.response
@@ -34,9 +35,17 @@ export function PauseControl({ venueId, store, canPause }: { venueId: string; st
 
   if (!canPause || !store || store.status === 'DISABLED' || store.manualPause) return null
 
-  if (store.status === 'PAUSED' && store.reason === 'MANUAL_PAUSE' && store.pausedUntil) {
+  if (store.status === 'PAUSED' && (store.autoPausedAt || (store.reason === 'MANUAL_PAUSE' && store.pausedUntil))) {
     return (
-      <Button size="sm" variant="outline" disabled={pause.isPending} onClick={() => pause.mutate(null)} data-tour="online-inbox-resume">
+      // D662 (Codex p2-r4 #4): `type="button"`: en Configuración vive dentro del formulario y un botón sin tipo lo enviaría.
+      <Button
+        type="button"
+        size="sm"
+        variant="outline"
+        disabled={pause.isPending}
+        onClick={() => pause.mutate(null)}
+        data-tour="online-inbox-resume"
+      >
         {t('inbox.pause.resume')}
       </Button>
     )
@@ -46,7 +55,15 @@ export function PauseControl({ venueId, store, canPause }: { venueId: string; st
     <div className="flex flex-wrap items-center gap-2" data-tour="online-inbox-pause">
       <span className="text-sm text-muted-foreground">{t('inbox.pause.label')}</span>
       {OPTIONS.map(m => (
-        <Button key={m} size="sm" variant="outline" className="rounded-full" disabled={pause.isPending} onClick={() => pause.mutate(m)}>
+        <Button
+          key={m}
+          type="button"
+          size="sm"
+          variant="outline"
+          className="rounded-full"
+          disabled={pause.isPending}
+          onClick={() => pause.mutate(m)}
+        >
           {t('inbox.pause.minutes', { minutes: m })}
         </Button>
       ))}

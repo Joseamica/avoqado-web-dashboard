@@ -3,7 +3,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 const get = vi.fn()
 const post = vi.fn()
 const put = vi.fn()
-vi.mock('@/api', () => ({ default: { get: (...a: unknown[]) => get(...a), post: (...a: unknown[]) => post(...a), put: (...a: unknown[]) => put(...a) } }))
+vi.mock('@/api', () => ({
+  default: { get: (...a: unknown[]) => get(...a), post: (...a: unknown[]) => post(...a), put: (...a: unknown[]) => put(...a) },
+}))
 
 import {
   getSettings,
@@ -38,8 +40,9 @@ describe('onlineOrdering.service', () => {
   it('getSettings / updateSettings desenvuelven data.data', async () => {
     get.mockResolvedValue({ data: { data: { enabled: true } } })
     put.mockResolvedValue({ data: { data: { enabled: false } } })
-    expect(await getSettings('v1')).toEqual({ enabled: true })
-    expect(get).toHaveBeenCalledWith(`${base}/settings`)
+    // D662 v4: pide la forma nueva (`?pausaSola=1`, en la URL: el CORS no deja pasar una cabecera nueva) y anota cuándo salió.
+    expect(await getSettings('v1')).toEqual({ enabled: true, enviadoEn: expect.any(Number) })
+    expect(get).toHaveBeenCalledWith(`${base}/settings`, { params: { pausaSola: '1' } })
     expect(await updateSettings('v1', { enabled: false })).toEqual({ enabled: false })
     expect(put).toHaveBeenCalledWith(`${base}/settings`, { enabled: false })
   })
@@ -58,10 +61,13 @@ describe('onlineOrdering.service', () => {
   it('getInbox: tray=true manda la cabecera; tray=false no', async () => {
     get.mockResolvedValue({ data: { data: { orders: [] } } })
     await getInbox('v1', { tray: true })
-    expect(get).toHaveBeenLastCalledWith(`${base}/orders`, { params: { status: 'all' }, headers: { 'x-online-orders-tray': '1' } })
+    expect(get).toHaveBeenLastCalledWith(`${base}/orders`, {
+      params: { status: 'all', pausaSola: '1' },
+      headers: { 'x-online-orders-tray': '1' },
+    })
     await getInbox('v1', { tray: false })
     const cfg = get.mock.calls[1][1]
-    expect(cfg.params).toEqual({ status: 'all' })
+    expect(cfg.params).toEqual({ status: 'all', pausaSola: '1' })
     expect(cfg.headers).toBeUndefined()
   })
 
