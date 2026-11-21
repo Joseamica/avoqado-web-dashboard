@@ -132,12 +132,18 @@
       "deviceMissing": "No device can take payment for order numbers yet: update the terminal or the POS",
       "deviceWhatToDo": "What to do: Open the terminal or the POS, already updated, with the cash register open. Once it connects, this will say “A device that takes payment for order numbers connected N min ago”. Meanwhile, you can save “No, they come in on their own” with the store turned off.",
       "enableNoDevice": "A device that takes payment for order numbers is missing.",
-      "payNoOne": "When orders come in on their own, payment is at the register.",
+      "payNoOne": "When orders come in on their own, they can always pay at the register.",
       "cardNoOneLabel": "Pay online",
       "cardNoOne": "The customer pays by card when ordering: the money is held and charged when a register opens the order. If nobody opens it within 10 minutes, the hold is released and they are not charged.",
       "cardNoOneOffered": "Right now your customers see “Pay now”.",
       "cardNoOneNotOffered": "Not offered right now: no register is alerting orders paid online. It comes back on its own as soon as an updated register (terminal or POS) is open on the orders list.",
       "cardNoOneLastAlert": "A register last alerted: {{when}}.",
+      "cardNoOneStore": {
+        "DISABLED": "Right now your customers don't see “Pay now”: the store is off.",
+        "CLOSED": "Right now your customers don't see “Pay now”: the store is closed (outside hours).",
+        "PAUSED": "Right now your customers don't see “Pay now”: the store is paused.",
+        "other": "Right now your customers don't see “Pay now”: the store isn't taking orders."
+      },
       "cardNoOneNoDevice": "Update the terminal or the POS so it alerts paid orders",
       "toPayNotice": {
         "title_one": "You have {{count}} order awaiting payment",
@@ -325,6 +331,7 @@
       "cancelAndRefund": "Cancel and refund",
       "title": "Refund the payment · folio {{folio}}",
       "description": "They get back everything they paid. Choose where it goes.",
+      "kitchen": "If it's already being prepared, let the kitchen know.",
       "amount": "Refunded in full: {{amount}}",
       "nothingLeft": "There is nothing left to refund.",
       "submit": "Refund {{amount}}"

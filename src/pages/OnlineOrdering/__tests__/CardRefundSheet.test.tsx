@@ -159,8 +159,27 @@ describe('Devolver a la tarjeta', () => {
     expect(getOnlineOrder).not.toHaveBeenCalled()
   })
 
-  it('sin payments:refund no hay botón (ni se consulta)', async () => {
+  // D661: leer en qué quedó el pedido es de quien ve la cuenta (`orders:read`, lo mismo que pide la ruta del SERVIDOR); devolver,
+  // de `payments:refund`. Un gerente sin permiso de devolver sí ve «Devolviendo…».
+  it('sin payments:refund no hay botón, pero sí se ve en qué quedó el pedido', async () => {
     access.denied = ['payments:refund']
+    getOnlineOrder.mockResolvedValue(order({ requiresAcceptance: false, status: 'READY', refundRequestedAt: '2026-11-02T18:00:00.000Z' }))
+    wrap(<OrderCardRefund venueId="venue-1" orderId="o1" source="WEB" />)
+    expect(await screen.findByText('inbox.card.mark.refunding')).toBeInTheDocument()
+    expect(screen.queryByRole('button')).toBeNull()
+  })
+
+  it('sin payments:refund y sin marca: no pinta nada (ni un renglón vacío)', async () => {
+    access.denied = ['payments:refund']
+    getOnlineOrder.mockResolvedValue(order())
+    const { container } = wrap(<OrderCardRefund venueId="venue-1" orderId="o1" source="WEB" />)
+    await waitFor(() => expect(getOnlineOrder).toHaveBeenCalled())
+    await new Promise(r => setTimeout(r, 20))
+    expect(container).toBeEmptyDOMElement()
+  })
+
+  it('sin orders:read ni se consulta', async () => {
+    access.denied = ['orders:read']
     getOnlineOrder.mockResolvedValue(order())
     wrap(<OrderCardRefund venueId="venue-1" orderId="o1" source="WEB" />)
     await new Promise(r => setTimeout(r, 20))
@@ -699,6 +718,9 @@ describe('Devolver a la tarjeta', () => {
       expect(esOnline.cardRefund.destino.cardFee).toBe('Con tarjeta, el negocio no recupera la comisión de Stripe de este cobro.')
       await abrirNadie()
       await motivo()
+      // Regla 16 del repo: lo que un recorrido guiado señala lleva su `data-tour` estable.
+      expect(destino('saldo')).toHaveAttribute('data-tour', 'online-order-refund-store-credit')
+      expect(destino('tarjeta')).toHaveAttribute('data-tour', 'online-order-refund-card')
       // Nada viene elegido: la decisión es de quien devuelve (decisión 3 del founder).
       expect(destino('saldo')).toHaveAttribute('aria-pressed', 'false')
       expect(destino('tarjeta')).toHaveAttribute('aria-pressed', 'false')
@@ -712,6 +734,21 @@ describe('Devolver a la tarjeta', () => {
       expect(screen.queryByText('cardRefund.destino.cardFee')).toBeNull()
       expect(screen.getByText('cardRefund.destino.storeCreditHelp|Taquería')).toBeInTheDocument()
       expect(devolverTodo()).toBeEnabled()
+    })
+
+    it('«Cancelar y devolver» antes de cerrarse recuerda avisar a cocina; ya cerrado o en «Mi equipo», no', async () => {
+      expect(esOnline.cardRefund.nadie.kitchen).toBe('Si ya se está preparando, avísale a cocina.')
+      const { unmount } = await abrirNadie()
+      // En la descripción de la hoja, como su propio renglón.
+      const dialogo = screen.getByRole('dialog')
+      const descripcion = document.getElementById(dialogo.getAttribute('aria-describedby') ?? '') as HTMLElement
+      expect(within(descripcion).getByText('cardRefund.nadie.kitchen')).toBeInTheDocument()
+      unmount()
+      const { unmount: desmontar } = await abrir(nadieOrder({ status: 'COMPLETED' }), 'cardRefund.nadie.open')
+      expect(screen.queryByText('cardRefund.nadie.kitchen')).toBeNull()
+      desmontar()
+      await abrir(order({ status: 'ACCEPTED' }))
+      expect(screen.queryByText('cardRefund.nadie.kitchen')).toBeNull()
     })
 
     it('«Nadie»: monto total fijo; «Mi equipo»: editable', async () => {

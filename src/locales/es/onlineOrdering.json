@@ -132,12 +132,18 @@
       "deviceMissing": "Ningún aparato puede cobrar folios todavía: actualiza la terminal o el POS",
       "deviceWhatToDo": "Qué hacer: Abre la terminal o el POS, ya actualizados, con la caja abierta. Cuando se conecte, aquí dirá «Un aparato que cobra folios se conectó hace N min». Mientras, puedes guardar «No, entran solos» con la tienda apagada.",
       "enableNoDevice": "Falta un aparato que cobre folios.",
-      "payNoOne": "Si los pedidos entran solos, se paga en caja.",
+      "payNoOne": "Si los pedidos entran solos, siempre se puede pagar en caja.",
       "cardNoOneLabel": "Pagar en línea",
       "cardNoOne": "La clienta paga con tarjeta al pedir: su dinero se aparta y se cobra cuando una caja abre su pedido. Si nadie lo abre en 10 minutos, se libera y no se le cobra.",
       "cardNoOneOffered": "Ahora tus clientes ven «Pagar ahora».",
       "cardNoOneNotOffered": "Ahora no se ofrece: ninguna caja está avisando los pedidos pagados en línea. Vuelve sola en cuanto una caja actualizada (terminal o POS) esté abierta en la lista de pedidos.",
       "cardNoOneLastAlert": "Una caja avisó por última vez: {{when}}.",
+      "cardNoOneStore": {
+        "DISABLED": "Ahora tus clientes no ven «Pagar ahora»: la tienda está apagada.",
+        "CLOSED": "Ahora tus clientes no ven «Pagar ahora»: la tienda está cerrada por horario.",
+        "PAUSED": "Ahora tus clientes no ven «Pagar ahora»: la tienda está en pausa.",
+        "other": "Ahora tus clientes no ven «Pagar ahora»: la tienda no está recibiendo pedidos."
+      },
       "cardNoOneNoDevice": "Actualiza la terminal o el POS para que avise los pedidos pagados",
       "toPayNotice": {
         "title_one": "Tienes {{count}} folio por pagar",
@@ -325,6 +331,7 @@
       "cancelAndRefund": "Cancelar y devolver",
       "title": "Devolver el pago · folio {{folio}}",
       "description": "Se le devuelve todo lo que pagó. Elige a dónde.",
+      "kitchen": "Si ya se está preparando, avísale a cocina.",
       "amount": "Se devuelve completo: {{amount}}",
       "nothingLeft": "Ya no queda nada por devolver.",
       "submit": "Devolver {{amount}}"

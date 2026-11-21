@@ -114,6 +114,21 @@ describe('detalle de la cuenta: «Devolver a la tarjeta» de un pedido en línea
     expect(await screen.findByText(text, {}, { timeout: 3000 })).toBeInTheDocument()
   })
 
+  // D661: en qué quedó el pedido lo ve quien ve la cuenta; el botón, sólo quien puede devolver (`payments:refund`).
+  it('un gerente sin payments:refund ve «Devolviendo…» en el detalle, sin el botón', async () => {
+    m.permissions = ['orders:read', 'payments:read']
+    m.get.mockImplementation(async (url: string) => {
+      if (url === S3) {
+        const marcado = { ...onlineOrder, requiresAcceptance: false, status: 'READY', refundRequestedAt: '2026-10-30T18:00:00.000Z' }
+        return { data: { success: true, data: marcado } }
+      }
+      throw new Error(`GET inesperado: ${url}`)
+    })
+    mount()
+    expect(await screen.findByText('inbox.card.mark.refunding', {}, { timeout: 3000 })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^cardRefund\./ })).toBeNull()
+  })
+
   it('S3 responde 404 (no es pedido en línea) ⇒ sin botón', async () => {
     m.get.mockRejectedValue(
       Object.assign(new Error('404'), { response: { status: 404, data: { message: 'Esta cuenta no es un pedido en línea.' } } }),

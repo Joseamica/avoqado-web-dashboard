@@ -158,22 +158,24 @@ export function CardRefundButton({ venueId, order }: { venueId: string; order: I
 
 /**
  * El detalle de la cuenta (vive siempre; la bandeja sólo guarda 24 h). Sólo una cuenta de origen en línea (`WEB`, o sin el dato) se
- * consulta por la ruta de S3; su 404 llega como `null` = no es pedido en línea, sin botón.
+ * consulta por la ruta de S3; su 404 llega como `null` = no es pedido en línea, sin botón. D661: en qué quedó el pedido lo ve quien
+ * ve la cuenta (`orders:read`, lo que pide esa ruta); el botón, sólo quien puede devolver (`payments:refund`).
  */
 export function OrderCardRefund({ venueId, orderId, source }: { venueId: string; orderId: string; source?: string | null }) {
   const { can } = useAccess()
-  const enabled = can('payments:refund') && (!source || source === 'WEB')
+  const enabled = can('orders:read') && (!source || source === 'WEB')
   const { data } = useQuery({
     queryKey: onlineOrderingKeys.order(venueId, orderId),
     queryFn: () => getOnlineOrder(venueId, orderId),
     enabled: enabled && !!venueId,
   })
-  if (!enabled || !data || (!isCardCaptured(data) && !marcaDelPedido(data))) return null
+  const canRefund = can('payments:refund')
+  if (!enabled || !data || (!(canRefund && isCardCaptured(data)) && !marcaDelPedido(data))) return null
   // D661: junto al botón, en qué quedó un pedido de «Nadie» («Devolviendo…», «Devuelto», «No lo recogió»).
   return (
     <div className="flex flex-wrap items-center gap-2">
       <MarcaDelPedido order={data} />
-      <CardRefundButton venueId={venueId} order={data} />
+      {canRefund && <CardRefundButton venueId={venueId} order={data} />}
     </div>
   )
 }
@@ -348,7 +350,11 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
           <DialogTitle>
             {nadie ? t('cardRefund.nadie.title', { folio: order.orderNumber }) : t('cardRefund.title', { number: order.orderNumber })}
           </DialogTitle>
-          <DialogDescription>{t(nadie ? 'cardRefund.nadie.description' : 'cardRefund.description')}</DialogDescription>
+          <DialogDescription>
+            {t(nadie ? 'cardRefund.nadie.description' : 'cardRefund.description')}
+            {/* D661: «Cancelar y devolver» no avisa a nadie; quien devuelve le avisa a cocina (límite declarado de la promesa). */}
+            {nadie && order.status !== 'COMPLETED' && <span className="block">{t('cardRefund.nadie.kitchen')}</span>}
+          </DialogDescription>
         </DialogHeader>
 
         <section className="space-y-2">
@@ -459,6 +465,7 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
                   <Button
                     type="button"
                     className="h-auto whitespace-normal py-2"
+                    data-tour="online-order-refund-store-credit"
                     variant={destino === 'STORE_CREDIT' ? 'default' : 'outline'}
                     aria-pressed={destino === 'STORE_CREDIT'}
                     disabled={!!sinSaldo || !!porFuera}
@@ -469,6 +476,7 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
                   <Button
                     type="button"
                     className="h-auto whitespace-normal py-2"
+                    data-tour="online-order-refund-card"
                     variant={destino === 'CARD' ? 'default' : 'outline'}
                     aria-pressed={destino === 'CARD'}
                     disabled={!!porFuera}

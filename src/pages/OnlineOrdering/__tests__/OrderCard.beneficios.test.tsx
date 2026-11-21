@@ -162,6 +162,26 @@ describe('OrderCard: de quién es y qué beneficio lleva', () => {
   })
 })
 
+// D661: con una marca el SERVIDOR ya no deja «Listo» ni «Entregado» (409 ORDER_STATE_CHANGED): la tarjeta no los ofrece y enseña
+// la marca. El mismo pedido sin marca sí los ofrece, para que la prueba diga que la causa es la marca.
+describe('OrderCard · D661: un pedido marcado no ofrece «Listo» ni «Entregado»', () => {
+  const pagadoEnLinea = (over: Partial<InboxOrder> = {}) =>
+    order({ requiresAcceptance: false, paymentMode: 'CARD_ONLINE', paymentStatus: 'PAID', remaining: 0, ...over })
+
+  it.each([
+    ['ACCEPTED', esOnline.inbox.actions.ready],
+    ['READY', esOnline.inbox.actions.delivered],
+  ] as const)('%s con «Devolviendo…»: la marca en lugar de «%s»', (status, boton) => {
+    const { unmount } = card(pagadoEnLinea({ status }))
+    expect(screen.getByRole('button', { name: boton })).toBeInTheDocument()
+    unmount()
+    card(pagadoEnLinea({ status, refundRequestedAt: '2026-11-10T18:10:00.000Z' }))
+    expect(screen.getByText(esOnline.inbox.card.mark.refunding)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: esOnline.inbox.actions.ready })).toBeNull()
+    expect(screen.queryByRole('button', { name: esOnline.inbox.actions.delivered })).toBeNull()
+  })
+})
+
 describe('FolioSections: «Por pagar» y «Por entregar» dicen lo mismo', () => {
   const toPay = (pagar: FolioOrder[], entregar: FolioOrder[]) => ({
     serverTime: '2026-11-10T18:05:00.000Z',

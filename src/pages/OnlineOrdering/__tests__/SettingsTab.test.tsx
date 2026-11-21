@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, waitFor, fireEvent, within } from '@testing-library/react'
+import { act, render, screen, waitFor, fireEvent, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -107,6 +107,13 @@ describe('SettingsTab', () => {
     getSettings.mockReset()
     updateSettings.mockReset()
     getToPay.mockReset()
+    // Sin respuesta, una consulta que se dispara (p. ej. al volver a «Mi equipo») deja «Query data cannot be undefined» en la salida.
+    getToPay.mockResolvedValue({
+      counts: { toPay: 0, toDeliver: 0 },
+      toPay: [],
+      toDeliver: [],
+      nextCursors: { toPay: null, toDeliver: null },
+    })
     toast.mockReset()
     access.denied = []
     access.role = 'ADMIN'
@@ -937,6 +944,9 @@ describe('SettingsTab', () => {
       expect(pay).toBeChecked()
       expect(pay).toBeDisabled()
       expect(screen.getByText('settings.confirm.payNoOne')).toBeInTheDocument()
+      // D661: con «Pagar en línea» prendida también se paga en línea; en caja se puede SIEMPRE, no es la única forma.
+      expect(esOnline.settings.confirm.payNoOne).toBe('Si los pedidos entran solos, siempre se puede pagar en caja.')
+      expect(enOnline.settings.confirm.payNoOne).toBe('When orders come in on their own, they can always pay at the register.')
     })
 
     // ── D661 · «Pagar en línea» en «No, entran solos»: su propio interruptor (`cardOnlineNadie`), apagado de fábrica ──
@@ -955,6 +965,8 @@ describe('SettingsTab', () => {
       const sw = pagarEnLinea()
       expect(sw).not.toBeChecked()
       expect(sw).toBeEnabled()
+      // Regla 16 del repo: lo que un recorrido guiado señala lleva su `data-tour` estable.
+      expect(sw).toHaveAttribute('data-tour', 'online-ordering-card-no-one')
       expect(screen.getByText('settings.confirm.cardNoOne')).toBeInTheDocument()
       await userEvent.click(sw)
       expect(pagarEnLinea()).toBeChecked()
@@ -1012,16 +1024,28 @@ describe('SettingsTab', () => {
       expect(await screen.findByText('settings.confirm.cardNoOneNoDevice')).toBeInTheDocument()
     })
 
-    // «Apagado se ve y se explica»: prendida, la tienda ofrece la tarjeta sólo con una caja avisando a tiempo (bloque `cardNadie`).
-    it('prendida y ofrecida: dice que ahora sus clientes ven «Pagar ahora»', async () => {
+    // «Apagado se ve y se explica»: prendida, la tienda ofrece la tarjeta sólo con una caja avisando a tiempo (bloque `cardNadie`)
+    // Y con la tienda abierta: `offeredNow` no mira la tienda, y con ella apagada, cerrada o en pausa nadie puede pedir (Ruling 47).
+    const RAZON: Record<string, string | null> = {
+      OPEN: null,
+      CLOSED: 'OUTSIDE_HOURS',
+      PAUSED: 'MANUAL_PAUSE',
+      OFFLINE: 'NO_DEVICE',
+      DISABLED: 'NOT_ENABLED',
+    }
+    const tienda = (status: string) => ({
+      enabled: status !== 'DISABLED',
+      store: { status, reason: RAZON[status], pausedUntil: null, manualPause: status === 'PAUSED' },
+    })
+    const conCaja = (offeredNow: boolean, lastAlertAt: string | null = ago(0)) => ({
+      cardOnlineNadie: true,
+      ...stripeListo,
+      cardNadie: { enabled: true, lastAlertAt, fastAlertAt: offeredNow ? ago(0) : null, offeredNow },
+    })
+
+    it('prendida, ofrecida y la tienda abierta: dice que ahora sus clientes ven «Pagar ahora»', async () => {
       expect(esOnline.settings.confirm.cardNoOneOffered).toContain('«Pagar ahora»')
-      getSettings.mockResolvedValue(
-        nadie({
-          cardOnlineNadie: true,
-          ...stripeListo,
-          cardNadie: { enabled: true, lastAlertAt: ago(1), fastAlertAt: ago(0), offeredNow: true },
-        }),
-      )
+      getSettings.mockResolvedValue(nadie({ ...tienda('OPEN'), ...conCaja(true, ago(1)) }))
       renderTab()
       await formularioCargado()
       expect(pagarEnLinea()).toBeChecked()
@@ -1029,23 +1053,95 @@ describe('SettingsTab', () => {
       expect(screen.queryByText('settings.confirm.cardNoOneNotOffered')).toBeNull()
     })
 
-    it('prendida y sin una caja que avise: no se ofrece ahora, qué la regresa y cuándo avisó una caja (hora del negocio), sin rojo', async () => {
-      const last = ago(45)
-      getSettings.mockResolvedValue(
-        nadie({
-          cardOnlineNadie: true,
-          ...stripeListo,
-          cardNadie: { enabled: true, lastAlertAt: last, fastAlertAt: null, offeredNow: false },
-        }),
-      )
+    it.each([
+      ['DISABLED', 'Ahora tus clientes no ven «Pagar ahora»: la tienda está apagada.'],
+      ['CLOSED', 'Ahora tus clientes no ven «Pagar ahora»: la tienda está cerrada por horario.'],
+      ['PAUSED', 'Ahora tus clientes no ven «Pagar ahora»: la tienda está en pausa.'],
+    ])('prendida y con una caja avisando, pero la tienda %s: no dice «Pagar ahora», dice por qué y sin rojo', async (status, texto) => {
+      expect(esOnline.settings.confirm.cardNoOneStore[status as keyof typeof esOnline.settings.confirm.cardNoOneStore]).toBe(texto)
+      getSettings.mockResolvedValue(nadie({ ...tienda(status), ...conCaja(true) }))
       renderTab()
       await formularioCargado()
-      const estado = screen.getByText('settings.confirm.cardNoOneNotOffered')
-      expect(estado).not.toHaveClass('text-destructive')
-      expect(screen.getByText(`settings.confirm.cardNoOneLastAlert|DT(${last})`)).toBeInTheDocument()
+      const linea = screen.getByText(`settings.confirm.cardNoOneStore.${status}`)
+      expect(linea).not.toHaveClass('text-destructive')
       expect(screen.queryByText('settings.confirm.cardNoOneOffered')).toBeNull()
-      // Qué la regresa: una caja actualizada abierta en la lista de pedidos (el mismo criterio que el SERVIDOR).
-      expect(esOnline.settings.confirm.cardNoOneNotOffered).toMatch(/caja actualizada/)
+      expect(screen.queryByText('settings.confirm.cardNoOneNotOffered')).toBeNull()
+    })
+
+    it('la tienda cerrada manda sobre la caja: sin una caja que avise sólo dice que está cerrada (nada de «vuelve sola»)', async () => {
+      getSettings.mockResolvedValue(nadie({ ...tienda('CLOSED'), ...conCaja(false, ago(45)) }))
+      renderTab()
+      await formularioCargado()
+      expect(screen.getByText('settings.confirm.cardNoOneStore.CLOSED')).toBeInTheDocument()
+      expect(screen.queryByText('settings.confirm.cardNoOneNotOffered')).toBeNull()
+      expect(screen.queryByText(/^settings\.confirm\.cardNoOneLastAlert/)).toBeNull()
+    })
+
+    it('sin aparato (OFFLINE): con una caja avisando no dice «Pagar ahora» sino que la tienda no recibe pedidos', async () => {
+      expect(esOnline.settings.confirm.cardNoOneStore.other).toBe(
+        'Ahora tus clientes no ven «Pagar ahora»: la tienda no está recibiendo pedidos.',
+      )
+      getSettings.mockResolvedValue(nadie({ ...tienda('OFFLINE'), ...conCaja(true) }))
+      renderTab()
+      await formularioCargado()
+      expect(screen.getByText('settings.confirm.cardNoOneStore.other')).toBeInTheDocument()
+      expect(screen.queryByText('settings.confirm.cardNoOneOffered')).toBeNull()
+    })
+
+    it.each(['OPEN', 'OFFLINE'])(
+      'prendida y sin una caja que avise (tienda %s): no se ofrece ahora, qué la regresa y cuándo avisó una caja (hora del negocio), sin rojo',
+      async status => {
+        const last = ago(45)
+        getSettings.mockResolvedValue(nadie({ ...tienda(status), ...conCaja(false, last) }))
+        renderTab()
+        await formularioCargado()
+        const estado = screen.getByText('settings.confirm.cardNoOneNotOffered')
+        expect(estado).not.toHaveClass('text-destructive')
+        expect(screen.getByText(`settings.confirm.cardNoOneLastAlert|DT(${last})`)).toBeInTheDocument()
+        expect(screen.queryByText('settings.confirm.cardNoOneOffered')).toBeNull()
+        // Qué la regresa: una caja actualizada abierta en la lista de pedidos (el mismo criterio que el SERVIDOR).
+        expect(esOnline.settings.confirm.cardNoOneNotOffered).toMatch(/caja actualizada/)
+      },
+    )
+
+    // El estado es una foto: la ventana del SERVIDOR es de 90 s, así que mientras la tarjeta de «Nadie» esté prendida se vuelve a
+    // pedir cada 30 s (y sólo entonces: sin ella no hay nada que vigilar).
+    const esperar = (ms: number) => act(async () => void (await vi.advanceTimersByTimeAsync(ms)))
+
+    it('prendida en «Nadie»: el estado se vuelve a pedir cada 30 s y se ve el nuevo; un cambio sin guardar no se pierde', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true })
+      try {
+        getSettings
+          .mockResolvedValueOnce(nadie({ ...tienda('OPEN'), ...conCaja(true) }))
+          .mockResolvedValue(nadie({ ...tienda('OPEN'), ...conCaja(false, ago(2)) }))
+        renderTab()
+        await formularioCargado()
+        expect(screen.getByText('settings.confirm.cardNoOneOffered')).toBeInTheDocument()
+        fireEvent.change(screen.getByLabelText('settings.minOrder'), { target: { value: '75' } })
+        expect(getSettings).toHaveBeenCalledTimes(1)
+        await esperar(30_500)
+        expect(getSettings).toHaveBeenCalledTimes(2)
+        expect(await screen.findByText('settings.confirm.cardNoOneNotOffered')).toBeInTheDocument()
+        expect(screen.getByLabelText('settings.minOrder')).toHaveValue(75)
+      } finally {
+        vi.useRealTimers()
+      }
+    })
+
+    it.each([
+      ['apagada en «Nadie»', { requiresAcceptance: false, cardOnlineNadie: false, cardNadie: { enabled: false, offeredNow: false } }],
+      ['guardada en «Mi equipo»', { requiresAcceptance: true, cardOnlineNadie: true, cardNadie: { enabled: true, offeredNow: false } }],
+    ])('%s: el estado no se vuelve a pedir solo', async (_n, over) => {
+      vi.useFakeTimers({ shouldAdvanceTime: true })
+      try {
+        getSettings.mockResolvedValue(base({ ...stripeListo, ...tienda('OPEN'), ...over }))
+        renderTab()
+        await formularioCargado()
+        await esperar(61_000)
+        expect(getSettings).toHaveBeenCalledTimes(1)
+      } finally {
+        vi.useRealTimers()
+      }
     })
 
     it('sin el bloque cardNadie (SERVIDOR viejo) o apagada, no se dice si se ofrece', async () => {

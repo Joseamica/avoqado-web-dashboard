@@ -220,6 +220,9 @@ export function SettingsTab() {
     queryKey: onlineOrderingKeys.settings(venueId ?? ''),
     queryFn: () => getSettings(venueId!),
     enabled: !!venueId,
+    // D661: «¿se ofrece la tarjeta AHORA?» es una foto y el SERVIDOR la mide en 90 s: con la de «Nadie» prendida se vuelve a pedir
+    // cada 30 s, y sólo entonces. Lo no guardado sigue: `values` sólo rehace el formulario si cambian sus campos.
+    refetchInterval: q => (q.state.data?.requiresAcceptance === false && q.state.data.cardNadie?.enabled ? 30_000 : false),
   })
   const { data: settings } = settingsQuery
 
@@ -358,6 +361,9 @@ export function SettingsTab() {
   const enableBlocked = !settings.enabled && (missing.length > 0 || !hasPayment || waitingDevice)
 
   const store = settings.store
+  // D661: apagada, cerrada o en pausa, nadie puede pedir: eso se dice antes que lo de la caja (Ruling 47). OFFLINE (sin aparato que
+  // cobre folios) no entra: ahí la razón ES la caja, y «vuelve sola en cuanto una caja… esté abierta» es verdad.
+  const storeStops = store?.status === 'DISABLED' || store?.status === 'CLOSED' || store?.status === 'PAUSED'
   const pause = pauseLabel(store, formatTime)
   const statusText = pause
     ? t(pause.key, pause.params)
@@ -585,6 +591,7 @@ export function SettingsTab() {
                       // Un SERVIDOR que no manda el campo no lo conoce: no se deja prender.
                       <Switch
                         id="oo-card"
+                        data-tour="online-ordering-card-no-one"
                         aria-label={t('settings.confirm.cardNoOneLabel')}
                         checked={cardAvailable && !!field.value}
                         disabled={!cardAvailable || settings.cardOnlineNadie === undefined}
@@ -632,12 +639,13 @@ export function SettingsTab() {
                 {!cardAvailable && <span className="block">{t('settings.card.mercadoPagoSoon')}</span>}
               </p>
               {/* D661 · apagado se ve y se explica: prendida (y guardada así en «Nadie»), ¿la tienda la ofrece AHORA? Lo dice el SERVIDOR
-                  con la misma regla de la tienda. Es un estado, nunca un error. Sin el bloque (servidor viejo) no se dice nada. */}
+                  con la misma regla de la tienda, y «Pagar ahora» sólo con la tienda abierta. Es un estado, nunca un error. Sin el bloque
+                  (servidor viejo) no se dice nada. */}
               {noOne && cardAvailable && cardNadieOn && settings.requiresAcceptance === false && settings.cardNadie?.enabled && (
                 <div role="status" className="space-y-0.5 text-xs">
-                  {settings.cardNadie.offeredNow ? (
-                    <p className="font-medium">{t('settings.confirm.cardNoOneOffered')}</p>
-                  ) : (
+                  {storeStops ? (
+                    <p className="font-medium">{t(`settings.confirm.cardNoOneStore.${store?.status}`)}</p>
+                  ) : !settings.cardNadie.offeredNow ? (
                     <>
                       <p className="font-medium">{t('settings.confirm.cardNoOneNotOffered')}</p>
                       {settings.cardNadie.lastAlertAt && (
@@ -646,6 +654,10 @@ export function SettingsTab() {
                         </p>
                       )}
                     </>
+                  ) : (
+                    <p className="font-medium">
+                      {t(store?.status === 'OPEN' ? 'settings.confirm.cardNoOneOffered' : 'settings.confirm.cardNoOneStore.other')}
+                    </p>
                   )}
                 </div>
               )}
