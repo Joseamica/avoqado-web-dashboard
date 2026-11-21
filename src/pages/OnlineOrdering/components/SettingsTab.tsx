@@ -321,11 +321,17 @@ export function SettingsTab() {
 
   const missing = REQUIREMENTS.filter(r => settings?.requirements?.[r] === false || serverMissing.includes(r))
 
+  // Ruling 104 + 118: desde que sale un guardado hasta saber en qué quedó (en camino o en duda), cada edición de la dueña se anota (la
+  // última de cada campo), también la que deja un campo igual a la última lectura (para el formulario eso ya no es «editado», y lo que
+  // llega después —la respuesta o la lectura que confirma— lo pisaría). Se vacía sólo cuando sale un guardado NUEVO.
+  const tocados = useRef(new Map<keyof FormValues, unknown>())
+
   const mutation = useMutation({
     mutationFn: (patch: Partial<OnlineOrderingSettingsInput>) => updateSettings(venueId!, patch),
     // Ruling 91: cuándo salió este guardado. Ruling 92: uno nuevo deja atrás lo que no se pudo confirmar del anterior (decide el suyo).
     onMutate: () => {
       setSinConfirmar(null)
+      tocados.current.clear()
       return { salio: Date.now() }
     },
     onSuccess: (next, _patch, enviado) => {
@@ -340,7 +346,10 @@ export function SettingsTab() {
         const vigente = (qc.getQueryState(key)?.dataUpdatedAt ?? 0) <= enviado.salio
         const vista = vigente ? { ...cached, ...next } : cached
         if (vigente) qc.setQueryData(key, vista)
+        // Ruling 118: lo que tocó mientras iba en camino se queda, sin guardar (el `reset` lo pisaría).
+        const enCamino = new Map(tocados.current)
         reset(toForm(vista))
+        enCamino.forEach((valor, k) => setValue(k, valor as never, { shouldDirty: true }))
       }
       void qc.invalidateQueries({ queryKey: key })
       setServerMissing([])
@@ -387,9 +396,6 @@ export function SettingsTab() {
     },
   })
 
-  // Ruling 104: mientras un guardado está en duda, cada edición de la dueña se anota (la última de cada campo), también la que deja un
-  // campo igual a la última lectura (para el formulario eso ya no es «editado», y la lectura que confirma lo pisaría).
-  const tocados = useRef(new Map<keyof FormValues, unknown>())
   // Al llegar una lectura, react-hook-form pone sus valores con eventos `change` en el efecto de `values` (corre antes que los de aquí):
   // ésos no son de ella. Se marca en el render en que cambian los datos y se quita después de ese efecto.
   const leidos = useRef(settings)
@@ -401,19 +407,19 @@ export function SettingsTab() {
   useEffect(() => {
     sincronizando.current = false
   })
+  const anotando = mutation.isPending || !!sinConfirmar
   useEffect(() => {
-    if (!sinConfirmar) return
-    tocados.current.clear()
+    if (!anotando) return
     const sub = watch((valores, { name, type }) => {
       if (!name || type !== 'change' || sincronizando.current) return
       tocados.current.set(name as keyof FormValues, valores[name as keyof FormValues])
     })
     return () => sub.unsubscribe()
-  }, [sinConfirmar, watch])
+  }, [anotando, watch])
   /** El horario cambia con `setValue` (no por un `Controller`): también cuenta como edición. */
   const editarHorario = (h: OperatingHours | null) => {
     setValue('hours', h, { shouldDirty: true })
-    if (sinConfirmar) tocados.current.set('hours', h)
+    if (anotando) tocados.current.set('hours', h)
   }
 
   // Ruling 92: tras un guardado sin respuesta cierta, cada lectura que llega (también la del sondeo, aunque traiga lo mismo) decide:
@@ -436,7 +442,6 @@ export function SettingsTab() {
       }
       // Ruling 104: lo que tocó mientras esperaba se queda, aunque fuera igual a la lectura de antes (la lectura que confirma lo pisó).
       tocados.current.forEach((valor, k) => setValue(k, valor as never, { shouldDirty: true }))
-      tocados.current.clear()
       setServerMissing([])
       setCardAlertMissing(false)
       toast({ title: t('settings.saved') })

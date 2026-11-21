@@ -1441,6 +1441,60 @@ describe('SettingsTab', () => {
       }
     })
 
+    // Ruling 118 (completa el 104): lo que edita mientras el guardado todavía va EN CAMINO (antes de quedar en duda) también se queda.
+    it('🔴 apaga el interruptor mientras el guardado del «prendido» va en camino; queda en duda y el sondeo confirma prendido: se queda apagado', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true })
+      try {
+        let cortar: (e: unknown) => void = () => {}
+        getSettings
+          .mockResolvedValueOnce(nadie({ cardOnlineNadie: false, ...stripeListo })) // la carga
+          .mockResolvedValueOnce(nadie({ cardOnlineNadie: false, ...stripeListo })) // la relectura: todavía no
+          .mockResolvedValue(nadie({ cardOnlineNadie: true, ...stripeListo })) // el sondeo: el «prendido» sí quedó guardado
+        updateSettings
+          .mockImplementationOnce(() => new Promise((_ok, falla) => (cortar = falla))) // el PUT tarda (no tiene tiempo límite)
+          .mockResolvedValue(nadie({ cardOnlineNadie: false, ...stripeListo }))
+        renderTab()
+        await formularioCargado()
+        fireEvent.click(pagarEnLinea())
+        fireEvent.click(screen.getByRole('button', { name: 'settings.save' }))
+        await waitFor(() => expect(updateSettings).toHaveBeenCalledTimes(1))
+        // Con el guardado todavía en camino, lo vuelve a apagar (el interruptor no se bloquea).
+        fireEvent.click(pagarEnLinea())
+        expect(pagarEnLinea()).not.toBeChecked()
+        await act(async () => cortar(sinRed()))
+        await waitFor(() => expect(screen.getByText('settings.saveUnconfirmed')).toBeInTheDocument())
+        await esperar(30_500)
+        await waitFor(() => expect(toast).toHaveBeenCalledWith({ title: 'settings.saved' }))
+        expect(pagarEnLinea()).not.toBeChecked()
+        expect(screen.getByText('settings.unsaved')).toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: 'settings.save' }))
+        await waitFor(() => expect(updateSettings).toHaveBeenLastCalledWith('venue-1', { cardOnlineNadie: false }))
+      } finally {
+        vi.useRealTimers()
+      }
+    })
+
+    it('🔴 guardado normal con una edición hecha mientras iba en camino: la edición se queda, sin guardar', async () => {
+      let responder: (v: unknown) => void = () => {}
+      getSettings.mockResolvedValue(nadie({ ...stripeListo }))
+      updateSettings
+        .mockImplementationOnce(() => new Promise(r => (responder = r)))
+        .mockResolvedValue(nadie({ ...stripeListo, minOrderAmount: 90 }))
+      renderTab()
+      await formularioCargado()
+      fireEvent.change(screen.getByLabelText('settings.minOrder'), { target: { value: '80' } })
+      fireEvent.click(screen.getByRole('button', { name: 'settings.save' }))
+      await waitFor(() => expect(updateSettings).toHaveBeenCalledWith('venue-1', { minOrderAmount: 80 }))
+      // Mientras va en camino, cambia el mínimo otra vez.
+      fireEvent.change(screen.getByLabelText('settings.minOrder'), { target: { value: '90' } })
+      await act(async () => responder(nadie({ ...stripeListo, minOrderAmount: 80 })))
+      await waitFor(() => expect(toast).toHaveBeenCalledWith({ title: 'settings.saved' }))
+      expect(screen.getByLabelText('settings.minOrder')).toHaveValue(90)
+      expect(screen.getByText('settings.unsaved')).toBeInTheDocument()
+      fireEvent.click(screen.getByRole('button', { name: 'settings.save' }))
+      await waitFor(() => expect(updateSettings).toHaveBeenLastCalledWith('venue-1', { minOrderAmount: 90 }))
+    })
+
     // Ruling 105 (regresión): en «Mi equipo» con todas las lecturas fallando, la revisión no puede seguir para siempre. Al terminar la
     // ventana deja de leer sola, conserva lo tecleado y sigue diciendo que no se sabe si se guardó.
     it('«Mi equipo» y todas las lecturas fallan: al terminar la ventana deja de leer sola, conserva lo tecleado y dice que no se sabe', async () => {
