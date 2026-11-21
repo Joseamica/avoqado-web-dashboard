@@ -1069,11 +1069,11 @@ describe('Devolver a la tarjeta', () => {
       expect(createCardRefund.mock.calls[1][3]).toBe(createCardRefund.mock.calls[0][3])
     })
 
+    // Los `STORE_CREDIT_*` ya no están aquí: tras una respuesta perdida pueden cambiar después (Ruling 98, abajo).
     it.each([
       ['EXTERNAL_REFUND_DETECTED', 409],
       ['FULL_REFUND_ONLY', 400],
       ['REFUND_DESTINATION_NOT_AVAILABLE', 400],
-      ['STORE_CREDIT_UNAVAILABLE', 422],
     ])('bloqueada, un rechazo permanente (%s) la suelta', async (code, status) => {
       createCardRefund.mockRejectedValueOnce(networkError()).mockRejectedValueOnce(http(status, { code, message: `permanente ${code}` }))
       await abrirNadie()
@@ -1084,6 +1084,49 @@ describe('Devolver a la tarjeta', () => {
       await waitFor(() => expect(screen.queryByRole('button', { name: 'cardRefund.retry' })).toBeNull())
       expect(screen.queryByText('cardRefund.lockedTitle')).toBeNull()
     })
+
+    // ── Ruling 98 (resto del 90): una petición de la misma llave que terminó SIN respuesta definitiva pudo seguir en el SERVIDOR (su
+    // revisión de Stripe corre antes de cualquier candado). Un rechazo de saldo a favor —lo único que puede cambiar después— no suelta la
+    // duda: sigue fija hasta la salida de 10 minutos, una respuesta definitiva o una relectura con una devolución nueva.
+    it.each([
+      ['sin respuesta', networkError()],
+      ['la página de error de un intermediario (524)', http(524, '<html>timeout</html>' as never)],
+    ])(
+      '🔴 la primera quedó %s y el reintento recibe STORE_CREDIT_CARD_BLOCKED: sigue fija hasta la salida de 10 minutos',
+      async (_n, perdida) => {
+        expect(esOnline.cardRefund.firstMaybeInFlight).toBe(
+          'Este reintento no se aplicó, pero la primera petición quedó sin respuesta y todavía puede aplicarse; hasta saberlo, sólo se reintenta igual.',
+        )
+        expect(enOnline.cardRefund.firstMaybeInFlight).toBe(
+          "This retry wasn't applied, but the first request got no answer and may still go through; until we know, you can only retry it as it is.",
+        )
+        vi.useFakeTimers({ shouldAdvanceTime: true })
+        try {
+          const bloqueado = 'El saldo de Ana está bloqueado; un gerente lo puede desbloquear.'
+          createCardRefund
+            .mockRejectedValueOnce(perdida)
+            .mockRejectedValueOnce(http(422, { code: 'STORE_CREDIT_CARD_BLOCKED', message: bloqueado }))
+          await abrirNadie()
+          await userEvent.click(destino('saldo'))
+          await motivo()
+          await userEvent.click(devolverTodo())
+          await reintentar()
+          await waitFor(() => expect(toast).toHaveBeenCalledWith({ title: bloqueado, description: 'cardRefund.firstMaybeInFlight' }))
+          await waitFor(() => expect(screen.getByRole('button', { name: 'cardRefund.retry' })).toBeEnabled())
+          expect(createCardRefund.mock.calls[1][3]).toBe(createCardRefund.mock.calls[0][3])
+          expect(destino('saldo')).toHaveAttribute('aria-pressed', 'true')
+          expect(destino('saldo')).toBeDisabled()
+          expect(destino('tarjeta')).toBeDisabled()
+          expect(screen.queryByText(bloqueado)).toBeNull()
+          // La salida de 10 minutos: una lectura de después, sin devolución nueva, la suelta.
+          await act(async () => void (await vi.advanceTimersByTimeAsync(11 * 60_000)))
+          await waitFor(() => expect(screen.queryByRole('button', { name: 'cardRefund.retry' })).toBeNull())
+          expect(destino('tarjeta')).toBeEnabled()
+        } finally {
+          vi.useRealTimers()
+        }
+      },
+    )
 
     // ── Ruling 90 (el 61 enmendado otra vez): un rechazo suelta la duda sólo si ninguna petición con esa llave sigue en camino ──
     it.each([['gana el saldo a favor'], ['la primera también se rechaza']])(

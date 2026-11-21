@@ -328,6 +328,7 @@
     "noResponse": "No response. Try again: it won't be refunded twice.",
     "notDefinitive": "The answer wasn't definitive. Retry it as it is: it won't be refunded twice.",
     "firstInFlight": "This retry wasn't applied; the first request is still on its way and its answer decides.",
+    "firstMaybeInFlight": "This retry wasn't applied, but the first request got no answer and may still go through; until we know, you can only retry it as it is.",
     "lockedTitle": "We sent this refund and there's no definitive answer yet; retry it as it is.",
     "lockedHint": "Until we know what happened to this refund, you can only retry it as it is.",
     "lockedExit_one": "If it doesn't resolve, in 1 minute you'll be able to choose again.",

@@ -38,7 +38,15 @@ import type {
 import { Currency } from '@/utils/currency'
 import { useVenueDateTime } from '@/utils/datetime'
 
-import { mandarConLlave, ponerDuda, quitarDuda, sigueEnCamino, useDuda } from '../lib/devolucionEnDuda'
+import {
+  mandarConLlave,
+  ponerDuda,
+  pudoSeguirEnCamino,
+  quedoSinRespuesta,
+  quitarDuda,
+  sigueEnCamino,
+  useDuda,
+} from '../lib/devolucionEnDuda'
 import { marcaDelPedido } from '../lib/marcaDelPedido'
 import { invalidateToPay } from '../lib/toPayLive'
 import { MarcaDelPedido } from './OrderCard'
@@ -94,6 +102,11 @@ const inDoubt = (err: unknown) => {
   return typeof status !== 'number' || status >= 500 || status === 408
 }
 const codeOf = (err: unknown) => (err as { response?: { data?: { code?: unknown } } } | undefined)?.response?.data?.code
+/** Ruling 98: contestó NUESTRO servidor (su error trae JSON): esa petición ya terminó. */
+const contestoElServidor = (err: unknown) => {
+  const data = (err as { response?: { data?: unknown } } | undefined)?.response?.data
+  return typeof data === 'object' && data !== null
+}
 
 // D661: el destino viaja sólo en un pedido de «Nadie» (en «Mi equipo» la petición queda como siempre, sin él).
 type RefundBody = { amount: string; reason: CardRefundReason; note?: string; destino?: CardRefundDestino }
@@ -297,6 +310,8 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
       // respondió («no fue definitiva»); «No hubo respuesta» sólo cuando de verdad no llegó nada.
       if (inDoubt(err) || (typeof code === 'string' && PASAJERO.has(code))) {
         const respondio = !!(err as { response?: unknown } | undefined)?.response
+        // Ruling 98: sin respuesta de NUESTRO servidor (nada, o la página de error de un intermediario), la petición pudo seguir en él.
+        if (!contestoElServidor(err)) quedoSinRespuesta(v.attempt.key)
         const porDefecto = t(respondio ? 'cardRefund.notDefinitive' : 'cardRefund.noResponse')
         return toast({ title: typeof code === 'string' ? serverMessage(err, porDefecto) : porDefecto })
       }
@@ -304,6 +319,12 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
       // rechazo no dice qué hará ella. Destino, monto y llave siguen fijos, con «Reintentar»; decide su respuesta.
       if (sigueEnCamino(v.attempt.key)) {
         return toast({ title: serverMessage(err, t('cardRefund.error')), description: t('cardRefund.firstInFlight') })
+      }
+      // Ruling 98: lo mismo si una petición de esta llave quedó sin respuesta: pudo seguir en el SERVIDOR (su revisión de Stripe corre
+      // antes de cualquier candado). Sólo con un rechazo de saldo a favor, lo único que puede cambiar después (un gerente lo desbloquea);
+      // los demás rechazos definitivos sueltan como siempre. La salida de 10 minutos sigue.
+      if (typeof code === 'string' && code.startsWith('STORE_CREDIT_') && pudoSeguirEnCamino(v.attempt.key)) {
+        return toast({ title: serverMessage(err, t('cardRefund.error')), description: t('cardRefund.firstMaybeInFlight') })
       }
       soltarDuda(v.attempt.key) // un rechazo definitivo: esa llave no hizo ni va a hacer nada
       attempt.current = null

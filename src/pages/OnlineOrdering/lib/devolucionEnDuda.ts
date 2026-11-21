@@ -32,6 +32,7 @@ export const quitarDuda = (venueId: string, orderId: string, key: string) => {
   const k = llave(venueId, orderId)
   if ((dudas.get(k) as Duda | undefined)?.attempt.key !== key) return
   dudas.delete(k)
+  sinRespuesta.delete(key)
   avisar()
 }
 /** La duda de un pedido, viva: cada hoja abierta se entera cuando otra (o la respuesta de una ya cerrada) la pone o la quita. */
@@ -56,9 +57,18 @@ export async function mandarConLlave<T>(key: string, peticion: () => Promise<T>)
 }
 export const sigueEnCamino = (key: string) => enCamino.has(key)
 
+/**
+ * Ruling 98: llaves con una petición que terminó SIN respuesta definitiva (sin respuesta, o la página de error de un intermediario):
+ * pudo seguir en el SERVIDOR. Cuenta hasta que se suelta su duda (respuesta definitiva, devolución nueva o la salida de 10 minutos).
+ */
+const sinRespuesta = new Set<string>()
+export const quedoSinRespuesta = (key: string) => void sinRespuesta.add(key)
+export const pudoSeguirEnCamino = (key: string) => sinRespuesta.has(key)
+
 /** Para las pruebas: cada una empieza sin las dudas de otra. */
 export const olvidarDudas = () => {
   dudas.clear()
   enCamino.clear()
+  sinRespuesta.clear()
   avisar()
 }

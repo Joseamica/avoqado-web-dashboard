@@ -328,6 +328,7 @@
     "noResponse": "No hubo respuesta. Vuelve a intentarlo: no se devuelve dos veces.",
     "notDefinitive": "La respuesta no fue definitiva. Reintenta con lo mismo: no se devuelve dos veces.",
     "firstInFlight": "Este reintento no se aplicó; la primera petición sigue en camino y su respuesta decide.",
+    "firstMaybeInFlight": "Este reintento no se aplicó, pero la primera petición quedó sin respuesta y todavía puede aplicarse; hasta saberlo, sólo se reintenta igual.",
     "lockedTitle": "Mandamos esta devolución y todavía no hay una respuesta definitiva; reintenta con lo mismo.",
     "lockedHint": "Hasta saber qué pasó con esta devolución, sólo se puede reintentar igual.",
     "lockedExit_one": "Si no se resuelve, en 1 minuto podrás elegir otra vez.",
