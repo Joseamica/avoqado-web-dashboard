@@ -41,7 +41,8 @@ describe('onlineOrdering.service', () => {
     expect(await getSettings('v1')).toEqual({ enabled: true })
     expect(get).toHaveBeenCalledWith(`${base}/settings`)
     expect(await updateSettings('v1', { enabled: false })).toEqual({ enabled: false })
-    expect(put).toHaveBeenCalledWith(`${base}/settings`, { enabled: false })
+    // D661 · Ruling 64: este guardado no se repite solo tras un corte (sólo él; el cliente global no cambia).
+    expect(put).toHaveBeenCalledWith(`${base}/settings`, { enabled: false }, { repetible: false })
   })
 
   it('menú: categorías, productos acotados y disponibilidad', async () => {
