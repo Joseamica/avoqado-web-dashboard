@@ -893,22 +893,54 @@ describe('Devolver a la tarjeta', () => {
         400,
         'Este pedido sólo se devuelve a la tarjeta: el saldo a favor es para los pedidos que entran solos. No se aplicó nada.',
       ],
-    ])('cada error de saldo dice qué pasó y deja «A su tarjeta» (%s)', async (code, status, message) => {
+    ])('cada error de saldo dice qué pasó y deja elegir «A su tarjeta» (%s)', async (code, status, message) => {
       createCardRefund.mockRejectedValueOnce(http(status, { code, message }))
       createCardRefund.mockResolvedValue(recorded)
       await abrirNadie()
       await userEvent.click(destino('saldo'))
       await motivo()
       await userEvent.click(devolverTodo())
-      // En la hoja (no sólo en un aviso que se va): qué pasó, el saldo ya no se ofrece y «A su tarjeta» queda elegida.
+      // En la hoja (no sólo en un aviso que se va): qué pasó y el saldo ya no se ofrece. D1 (full-testing 18-nov): la tarjeta NO queda
+      // elegida sola (antes sí, y un doble clic devolvía a la tarjeta sin que nadie la eligiera): la elige el operador.
       expect(await screen.findByText(message)).toBeInTheDocument()
       expect(destino('saldo')).toBeDisabled()
-      expect(destino('tarjeta')).toHaveAttribute('aria-pressed', 'true')
+      expect(destino('tarjeta')).toHaveAttribute('aria-pressed', 'false')
+      expect(devolverTodo()).toBeDisabled()
+      await userEvent.click(destino('tarjeta'))
       expect(screen.getByText('cardRefund.destino.cardFee')).toBeInTheDocument()
       await userEvent.click(devolverTodo())
       await waitFor(() => expect(createCardRefund).toHaveBeenCalledTimes(2))
       expect(createCardRefund.mock.calls[1][2].destino).toBe('CARD')
       expect(createCardRefund.mock.calls[1][3]).not.toBe(createCardRefund.mock.calls[0][3]) // una decisión nueva, otra llave
+    })
+
+    // D1 (full-testing 18-nov, dinero): el primer POST a saldo a favor contestó «sin saldo», la hoja cambió sola a tarjeta y el botón se
+    // volvió a prender en el mismo lugar; el segundo clic (~0.7 s) devolvió a la tarjeta. Ahora el botón queda apagado hasta elegir.
+    it('🔴 D1 · doble clic en «… como saldo a favor» con respuesta «sin saldo»: el segundo clic no manda nada; la tarjeta sólo con su clic', async () => {
+      const message = 'El saldo a favor no está activo en Avoqado para este negocio. Puedes devolverlo a su tarjeta; no se aplicó nada.'
+      createCardRefund.mockRejectedValueOnce(http(422, { code: 'STORE_CREDIT_UNAVAILABLE', message }))
+      createCardRefund.mockResolvedValue(recorded)
+      await abrirNadie()
+      await userEvent.click(destino('saldo'))
+      await motivo()
+      await userEvent.click(devolverTodo())
+      expect(await screen.findByText(message)).toBeInTheDocument()
+      await waitFor(() => expect(screen.queryByRole('button', { name: 'cardRefund.sending' })).toBeNull())
+      // Nada elegido: ni saldo (ya no se puede) ni tarjeta (no la eligió nadie); el botón no dice a dónde y está apagado.
+      expect(destino('tarjeta')).toHaveAttribute('aria-pressed', 'false')
+      expect(destino('saldo')).toHaveAttribute('aria-pressed', 'false')
+      expect(destino('saldo')).toBeDisabled()
+      expect(screen.getByRole('button', { name: `cardRefund.nadie.submit|${Currency(250)}` })).toBeDisabled()
+      // El segundo clic del doble clic cae en el mismo botón: no sale nada.
+      fireEvent.click(devolverTodo())
+      await act(() => new Promise(r => setTimeout(r, 20)))
+      expect(createCardRefund).toHaveBeenCalledTimes(1)
+      // Sólo tras elegir «A su tarjeta» con su propio clic se puede mandar, y va a la tarjeta.
+      await userEvent.click(destino('tarjeta'))
+      expect(screen.getByRole('button', { name: `cardRefund.nadie.submitCard|${Currency(250)}` })).toBeEnabled()
+      await userEvent.click(devolverTodo())
+      await waitFor(() => expect(createCardRefund).toHaveBeenCalledTimes(2))
+      expect(createCardRefund.mock.calls[1][2].destino).toBe('CARD')
     })
 
     it('EXTERNAL_REFUND_DETECTED: ya se devolvió por fuera, en Stripe; no ofrece ningún destino ni reintento', async () => {
@@ -1235,12 +1267,13 @@ describe('Devolver a la tarjeta', () => {
         } else {
           await act(async () => fallar(http(422, { code: 'STORE_CREDIT_CARD_BLOCKED', message: bloqueado })))
           await waitFor(() => expect(screen.queryByRole('button', { name: 'cardRefund.retry' })).toBeNull())
-          // La respuesta le llegó a la hoja ya cerrada, pero la abierta dice por qué no hay saldo a favor y deja la tarjeta elegida (sin
-          // repetirlo en un aviso: ya está en la hoja).
+          // La respuesta le llegó a la hoja ya cerrada, pero la abierta dice por qué no hay saldo a favor y deja elegir la tarjeta (sin
+          // repetirlo en un aviso: ya está en la hoja). D1: no la elige sola; «Devolver» queda apagado hasta que el operador la elija.
           expect(await screen.findByText(bloqueado)).toBeInTheDocument()
           expect(destino('saldo')).toBeDisabled()
           expect(destino('tarjeta')).toBeEnabled()
-          expect(destino('tarjeta')).toHaveAttribute('aria-pressed', 'true')
+          expect(destino('tarjeta')).toHaveAttribute('aria-pressed', 'false')
+          expect(devolverTodo()).toBeDisabled()
           expect(toast).not.toHaveBeenCalledWith({ title: bloqueado, variant: 'destructive' })
         }
       },
@@ -1311,6 +1344,8 @@ describe('Devolver a la tarjeta', () => {
       for (const otro of ['cardRefund.nadie.inProcess', 'inbox.card.mark.reversed', 'cardRefund.nadie.nothingLeft']) {
         if (otro !== texto) expect(screen.queryByText(otro)).toBeNull()
       }
+      // W7 (full-testing 18-nov): sin nada por devolver no queda un «Devolver $0.00» apagado.
+      expect(screen.queryByRole('button', { name: /^cardRefund\.nadie\.submit/ })).toBeNull()
     })
 
     it('en la lista, una devolución a saldo a favor dice eso; con todo devuelto, ya no queda nada por devolver', async () => {
@@ -1325,7 +1360,8 @@ describe('Devolver a la tarjeta', () => {
       await abrir(devuelto, 'cardRefund.nadie.open')
       expect(within(await screen.findByTestId('card-refund-r1')).getByText('cardRefund.outcome.storeCredit')).toBeInTheDocument()
       expect(screen.getByText('cardRefund.nadie.nothingLeft')).toBeInTheDocument()
-      expect(screen.getByRole('button', { name: `cardRefund.nadie.submit|${Currency(0)}` })).toBeDisabled()
+      // W7 (full-testing 18-nov): ya no se enseña un «Devolver $0.00» apagado (antes esta prueba lo fijaba).
+      expect(screen.queryByRole('button', { name: /^cardRefund\.nadie\.submit/ })).toBeNull()
     })
   })
 })

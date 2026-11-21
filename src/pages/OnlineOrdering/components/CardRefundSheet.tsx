@@ -249,12 +249,14 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
   }, [])
   // Por qué el saldo a favor no se pudo, aunque lo haya contestado la petición de una hoja ya cerrada de este pedido. Ruling 101: sólo si
   // es el intento que esta hoja enseña (el que tiene en duda, o el suyo); el de un intento viejo nunca cambia lo que ella eligió después.
+  // D1 (full-testing 18-nov): la hoja NO elige la tarjeta por el operador; queda sin destino y «Devolver» apagado hasta que la elija él
+  // (si no, el segundo clic de un doble clic devolvía a la tarjeta sin que nadie la eligiera).
   useEffect(
     () =>
       escucharSinSaldo(venueId, order.orderId, (texto, key) => {
         if (key !== llaveEnDuda(venueId, order.orderId) && key !== attempt.current?.key) return false
         setSinSaldo(texto)
-        setDestino('CARD')
+        setDestino(null)
         return true
       }),
     [venueId, order.orderId],
@@ -337,7 +339,7 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
         return toast({ title: serverMessage(err, t('cardRefund.error')), description: t('cardRefund.firstMaybeInFlight') })
       }
       const texto = serverMessage(err, t('cardRefund.error'))
-      // D661: el saldo a favor no se pudo: se dice por qué, y queda «A su tarjeta» elegida, en la hoja que enseña este intento (la que lo
+      // D661: el saldo a favor no se pudo: se dice por qué y queda «A su tarjeta» por elegir (D1), en la hoja que enseña este intento (la que lo
       // mandó pudo cerrarse y reabrirse). Ruling 101: se avisa ANTES de soltar la duda (así la hoja reabierta lo reconoce como suyo); si
       // ninguna hoja lo toma, en un aviso, sin cambiar lo que nadie eligió.
       if (sinSaldoAFavor(code)) {
@@ -715,7 +717,7 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
                 {t('cardRefund.retry')}
               </Button>
             </>
-          ) : (
+          ) : nadie && hint === 0 && !refund.isPending ? null : ( // W7: sin nada por devolver, sin un «Devolver $0.00» apagado
             <Button type="button" disabled={!amountCents || !reason || !canSend || blocked || refund.isPending} onClick={() => submit()}>
               {refund.isPending
                 ? t('cardRefund.sending')
