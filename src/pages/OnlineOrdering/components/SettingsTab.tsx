@@ -233,9 +233,9 @@ export function SettingsTab() {
   const noticeButtonRef = useRef<HTMLButtonElement>(null)
   const enableSwitchRef = useRef<HTMLButtonElement>(null)
 
-  // D661 · Ruling 91: lo que se ve sólo lo reemplaza una respuesta que no sea más vieja. El SERVIDOR no manda versión ni `updatedAt` de
-  // los ajustes: cuenta el orden en que EMPEZARON las peticiones. `vistaDesde`: cuándo empezó la petición de lo que se ve (una lectura
-  // cancelada sólo puede subirlo, y eso nada más hace que se lea otra vez).
+  // D661 · Ruling 92: `vistaDesde` = cuándo EMPEZÓ la lectura de lo que se ve (el SERVIDOR no manda versión ni `updatedAt` de los
+  // ajustes); con eso se sabe si una lectura empezó después del guardado en duda o de que ya no pudo estar en camino. (La respuesta tardía
+  // de un guardado la decide la caché de la sucursal: Ruling 103, en `onSuccess`.)
   const vistaDesde = useRef(0)
   const leerAjustes = async () => {
     const desde = Date.now()
@@ -329,17 +329,15 @@ export function SettingsTab() {
     onSuccess: (next, _patch, enviado) => {
       // 🔴 La respuesta del PUT puede venir SIN `store`/`requirements` (sólo el GET los trae): se MEZCLA sobre la caché, nunca la
       // reemplaza, y luego se vuelve a pedir el GET como fuente de verdad.
-      // Ruling 91: si ya se ve una lectura que empezó DESPUÉS de este guardado, su respuesta es más vieja: no regresa la tarjeta ni el
-      // estado de la tienda. Se queda lo que se ve y se vuelve a leer (ya con lo guardado).
+      // Ruling 91: si ya se ve una lectura más nueva, la respuesta no regresa la tarjeta ni el estado de la tienda; se queda lo que se ve y
+      // se vuelve a leer (ya con lo guardado). Ruling 103: lo decide la caché de la sucursal, no esta pantalla (sobrevive a salir y volver,
+      // y la ponen al día todas las que leen los ajustes): si una lectura llegó después de que salió el guardado, la respuesta no se pone.
       const key = onlineOrderingKeys.settings(venueId!)
       const cached = qc.getQueryData<OnlineOrderingSettings>(key)
       if (cached) {
-        const vigente = enviado.salio >= vistaDesde.current
+        const vigente = (qc.getQueryState(key)?.dataUpdatedAt ?? 0) <= enviado.salio
         const vista = vigente ? { ...cached, ...next } : cached
-        if (vigente) {
-          vistaDesde.current = enviado.salio
-          qc.setQueryData(key, vista)
-        }
+        if (vigente) qc.setQueryData(key, vista)
         reset(toForm(vista))
       }
       void qc.invalidateQueries({ queryKey: key })

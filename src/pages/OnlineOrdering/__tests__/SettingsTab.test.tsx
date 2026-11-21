@@ -1514,6 +1514,45 @@ describe('SettingsTab', () => {
       }
     })
 
+    // Ruling 103: el orden vive con la caché de la sucursal, no en la pantalla: salir a «Bandeja» y volver no deja que el guardado
+    // viejo publique «Pagar ahora» en la caché compartida.
+    it('🔴 PUT viejo, salir y volver a Configuración (misma caché), GET nuevo, respuesta del PUT viejo: se queda el estado nuevo', async () => {
+      let responder: (v: unknown) => void = () => {}
+      const apagada = { enabled: false, lastAlertAt: null, fastAlertAt: null, offeredNow: false }
+      const nuevo = nadie({ ...tienda('CLOSED'), ...stripeListo, cardOnlineNadie: false, cardNadie: apagada, minOrderAmount: 80 })
+      getSettings
+        .mockResolvedValueOnce(nadie({ ...tienda('OPEN'), ...conCaja(true) }))
+        .mockResolvedValueOnce(nuevo)
+        .mockImplementation(() => new Promise(() => {})) // la relectura de después del guardado tarda: se mira lo que quedó en pantalla
+      updateSettings.mockImplementationOnce(() => new Promise(r => (responder = r)))
+      const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+      const pestana = () => (
+        <QueryClientProvider client={qc}>
+          <MemoryRouter>
+            <SettingsTab />
+          </MemoryRouter>
+        </QueryClientProvider>
+      )
+      const { unmount } = render(pestana())
+      await formularioCargado()
+      expect(screen.getByText('settings.confirm.cardNoOneOffered')).toBeInTheDocument()
+      fireEvent.change(screen.getByLabelText('settings.minOrder'), { target: { value: '80' } })
+      fireEvent.click(screen.getByRole('button', { name: 'settings.save' }))
+      await waitFor(() => expect(updateSettings).toHaveBeenCalledTimes(1))
+      unmount() // a «Bandeja»
+      render(pestana()) // y de vuelta: la lectura nueva (empezó después del guardado) ya enseña la tarjeta apagada
+      await waitFor(() => expect(getSettings).toHaveBeenCalledTimes(2))
+      await waitFor(() => expect(pagarEnLinea()).not.toBeChecked())
+      expect(estadoTienda()).toHaveTextContent('settings.status.CLOSED')
+      // Llega la respuesta del guardado viejo, con lo que vio el SERVIDOR antes del cambio de la otra persona.
+      await act(async () => responder(nadie({ ...tienda('OPEN'), ...conCaja(true), minOrderAmount: 80 })))
+      await waitFor(() => expect(toast).toHaveBeenCalledWith({ title: 'settings.saved' }))
+      await waitFor(() => expect(getSettings).toHaveBeenCalledTimes(3)) // se vuelve a leer (y esa lectura todavía no llega)
+      expect(pagarEnLinea()).not.toBeChecked()
+      expect(screen.queryByText('settings.confirm.cardNoOneOffered')).toBeNull()
+      expect(estadoTienda()).toHaveTextContent('settings.status.CLOSED')
+    })
+
     it('sin el bloque cardNadie (SERVIDOR viejo) o apagada, no se dice si se ofrece', async () => {
       getSettings.mockResolvedValue(nadie({ cardOnlineNadie: true, ...stripeListo }))
       const { unmount } = renderTab()
