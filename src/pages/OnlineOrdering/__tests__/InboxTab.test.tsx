@@ -29,7 +29,7 @@ const fakeSocket = {
 }
 const noop = () => {}
 vi.mock('@/context/SocketContext', () => ({
-  useSocket: () => ({ socket: fakeSocket, isConnected: true, joinVenueRoom: noop, leaveVenueRoom: noop, alConfirmarSucursal: () => noop }),
+  useSocket: () => ({ socket: fakeSocket, isConnected: true, joinVenueRoom: noop, leaveVenueRoom: noop }),
 }))
 
 // El sonido: un objeto que delega en el estado de la prueba (mockReset borra las implementaciones de vi.fn).

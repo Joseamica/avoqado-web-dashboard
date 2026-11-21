@@ -15,7 +15,7 @@ const fakeSocket = {
 }
 const noop = () => {}
 vi.mock('@/context/SocketContext', () => ({
-  useSocket: () => ({ socket: fakeSocket, isConnected: true, joinVenueRoom: noop, leaveVenueRoom: noop, alConfirmarSucursal: () => noop }),
+  useSocket: () => ({ socket: fakeSocket, isConnected: true, joinVenueRoom: noop, leaveVenueRoom: noop }),
 }))
 
 const getInbox = vi.fn()

@@ -13,16 +13,8 @@ const fakeSocket = {
 const unido: string[] = []
 const joinVenueRoom = (v: string) => unido.push(v)
 const leaveVenueRoom = () => {}
-/** D662 v5: quién espera la confirmación del SERVIDOR por sucursal (`alConfirmarSucursal`). */
-const confirmar: Record<string, () => void> = {}
-const alConfirmarSucursal = (v: string, cb: () => void) => {
-  confirmar[v] = cb
-  return () => {
-    delete confirmar[v]
-  }
-}
 vi.mock('@/context/SocketContext', () => ({
-  useSocket: () => ({ socket: fakeSocket, joinVenueRoom, leaveVenueRoom, alConfirmarSucursal }),
+  useSocket: () => ({ socket: fakeSocket, joinVenueRoom, leaveVenueRoom }),
 }))
 
 import { esperaHastaLaHoraLimite, laMasNueva, MARGEN_TRAS_LA_HORA_LIMITE_MS, useRelecturaDeLaTienda } from '../hooks/useRelecturaDeLaTienda'
@@ -115,16 +107,3 @@ describe('relectura del estado de la tienda', () => {
     })
   })
 })
-
-describe('D662 v5 · relee cuando el SERVIDOR confirma la suscripción (Codex p2v5-r1 #8)', () => {
-  it('al confirmar la sucursal (al entrar o tras reconectar) vuelve a leer; al desmontar deja de esperar', () => {
-    const releer = vi.fn()
-    const { unmount } = renderHook(() => useRelecturaDeLaTienda('venue-b', undefined, releer))
-    expect(confirmar['venue-b']).toBeTypeOf('function')
-    act(() => confirmar['venue-b']())
-    expect(releer).toHaveBeenCalledTimes(1)
-    unmount()
-    expect(confirmar['venue-b']).toBeUndefined()
-  })
-})
-

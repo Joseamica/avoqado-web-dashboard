@@ -62,11 +62,9 @@ export function releerSinReusar(qc: QueryClient, queryKey: QueryKey): Promise<vo
  * D662 v4 (hueco 5): el estado de la tienda se vuelve a leer en cuanto puede cambiar, sin esperar el sondeo de 30 s:
  * - el aviso del SERVIDOR (`online_ordering_store_changed`: Reanudar, pausar, ajustes, se pausó sola) y cualquier cambio de un pedido en
  *   línea (`order_updated` con `onlineStatus`: una cancelación tardía también puede pausarla; Codex p2v4-r2 #3) o un pedido nuevo
- *   (`order_created` de la tienda: su hora límite puede ser la próxima), en el cuarto de ESTE
- *   negocio (el socket entra al cuarto aunque la sesión sea de otra sucursal; Codex p2v4-r2 #4);
- * - al reconectarse el socket (un aviso pudo perderse mientras estaba caído) y, sobre todo, cuando el SERVIDOR CONFIRMA la suscripción a
- *   esta sucursal (al entrar y en cada reconexión; Codex p2v5-r1 #8): una lectura que salió antes de la confirmación pudo perder el aviso;
- *   la que sale después ya no;
+ *   (`order_created` de la tienda: su hora límite puede ser la próxima). Llegan por el cuarto de la sucursal de la SESIÓN; una pantalla
+ *   que mira otra sucursal se entera por su sondeo, como el resto del panel (founder, 21-nov: se quitó la línea en vivo de otra sucursal);
+ * - al reconectarse el socket (un aviso pudo perderse mientras estaba caído);
  * - al volver a la pestaña (el navegador frena los temporizadores de una pestaña oculta);
  * - justo después de la próxima hora límite de un pedido por aceptar (ahí se puede pausar sola).
  */
@@ -78,7 +76,7 @@ export function useRelecturaDeLaTienda(
   opts: { conPedidos?: boolean } = {},
 ) {
   const conPedidos = opts.conPedidos !== false
-  const { socket, joinVenueRoom, leaveVenueRoom, alConfirmarSucursal } = useSocket()
+  const { socket, joinVenueRoom, leaveVenueRoom } = useSocket()
   const releerRef = useRef(releer)
   releerRef.current = releer
 
@@ -91,7 +89,6 @@ export function useRelecturaDeLaTienda(
       if (e?.onlineStatus && (!e.venueId || e.venueId === venueId)) releerRef.current()
     }
     const onConectado = () => releerRef.current()
-    const dejarDeEsperar = alConfirmarSucursal(venueId, () => releerRef.current())
     joinVenueRoom(venueId)
     socket.on('online_ordering_store_changed', onCambio)
     // Un pedido NUEVO trae una hora límite que puede ser la próxima (sin pedidos por aceptar no había relectura programada).
@@ -110,10 +107,9 @@ export function useRelecturaDeLaTienda(
         socket.off('order_created', onNuevo)
       }
       socket.off('connect', onConectado)
-      dejarDeEsperar()
       leaveVenueRoom(venueId)
     }
-  }, [venueId, socket, joinVenueRoom, leaveVenueRoom, alConfirmarSucursal, conPedidos])
+  }, [venueId, socket, joinVenueRoom, leaveVenueRoom, conPedidos])
 
   useEffect(() => {
     if (!venueId) return
