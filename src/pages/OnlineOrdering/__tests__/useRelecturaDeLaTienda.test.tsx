@@ -49,8 +49,9 @@ describe('relectura del estado de la tienda', () => {
     expect(laMasNueva(vieja, nueva)?.id).toBe('reanudada')
     expect(laMasNueva(undefined, vieja)?.id).toBe('pausada')
     // Codex p2v4-r2 #5: la que leyó unos ajustes guardados más tarde gana aunque haya ENTRADO antes (leyó después del «Reanudar»).
-    const entroAntesLeyoDespues = { storeReadAt: '2026-11-20T18:00:01.000Z', storeVersion: '2026-11-20T18:00:03.000Z', id: 'abierta' }
-    const entroDespuesLeyoAntes = { storeReadAt: '2026-11-20T18:00:02.000Z', storeVersion: '2026-11-20T17:59:00.000Z', id: 'pausada' }
+    // Codex p2v5-r4 #5: la versión es el entero que sube la base en cada guardado (en el orden en que se confirman).
+    const entroAntesLeyoDespues = { storeReadAt: '2026-11-20T18:00:01.000Z', storeVersion: 100, id: 'abierta' }
+    const entroDespuesLeyoAntes = { storeReadAt: '2026-11-20T18:00:02.000Z', storeVersion: 13, id: 'pausada' }
     expect(laMasNueva(entroAntesLeyoDespues, entroDespuesLeyoAntes)?.id).toBe('abierta')
     expect(laMasNueva(entroDespuesLeyoAntes, entroAntesLeyoDespues)?.id).toBe('abierta')
     // Un SERVIDOR viejo (sin la marca): gana la que llegó al último.

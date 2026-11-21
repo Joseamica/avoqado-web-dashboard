@@ -35,8 +35,11 @@ export interface OnlineOrderingSettings {
   store: StoreState
   /** D662: cuándo leyó el SERVIDOR `store` (ISO, tomado antes de leer). Un servidor viejo no lo manda. */
   storeReadAt?: string
-  /** D662 v4: cuándo se guardaron los ajustes que se leyeron (ISO): ordena las lecturas junto con `storeReadAt`. */
-  storeVersion?: string | null
+  /**
+   * D662 v4: la versión de los ajustes que se leyeron: ordena las lecturas junto con `storeReadAt`. Desde p2v5-r4 #5 es un entero que la
+   * base sube en cada guardado, en el orden en que se confirman.
+   */
+  storeVersion?: number | null
   /** D662 v4: la hora límite más cercana de un pedido por aceptar (ISO): el panel vuelve a leer justo después. */
   storeNextDeadlineAt?: string | null
   /** Sólo del navegador: cuándo salió la petición (no lo manda el SERVIDOR). */
@@ -148,7 +151,7 @@ export interface Inbox {
   serverTime: string
   /** D662 v4 (con `pausaSola=1`): cuándo leyó el SERVIDOR `store` y la próxima hora límite por aceptar. */
   storeReadAt?: string
-  storeVersion?: string | null
+  storeVersion?: number | null
   storeNextDeadlineAt?: string | null
   /** Sólo del navegador: cuándo salió la petición. */
   enviadoEn?: number

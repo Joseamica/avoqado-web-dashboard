@@ -8,7 +8,7 @@ export interface MarcasDeLectura {
   /** Cuándo leyó el SERVIDOR el estado (su reloj, tomado ANTES de leer). */
   storeReadAt?: string | null
   /** Cuándo se guardaron los ajustes que leyó (Reanudar, pausar y ajustes la mueven). */
-  storeVersion?: string | null
+  storeVersion?: number | null
   /** La hora límite más cercana de un pedido por aceptar (reloj del SERVIDOR). */
   storeNextDeadlineAt?: string | null
   /** Cuándo SALIÓ la petición (reloj del navegador). */
@@ -36,14 +36,15 @@ export function esperaHastaLaHoraLimite(m: MarcasDeLectura, ahora: number = Date
  * una pausa ya guardados), y con los mismos ajustes la que el SERVIDOR leyó más tarde (`storeReadAt`: la pausa sola sólo puede aparecer con
  * el tiempo). Sin marcas (SERVIDOR viejo), la segunda.
  */
-export function laMasNueva<T extends { storeReadAt?: string | null; storeVersion?: string | null }>(
+export function laMasNueva<T extends { storeReadAt?: string | null; storeVersion?: number | null }>(
   a: T | undefined,
   b: T | undefined,
 ): T | undefined {
   if (!a) return b
   if (!b) return a
-  const va = a.storeVersion ? Date.parse(a.storeVersion) : null
-  const vb = b.storeVersion ? Date.parse(b.storeVersion) : null
+  // Codex p2v5-r4 #5: un entero que sube la base en cada guardado, en el orden en que se confirman (antes, una hora que podía ir al revés).
+  const va = a.storeVersion ?? null
+  const vb = b.storeVersion ?? null
   if (va !== null && vb !== null && va !== vb) return vb > va ? b : a
   if (a.storeReadAt && b.storeReadAt) return Date.parse(b.storeReadAt) > Date.parse(a.storeReadAt) ? b : a
   return b

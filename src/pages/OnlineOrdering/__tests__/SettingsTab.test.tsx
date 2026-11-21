@@ -177,7 +177,7 @@ describe('SettingsTab', () => {
     getSettings.mockResolvedValue(
       leida({
         enabled: true,
-        storeVersion: '2026-11-20T17:00:00.000Z',
+        storeVersion: 1,
         store: { status: 'OPEN', reason: null, pausedUntil: null, manualPause: false },
       }),
     )
@@ -192,7 +192,7 @@ describe('SettingsTab', () => {
       leida({
         enabled: false,
         storeReadAt: '2026-11-20T18:00:10.000Z',
-        storeVersion: '2026-11-20T18:00:05.000Z',
+        storeVersion: 4,
         store: { status: 'DISABLED', reason: 'NOT_ENABLED', pausedUntil: null, manualPause: false },
       }),
     )
@@ -204,17 +204,17 @@ describe('SettingsTab', () => {
   it('🔴 D662 v5 (Codex p2v5-r2 #10): lo que edité y otra persona guardó IGUAL deja de ser edición: su siguiente guardado sí me llega y «Guardar» no lo revierte', async () => {
     const leida = (over: Record<string, unknown>) =>
       base({ enabled: true, storeReadAt: '2026-11-20T18:00:00.000Z', storeNextDeadlineAt: null, enviadoEn: Date.now(), ...over })
-    getSettings.mockResolvedValue(leida({ minOrderAmount: 50, storeVersion: '2026-11-20T17:00:00.000Z' }))
+    getSettings.mockResolvedValue(leida({ minOrderAmount: 50, storeVersion: 1 }))
     renderTab()
     await formularioCargado()
     fireEvent.change(screen.getByLabelText('settings.minOrder'), { target: { value: '80' } })
     expect(await screen.findByText('settings.unsaved')).toBeInTheDocument()
     // Otra gerente guarda $80.
-    getSettings.mockResolvedValue(leida({ minOrderAmount: 80, storeVersion: '2026-11-20T18:00:01.000Z' }))
+    getSettings.mockResolvedValue(leida({ minOrderAmount: 80, storeVersion: 2 }))
     fireEvent(document, new Event('visibilitychange'))
     await waitFor(() => expect(screen.queryByText('settings.unsaved')).toBeNull())
     // Y luego guarda $90: ya no es mi edición, me llega.
-    getSettings.mockResolvedValue(leida({ minOrderAmount: 90, storeVersion: '2026-11-20T18:00:02.000Z' }))
+    getSettings.mockResolvedValue(leida({ minOrderAmount: 90, storeVersion: 3 }))
     fireEvent(document, new Event('visibilitychange'))
     await waitFor(() => expect(screen.getByLabelText('settings.minOrder')).toHaveValue(90))
     expect(screen.queryByText('settings.unsaved')).toBeNull()
@@ -224,18 +224,18 @@ describe('SettingsTab', () => {
     const semana = (open: string) => ({ monday: { enabled: true, ranges: [{ open, close: '21:00' }] } })
     const leida = (over: Record<string, unknown>) =>
       base({ enabled: true, storeReadAt: '2026-11-20T18:00:00.000Z', storeNextDeadlineAt: null, enviadoEn: Date.now(), ...over })
-    getSettings.mockResolvedValue(leida({ hours: semana('09:00'), storeVersion: '2026-11-20T17:00:00.000Z' }))
+    getSettings.mockResolvedValue(leida({ hours: semana('09:00'), storeVersion: 1 }))
     renderTab()
     await formularioCargado()
     // Yo cambio la apertura a las 10:00 (sin guardar).
     fireEvent.click(screen.getByRole('button', { name: 'abrir-a-las-10' }))
     expect(await screen.findByText('settings.unsaved')).toBeInTheDocument()
     // Otra gerente guarda las 10:00…
-    getSettings.mockResolvedValue(leida({ hours: semana('10:00'), storeVersion: '2026-11-20T18:00:01.000Z' }))
+    getSettings.mockResolvedValue(leida({ hours: semana('10:00'), storeVersion: 2 }))
     fireEvent(document, new Event('visibilitychange'))
     await waitFor(() => expect(screen.queryByText('settings.unsaved')).toBeNull())
     // …y luego las 11:00: ya no es mi edición, me llega.
-    getSettings.mockResolvedValue(leida({ hours: semana('11:00'), storeVersion: '2026-11-20T18:00:02.000Z' }))
+    getSettings.mockResolvedValue(leida({ hours: semana('11:00'), storeVersion: 3 }))
     fireEvent(document, new Event('visibilitychange'))
     await waitFor(() => expect(screen.getByTestId('hours-editor')).toHaveAttribute('data-open', '11:00'))
     expect(screen.queryByText('settings.unsaved')).toBeNull()
@@ -247,6 +247,69 @@ describe('SettingsTab', () => {
     expect(updateSettings).toHaveBeenCalledWith('venue-1', { minOrderAmount: 80 })
   })
 
+  it('🔴 D662 v5 (Codex p2v5-r4 #1): el horario que activé y otra persona guardó igual, con las claves en OTRO orden (Postgres), deja de ser edición', async () => {
+    // Lo que manda el panel al activar el horario: lunes a domingo, `{ enabled, ranges: [{ open, close }] }`.
+    const semana = (lunes: string) =>
+      Object.fromEntries(
+        ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map(d => [
+          d,
+          { enabled: true, ranges: [{ open: d === 'monday' ? lunes : '09:00', close: '22:00' }] },
+        ]),
+      )
+    // Lo mismo como lo devuelve Postgres (jsonb ordena las claves: primero las cortas): otro texto JSON, el mismo horario.
+    const comoPostgres = (h: Record<string, { enabled: boolean; ranges: { open: string; close: string }[] }>) =>
+      Object.fromEntries(
+        ['friday', 'monday', 'sunday', 'tuesday', 'saturday', 'thursday', 'wednesday'].map(d => [
+          d,
+          { ranges: h[d].ranges.map(r => ({ open: r.open, close: r.close })), enabled: h[d].enabled },
+        ]),
+      )
+    const leida = (over: Record<string, unknown>) =>
+      base({ enabled: true, storeReadAt: '2026-11-20T18:00:00.000Z', storeNextDeadlineAt: null, enviadoEn: Date.now(), ...over })
+    getSettings.mockResolvedValue(leida({ hours: null, storeVersion: 1 }))
+    renderTab()
+    await formularioCargado()
+    // Yo activo el horario (sin guardar).
+    await userEvent.click(screen.getByRole('switch', { name: 'settings.hours.use' }))
+    expect(await screen.findByText('settings.unsaved')).toBeInTheDocument()
+    // Otra gerente activa el MISMO horario y lo guarda: vuelve con las claves en otro orden.
+    getSettings.mockResolvedValue(leida({ hours: comoPostgres(semana('09:00')), storeVersion: 2 }))
+    fireEvent(document, new Event('visibilitychange'))
+    await waitFor(() => expect(screen.queryByText('settings.unsaved')).toBeNull())
+    // Luego cambia la apertura del lunes a las 11:00: me llega.
+    getSettings.mockResolvedValue(leida({ hours: comoPostgres(semana('11:00')), storeVersion: 3 }))
+    fireEvent(document, new Event('visibilitychange'))
+    await waitFor(() => expect(screen.getByTestId('hours-editor')).toHaveAttribute('data-open', '11:00'))
+    // Guardo el pedido mínimo: sólo va el mínimo; el lunes no vuelve a las 09:00.
+    updateSettings.mockResolvedValue(putToday({ enabled: true, hours: comoPostgres(semana('11:00')), minOrderAmount: 80 }))
+    fireEvent.change(screen.getByLabelText('settings.minOrder'), { target: { value: '80' } })
+    await userEvent.click(screen.getByRole('button', { name: 'settings.save' }))
+    await waitFor(() => expect(updateSettings).toHaveBeenCalledTimes(1))
+    expect(updateSettings).toHaveBeenCalledWith('venue-1', { minOrderAmount: 80 })
+  })
+
+  it('🔴 D662 v5 (Codex p2v5-r4 #5): reanudar y pausar cruzados: la lectura con la versión MAYOR gana aunque haya entrado antes ⇒ «Pausada»', async () => {
+    const abierta = { status: 'OPEN', reason: null, pausedUntil: null, manualPause: false }
+    const pausada = { status: 'PAUSED', reason: 'MANUAL_PAUSE', pausedUntil: '2026-11-20T18:15:00.000Z', manualPause: false }
+    getSettings.mockResolvedValue(
+      base({ enabled: true, store: abierta, storeReadAt: '2026-11-20T18:00:00.000Z', storeVersion: 11, enviadoEn: Date.now() }),
+    )
+    renderTab()
+    await formularioCargado()
+    // Leyó «Abierta» entre los dos guardados (el «Reanudar» ya confirmado, versión 12)…
+    getSettings.mockResolvedValue(
+      base({ enabled: true, store: abierta, storeReadAt: '2026-11-20T18:00:10.000Z', storeVersion: 12, enviadoEn: Date.now() }),
+    )
+    fireEvent(document, new Event('visibilitychange'))
+    await waitFor(() => expect(getSettings).toHaveBeenCalledTimes(2))
+    // …y después la pausa, que confirmó al último (versión 100), en una lectura que ENTRÓ antes.
+    getSettings.mockResolvedValue(
+      base({ enabled: true, store: pausada, storeReadAt: '2026-11-20T18:00:09.000Z', storeVersion: 100, enviadoEn: Date.now() }),
+    )
+    fireEvent(document, new Event('visibilitychange'))
+    expect(await screen.findByText(/^settings\.status\.pausedUntil/)).toBeInTheDocument()
+  })
+
   it('D662 v5 (Codex p2v5-r2 #9): si el negocio nunca había guardado y otra persona lo configura y enciende, el interruptor también lo dice', async () => {
     getSettings.mockResolvedValue(base({ storeReadAt: '2026-11-20T18:00:00.000Z', storeVersion: null, enviadoEn: Date.now() }))
     renderTab()
@@ -256,7 +319,7 @@ describe('SettingsTab', () => {
       base({
         enabled: true,
         storeReadAt: '2026-11-20T18:00:10.000Z',
-        storeVersion: '2026-11-20T18:00:05.000Z',
+        storeVersion: 4,
         enviadoEn: Date.now(),
         store: { status: 'OPEN', reason: null, pausedUntil: null, manualPause: false },
       }),

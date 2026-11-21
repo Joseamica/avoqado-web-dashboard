@@ -85,12 +85,23 @@ const sameAllWeek = (h: OperatingHours | null) => {
   )
 }
 
+/** Para comparar por valor: las claves de cada objeto en orden; los arreglos conservan el suyo (los rangos de un día sí lo tienen). */
+const clavesOrdenadas = (_: string, v: unknown) =>
+  v && typeof v === 'object' && !Array.isArray(v)
+    ? Object.fromEntries(Object.entries(v).sort(([x], [y]) => (x < y ? -1 : x > y ? 1 : 0)))
+    : v
+/**
+ * El mismo valor aunque las claves vengan en otro orden (Codex p2v5-r4 #1): Postgres (jsonb) devuelve el horario con sus claves
+ * ordenadas a su modo, no como lo mandó el panel, y comparar el texto JSON lo veía distinto.
+ */
+const mismoValor = (a: unknown, b: unknown) => JSON.stringify(a, clavesOrdenadas) === JSON.stringify(b, clavesOrdenadas)
+
 /** Patch estricto: sólo lo que cambió. `minOrderAmount` vacío NO se manda (nunca 0 a escondidas). */
 function buildPatch(values: FormValues, saved: FormValues): Partial<OnlineOrderingSettingsInput> {
   const patch: Record<string, unknown> = {}
   for (const k of Object.keys(values) as (keyof FormValues)[]) {
     if (values[k] === undefined) continue
-    if (JSON.stringify(values[k]) !== JSON.stringify(saved[k])) patch[k] = values[k]
+    if (!mismoValor(values[k], saved[k])) patch[k] = values[k]
   }
   return patch as Partial<OnlineOrderingSettingsInput>
 }
@@ -249,8 +260,10 @@ export function SettingsTab() {
   const lecturaDelEstado = storeQuery.data
   useEffect(() => {
     // Sin versión en lo que se tenía (el negocio nunca había guardado) cualquier versión es más nueva (Codex p2v5-r2 #9).
-    if (!venueId || !settings || !lecturaDelEstado?.storeVersion) return
-    if (settings.storeVersion && Date.parse(lecturaDelEstado.storeVersion) <= Date.parse(settings.storeVersion)) return
+    // La versión es un entero que empieza en 0 (una fila nueva): se compara contra null, nunca por «verdadero».
+    const nueva = lecturaDelEstado?.storeVersion
+    if (!venueId || !settings || nueva == null) return
+    if (settings.storeVersion != null && nueva <= settings.storeVersion) return
     qc.setQueryData(onlineOrderingKeys.settings(venueId), lecturaDelEstado)
   }, [venueId, settings, lecturaDelEstado, qc])
 
@@ -274,7 +287,7 @@ export function SettingsTab() {
     if (!formValues) return
     for (const nombre of Object.keys(formValues) as Array<keyof FormValues>) {
       if (!form.getFieldState(nombre).isDirty) continue
-      if (JSON.stringify(form.getValues(nombre)) === JSON.stringify(formValues[nombre])) {
+      if (mismoValor(form.getValues(nombre), formValues[nombre])) {
         form.resetField(nombre, { defaultValue: formValues[nombre] })
       }
     }
