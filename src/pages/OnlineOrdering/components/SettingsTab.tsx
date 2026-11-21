@@ -262,8 +262,9 @@ export function SettingsTab() {
     // Sin versión en lo que se tenía (el negocio nunca había guardado) cualquier versión es más nueva (Codex p2v5-r2 #9).
     // La versión es un entero que empieza en 0 (una fila nueva): se compara contra null, nunca por «verdadero».
     const nueva = lecturaDelEstado?.storeVersion
-    if (!venueId || !settings || nueva == null) return
-    if (settings.storeVersion != null && nueva <= settings.storeVersion) return
+    // Codex p2v5-r5 #3: sólo una versión NUMÉRICA cuenta (una marca de otro tipo nunca reemplaza lo guardado).
+    if (!venueId || !settings || typeof nueva !== 'number') return
+    if (typeof settings.storeVersion === 'number' && nueva <= settings.storeVersion) return
     qc.setQueryData(onlineOrderingKeys.settings(venueId), lecturaDelEstado)
   }, [venueId, settings, lecturaDelEstado, qc])
 

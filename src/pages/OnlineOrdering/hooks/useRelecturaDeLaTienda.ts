@@ -43,8 +43,9 @@ export function laMasNueva<T extends { storeReadAt?: string | null; storeVersion
   if (!a) return b
   if (!b) return a
   // Codex p2v5-r4 #5: un entero que sube la base en cada guardado, en el orden en que se confirman (antes, una hora que podía ir al revés).
-  const va = a.storeVersion ?? null
-  const vb = b.storeVersion ?? null
+  // Codex p2v5-r5 #3: sólo cuenta una versión NUMÉRICA (una marca de otro tipo, p. ej. una fecha de una rama vieja, se ignora).
+  const va = typeof a.storeVersion === 'number' ? a.storeVersion : null
+  const vb = typeof b.storeVersion === 'number' ? b.storeVersion : null
   if (va !== null && vb !== null && va !== vb) return vb > va ? b : a
   if (a.storeReadAt && b.storeReadAt) return Date.parse(b.storeReadAt) > Date.parse(a.storeReadAt) ? b : a
   return b

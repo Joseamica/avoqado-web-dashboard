@@ -60,6 +60,14 @@ describe('relectura del estado de la tienda', () => {
     expect(laMasNueva(sinMarcaA, sinMarcaB)?.id).toBe('b')
   })
 
+  it('una marca de versión que no es número (p. ej. una fecha) no gana a la versión numérica (Codex p2v5-r5 #3)', () => {
+    const pausada = { storeVersion: 7, storeReadAt: '2026-11-21T10:00:01.000Z', estado: 'PAUSED' }
+    const vieja = { storeVersion: '2026-11-21T10:00:00.000Z' as unknown as number, storeReadAt: '2026-11-21T10:00:02.000Z', estado: 'OPEN' }
+    // Sin dos versiones numéricas, decide la hora de lectura del SERVIDOR (la de siempre), no la marca rara.
+    expect(laMasNueva(pausada, vieja)).toBe(vieja)
+    expect(laMasNueva({ ...vieja, storeReadAt: '2026-11-21T09:59:00.000Z' }, pausada)).toBe(pausada)
+  })
+
   describe('el gancho', () => {
     beforeEach(() => vi.useFakeTimers())
     afterEach(() => vi.useRealTimers())
