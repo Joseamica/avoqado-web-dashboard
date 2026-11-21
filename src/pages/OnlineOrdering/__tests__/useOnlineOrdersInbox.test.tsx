@@ -129,4 +129,3 @@ describe('D662 v5 (Codex p2v4-r5 #3): un aviso con la primera lectura todavía e
     expect(result.current.data?.store?.status).toBe('OPEN')
   })
 })
-

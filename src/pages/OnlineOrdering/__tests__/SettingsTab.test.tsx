@@ -23,10 +23,7 @@ vi.mock('@/pages/Reservations/components/OperatingHoursEditor', () => ({
     onChange: (next: unknown) => void
   }) => (
     <div data-testid="hours-editor" data-open={value?.monday?.ranges[0]?.open}>
-      <button
-        type="button"
-        onClick={() => onChange({ ...value, monday: { enabled: true, ranges: [{ open: '10:00', close: '21:00' }] } })}
-      >
+      <button type="button" onClick={() => onChange({ ...value, monday: { enabled: true, ranges: [{ open: '10:00', close: '21:00' }] } })}>
         abrir-a-las-10
       </button>
     </div>
