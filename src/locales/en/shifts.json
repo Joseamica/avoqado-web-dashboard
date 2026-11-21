@@ -292,7 +292,8 @@
         "CARRITO_ILEGIBLE": "the payment's products couldn't be read",
         "VENTA_RECHAZADA": "the sale could no longer be recorded (for example, a product no longer exists)",
         "PREMIO_PENDIENTE": "the payment included a stamp reward",
-        "LLAVE_OCUPADA": "the folio already belonged to another sale"
+        "LLAVE_OCUPADA": "the folio already belonged to another sale",
+        "RESERVA": "reservations and classes are not charged at the machine"
       },
       "processing": "Received: it's still being recorded.",
       "changed": "New evidence arrived: review it again.",

@@ -292,7 +292,8 @@
         "CARRITO_ILEGIBLE": "no se pudieron leer los productos del cobro",
         "VENTA_RECHAZADA": "la venta ya no se pudo registrar (por ejemplo, un producto ya no existe)",
         "PREMIO_PENDIENTE": "el cobro traía un premio de sellos",
-        "LLAVE_OCUPADA": "el folio ya era de otra venta"
+        "LLAVE_OCUPADA": "el folio ya era de otra venta",
+        "RESERVA": "las reservas y clases no se cobran en la máquina"
       },
       "processing": "Recibido: se está terminando de registrar.",
       "changed": "Llegó evidencia nueva: revísala otra vez.",
