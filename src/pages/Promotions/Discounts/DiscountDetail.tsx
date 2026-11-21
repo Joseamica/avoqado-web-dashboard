@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils'
 import discountService from '@/services/discount.service'
 import type { Discount } from '@/types/discount'
 import { DiscountWizard } from '../components/DiscountWizard'
+import { useVenueDateTime } from '@/utils/datetime'
 import { useDiscountFormData } from '../hooks/useDiscountFormData'
 
 type TabId = 'general' | 'scope' | 'rules' | 'config'
@@ -77,11 +78,12 @@ function formatTimeRange(timeFrom?: string, timeUntil?: string, t?: (key: string
 }
 
 // Format date
-function formatDate(dateString?: string, t?: (key: string) => string): string {
+function formatDate(dateString?: string, t?: (key: string) => string, timeZone?: string): string {
   if (!dateString) {
     return t?.('discounts.detail.empty.always') || 'Siempre'
   }
-  return new Date(dateString).toLocaleDateString()
+  // D37: el día del negocio, no el de la computadora.
+  return new Date(dateString).toLocaleDateString(undefined, { timeZone })
 }
 
 export default function DiscountDetail() {
@@ -381,6 +383,7 @@ function ScopeTab({ discount, t, productNamesMap, categoryNamesMap, customerGrou
 }
 
 function RulesTab({ discount, t }: TabProps) {
+  const { venueTimezone } = useVenueDateTime()
   return (
     <div className="space-y-4">
       {/* Usage Limits */}
@@ -414,8 +417,8 @@ function RulesTab({ discount, t }: TabProps) {
           <CardTitle>{t('discounts.detail.sections.timeRestrictions')}</CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-2 gap-6">
-          <InfoRow label={t('discounts.form.fields.validFrom')} value={formatDate(discount.validFrom, t)} />
-          <InfoRow label={t('discounts.form.fields.validUntil')} value={formatDate(discount.validUntil, t)} />
+          <InfoRow label={t('discounts.form.fields.validFrom')} value={formatDate(discount.validFrom, t, venueTimezone)} />
+          <InfoRow label={t('discounts.form.fields.validUntil')} value={formatDate(discount.validUntil, t, venueTimezone)} />
           <InfoRow label={t('discounts.form.fields.daysOfWeek')} value={<DaysOfWeekBadges days={discount.daysOfWeek} />} />
           <InfoRow label={t('discounts.detail.fields.timeRange')} value={formatTimeRange(discount.timeFrom, discount.timeUntil, t)} />
         </CardContent>

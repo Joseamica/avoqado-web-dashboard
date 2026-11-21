@@ -14,7 +14,8 @@ import type { CreateDiscountRequest, Discount, DiscountScope, DiscountType, Upda
 import { ChevronLeft, ChevronRight, Check, Loader2 } from 'lucide-react'
 
 import { useDiscountFormData } from '../hooks/useDiscountFormData'
-import { categoriasParaGuardar, limiteParaGuardar, soloLoQueCambio } from '../paraGuardar'
+import { categoriasParaGuardar, limiteParaGuardar, soloLoQueCambio, vigenciaDelFormulario, vigenciaParaFormulario } from '../paraGuardar'
+import { useVenueDateTime } from '@/utils/datetime'
 import { WizardStep1BasicInfo } from './wizard-steps/WizardStep1BasicInfo'
 import { WizardStep2Scope } from './wizard-steps/WizardStep2Scope'
 import { WizardStep3Rules } from './wizard-steps/WizardStep3Rules'
@@ -81,6 +82,8 @@ export function DiscountWizard({ open, onOpenChange, venueId, editDiscount, onSu
   const { t: tCommon } = useTranslation()
   const { toast } = useToast()
   const queryClient = useQueryClient()
+  // D37: «Válido desde/hasta» son días del negocio, en su zona.
+  const { venueTimezone } = useVenueDateTime()
 
   // Determine if we're in edit mode
   const isEditMode = !!editDiscount
@@ -181,8 +184,9 @@ export function DiscountWizard({ open, onOpenChange, venueId, editDiscount, onSu
           maxDiscountAmount: editDiscount.maxDiscountAmount,
           maxTotalUses: editDiscount.maxTotalUses,
           maxUsesPerCustomer: editDiscount.maxUsesPerCustomer,
-          validFrom: editDiscount.validFrom || '',
-          validUntil: editDiscount.validUntil || '',
+          // D37: la caja de fecha recibe el día del negocio (antes recibía el instante completo y salía vacía).
+          validFrom: vigenciaParaFormulario(editDiscount.validFrom, venueTimezone),
+          validUntil: vigenciaParaFormulario(editDiscount.validUntil, venueTimezone),
           daysOfWeek: editDiscount.daysOfWeek?.map(d => d.toString()) || [],
           timeFrom: editDiscount.timeFrom || '',
           timeUntil: editDiscount.timeUntil || '',
@@ -206,7 +210,7 @@ export function DiscountWizard({ open, onOpenChange, venueId, editDiscount, onSu
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- form refs are stable from useForm
-  }, [open, editDiscount])
+  }, [open, editDiscount, venueTimezone])
 
   // Create discount mutation
   const createDiscountMutation = useMutation({
@@ -328,8 +332,7 @@ export function DiscountWizard({ open, onOpenChange, venueId, editDiscount, onSu
       // (sin límite; antes se omitía y el límite viejo se quedaba). Si 0 vale lo decide el SERVIDOR frente a lo guardado.
       maxTotalUses: step3Data.maxTotalUses ?? undefined,
       maxUsesPerCustomer: step3Data.maxUsesPerCustomer ?? undefined,
-      validFrom: step3Data.validFrom || undefined,
-      validUntil: step3Data.validUntil || undefined,
+      ...vigenciaDelFormulario(step3Data, venueTimezone),
       daysOfWeek: cleanDaysOfWeek(step3Data.daysOfWeek),
       timeFrom: step3Data.timeFrom || undefined,
       timeUntil: step3Data.timeUntil || undefined,
@@ -352,6 +355,7 @@ export function DiscountWizard({ open, onOpenChange, venueId, editDiscount, onSu
         soloLoQueCambio(
           {
             ...completeData,
+            ...vigenciaDelFormulario(step3Data, venueTimezone, editDiscount),
             maxTotalUses: limiteParaGuardar(step3Data.maxTotalUses, true),
             maxUsesPerCustomer: limiteParaGuardar(step3Data.maxUsesPerCustomer, true),
           },

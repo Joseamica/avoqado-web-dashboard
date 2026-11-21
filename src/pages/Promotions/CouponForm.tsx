@@ -15,7 +15,8 @@ import { Select, SelectContent, SelectItem, SelectSeparator, SelectTrigger, Sele
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
 import couponService from '@/services/coupon.service'
-import { limiteParaGuardar, soloLoQueCambio } from './paraGuardar'
+import { limiteParaGuardar, soloLoQueCambio, vigenciaDelFormulario, vigenciaParaFormulario } from './paraGuardar'
+import { useVenueDateTime } from '@/utils/datetime'
 import discountService from '@/services/discount.service'
 import type { CreateCouponRequest } from '@/types/discount'
 
@@ -39,6 +40,8 @@ export default function CouponForm() {
   const navigate = useNavigate()
   const { toast } = useToast()
   const queryClient = useQueryClient()
+  // D37: «Válido desde/hasta» son días del negocio, en su zona.
+  const { venueTimezone } = useVenueDateTime()
 
   const isEditing = !!couponId
 
@@ -81,12 +84,12 @@ export default function CouponForm() {
         maxUses: existingCoupon.maxUses,
         maxUsesPerCustomer: existingCoupon.maxUsesPerCustomer,
         minPurchaseAmount: existingCoupon.minPurchaseAmount,
-        validFrom: existingCoupon.validFrom ? existingCoupon.validFrom.split('T')[0] : '',
-        validUntil: existingCoupon.validUntil ? existingCoupon.validUntil.split('T')[0] : '',
+        validFrom: vigenciaParaFormulario(existingCoupon.validFrom, venueTimezone),
+        validUntil: vigenciaParaFormulario(existingCoupon.validUntil, venueTimezone),
         active: existingCoupon.active,
       })
     }
-  }, [existingCoupon, form])
+  }, [existingCoupon, form, venueTimezone])
 
   // Create/Update mutation
   const mutation = useMutation({
@@ -102,6 +105,7 @@ export default function CouponForm() {
           soloLoQueCambio(
             {
               ...updateData,
+              ...vigenciaDelFormulario(updateData, venueTimezone, existingCoupon),
               maxUses: limiteParaGuardar(updateData.maxUses, true),
               maxUsesPerCustomer: limiteParaGuardar(updateData.maxUsesPerCustomer, true),
             },
@@ -109,7 +113,7 @@ export default function CouponForm() {
           ),
         )
       }
-      return couponService.createCoupon(venueId, data)
+      return couponService.createCoupon(venueId, { ...data, ...vigenciaDelFormulario(data, venueTimezone) })
     },
     onSuccess: () => {
       toast({

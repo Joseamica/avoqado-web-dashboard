@@ -36,6 +36,7 @@ import { useToast } from '@/hooks/use-toast'
 import couponService from '@/services/coupon.service'
 import discountService from '@/services/discount.service'
 import type { Coupon, Discount } from '@/types/discount'
+import { useVenueDateTime } from '@/utils/datetime'
 import { getIntlLocale } from '@/utils/i18n-locale'
 
 import BulkGenerateDialog from './components/BulkGenerateDialog'
@@ -47,6 +48,8 @@ export default function Coupons() {
   const navigate = useNavigate()
   const { t, i18n } = useTranslation('promotions')
   const { t: tCommon } = useTranslation()
+  // D37: la vigencia se pinta en el día del negocio, no en el de la computadora.
+  const { venueTimezone } = useVenueDateTime()
 
   // State
   const [pagination, setPagination] = useState({
@@ -122,19 +125,19 @@ export default function Coupons() {
         return tCommon('validAlways')
       }
       if (coupon.validFrom && coupon.validUntil) {
-        const from = new Date(coupon.validFrom).toLocaleDateString(getIntlLocale(i18n.language))
-        const to = new Date(coupon.validUntil).toLocaleDateString(getIntlLocale(i18n.language))
+        const from = new Date(coupon.validFrom).toLocaleDateString(getIntlLocale(i18n.language), { timeZone: venueTimezone })
+        const to = new Date(coupon.validUntil).toLocaleDateString(getIntlLocale(i18n.language), { timeZone: venueTimezone })
         return tCommon('dateBetween', { from, to })
       }
       if (coupon.validFrom) {
-        return tCommon('validFrom', { date: new Date(coupon.validFrom).toLocaleDateString(getIntlLocale(i18n.language)) })
+        return tCommon('validFrom', { date: new Date(coupon.validFrom).toLocaleDateString(getIntlLocale(i18n.language), { timeZone: venueTimezone }) })
       }
       if (coupon.validUntil) {
-        return tCommon('validUntil', { date: new Date(coupon.validUntil).toLocaleDateString(getIntlLocale(i18n.language)) })
+        return tCommon('validUntil', { date: new Date(coupon.validUntil).toLocaleDateString(getIntlLocale(i18n.language), { timeZone: venueTimezone }) })
       }
       return tCommon('validAlways')
     },
-    [i18n.language, t],
+    [i18n.language, venueTimezone, t],
   )
 
   // Get coupon status

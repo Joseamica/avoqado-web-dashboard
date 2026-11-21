@@ -15,6 +15,8 @@ import { DiscountType, DiscountScope } from '@/types'
 
 import { DiscountFormFields } from './DiscountFormFields'
 import { useDiscountFormData } from '../hooks/useDiscountFormData'
+import { vigenciaDelFormulario } from '../paraGuardar'
+import { useVenueDateTime } from '@/utils/datetime'
 
 interface CreateDiscountDialogProps {
   venueId: string
@@ -25,6 +27,8 @@ export function CreateDiscountDialog({ venueId, onSuccess }: CreateDiscountDialo
   const { t } = useTranslation('promotions')
   const { t: tCommon } = useTranslation()
   const { toast } = useToast()
+  // D37: «Válido desde/hasta» son días del negocio, en su zona.
+  const { venueTimezone } = useVenueDateTime()
   const queryClient = useQueryClient()
   const [open, setOpen] = useState(false)
 
@@ -110,8 +114,7 @@ export function CreateDiscountDialog({ venueId, onSuccess }: CreateDiscountDialo
     if (data.type !== 'COMP') cleanedData.compReason = undefined
     if (!['COMP', 'PERCENTAGE', 'FIXED_AMOUNT'].includes(data.type)) cleanedData.requiresApproval = undefined
 
-    if (!cleanedData.validFrom) cleanedData.validFrom = undefined
-    if (!cleanedData.validUntil) cleanedData.validUntil = undefined
+    Object.assign(cleanedData, vigenciaDelFormulario(cleanedData, venueTimezone))
     if (!cleanedData.timeFrom) cleanedData.timeFrom = undefined
     if (!cleanedData.timeUntil) cleanedData.timeUntil = undefined
     if (!cleanedData.description) cleanedData.description = undefined
