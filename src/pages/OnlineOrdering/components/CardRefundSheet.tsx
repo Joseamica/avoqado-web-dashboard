@@ -38,7 +38,7 @@ import type {
 import { Currency } from '@/utils/currency'
 import { useVenueDateTime } from '@/utils/datetime'
 
-import { ponerDuda, quitarDuda, useDuda } from '../lib/devolucionEnDuda'
+import { mandarConLlave, ponerDuda, quitarDuda, sigueEnCamino, useDuda } from '../lib/devolucionEnDuda'
 import { marcaDelPedido } from '../lib/marcaDelPedido'
 import { invalidateToPay } from '../lib/toPayLive'
 import { MarcaDelPedido } from './OrderCard'
@@ -276,7 +276,9 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
 
   const refund = useMutation({
     mutationFn: (v: { body: RefundBody; attempt: Attempt }) =>
-      createCardRefund(venueId, order.orderId, { ...v.body, expectedLatestRefundId: v.attempt.expected }, v.attempt.key),
+      mandarConLlave(v.attempt.key, () =>
+        createCardRefund(venueId, order.orderId, { ...v.body, expectedLatestRefundId: v.attempt.expected }, v.attempt.key),
+      ),
     onSuccess: (res, v) => {
       soltarDuda(v.attempt.key) // una respuesta definitiva para esa llave
       const failed = res.cardRefundStatus === 'FAILED' || res.cardRefundStatus === 'CANCELED'
@@ -297,6 +299,11 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
         const respondio = !!(err as { response?: unknown } | undefined)?.response
         const porDefecto = t(respondio ? 'cardRefund.notDefinitive' : 'cardRefund.noResponse')
         return toast({ title: typeof code === 'string' ? serverMessage(err, porDefecto) : porDefecto })
+      }
+      // Ruling 90: otra petición con esta llave sigue en camino desde esta pestaña (p. ej. la primera, de una hoja ya cerrada): este
+      // rechazo no dice qué hará ella. Destino, monto y llave siguen fijos, con «Reintentar»; decide su respuesta.
+      if (sigueEnCamino(v.attempt.key)) {
+        return toast({ title: serverMessage(err, t('cardRefund.error')), description: t('cardRefund.firstInFlight') })
       }
       soltarDuda(v.attempt.key) // un rechazo definitivo: esa llave no hizo ni va a hacer nada
       attempt.current = null

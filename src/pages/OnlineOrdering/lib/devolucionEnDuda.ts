@@ -38,8 +38,27 @@ export const quitarDuda = (venueId: string, orderId: string, key: string) => {
 export function useDuda<T>(venueId: string, orderId: string): T | null {
   return useSyncExternalStore(suscribir, () => (dudas.get(llave(venueId, orderId)) as T | undefined) ?? null)
 }
+
+/**
+ * Ruling 90: cuántas peticiones de cada llave siguen en camino desde esta pestaña (las de una hoja ya cerrada también). Mientras quede
+ * una, el rechazo de otra con la misma llave no dice qué hará ella: todavía puede ganar con lo que se mandó.
+ */
+const enCamino = new Map<string, number>()
+export async function mandarConLlave<T>(key: string, peticion: () => Promise<T>): Promise<T> {
+  enCamino.set(key, (enCamino.get(key) ?? 0) + 1)
+  try {
+    return await peticion()
+  } finally {
+    const quedan = (enCamino.get(key) ?? 1) - 1
+    if (quedan > 0) enCamino.set(key, quedan)
+    else enCamino.delete(key)
+  }
+}
+export const sigueEnCamino = (key: string) => enCamino.has(key)
+
 /** Para las pruebas: cada una empieza sin las dudas de otra. */
 export const olvidarDudas = () => {
   dudas.clear()
+  enCamino.clear()
   avisar()
 }

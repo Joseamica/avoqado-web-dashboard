@@ -1085,6 +1085,68 @@ describe('Devolver a la tarjeta', () => {
       expect(screen.queryByText('cardRefund.lockedTitle')).toBeNull()
     })
 
+    // ── Ruling 90 (el 61 enmendado otra vez): un rechazo suelta la duda sólo si ninguna petición con esa llave sigue en camino ──
+    it.each([['gana el saldo a favor'], ['la primera también se rechaza']])(
+      '🔴 la primera petición sigue en camino y el reintento se rechaza: el destino sigue fijo hasta que decide la primera (%s)',
+      async desenlace => {
+        expect(esOnline.cardRefund.firstInFlight).toBe(
+          'Este reintento no se aplicó; la primera petición sigue en camino y su respuesta decide.',
+        )
+        expect(enOnline.cardRefund.firstInFlight).toBe(
+          "This retry wasn't applied; the first request is still on its way and its answer decides.",
+        )
+        const bloqueado = 'El saldo de Ana está bloqueado; un gerente lo puede desbloquear.'
+        let contestar: (v: unknown) => void = () => {}
+        let fallar: (e: unknown) => void = () => {}
+        createCardRefund
+          .mockImplementationOnce(
+            () =>
+              new Promise((ok, falla) => {
+                contestar = ok
+                fallar = falla
+              }),
+          ) // la primera: tarda en la revisión de Stripe del SERVIDOR
+          .mockRejectedValueOnce(http(422, { code: 'STORE_CREDIT_CARD_BLOCKED', message: bloqueado })) // el reintento llega antes
+        await abrirNadie()
+        await userEvent.click(destino('saldo'))
+        await motivo()
+        await userEvent.click(devolverTodo())
+        await waitFor(() => expect(createCardRefund).toHaveBeenCalledTimes(1))
+        // Cierra con la primera en camino y vuelve a abrir: fija, en «Reintentar».
+        await userEvent.keyboard('{Escape}')
+        await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+        await userEvent.click(screen.getByRole('button', { name: 'cardRefund.nadie.cancelAndRefund' }))
+        await listaLeida()
+        const lecturas = listCardRefunds.mock.calls.length
+        await reintentar()
+        await waitFor(() => expect(createCardRefund).toHaveBeenCalledTimes(2))
+        expect(createCardRefund.mock.calls[1][3]).toBe(createCardRefund.mock.calls[0][3])
+        // El reintento ya se contestó (relee la lista al terminar): la primera todavía puede ganar, así que todo sigue fijo.
+        await waitFor(() => expect(listCardRefunds.mock.calls.length).toBeGreaterThan(lecturas))
+        expect(screen.getByRole('button', { name: 'cardRefund.retry' })).toBeEnabled()
+        expect(screen.getByText('cardRefund.lockedTitle')).toBeInTheDocument()
+        expect(destino('saldo')).toHaveAttribute('aria-pressed', 'true')
+        expect(destino('saldo')).toBeDisabled()
+        expect(destino('tarjeta')).toBeDisabled()
+        expect(screen.queryByText(bloqueado)).toBeNull()
+        expect(toast).toHaveBeenCalledWith({ title: bloqueado, description: 'cardRefund.firstInFlight' })
+        // Decide la respuesta de la primera.
+        if (desenlace === 'gana el saldo a favor') {
+          listCardRefunds.mockResolvedValue([
+            refund({ id: 'r9', status: 'RESOLVED', toStoreCredit: true, stripeRefundId: null, amount: '250.00' }),
+          ])
+          await act(async () => contestar({ ...recorded, cardRefundStatus: 'RESOLVED' }))
+          await waitFor(() => expect(toast).toHaveBeenCalledWith({ title: 'cardRefund.outcome.storeCredit' }))
+          await waitFor(() => expect(screen.queryByRole('button', { name: 'cardRefund.retry' })).toBeNull())
+          expect(await screen.findByText('cardRefund.nadie.nothingLeft')).toBeInTheDocument()
+        } else {
+          await act(async () => fallar(http(422, { code: 'STORE_CREDIT_CARD_BLOCKED', message: bloqueado })))
+          await waitFor(() => expect(screen.queryByRole('button', { name: 'cardRefund.retry' })).toBeNull())
+          expect(destino('tarjeta')).toBeEnabled()
+        }
+      },
+    )
+
     it('🔴 la salida de 10 minutos: una lectura de después, sin devolución nueva, la suelta (y la hoja dice cuánto falta)', async () => {
       // Limpieza final: los minutos se cuentan desde el envío, no son un «10» fijo.
       expect(esOnline.cardRefund.lockedExit_other).toBe('Si no se resuelve, en {{count}} minutos podrás elegir otra vez.')
