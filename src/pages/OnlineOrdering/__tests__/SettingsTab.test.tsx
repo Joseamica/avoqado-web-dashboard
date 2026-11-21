@@ -1353,6 +1353,40 @@ describe('SettingsTab', () => {
       }
     })
 
+    // Ruling 97 (rotura del 92): lo que se edita mientras el aviso dice «Tus cambios siguen aquí» no se borra cuando una lectura confirma
+    // el guardado: lo confirmado se da por guardado y lo demás se queda sin guardar.
+    it('🔴 sin respuesta, se edita otro campo mientras se espera y el sondeo confirma: la edición se queda, marcada sin guardar', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true })
+      try {
+        getSettings
+          .mockResolvedValueOnce(nadie({ cardOnlineNadie: false, ...stripeListo })) // la carga
+          .mockResolvedValueOnce(nadie({ cardOnlineNadie: false, ...stripeListo })) // la relectura: todavía no
+          .mockResolvedValue(nadie({ cardOnlineNadie: true, ...stripeListo })) // el sondeo: la tarjeta ya quedó guardada
+        updateSettings
+          .mockRejectedValueOnce(sinRed())
+          .mockResolvedValue(nadie({ cardOnlineNadie: true, ...stripeListo, minOrderAmount: 75 }))
+        renderTab()
+        await formularioCargado()
+        fireEvent.click(pagarEnLinea())
+        fireEvent.click(screen.getByRole('button', { name: 'settings.save' }))
+        await waitFor(() => expect(getSettings).toHaveBeenCalledTimes(2))
+        await waitFor(() => expect(screen.getByRole('button', { name: 'settings.save' })).toBeEnabled())
+        expect(screen.getByText('settings.saveUnconfirmed')).toBeInTheDocument()
+        // Mientras espera, la dueña cambia el mínimo.
+        fireEvent.change(screen.getByLabelText('settings.minOrder'), { target: { value: '75' } })
+        await esperar(30_500)
+        await waitFor(() => expect(toast).toHaveBeenCalledWith({ title: 'settings.saved' }))
+        expect(screen.getByLabelText('settings.minOrder')).toHaveValue(75)
+        expect(screen.getByText('settings.unsaved')).toBeInTheDocument()
+        expect(pagarEnLinea()).toBeChecked()
+        // Guardar otra vez manda sólo lo que falta: la tarjeta ya quedó guardada.
+        fireEvent.click(screen.getByRole('button', { name: 'settings.save' }))
+        await waitFor(() => expect(updateSettings).toHaveBeenLastCalledWith('venue-1', { minOrderAmount: 75 }))
+      } finally {
+        vi.useRealTimers()
+      }
+    })
+
     it('sin respuesta y ninguna lectura lo trae: cuando la petición ya no puede seguir en camino (10 min), «No se guardó»', async () => {
       vi.useFakeTimers({ shouldAdvanceTime: true })
       try {

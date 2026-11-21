@@ -278,7 +278,7 @@ export function SettingsTab() {
   // Ruling 65: una lectura nueva (cada 30 s en «Nadie», al volver a la pestaña) pone lo que cambió otra persona, pero no pisa los
   // campos que se están editando aquí.
   const form = useForm<FormValues>({ resolver: zodResolver(schema), values: formValues, resetOptions: { keepDirtyValues: true } })
-  const { control, watch, setValue, handleSubmit, reset, formState } = form
+  const { control, watch, setValue, getValues, resetField, handleSubmit, reset, formState } = form
   const hours = watch('hours')
   const enabled = watch('enabled')
   const payAtPickup = !!watch('acceptsPayAtPickup')
@@ -398,7 +398,11 @@ export function SettingsTab() {
     )
     if (trae) {
       setSinConfirmar(null)
-      reset(ahora)
+      // Ruling 97: sin `reset` de todo el formulario (borraría lo que se editó mientras se esperaba). Lo demás ya lo puso la lectura
+      // (`keepDirtyValues`); aquí sólo se da por guardado lo confirmado que sigue igual.
+      for (const k of Object.keys(sinConfirmar.patch) as (keyof FormValues)[]) {
+        if (JSON.stringify(getValues(k)) === JSON.stringify(ahora[k])) resetField(k, { defaultValue: ahora[k] })
+      }
       setServerMissing([])
       setCardAlertMissing(false)
       toast({ title: t('settings.saved') })
@@ -406,7 +410,7 @@ export function SettingsTab() {
       setSinConfirmar(null)
       setSaveError(t('settings.saveNotSaved'))
     }
-  }, [leidoEn, settings, sinConfirmar, reset, toast, t])
+  }, [leidoEn, settings, sinConfirmar, getValues, resetField, toast, t])
 
   if (!venueId || (settings === undefined && !falloDeCarga(settingsQuery))) return <Skeleton className="h-64 w-full rounded-xl" />
   // Un refetch fallido deja `isError` en true CON los datos de antes: la pestaña sigue en pie, con su aviso; el error sólo si nunca hubo datos.
