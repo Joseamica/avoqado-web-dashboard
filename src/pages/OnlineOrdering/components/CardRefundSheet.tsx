@@ -226,7 +226,16 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
   // si la hoja se cierra y se vuelve a abrir); sin una respuesta definitiva, sólo «Reintentar» (lo mismo) y «Cerrar».
   const enDuda = useDuda<EnDuda>(venueId, order.orderId)
   const ponerEnDuda = (d: EnDuda) => ponerDuda(venueId, order.orderId, d)
-  const soltarDuda = () => quitarDuda(venueId, order.orderId)
+  /** Sólo la duda de ESA llave: la respuesta tardía de una petición vieja no suelta la de un envío nuevo (limpieza final). */
+  const soltarDuda = (key: string) => quitarDuda(venueId, order.orderId, key)
+  // La respuesta puede llegar con la hoja ya cerrada (sus avisos siguen corriendo): lo que sólo se pinta en la hoja va en un aviso.
+  const abierta = useRef(true)
+  useEffect(() => {
+    abierta.current = true
+    return () => {
+      abierta.current = false
+    }
+  }, [])
 
   const listKey = onlineOrderingKeys.cardRefunds(venueId, order.orderId)
   // Cada apertura lee la lista aunque haya caché: lo que se decide debe salir de una lectura de ahora.
@@ -269,7 +278,7 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
     mutationFn: (v: { body: RefundBody; attempt: Attempt }) =>
       createCardRefund(venueId, order.orderId, { ...v.body, expectedLatestRefundId: v.attempt.expected }, v.attempt.key),
     onSuccess: (res, v) => {
-      soltarDuda() // una respuesta definitiva para esa llave
+      soltarDuda(v.attempt.key) // una respuesta definitiva para esa llave
       const failed = res.cardRefundStatus === 'FAILED' || res.cardRefundStatus === 'CANCELED'
       // También con FAILED: mientras tardó la respuesta pudo hacerse otra devolución, y el formulario lleno se la saltaría (Codex panel r5).
       startOver()
@@ -278,27 +287,38 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
         v.body.destino === 'STORE_CREDIT' && res.status === 'RECORDED' ? t('cardRefund.outcome.storeCredit') : t(outcomeKey(res))
       toast({ title, ...(failed ? { variant: 'destructive' as const } : {}) })
     },
-    onError: err => {
+    onError: (err, v) => {
       const code = codeOf(err)
       // Ruling 61 (enmendado): una respuesta pasajera —sin respuesta, 5xx, 408, o el SERVIDOR pidiendo intentar en un momento
       // (STRIPE_REFUND_CHECK_UNAVAILABLE, PRINT_IN_FLIGHT, ORDER_STATE_CHANGED)— no dice qué pasó con una petición anterior con la misma
-      // llave: la duda (anotada al mandar) se queda y sólo se ofrece «Reintentar». Sin código, «no hubo respuesta»; con él, su texto.
+      // llave: la duda (anotada al mandar) se queda y sólo se ofrece «Reintentar». Con código, su texto; un 5xx o 408 sin código sí
+      // respondió («no fue definitiva»); «No hubo respuesta» sólo cuando de verdad no llegó nada.
       if (inDoubt(err) || (typeof code === 'string' && PASAJERO.has(code))) {
-        return toast({ title: typeof code === 'string' ? serverMessage(err, t('cardRefund.noResponse')) : t('cardRefund.noResponse') })
+        const respondio = !!(err as { response?: unknown } | undefined)?.response
+        const porDefecto = t(respondio ? 'cardRefund.notDefinitive' : 'cardRefund.noResponse')
+        return toast({ title: typeof code === 'string' ? serverMessage(err, porDefecto) : porDefecto })
       }
-      soltarDuda() // un rechazo definitivo: esa llave no hizo ni va a hacer nada
+      soltarDuda(v.attempt.key) // un rechazo definitivo: esa llave no hizo ni va a hacer nada
       attempt.current = null
       if (code === 'CARD_REFUND_STALE_VIEW') {
         startOver()
         setChanged(true)
         return
       }
+      const texto = serverMessage(err, t('cardRefund.error'))
+      // Con la hoja ya cerrada, lo que se pinta en ella nadie lo ve: también va en un aviso (que sepa que no se devolvió).
+      const siCerrada = () => !abierta.current && toast({ title: texto, variant: 'destructive' })
       // D661: alguien ya devolvió este cobro por fuera, directo en Stripe: ningún destino ni reintento; se termina desde Stripe.
-      if (code === 'EXTERNAL_REFUND_DETECTED') return setPorFuera(serverMessage(err, t('cardRefund.error')))
+      if (code === 'EXTERNAL_REFUND_DETECTED') {
+        setPorFuera(texto)
+        siCerrada()
+        return
+      }
       // D661: el saldo a favor no se pudo: se dice por qué, en la hoja, y queda «A su tarjeta», ya elegida.
       if (sinSaldoAFavor(code)) {
-        setSinSaldo(serverMessage(err, t('cardRefund.error')))
+        setSinSaldo(texto)
         setDestino('CARD')
+        siCerrada()
         return
       }
       toast({ title: serverMessage(err, t('cardRefund.error')), variant: 'destructive' })
@@ -331,7 +351,9 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
   const salidaEn = enDuda ? enDuda.desde + SALIDA_MS : null
   useEffect(() => {
     if (!enDuda || latest === undefined) return
-    if (latest !== enDuda.attempt.expected || list.dataUpdatedAt >= enDuda.desde + SALIDA_MS) quitarDuda(venueId, order.orderId)
+    if (latest !== enDuda.attempt.expected || list.dataUpdatedAt >= enDuda.desde + SALIDA_MS) {
+      quitarDuda(venueId, order.orderId, enDuda.attempt.key)
+    }
   }, [enDuda, latest, list.dataUpdatedAt, venueId, order.orderId])
   // …y si la hoja sigue abierta, esa lectura se pide sola al cumplirse los 10 minutos.
   useEffect(() => {
@@ -399,6 +421,14 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
   }
   // Fija (sin la petición de esta hoja en camino): lo único que se puede hacer es «Reintentar» o «Cerrar».
   const fija = !!enDuda && !refund.isPending
+  // Limpieza final: cuántos minutos faltan para la salida, contados desde el último envío (y repintados mientras está fija).
+  const [, repintar] = useState(0)
+  useEffect(() => {
+    if (!fija) return
+    const id = setInterval(() => repintar(n => n + 1), 30_000)
+    return () => clearInterval(id)
+  }, [fija])
+  const minutosParaSalir = enDuda ? Math.max(1, Math.ceil((enDuda.desde + SALIDA_MS - Date.now()) / 60_000)) : 0
 
   // Lo que se ve en el formulario: lo mandado mientras esté en duda; si no, lo que se está llenando.
   const destinoVisto = enDuda ? (enDuda.body.destino ?? null) : destino
@@ -508,7 +538,7 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
               <AlertDescription className="space-y-1">
                 <p>{t('cardRefund.lockedTitle')}</p>
                 <p>{t('cardRefund.lockedHint')}</p>
-                <p>{t('cardRefund.lockedExit')}</p>
+                <p>{t('cardRefund.lockedExit', { count: minutosParaSalir })}</p>
               </AlertDescription>
             </Alert>
           )}

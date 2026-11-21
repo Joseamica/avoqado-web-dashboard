@@ -17,12 +17,22 @@ const suscribir = (oyente: () => void) => {
   }
 }
 
-export const ponerDuda = (venueId: string, orderId: string, duda: unknown) => {
+/** Cada duda es de UNA llave (la de la petición que se mandó). */
+type Duda = { attempt: { key: string } }
+
+export const ponerDuda = (venueId: string, orderId: string, duda: Duda) => {
   dudas.set(llave(venueId, orderId), duda)
   avisar()
 }
-export const quitarDuda = (venueId: string, orderId: string) => {
-  if (dudas.delete(llave(venueId, orderId))) avisar()
+/**
+ * Sólo si la duda guardada es de esa llave: la respuesta tardía de una petición vieja (de una hoja ya cerrada) no suelta la de un envío
+ * más nuevo con otra llave.
+ */
+export const quitarDuda = (venueId: string, orderId: string, key: string) => {
+  const k = llave(venueId, orderId)
+  if ((dudas.get(k) as Duda | undefined)?.attempt.key !== key) return
+  dudas.delete(k)
+  avisar()
 }
 /** La duda de un pedido, viva: cada hoja abierta se entera cuando otra (o la respuesta de una ya cerrada) la pone o la quita. */
 export function useDuda<T>(venueId: string, orderId: string): T | null {
