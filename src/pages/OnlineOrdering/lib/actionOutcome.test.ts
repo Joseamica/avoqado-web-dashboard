@@ -27,6 +27,21 @@ describe('actionOutcome', () => {
     expect(actionOutcome(http(409, { code: 'ORDER_STATE_CHANGED', status: 'COMPLETED', ...sinMarca }), 'COMPLETED')).toBe('success')
   })
 
+  it('D661 · Ruling 71: 409 ORDER_CLOSED_NOT_DELIVERED (cerrado con una marca) ⇒ marked, en «Listo» y en «Entregado»', () => {
+    for (const marca of ['notPickedUpAt', 'refundRequestedAt', 'refundedAt']) {
+      for (const target of ['COMPLETED', 'READY'] as const) {
+        const err = http(409, {
+          success: false,
+          code: 'ORDER_CLOSED_NOT_DELIVERED',
+          status: 'COMPLETED',
+          [marca]: '2026-11-21T10:00:05.000Z',
+          error: 'Este pedido ya se cerró sin entregarse. No se aplicó nada.',
+        })
+        expect(actionOutcome(err, target), `${marca} → ${target}`).toBe('marked')
+      }
+    }
+  })
+
   it('409 ORDER_STATE_CHANGED en OTRO estado ⇒ gone', () => {
     expect(actionOutcome(http(409, { success: false, code: 'ORDER_STATE_CHANGED', status: 'EXPIRED', error: 'x' }), 'ACCEPTED')).toBe(
       'gone',

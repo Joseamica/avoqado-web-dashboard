@@ -12,6 +12,9 @@
   "settings": {
     "saved": "Configuración guardada",
     "saveFailed": "No se pudo guardar. Intenta de nuevo.",
+    "saveUnconfirmed": "No hubo respuesta al guardar. Esto es lo que quedó guardado: si falta tu cambio, hazlo otra vez.",
+    "saveUnknown": "No hubo respuesta al guardar y no se pudo revisar qué quedó guardado. Revisa tu conexión y vuelve a intentarlo.",
+    "conflict": "Otra persona cambió esto mientras editabas; si guardas, se queda lo tuyo.",
     "loadFailed": "No se pudo cargar la configuración.",
     "save": "Guardar",
     "status": {
@@ -138,6 +141,7 @@
       "cardNoOneOffered": "Ahora tus clientes ven «Pagar ahora».",
       "cardNoOneNotOffered": "Ahora no se ofrece: ninguna caja está avisando los pedidos pagados en línea. Vuelve sola en cuanto una caja actualizada (terminal o POS) esté abierta en la lista de pedidos.",
       "cardNoOneLastAlert": "Una caja avisó por última vez: {{when}}.",
+      "cardNoOneStale": "Visto a las {{time}}; sin conexión",
       "cardNoOneStore": {
         "DISABLED": "Ahora tus clientes no ven «Pagar ahora»: la tienda está apagada.",
         "CLOSED": "Ahora tus clientes no ven «Pagar ahora»: la tienda está cerrada por horario.",
@@ -247,7 +251,10 @@
       },
       "mark": {
         "refunded": "Devuelto",
+        "refundedCash": "Devuelto en efectivo",
+        "refundedTransfer": "Devuelto por transferencia",
         "refunding": "Devolviendo…",
+        "reversed": "El banco regresó la devolución: se le debe a la clienta",
         "notPickedUp": "No lo recogió"
       }
     },
@@ -315,6 +322,9 @@
     "submit": "Devolver a la tarjeta",
     "sending": "Devolviendo…",
     "noResponse": "No hubo respuesta. Vuelve a intentarlo: no se devuelve dos veces.",
+    "lockedHint": "Hasta saber qué pasó con esta devolución, sólo se puede reintentar igual.",
+    "retry": "Reintentar",
+    "close": "Cerrar",
     "error": "No se pudo hacer la devolución. Vuelve a intentar.",
     "outcome": {
       "done": "Devuelto a la tarjeta",
@@ -334,6 +344,7 @@
       "kitchen": "Si ya se está preparando, avísale a cocina.",
       "amount": "Se devuelve completo: {{amount}}",
       "nothingLeft": "Ya no queda nada por devolver.",
+      "inProcess": "Devolución en proceso",
       "submit": "Devolver {{amount}}"
     },
     "destino": {

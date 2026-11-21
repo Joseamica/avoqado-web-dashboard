@@ -140,6 +140,12 @@ export interface InboxOrder {
   refundRequestedAt?: string | null
   /** «Devuelto». */
   refundedAt?: string | null
+  /**
+   * D661 · Ruling 60: el estado REAL del dinero devuelto, con la misma regla del seguimiento público: `PENDING` en camino, `DONE` hecha,
+   * `REVERSED` el banco la regresó y se le debe a la clienta (`refundedAt` se queda para que el pedido siga cerrado). `null` sin
+   * devolución; ausente en un servidor viejo (entonces mandan las fechas de arriba).
+   */
+  refund?: { status: 'PENDING' | 'DONE' | 'REVERSED'; medio: 'TARJETA' | 'SALDO' | 'EFECTIVO' | 'TRANSFERENCIA' } | null
 }
 
 export type CardChargeStatus =

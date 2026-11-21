@@ -38,8 +38,12 @@ export const onlineOrderingKeys = {
 export const getSettings = async (venueId: string): Promise<OnlineOrderingSettings> =>
   (await api.get(`${base(venueId)}/settings`)).data.data
 
+/**
+ * D661 · Ruling 64: este PUT NO se repite solo tras un corte (sólo él; el cliente global sigue igual). Un reenvío tardío de «prender la
+ * tarjeta» llegaba después de que otra pestaña la apagó y la volvía a prender; la pantalla relee lo guardado antes de decir nada.
+ */
 export const updateSettings = async (venueId: string, patch: Partial<OnlineOrderingSettingsInput>): Promise<OnlineOrderingSettingsSaved> =>
-  (await api.put(`${base(venueId)}/settings`, patch)).data.data
+  (await api.put(`${base(venueId)}/settings`, patch, { repetible: false })).data.data
 
 export const getMenuCategories = async (venueId: string): Promise<MenuCategoriesSummary> =>
   (await api.get(`${base(venueId)}/menu/categories`)).data.data

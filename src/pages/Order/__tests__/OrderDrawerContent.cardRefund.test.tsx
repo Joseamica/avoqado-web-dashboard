@@ -105,6 +105,12 @@ describe('detalle de la cuenta: «Devolver a la tarjeta» de un pedido en línea
       'inbox.card.mark.refunded',
     ],
     ['notPickedUpAt → «No lo recogió»', { notPickedUpAt: '2026-10-31T10:00:05.000Z' }, 'inbox.card.mark.notPickedUp'],
+    // Ruling 60: tras una reversa el SERVIDOR conserva `refundedAt`; manda el estado real del dinero.
+    [
+      'refund REVERSED → «se le debe» aunque tenga refundedAt',
+      { refundedAt: '2026-10-30T18:00:02.000Z', refund: { status: 'REVERSED', medio: 'TARJETA' } },
+      'inbox.card.mark.reversed',
+    ],
   ])('«Nadie» con %s, en el detalle', async (_n, marks, text) => {
     m.get.mockImplementation(async (url: string) => {
       if (url === S3) return { data: { success: true, data: { ...onlineOrder, requiresAcceptance: false, ...marks } } }

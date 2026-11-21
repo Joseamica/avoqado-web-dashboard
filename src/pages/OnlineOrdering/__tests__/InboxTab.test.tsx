@@ -1583,21 +1583,21 @@ describe('D661 · tarjeta en «Nadie»: «Devolviendo…», «Devuelto», «No l
     expect(within(screen.getByTestId('order-o8')).getByText('inbox.card.mark.refunding')).toBeInTheDocument()
   })
 
-  it('«Entregado» sobre un pedido que ya cerró el día: el SERVIDOR contesta su marca y el panel no dice «entregado»', async () => {
-    const message = 'Este pedido se cerró como «No lo recogió» al terminar el día: no se marca entregado. No se aplicó nada.'
-    getToPay.mockResolvedValue(toPayRes([], [pagadoConTarjeta()]))
-    markDelivered.mockRejectedValue(
-      http(409, {
-        success: false,
-        code: 'ORDER_STATE_CHANGED',
-        status: 'COMPLETED',
-        notPickedUpAt: '2026-10-18T10:00:05.000Z',
-        error: message,
-      }),
-    )
-    renderTab()
-    await userEvent.click(within(await screen.findByTestId('folio-f1')).getByRole('button', { name: 'inbox.actions.delivered' }))
-    await waitFor(() => expect(toast).toHaveBeenCalledWith({ title: message }))
-    expect(toast).not.toHaveBeenCalledWith({ title: expect.stringMatching(/^folio\.delivered/) })
-  })
+  // Ruling 71: el SERVIDOR nuevo contesta ORDER_CLOSED_NOT_DELIVERED (mismo cuerpo: estado y marcas); el viejo, ORDER_STATE_CHANGED.
+  it.each(['ORDER_STATE_CHANGED', 'ORDER_CLOSED_NOT_DELIVERED'])(
+    '«Entregado» sobre un pedido que ya cerró el día (%s): dice el texto del servidor, sin rojo, y la tarjeta no se oculta',
+    async code => {
+      const message = 'Este pedido se cerró como «No lo recogió» al terminar el día: no se marca entregado. No se aplicó nada.'
+      getToPay.mockResolvedValue(toPayRes([], [pagadoConTarjeta()]))
+      markDelivered.mockRejectedValue(
+        http(409, { success: false, code, status: 'COMPLETED', notPickedUpAt: '2026-10-18T10:00:05.000Z', error: message }),
+      )
+      renderTab()
+      await userEvent.click(within(await screen.findByTestId('folio-f1')).getByRole('button', { name: 'inbox.actions.delivered' }))
+      await waitFor(() => expect(toast).toHaveBeenCalledWith({ title: message }))
+      expect(toast).not.toHaveBeenCalledWith({ title: expect.stringMatching(/^folio\.delivered/) })
+      expect(toast).not.toHaveBeenCalledWith(expect.objectContaining({ variant: 'destructive' }))
+      expect(screen.getByTestId('folio-f1')).toBeInTheDocument()
+    },
+  )
 })

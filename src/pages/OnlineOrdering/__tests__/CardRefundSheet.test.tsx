@@ -38,6 +38,7 @@ vi.mock('@/services/onlineOrdering.service', async importOriginal => {
 import esOnline from '@/locales/es/onlineOrdering.json'
 import { Currency } from '@/utils/currency'
 import { CardRefundButton, OrderCardRefund } from '../components/CardRefundSheet'
+import { olvidarDudas } from '../lib/devolucionEnDuda'
 
 const captured = {
   status: 'CAPTURED',
@@ -121,6 +122,7 @@ const devolver = () => userEvent.click(screen.getByRole('button', { name: 'cardR
 describe('Devolver a la tarjeta', () => {
   beforeEach(() => {
     for (const f of [getOnlineOrder, listCardRefunds, createCardRefund, resolveCardRefund, toast]) f.mockReset()
+    olvidarDudas()
     access.denied = []
     listCardRefunds.mockResolvedValue([])
   })
@@ -174,7 +176,7 @@ describe('Devolver a la tarjeta', () => {
     getOnlineOrder.mockResolvedValue(order())
     const { container } = wrap(<OrderCardRefund venueId="venue-1" orderId="o1" source="WEB" />)
     await waitFor(() => expect(getOnlineOrder).toHaveBeenCalled())
-    await new Promise(r => setTimeout(r, 20))
+    await act(() => new Promise(r => setTimeout(r, 20)))
     expect(container).toBeEmptyDOMElement()
   })
 
@@ -260,7 +262,10 @@ describe('Devolver a la tarjeta', () => {
     await act(async () => termina({ status: 'RECORDED', cardRefundStatus: 'RECORDED', cardRefundId: 'r9', refundId: 'p9', replay: false }))
   })
 
-  it('🔴 sin respuesta, tocar otra vez lo mismo lleva la MISMA llave y lo mismo que vio', async () => {
+  // Ruling 61: sin respuesta, la hoja se queda con lo enviado (monto, motivo, nota y llave): sólo «Reintentar» (lo mismo) y «Cerrar».
+  const reintentar = () => userEvent.click(screen.getByRole('button', { name: 'cardRefund.retry' }))
+
+  it('🔴 sin respuesta, «Reintentar» lleva la MISMA llave y lo mismo que vio; mientras tanto no se cambia el monto', async () => {
     listCardRefunds.mockResolvedValue([refund({ id: 'r1', status: 'FAILED' })])
     createCardRefund
       .mockRejectedValueOnce(networkError())
@@ -269,12 +274,16 @@ describe('Devolver a la tarjeta', () => {
     await motivo()
     await devolver()
     await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'cardRefund.noResponse' })))
-    await devolver()
+    expect(monto()).toBeDisabled()
+    expect(screen.queryByRole('button', { name: 'cardRefund.submit' })).toBeNull()
+    await reintentar()
     await waitFor(() => expect(createCardRefund).toHaveBeenCalledTimes(2))
     const [p1, p2] = createCardRefund.mock.calls
     expect(p2[3]).toBe(p1[3])
-    expect(p2[2].expectedLatestRefundId).toBe('r1')
+    expect(p2[2]).toEqual(p1[2])
     expect(p1[2].expectedLatestRefundId).toBe('r1')
+    // Con la respuesta definitiva se desbloquea.
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'cardRefund.retry' })).toBeNull())
   })
 
   it('🔴 un 408 también es duda: conserva la llave', async () => {
@@ -290,7 +299,7 @@ describe('Devolver a la tarjeta', () => {
     await motivo()
     await devolver()
     await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'cardRefund.noResponse' })))
-    await devolver()
+    await reintentar()
     await waitFor(() => expect(createCardRefund).toHaveBeenCalledTimes(2))
     expect(createCardRefund.mock.calls[1][3]).toBe(createCardRefund.mock.calls[0][3])
   })
@@ -886,6 +895,90 @@ describe('Devolver a la tarjeta', () => {
       await motivo()
       await userEvent.click(devolverTodo())
       await waitFor(() => expect(toast).toHaveBeenCalledWith({ title: message, variant: 'destructive' }))
+    })
+
+    // ── Ruling 61: tras una respuesta perdida, otro destino no se ofrece hasta saber qué pasó con el primero ──
+    it('🔴 sin respuesta (la petición sigue sin fila): destino, monto y llave quedan fijos; sólo «Reintentar» y «Cerrar»', async () => {
+      let cortar: (e: unknown) => void = () => {}
+      createCardRefund.mockImplementationOnce(() => new Promise((_ok, falla) => (cortar = falla)))
+      await abrirNadie()
+      await userEvent.click(destino('tarjeta'))
+      await motivo('CANCELLED_ORDER')
+      await userEvent.click(devolverTodo())
+      await waitFor(() => expect(createCardRefund).toHaveBeenCalledTimes(1))
+      await act(async () => cortar(networkError()))
+      // La relectura no trae nada nuevo (la primera petición pudo no haber creado su fila todavía): sigue fija.
+      expect(await screen.findByRole('button', { name: 'cardRefund.retry' })).toBeInTheDocument()
+      await waitFor(() => expect(listCardRefunds.mock.calls.length).toBeGreaterThanOrEqual(2))
+      expect(screen.getByText('cardRefund.lockedHint')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'cardRefund.close' })).toBeEnabled()
+      expect(destino('saldo')).toBeDisabled()
+      expect(destino('tarjeta')).toBeDisabled()
+      expect(destino('tarjeta')).toHaveAttribute('aria-pressed', 'true')
+      expect(screen.getByRole('button', { name: 'refund.reasons.OTHER' })).toBeDisabled()
+      expect(screen.queryByRole('button', { name: `cardRefund.nadie.submit|${Currency(250)}` })).toBeNull()
+      createCardRefund.mockResolvedValueOnce(recorded)
+      await reintentar()
+      await waitFor(() => expect(createCardRefund).toHaveBeenCalledTimes(2))
+      const [p1, p2] = createCardRefund.mock.calls
+      expect(p2[3]).toBe(p1[3])
+      expect(p2[2]).toEqual(p1[2])
+      expect(p2[2]).toMatchObject({ destino: 'CARD', amount: '250.00', reason: 'CANCELLED_ORDER' })
+      await waitFor(() => expect(screen.queryByRole('button', { name: 'cardRefund.retry' })).toBeNull())
+    })
+
+    it('🔴 sin respuesta, cerrar y volver a abrir sigue fija mientras la lista no traiga nada nuevo', async () => {
+      createCardRefund.mockRejectedValueOnce(networkError())
+      const { unmount } = await abrirNadie()
+      await userEvent.click(destino('tarjeta'))
+      await motivo()
+      await userEvent.click(devolverTodo())
+      await userEvent.click(await screen.findByRole('button', { name: 'cardRefund.close' }))
+      await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+      unmount()
+      await abrirNadie()
+      expect(screen.getByRole('button', { name: 'cardRefund.retry' })).toBeInTheDocument()
+      expect(destino('saldo')).toBeDisabled()
+      expect(destino('tarjeta')).toHaveAttribute('aria-pressed', 'true')
+    })
+
+    it('🔴 sin respuesta, si al releer aparece una devolución nueva ya se sabe qué pasó: se suelta y avisa', async () => {
+      let cortar: (e: unknown) => void = () => {}
+      createCardRefund.mockImplementationOnce(() => new Promise((_ok, falla) => (cortar = falla)))
+      await abrirNadie()
+      await userEvent.click(destino('saldo'))
+      await motivo()
+      await userEvent.click(devolverTodo())
+      await waitFor(() => expect(createCardRefund).toHaveBeenCalledTimes(1))
+      listCardRefunds.mockResolvedValue([refund({ id: 'r9', status: 'PENDING', amount: '250.00' })])
+      await act(async () => cortar(networkError()))
+      expect(await screen.findByText('cardRefund.changed')).toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: 'cardRefund.retry' })).toBeNull()
+      expect(screen.getByText('cardRefund.nadie.inProcess')).toBeInTheDocument()
+    })
+
+    // ── Ruling 60: lo que dice la hoja cuando ya no queda nada por devolver a la tarjeta ──
+    it.each([
+      ['una en proceso por el total', refund({ id: 'r1', status: 'PENDING', amount: '250.00' }), 'cardRefund.nadie.inProcess'],
+      ['hecha (RECORDED)', refund({ id: 'r1', status: 'RECORDED', amount: '250.00' }), 'cardRefund.nadie.nothingLeft'],
+      [
+        'regresada por el banco (REVERSED, sin pagar por otro medio)',
+        refund({ id: 'r1', status: 'REVERSED', amount: '250.00', reversal: reversal(null) }),
+        'inbox.card.mark.reversed',
+      ],
+      [
+        'pagada por otro medio (RESOLVED)',
+        refund({ id: 'r1', status: 'RESOLVED', amount: '250.00', reversal: reversal('2026-11-02T20:00:00.000Z') }),
+        'cardRefund.nadie.nothingLeft',
+      ],
+    ])('«Nadie» %s: la hoja dice el estado real, no «nada por devolver» a secas', async (_n, fila, texto) => {
+      expect(esOnline.cardRefund.nadie.inProcess).toBe('Devolución en proceso')
+      listCardRefunds.mockResolvedValue([fila])
+      await abrir(nadieOrder({ status: 'COMPLETED' }), 'cardRefund.nadie.open')
+      expect(screen.getByText(texto)).toBeInTheDocument()
+      for (const otro of ['cardRefund.nadie.inProcess', 'inbox.card.mark.reversed', 'cardRefund.nadie.nothingLeft']) {
+        if (otro !== texto) expect(screen.queryByText(otro)).toBeNull()
+      }
     })
 
     it('en la lista, una devolución a saldo a favor dice eso; con todo devuelto, ya no queda nada por devolver', async () => {

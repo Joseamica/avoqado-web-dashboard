@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, type RefObject } from 'react'
+import { useEffect, useMemo, useRef, useState, type RefObject } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -83,6 +83,12 @@ const sameAllWeek = (h: OperatingHours | null) => {
     days.length === 7 &&
     days.every(d => d.enabled && d.ranges.length === 1 && d.ranges[0].open === r.open && d.ranges[0].close === r.close)
   )
+}
+
+/** Ruling 64: sin respuesta, un 5xx o un 408: el SERVIDOR pudo haber guardado sin que nos enteráramos. */
+const sinRespuesta = (err: unknown) => {
+  const res = (err as { response?: { status?: unknown } } | undefined)?.response
+  return !res || (typeof res.status === 'number' && (res.status >= 500 || res.status === 408))
 }
 
 /** Patch estricto: sólo lo que cambió. `minOrderAmount` vacío NO se manda (nunca 0 a escondidas). */
@@ -220,11 +226,22 @@ export function SettingsTab() {
     queryKey: onlineOrderingKeys.settings(venueId ?? ''),
     queryFn: () => getSettings(venueId!),
     enabled: !!venueId,
-    // D661: «¿se ofrece la tarjeta AHORA?» es una foto y el SERVIDOR la mide en 90 s: con la de «Nadie» prendida se vuelve a pedir
-    // cada 30 s, y sólo entonces. Lo no guardado sigue: `values` sólo rehace el formulario si cambian sus campos.
-    refetchInterval: q => (q.state.data?.requiresAcceptance === false && q.state.data.cardNadie?.enabled ? 30_000 : false),
+    // D661 · Ruling 63: «¿se ofrece la tarjeta AHORA?» es una foto (el SERVIDOR la mide en 90 s) y otra persona puede prenderla: en
+    // «Nadie» se vuelve a pedir cada 30 s, prendida o apagada. Lo que se está editando no se pisa (`keepDirtyValues`, abajo).
+    refetchInterval: q => (q.state.data?.requiresAcceptance === false ? 30_000 : false),
   })
   const { data: settings } = settingsQuery
+  // Ruling 63: «ahora» sólo con una lectura buena de hace ≤ 60 s y sin fallar; si no, la hora de esa lectura. El temporizador vuelve a
+  // pintar justo cuando la última lectura buena cumple 60 s (una lectura que no termina no avisa de nada).
+  const leidoEn = settingsQuery.dataUpdatedAt
+  const [, repintar] = useState(0)
+  useEffect(() => {
+    const falta = leidoEn + 60_000 - Date.now()
+    if (!leidoEn || falta <= 0) return
+    const id = setTimeout(() => repintar(n => n + 1), falta + 50)
+    return () => clearTimeout(id)
+  }, [leidoEn])
+  const lecturaVieja = settingsQuery.isError || settingsQuery.failureCount > 0 || settingsQuery.isPaused || Date.now() - leidoEn > 60_000
 
   const saved = useMemo(() => (settings ? toForm(settings) : undefined), [settings])
   // R37/R66: el servidor nunca pone «Nadie» solo. Sólo si el negocio NO tiene ajustes guardados (`hasSavedSettings === false`) el
@@ -232,7 +249,9 @@ export function SettingsTab() {
   // Sin el campo (servidor viejo) o con true: se muestra lo guardado, sin preselección.
   const preselectNoOne = !!settings && settings.hasSavedSettings === false && settings.suggestedRequiresAcceptance === false
   const formValues = useMemo(() => (saved && preselectNoOne ? { ...saved, requiresAcceptance: false } : saved), [saved, preselectNoOne])
-  const form = useForm<FormValues>({ resolver: zodResolver(schema), values: formValues })
+  // Ruling 65: una lectura nueva (cada 30 s en «Nadie», al volver a la pestaña) pone lo que cambió otra persona, pero no pisa los
+  // campos que se están editando aquí.
+  const form = useForm<FormValues>({ resolver: zodResolver(schema), values: formValues, resetOptions: { keepDirtyValues: true } })
   const { control, watch, setValue, handleSubmit, reset, formState } = form
   const hours = watch('hours')
   const enabled = watch('enabled')
@@ -248,6 +267,14 @@ export function SettingsTab() {
 
   const watched = watch()
   const hasChanges = !!saved && Object.keys(buildPatch(watched, saved)).length > 0
+  // Ruling 65: los campos que se editan aquí (distintos de lo guardado) y que otra persona cambió en el SERVIDOR desde la lectura sobre
+  // la que se empezó a editar (`base`). Al guardar se queda lo de aquí; se avisa debajo de cada uno antes.
+  const editados = saved
+    ? (Object.keys(formState.dirtyFields) as (keyof FormValues)[]).filter(k => JSON.stringify(watched[k]) !== JSON.stringify(saved[k]))
+    : []
+  const [base, setBase] = useState(saved)
+  if (saved !== base && editados.length === 0) setBase(saved)
+  const otraPersona = new Set(base && saved ? editados.filter(k => JSON.stringify(saved[k]) !== JSON.stringify(base[k])) : [])
   const hourErrors = validateWeek(hours)
   const notes = overnightNotes(hours)
 
@@ -284,7 +311,25 @@ export function SettingsTab() {
       setCardAlertMissing(false)
       toast({ title: t('settings.saved') })
     },
-    onError: (error: unknown) => {
+    onError: async (error: unknown, patch) => {
+      // Ruling 64: sin respuesta no se sabe si se guardó (el guardado ya no se repite solo). Nada se anuncia hasta releer, y lo que se
+      // enseña es lo que de verdad quedó guardado.
+      if (sinRespuesta(error)) {
+        const key = onlineOrderingKeys.settings(venueId!)
+        const guardado = await qc.fetchQuery({ queryKey: key, queryFn: () => getSettings(venueId!), staleTime: 0 }).catch(() => null)
+        if (!guardado) return setSaveError(t('settings.saveUnknown'))
+        const ahora = toForm(guardado)
+        reset(ahora)
+        setServerMissing([])
+        setCardAlertMissing(false)
+        const entro = (Object.keys(patch) as (keyof FormValues)[]).every(
+          k => JSON.stringify(ahora[k]) === JSON.stringify((patch as Partial<FormValues>)[k]),
+        )
+        if (!entro) return setSaveError(t('settings.saveUnconfirmed'))
+        setSaveError(null)
+        toast({ title: t('settings.saved') })
+        return
+      }
       const data = (error as { response?: { data?: { code?: string; details?: { missing?: StoreRequirement[] } } } })?.response?.data
       if (data?.code === 'STORE_REQUIREMENTS_MISSING') {
         setServerMissing(data.details?.missing ?? [])
@@ -364,6 +409,13 @@ export function SettingsTab() {
   // D661: apagada, cerrada o en pausa, nadie puede pedir: eso se dice antes que lo de la caja (Ruling 47). OFFLINE (sin aparato que
   // cobre folios) no entra: ahí la razón ES la caja, y «vuelve sola en cuanto una caja… esté abierta» es verdad.
   const storeStops = store?.status === 'DISABLED' || store?.status === 'CLOSED' || store?.status === 'PAUSED'
+  /** Ruling 65: debajo de un campo que otra persona cambió mientras se editaba aquí. */
+  const avisoOtraPersona = (k: keyof FormValues) =>
+    otraPersona.has(k) && (
+      <p role="status" className="text-xs font-medium">
+        {t('settings.conflict')}
+      </p>
+    )
   const pause = pauseLabel(store, formatTime)
   const statusText = pause
     ? t(pause.key, pause.params)
@@ -429,6 +481,7 @@ export function SettingsTab() {
                     : t('settings.enableBlocked')
                   : t('settings.enableHelp')}
               </p>
+              {avisoOtraPersona('enabled')}
             </div>
             <Controller
               control={control}
@@ -492,6 +545,7 @@ export function SettingsTab() {
                 </RadioGroup>
               )}
             />
+            {avisoOtraPersona('requiresAcceptance')}
             {noOne && (
               <>
                 <p className="text-xs text-muted-foreground">{t('settings.confirm.noOneNote')}</p>
@@ -577,6 +631,7 @@ export function SettingsTab() {
                 />
               </div>
               {noOne && <p className="text-xs text-muted-foreground">{t('settings.confirm.payNoOne')}</p>}
+              {avisoOtraPersona('acceptsPayAtPickup')}
             </div>
             <div className="space-y-1.5 rounded-lg border border-input p-3">
               <div className="flex items-center justify-between gap-4">
@@ -588,13 +643,14 @@ export function SettingsTab() {
                     control={control}
                     name="cardOnlineNadie"
                     render={({ field }) => (
-                      // Un SERVIDOR que no manda el campo no lo conoce: no se deja prender.
+                      // Un SERVIDOR que no manda el campo no lo conoce: no se deja prender. Ruling 62: dice lo GUARDADO aunque Stripe no
+                      // cobre (si no, al volver Stripe se ofrecería sola sin verse prendida); apagarla siempre se puede, prenderla espera a Stripe.
                       <Switch
                         id="oo-card"
                         data-tour="online-ordering-card-no-one"
                         aria-label={t('settings.confirm.cardNoOneLabel')}
-                        checked={cardAvailable && !!field.value}
-                        disabled={!cardAvailable || settings.cardOnlineNadie === undefined}
+                        checked={!!field.value}
+                        disabled={settings.cardOnlineNadie === undefined || (!field.value && !cardAvailable)}
                         onCheckedChange={on => {
                           setCardAlertMissing(false)
                           field.onChange(on)
@@ -643,7 +699,12 @@ export function SettingsTab() {
                   (servidor viejo) no se dice nada. */}
               {noOne && cardAvailable && cardNadieOn && settings.requiresAcceptance === false && settings.cardNadie?.enabled && (
                 <div role="status" className="space-y-0.5 text-xs">
-                  {storeStops ? (
+                  {lecturaVieja ? (
+                    // Ruling 63: sin una lectura buena reciente no se dice «ahora»: sólo cuándo se vio.
+                    <p className="text-muted-foreground">
+                      {t('settings.confirm.cardNoOneStale', { time: formatTime(new Date(leidoEn).toISOString()) })}
+                    </p>
+                  ) : storeStops ? (
                     <p className="font-medium">{t(`settings.confirm.cardNoOneStore.${store?.status}`)}</p>
                   ) : !settings.cardNadie.offeredNow ? (
                     <>
@@ -666,6 +727,7 @@ export function SettingsTab() {
                   {t('settings.confirm.cardNoOneNoDevice')}
                 </p>
               )}
+              {avisoOtraPersona(noOne ? 'cardOnlineNadie' : 'acceptsCardOnline')}
             </div>
           </div>
 
@@ -695,6 +757,7 @@ export function SettingsTab() {
               ) : (
                 <p className="text-xs text-muted-foreground">{t('settings.minOrderHelp')}</p>
               )}
+              {avisoOtraPersona('minOrderAmount')}
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="oo-prep">{t('settings.prepTime')}</Label>
@@ -716,6 +779,7 @@ export function SettingsTab() {
                   </Select>
                 )}
               />
+              {avisoOtraPersona('defaultPrepMinutes')}
             </div>
           </div>
 
@@ -723,6 +787,7 @@ export function SettingsTab() {
             <div>
               <Label htmlFor="oo-pause">{t('settings.manualPause')}</Label>
               <p className="text-xs text-muted-foreground">{t('settings.manualPauseHelp')}</p>
+              {avisoOtraPersona('manualPause')}
             </div>
             <Controller
               control={control}
@@ -750,6 +815,7 @@ export function SettingsTab() {
             />
             <Label htmlFor="oo-hours">{t('settings.hours.use')}</Label>
           </div>
+          {avisoOtraPersona('hours')}
           {hours && (
             <>
               <OperatingHoursEditor value={hours} onChange={next => setValue('hours', next, { shouldDirty: true })} />

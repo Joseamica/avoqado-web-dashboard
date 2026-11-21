@@ -38,6 +38,7 @@ import type {
 import { Currency } from '@/utils/currency'
 import { useVenueDateTime } from '@/utils/datetime'
 
+import { leerDuda, ponerDuda, quitarDuda } from '../lib/devolucionEnDuda'
 import { marcaDelPedido } from '../lib/marcaDelPedido'
 import { invalidateToPay } from '../lib/toPayLive'
 import { MarcaDelPedido } from './OrderCard'
@@ -113,10 +114,17 @@ const PASAJERO = new Set(['PRINT_IN_FLIGHT', 'ORDER_STATE_CHANGED'])
 /**
  * Nunca devolver dos veces lo decide el SERVIDOR, no el navegador (Codex panel r4): cada devolución dice cuál es la última que vio el
  * operador, y bajo el candado de la orden sólo pasa si sigue siendo la última. Da igual el orden, la demora, las pestañas o las personas.
- * Por eso aquí no se guarda nada entre aperturas. Lo que se manda se congela en la memoria de la hoja: tocar otra vez lo mismo reusa
- * llave y vista (replay si ya llegó); una relectura NUNCA renueva la vista de un envío (si la lista cambió, hay que decidir otra vez).
+ * Por eso aquí no se guarda nada entre aperturas, salvo lo mandado sin respuesta (Ruling 61, `lib/devolucionEnDuda`): ese envío puede
+ * ganar todavía y, hasta saber qué pasó, sólo se reintenta igual. Lo que se manda se congela en la memoria de la hoja: tocar otra vez lo
+ * mismo reusa llave y vista (replay si ya llegó); una relectura NUNCA renueva la vista de un envío (si la lista cambió, hay que decidir
+ * otra vez).
  */
 type Attempt = { key: string; expected: string | null; sig: string }
+/** Ruling 61: lo que se mandó y se quedó sin respuesta; mientras exista, sólo se reintenta eso mismo (`lib/devolucionEnDuda`). */
+type EnDuda = { body: RefundBody; attempt: Attempt }
+
+/** Ruling 60: las devoluciones que siguen en camino (la misma regla que el seguimiento público llama `PENDING`). */
+const EN_CAMINO = new Set(['REQUESTED', 'SENDING', 'PENDING'])
 
 const RECENT_MS = 10 * 60_000
 /** Ayuda para el operador, no la garantía: una del mismo monto de hace ≤ 10 min que sí devolvió o va en curso. */
@@ -209,6 +217,17 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
   const [other, setOther] = useState<{ id: string; method: CardRefundResolveMethod } | null>(null)
   const attempt = useRef<Attempt | null>(null)
   const busy = useRef(false) // candado síncrono: `isPending` aún no cambia en el segundo de dos clics pegados
+  // Ruling 61: tras una respuesta perdida la primera petición todavía puede ganar. Destino, monto, motivo, nota y llave quedan fijos
+  // (también si la hoja se cierra y se vuelve a abrir) hasta saber qué pasó: sólo «Reintentar» (lo mismo) y «Cerrar».
+  const [enDuda, setEnDuda] = useState<EnDuda | null>(() => leerDuda<EnDuda>(venueId, order.orderId))
+  const ponerEnDuda = (d: EnDuda) => {
+    ponerDuda(venueId, order.orderId, d)
+    setEnDuda(d)
+  }
+  const soltarDuda = () => {
+    quitarDuda(venueId, order.orderId)
+    setEnDuda(null)
+  }
 
   const listKey = onlineOrderingKeys.cardRefunds(venueId, order.orderId)
   // Cada apertura lee la lista aunque haya caché: lo que se decide debe salir de una lectura de ahora.
@@ -251,6 +270,7 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
     mutationFn: (v: { body: RefundBody; attempt: Attempt }) =>
       createCardRefund(venueId, order.orderId, { ...v.body, expectedLatestRefundId: v.attempt.expected }, v.attempt.key),
     onSuccess: (res, v) => {
+      soltarDuda() // una respuesta definitiva para esa llave
       const failed = res.cardRefundStatus === 'FAILED' || res.cardRefundStatus === 'CANCELED'
       // También con FAILED: mientras tardó la respuesta pudo hacerse otra devolución, y el formulario lleno se la saltaría (Codex panel r5).
       startOver()
@@ -259,11 +279,19 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
         v.body.destino === 'STORE_CREDIT' && res.status === 'RECORDED' ? t('cardRefund.outcome.storeCredit') : t(outcomeKey(res))
       toast({ title, ...(failed ? { variant: 'destructive' as const } : {}) })
     },
-    onError: err => {
+    onError: (err, v) => {
       const code = codeOf(err)
-      // D661: Stripe no contestó al revisar si ya se devolvió por fuera: no se aplicó nada; se reintenta con la MISMA llave.
-      if (code === 'STRIPE_REFUND_CHECK_UNAVAILABLE') return toast({ title: serverMessage(err, t('cardRefund.noResponse')) })
-      if (inDoubt(err)) return toast({ title: t('cardRefund.noResponse') })
+      // D661: Stripe no contestó al revisar si ya se devolvió por fuera: no se aplicó nada (es definitivo); se reintenta con la MISMA llave.
+      if (code === 'STRIPE_REFUND_CHECK_UNAVAILABLE') {
+        soltarDuda()
+        return toast({ title: serverMessage(err, t('cardRefund.noResponse')) })
+      }
+      // Ruling 61: sin respuesta no se sabe si la primera ganó: todo queda fijo hasta saberlo.
+      if (inDoubt(err)) {
+        ponerEnDuda(v)
+        return toast({ title: t('cardRefund.noResponse') })
+      }
+      soltarDuda()
       attempt.current = null
       if (code === 'CARD_REFUND_STALE_VIEW') {
         startOver()
@@ -302,6 +330,16 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
     }
   }, [latest, seen, readAfter, list.dataUpdatedAt])
 
+  // Ruling 61: si la lista ya trae una devolución más nueva que la que se vio al mandar, se sabe qué pasó (si no fue esa petición, el
+  // SERVIDOR ya no la deja hacer otra: pide la misma «última vista»). Una lista sin nada nuevo NO suelta: la primera petición pudo no
+  // haber creado su fila todavía (el SERVIDOR revisa Stripe antes de crearla).
+  useEffect(() => {
+    if (enDuda && latest !== undefined && latest !== enDuda.attempt.expected) {
+      quitarDuda(venueId, order.orderId)
+      setEnDuda(null)
+    }
+  }, [enDuda, latest, venueId, order.orderId])
+
   // Sólo se decide con el historial a la vista: si la relectura falló o está en pausa (sin internet), se oculta y no se manda.
   const canSend = seen !== undefined && !list.isError && !list.isPaused
 
@@ -321,7 +359,7 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
   const blocked = (nadie && !destino) || !!porFuera
 
   const submit = (confirmed = false) => {
-    if (!amountCents || !reason || !canSend || blocked || busy.current) return
+    if (enDuda || !amountCents || !reason || !canSend || blocked || busy.current) return
     const body = bodyOf((amountCents / 100).toFixed(2), reason, note.trim(), sendDestino)
     const sig = sigOf(body)
     setChanged(false)
@@ -342,6 +380,21 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
     busy.current = true
     refund.mutate({ body, attempt: attempt.current })
   }
+
+  /** Ruling 61: lo mismo que se mandó, con la misma llave y la misma «última vista». */
+  const retry = () => {
+    if (!enDuda || busy.current) return
+    busy.current = true
+    refund.mutate(enDuda)
+  }
+
+  // Lo que se ve en el formulario: lo mandado mientras esté en duda; si no, lo que se está llenando.
+  const destinoVisto = enDuda ? (enDuda.body.destino ?? null) : destino
+  const motivoVisto = enDuda ? enDuda.body.reason : reason
+  const notaVista = enDuda ? (enDuda.body.note ?? '') : note
+  // Ruling 60: sin nada por devolver a la tarjeta, la hoja dice cómo está el dinero: en camino, regresado por el banco o ya nada.
+  const enCamino = !!list.data?.some(r => EN_CAMINO.has(r.status))
+  const seDebe = !!list.data?.some(r => r.status === 'REVERSED' && !r.reversal?.resolvedAt)
 
   return (
     <Dialog open onOpenChange={open => !open && onClose()}>
@@ -387,6 +440,7 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
                     {formatDateTime(r.createdAt)} · {tPay(`refund.reasons.${r.reason}`)}
                   </p>
                   {canSend &&
+                    !enDuda &&
                     r.status === 'REVERSED' &&
                     !r.reversal?.resolvedAt &&
                     (other?.id === r.id ? (
@@ -437,7 +491,15 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
               <AlertDescription>{t('cardRefund.changed')}</AlertDescription>
             </Alert>
           )}
-          {confirm && confirm.sig === currentSig && (
+          {enDuda && (
+            <Alert role="status">
+              <AlertDescription className="space-y-1">
+                <p>{t('cardRefund.noResponse')}</p>
+                <p>{t('cardRefund.lockedHint')}</p>
+              </AlertDescription>
+            </Alert>
+          )}
+          {!enDuda && confirm && confirm.sig === currentSig && (
             <Alert role="alert">
               <AlertDescription className="space-y-2">
                 <p>{t('cardRefund.confirmAnother', { amount: Currency(Number(confirm.amount)), minutes: confirm.minutes })}</p>
@@ -456,7 +518,13 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
             <>
               {hint !== null && (
                 <p className="text-sm font-medium">
-                  {hint ? t('cardRefund.nadie.amount', { amount: Currency(hint / 100) }) : t('cardRefund.nadie.nothingLeft')}
+                  {hint
+                    ? t('cardRefund.nadie.amount', { amount: Currency(hint / 100) })
+                    : enCamino
+                      ? t('cardRefund.nadie.inProcess')
+                      : seDebe
+                        ? t('inbox.card.mark.reversed')
+                        : t('cardRefund.nadie.nothingLeft')}
                 </p>
               )}
               <div className="space-y-1.5">
@@ -466,9 +534,9 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
                     type="button"
                     className="h-auto whitespace-normal py-2"
                     data-tour="online-order-refund-store-credit"
-                    variant={destino === 'STORE_CREDIT' ? 'default' : 'outline'}
-                    aria-pressed={destino === 'STORE_CREDIT'}
-                    disabled={!!sinSaldo || !!porFuera}
+                    variant={destinoVisto === 'STORE_CREDIT' ? 'default' : 'outline'}
+                    aria-pressed={destinoVisto === 'STORE_CREDIT'}
+                    disabled={!!sinSaldo || !!porFuera || !!enDuda}
                     onClick={() => setDestino('STORE_CREDIT')}
                   >
                     {t('cardRefund.destino.storeCredit', { negocio })}
@@ -477,9 +545,9 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
                     type="button"
                     className="h-auto whitespace-normal py-2"
                     data-tour="online-order-refund-card"
-                    variant={destino === 'CARD' ? 'default' : 'outline'}
-                    aria-pressed={destino === 'CARD'}
-                    disabled={!!porFuera}
+                    variant={destinoVisto === 'CARD' ? 'default' : 'outline'}
+                    aria-pressed={destinoVisto === 'CARD'}
+                    disabled={!!porFuera || !!enDuda}
                     onClick={() => setDestino('CARD')}
                   >
                     {t('cardRefund.destino.card')}
@@ -490,11 +558,11 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
                     {sinSaldo}
                   </p>
                 ) : (
-                  destino === 'STORE_CREDIT' && (
+                  destinoVisto === 'STORE_CREDIT' && (
                     <p className="text-xs text-muted-foreground">{t('cardRefund.destino.storeCreditHelp', { negocio })}</p>
                   )
                 )}
-                {destino === 'CARD' && <p className="text-xs font-medium">{t('cardRefund.destino.cardFee')}</p>}
+                {destinoVisto === 'CARD' && <p className="text-xs font-medium">{t('cardRefund.destino.cardFee')}</p>}
               </div>
             </>
           ) : (
@@ -508,10 +576,13 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
                   inputMode="decimal"
                   min={0}
                   step="0.01"
-                  value={shownAmount}
+                  value={enDuda ? enDuda.body.amount : shownAmount}
+                  disabled={!!enDuda}
                   onChange={e => setAmountStr(e.target.value)}
                 />
-                {shownAmount !== '' && !amountCents && <p className="text-xs text-destructive">{t('cardRefund.amountInvalid')}</p>}
+                {!enDuda && shownAmount !== '' && !amountCents && (
+                  <p className="text-xs text-destructive">{t('cardRefund.amountInvalid')}</p>
+                )}
               </div>
             </>
           )}
@@ -522,8 +593,9 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
                 <Button
                   key={r}
                   type="button"
-                  variant={reason === r ? 'default' : 'outline'}
-                  aria-pressed={reason === r}
+                  variant={motivoVisto === r ? 'default' : 'outline'}
+                  aria-pressed={motivoVisto === r}
+                  disabled={!!enDuda}
                   onClick={() => setReason(r)}
                 >
                   {tPay(`refund.reasons.${r}`)}
@@ -533,21 +605,39 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="card-refund-note">{t('cardRefund.note')}</Label>
-            <Textarea id="card-refund-note" maxLength={NOTE_MAX} value={note} onChange={e => setNote(e.target.value)} />
+            <Textarea
+              id="card-refund-note"
+              maxLength={NOTE_MAX}
+              value={notaVista}
+              disabled={!!enDuda}
+              onChange={e => setNote(e.target.value)}
+            />
             <p className="text-right text-xs text-muted-foreground">
-              {note.length}/{NOTE_MAX}
+              {notaVista.length}/{NOTE_MAX}
             </p>
           </div>
         </div>
 
         <DialogFooter>
-          <Button type="button" disabled={!amountCents || !reason || !canSend || blocked || refund.isPending} onClick={() => submit()}>
-            {refund.isPending
-              ? t('cardRefund.sending')
-              : nadie
-                ? t('cardRefund.nadie.submit', { amount: Currency((amountCents ?? 0) / 100) })
-                : t('cardRefund.submit')}
-          </Button>
+          {enDuda ? (
+            // Ruling 61: lo único que se puede hacer hasta saber qué pasó.
+            <>
+              <Button type="button" variant="outline" onClick={onClose}>
+                {t('cardRefund.close')}
+              </Button>
+              <Button type="button" disabled={refund.isPending} onClick={retry}>
+                {refund.isPending ? t('cardRefund.sending') : t('cardRefund.retry')}
+              </Button>
+            </>
+          ) : (
+            <Button type="button" disabled={!amountCents || !reason || !canSend || blocked || refund.isPending} onClick={() => submit()}>
+              {refund.isPending
+                ? t('cardRefund.sending')
+                : nadie
+                  ? t('cardRefund.nadie.submit', { amount: Currency((amountCents ?? 0) / 100) })
+                  : t('cardRefund.submit')}
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

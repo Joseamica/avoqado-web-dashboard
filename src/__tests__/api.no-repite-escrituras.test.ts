@@ -177,4 +177,11 @@ describe('D6 · lo que sí se sigue repitiendo solo (como antes de D6)', () => {
     expect(r.salidas).toBe(2)
     expect(r.fallo).toBeNull()
   }, 10_000)
+
+  it('🔴 guardar los ajustes de pedidos en línea (PUT) NO se repite: un reenvío tardío volvía a prender la tarjeta (D661, Ruling 64)', async () => {
+    const { updateSettings } = await import('@/services/onlineOrdering.service')
+    const r = await cortarLaPrimera(() => updateSettings('v1', { cardOnlineNadie: true }))
+    expect(r.salidas).toBe(1)
+    expect(r.fallo?.code).toBe(AxiosError.ERR_NETWORK)
+  }, 10_000)
 })

@@ -12,6 +12,9 @@
   "settings": {
     "saved": "Settings saved",
     "saveFailed": "Couldn't save. Try again.",
+    "saveUnconfirmed": "There was no response when saving. This is what was saved: if your change is missing, make it again.",
+    "saveUnknown": "There was no response when saving and we couldn't check what was saved. Check your connection and try again.",
+    "conflict": "Someone else changed this while you were editing; if you save, yours stays.",
     "loadFailed": "Couldn't load the settings.",
     "save": "Save",
     "status": {
@@ -138,6 +141,7 @@
       "cardNoOneOffered": "Right now your customers see “Pay now”.",
       "cardNoOneNotOffered": "Not offered right now: no register is alerting orders paid online. It comes back on its own as soon as an updated register (terminal or POS) is open on the orders list.",
       "cardNoOneLastAlert": "A register last alerted: {{when}}.",
+      "cardNoOneStale": "Seen at {{time}}; no connection",
       "cardNoOneStore": {
         "DISABLED": "Right now your customers don't see “Pay now”: the store is off.",
         "CLOSED": "Right now your customers don't see “Pay now”: the store is closed (outside hours).",
@@ -247,7 +251,10 @@
       },
       "mark": {
         "refunded": "Refunded",
+        "refundedCash": "Refunded in cash",
+        "refundedTransfer": "Refunded by transfer",
         "refunding": "Refunding…",
+        "reversed": "The bank sent the refund back: the customer is still owed",
         "notPickedUp": "Not picked up"
       }
     },
@@ -315,6 +322,9 @@
     "submit": "Refund to card",
     "sending": "Refunding…",
     "noResponse": "No response. Try again: it won't be refunded twice.",
+    "lockedHint": "Until we know what happened to this refund, you can only retry it as it is.",
+    "retry": "Retry",
+    "close": "Close",
     "error": "Couldn't make the refund. Try again.",
     "outcome": {
       "done": "Refunded to the card",
@@ -334,6 +344,7 @@
       "kitchen": "If it's already being prepared, let the kitchen know.",
       "amount": "Refunded in full: {{amount}}",
       "nothingLeft": "There is nothing left to refund.",
+      "inProcess": "Refund in progress",
       "submit": "Refund {{amount}}"
     },
     "destino": {

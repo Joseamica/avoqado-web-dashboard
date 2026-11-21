@@ -10,13 +10,15 @@ export type ActionOutcome =
  * Tarjeta en línea: `confirming` (un segundo «Aceptar» mientras se cobra; el servidor nunca cobra dos veces) y `paidByCard` no son
  * errores rojos: aviso con el texto del servidor.
  * D661: `marked` = el 409 trae una marca («No lo recogió», «Devolviendo…», «Devuelto»): aunque el estado coincida NO es éxito; se
- * avisa con el texto del servidor y la tarjeta no se oculta.
+ * avisa con el texto del servidor y la tarjeta no se oculta. Ruling 71: el SERVIDOR nuevo lo dice con su propio código
+ * (`ORDER_CLOSED_NOT_DELIVERED`, mismo cuerpo); el publicado, con ORDER_STATE_CHANGED y la marca.
  */
 export function actionOutcome(error: unknown, target: OnlineOrderStatus): ActionOutcome {
   type Data = { code?: unknown; status?: unknown; notPickedUpAt?: unknown; refundRequestedAt?: unknown; refundedAt?: unknown }
   const res = (error as { response?: { status?: number; data?: Data } } | undefined)?.response
   if (!res) return 'network'
   const code = res.data?.code
+  if (code === 'ORDER_CLOSED_NOT_DELIVERED') return 'marked'
   if (code === 'ORDER_STATE_CHANGED') {
     if (res.data?.notPickedUpAt || res.data?.refundRequestedAt || res.data?.refundedAt) return 'marked'
     return res.data?.status === target ? 'success' : 'gone'
