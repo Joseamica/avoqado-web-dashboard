@@ -133,6 +133,13 @@ export interface InboxOrder {
   beneficios?: Array<{ nombre: string; monto: number }>
   /** Cuántas filas de descuento tiene la cuenta; si pasa de `beneficios.length`, se dice «y N más». */
   beneficiosTotal?: number
+  // D661 (tarjeta en «Nadie»), ISO o `null`. Opcionales: un servidor viejo no los manda. Manda `refundedAt` > `refundRequestedAt` > `notPickedUpAt`.
+  /** El cierre del día lo dio por «No lo recogió» (pagado con tarjeta y nunca entregado). */
+  notPickedUpAt?: string | null
+  /** «Devolviendo…»: la devolución está reservada; no se entrega. */
+  refundRequestedAt?: string | null
+  /** «Devuelto». */
+  refundedAt?: string | null
 }
 
 export type CardChargeStatus =
@@ -183,6 +190,8 @@ export type CardRefundStatus =
   'REQUESTED' | 'SENDING' | 'PENDING' | 'SUCCEEDED' | 'RECORDED' | 'FAILED' | 'CANCELED' | 'REVERSED' | 'RESOLVED'
 export type CardRefundReason = 'RETURNED_GOODS' | 'ACCIDENTAL_CHARGE' | 'CANCELLED_ORDER' | 'FRAUDULENT_CHARGE' | 'OTHER'
 export type CardRefundResolveMethod = 'CASH' | 'BANK_TRANSFER'
+/** D661: a dónde va el dinero. `CARD` (lo de siempre) o `STORE_CREDIT`, saldo a favor en el negocio (sólo pedidos de «Nadie»). */
+export type CardRefundDestino = 'CARD' | 'STORE_CREDIT'
 
 export interface CardRefund {
   id: string
@@ -194,6 +203,8 @@ export interface CardRefund {
   refundPaymentId: string | null
   feeRefunded: string | null
   createdAt: string
+  /** D661: `true` = se devolvió a saldo a favor (nace `RESOLVED`, sin Stripe). Opcional: un servidor viejo no lo manda. */
+  toStoreCredit?: boolean
   /** Sólo si falló DESPUÉS de hecha: «Devolver por otro medio» mientras `resolvedAt` sea null. */
   reversal: {
     failureReason: string | null

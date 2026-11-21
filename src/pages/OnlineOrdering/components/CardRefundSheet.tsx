@@ -16,6 +16,7 @@ import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
 import { useAccess } from '@/hooks/use-access'
+import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
 import { falloDeCarga } from '@/lib/falloDeCarga'
 import {
@@ -26,9 +27,20 @@ import {
   resolveCardRefund,
   serverMessage,
 } from '@/services/onlineOrdering.service'
-import type { CardRefund, CardRefundReason, CardRefundResolveMethod, CardRefundResult, InboxOrder } from '@/types/onlineOrdering'
+import type {
+  CardRefund,
+  CardRefundDestino,
+  CardRefundReason,
+  CardRefundResolveMethod,
+  CardRefundResult,
+  InboxOrder,
+} from '@/types/onlineOrdering'
 import { Currency } from '@/utils/currency'
 import { useVenueDateTime } from '@/utils/datetime'
+
+import { marcaDelPedido } from '../lib/marcaDelPedido'
+import { invalidateToPay } from '../lib/toPayLive'
+import { MarcaDelPedido } from './OrderCard'
 
 const REASONS: CardRefundReason[] = ['RETURNED_GOODS', 'ACCIDENTAL_CHARGE', 'CANCELLED_ORDER', 'FRAUDULENT_CHARGE', 'OTHER']
 const NOTE_MAX = 200 // el mismo tope del servidor
@@ -51,7 +63,8 @@ const statusKey = (s: string | undefined) => (s && STATUS_KEY[s]) || 'cardRefund
  * El desenlace de `POST …/card-refund`. `UNKNOWN` = el servidor quedó en duda (su recorrido la termina): «en proceso, revisa». Lo
  * demás por `cardRefundStatus`, nunca por `status` (en una repetición dice `RECORDED` también para REVERSED y RESOLVED).
  */
-const outcomeKey = (r: Pick<CardRefundResult, 'status' | 'cardRefundStatus'>) => (r.status === 'UNKNOWN' ? statusKey(undefined) : statusKey(r.cardRefundStatus))
+const outcomeKey = (r: Pick<CardRefundResult, 'status' | 'cardRefundStatus'>) =>
+  r.status === 'UNKNOWN' ? statusKey(undefined) : statusKey(r.cardRefundStatus)
 
 const cents = (pesos: string | number) => Math.round(Number(pesos) * 100)
 
@@ -63,9 +76,7 @@ const refundableCents = (capturedAmount: number | null | undefined, refunds: Car
   Math.max(
     0,
     cents(capturedAmount ?? 0) -
-      refunds
-        .filter(r => r.status !== 'FAILED' && r.status !== 'CANCELED')
-        .reduce((sum, r) => sum + cents(r.amount), 0),
+      refunds.filter(r => r.status !== 'FAILED' && r.status !== 'CANCELED').reduce((sum, r) => sum + cents(r.amount), 0),
   )
 
 /** «120.5» ⇒ 12050 centavos; vacío, cero, negativo o con más de 2 decimales ⇒ null. */
@@ -83,9 +94,21 @@ const inDoubt = (err: unknown) => {
 }
 const codeOf = (err: unknown) => (err as { response?: { data?: { code?: unknown } } } | undefined)?.response?.data?.code
 
-type RefundBody = { amount: string; reason: CardRefundReason; note?: string }
-const bodyOf = (amount: string, reason: CardRefundReason, note: string): RefundBody => ({ amount, reason, ...(note ? { note } : {}) })
+// D661: el destino viaja sólo en un pedido de «Nadie» (en «Mi equipo» la petición queda como siempre, sin él).
+type RefundBody = { amount: string; reason: CardRefundReason; note?: string; destino?: CardRefundDestino }
+const bodyOf = (amount: string, reason: CardRefundReason, note: string, destino?: CardRefundDestino): RefundBody => ({
+  amount,
+  reason,
+  ...(note ? { note } : {}),
+  ...(destino ? { destino } : {}),
+})
 const sigOf = (b: RefundBody) => JSON.stringify(b)
+
+/** D661: el saldo a favor no se pudo (sin clienta, sin teléfono verificado, otro teléfono, sin llaves, tope…): queda la tarjeta. */
+const sinSaldoAFavor = (code: unknown) =>
+  typeof code === 'string' && (code.startsWith('STORE_CREDIT_') || code === 'REFUND_DESTINATION_NOT_AVAILABLE')
+/** D661: un estado pasajero, no un error: el texto del servidor dice qué hacer y la lista se relee sola. */
+const PASAJERO = new Set(['PRINT_IN_FLIGHT', 'ORDER_STATE_CHANGED'])
 
 /**
  * Nunca devolver dos veces lo decide el SERVIDOR, no el navegador (Codex panel r4): cada devolución dice cuál es la última que vio el
@@ -109,15 +132,24 @@ const recentTwin = (amount: string, refunds: CardRefund[], now: number) =>
 
 const isCardCaptured = (o: Pick<InboxOrder, 'paymentMode' | 'card'>) => o.paymentMode === 'CARD_ONLINE' && o.card?.status === 'CAPTURED'
 
-/** El botón y su hoja. Quien lo pinta ya comprobó `payments:refund` (el servidor lo vuelve a exigir). */
+/**
+ * El botón y su hoja. Quien lo pinta ya comprobó `payments:refund` (el servidor lo vuelve a exigir). D661: un pedido de «Nadie» se
+ * devuelve completo, a saldo a favor o a su tarjeta: «Cancelar y devolver» mientras está por entregar, «Devolver» ya cerrado.
+ */
 export function CardRefundButton({ venueId, order }: { venueId: string; order: InboxOrder }) {
   const { t } = useTranslation('onlineOrdering')
   const [open, setOpen] = useState(false)
   if (!isCardCaptured(order)) return null
+  const label =
+    order.requiresAcceptance !== false
+      ? 'cardRefund.open'
+      : order.status === 'COMPLETED'
+        ? 'cardRefund.nadie.open'
+        : 'cardRefund.nadie.cancelAndRefund'
   return (
     <>
       <Button type="button" variant="outline" size="sm" onClick={() => setOpen(true)} data-tour="online-order-card-refund">
-        {t('cardRefund.open')}
+        {t(label)}
       </Button>
       {open && <CardRefundSheet venueId={venueId} order={order} onClose={() => setOpen(false)} />}
     </>
@@ -136,8 +168,14 @@ export function OrderCardRefund({ venueId, orderId, source }: { venueId: string;
     queryFn: () => getOnlineOrder(venueId, orderId),
     enabled: enabled && !!venueId,
   })
-  if (!enabled || !data) return null
-  return <CardRefundButton venueId={venueId} order={data} />
+  if (!enabled || !data || (!isCardCaptured(data) && !marcaDelPedido(data))) return null
+  // D661: junto al botón, en qué quedó un pedido de «Nadie» («Devolviendo…», «Devuelto», «No lo recogió»).
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <MarcaDelPedido order={data} />
+      <CardRefundButton venueId={venueId} order={data} />
+    </div>
+  )
 }
 
 function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: InboxOrder; onClose: () => void }) {
@@ -146,12 +184,21 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
   const { toast } = useToast()
   const { can } = useAccess()
   const { formatDateTime } = useVenueDateTime()
+  const { venue } = useCurrentVenue()
   const qc = useQueryClient()
+  // D661: «Nadie» (los pedidos que entran solos) se devuelve completo, a saldo a favor o a su tarjeta; «Mi equipo», como siempre.
+  const nadie = order.requiresAcceptance === false
+  const negocio = venue?.name ?? t('cardRefund.destino.thisBusiness')
 
   // null = el cajero no ha tocado el monto: va lo que queda (la pista).
   const [amountStr, setAmountStr] = useState<string | null>(null)
   const [reason, setReason] = useState<CardRefundReason | null>(null)
   const [note, setNote] = useState('')
+  // D661: nada viene elegido (decide quien devuelve). `sinSaldo` = por qué el saldo a favor no se puede (texto del servidor);
+  // `porFuera` = ya se devolvió por fuera de Avoqado, en Stripe: no se ofrece ningún destino. Los dos son del pedido: duran lo que la hoja.
+  const [destino, setDestino] = useState<CardRefundDestino | null>(null)
+  const [sinSaldo, setSinSaldo] = useState<string | null>(null)
+  const [porFuera, setPorFuera] = useState<string | null>(null)
   const [confirm, setConfirm] = useState<{ sig: string; amount: string; minutes: number } | null>(null)
   // La última devolución que ve el operador. `undefined` = falta una lectura posterior a `readAfter`: sin ella no se manda.
   const [seen, setSeen] = useState<string | null | undefined>(undefined)
@@ -166,14 +213,19 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
   const list = useQuery({ queryKey: listKey, queryFn: () => listCardRefunds(venueId, order.orderId), refetchOnMount: 'always' })
   const latest = list.data ? (list.data[0]?.id ?? null) : undefined
   const hint = list.data ? refundableCents(order.card?.capturedAmount, list.data) : null
-  const shownAmount = amountStr ?? (hint ? (hint / 100).toFixed(2) : '')
+  const fullAmount = hint ? (hint / 100).toFixed(2) : ''
+  // «Nadie»: siempre lo que queda, el 100 % y sin editar (el servidor contesta FULL_REFUND_ONLY a otra cosa).
+  const shownAmount = nadie ? fullAmount : (amountStr ?? fullAmount)
   const amountCents = parseCents(shownAmount)
-  const currentSig = amountCents && reason ? sigOf(bodyOf((amountCents / 100).toFixed(2), reason, note.trim())) : null
+  const sendDestino = nadie ? (destino ?? undefined) : undefined
+  const currentSig =
+    amountCents && reason && (!nadie || destino) ? sigOf(bodyOf((amountCents / 100).toFixed(2), reason, note.trim(), sendDestino)) : null
 
   const clearForm = () => {
     setAmountStr(null)
     setReason(null)
     setNote('')
+    setDestino(null)
     setConfirm(null)
     attempt.current = null
   }
@@ -184,29 +236,47 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
     setReadAfter(Date.now())
   }
 
+  // Todo lo que lee este pedido: la lista de devoluciones (va dentro de la llave del pedido), el pedido del detalle, la Bandeja,
+  // «Por entregar» (D661: ahí se ve «Devolviendo…» y de ahí sale al cerrarse) y la cuenta.
   const reread = () => {
-    void qc.invalidateQueries({ queryKey: listKey })
+    void qc.invalidateQueries({ queryKey: onlineOrderingKeys.order(venueId, order.orderId) })
     void qc.invalidateQueries({ queryKey: onlineOrderingKeys.inbox(venueId) })
+    void invalidateToPay(qc, venueId)
     void qc.invalidateQueries({ queryKey: ['order', venueId, order.orderId] })
   }
 
   const refund = useMutation({
     mutationFn: (v: { body: RefundBody; attempt: Attempt }) =>
       createCardRefund(venueId, order.orderId, { ...v.body, expectedLatestRefundId: v.attempt.expected }, v.attempt.key),
-    onSuccess: res => {
+    onSuccess: (res, v) => {
       const failed = res.cardRefundStatus === 'FAILED' || res.cardRefundStatus === 'CANCELED'
       // También con FAILED: mientras tardó la respuesta pudo hacerse otra devolución, y el formulario lleno se la saltaría (Codex panel r5).
       startOver()
-      toast({ title: t(outcomeKey(res)), ...(failed ? { variant: 'destructive' as const } : {}) })
+      // D661: a saldo a favor nace `RESOLVED` (en la tarjeta eso significa «ya se devolvió por otro medio»): se dice lo que es.
+      const title =
+        v.body.destino === 'STORE_CREDIT' && res.status === 'RECORDED' ? t('cardRefund.outcome.storeCredit') : t(outcomeKey(res))
+      toast({ title, ...(failed ? { variant: 'destructive' as const } : {}) })
     },
     onError: err => {
+      const code = codeOf(err)
+      // D661: Stripe no contestó al revisar si ya se devolvió por fuera: no se aplicó nada; se reintenta con la MISMA llave.
+      if (code === 'STRIPE_REFUND_CHECK_UNAVAILABLE') return toast({ title: serverMessage(err, t('cardRefund.noResponse')) })
       if (inDoubt(err)) return toast({ title: t('cardRefund.noResponse') })
       attempt.current = null
-      if (codeOf(err) === 'CARD_REFUND_STALE_VIEW') {
+      if (code === 'CARD_REFUND_STALE_VIEW') {
         startOver()
         setChanged(true)
         return
       }
+      // D661: alguien ya devolvió este cobro por fuera, directo en Stripe: ningún destino ni reintento; se termina desde Stripe.
+      if (code === 'EXTERNAL_REFUND_DETECTED') return setPorFuera(serverMessage(err, t('cardRefund.error')))
+      // D661: el saldo a favor no se pudo: se dice por qué, en la hoja, y queda «A su tarjeta», ya elegida.
+      if (sinSaldoAFavor(code)) {
+        setSinSaldo(serverMessage(err, t('cardRefund.error')))
+        setDestino('CARD')
+        return
+      }
+      if (typeof code === 'string' && PASAJERO.has(code)) return toast({ title: serverMessage(err, t('cardRefund.error')) })
       toast({ title: serverMessage(err, t('cardRefund.error')), variant: 'destructive' })
     },
     onSettled: () => {
@@ -245,9 +315,12 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
     },
   })
 
+  // D661: en «Nadie» falta elegir a dónde; con una devolución hecha por fuera (en Stripe) no se manda nada.
+  const blocked = (nadie && !destino) || !!porFuera
+
   const submit = (confirmed = false) => {
-    if (!amountCents || !reason || !canSend || busy.current) return
-    const body = bodyOf((amountCents / 100).toFixed(2), reason, note.trim())
+    if (!amountCents || !reason || !canSend || blocked || busy.current) return
+    const body = bodyOf((amountCents / 100).toFixed(2), reason, note.trim(), sendDestino)
     const sig = sigOf(body)
     setChanged(false)
     if (attempt.current?.sig === sig) {
@@ -272,8 +345,10 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
     <Dialog open onOpenChange={open => !open && onClose()}>
       <DialogContent className="max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{t('cardRefund.title', { number: order.orderNumber })}</DialogTitle>
-          <DialogDescription>{t('cardRefund.description')}</DialogDescription>
+          <DialogTitle>
+            {nadie ? t('cardRefund.nadie.title', { folio: order.orderNumber }) : t('cardRefund.title', { number: order.orderNumber })}
+          </DialogTitle>
+          <DialogDescription>{t(nadie ? 'cardRefund.nadie.description' : 'cardRefund.description')}</DialogDescription>
         </DialogHeader>
 
         <section className="space-y-2">
@@ -297,7 +372,10 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
                 <li key={r.id} data-testid={`card-refund-${r.id}`} className="space-y-1 p-3 text-sm">
                   <div className="flex items-center justify-between gap-3">
                     <span className="font-medium">{Currency(Number(r.amount))}</span>
-                    <span className="text-right text-muted-foreground">{t(statusKey(r.status))}</span>
+                    {/* D661: la de saldo a favor nace RESOLVED; en la tarjeta eso es «ya se devolvió por otro medio». */}
+                    <span className="text-right text-muted-foreground">
+                      {t(r.toStoreCredit ? 'cardRefund.outcome.storeCredit' : statusKey(r.status))}
+                    </span>
                   </div>
                   <p className="text-xs text-muted-foreground">
                     {formatDateTime(r.createdAt)} · {tPay(`refund.reasons.${r.reason}`)}
@@ -308,7 +386,9 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
                     (other?.id === r.id ? (
                       // Sale de la caja o queda anotado, y no se deshace: nunca con un solo toque (Q1).
                       <div className="space-y-2 pt-1">
-                        <p className="text-xs font-medium">{t(`cardRefund.other.confirm${other.method}`, { amount: Currency(Number(r.amount)) })}</p>
+                        <p className="text-xs font-medium">
+                          {t(`cardRefund.other.confirm${other.method}`, { amount: Currency(Number(r.amount)) })}
+                        </p>
                         <div className="flex flex-wrap items-center gap-2">
                           <Button
                             type="button"
@@ -361,25 +441,83 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
               </AlertDescription>
             </Alert>
           )}
-          {hint !== null && <p className="text-sm font-medium">{t('cardRefund.upTo', { amount: Currency(hint / 100) })}</p>}
-          <div className="space-y-1.5">
-            <Label htmlFor="card-refund-amount">{t('cardRefund.amount')}</Label>
-            <Input
-              id="card-refund-amount"
-              type="number"
-              inputMode="decimal"
-              min={0}
-              step="0.01"
-              value={shownAmount}
-              onChange={e => setAmountStr(e.target.value)}
-            />
-            {shownAmount !== '' && !amountCents && <p className="text-xs text-destructive">{t('cardRefund.amountInvalid')}</p>}
-          </div>
+          {porFuera && (
+            <Alert variant="destructive">
+              <AlertDescription>{porFuera}</AlertDescription>
+            </Alert>
+          )}
+          {nadie ? (
+            <>
+              {hint !== null && (
+                <p className="text-sm font-medium">
+                  {hint ? t('cardRefund.nadie.amount', { amount: Currency(hint / 100) }) : t('cardRefund.nadie.nothingLeft')}
+                </p>
+              )}
+              <div className="space-y-1.5">
+                <p className="text-sm font-medium">{t('cardRefund.destino.title')}</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    type="button"
+                    className="h-auto whitespace-normal py-2"
+                    variant={destino === 'STORE_CREDIT' ? 'default' : 'outline'}
+                    aria-pressed={destino === 'STORE_CREDIT'}
+                    disabled={!!sinSaldo || !!porFuera}
+                    onClick={() => setDestino('STORE_CREDIT')}
+                  >
+                    {t('cardRefund.destino.storeCredit', { negocio })}
+                  </Button>
+                  <Button
+                    type="button"
+                    className="h-auto whitespace-normal py-2"
+                    variant={destino === 'CARD' ? 'default' : 'outline'}
+                    aria-pressed={destino === 'CARD'}
+                    disabled={!!porFuera}
+                    onClick={() => setDestino('CARD')}
+                  >
+                    {t('cardRefund.destino.card')}
+                  </Button>
+                </div>
+                {sinSaldo ? (
+                  <p role="alert" className="text-xs">
+                    {sinSaldo}
+                  </p>
+                ) : (
+                  destino === 'STORE_CREDIT' && (
+                    <p className="text-xs text-muted-foreground">{t('cardRefund.destino.storeCreditHelp', { negocio })}</p>
+                  )
+                )}
+                {destino === 'CARD' && <p className="text-xs font-medium">{t('cardRefund.destino.cardFee')}</p>}
+              </div>
+            </>
+          ) : (
+            <>
+              {hint !== null && <p className="text-sm font-medium">{t('cardRefund.upTo', { amount: Currency(hint / 100) })}</p>}
+              <div className="space-y-1.5">
+                <Label htmlFor="card-refund-amount">{t('cardRefund.amount')}</Label>
+                <Input
+                  id="card-refund-amount"
+                  type="number"
+                  inputMode="decimal"
+                  min={0}
+                  step="0.01"
+                  value={shownAmount}
+                  onChange={e => setAmountStr(e.target.value)}
+                />
+                {shownAmount !== '' && !amountCents && <p className="text-xs text-destructive">{t('cardRefund.amountInvalid')}</p>}
+              </div>
+            </>
+          )}
           <div className="space-y-1.5">
             <p className="text-sm font-medium">{t('cardRefund.reason')}</p>
             <div className="grid grid-cols-2 gap-2">
               {REASONS.map(r => (
-                <Button key={r} type="button" variant={reason === r ? 'default' : 'outline'} aria-pressed={reason === r} onClick={() => setReason(r)}>
+                <Button
+                  key={r}
+                  type="button"
+                  variant={reason === r ? 'default' : 'outline'}
+                  aria-pressed={reason === r}
+                  onClick={() => setReason(r)}
+                >
                   {tPay(`refund.reasons.${r}`)}
                 </Button>
               ))}
@@ -395,8 +533,12 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
         </div>
 
         <DialogFooter>
-          <Button type="button" disabled={!amountCents || !reason || !canSend || refund.isPending} onClick={() => submit()}>
-            {refund.isPending ? t('cardRefund.sending') : t('cardRefund.submit')}
+          <Button type="button" disabled={!amountCents || !reason || !canSend || blocked || refund.isPending} onClick={() => submit()}>
+            {refund.isPending
+              ? t('cardRefund.sending')
+              : nadie
+                ? t('cardRefund.nadie.submit', { amount: Currency((amountCents ?? 0) / 100) })
+                : t('cardRefund.submit')}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -238,6 +238,11 @@
         "EXPIRED": "Venció sin respuesta",
         "CANCELLED_BY_CUSTOMER": "Lo canceló el cliente",
         "CANCELLED_BY_STAFF": "Cancelado"
+      },
+      "mark": {
+        "refunded": "Devuelto",
+        "refunding": "Devolviendo…",
+        "notPickedUp": "No lo recogió"
       }
     },
     "actions": {
@@ -312,7 +317,25 @@
       "failed": "El banco no hizo la devolución; no se anotó nada",
       "reversed": "La devolución falló después: devuélvelo por otro medio",
       "resolved": "Ya se devolvió por otro medio",
-      "unknown": "La devolución está en proceso; revisa en un momento"
+      "unknown": "La devolución está en proceso; revisa en un momento",
+      "storeCredit": "Devuelto como saldo a favor"
+    },
+    "nadie": {
+      "open": "Devolver",
+      "cancelAndRefund": "Cancelar y devolver",
+      "title": "Devolver el pago · folio {{folio}}",
+      "description": "Se le devuelve todo lo que pagó. Elige a dónde.",
+      "amount": "Se devuelve completo: {{amount}}",
+      "nothingLeft": "Ya no queda nada por devolver.",
+      "submit": "Devolver {{amount}}"
+    },
+    "destino": {
+      "title": "¿A dónde se devuelve?",
+      "storeCredit": "Saldo a favor en {{negocio}}",
+      "card": "A su tarjeta",
+      "storeCreditHelp": "Lo usa al pagar en caja en {{negocio}}; nunca se cambia por efectivo.",
+      "cardFee": "Con tarjeta, el negocio no recupera la comisión de Stripe de este cobro.",
+      "thisBusiness": "este negocio"
     },
     "other": {
       "title": "Devolver por otro medio:",

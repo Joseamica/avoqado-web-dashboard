@@ -238,6 +238,11 @@
         "EXPIRED": "Expired without an answer",
         "CANCELLED_BY_CUSTOMER": "Cancelled by the customer",
         "CANCELLED_BY_STAFF": "Cancelled"
+      },
+      "mark": {
+        "refunded": "Refunded",
+        "refunding": "Refunding…",
+        "notPickedUp": "Not picked up"
       }
     },
     "actions": {
@@ -312,7 +317,25 @@
       "failed": "The bank didn't make the refund; nothing was recorded",
       "reversed": "The refund failed later: refund it another way",
       "resolved": "Already refunded another way",
-      "unknown": "The refund is in progress; check again in a moment"
+      "unknown": "The refund is in progress; check again in a moment",
+      "storeCredit": "Returned as store credit"
+    },
+    "nadie": {
+      "open": "Refund",
+      "cancelAndRefund": "Cancel and refund",
+      "title": "Refund the payment · folio {{folio}}",
+      "description": "They get back everything they paid. Choose where it goes.",
+      "amount": "Refunded in full: {{amount}}",
+      "nothingLeft": "There is nothing left to refund.",
+      "submit": "Refund {{amount}}"
+    },
+    "destino": {
+      "title": "Where does it go back?",
+      "storeCredit": "Store credit at {{negocio}}",
+      "card": "To their card",
+      "storeCreditHelp": "They use it when paying at the register at {{negocio}}; it is never exchanged for cash.",
+      "cardFee": "To the card, the business does not get back the Stripe fee for this charge.",
+      "thisBusiness": "this business"
     },
     "other": {
       "title": "Refund another way:",

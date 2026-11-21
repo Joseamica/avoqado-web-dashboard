@@ -11,8 +11,26 @@ describe('actionOutcome', () => {
     )
   })
 
+  it('D661: 409 ORDER_STATE_CHANGED con una marca («No lo recogió», «Devolviendo…», «Devuelto») ⇒ marked, aunque el estado coincida', () => {
+    for (const marca of ['notPickedUpAt', 'refundRequestedAt', 'refundedAt']) {
+      const err = http(409, {
+        success: false,
+        code: 'ORDER_STATE_CHANGED',
+        status: 'COMPLETED',
+        [marca]: '2026-11-21T10:00:05.000Z',
+        error: 'x',
+      })
+      expect(actionOutcome(err, 'COMPLETED'), marca).toBe('marked')
+    }
+    // Las marcas en null (como las manda el SERVIDOR sin marca): sigue siendo el reintento que ya había llegado.
+    const sinMarca = { notPickedUpAt: null, refundRequestedAt: null, refundedAt: null }
+    expect(actionOutcome(http(409, { code: 'ORDER_STATE_CHANGED', status: 'COMPLETED', ...sinMarca }), 'COMPLETED')).toBe('success')
+  })
+
   it('409 ORDER_STATE_CHANGED en OTRO estado ⇒ gone', () => {
-    expect(actionOutcome(http(409, { success: false, code: 'ORDER_STATE_CHANGED', status: 'EXPIRED', error: 'x' }), 'ACCEPTED')).toBe('gone')
+    expect(actionOutcome(http(409, { success: false, code: 'ORDER_STATE_CHANGED', status: 'EXPIRED', error: 'x' }), 'ACCEPTED')).toBe(
+      'gone',
+    )
   })
 
   it('404 ⇒ gone', () => {
@@ -34,7 +52,9 @@ describe('actionOutcome', () => {
   })
 
   it('409 ONLINE_ORDER_PAID_BY_CARD ⇒ paidByCard', () => {
-    expect(actionOutcome(http(409, { message: 'Ya se pagó con tarjeta', code: 'ONLINE_ORDER_PAID_BY_CARD' }), 'COMPLETED')).toBe('paidByCard')
+    expect(actionOutcome(http(409, { message: 'Ya se pagó con tarjeta', code: 'ONLINE_ORDER_PAID_BY_CARD' }), 'COMPLETED')).toBe(
+      'paidByCard',
+    )
   })
 
   it('sin respuesta ⇒ network', () => {
@@ -42,9 +62,12 @@ describe('actionOutcome', () => {
   })
 
   it('lo demás (ORDER_CANCEL_BLOCKED_BY_TERMINAL_CHARGE, 500) ⇒ error', () => {
-    expect(actionOutcome(http(409, { message: 'Hay un cobro en la terminal', code: 'ORDER_CANCEL_BLOCKED_BY_TERMINAL_CHARGE' }), 'CANCELLED_BY_STAFF')).toBe(
-      'error',
-    )
+    expect(
+      actionOutcome(
+        http(409, { message: 'Hay un cobro en la terminal', code: 'ORDER_CANCEL_BLOCKED_BY_TERMINAL_CHARGE' }),
+        'CANCELLED_BY_STAFF',
+      ),
+    ).toBe('error')
     expect(actionOutcome(http(500, { message: 'boom' }), 'READY')).toBe('error')
   })
 })

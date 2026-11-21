@@ -11,7 +11,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const m = vi.hoisted(() => ({ get: vi.fn(), order: {} as Record<string, unknown>, permissions: [] as string[] }))
 vi.mock('@/api', () => ({ default: { get: (...a: unknown[]) => m.get(...a) } }))
 vi.mock('@/hooks/use-access', () => ({ useAccess: () => ({ can: (p: string) => m.permissions.includes(p) }) }))
-vi.mock('@/hooks/use-current-venue', () => ({ useCurrentVenue: () => ({ venueId: 'v1', venue: { name: 'Taquería' }, fullBasePath: '/venues/t' }) }))
+vi.mock('@/hooks/use-current-venue', () => ({
+  useCurrentVenue: () => ({ venueId: 'v1', venue: { name: 'Taquería' }, fullBasePath: '/venues/t' }),
+}))
 vi.mock('@/utils/datetime', () => ({ useVenueDateTime: () => ({ formatDateTime: (d: string) => d }) }))
 vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: () => {} }) }))
 vi.mock('@/context/BreadcrumbContext', () => ({ useBreadcrumb: () => ({ setCustomSegment: () => {}, clearCustomSegment: () => {} }) }))
@@ -48,7 +50,13 @@ const onlineOrder = {
   needsPrint: false,
   items: [],
   cardStatus: null,
-  card: { status: 'CAPTURED', amount: 200, capturedAmount: 200, authorizedAt: '2026-10-30T17:00:00.000Z', capturedAt: '2026-10-30T17:05:00.000Z' },
+  card: {
+    status: 'CAPTURED',
+    amount: 200,
+    capturedAmount: 200,
+    authorizedAt: '2026-10-30T17:00:00.000Z',
+    capturedAt: '2026-10-30T17:05:00.000Z',
+  },
   rejectReason: null,
 }
 
@@ -88,8 +96,28 @@ describe('detalle de la cuenta: «Devolver a la tarjeta» de un pedido en línea
     expect(screen.queryByRole('button', { name: 'cardRefund.open' })).toBeNull()
   })
 
+  // D661: un pedido de «Nadie» pagado con tarjeta dice en el detalle en qué quedó, junto al botón para devolver.
+  it.each([
+    ['refundRequestedAt → «Devolviendo…»', { status: 'READY', refundRequestedAt: '2026-10-30T18:00:00.000Z' }, 'inbox.card.mark.refunding'],
+    [
+      'refundedAt → «Devuelto» (manda sobre la reserva)',
+      { refundRequestedAt: '2026-10-30T18:00:00.000Z', refundedAt: '2026-10-30T18:00:02.000Z' },
+      'inbox.card.mark.refunded',
+    ],
+    ['notPickedUpAt → «No lo recogió»', { notPickedUpAt: '2026-10-31T10:00:05.000Z' }, 'inbox.card.mark.notPickedUp'],
+  ])('«Nadie» con %s, en el detalle', async (_n, marks, text) => {
+    m.get.mockImplementation(async (url: string) => {
+      if (url === S3) return { data: { success: true, data: { ...onlineOrder, requiresAcceptance: false, ...marks } } }
+      throw new Error(`GET inesperado: ${url}`)
+    })
+    mount()
+    expect(await screen.findByText(text, {}, { timeout: 3000 })).toBeInTheDocument()
+  })
+
   it('S3 responde 404 (no es pedido en línea) ⇒ sin botón', async () => {
-    m.get.mockRejectedValue(Object.assign(new Error('404'), { response: { status: 404, data: { message: 'Esta cuenta no es un pedido en línea.' } } }))
+    m.get.mockRejectedValue(
+      Object.assign(new Error('404'), { response: { status: 404, data: { message: 'Esta cuenta no es un pedido en línea.' } } }),
+    )
     mount()
     await waitFor(() => expect(m.get).toHaveBeenCalledWith(S3))
     await new Promise(r => setTimeout(r, 30))

@@ -1492,3 +1492,112 @@ describe('R98 · «Por entregar» = pagado y no entregado (ACCEPTED + READY)', (
     expect(await screen.findByTestId('order-f1')).toBeInTheDocument()
   })
 })
+
+describe('D661 · tarjeta en «Nadie»: «Devolviendo…», «Devuelto», «No lo recogió» y devolver desde «Por entregar»', () => {
+  beforeEach(() => {
+    for (const f of [getInbox, getToPay, getSettings, markReady, markDelivered, cancelOrder, toast, mockStatus]) f.mockReset()
+    mockStatus.mockReturnValue(status())
+    getInbox.mockResolvedValue(inbox([]))
+    getSettings.mockResolvedValue({ requiresAcceptance: false })
+    getToPay.mockResolvedValue(toPayRes())
+  })
+  const captured = {
+    status: 'CAPTURED',
+    amount: 134,
+    capturedAmount: 134,
+    authorizedAt: '2026-10-17T17:55:00.000Z',
+    capturedAt: '2026-10-17T17:58:00.000Z',
+  }
+  // Un pedido de «Nadie» pagado con tarjeta en línea y ya cobrado (una caja lo abrió).
+  const pagadoConTarjeta = (over: Record<string, unknown> = {}) =>
+    folio({
+      status: 'ACCEPTED',
+      paymentMode: 'CARD_ONLINE',
+      paymentStatus: 'PAID',
+      remaining: 0,
+      cardStatus: null,
+      card: captured,
+      ...over,
+    })
+  const cerrado = (over: Record<string, unknown> = {}) =>
+    pagadoConTarjeta({ orderId: 'o7', onlineOrderId: 'oo7', orderNumber: 'W7', status: 'COMPLETED', acceptDeadlineAt: null, ...over })
+  const DONE = { counts: { pending: 0, accepted: 0, ready: 0, active: 0, done: 2 } }
+
+  it('«Por entregar» monta «Cancelar y devolver» en un pedido pagado con tarjeta (con permiso); un folio pagado en caja no', async () => {
+    const enCaja = folio({
+      orderId: 'f2',
+      onlineOrderId: 'fo2',
+      orderNumber: 'W8M',
+      status: 'ACCEPTED',
+      paymentStatus: 'PAID',
+      remaining: 0,
+    })
+    getToPay.mockResolvedValue(toPayRes([], [pagadoConTarjeta(), enCaja]))
+    const { unmount } = renderTab()
+    const tarjeta = await screen.findByTestId('folio-f1')
+    expect(within(tarjeta).getByRole('button', { name: 'cardRefund.nadie.cancelAndRefund' })).toBeInTheDocument()
+    expect(within(screen.getByTestId('folio-f2')).queryByRole('button', { name: /^cardRefund\./ })).toBeNull()
+    unmount()
+    mockStatus.mockReturnValue(status({ canRefund: false }))
+    renderTab()
+    await screen.findByTestId('folio-f1')
+    expect(screen.queryByRole('button', { name: 'cardRefund.nadie.cancelAndRefund' })).toBeNull()
+  })
+
+  it('refundRequestedAt → «Devolviendo…» sin entregar; refundedAt → «Devuelto»', async () => {
+    getToPay.mockResolvedValue(toPayRes([], [pagadoConTarjeta({ status: 'READY', refundRequestedAt: '2026-10-17T17:59:00.000Z' })]))
+    getInbox.mockResolvedValue(
+      inbox([cerrado({ refundRequestedAt: '2026-10-17T17:59:00.000Z', refundedAt: '2026-10-17T17:59:30.000Z' })], DONE),
+    )
+    renderTab()
+    const f = await screen.findByTestId('folio-f1')
+    expect(within(f).getByText('inbox.card.mark.refunding')).toBeInTheDocument()
+    expect(within(f).queryByRole('button', { name: 'inbox.actions.delivered' })).toBeNull()
+    expect(within(f).queryByRole('button', { name: 'inbox.actions.ready' })).toBeNull()
+    const o = await screen.findByTestId('order-o7')
+    expect(within(o).getByText('inbox.card.mark.refunded')).toBeInTheDocument()
+    expect(within(o).queryByText('inbox.card.status.COMPLETED')).toBeNull() // nunca «Entregado»
+  })
+
+  it('notPickedUpAt → «No lo recogió»', async () => {
+    getInbox.mockResolvedValue(
+      inbox(
+        [
+          cerrado({ notPickedUpAt: '2026-10-18T10:00:05.000Z' }),
+          // Un «No lo recogió» que se está devolviendo dice «Devolviendo…» (manda la devolución).
+          cerrado({
+            orderId: 'o8',
+            onlineOrderId: 'oo8',
+            orderNumber: 'W9',
+            notPickedUpAt: '2026-10-18T10:00:05.000Z',
+            refundRequestedAt: '2026-10-18T11:00:00.000Z',
+          }),
+        ],
+        DONE,
+      ),
+    )
+    renderTab()
+    const o7 = await screen.findByTestId('order-o7')
+    expect(within(o7).getByText('inbox.card.mark.notPickedUp')).toBeInTheDocument()
+    expect(within(o7).queryByText('inbox.card.status.COMPLETED')).toBeNull()
+    expect(within(screen.getByTestId('order-o8')).getByText('inbox.card.mark.refunding')).toBeInTheDocument()
+  })
+
+  it('«Entregado» sobre un pedido que ya cerró el día: el SERVIDOR contesta su marca y el panel no dice «entregado»', async () => {
+    const message = 'Este pedido se cerró como «No lo recogió» al terminar el día: no se marca entregado. No se aplicó nada.'
+    getToPay.mockResolvedValue(toPayRes([], [pagadoConTarjeta()]))
+    markDelivered.mockRejectedValue(
+      http(409, {
+        success: false,
+        code: 'ORDER_STATE_CHANGED',
+        status: 'COMPLETED',
+        notPickedUpAt: '2026-10-18T10:00:05.000Z',
+        error: message,
+      }),
+    )
+    renderTab()
+    await userEvent.click(within(await screen.findByTestId('folio-f1')).getByRole('button', { name: 'inbox.actions.delivered' }))
+    await waitFor(() => expect(toast).toHaveBeenCalledWith({ title: message }))
+    expect(toast).not.toHaveBeenCalledWith({ title: expect.stringMatching(/^folio\.delivered/) })
+  })
+})
