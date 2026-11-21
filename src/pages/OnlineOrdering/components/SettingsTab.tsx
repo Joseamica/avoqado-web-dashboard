@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type RefObject } from 'react'
-import { Controller, useForm } from 'react-hook-form'
+import { Controller, useController, useForm } from 'react-hook-form'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -264,6 +264,10 @@ export function SettingsTab() {
   // sí tocó se quedan como los dejó (D662 v5).
   const form = useForm<FormValues>({ resolver: zodResolver(schema), values: formValues, resetOptions: { keepDirtyValues: true } })
   const { control, watch, setValue, handleSubmit, reset, formState } = form
+  // Codex p2v5-r3 #3: el horario no tiene un input propio (se cambia con `setValue`) y React Hook Form ignora `resetField` en un campo sin
+  // registrar: su marca de editado se quedaba pegada y un guardado posterior de otra persona no le llegaba («Guardar» lo revertía).
+  // Registrado, `resetField` (abajo) y `keepDirtyValues` lo tratan igual que al monto mínimo.
+  useController({ control, name: 'hours' })
   // D662 v5 (Codex p2v5-r2 #10): con `keepDirtyValues`, un campo que el gerente editó y que OTRA persona guardó con ese mismo valor ya no
   // es una edición: se le quita la marca, para que un guardado posterior de esa otra persona sí lo actualice (y «Guardar» no lo revierta).
   useEffect(() => {

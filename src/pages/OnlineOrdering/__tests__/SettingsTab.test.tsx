@@ -13,8 +13,24 @@ vi.mock('@/hooks/use-current-venue', () => ({
 vi.mock('@/utils/datetime', () => ({ useVenueDateTime: () => ({ formatTime: (d: string) => `T(${d})` }) }))
 const toast = vi.fn()
 vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast }) }))
+// El editor real tiene sus propias pruebas. Aquí sólo dice a qué hora abre el lunes y deja cambiarla a las 10:00 (Codex p2v5-r3 #3).
 vi.mock('@/pages/Reservations/components/OperatingHoursEditor', () => ({
-  OperatingHoursEditor: () => <div data-testid="hours-editor" />,
+  OperatingHoursEditor: ({
+    value,
+    onChange,
+  }: {
+    value: Record<string, { enabled: boolean; ranges: { open: string; close: string }[] }> | null
+    onChange: (next: unknown) => void
+  }) => (
+    <div data-testid="hours-editor" data-open={value?.monday?.ranges[0]?.open}>
+      <button
+        type="button"
+        onClick={() => onChange({ ...value, monday: { enabled: true, ranges: [{ open: '10:00', close: '21:00' }] } })}
+      >
+        abrir-a-las-10
+      </button>
+    </div>
+  ),
 }))
 vi.mock('qrcode.react', () => ({ QRCodeCanvas: ({ value }: { value: string }) => <canvas data-testid="qr" data-value={value} /> }))
 const access = { denied: [] as string[], role: 'ADMIN' }
@@ -205,6 +221,33 @@ describe('SettingsTab', () => {
     fireEvent(document, new Event('visibilitychange'))
     await waitFor(() => expect(screen.getByLabelText('settings.minOrder')).toHaveValue(90))
     expect(screen.queryByText('settings.unsaved')).toBeNull()
+  })
+
+  it('🔴 D662 v5 (Codex p2v5-r3 #3): el HORARIO que edité y otra persona guardó igual deja de ser edición: su cambio posterior me llega y guardar el mínimo no lo revierte', async () => {
+    const semana = (open: string) => ({ monday: { enabled: true, ranges: [{ open, close: '21:00' }] } })
+    const leida = (over: Record<string, unknown>) =>
+      base({ enabled: true, storeReadAt: '2026-11-20T18:00:00.000Z', storeNextDeadlineAt: null, enviadoEn: Date.now(), ...over })
+    getSettings.mockResolvedValue(leida({ hours: semana('09:00'), storeVersion: '2026-11-20T17:00:00.000Z' }))
+    renderTab()
+    await formularioCargado()
+    // Yo cambio la apertura a las 10:00 (sin guardar).
+    fireEvent.click(screen.getByRole('button', { name: 'abrir-a-las-10' }))
+    expect(await screen.findByText('settings.unsaved')).toBeInTheDocument()
+    // Otra gerente guarda las 10:00…
+    getSettings.mockResolvedValue(leida({ hours: semana('10:00'), storeVersion: '2026-11-20T18:00:01.000Z' }))
+    fireEvent(document, new Event('visibilitychange'))
+    await waitFor(() => expect(screen.queryByText('settings.unsaved')).toBeNull())
+    // …y luego las 11:00: ya no es mi edición, me llega.
+    getSettings.mockResolvedValue(leida({ hours: semana('11:00'), storeVersion: '2026-11-20T18:00:02.000Z' }))
+    fireEvent(document, new Event('visibilitychange'))
+    await waitFor(() => expect(screen.getByTestId('hours-editor')).toHaveAttribute('data-open', '11:00'))
+    expect(screen.queryByText('settings.unsaved')).toBeNull()
+    // Guardo el pedido mínimo: sólo va el mínimo, el horario de 11:00 no vuelve a las 10:00.
+    updateSettings.mockResolvedValue(putToday({ enabled: true, hours: semana('11:00'), minOrderAmount: 80 }))
+    fireEvent.change(screen.getByLabelText('settings.minOrder'), { target: { value: '80' } })
+    await userEvent.click(screen.getByRole('button', { name: 'settings.save' }))
+    await waitFor(() => expect(updateSettings).toHaveBeenCalledTimes(1))
+    expect(updateSettings).toHaveBeenCalledWith('venue-1', { minOrderAmount: 80 })
   })
 
   it('D662 v5 (Codex p2v5-r2 #9): si el negocio nunca había guardado y otra persona lo configura y enciende, el interruptor también lo dice', async () => {
