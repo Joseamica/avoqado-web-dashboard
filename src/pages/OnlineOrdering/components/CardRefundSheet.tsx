@@ -300,14 +300,16 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
       }
       soltarDuda(v.attempt.key) // un rechazo definitivo: esa llave no hizo ni va a hacer nada
       attempt.current = null
-      if (code === 'CARD_REFUND_STALE_VIEW') {
-        startOver()
-        setChanged(true)
-        return
-      }
       const texto = serverMessage(err, t('cardRefund.error'))
       // Con la hoja ya cerrada, lo que se pinta en ella nadie lo ve: también va en un aviso (que sepa que no se devolvió).
       const siCerrada = () => !abierta.current && toast({ title: texto, variant: 'destructive' })
+      // Otra devolución entró primero: la suya no se hizo.
+      if (code === 'CARD_REFUND_STALE_VIEW') {
+        startOver()
+        setChanged(true)
+        siCerrada()
+        return
+      }
       // D661: alguien ya devolvió este cobro por fuera, directo en Stripe: ningún destino ni reintento; se termina desde Stripe.
       if (code === 'EXTERNAL_REFUND_DETECTED') {
         setPorFuera(texto)
@@ -321,7 +323,7 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
         siCerrada()
         return
       }
-      toast({ title: serverMessage(err, t('cardRefund.error')), variant: 'destructive' })
+      toast({ title: texto, variant: 'destructive' })
     },
     onSettled: () => {
       busy.current = false

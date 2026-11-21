@@ -35,6 +35,7 @@ vi.mock('@/services/onlineOrdering.service', async importOriginal => {
   }
 })
 
+import enOnline from '@/locales/en/onlineOrdering.json'
 import esOnline from '@/locales/es/onlineOrdering.json'
 import { Currency } from '@/utils/currency'
 import { CardRefundButton, OrderCardRefund } from '../components/CardRefundSheet'
@@ -927,6 +928,7 @@ describe('Devolver a la tarjeta', () => {
     it.each([
       ['EXTERNAL_REFUND_DETECTED', 409],
       ['STORE_CREDIT_UNAVAILABLE', 422],
+      ['CARD_REFUND_STALE_VIEW', 409], // otra devolución entró primero: la suya no se hizo
     ])('con la hoja ya cerrada, %s avisa con el texto del servidor', async (code, status) => {
       let falla: (e: unknown) => void = () => {}
       createCardRefund.mockImplementationOnce(() => new Promise((_ok, f) => (falla = f)))
@@ -938,7 +940,8 @@ describe('Devolver a la tarjeta', () => {
       await userEvent.keyboard('{Escape}')
       await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
       await act(async () => falla(http(status, { code, message: `no se devolvió: ${code}` })))
-      await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.objectContaining({ title: `no se devolvió: ${code}` })))
+      await waitFor(() => expect(toast).toHaveBeenCalledWith({ title: `no se devolvió: ${code}`, variant: 'destructive' }))
+      expect(toast).toHaveBeenCalledTimes(1)
     })
 
     it('503 STRIPE_REFUND_CHECK_UNAVAILABLE: el texto del servidor y se reintenta con la misma llave (no se aplicó nada)', async () => {
@@ -1086,7 +1089,11 @@ describe('Devolver a la tarjeta', () => {
       // Limpieza final: los minutos se cuentan desde el envío, no son un «10» fijo.
       expect(esOnline.cardRefund.lockedExit_other).toBe('Si no se resuelve, en {{count}} minutos podrás elegir otra vez.')
       expect(esOnline.cardRefund.lockedExit_one).toBe('Si no se resuelve, en 1 minuto podrás elegir otra vez.')
-      expect(esOnline.cardRefund.lockedTitle).toBe('Mandamos esta devolución y la respuesta no fue definitiva; reintenta con lo mismo.')
+      // Cierto en los tres caminos: respuesta no definitiva, sin respuesta, y la primera petición todavía en camino.
+      expect(esOnline.cardRefund.lockedTitle).toBe(
+        'Mandamos esta devolución y todavía no hay una respuesta definitiva; reintenta con lo mismo.',
+      )
+      expect(enOnline.cardRefund.lockedTitle).toBe("We sent this refund and there's no definitive answer yet; retry it as it is.")
       vi.useFakeTimers({ shouldAdvanceTime: true })
       try {
         createCardRefund.mockRejectedValueOnce(networkError())

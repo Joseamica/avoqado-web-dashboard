@@ -327,7 +327,7 @@
     "sending": "Devolviendo…",
     "noResponse": "No hubo respuesta. Vuelve a intentarlo: no se devuelve dos veces.",
     "notDefinitive": "La respuesta no fue definitiva. Reintenta con lo mismo: no se devuelve dos veces.",
-    "lockedTitle": "Mandamos esta devolución y la respuesta no fue definitiva; reintenta con lo mismo.",
+    "lockedTitle": "Mandamos esta devolución y todavía no hay una respuesta definitiva; reintenta con lo mismo.",
     "lockedHint": "Hasta saber qué pasó con esta devolución, sólo se puede reintentar igual.",
     "lockedExit_one": "Si no se resuelve, en 1 minuto podrás elegir otra vez.",
     "lockedExit_other": "Si no se resuelve, en {{count}} minutos podrás elegir otra vez.",
