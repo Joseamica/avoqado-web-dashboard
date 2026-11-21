@@ -1,3 +1,5 @@
+import { DateTime } from 'luxon'
+
 /**
  * D14 v2: cómo manda el panel el alcance y los límites de un descuento o cupón. Sólo la forma: si el valor vale lo decide el
  * SERVIDOR (validarCambioDeDescuento) frente a lo guardado, y el panel enseña su mensaje.
@@ -32,3 +34,41 @@ export const soloLoQueCambio = <T extends object>(datos: T, abierto: object | un
   abierto
     ? (Object.fromEntries(Object.entries(datos).filter(([k, v]) => !igual(v, (abierto as Record<string, unknown>)[k]))) as Partial<T>)
     : datos
+
+/**
+ * D37 (21-nov-2026): «Válido desde/hasta» es un DÍA DEL NEGOCIO, en su zona: desde = 00:00 de ese día, hasta = 23:59:59.999. Antes el
+ * panel mandaba 'YYYY-MM-DD' y el SERVIDOR lo guardaba a las 00:00 UTC: un cupón «hasta el 1-dic» dejaba de servir el 30-nov a las
+ * 6 p. m. en México. Misma regla que `BundleEditor` (paquetes) y `parseCouponDate` del MCP.
+ */
+export const vigenciaParaGuardar = (fecha: string, zona: string, borde: 'desde' | 'hasta'): string => {
+  const dia = DateTime.fromISO(fecha, { zone: zona })
+  // Una fecha que Luxon no entiende (p. ej. un año de 5 cifras que la caja de fecha acepta) se manda como antes, tal cual: nunca
+  // como null, que al editar borraría el límite (Codex D37 r2 #4).
+  if (!dia.isValid) return fecha
+  return (borde === 'desde' ? dia.startOf('day') : dia.endOf('day')).toUTC().toISO() as string
+}
+
+/** Lo guardado, como el día del negocio que va en la caja de fecha ('' si no hay). La caja nunca recibe un instante completo. */
+export const vigenciaParaFormulario = (instante: string | null | undefined, zona: string): string =>
+  instante ? (DateTime.fromISO(instante, { zone: 'utc' }).setZone(zona).toISODate() ?? '') : ''
+
+type Fechas = { validFrom?: string; validUntil?: string }
+type Abierto = { validFrom?: string | null; validUntil?: string | null }
+
+/**
+ * Las dos fechas de un formulario de cupón o descuento, listas para mandar (`abierto` = lo que se editaba; sin él, es crear).
+ * - Crear: vacío se omite; con fecha, el instante del día del negocio.
+ * - Editar: va SÓLO la fecha que la persona cambió, como lo demás del formulario (D14: «sólo lo que cambió»). La que no tocó no se
+ *   reenvía: un formulario viejo no regresa una fecha que otra persona cambió en medio (Codex D37 r2 #1). Si el resultado queda al
+ *   revés con lo que otro guardó, lo rechaza el SERVIDOR (regla única, familia C; r1 #3, r2 #2).
+ * - Vaciar una fecha no la quita, como antes: en un cupón, quitarla lo haría heredar la fecha de su descuento (r1 #2).
+ */
+export function vigenciaDelFormulario(valores: Fechas, zona: string, abierto?: Abierto): Fechas {
+  const una = (campo: keyof Fechas, borde: 'desde' | 'hasta') => {
+    const fecha = valores[campo] || ''
+    if (!fecha) return undefined
+    if (abierto && fecha === vigenciaParaFormulario(abierto[campo], zona)) return undefined
+    return vigenciaParaGuardar(fecha, zona, borde)
+  }
+  return { validFrom: una('validFrom', 'desde'), validUntil: una('validUntil', 'hasta') }
+}

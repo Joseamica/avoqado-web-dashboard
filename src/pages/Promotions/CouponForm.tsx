@@ -15,7 +15,8 @@ import { Select, SelectContent, SelectItem, SelectSeparator, SelectTrigger, Sele
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
 import couponService from '@/services/coupon.service'
-import { limiteParaGuardar, soloLoQueCambio } from './paraGuardar'
+import { limiteParaGuardar, soloLoQueCambio, vigenciaDelFormulario, vigenciaParaFormulario } from './paraGuardar'
+import { useVenueDateTime, zonaValida } from '@/utils/datetime'
 import discountService from '@/services/discount.service'
 import type { CreateCouponRequest } from '@/types/discount'
 
@@ -39,6 +40,8 @@ export default function CouponForm() {
   const navigate = useNavigate()
   const { toast } = useToast()
   const queryClient = useQueryClient()
+  // D37: «Válido desde/hasta» son días del negocio, en su zona.
+  const venueTimezone = zonaValida(useVenueDateTime().venueTimezone)
 
   const isEditing = !!couponId
 
@@ -81,12 +84,12 @@ export default function CouponForm() {
         maxUses: existingCoupon.maxUses,
         maxUsesPerCustomer: existingCoupon.maxUsesPerCustomer,
         minPurchaseAmount: existingCoupon.minPurchaseAmount,
-        validFrom: existingCoupon.validFrom ? existingCoupon.validFrom.split('T')[0] : '',
-        validUntil: existingCoupon.validUntil ? existingCoupon.validUntil.split('T')[0] : '',
+        validFrom: vigenciaParaFormulario(existingCoupon.validFrom, venueTimezone),
+        validUntil: vigenciaParaFormulario(existingCoupon.validUntil, venueTimezone),
         active: existingCoupon.active,
       })
     }
-  }, [existingCoupon, form])
+  }, [existingCoupon, form, venueTimezone])
 
   // Create/Update mutation
   const mutation = useMutation({
@@ -96,10 +99,9 @@ export default function CouponForm() {
         const { discountId, ...updateData } = data
         // D14: vaciar un límite al editar lo vuelve ilimitado (null). Sólo se manda lo que cambió frente a lo abierto, para no
         // pisar lo que otra persona guardó en medio (Codex D14 v2 r1 #1).
-        return couponService.updateCoupon(
-          venueId,
-          couponId!,
-          soloLoQueCambio(
+        // D37: las fechas, aparte: va sólo la que la persona cambió, ya en el día del negocio (`vigenciaDelFormulario`).
+        return couponService.updateCoupon(venueId, couponId!, {
+          ...soloLoQueCambio(
             {
               ...updateData,
               maxUses: limiteParaGuardar(updateData.maxUses, true),
@@ -107,9 +109,10 @@ export default function CouponForm() {
             },
             existingCoupon,
           ),
-        )
+          ...vigenciaDelFormulario(updateData, venueTimezone, existingCoupon),
+        })
       }
-      return couponService.createCoupon(venueId, data)
+      return couponService.createCoupon(venueId, { ...data, ...vigenciaDelFormulario(data, venueTimezone) })
     },
     onSuccess: () => {
       toast({
