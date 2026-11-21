@@ -1,6 +1,7 @@
 /**
- * Máquina de efectivo · fase 1a (H5 del SERVIDOR, Codex servidor r5): un folio «por terminar» (`POR_TERMINAR`). La máquina ya cerró
- * el cobro y su desenlace quedó guardado, pero relevaron la PC antes de registrar la venta. El gerente lo TERMINA tal cual: la ventana
+ * Máquina de efectivo · fase 1a (H5 del SERVIDOR, Codex servidor r5, y recorte R1): un folio «por terminar» (`POR_TERMINAR`). La
+ * máquina ya cobró y su desenlace quedó guardado, pero la venta no se terminó de registrar (relevaron la PC, o lleva 10+ min RECIBIDO
+ * aunque su PC siga activa; `payload.motivo` 'PC_RELEVADA' o 'RECIBIDO', da igual). El gerente lo TERMINA tal cual: la ventana
  * enseña lo que dijo la máquina y manda SÓLO la `version` que vio (nunca importes tecleados; el SERVIDOR lo registra desde lo
  * congelado, con exactamente un pago). 409 `CASH_MACHINE_DOUBT_CHANGED`: se refresca la lista (la página le pasa la fila nueva) y hay
  * que confirmar otra vez. Cualquier otro rechazo (p. ej. 400 `CASH_MACHINE_DOUBT_RESOLUTION_INCOMPLETE`) enseña la razón del SERVIDOR.

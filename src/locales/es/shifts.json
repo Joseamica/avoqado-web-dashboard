@@ -250,7 +250,7 @@
       "tip": "Propina",
       "due": "Debía",
       "cart": "Carrito",
-      "seen": "La PC vio entrar"
+      "machineReported": "La máquina reportó que entraron"
     },
     "resolve": {
       "title": "Resolver el cobro {{folio}}",
@@ -303,7 +303,8 @@
         "cancelNeedsLess": "Si recibió todo lo que debía ({{due}}), el cobro no se pudo cancelar: elige «Se cobró».",
         "refundTooHigh": "No pudo devolver más de lo que recibió.",
         "keptMustBeZero": "Si se quedó con el dinero, lo devuelto es $0.",
-        "cancelModeMismatch": "Lo que hizo la máquina con el dinero no cuadra con lo que elegiste arriba. Revisa la pantalla de la máquina."
+        "cancelModeMismatch": "Lo que hizo la máquina con el dinero no cuadra con lo que elegiste arriba. Revisa la pantalla de la máquina.",
+        "belowSeen": "La máquina ya reportó que entraron {{amount}}: no puedes registrar menos. Revisa la pantalla de la máquina."
       },
       "conflict": {
         "title": "Este cobro ya estaba resuelto así:",
@@ -318,11 +319,11 @@
         "NO_SE": "No sé",
         "unknown": "Si no sabes, deja el cobro en duda y revisa la pantalla de la máquina."
       },
-      "seen": "La PC vio entrar {{amount}}"
+      "machineReported": "La máquina reportó que entraron {{amount}}"
     },
     "toFinish": {
-      "label": "Cobro de la máquina por terminar: la PC se cambió antes de registrarlo",
-      "intro": "La máquina ya cerró estos cobros y dijo cómo terminaron, pero la PC se cambió antes de registrar la venta. Revisa lo que dijo la máquina y toca «Terminar»: se registra tal cual, sin teclear importes.",
+      "label": "Cobro de la máquina por terminar: la máquina ya cobró pero la venta no se terminó de registrar",
+      "intro": "La máquina ya cerró estos cobros y dijo cómo terminaron, pero la venta no se terminó de registrar. Revisa lo que dijo la máquina y toca «Terminar»: se registra tal cual, sin teclear importes.",
       "columns": {
         "machineSaid": "Lo que dijo la máquina"
       },

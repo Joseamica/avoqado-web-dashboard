@@ -8,7 +8,9 @@
  * Rediseño r3 del SERVIDOR (r6-4): se manda la `version` de la duda que el gerente está viendo. Si llegó evidencia nueva, 409
  * `CASH_MACHINE_DOUBT_CHANGED`: se refresca la lista (la página le pasa la fila nueva), lo tecleado se queda y hay que volver a
  * confirmar con la versión nueva. La respuesta dice si quedó la venta, si quedó como incidencia (dinero sin venta) o si sigue terminándose.
- * H1 del SERVIDOR: la ventana enseña a la vista lo MÁS que la PC vio entrar (`creditCents`), sin pre-llenar lo que teclea el gerente.
+ * H1 del SERVIDOR: la ventana enseña a la vista lo MÁS que la máquina reportó que entró (`creditCents`), sin pre-llenar lo que teclea
+ * el gerente. Recorte de la 1a (r6 #1): declarar MENOS de eso es 409 `CASH_MACHINE_CREDIT_BELOW_SEEN` (nada escrito): se dice cuánto
+ * reportó la máquina, se refresca la lista y el formulario se queda para corregir.
  */
 import { useRef, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
@@ -47,7 +49,7 @@ export interface CashMachineDoubt {
   startedAt: string
   /** Lo que vio la PC junto con el MAYOR crédito que vio (H1 del SERVIDOR). */
   lastSeen: unknown
-  /** H1 del SERVIDOR: lo MÁS que la PC vio entrar en este folio, en centavos; null = ninguna PC lo dijo en números. */
+  /** r6 #1 del SERVIDOR: lo MÁS que la máquina reportó que entró en este folio (centavos); null = nunca lo dijo en números. */
   creditCents?: number | null
   /** El carrito congelado: el mismo JSON de `POST /orders`. */
   pedido: ({ items?: Array<{ name?: string; quantity?: number; promotionRef?: unknown }> } & Record<string, unknown>) | null
@@ -217,6 +219,14 @@ export function ResolveCashMachineDoubtDialog({ open, onOpenChange, venueId, dou
         refrescar()
         return
       }
+      if (e?.response?.status === 409 && data?.code === 'CASH_MACHINE_CREDIT_BELOW_SEEN') {
+        // Nada se escribió: se dice cuánto ya reportó la máquina y lo tecleado se queda para corregirlo.
+        const visto = Number(data?.details?.creditCents)
+        setVersionMinima(v => Math.max(v, Number(data?.details?.version) || 0))
+        setServerError(t(`${P}.errors.belowSeen`, { amount: Number.isFinite(visto) ? Currency(visto, true) : '—' }))
+        refrescar()
+        return
+      }
       if (e?.response?.status === 409 && CONFLICTOS.includes(data?.code)) {
         setRegistrado(data?.details?.registrado ?? data?.details?.registrada ?? {})
         refrescar()
@@ -280,7 +290,7 @@ export function ResolveCashMachineDoubtDialog({ open, onOpenChange, venueId, dou
           </p>
           {typeof doubt.creditCents === 'number' && (
             <p className="text-base font-semibold" data-tour="cash-machine-doubt-seen">
-              {t(`${P}.seen`, { amount: Currency(doubt.creditCents, true) })}
+              {t(`${P}.machineReported`, { amount: Currency(doubt.creditCents, true) })}
             </p>
           )}
           <p className="text-muted-foreground" data-tour="cash-machine-doubt-cart">

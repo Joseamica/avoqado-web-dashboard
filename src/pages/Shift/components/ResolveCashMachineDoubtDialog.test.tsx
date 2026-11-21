@@ -176,13 +176,41 @@ describe('ResolveCashMachineDoubtDialog', () => {
     expect(texto()).toContain('status: depositing 100')
   })
 
-  it('H1: enseña, a la vista, lo MÁS que la PC vio entrar (y nada si la PC no lo dijo en números); no lo pre-llena', () => {
+  it('enseña, a la vista, lo MÁS que la máquina reportó que entró (y nada si nunca lo dijo en números); no lo pre-llena', () => {
     const { cambiarFila } = setup({ ...duda, creditCents: 12000, lastSeen: 'status: credit 120' })
-    expect(texto()).toContain(`${P}seen${JSON.stringify({ amount: Currency(120) })}`)
+    expect(texto()).toContain(`${P}machineReported${JSON.stringify({ amount: Currency(120) })}`)
     expect(texto()).toContain('status: credit 120')
     expect(screen.getByLabelText(`${P}received`)).toHaveValue(null)
     act(() => cambiarFila({ ...duda, creditCents: null }))
-    expect(texto()).not.toContain(`${P}seen`)
+    expect(texto()).not.toContain(`${P}machineReported`)
+  })
+
+  it('409 CASH_MACHINE_CREDIT_BELOW_SEEN: dice cuánto ya reportó la máquina, refresca, conserva el formulario y deja corregir', async () => {
+    h.impl = () =>
+      rechazo(409, { code: 'CASH_MACHINE_CREDIT_BELOW_SEEN', message: 'La máquina ya reportó…', details: { creditCents: 20000, version: 4 } })
+    const { onOpenChange, invalidate, cambiarFila } = setup({ ...duda, creditCents: 15000 })
+    elegir('PAGADO')
+    recibio('150')
+    vio('pagado')
+    fireEvent.click(guardar())
+    expect(await screen.findByRole('alert')).toHaveTextContent(`${P}errors.belowSeen${JSON.stringify({ amount: Currency(200) })}`)
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ['cash-machine-doubts', 'v1'] })
+    expect(onOpenChange).not.toHaveBeenCalled()
+    // Nada se escribió y la versión no cambió: el formulario se queda, sin «ya estaba resuelto».
+    expect(texto()).not.toContain(`${P}conflict.title`)
+    expect(screen.getByLabelText(`${P}received`)).toHaveValue(150)
+    expect(screen.getByLabelText(`${P}evidence`)).toHaveValue('pagado')
+    // La lista refrescada trae lo que reportó la máquina; el gerente corrige y vuelve a guardar con la MISMA versión.
+    act(() => cambiarFila({ ...duda, creditCents: 20000 }))
+    expect(texto()).toContain(`${P}machineReported${JSON.stringify({ amount: Currency(200) })}`)
+    h.impl = () => Promise.resolve({ status: 200, data: { success: true, ack: 'TERMINADO', referenceCC: FOLIO, owedCents: 0 } })
+    recibio('200')
+    devolvio('50')
+    await waitFor(() => expect(guardar()).toBeEnabled())
+    fireEvent.click(guardar())
+    await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false))
+    expect(h.calls).toHaveLength(2)
+    expect(h.calls[1][1]).toMatchObject({ creditCents: 20000, changeDispensedCents: 5000, version: 4 })
   })
 
   it('venta y propina en null (el reparto no llegó en números): «—», nunca «N/A»; y un TERMINADO con ellas en null no truena', async () => {

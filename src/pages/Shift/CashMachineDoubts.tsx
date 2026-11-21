@@ -5,8 +5,9 @@
  * nunca se recorta en silencio. La PC se entera sola de la resolución en su siguiente consulta.
  * La MISMA lista trae también las incidencias abiertas que no son duda (Codex r1 #7: imposible, conflicto, sin registrar, tras
  * desemparejar), cada una con su `kind`: van en su propia tabla, de sólo lectura, con «Revisar» para marcarlas como revisadas.
- * H1/H5 del SERVIDOR (Codex servidor r5): la duda dice lo MÁS que la PC vio entrar (`creditCents`), y los folios `POR_TERMINAR` (la
- * máquina ya cerró el cobro pero relevaron su PC antes de registrar la venta) van en su propia tabla con «Terminar»: nunca «Revisar».
+ * H1/H5 del SERVIDOR (Codex servidor r5) y recorte de la 1a: la duda dice lo MÁS que la máquina reportó que entró (`creditCents`), y
+ * los folios `POR_TERMINAR` (la máquina ya cobró pero la venta no se terminó de registrar: relevaron su PC, o lleva 10+ min RECIBIDO
+ * aunque su PC siga activa) van en su propia tabla con «Terminar»: nunca «Revisar». No se distingue por motivo (el SERVIDOR no lo manda).
  */
 import { useMemo, useState } from 'react'
 import { useInfiniteQuery } from '@tanstack/react-query'
@@ -124,7 +125,7 @@ export default function CashMachineDoubts() {
                     <TableHead className="text-right">{t('cashMachineDoubts.columns.sale')}</TableHead>
                     <TableHead className="text-right">{t('cashMachineDoubts.columns.tip')}</TableHead>
                     <TableHead className="text-right">{t('cashMachineDoubts.columns.due')}</TableHead>
-                    <TableHead className="text-right">{t('cashMachineDoubts.columns.seen')}</TableHead>
+                    <TableHead className="text-right">{t('cashMachineDoubts.columns.machineReported')}</TableHead>
                     <TableHead>{t('cashMachineDoubts.columns.cart')}</TableHead>
                     <TableHead />
                   </TableRow>

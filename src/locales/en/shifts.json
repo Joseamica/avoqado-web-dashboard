@@ -250,7 +250,7 @@
       "tip": "Tip",
       "due": "Due",
       "cart": "Cart",
-      "seen": "PC saw go in"
+      "machineReported": "Machine reported going in"
     },
     "resolve": {
       "title": "Resolve payment {{folio}}",
@@ -303,7 +303,8 @@
         "cancelNeedsLess": "If it received the full amount due ({{due}}), the payment could not be cancelled: choose \"It was paid\".",
         "refundTooHigh": "It could not return more than it received.",
         "keptMustBeZero": "If it kept the money, the amount returned is $0.",
-        "cancelModeMismatch": "What the machine did with the money doesn't match what you chose above. Check the machine's screen."
+        "cancelModeMismatch": "What the machine did with the money doesn't match what you chose above. Check the machine's screen.",
+        "belowSeen": "The machine already reported {{amount}} went in: you can't record less. Check the machine's screen."
       },
       "conflict": {
         "title": "This payment was already resolved as:",
@@ -318,11 +319,11 @@
         "NO_SE": "I don't know",
         "unknown": "If you don't know, leave the payment in doubt and check the machine's screen."
       },
-      "seen": "The PC saw {{amount}} go in"
+      "machineReported": "The machine reported {{amount}} went in"
     },
     "toFinish": {
-      "label": "Cash machine payment to finish: the PC was replaced before it was recorded",
-      "intro": "The machine already closed these payments and reported how they ended, but the PC was replaced before the sale was recorded. Check what the machine reported and tap \"Finish\": it is recorded as is, without typing any amounts.",
+      "label": "Cash machine payment to finish: the machine already charged but the sale was not fully recorded",
+      "intro": "The machine already closed these payments and reported how they ended, but the sale was not fully recorded. Check what the machine reported and tap \"Finish\": it is recorded as is, without typing any amounts.",
       "columns": {
         "machineSaid": "What the machine reported"
       },

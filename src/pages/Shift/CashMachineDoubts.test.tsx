@@ -4,6 +4,7 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { Currency } from '@/utils/currency'
+import es from '@/locales/es/shifts.json'
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string, o?: Record<string, unknown>) => (o ? `${key}${JSON.stringify(o)}` : key) }),
@@ -52,8 +53,8 @@ const incidencia = (n: number, extra: Record<string, unknown> = {}) => ({
   ...extra,
 })
 
-// H5 del SERVIDOR: la máquina ya cerró el cobro, pero relevaron su PC antes de registrar la venta.
-const porTerminar = (n: number) => ({
+// H5 del SERVIDOR y recorte R1: la máquina ya cobró, pero la venta no se terminó de registrar (PC relevada, o 10+ min RECIBIDO).
+const porTerminar = (n: number, extra: Record<string, unknown> = {}) => ({
   id: `cinc00000000000000000pt${n}`,
   referenceCC: `AQ00000000007${n}`,
   kind: 'POR_TERMINAR',
@@ -70,6 +71,7 @@ const porTerminar = (n: number) => ({
   changeDispensedCents: 5000,
   occurredAt: null,
   version: 7,
+  ...extra,
 })
 
 function pintar() {
@@ -228,13 +230,15 @@ describe('CashMachineDoubts', () => {
     expect(h.post.mock.calls[1][1]).toMatchObject({ creditCents: 15001, evidence: 'pagado', version: 2 })
   })
 
-  it('H1: la fila de la duda enseña lo MÁS que la PC vio entrar; sin número, «—»', async () => {
+  it('la fila de la duda enseña lo MÁS que la máquina reportó que entró; sin número, «—»', async () => {
     h.get.mockResolvedValueOnce({
       data: { success: true, data: [fila(1, { creditCents: 12345 }), fila(2, { creditCents: null })], total: 2, nextCursor: null },
     })
     pintar()
     await screen.findByText('AQ000000000002')
-    expect(texto()).toContain(`${D}columns.seen`)
+    expect(texto()).toContain(`${D}columns.machineReported`)
+    expect(es.cashMachineDoubts.columns.machineReported).toBe('La máquina reportó que entraron')
+    expect(es.cashMachineDoubts.resolve.machineReported).toBe('La máquina reportó que entraron {{amount}}')
     const [conNumero, sinNumero] = document.querySelectorAll('[data-tour="cash-machine-doubt-seen"]')
     expect(conNumero).toHaveTextContent(Currency(123.45))
     expect(sinNumero).toHaveTextContent('—')
@@ -263,6 +267,23 @@ describe('CashMachineDoubts', () => {
     expect(screen.queryByRole('button', { name: `${D}resolveButton` })).not.toBeInTheDocument()
     expect(screen.queryByText(`${D}incidents.heading`)).not.toBeInTheDocument()
     expect(texto()).toContain(`${D}showing${JSON.stringify({ shown: 1, total: 1 })}`)
+  })
+
+  it('POR_TERMINAR de un RECIBIDO atascado (motivo «RECIBIDO») o de una PC relevada (motivo «PC_RELEVADA»): los dos van igual, a «Terminar»', async () => {
+    const atascado = porTerminar(1, { payload: { motivo: 'RECIBIDO' } })
+    const relevada = porTerminar(2, { payload: { motivo: 'PC_RELEVADA' } })
+    h.get.mockResolvedValueOnce({ data: { success: true, data: [atascado, relevada], total: 2, nextCursor: null } })
+    pintar()
+    await screen.findByText(relevada.referenceCC)
+    const tabla = document.querySelector('[data-tour="cash-machine-folios-to-finish"]') as HTMLElement
+    expect(within(tabla).getByText(atascado.referenceCC)).toBeInTheDocument()
+    expect(within(tabla).getByText(relevada.referenceCC)).toBeInTheDocument()
+    expect(within(tabla).getAllByRole('button', { name: `${D}toFinish.button` })).toHaveLength(2)
+    expect(screen.queryByText(`${D}incidents.heading`)).not.toBeInTheDocument()
+    expect(es.cashMachineDoubts.toFinish.label).toBe(
+      'Cobro de la máquina por terminar: la máquina ya cobró pero la venta no se terminó de registrar',
+    )
+    expect(es.cashMachineDoubts.toFinish.intro).not.toContain('PC se cambió')
   })
 
   it('«Terminar» abre la ventana de ese folio y manda SÓLO su versión', async () => {
