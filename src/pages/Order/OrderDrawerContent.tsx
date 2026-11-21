@@ -4,11 +4,11 @@ import { Button } from '@/components/ui/button'
 import { useBreadcrumb } from '@/context/BreadcrumbContext'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import * as orderService from '@/services/order.service'
-import { getOnlineOrder, onlineOrderingKeys } from '@/services/onlineOrdering.service'
 import { Currency } from '@/utils/currency'
 import { formatOrderNumber, getOrderStatusConfig } from '@/utils/orderStatus'
 import { OrderCardRefund } from '@/pages/OnlineOrdering/components/CardRefundSheet'
 import { marcaDelPedido } from '@/pages/OnlineOrdering/lib/marcaDelPedido'
+import { usePedidoEnLinea } from '@/pages/OnlineOrdering/lib/usePedidoEnLinea'
 import { useQuery } from '@tanstack/react-query'
 import { MoreHorizontal, Printer, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
@@ -18,7 +18,7 @@ import { ActivitySection } from './components/sections/ActivitySection'
 import { DetailsSection } from './components/sections/DetailsSection'
 import { ItemsSection } from './components/sections/ItemsSection'
 import { StampRewardsSection } from './components/StampRewardsSection'
-import { PaymentsSection } from './components/sections/PaymentsSection'
+import { PaymentsSection, type EstadoDevolucion } from './components/sections/PaymentsSection'
 
 interface Props {
   orderId: string
@@ -38,14 +38,19 @@ export function OrderDrawerContent({ orderId, onClose }: Props) {
     queryFn: () => orderService.getOrder(venueId, orderId),
     enabled: !!orderId,
   })
-  // D661 · Ruling 89: el pedido en línea de esta cuenta lo lee `OrderCardRefund` (abajo, con sus permisos); aquí sólo se escucha esa
-  // lectura. Tras una reversa del banco el SERVIDOR conserva el asiento del reembolso, pero a la clienta se le debe: lo dice la marca.
-  const { data: enLinea } = useQuery({
-    queryKey: onlineOrderingKeys.order(venueId, orderId),
-    queryFn: () => getOnlineOrder(venueId, orderId),
-    enabled: false,
-  })
-  const seLeDebe = !!enLinea && marcaDelPedido(enLinea) === 'reversed'
+  // D661 · Ruling 89: la misma lectura del pedido en línea que hace «Devolver» (una sola petición). Tras una reversa del banco el
+  // SERVIDOR conserva el asiento del reembolso, pero a la clienta se le debe: lo dice la marca. Ronda 5: de una cuenta en línea, la
+  // etiqueta del reembolso espera a esa lectura («Revisando la devolución…»); si falla, dice que no se pudo revisar.
+  const { aplica: esEnLinea, lectura: enLinea } = usePedidoEnLinea(venueId, orderId, order?.source, !!order)
+  const devolucion: EstadoDevolucion | undefined = !esEnLinea
+    ? undefined
+    : enLinea.data !== undefined
+      ? enLinea.data && marcaDelPedido(enLinea.data) === 'reversed'
+        ? 'seLeDebe'
+        : undefined
+      : enLinea.isError
+        ? 'sinRevisar'
+        : 'revisando'
 
   // Keep breadcrumb readable: replace cuid in URL with formatted "#XXXXXX"
   useEffect(() => {
@@ -139,16 +144,22 @@ export function OrderDrawerContent({ orderId, onClose }: Props) {
             {isRefunded && (
               <Badge
                 variant="outline"
-                className="text-xs px-1.5 py-0.5 bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-900/20 dark:text-rose-400 dark:border-rose-800"
+                className={
+                  devolucion === 'revisando' || devolucion === 'sinRevisar'
+                    ? 'text-xs px-1.5 py-0.5 text-muted-foreground'
+                    : 'text-xs px-1.5 py-0.5 bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-900/20 dark:text-rose-400 dark:border-rose-800'
+                }
               >
-                {seLeDebe
+                {devolucion === 'seLeDebe'
                   ? tOnline('inbox.card.mark.reversed')
-                  : refundState === 'FULL'
-                    ? t('drawer.refund.full', { defaultValue: 'Reembolsada' })
-                    : t('drawer.refund.partial', {
-                        amount: Currency(refundedAmount),
-                        defaultValue: 'Reembolso parcial: {{amount}}',
-                      })}
+                  : devolucion
+                    ? t(devolucion === 'revisando' ? 'drawer.refund.checking' : 'drawer.refund.unchecked')
+                    : refundState === 'FULL'
+                      ? t('drawer.refund.full', { defaultValue: 'Reembolsada' })
+                      : t('drawer.refund.partial', {
+                          amount: Currency(refundedAmount),
+                          defaultValue: 'Reembolso parcial: {{amount}}',
+                        })}
               </Badge>
             )}
           </div>
@@ -162,7 +173,7 @@ export function OrderDrawerContent({ orderId, onClose }: Props) {
           nada que canjear.
         */}
         <StampRewardsSection order={order} />
-        <PaymentsSection order={order} venueTimezone={venueTimezone} seLeDebe={seLeDebe} />
+        <PaymentsSection order={order} venueTimezone={venueTimezone} devolucion={devolucion} />
         {/* Pedido en línea cobrado con tarjeta: se devuelve aquí (la bandeja sólo guarda 24 h). Sale solo si aplica. */}
         <OrderCardRefund venueId={venueId} orderId={order.id} source={order.source} />
         <ExchangeLinksCard orderId={order.id} links={order.exchange} />

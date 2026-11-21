@@ -19,14 +19,7 @@ import { useAccess } from '@/hooks/use-access'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
 import { falloDeCarga } from '@/lib/falloDeCarga'
-import {
-  createCardRefund,
-  getOnlineOrder,
-  listCardRefunds,
-  onlineOrderingKeys,
-  resolveCardRefund,
-  serverMessage,
-} from '@/services/onlineOrdering.service'
+import { createCardRefund, listCardRefunds, onlineOrderingKeys, resolveCardRefund, serverMessage } from '@/services/onlineOrdering.service'
 import type {
   CardRefund,
   CardRefundDestino,
@@ -50,6 +43,7 @@ import {
   useDuda,
 } from '../lib/devolucionEnDuda'
 import { marcaDelPedido } from '../lib/marcaDelPedido'
+import { usePedidoEnLinea } from '../lib/usePedidoEnLinea'
 import { invalidateToPay } from '../lib/toPayLive'
 import { MarcaDelPedido } from './OrderCard'
 
@@ -191,14 +185,12 @@ export function CardRefundButton({ venueId, order }: { venueId: string; order: I
  */
 export function OrderCardRefund({ venueId, orderId, source }: { venueId: string; orderId: string; source?: string | null }) {
   const { can } = useAccess()
-  const enabled = can('orders:read') && (!source || source === 'WEB')
-  const { data } = useQuery({
-    queryKey: onlineOrderingKeys.order(venueId, orderId),
-    queryFn: () => getOnlineOrder(venueId, orderId),
-    enabled: enabled && !!venueId,
-  })
+  const {
+    aplica,
+    lectura: { data },
+  } = usePedidoEnLinea(venueId, orderId, source)
   const canRefund = can('payments:refund')
-  if (!enabled || !data || (!(canRefund && isCardCaptured(data)) && !marcaDelPedido(data))) return null
+  if (!aplica || !data || (!(canRefund && isCardCaptured(data)) && !marcaDelPedido(data))) return null
   // D661: junto al botón, en qué quedó un pedido de «Nadie» («Devolviendo…», «Devuelto», «No lo recogió»).
   return (
     <div className="flex flex-wrap items-center gap-2">

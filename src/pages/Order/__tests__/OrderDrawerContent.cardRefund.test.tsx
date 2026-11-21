@@ -198,6 +198,47 @@ describe('detalle de la cuenta: «Devolver a la tarjeta» de un pedido en línea
     expect(screen.queryByText('inbox.card.mark.reversed')).toBeNull()
   })
 
+  // Ronda 5 («la pantalla no puede mentir»): de una cuenta en línea con reembolso, la etiqueta espera a la lectura del pedido (tras una
+  // reversa el asiento sigue diciendo «reembolsado»); si esa lectura falla, dice que no se pudo revisar.
+  it('🔴 cuenta en línea con reembolso: mientras llega la lectura del pedido dice «Revisando la devolución…», nunca «Reembolsado»', async () => {
+    m.order = cuentaDevuelta()
+    let responder: (v: unknown) => void = () => {}
+    m.get.mockImplementation((url: string) => {
+      if (url === S3) return new Promise(r => (responder = r))
+      throw new Error(`GET inesperado: ${url}`)
+    })
+    mount()
+    const cabecera = (await screen.findByRole('heading', { level: 1 })).parentElement as HTMLElement
+    await waitFor(() => expect(m.get).toHaveBeenCalledWith(S3))
+    const pagos = screen.getByTestId('payments-section')
+    expect(within(cabecera).getByText('drawer.refund.checking')).toBeInTheDocument()
+    expect(within(pagos).getByText('drawer.refund.checking')).toBeInTheDocument()
+    expect(screen.queryByText(/^drawer\.refund\.(full|partial)/)).toBeNull()
+    const revertido = { ...onlineOrder, requiresAcceptance: false, refundedAt: '2026-10-30T18:00:02.000Z' }
+    await act(async () => responder({ data: { success: true, data: { ...revertido, refund: { status: 'REVERSED', medio: 'TARJETA' } } } }))
+    expect(await within(cabecera).findByText('inbox.card.mark.reversed')).toBeInTheDocument()
+    expect(within(pagos).getByText('inbox.card.mark.reversed')).toBeInTheDocument()
+    expect(screen.queryByText('drawer.refund.checking')).toBeNull()
+  })
+
+  it('cuenta en línea con reembolso y la lectura del pedido falla: dice que no se pudo revisar, nunca «Reembolsado»', async () => {
+    m.order = cuentaDevuelta()
+    m.get.mockRejectedValue(Object.assign(new Error('500'), { response: { status: 500, data: { message: 'falló' } } }))
+    mount()
+    const cabecera = (await screen.findByRole('heading', { level: 1 })).parentElement as HTMLElement
+    expect(await within(cabecera).findByText('drawer.refund.unchecked', {}, { timeout: 3000 })).toBeInTheDocument()
+    expect(within(screen.getByTestId('payments-section')).getByText('drawer.refund.unchecked')).toBeInTheDocument()
+    expect(screen.queryByText(/^drawer\.refund\.(full|partial)/)).toBeNull()
+  })
+
+  it('una cuenta que no es en línea con reembolso dice «Reembolsado» de una vez, sin leer el pedido en línea', async () => {
+    m.order = { ...cuentaDevuelta(), source: 'TPV' }
+    mount()
+    const cabecera = (await screen.findByRole('heading', { level: 1 })).parentElement as HTMLElement
+    expect(within(cabecera).getByText(/^drawer\.refund\.full/)).toBeInTheDocument()
+    expect(m.get).not.toHaveBeenCalled()
+  })
+
   // D661: en qué quedó el pedido lo ve quien ve la cuenta; el botón, sólo quien puede devolver (`payments:refund`).
   it('un gerente sin payments:refund ve «Devolviendo…» en el detalle, sin el botón', async () => {
     m.permissions = ['orders:read', 'payments:read']
