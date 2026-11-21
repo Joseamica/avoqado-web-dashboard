@@ -99,19 +99,18 @@ export default function CouponForm() {
         const { discountId, ...updateData } = data
         // D14: vaciar un límite al editar lo vuelve ilimitado (null). Sólo se manda lo que cambió frente a lo abierto, para no
         // pisar lo que otra persona guardó en medio (Codex D14 v2 r1 #1).
-        return couponService.updateCoupon(
-          venueId,
-          couponId!,
-          soloLoQueCambio(
+        // D37: las fechas van aparte y juntas (si cambió una, las dos), fuera de «sólo lo que cambió».
+        return couponService.updateCoupon(venueId, couponId!, {
+          ...soloLoQueCambio(
             {
               ...updateData,
-              ...vigenciaDelFormulario(updateData, venueTimezone, existingCoupon),
               maxUses: limiteParaGuardar(updateData.maxUses, true),
               maxUsesPerCustomer: limiteParaGuardar(updateData.maxUsesPerCustomer, true),
             },
             existingCoupon,
           ),
-        )
+          ...vigenciaDelFormulario(updateData, venueTimezone, existingCoupon),
+        })
       }
       return couponService.createCoupon(venueId, { ...data, ...vigenciaDelFormulario(data, venueTimezone) })
     },

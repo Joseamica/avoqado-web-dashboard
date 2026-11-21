@@ -1,5 +1,5 @@
 import { useAuth } from '@/context/AuthContext'
-import { DateTime } from 'luxon'
+import { DateTime, IANAZone } from 'luxon'
 import { useTranslation } from 'react-i18next'
 import { getIntlLocale } from '@/utils/i18n-locale'
 
@@ -53,12 +53,17 @@ export interface VenueDateTimeUtils {
  * **CRITICAL:** This hook uses the venue timezone, NOT the browser timezone!
  * This ensures all users see consistent times regardless of their location.
  */
+/** La zona del negocio si es una zona IANA válida; si no (vacía o mal escrita), la de Ciudad de México. */
+export const zonaValida = (zona: string | null | undefined): string =>
+  zona && IANAZone.isValidZone(zona) ? zona : 'America/Mexico_City'
+
 export function useVenueDateTime(): VenueDateTimeUtils {
   const { activeVenue } = useAuth()
   const { i18n } = useTranslation()
 
-  // Default to Mexico City if no venue selected (fallback)
-  const venueTimezone = activeVenue?.timezone || 'America/Mexico_City'
+  // Default to Mexico City if no venue selected (fallback). Una zona mal escrita (p. ej. «America/Tijuna» de un alta masiva)
+  // también: con ella Luxon da fechas inválidas e Intl truena al pintar (Codex D37 r1 #4).
+  const venueTimezone = zonaValida(activeVenue?.timezone)
 
   /**
    * Idioma con el que se escriben los meses y el formato de hora. Va del IDIOMA DE LA APP,

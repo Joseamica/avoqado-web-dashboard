@@ -49,31 +49,33 @@ export const vigenciaParaGuardar = (fecha: string, zona: string, borde: 'desde' 
 export const vigenciaParaFormulario = (instante: string | null | undefined, zona: string): string =>
   instante ? (DateTime.fromISO(instante, { zone: 'utc' }).setZone(zona).toISODate() ?? '') : ''
 
-/**
- * Lo que se manda de una fecha. Crear: vacío se omite. Editar: sólo si el día cambió frente al que se abrió (una fecha sin tocar no
- * mueve lo guardado, tampoco lo viejo a 00:00 UTC); vacío = null, la quita.
- */
-export const vigenciaSiCambio = (
-  fecha: string | undefined,
-  abierto: string | null | undefined,
-  zona: string,
-  borde: 'desde' | 'hasta',
-  editando: boolean,
-): string | null | undefined => {
-  if (editando && (fecha || '') === vigenciaParaFormulario(abierto, zona)) return undefined
-  if (!fecha) return editando ? null : undefined
-  return vigenciaParaGuardar(fecha, zona, borde)
-}
-
 type Fechas = { validFrom?: string; validUntil?: string }
 type Abierto = { validFrom?: string | null; validUntil?: string | null }
 
-/** Las dos fechas de un formulario de cupón o descuento, listas para mandar (`abierto` = lo que se editaba; sin él, es crear). */
-export function vigenciaDelFormulario(valores: Fechas, zona: string): Fechas
-export function vigenciaDelFormulario(valores: Fechas, zona: string, abierto: Abierto | undefined): Abierto
-export function vigenciaDelFormulario(valores: Fechas, zona: string, abierto?: Abierto): Abierto {
+/**
+ * Las dos fechas de un formulario de cupón o descuento, listas para mandar (`abierto` = lo que se editaba; sin él, es crear).
+ * - Crear: vacío se omite; con fecha, el instante del día del negocio.
+ * - Editar sin tocar ninguna: no se manda nada (no se mueve lo guardado, tampoco lo viejo a 00:00 UTC).
+ * - Editar una: van LAS DOS como las vio la persona, la que no tocó con su instante tal cual; así dos ediciones a la vez no dejan
+ *   el rango al revés (Codex D37 r1 #3). Vaciar una no la quita, como antes: en un cupón, quitarla lo haría heredar la fecha de su
+ *   descuento (r1 #2).
+ */
+export function vigenciaDelFormulario(valores: Fechas, zona: string, abierto?: Abierto): Fechas {
+  const una = (campo: keyof Fechas, borde: 'desde' | 'hasta') => {
+    const fecha = valores[campo] || ''
+    return {
+      // Vaciar no cuenta como cambio: no quita la fecha (r1 #2).
+      cambio: !!abierto && fecha !== '' && fecha !== vigenciaParaFormulario(abierto[campo], zona),
+      valor: fecha ? vigenciaParaGuardar(fecha, zona, borde) : undefined,
+      guardado: abierto?.[campo] ?? undefined,
+    }
+  }
+  const desde = una('validFrom', 'desde')
+  const hasta = una('validUntil', 'hasta')
+  if (!abierto) return { validFrom: desde.valor, validUntil: hasta.valor }
+  if (!desde.cambio && !hasta.cambio) return { validFrom: undefined, validUntil: undefined }
   return {
-    validFrom: vigenciaSiCambio(valores.validFrom, abierto?.validFrom, zona, 'desde', !!abierto),
-    validUntil: vigenciaSiCambio(valores.validUntil, abierto?.validUntil, zona, 'hasta', !!abierto),
+    validFrom: desde.cambio ? desde.valor : desde.guardado,
+    validUntil: hasta.cambio ? hasta.valor : hasta.guardado,
   }
 }

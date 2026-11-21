@@ -351,17 +351,18 @@ export function DiscountWizard({ open, onOpenChange, venueId, editDiscount, onSu
     if (isEditMode) {
       // Sólo lo que cambió frente a lo abierto (alcance, categorías, límites y lo demás): un campo sin tocar no pisa lo que otra
       // persona guardó en medio (Codex D14 v2 r1 #1 y r3).
-      updateDiscountMutation.mutate(
-        soloLoQueCambio(
+      // D37: las fechas van aparte y juntas (si cambió una, las dos), fuera de «sólo lo que cambió».
+      updateDiscountMutation.mutate({
+        ...soloLoQueCambio(
           {
             ...completeData,
-            ...vigenciaDelFormulario(step3Data, venueTimezone, editDiscount),
             maxTotalUses: limiteParaGuardar(step3Data.maxTotalUses, true),
             maxUsesPerCustomer: limiteParaGuardar(step3Data.maxUsesPerCustomer, true),
           },
           editDiscount,
         ),
-      )
+        ...vigenciaDelFormulario(step3Data, venueTimezone, editDiscount),
+      })
     } else {
       createDiscountMutation.mutate(completeData)
     }

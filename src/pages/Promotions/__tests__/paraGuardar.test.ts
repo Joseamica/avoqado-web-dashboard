@@ -10,8 +10,8 @@ import {
   vigenciaDelFormulario,
   vigenciaParaFormulario,
   vigenciaParaGuardar,
-  vigenciaSiCambio,
 } from '../paraGuardar'
+import { zonaValida } from '@/utils/datetime'
 
 describe('Límite de usos al guardar', () => {
   it('🔴 Codex r4 #3: editar con el campo vacío manda null (vuelve ilimitado)', () => {
@@ -104,7 +104,7 @@ describe('Vigencia en el día del negocio (D37)', () => {
     expect(vigenciaParaGuardar('2026-03-08', LA, 'hasta')).toBe('2026-03-09T06:59:59.999Z')
   })
 
-  it('al abrir, lo guardado se enseña como el día del negocio (no el día en UTC)', () => {
+  it('al abrir, lo guardado se enseña como el día del negocio (no el día en UTC) y la caja nunca recibe un instante completo', () => {
     expect(vigenciaParaFormulario('2026-12-02T05:59:59.999Z', CDMX)).toBe('2026-12-01')
     expect(vigenciaParaFormulario('2026-12-01T06:00:00.000Z', CDMX)).toBe('2026-12-01')
     // Lo guardado con la regla vieja (00:00 UTC) vence la tarde anterior en México: se enseña ese día, que es cuando de verdad vence.
@@ -123,36 +123,54 @@ describe('Vigencia en el día del negocio (D37)', () => {
   })
 
   it('crear: vacío se omite; con fecha va el instante del día del negocio', () => {
-    expect(vigenciaSiCambio('', undefined, CDMX, 'hasta', false)).toBeUndefined()
-    expect(vigenciaSiCambio(undefined, undefined, CDMX, 'hasta', false)).toBeUndefined()
-    expect(vigenciaSiCambio('2026-12-01', undefined, CDMX, 'hasta', false)).toBe('2026-12-02T05:59:59.999Z')
-  })
-
-  it('🔴 editar: una fecha que nadie tocó NO se manda (no mueve lo guardado, tampoco lo viejo a 00:00 UTC)', () => {
-    expect(vigenciaSiCambio('2026-12-01', '2026-12-02T05:59:59.999Z', CDMX, 'hasta', true)).toBeUndefined()
-    expect(vigenciaSiCambio('2026-11-30', '2026-12-01T00:00:00.000Z', CDMX, 'hasta', true)).toBeUndefined()
-    expect(vigenciaSiCambio('', null, CDMX, 'hasta', true)).toBeUndefined()
-  })
-
-  it('editar: cambiar la fecha manda el instante nuevo; borrarla manda null (la quita)', () => {
-    expect(vigenciaSiCambio('2026-12-05', '2026-12-02T05:59:59.999Z', CDMX, 'hasta', true)).toBe('2026-12-06T05:59:59.999Z')
-    expect(vigenciaSiCambio('', '2026-12-02T05:59:59.999Z', CDMX, 'hasta', true)).toBeNull()
-  })
-
-  it('🔴 la caja de fecha nunca recibe un instante completo (el asistente de descuentos la enseñaba vacía al editar)', () => {
-    expect(vigenciaParaFormulario('2026-12-02T05:59:59.999Z', CDMX)).toMatch(/^\d{4}-\d{2}-\d{2}$/)
-  })
-
-  it('🔴 vigenciaDelFormulario: lo que se manda, al crear y al editar (vacío al editar = null y se quita)', () => {
-    const abierto = { validFrom: '2026-12-01T06:00:00.000Z', validUntil: '2026-12-02T05:59:59.999Z' }
     expect(vigenciaDelFormulario({ validFrom: '2026-12-01', validUntil: '2026-12-01' }, CDMX)).toEqual({
       validFrom: '2026-12-01T06:00:00.000Z',
       validUntil: '2026-12-02T05:59:59.999Z',
     })
     expect(vigenciaDelFormulario({ validFrom: '', validUntil: '' }, CDMX)).toEqual({ validFrom: undefined, validUntil: undefined })
-    expect(vigenciaDelFormulario({ validFrom: '2026-12-01', validUntil: '' }, CDMX, abierto)).toEqual({
+    expect(vigenciaDelFormulario({}, CDMX)).toEqual({ validFrom: undefined, validUntil: undefined })
+  })
+
+  const abierto = { validFrom: '2026-12-10T06:00:00.000Z', validUntil: '2026-12-21T05:59:59.999Z' }
+
+  it('🔴 editar sin tocar las fechas: no se manda ninguna (no mueve lo guardado, tampoco lo viejo a 00:00 UTC)', () => {
+    expect(vigenciaDelFormulario({ validFrom: '2026-12-10', validUntil: '2026-12-20' }, CDMX, abierto)).toEqual({
       validFrom: undefined,
-      validUntil: null,
+      validUntil: undefined,
     })
+    const viejo = { validFrom: null, validUntil: '2026-12-01T00:00:00.000Z' }
+    expect(vigenciaDelFormulario({ validFrom: '', validUntil: '2026-11-30' }, CDMX, viejo)).toEqual({
+      validFrom: undefined,
+      validUntil: undefined,
+    })
+  })
+
+  it('🔴 Codex r1 #3: si cambia una, van LAS DOS como las vio la persona (la otra con su instante tal cual): dos ediciones a la vez no dejan el rango al revés', () => {
+    expect(vigenciaDelFormulario({ validFrom: '2026-12-15', validUntil: '2026-12-20' }, CDMX, abierto)).toEqual({
+      validFrom: '2026-12-15T06:00:00.000Z',
+      validUntil: '2026-12-21T05:59:59.999Z',
+    })
+    expect(vigenciaDelFormulario({ validFrom: '2026-12-10', validUntil: '2026-12-12' }, CDMX, abierto)).toEqual({
+      validFrom: '2026-12-10T06:00:00.000Z',
+      validUntil: '2026-12-13T05:59:59.999Z',
+    })
+  })
+
+  it('🔴 Codex r1 #2: vaciar una fecha al editar no la quita (como antes; quitarla haría que el cupón herede la del descuento)', () => {
+    expect(vigenciaDelFormulario({ validFrom: '2026-12-10', validUntil: '' }, CDMX, abierto)).toEqual({
+      validFrom: undefined,
+      validUntil: undefined,
+    })
+    expect(vigenciaDelFormulario({ validFrom: '2026-12-12', validUntil: '' }, CDMX, abierto)).toEqual({
+      validFrom: '2026-12-12T06:00:00.000Z',
+      validUntil: '2026-12-21T05:59:59.999Z',
+    })
+  })
+
+  it('🔴 Codex r1 #4: una zona mal escrita se toma como la de México (no guarda 1970 ni rompe la lista)', () => {
+    expect(zonaValida('America/Tijuna')).toBe(CDMX)
+    expect(zonaValida('')).toBe(CDMX)
+    expect(zonaValida(undefined)).toBe(CDMX)
+    expect(zonaValida(TIJUANA)).toBe(TIJUANA)
   })
 })
