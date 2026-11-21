@@ -29,7 +29,8 @@
       "MATCHED": "Cuadra",
       "CONFIRMED": "Confirmado",
       "DUPLICATE": "Duplicado",
-      "UNMATCHED": "Sin conciliar"
+      "UNMATCHED": "Sin conciliar",
+      "PENDING_FEE": "Esperando comisión"
     }
   },
   "incomeStatement": {
@@ -297,7 +298,9 @@
       "generated": "{{posted}} pólizas generadas desde tus pagos",
       "generateNone": "Sin pólizas nuevas — ya estaban generadas",
       "generateMapping": "Faltan cuentas por asignar en Configuración contable",
-      "generateError": "No se pudieron generar las pólizas"
+      "generateError": "No se pudieron generar las pólizas",
+      "generateWaitingFee": "{{count}} pago(s) con tarjeta todavía esperan que se calcule su comisión: vuelve a generar en unos minutos y saldrán con la comisión real. No cierres el mes hasta que salgan.",
+      "generateStuckFee": "{{count}} tienen el cálculo de la comisión detenido: pide a soporte que lo revise."
     }
   },
   "trialBalance": {

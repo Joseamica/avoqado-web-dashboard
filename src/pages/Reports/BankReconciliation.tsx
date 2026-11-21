@@ -18,15 +18,17 @@ import {
   getBankStatement,
   listBankStatements,
   uploadBankStatement,
+  estadoDeLinea,
   type BankStatementLine,
-  type ReconMatchStatus,
+  type EstadoDeLinea,
 } from '@/services/bankReconciliation.service'
 
-const STATUS_STYLE: Record<ReconMatchStatus, string> = {
+const STATUS_STYLE: Record<EstadoDeLinea, string> = {
   MATCHED: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400',
   CONFIRMED: 'bg-blue-500/15 text-blue-600 dark:text-blue-400',
   DUPLICATE: 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
   UNMATCHED: 'bg-muted text-muted-foreground',
+  PENDING_FEE: 'bg-sky-500/15 text-sky-700 dark:text-sky-400',
 }
 
 function BankReconciliationInner() {
@@ -217,8 +219,8 @@ function BankReconciliationInner() {
                               {Currency(l.amountCents, true)}
                             </td>
                             <td className="py-2 pl-2">
-                              <span className={cn('text-xs px-2 py-0.5 rounded-full whitespace-nowrap', STATUS_STYLE[l.matchStatus])}>
-                                {t(`bankReconciliation.statuses.${l.matchStatus}`)}
+                              <span className={cn('text-xs px-2 py-0.5 rounded-full whitespace-nowrap', STATUS_STYLE[estadoDeLinea(l)])}>
+                                {t(`bankReconciliation.statuses.${estadoDeLinea(l)}`)}
                               </span>
                             </td>
                           </tr>

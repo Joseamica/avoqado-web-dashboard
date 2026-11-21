@@ -3,7 +3,14 @@ import { useTranslation } from 'react-i18next'
 
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
-import { createJournalEntry, generatePolicies, getJournal, journalKeys, type JournalResponse, type NewEntry } from '@/services/fiscal/journalEntry.service'
+import {
+  createJournalEntry,
+  generatePolicies,
+  getJournal,
+  journalKeys,
+  type JournalResponse,
+  type NewEntry,
+} from '@/services/fiscal/journalEntry.service'
 
 /** Libro diario del venue activo. `enabled:false` desde el teaser (paywall). */
 export function useJournal(period?: string, options?: { enabled?: boolean }) {
@@ -32,7 +39,11 @@ export function useCreateJournalEntry() {
       toast({ title: t('journal.toast.created', { folio: data.folio }) })
     },
     onError: (err: any) => {
-      toast({ title: t('journal.toast.createError'), description: err?.response?.data?.message ?? err?.message ?? '', variant: 'destructive' })
+      toast({
+        title: t('journal.toast.createError'),
+        description: err?.response?.data?.message ?? err?.message ?? '',
+        variant: 'destructive',
+      })
     },
   })
 }
@@ -48,16 +59,30 @@ export function useGeneratePolicies() {
     mutationFn: (period?: string) => generatePolicies(venueId!, period),
     onSuccess: r => {
       queryClient.invalidateQueries({ queryKey: journalKeys.all })
+      // D24: lo que espera su comisión no se postea todavía; se dice para que nadie lo dé por perdido.
+      const pendientes = r.pendientesDeCosto ?? 0
+      const detenidos = r.costoSinCalcular ?? 0
+      const esperan =
+        pendientes > 0
+          ? [
+              t('journal.toast.generateWaitingFee', { count: pendientes }),
+              ...(detenidos > 0 ? [t('journal.toast.generateStuckFee', { count: detenidos })] : []),
+            ].join(' ')
+          : undefined
       if (r.missingMappings.length > 0) {
         toast({ title: t('journal.toast.generateMapping'), description: r.missingMappings.join(', '), variant: 'destructive' })
       } else if (r.posted === 0) {
-        toast({ title: t('journal.toast.generateNone', { already: r.alreadyPosted }) })
+        toast({ title: t('journal.toast.generateNone', { already: r.alreadyPosted }), description: esperan })
       } else {
-        toast({ title: t('journal.toast.generated', { posted: r.posted }) })
+        toast({ title: t('journal.toast.generated', { posted: r.posted }), description: esperan })
       }
     },
     onError: (err: any) => {
-      toast({ title: t('journal.toast.generateError'), description: err?.response?.data?.message ?? err?.message ?? '', variant: 'destructive' })
+      toast({
+        title: t('journal.toast.generateError'),
+        description: err?.response?.data?.message ?? err?.message ?? '',
+        variant: 'destructive',
+      })
     },
   })
 }
