@@ -15,6 +15,11 @@ import { Link } from 'react-router-dom'
 interface Props {
   order: Order
   venueTimezone: string
+  /**
+   * D661 · Ruling 89: el banco regresó la devolución de un pedido en línea. El SERVIDOR conserva el asiento del reembolso (la cuenta
+   * sigue cerrada), pero el dinero no le llegó a la clienta: el renglón dice que se le debe, no «Reembolsado».
+   */
+  seLeDebe?: boolean
 }
 
 const PaymentIcon = ({ p }: { p: Payment }) => {
@@ -154,8 +159,9 @@ const PaymentRow = ({ p, venueTimezone }: { p: Payment; venueTimezone: string })
 /** Estados con los que la cuenta ya no se cobra. `DELETED` existe en el SERVIDOR aunque el enum del panel no lo traiga. */
 const ESTADOS_CERRADOS = new Set(['COMPLETED', 'CANCELLED', 'DELETED'])
 
-export function PaymentsSection({ order, venueTimezone }: Props) {
+export function PaymentsSection({ order, venueTimezone, seLeDebe = false }: Props) {
   const { t } = useTranslation('orders')
+  const { t: tOnline } = useTranslation('onlineOrdering')
   const payments = order.payments ?? []
   const remainingBalance = Number(order.remainingBalance ?? 0)
   // Carril del reembolso (server, 2026-08-18). Si el campo no viene, todo se
@@ -179,11 +185,17 @@ export function PaymentsSection({ order, venueTimezone }: Props) {
         {isRefunded && (
           <div className="py-3 flex items-center justify-between gap-3 border-t border-rose-200/60 dark:border-rose-800/40 first:border-t-0">
             <span className="text-sm font-medium text-rose-700 dark:text-rose-400">
-              {refundState === 'FULL'
-                ? t('drawer.refund.full', { defaultValue: 'Reembolsada' })
-                : t('drawer.refund.partialLabel', { defaultValue: 'Reembolso parcial' })}
+              {seLeDebe
+                ? tOnline('inbox.card.mark.reversed')
+                : refundState === 'FULL'
+                  ? t('drawer.refund.full', { defaultValue: 'Reembolsada' })
+                  : t('drawer.refund.partialLabel', { defaultValue: 'Reembolso parcial' })}
             </span>
-            <span className="text-sm font-semibold text-rose-700 dark:text-rose-400">-{Currency(refundedAmount)}</span>
+            {/* Con la reversa, lo que se le debe (el asiento de arriba sigue diciendo lo que se devolvió y regresó). */}
+            <span className="text-sm font-semibold text-rose-700 dark:text-rose-400">
+              {!seLeDebe && '-'}
+              {Currency(refundedAmount)}
+            </span>
           </div>
         )}
         {hasPendingBalance ? (

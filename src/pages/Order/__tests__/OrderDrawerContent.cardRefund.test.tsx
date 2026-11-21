@@ -4,7 +4,7 @@
  * consulta S3 ni muestra nada. Se monta el cajón de verdad con el servicio y la hoja reales; sólo se apagan las secciones ajenas.
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -25,7 +25,17 @@ vi.mock('@/pages/Order/components/OrderActionsSheet', () => ({ OrderActionsSheet
 vi.mock('@/pages/Order/components/sections/DetailsSection', () => ({ DetailsSection: () => null }))
 vi.mock('@/pages/Order/components/sections/ItemsSection', () => ({ ItemsSection: () => null }))
 vi.mock('@/pages/Order/components/StampRewardsSection', () => ({ StampRewardsSection: () => null }))
-vi.mock('@/pages/Order/components/sections/PaymentsSection', () => ({ PaymentsSection: () => <div data-testid="payments-section" /> }))
+// La sección de pagos REAL (el Ruling 89 lee lo que dice), dentro de la caja que buscan las pruebas de posición.
+vi.mock('@/pages/Order/components/sections/PaymentsSection', async importOriginal => {
+  const real = await importOriginal<typeof import('@/pages/Order/components/sections/PaymentsSection')>()
+  return {
+    PaymentsSection: (p: Parameters<typeof real.PaymentsSection>[0]) => (
+      <div data-testid="payments-section">
+        <real.PaymentsSection {...p} />
+      </div>
+    ),
+  }
+})
 vi.mock('@/pages/Order/components/sections/ActivitySection', () => ({ ActivitySection: () => null }))
 vi.mock('@/pages/Payment/components/ExchangeLinksCard', () => ({ ExchangeLinksCard: () => null }))
 
@@ -120,6 +130,74 @@ describe('detalle de la cuenta: «Devolver a la tarjeta» de un pedido en línea
     expect(await screen.findByText(text, {}, { timeout: 3000 })).toBeInTheDocument()
   })
 
+  // Ruling 89: tras una reversa del banco el SERVIDOR conserva el asiento del reembolso (la cuenta sigue con `refundState: FULL` y
+  // cerrada), pero el dinero no le llegó a la clienta: la cabecera y los pagos dicen lo mismo que la marca.
+  const cuentaDevuelta = () => ({
+    ...m.order,
+    refundState: 'FULL',
+    refundedAmount: 200,
+    remainingBalance: 0,
+    payments: [
+      {
+        id: 'p1',
+        type: 'REGULAR',
+        method: 'CREDIT_CARD',
+        status: 'COMPLETED',
+        amount: 200,
+        tipAmount: 0,
+        createdAt: onlineOrder.createdAt,
+      },
+      {
+        id: 'p2',
+        type: 'REFUND',
+        method: 'CREDIT_CARD',
+        status: 'COMPLETED',
+        amount: -200,
+        tipAmount: 0,
+        createdAt: onlineOrder.createdAt,
+      },
+    ],
+  })
+  const conDevolucion = (refund: object) =>
+    m.get.mockImplementation(async (url: string) => {
+      if (url === S3) {
+        const pedido = { ...onlineOrder, requiresAcceptance: false, refundedAt: '2026-10-30T18:00:02.000Z', refund }
+        return { data: { success: true, data: pedido } }
+      }
+      throw new Error(`GET inesperado: ${url}`)
+    })
+
+  it('🔴 Ruling 89: tras una reversa, ni la cabecera ni los pagos dicen «Reembolsado»: los dos dicen que se le debe a la clienta', async () => {
+    m.order = cuentaDevuelta()
+    conDevolucion({ status: 'REVERSED', medio: 'TARJETA' })
+    mount()
+    const cabecera = (await screen.findByRole('heading', { level: 1 })).parentElement as HTMLElement
+    await waitFor(() => expect(within(cabecera).getByText('inbox.card.mark.reversed')).toBeInTheDocument(), { timeout: 3000 })
+    const pagos = screen.getByTestId('payments-section')
+    const loQueSeDebe = within(pagos).getByText('inbox.card.mark.reversed').parentElement as HTMLElement
+    expect(loQueSeDebe).toHaveTextContent('$200.00')
+    expect(loQueSeDebe).not.toHaveTextContent('-$')
+    expect(screen.queryByText(/^drawer\.refund\./)).toBeNull()
+    // El asiento del reembolso se queda a la vista, como historia.
+    expect(within(pagos).getByText('drawer.payments.refund')).toBeInTheDocument()
+    // La cuenta sigue cerrada: no se le cobra a la clienta.
+    expect(within(cabecera).getByText(/^detail\.statuses\.COMPLETED/)).toBeInTheDocument()
+    expect(screen.queryByText(/^payLater\.badge/)).toBeNull()
+    expect(screen.queryByText(/^drawer\.payments\.pendingBalance/)).toBeNull()
+  })
+
+  it('una devolución hecha (DONE) sigue diciendo «Reembolsado» en la cabecera y en los pagos', async () => {
+    m.order = cuentaDevuelta()
+    conDevolucion({ status: 'DONE', medio: 'TARJETA' })
+    mount()
+    await screen.findByText('inbox.card.mark.refunded', {}, { timeout: 3000 })
+    const cabecera = screen.getByRole('heading', { level: 1 }).parentElement as HTMLElement
+    expect(within(cabecera).getByText(/^drawer\.refund\.full/)).toBeInTheDocument()
+    const pagos = screen.getByTestId('payments-section')
+    expect(within(pagos).getByText(/^drawer\.refund\.full/).parentElement).toHaveTextContent('-$200.00')
+    expect(screen.queryByText('inbox.card.mark.reversed')).toBeNull()
+  })
+
   // D661: en qué quedó el pedido lo ve quien ve la cuenta; el botón, sólo quien puede devolver (`payments:refund`).
   it('un gerente sin payments:refund ve «Devolviendo…» en el detalle, sin el botón', async () => {
     m.permissions = ['orders:read', 'payments:read']
@@ -141,7 +219,10 @@ describe('detalle de la cuenta: «Devolver a la tarjeta» de un pedido en línea
     )
     mount()
     await waitFor(() => expect(m.get).toHaveBeenCalledWith(S3))
-    await new Promise(r => setTimeout(r, 30))
+    // Dentro de `act`: la respuesta (null) repinta el detalle y el botón (sin avisos de «not wrapped in act»).
+    await act(async () => {
+      await new Promise(r => setTimeout(r, 30))
+    })
     expect(screen.queryByRole('button', { name: 'cardRefund.open' })).toBeNull()
   })
 })

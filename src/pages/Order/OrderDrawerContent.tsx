@@ -4,9 +4,11 @@ import { Button } from '@/components/ui/button'
 import { useBreadcrumb } from '@/context/BreadcrumbContext'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import * as orderService from '@/services/order.service'
+import { getOnlineOrder, onlineOrderingKeys } from '@/services/onlineOrdering.service'
 import { Currency } from '@/utils/currency'
 import { formatOrderNumber, getOrderStatusConfig } from '@/utils/orderStatus'
 import { OrderCardRefund } from '@/pages/OnlineOrdering/components/CardRefundSheet'
+import { marcaDelPedido } from '@/pages/OnlineOrdering/lib/marcaDelPedido'
 import { useQuery } from '@tanstack/react-query'
 import { MoreHorizontal, Printer, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
@@ -25,6 +27,7 @@ interface Props {
 
 export function OrderDrawerContent({ orderId, onClose }: Props) {
   const { t } = useTranslation('orders')
+  const { t: tOnline } = useTranslation('onlineOrdering')
   const { venueId, venue, fullBasePath } = useCurrentVenue()
   const venueTimezone = venue?.timezone || 'America/Mexico_City'
   const { setCustomSegment, clearCustomSegment } = useBreadcrumb()
@@ -35,6 +38,14 @@ export function OrderDrawerContent({ orderId, onClose }: Props) {
     queryFn: () => orderService.getOrder(venueId, orderId),
     enabled: !!orderId,
   })
+  // D661 · Ruling 89: el pedido en línea de esta cuenta lo lee `OrderCardRefund` (abajo, con sus permisos); aquí sólo se escucha esa
+  // lectura. Tras una reversa del banco el SERVIDOR conserva el asiento del reembolso, pero a la clienta se le debe: lo dice la marca.
+  const { data: enLinea } = useQuery({
+    queryKey: onlineOrderingKeys.order(venueId, orderId),
+    queryFn: () => getOnlineOrder(venueId, orderId),
+    enabled: false,
+  })
+  const seLeDebe = !!enLinea && marcaDelPedido(enLinea) === 'reversed'
 
   // Keep breadcrumb readable: replace cuid in URL with formatted "#XXXXXX"
   useEffect(() => {
@@ -130,12 +141,14 @@ export function OrderDrawerContent({ orderId, onClose }: Props) {
                 variant="outline"
                 className="text-xs px-1.5 py-0.5 bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-900/20 dark:text-rose-400 dark:border-rose-800"
               >
-                {refundState === 'FULL'
-                  ? t('drawer.refund.full', { defaultValue: 'Reembolsada' })
-                  : t('drawer.refund.partial', {
-                      amount: Currency(refundedAmount),
-                      defaultValue: 'Reembolso parcial: {{amount}}',
-                    })}
+                {seLeDebe
+                  ? tOnline('inbox.card.mark.reversed')
+                  : refundState === 'FULL'
+                    ? t('drawer.refund.full', { defaultValue: 'Reembolsada' })
+                    : t('drawer.refund.partial', {
+                        amount: Currency(refundedAmount),
+                        defaultValue: 'Reembolso parcial: {{amount}}',
+                      })}
               </Badge>
             )}
           </div>
@@ -149,7 +162,7 @@ export function OrderDrawerContent({ orderId, onClose }: Props) {
           nada que canjear.
         */}
         <StampRewardsSection order={order} />
-        <PaymentsSection order={order} venueTimezone={venueTimezone} />
+        <PaymentsSection order={order} venueTimezone={venueTimezone} seLeDebe={seLeDebe} />
         {/* Pedido en línea cobrado con tarjeta: se devuelve aquí (la bandeja sólo guarda 24 h). Sale solo si aplica. */}
         <OrderCardRefund venueId={venueId} orderId={order.id} source={order.source} />
         <ExchangeLinksCard orderId={order.id} links={order.exchange} />
