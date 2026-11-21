@@ -15,7 +15,7 @@ import { ChevronLeft, ChevronRight, Check, Loader2 } from 'lucide-react'
 
 import { useDiscountFormData } from '../hooks/useDiscountFormData'
 import { categoriasParaGuardar, limiteParaGuardar, soloLoQueCambio, vigenciaDelFormulario, vigenciaParaFormulario } from '../paraGuardar'
-import { useVenueDateTime } from '@/utils/datetime'
+import { useVenueDateTime, zonaValida } from '@/utils/datetime'
 import { WizardStep1BasicInfo } from './wizard-steps/WizardStep1BasicInfo'
 import { WizardStep2Scope } from './wizard-steps/WizardStep2Scope'
 import { WizardStep3Rules } from './wizard-steps/WizardStep3Rules'
@@ -83,7 +83,7 @@ export function DiscountWizard({ open, onOpenChange, venueId, editDiscount, onSu
   const { toast } = useToast()
   const queryClient = useQueryClient()
   // D37: «Válido desde/hasta» son días del negocio, en su zona.
-  const { venueTimezone } = useVenueDateTime()
+  const venueTimezone = zonaValida(useVenueDateTime().venueTimezone)
 
   // Determine if we're in edit mode
   const isEditMode = !!editDiscount
@@ -351,7 +351,7 @@ export function DiscountWizard({ open, onOpenChange, venueId, editDiscount, onSu
     if (isEditMode) {
       // Sólo lo que cambió frente a lo abierto (alcance, categorías, límites y lo demás): un campo sin tocar no pisa lo que otra
       // persona guardó en medio (Codex D14 v2 r1 #1 y r3).
-      // D37: las fechas van aparte y juntas (si cambió una, las dos), fuera de «sólo lo que cambió».
+      // D37: las fechas, aparte: va sólo la que la persona cambió, ya en el día del negocio (`vigenciaDelFormulario`).
       updateDiscountMutation.mutate({
         ...soloLoQueCambio(
           {

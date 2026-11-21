@@ -145,15 +145,16 @@ describe('Vigencia en el día del negocio (D37)', () => {
     })
   })
 
-  it('🔴 Codex r1 #3: si cambia una, van LAS DOS como las vio la persona (la otra con su instante tal cual): dos ediciones a la vez no dejan el rango al revés', () => {
+  it('🔴 Codex r2 #1: si cambia una, va SÓLO esa; la otra no se reenvía (un formulario viejo no regresa una fecha que otro cambió)', () => {
     expect(vigenciaDelFormulario({ validFrom: '2026-12-15', validUntil: '2026-12-20' }, CDMX, abierto)).toEqual({
       validFrom: '2026-12-15T06:00:00.000Z',
-      validUntil: '2026-12-21T05:59:59.999Z',
+      validUntil: undefined,
     })
     expect(vigenciaDelFormulario({ validFrom: '2026-12-10', validUntil: '2026-12-12' }, CDMX, abierto)).toEqual({
-      validFrom: '2026-12-10T06:00:00.000Z',
+      validFrom: undefined,
       validUntil: '2026-12-13T05:59:59.999Z',
     })
+    // Si el resultado queda al revés con lo que otro guardó en medio, lo rechaza el SERVIDOR (regla única, familia C).
   })
 
   it('🔴 Codex r1 #2: vaciar una fecha al editar no la quita (como antes; quitarla haría que el cupón herede la del descuento)', () => {
@@ -163,8 +164,13 @@ describe('Vigencia en el día del negocio (D37)', () => {
     })
     expect(vigenciaDelFormulario({ validFrom: '2026-12-12', validUntil: '' }, CDMX, abierto)).toEqual({
       validFrom: '2026-12-12T06:00:00.000Z',
-      validUntil: '2026-12-21T05:59:59.999Z',
+      validUntil: undefined,
     })
+  })
+
+  it('🔴 Codex r2 #4: una fecha que Luxon no entiende (año de 5 cifras) se manda como antes, nunca como null', () => {
+    expect(vigenciaParaGuardar('10000-12-01', CDMX, 'hasta')).toBe('10000-12-01')
+    expect(vigenciaDelFormulario({ validUntil: '10000-12-01' }, CDMX)).toEqual({ validFrom: undefined, validUntil: '10000-12-01' })
   })
 
   it('🔴 Codex r1 #4: una zona mal escrita se toma como la de México (no guarda 1970 ni rompe la lista)', () => {

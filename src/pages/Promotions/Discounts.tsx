@@ -41,7 +41,7 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
 import discountService from '@/services/discount.service'
 import type { Discount, DiscountType, DiscountScope } from '@/types/discount'
-import { useVenueDateTime } from '@/utils/datetime'
+import { useVenueDateTime, zonaValida } from '@/utils/datetime'
 import { getIntlLocale } from '@/utils/i18n-locale'
 
 export default function Discounts() {
@@ -52,7 +52,7 @@ export default function Discounts() {
 	const { t, i18n } = useTranslation('promotions')
 	const { t: tCommon } = useTranslation()
 	// D37: la vigencia se pinta en el día del negocio, no en el de la computadora.
-	const { venueTimezone } = useVenueDateTime()
+	const venueTimezone = zonaValida(useVenueDateTime().venueTimezone)
 
 	// State
 	const [pagination, setPagination] = useState({

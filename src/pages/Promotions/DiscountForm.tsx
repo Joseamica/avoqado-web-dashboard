@@ -19,7 +19,7 @@ import type { CreateDiscountRequest, DiscountScope, DiscountType } from '@/types
 import { DiscountFormFields } from './components/DiscountFormFields'
 import { useDiscountFormData } from './hooks/useDiscountFormData'
 import { vigenciaDelFormulario, vigenciaParaFormulario } from './paraGuardar'
-import { useVenueDateTime } from '@/utils/datetime'
+import { useVenueDateTime, zonaValida } from '@/utils/datetime'
 
 export default function DiscountForm() {
   const { t } = useTranslation('promotions')
@@ -30,7 +30,7 @@ export default function DiscountForm() {
   const { toast } = useToast()
   const queryClient = useQueryClient()
   // D37: «Válido desde/hasta» son días del negocio, en su zona (la ruta …/discounts/create sigue usando este formulario).
-  const { venueTimezone } = useVenueDateTime()
+  const venueTimezone = zonaValida(useVenueDateTime().venueTimezone)
 
   const isEditing = !!discountId
 

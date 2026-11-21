@@ -16,7 +16,7 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
 import couponService from '@/services/coupon.service'
 import { limiteParaGuardar, soloLoQueCambio, vigenciaDelFormulario, vigenciaParaFormulario } from './paraGuardar'
-import { useVenueDateTime } from '@/utils/datetime'
+import { useVenueDateTime, zonaValida } from '@/utils/datetime'
 import discountService from '@/services/discount.service'
 import type { CreateCouponRequest } from '@/types/discount'
 
@@ -41,7 +41,7 @@ export default function CouponForm() {
   const { toast } = useToast()
   const queryClient = useQueryClient()
   // D37: «Válido desde/hasta» son días del negocio, en su zona.
-  const { venueTimezone } = useVenueDateTime()
+  const venueTimezone = zonaValida(useVenueDateTime().venueTimezone)
 
   const isEditing = !!couponId
 
@@ -99,7 +99,7 @@ export default function CouponForm() {
         const { discountId, ...updateData } = data
         // D14: vaciar un límite al editar lo vuelve ilimitado (null). Sólo se manda lo que cambió frente a lo abierto, para no
         // pisar lo que otra persona guardó en medio (Codex D14 v2 r1 #1).
-        // D37: las fechas van aparte y juntas (si cambió una, las dos), fuera de «sólo lo que cambió».
+        // D37: las fechas, aparte: va sólo la que la persona cambió, ya en el día del negocio (`vigenciaDelFormulario`).
         return couponService.updateCoupon(venueId, couponId!, {
           ...soloLoQueCambio(
             {

@@ -15,7 +15,7 @@ import { cn } from '@/lib/utils'
 import discountService from '@/services/discount.service'
 import type { Discount } from '@/types/discount'
 import { DiscountWizard } from '../components/DiscountWizard'
-import { useVenueDateTime } from '@/utils/datetime'
+import { useVenueDateTime, zonaValida } from '@/utils/datetime'
 import { useDiscountFormData } from '../hooks/useDiscountFormData'
 
 type TabId = 'general' | 'scope' | 'rules' | 'config'
@@ -383,7 +383,7 @@ function ScopeTab({ discount, t, productNamesMap, categoryNamesMap, customerGrou
 }
 
 function RulesTab({ discount, t }: TabProps) {
-  const { venueTimezone } = useVenueDateTime()
+  const venueTimezone = zonaValida(useVenueDateTime().venueTimezone)
   return (
     <div className="space-y-4">
       {/* Usage Limits */}

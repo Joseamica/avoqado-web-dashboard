@@ -42,6 +42,9 @@ export const soloLoQueCambio = <T extends object>(datos: T, abierto: object | un
  */
 export const vigenciaParaGuardar = (fecha: string, zona: string, borde: 'desde' | 'hasta'): string => {
   const dia = DateTime.fromISO(fecha, { zone: zona })
+  // Una fecha que Luxon no entiende (p. ej. un año de 5 cifras que la caja de fecha acepta) se manda como antes, tal cual: nunca
+  // como null, que al editar borraría el límite (Codex D37 r2 #4).
+  if (!dia.isValid) return fecha
   return (borde === 'desde' ? dia.startOf('day') : dia.endOf('day')).toUTC().toISO() as string
 }
 
@@ -55,27 +58,17 @@ type Abierto = { validFrom?: string | null; validUntil?: string | null }
 /**
  * Las dos fechas de un formulario de cupón o descuento, listas para mandar (`abierto` = lo que se editaba; sin él, es crear).
  * - Crear: vacío se omite; con fecha, el instante del día del negocio.
- * - Editar sin tocar ninguna: no se manda nada (no se mueve lo guardado, tampoco lo viejo a 00:00 UTC).
- * - Editar una: van LAS DOS como las vio la persona, la que no tocó con su instante tal cual; así dos ediciones a la vez no dejan
- *   el rango al revés (Codex D37 r1 #3). Vaciar una no la quita, como antes: en un cupón, quitarla lo haría heredar la fecha de su
- *   descuento (r1 #2).
+ * - Editar: va SÓLO la fecha que la persona cambió, como lo demás del formulario (D14: «sólo lo que cambió»). La que no tocó no se
+ *   reenvía: un formulario viejo no regresa una fecha que otra persona cambió en medio (Codex D37 r2 #1). Si el resultado queda al
+ *   revés con lo que otro guardó, lo rechaza el SERVIDOR (regla única, familia C; r1 #3, r2 #2).
+ * - Vaciar una fecha no la quita, como antes: en un cupón, quitarla lo haría heredar la fecha de su descuento (r1 #2).
  */
 export function vigenciaDelFormulario(valores: Fechas, zona: string, abierto?: Abierto): Fechas {
   const una = (campo: keyof Fechas, borde: 'desde' | 'hasta') => {
     const fecha = valores[campo] || ''
-    return {
-      // Vaciar no cuenta como cambio: no quita la fecha (r1 #2).
-      cambio: !!abierto && fecha !== '' && fecha !== vigenciaParaFormulario(abierto[campo], zona),
-      valor: fecha ? vigenciaParaGuardar(fecha, zona, borde) : undefined,
-      guardado: abierto?.[campo] ?? undefined,
-    }
+    if (!fecha) return undefined
+    if (abierto && fecha === vigenciaParaFormulario(abierto[campo], zona)) return undefined
+    return vigenciaParaGuardar(fecha, zona, borde)
   }
-  const desde = una('validFrom', 'desde')
-  const hasta = una('validUntil', 'hasta')
-  if (!abierto) return { validFrom: desde.valor, validUntil: hasta.valor }
-  if (!desde.cambio && !hasta.cambio) return { validFrom: undefined, validUntil: undefined }
-  return {
-    validFrom: desde.cambio ? desde.valor : desde.guardado,
-    validUntil: hasta.cambio ? hasta.valor : hasta.guardado,
-  }
+  return { validFrom: una('validFrom', 'desde'), validUntil: una('validUntil', 'hasta') }
 }

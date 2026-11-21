@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast'
 import couponService from '@/services/coupon.service'
 import type { BulkGenerateCouponsRequest, Discount } from '@/types/discount'
-import { useVenueDateTime } from '@/utils/datetime'
+import { useVenueDateTime, zonaValida } from '@/utils/datetime'
 
 import { vigenciaDelFormulario } from '../paraGuardar'
 
@@ -27,7 +27,7 @@ export default function BulkGenerateDialog({ venueId, discounts, onSuccess }: Bu
 	const { t: tCommon } = useTranslation()
 	const { toast } = useToast()
 	// D37: «Válido desde/hasta» son días del negocio, en su zona.
-	const { venueTimezone } = useVenueDateTime()
+	const venueTimezone = zonaValida(useVenueDateTime().venueTimezone)
 
 	const [generatedCodes, setGeneratedCodes] = useState<string[]>([])
 	const [copied, setCopied] = useState(false)
