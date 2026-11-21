@@ -122,8 +122,6 @@ export default function CouponForm() {
       navigate('..')
     },
     onError: (error: any) => {
-      // D37 (Codex r3 #1): si otra persona guardó en medio, se relee lo guardado; si nada cambió, el formulario no se mueve.
-      if (isEditing) queryClient.invalidateQueries({ queryKey: ['coupon', venueId, couponId] })
       toast({
         title: tCommon('common.error'),
         description: error.response?.data?.message || t('coupons.toasts.error'),
