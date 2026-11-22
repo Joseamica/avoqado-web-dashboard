@@ -1,12 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useEffect, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 
 import { AlertTriangle, CheckCircle2, HelpCircle, Info } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 
 import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { Button } from '@/components/ui/button'
@@ -14,8 +14,10 @@ import { Card } from '@/components/ui/card'
 import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
+import { useAccess } from '@/hooks/use-access'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
 import { useReservationSettingsTour } from '@/hooks/useReservationSettingsTour'
@@ -28,6 +30,7 @@ import { GoogleCalendarDeadLetterBanner } from './components/GoogleCalendarDeadL
 import { GoogleCalendarPrivacySection } from './components/GoogleCalendarPrivacySection'
 import { ReservationStaffConfiguration } from './components/ReservationStaffConfiguration'
 import { buildStaffAwareSettingsPatch, readStaffAwareSettings } from './reservation-staff-settings'
+import { SETTINGS_TABS, firstTabWithError, hashForTab, tabFromHash, tabsWithChanges, type SettingsTab } from './reservation-settings-tabs'
 import type { OperatingHours } from '@/types/reservation'
 
 // ----------------------------------------------------------------------------
@@ -251,26 +254,7 @@ const REMINDER_OFFSET_OPTIONS: NumberOption[] = [
 // `tooltip` slot rendered as a tiny Info-icon trigger next to the label,
 // matching the Square admin pattern where long-form context lives behind a
 // hover affordance instead of cluttering the row with always-visible help.
-
-type RowScope = 'appointments' | 'classes' | 'both'
-
-// Tiny inline marker next to a row label that tells the admin whether the
-// option applies to citas, clases, or both. `both` renders nothing — most
-// rows are shared and adding a "Ambos" badge everywhere would just be noise.
-function ScopeBadge({ scope }: { scope: RowScope }) {
-  const { t } = useTranslation('reservations')
-  if (scope === 'both') return null
-  const label = scope === 'appointments' ? t('settings.scope.appointments') : t('settings.scope.classes')
-  const tone =
-    scope === 'appointments'
-      ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-      : 'bg-violet-500/10 text-violet-600 dark:text-violet-300'
-  return (
-    <span className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide ${tone}`}>
-      {label}
-    </span>
-  )
-}
+// D680: ya no hay etiqueta «Citas»/«Clases» por fila — la pestaña dice a qué aplica.
 
 function InfoTooltip({ content }: { content: ReactNode }) {
   return (
@@ -296,12 +280,13 @@ function InfoTooltip({ content }: { content: ReactNode }) {
 function SettingRow({
   label,
   tooltip,
-  scope = 'both',
+  error,
   children,
 }: {
   label: ReactNode
   tooltip?: ReactNode
-  scope?: RowScope
+  /** Por qué no se puede guardar este valor; se ve bajo el control (el guardado lleva a su pestaña). */
+  error?: ReactNode
   children: ReactNode
 }) {
   return (
@@ -312,10 +297,16 @@ function SettingRow({
             el navegador cierra el <p> solo y React lo reporta como error en consola
             (visto el 2026-08-24 en la fila "Cargo por No Show"). */}
         <span className="text-sm font-medium text-foreground">{label}</span>
-        <ScopeBadge scope={scope} />
         {tooltip ? <InfoTooltip content={tooltip} /> : null}
       </div>
-      <div className="w-full sm:w-72">{children}</div>
+      <div className="w-full sm:w-72">
+        {children}
+        {error ? (
+          <p role="alert" className="mt-1.5 text-xs text-destructive">
+            {error}
+          </p>
+        ) : null}
+      </div>
     </div>
   )
 }
@@ -323,7 +314,6 @@ function SettingRow({
 function SettingToggleRow({
   label,
   tooltip,
-  scope = 'both',
   checked,
   onCheckedChange,
   tourId,
@@ -333,7 +323,6 @@ function SettingToggleRow({
 }: {
   label: ReactNode
   tooltip?: ReactNode
-  scope?: RowScope
   checked: boolean
   onCheckedChange: (v: boolean) => void
   tourId?: string
@@ -354,7 +343,6 @@ function SettingToggleRow({
         <div className="flex min-w-0 items-center gap-1.5">
           {/* Mismo motivo que en SettingRow: `label` puede traer un <Badge>. */}
           <span className={cn('text-sm font-medium', disabled ? 'text-muted-foreground' : 'text-foreground')}>{label}</span>
-          <ScopeBadge scope={scope} />
           {tooltip ? <InfoTooltip content={tooltip} /> : null}
         </div>
         {disabled && requirementHint ? <p className="mt-1 text-xs text-muted-foreground">{requirementHint}</p> : null}
@@ -444,6 +432,41 @@ function SelectField<T extends { value: number | null; label: string } | { value
   )
 }
 
+// Stripe Connect status — both `required` and `optional` presets need a working
+// Stripe channel for the customer to actually pay online. Without it the booking
+// falls back to "owesAtVenue" semantics (spot held, charge collected in person),
+// which is rarely what the operator expects when they pick "Prepago obligatorio".
+// Show a warning when missing, and a positive confirmation when connected — so
+// the operator always knows the state. D680: cada cobro (clases, citas) lo muestra
+// en su propia pestaña cuando ESE cobro no es «Pagar en el local».
+function OnlineChargeStatus({ canChargeOnline, fullBasePath }: { canChargeOnline: boolean; fullBasePath: string }) {
+  const { t } = useTranslation('reservations')
+  return canChargeOnline ? (
+    <div className="flex items-start gap-3 rounded-md border border-emerald-500/40 bg-emerald-50 p-3 text-sm dark:border-emerald-500/30 dark:bg-emerald-950/40">
+      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+      <div className="flex flex-1 flex-wrap items-center justify-between gap-2">
+        <p className="text-emerald-900 dark:text-emerald-100">{t('settings.onlineCharge.active')}</p>
+        <Link
+          to={`${fullBasePath}/settings/integrations`}
+          className="font-medium text-emerald-700 underline-offset-4 hover:underline dark:text-emerald-300"
+        >
+          {t('settings.onlineCharge.manage')}
+        </Link>
+      </div>
+    </div>
+  ) : (
+    <div className="flex items-start gap-3 rounded-md border border-amber-500/40 bg-amber-50 p-3 text-sm dark:border-amber-500/30 dark:bg-amber-950/40">
+      <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+      <div className="flex-1 space-y-2">
+        <p className="text-amber-900 dark:text-amber-100">{t('settings.onlineCharge.missingUpfront')}</p>
+        <Button asChild size="sm" variant="outline" className="h-8">
+          <Link to={`${fullBasePath}/settings/integrations`}>{t('settings.onlineCharge.connect')}</Link>
+        </Button>
+      </div>
+    </div>
+  )
+}
+
 const nullableNumber = (validator: z.ZodNumber) =>
   z.preprocess(v => (v === '' || v === null || v === undefined ? null : Number(v)), validator.nullable())
 
@@ -513,6 +536,19 @@ export default function ReservationSettings() {
   const { t } = useTranslation('reservations')
   const { t: tCommon } = useTranslation()
   const { t: tGcal } = useTranslation('googleCalendar')
+  const { can } = useAccess()
+  const canReadMenu = can('menu:read')
+
+  // D680: la dirección (`#general|#clases|#citas`) es la única verdad de la pestaña. Se DERIVA
+  // de `location.hash` (sigue a «atrás» y a una liga copiada) y todo cambio de pestaña —tocarla,
+  // el tour, un error al guardar— pasa por este setter, que conserva la ruta y los `?…`.
+  const location = useLocation()
+  const navigate = useNavigate()
+  const activeTab = tabFromHash(location.hash)
+  const setSettingsTab = useCallback(
+    (tab: SettingsTab) => navigate({ pathname: location.pathname, search: location.search, hash: hashForTab(tab) }, { replace: true }),
+    [navigate, location.pathname, location.search],
+  )
 
   const settingsQuery = useQuery({
     queryKey: ['reservation-settings', venueId],
@@ -561,7 +597,7 @@ export default function ReservationSettings() {
     setValue,
     watch,
     reset,
-    formState: { isDirty },
+    formState: { isDirty, dirtyFields, errors },
   } = useForm<SettingsFormData>({
     resolver: zodResolver(settingsSchema),
     defaultValues: {
@@ -666,12 +702,12 @@ export default function ReservationSettings() {
     }
   }, [settings, reset])
 
-	const updateMutation = useMutation({
-		mutationFn: (data: SettingsFormData) => {
-			const staffAwarePatch = buildStaffAwareSettingsPatch({
-				capacityMode: data.capacityMode ?? 'pacing',
-				showStaffPicker: data.showStaffPicker ?? false,
-			})
+  const updateMutation = useMutation({
+    mutationFn: (data: SettingsFormData) => {
+      const staffAwarePatch = buildStaffAwareSettingsPatch({
+        capacityMode: data.capacityMode ?? 'pacing',
+        showStaffPicker: data.showStaffPicker ?? false,
+      })
       // Transform flat form → nested API shape + include operatingHours
       return reservationService.updateSettings(venueId, {
         scheduling: {
@@ -749,7 +785,18 @@ export default function ReservationSettings() {
 
   const isPending = updateMutation.isPending
   const canSave = isDirty && !isPending
-  const handleSave = handleSubmit(data => updateMutation.mutate(data))
+  // Un valor que el formulario rechaza puede vivir en otra pestaña (p. ej. una duración de 10 min
+  // que el SERVIDOR aceptó): sin esto, «Guardar» no hacía nada y no decía por qué.
+  const handleSave = handleSubmit(
+    data => updateMutation.mutate(data),
+    invalid => {
+      const tab = firstTabWithError(Object.keys(invalid))
+      if (tab) setSettingsTab(tab)
+      toast({ title: t('settings.validation.title'), variant: 'destructive' })
+    },
+  )
+  const changedTabs = tabsWithChanges(dirtyFields)
+  const errorFor = (field: keyof SettingsFormData) => (errors[field] ? t('settings.validation.invalidOption') : undefined)
   const { start: startTour } = useReservationSettingsTour()
 
   if (isLoading) {
@@ -780,9 +827,15 @@ export default function ReservationSettings() {
   const setNullableNumber = (key: keyof SettingsFormData, raw: string) =>
     setValue(key, decodeNullableNumber(raw) as any, { shouldDirty: true })
 
+  const tabLabels: Record<SettingsTab, string> = {
+    general: t('settings.tabs.general'),
+    clases: t('settings.tabs.classes'),
+    citas: t('settings.tabs.appointments'),
+  }
+
   return (
-    <div className="max-w-4xl">
-      {/* Sticky header — keeps the save CTA reachable while the user
+    <Tabs value={activeTab} onValueChange={v => setSettingsTab(v as SettingsTab)} className="max-w-4xl">
+      {/* Sticky header — keeps the save CTA and the tabs reachable while the user
 			    scrolls the long settings form. Background opaque so rows
 			    underneath don't bleed through during scroll. */}
       <div className="sticky top-0 z-10 border-b border-input bg-background px-4 py-4">
@@ -808,6 +861,21 @@ export default function ReservationSettings() {
             </Button>
           </div>
         </div>
+        <TabsList className="mt-4 rounded-full border border-border bg-muted/60 px-1 py-1">
+          {SETTINGS_TABS.map(tab => (
+            <TabsTrigger
+              key={tab}
+              value={tab}
+              className="gap-1.5 rounded-full data-[state=active]:bg-foreground data-[state=active]:text-background"
+            >
+              {tabLabels[tab]}
+              {/* Cambios sin guardar del formulario principal en ESA pestaña. «Guardar cambios» guarda todas. */}
+              {changedTabs.has(tab) ? (
+                <span role="img" aria-label={t('settings.tabs.unsaved')} className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+              ) : null}
+            </TabsTrigger>
+          ))}
+        </TabsList>
       </div>
 
       <form onSubmit={handleSave} className="p-4">
@@ -820,617 +888,678 @@ export default function ReservationSettings() {
             <GoogleCalendarDeadLetterBanner venueId={venueId} />
           </div>
         )}
-        <fieldset disabled={isPending} className="space-y-8">
-          {/* ------------------------------------------------------------ Programación */}
-          <section className="space-y-3" data-tour="reservation-settings-scheduling">
-            <h2 className="text-base font-semibold">{t('settings.sections.scheduling')}</h2>
-            <Card className="border-input">
-              <div className="divide-y divide-input">
-                <SettingRow
-                  label={t('settings.scheduling.capacityMode')}
-                  tooltip={t('settings.scheduling.capacityModeHelp')}
-                  scope="appointments"
-                >
-                  <Select
-                    value={formValues.capacityMode}
-                    onValueChange={v =>
-                      setValue('capacityMode', v as SettingsFormData['capacityMode'], {
-                        shouldDirty: true,
-                      })
-                    }
+        <fieldset disabled={isPending}>
+          {/* Las tres pestañas quedan MONTADAS y sólo se ocultan: los borradores de Profesionistas
+              (estado local, con sus propios botones de guardar) no se pierden al cambiar de pestaña. */}
+          {/* =============================================================== General */}
+          <TabsContent value="general" forceMount hidden={activeTab !== 'general'} data-settings-tab="general" className="mt-0 space-y-8">
+            <p className="text-sm text-muted-foreground">{t('settings.tabs.generalHint')}</p>
+
+            {/* ------------------------------------------------- Reservaciones Online */}
+            <section className="space-y-3" data-tour="reservation-settings-public-booking">
+              <h2 className="text-base font-semibold">{t('settings.sections.publicBooking')}</h2>
+              <Card className="border-input">
+                <div className="divide-y divide-input">
+                  <SettingToggleRow
+                    label={t('settings.publicBooking.enabled')}
+                    tooltip={t('settings.publicBooking.enabledHelp')}
+                    checked={formValues.publicBookingEnabled}
+                    onCheckedChange={v => setValue('publicBookingEnabled', v, { shouldDirty: true })}
+                    tourId="reservation-public-booking-enabled"
+                  />
+                  <SettingToggleRow
+                    label={t('settings.publicBooking.requirePhone')}
+                    tooltip={t('settings.publicBooking.requirePhoneTooltip')}
+                    checked={formValues.requirePhone}
+                    onCheckedChange={v => setValue('requirePhone', v, { shouldDirty: true })}
+                  />
+                  <SettingToggleRow
+                    label={t('settings.publicBooking.requireEmail')}
+                    tooltip={t('settings.publicBooking.requireEmailTooltip')}
+                    checked={formValues.requireEmail}
+                    onCheckedChange={v => setValue('requireEmail', v, { shouldDirty: true })}
+                  />
+                  {/* El server y el widget respetaban `requireAccount` desde antes, pero el
+                      dashboard nunca lo expuso: sólo se podía prender por API. Además es el
+                      prerequisito del switch de abajo, así que sin esta fila la aprobación de
+                      clientes sería imposible de activar desde la pantalla. */}
+                  <SettingToggleRow
+                    label={t('settings.publicBooking.requireAccount')}
+                    tooltip={t('settings.publicBooking.requireAccountTooltip')}
+                    checked={formValues.requireAccount}
+                    onCheckedChange={v => {
+                      setValue('requireAccount', v, { shouldDirty: true })
+                      // Apagar la cuenta apaga la aprobación: dejarla prendida guardaría un
+                      // estado que el server rechaza, y el error saldría al guardar sin decir
+                      // cuál de los dos switches lo causó.
+                      if (!v) setValue('requireCustomerApproval', false, { shouldDirty: true })
+                    }}
+                    tourId="reservation-require-account"
+                  />
+                  {/* Fase 1 — aprobar clientes EXIGE requerir cuenta: sin cuenta no hay a quién
+                      aprobar (el server lo rechaza con un CHECK). En vez de dejar prenderlo y
+                      fallar al guardar, el switch se deshabilita y se explica qué prender
+                      primero — "apagado se VE y se EXPLICA". */}
+                  <SettingToggleRow
+                    label={t('settings.publicBooking.requireCustomerApproval')}
+                    tooltip={t('settings.publicBooking.requireCustomerApprovalTooltip')}
+                    checked={formValues.requireCustomerApproval}
+                    onCheckedChange={v => setValue('requireCustomerApproval', v, { shouldDirty: true })}
+                    tourId="reservation-require-customer-approval"
+                    disabled={!formValues.requireAccount}
+                    requirementHint={t('settings.publicBooking.requireCustomerApprovalNeedsAccount')}
+                    activeHint={t('settings.publicBooking.requireCustomerApprovalActiveHint')}
+                  />
+                </div>
+              </Card>
+            </section>
+
+            {/* ------------------------------------------------------------ Programación */}
+            {/* Lo de la agenda que el SERVIDOR aplica a clases Y citas (anticipación, aviso mínimo,
+                gracia, confirmación, aviso nocturno, cupo en línea). Lo que sólo usan las citas
+                vive en la pestaña Citas. */}
+            <section className="space-y-3" data-tour="reservation-settings-scheduling">
+              <h2 className="text-base font-semibold">{t('settings.sections.scheduling')}</h2>
+              <Card className="border-input">
+                <div className="divide-y divide-input">
+                  <SettingRow
+                    label={t('settings.scheduling.maxAdvanceDays')}
+                    tooltip={t('settings.scheduling.maxAdvanceDaysHelp')}
+                    error={errorFor('maxAdvanceDays')}
                   >
-                    <SelectTrigger
-                      aria-label={t('settings.scheduling.capacityMode')}
-                      className="h-10"
-                      data-tour="reservation-capacity-mode"
+                    <SelectField
+                      options={MAX_ADVANCE_DAYS_OPTIONS}
+                      value={encodeValue(formValues.maxAdvanceDays)}
+                      onChange={raw => setNumber('maxAdvanceDays', raw)}
+                      ariaLabel={t('settings.scheduling.maxAdvanceDays')}
+                    />
+                  </SettingRow>
+                  <SettingRow
+                    label={t('settings.scheduling.minNotice')}
+                    tooltip={t('settings.scheduling.minNoticeHelp')}
+                    error={errorFor('minNoticeMin')}
+                  >
+                    <SelectField
+                      options={MIN_NOTICE_OPTIONS}
+                      value={encodeValue(formValues.minNoticeMin)}
+                      onChange={raw => setNumber('minNoticeMin', raw)}
+                      ariaLabel={t('settings.scheduling.minNotice')}
+                    />
+                  </SettingRow>
+                  <SettingRow
+                    label={t('settings.scheduling.noShowGrace')}
+                    tooltip={t('settings.scheduling.noShowGraceHelp')}
+                    error={errorFor('noShowGraceMin')}
+                  >
+                    <SelectField
+                      options={NO_SHOW_GRACE_OPTIONS}
+                      value={encodeValue(formValues.noShowGraceMin)}
+                      onChange={raw => setNumber('noShowGraceMin', raw)}
+                      ariaLabel={t('settings.scheduling.noShowGrace')}
+                    />
+                  </SettingRow>
+                  <SettingRow
+                    label={t('settings.pacing.onlineCapacity')}
+                    tooltip={t('settings.pacing.onlineCapacityHelp')}
+                    error={errorFor('onlineCapacityPercent')}
+                  >
+                    <SelectField
+                      options={ONLINE_CAPACITY_OPTIONS}
+                      value={encodeValue(formValues.onlineCapacityPercent)}
+                      onChange={raw => setNumber('onlineCapacityPercent', raw)}
+                      ariaLabel={t('settings.pacing.onlineCapacity')}
+                    />
+                  </SettingRow>
+                  <SettingToggleRow
+                    label={t('settings.scheduling.autoConfirm')}
+                    tooltip={t('settings.scheduling.autoConfirmHelp')}
+                    checked={formValues.autoConfirm}
+                    onCheckedChange={v => setValue('autoConfirm', v, { shouldDirty: true })}
+                    tourId="reservation-auto-confirm"
+                  />
+                  {/*
+                    Fase 9 del kiosco. Apagado por defecto y con interruptor VISIBLE aquí,
+                    no sólo en la base: el mensaje sale con el nombre del negocio, así que
+                    prenderlo tiene que ser un gesto suyo, no un default nuestro.
+                  */}
+                  <SettingToggleRow
+                    label={t('settings.scheduling.nightlyOutreach')}
+                    tooltip={t('settings.scheduling.nightlyOutreachHelp')}
+                    checked={formValues.nightlyOutreachEnabled}
+                    onCheckedChange={v => setValue('nightlyOutreachEnabled', v, { shouldDirty: true })}
+                  />
+                </div>
+              </Card>
+            </section>
+
+            {/* -------------------------------------------------------- Depósitos */}
+            <section className="space-y-3" data-tour="reservation-settings-deposits">
+              <h2 className="text-base font-semibold">{t('settings.sections.deposits')}</h2>
+              <Card className="border-input">
+                <div className="divide-y divide-input">
+                  <SettingRow label={t('settings.deposits.mode')} tooltip={t('settings.deposits.modeTooltip')}>
+                    <Select
+                      value={formValues.depositMode}
+                      onValueChange={v => setValue('depositMode', v as SettingsFormData['depositMode'], { shouldDirty: true })}
                     >
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="pacing">{t('settings.scheduling.capacityModes.pacing')}</SelectItem>
-                      <SelectItem value="per_staff">{t('settings.scheduling.capacityModes.perStaff')}</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </SettingRow>
-                <SettingRow
-                  label={t('settings.scheduling.slotInterval')}
-                  tooltip={t('settings.scheduling.slotIntervalHelp')}
-                  scope="appointments"
-                >
-                  <SelectField
-                    options={SLOT_INTERVAL_OPTIONS}
-                    value={encodeValue(formValues.slotIntervalMin)}
-                    onChange={raw => setNumber('slotIntervalMin', raw)}
-                    ariaLabel={t('settings.scheduling.slotInterval')}
-                  />
-                </SettingRow>
-                <SettingRow
-                  label={t('settings.scheduling.defaultDuration')}
-                  tooltip={t('settings.scheduling.defaultDurationHelp')}
-                  scope="appointments"
-                >
-                  <SelectField
-                    options={DURATION_OPTIONS}
-                    value={encodeValue(formValues.defaultDurationMin)}
-                    onChange={raw => setNumber('defaultDurationMin', raw)}
-                    ariaLabel={t('settings.scheduling.defaultDuration')}
-                  />
-                </SettingRow>
-                <SettingRow label={t('settings.scheduling.maxAdvanceDays')} tooltip={t('settings.scheduling.maxAdvanceDaysHelp')}>
-                  <SelectField
-                    options={MAX_ADVANCE_DAYS_OPTIONS}
-                    value={encodeValue(formValues.maxAdvanceDays)}
-                    onChange={raw => setNumber('maxAdvanceDays', raw)}
-                    ariaLabel={t('settings.scheduling.maxAdvanceDays')}
-                  />
-                </SettingRow>
-                <SettingRow label={t('settings.scheduling.minNotice')} tooltip={t('settings.scheduling.minNoticeHelp')}>
-                  <SelectField
-                    options={MIN_NOTICE_OPTIONS}
-                    value={encodeValue(formValues.minNoticeMin)}
-                    onChange={raw => setNumber('minNoticeMin', raw)}
-                    ariaLabel={t('settings.scheduling.minNotice')}
-                  />
-                </SettingRow>
-                <SettingRow label={t('settings.scheduling.noShowGrace')} tooltip={t('settings.scheduling.noShowGraceHelp')}>
-                  <SelectField
-                    options={NO_SHOW_GRACE_OPTIONS}
-                    value={encodeValue(formValues.noShowGraceMin)}
-                    onChange={raw => setNumber('noShowGraceMin', raw)}
-                    ariaLabel={t('settings.scheduling.noShowGrace')}
-                  />
-                </SettingRow>
-                <SettingToggleRow
-                  label={t('settings.scheduling.autoConfirm')}
-                  tooltip={t('settings.scheduling.autoConfirmHelp')}
-                  checked={formValues.autoConfirm}
-                  onCheckedChange={v => setValue('autoConfirm', v, { shouldDirty: true })}
-                  tourId="reservation-auto-confirm"
-                />
-                {/*
-                  Fase 9 del kiosco. Apagado por defecto y con interruptor VISIBLE aquí,
-                  no sólo en la base: el mensaje sale con el nombre del negocio, así que
-                  prenderlo tiene que ser un gesto suyo, no un default nuestro.
-                */}
-                <SettingToggleRow
-                  label={t('settings.scheduling.nightlyOutreach')}
-                  tooltip={t('settings.scheduling.nightlyOutreachHelp')}
-                  checked={formValues.nightlyOutreachEnabled}
-                  onCheckedChange={v => setValue('nightlyOutreachEnabled', v, { shouldDirty: true })}
-                />
-              </div>
-            </Card>
-          </section>
+                      <SelectTrigger aria-label={t('settings.deposits.mode')} className="h-10">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {DEPOSIT_MODE_OPTIONS.map(mode => (
+                          <SelectItem
+                            key={mode}
+                            value={mode}
+                            // card_hold: SIEMPRE deshabilitado — el camino de cobro no existe todavía
+                            // (el backend lo rechaza al guardar; elegirlo rompía TODA reserva pública).
+                            // Se deja visible como teaser porque Square no puede hacer retención y
+                            // nosotros sí podremos (SetupIntent + captura manual).
+                            disabled={mode === 'card_hold' || (mode !== 'none' && !canChargeOnline)}
+                          >
+                            {t(`settings.deposits.modes.${mode}`)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </SettingRow>
+                  {!canChargeOnline && (
+                    <div className="flex items-start gap-3 p-4 text-sm">
+                      <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                      <div className="flex-1 space-y-2">
+                        <p className="text-muted-foreground">{t('settings.onlineCharge.missingDeposits')}</p>
+                        <Button asChild size="sm" variant="outline" className="h-8">
+                          <Link to={`${fullBasePath}/settings/integrations`}>{t('settings.onlineCharge.connect')}</Link>
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                  {formValues.depositMode !== 'none' && (
+                    <>
+                      <SettingRow
+                        label={t('settings.deposits.fixedAmount')}
+                        tooltip={t('settings.deposits.fixedAmountTooltip')}
+                        error={errorFor('depositFixedAmount')}
+                      >
+                        <SelectField
+                          options={DEPOSIT_FIXED_OPTIONS}
+                          value={encodeValue(formValues.depositFixedAmount)}
+                          onChange={raw => setNullableNumber('depositFixedAmount', raw)}
+                          ariaLabel={t('settings.deposits.fixedAmount')}
+                        />
+                      </SettingRow>
+                      <SettingRow
+                        label={t('settings.deposits.percentage')}
+                        tooltip={t('settings.deposits.percentageTooltip')}
+                        error={errorFor('depositPercentage')}
+                      >
+                        <SelectField
+                          options={DEPOSIT_PERCENT_OPTIONS}
+                          value={encodeValue(formValues.depositPercentage)}
+                          onChange={raw => setNullableNumber('depositPercentage', raw)}
+                          ariaLabel={t('settings.deposits.percentage')}
+                        />
+                      </SettingRow>
+                      <SettingRow
+                        label={t('settings.deposits.partySizeGte')}
+                        tooltip={t('settings.deposits.partySizeGteHelp')}
+                        error={errorFor('depositPartySizeGte')}
+                      >
+                        <SelectField
+                          options={PARTY_SIZE_OPTIONS}
+                          value={encodeValue(formValues.depositPartySizeGte)}
+                          onChange={raw => setNullableNumber('depositPartySizeGte', raw)}
+                          ariaLabel={t('settings.deposits.partySizeGte')}
+                        />
+                      </SettingRow>
+                    </>
+                  )}
+                </div>
+              </Card>
+            </section>
 
-          {/* ------------------------------------------------------------- Ritmo */}
-          <section className="space-y-3" data-tour="reservation-settings-pacing">
-            <h2 className="text-base font-semibold">{t('settings.sections.pacing')}</h2>
-            <Card className="border-input">
-              <div className="divide-y divide-input">
-                <SettingRow label={t('settings.pacing.maxPerSlot')} tooltip={t('settings.pacing.maxPerSlotHelp')} scope="appointments">
-                  <SelectField
-                    options={PACING_MAX_OPTIONS}
-                    value={encodeValue(formValues.pacingMaxPerSlot)}
-                    onChange={raw => setNullableNumber('pacingMaxPerSlot', raw)}
-                    ariaLabel={t('settings.pacing.maxPerSlot')}
+            {/* -------------------------------------------------------- Cancelación */}
+            <section className="space-y-3" data-tour="reservation-settings-cancellation">
+              <h2 className="text-base font-semibold">{t('settings.sections.cancellation')}</h2>
+              <Card className="border-input">
+                <div className="divide-y divide-input">
+                  <SettingToggleRow
+                    label={t('settings.cancellation.allowCustomerCancel')}
+                    tooltip={t('settings.cancellation.allowCustomerCancelTooltip')}
+                    checked={formValues.allowCustomerCancel}
+                    onCheckedChange={v => setValue('allowCustomerCancel', v, { shouldDirty: true })}
                   />
-                </SettingRow>
-                <SettingRow label={t('settings.pacing.onlineCapacity')} tooltip={t('settings.pacing.onlineCapacityHelp')}>
-                  <SelectField
-                    options={ONLINE_CAPACITY_OPTIONS}
-                    value={encodeValue(formValues.onlineCapacityPercent)}
-                    onChange={raw => setNumber('onlineCapacityPercent', raw)}
-                    ariaLabel={t('settings.pacing.onlineCapacity')}
+                  <SettingToggleRow
+                    label={t('settings.cancellation.allowReschedule')}
+                    tooltip={t('settings.cancellation.allowRescheduleHelp')}
+                    checked={formValues.allowCustomerReschedule}
+                    onCheckedChange={v => setValue('allowCustomerReschedule', v, { shouldDirty: true })}
                   />
-                </SettingRow>
-              </div>
-            </Card>
-          </section>
-
-          {venueId ? <ReservationStaffConfiguration venueId={venueId} venueHours={operatingHours} /> : null}
-
-          {/* -------------------------------------------------------- Depósitos */}
-          <section className="space-y-3" data-tour="reservation-settings-deposits">
-            <h2 className="text-base font-semibold">{t('settings.sections.deposits')}</h2>
-            <Card className="border-input">
-              <div className="divide-y divide-input">
-                <SettingRow label={t('settings.deposits.mode')} tooltip={t('settings.deposits.modeTooltip')}>
-                  <Select
-                    value={formValues.depositMode}
-                    onValueChange={v => setValue('depositMode', v as SettingsFormData['depositMode'], { shouldDirty: true })}
+                  <SettingRow
+                    label={t('settings.cancellation.minHoursBefore')}
+                    tooltip={t('settings.cancellation.minHoursBeforeHelp')}
+                    error={errorFor('minHoursBeforeCancel')}
                   >
-                    <SelectTrigger aria-label={t('settings.deposits.mode')} className="h-10">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {DEPOSIT_MODE_OPTIONS.map(mode => (
-                        <SelectItem
-                          key={mode}
-                          value={mode}
-                          // card_hold: SIEMPRE deshabilitado — el camino de cobro no existe todavía
-                          // (el backend lo rechaza al guardar; elegirlo rompía TODA reserva pública).
-                          // Se deja visible como teaser porque Square no puede hacer retención y
-                          // nosotros sí podremos (SetupIntent + captura manual).
-                          disabled={mode === 'card_hold' || (mode !== 'none' && !canChargeOnline)}
+                    <SelectField
+                      options={MIN_HOURS_BEFORE_CANCEL_OPTIONS}
+                      value={encodeValue(formValues.minHoursBeforeCancel)}
+                      onChange={raw => setNullableNumber('minHoursBeforeCancel', raw)}
+                      ariaLabel={t('settings.cancellation.minHoursBefore')}
+                    />
+                  </SettingRow>
+                  <SettingRow
+                    label={
+                      <span className="inline-flex items-center gap-2">
+                        {t('settings.cancellation.noShowFee')}
+                        <Badge variant="outline" className="text-[10px] h-4 px-1.5">
+                          {t('calendarAttributes.comingSoon')}
+                        </Badge>
+                      </span>
+                    }
+                    tooltip={t('settings.cancellation.noShowFeeHelp')}
+                    error={errorFor('noShowFeePercent')}
+                  >
+                    {/* Disabled until the no-show fee is actually captured. Today the
+											    auto-no-show job only records the intended amount on the
+											    reservation; nothing charges the customer. Leaving this editable
+											    would promise the venue a charge that never happens. */}
+                    <SelectField
+                      options={NO_SHOW_FEE_OPTIONS}
+                      value={encodeValue(formValues.noShowFeePercent)}
+                      onChange={raw => setNullableNumber('noShowFeePercent', raw)}
+                      ariaLabel={t('settings.cancellation.noShowFee')}
+                      disabled
+                    />
+                  </SettingRow>
+                  <SettingToggleRow
+                    label={t('settings.cancellation.forfeitDeposit')}
+                    tooltip={t('settings.cancellation.forfeitDepositTooltip')}
+                    checked={formValues.forfeitDeposit}
+                    onCheckedChange={v => setValue('forfeitDeposit', v, { shouldDirty: true })}
+                  />
+                </div>
+              </Card>
+            </section>
+
+            {/* ----------------------------------------- Reembolsos en créditos */}
+            {/* Compartido: el SERVIDOR usa esta misma política al cancelar una clase o una cita
+                pagada con créditos (D680, auditoría de Codex). */}
+            <section className="space-y-3" data-tour="reservation-settings-credit-refund">
+              <div>
+                <h2 className="text-base font-semibold">{t('settings.cancellation.creditRefundTitle')}</h2>
+                <p className="text-sm text-muted-foreground">{t('settings.cancellation.creditRefundHelp')}</p>
+              </div>
+              <Card className="border-input">
+                <div className="divide-y divide-input">
+                  <SettingRow
+                    label={t('settings.cancellation.creditRefundMode')}
+                    tooltip={t('settings.cancellation.creditRefundModeTooltip')}
+                  >
+                    <Select
+                      value={formValues.creditRefundMode}
+                      onValueChange={v => setValue('creditRefundMode', v as SettingsFormData['creditRefundMode'], { shouldDirty: true })}
+                    >
+                      <SelectTrigger aria-label={t('settings.cancellation.creditRefundMode')} className="h-10">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="ALWAYS">{t('settings.cancellation.creditRefundAlways')}</SelectItem>
+                        <SelectItem value="TIME_BASED">{t('settings.cancellation.creditRefundTimeBased')}</SelectItem>
+                        <SelectItem value="NEVER">{t('settings.cancellation.creditRefundNever')}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </SettingRow>
+                  {formValues.creditRefundMode === 'TIME_BASED' && (
+                    <>
+                      <SettingRow
+                        label={t('settings.cancellation.creditFreeRefundHoursBefore')}
+                        tooltip={t('settings.cancellation.creditFreeRefundHoursHelp')}
+                        error={errorFor('creditFreeRefundHoursBefore')}
+                      >
+                        <SelectField
+                          options={CREDIT_REFUND_HOURS_OPTIONS}
+                          value={encodeValue(formValues.creditFreeRefundHoursBefore)}
+                          onChange={raw => setNumber('creditFreeRefundHoursBefore', raw)}
+                          ariaLabel={t('settings.cancellation.creditFreeRefundHoursBefore')}
+                        />
+                      </SettingRow>
+                      <SettingRow
+                        label={t('settings.cancellation.creditLateRefundPercent')}
+                        tooltip={t('settings.cancellation.creditLateRefundHelp')}
+                        error={errorFor('creditLateRefundPercent')}
+                      >
+                        <SelectField
+                          options={CREDIT_LATE_PERCENT_OPTIONS}
+                          value={encodeValue(formValues.creditLateRefundPercent)}
+                          onChange={raw => setNumber('creditLateRefundPercent', raw)}
+                          ariaLabel={t('settings.cancellation.creditLateRefundPercent')}
+                        />
+                      </SettingRow>
+                    </>
+                  )}
+                  <SettingToggleRow
+                    label={t('settings.cancellation.creditNoShowRefund')}
+                    tooltip={t('settings.cancellation.creditNoShowRefundHelp')}
+                    checked={formValues.creditNoShowRefund}
+                    onCheckedChange={v => setValue('creditNoShowRefund', v, { shouldDirty: true })}
+                  />
+                </div>
+              </Card>
+            </section>
+
+            {/* --------------------------------------------------- Lista de espera */}
+            <section className="space-y-3" data-tour="reservation-settings-waitlist">
+              <h2 className="text-base font-semibold">{t('settings.sections.waitlist')}</h2>
+              <Card className="border-input">
+                <div className="divide-y divide-input">
+                  <SettingToggleRow
+                    label={t('settings.waitlist.enabled')}
+                    tooltip={t('settings.waitlist.enabledTooltip')}
+                    checked={formValues.waitlistEnabled}
+                    onCheckedChange={v => setValue('waitlistEnabled', v, { shouldDirty: true })}
+                  />
+                  {formValues.waitlistEnabled && (
+                    <>
+                      <SettingRow
+                        label={t('settings.waitlist.maxSize')}
+                        tooltip={t('settings.waitlist.maxSizeTooltip')}
+                        error={errorFor('waitlistMaxSize')}
+                      >
+                        <SelectField
+                          options={WAITLIST_MAX_SIZE_OPTIONS}
+                          value={encodeValue(formValues.waitlistMaxSize)}
+                          onChange={raw => setNumber('waitlistMaxSize', raw)}
+                          ariaLabel={t('settings.waitlist.maxSize')}
+                        />
+                      </SettingRow>
+                      <SettingRow label={t('settings.waitlist.priorityMode')} tooltip={t('settings.waitlist.priorityModeTooltip')}>
+                        <Select
+                          value={formValues.waitlistPriorityMode}
+                          onValueChange={v =>
+                            setValue('waitlistPriorityMode', v as SettingsFormData['waitlistPriorityMode'], {
+                              shouldDirty: true,
+                            })
+                          }
                         >
-                          {t(`settings.deposits.modes.${mode}`)}
+                          <SelectTrigger aria-label={t('settings.waitlist.priorityMode')} className="h-10">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {WAITLIST_PRIORITY_OPTIONS.map(o => (
+                              <SelectItem key={o.value} value={o.value}>
+                                {o.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </SettingRow>
+                      <SettingRow
+                        label={t('settings.waitlist.notifyWindow')}
+                        tooltip={t('settings.waitlist.notifyWindowHelp')}
+                        error={errorFor('waitlistNotifyWindow')}
+                      >
+                        <SelectField
+                          options={WAITLIST_NOTIFY_OPTIONS}
+                          value={encodeValue(formValues.waitlistNotifyWindow)}
+                          onChange={raw => setNumber('waitlistNotifyWindow', raw)}
+                          ariaLabel={t('settings.waitlist.notifyWindow')}
+                        />
+                      </SettingRow>
+                    </>
+                  )}
+                </div>
+              </Card>
+            </section>
+
+            {/* -------------------------------------------- Google Calendar Sync */}
+            {/* Independent of the settings form — its own mutations sit inside
+							    the card component. Rendered inside the fieldset only so the
+							    section header lines up visually with the rest of the page;
+							    PermissionGate gates the connect CTA, so non-admin users see
+							    just the explainer copy. */}
+            <section className="space-y-3" data-tour="reservation-settings-google-calendar">
+              <div>
+                <h2 className="text-base font-semibold">{tGcal('venue.title')}</h2>
+                <p className="text-sm text-muted-foreground">{tGcal('venue.description')}</p>
+              </div>
+              <GoogleCalendarConnectionCard
+                variant="venue"
+                connection={venueGoogleCalendarConnection}
+                isLoading={gcalLoading}
+                requiredPermission="calendar:manage_venue"
+              />
+              {/* Privacy controls — only meaningful once a calendar is
+								    connected. Operators without an active connection don't
+								    see the section to avoid configuring a no-op. */}
+              {venueGoogleCalendarConnection?.status === 'CONNECTED' && (
+                <GoogleCalendarPrivacySection
+                  value={formValues.googleCalendarEventDetailLevel}
+                  onChange={next => setValue('googleCalendarEventDetailLevel', next, { shouldDirty: true })}
+                />
+              )}
+            </section>
+
+            {/* ----------------------------------------------------- Recordatorios */}
+            <section className="space-y-3" data-tour="reservation-settings-reminders">
+              <h2 className="text-base font-semibold">{t('settings.sections.reminders')}</h2>
+              <Card className="border-input">
+                <div className="divide-y divide-input">
+                  <SettingToggleRow
+                    label={t('settings.reminders.enabled')}
+                    tooltip={t('settings.reminders.enabledTooltip')}
+                    checked={formValues.remindersEnabled}
+                    onCheckedChange={v => setValue('remindersEnabled', v, { shouldDirty: true })}
+                  />
+                  {formValues.remindersEnabled && (
+                    <>
+                      <SettingRow label={t('settings.reminders.channels')} tooltip={t('settings.reminders.channelsTooltip')}>
+                        <MultiPillSelect
+                          options={REMINDER_CHANNEL_OPTIONS}
+                          value={formValues.reminderChannels}
+                          onChange={next => setValue('reminderChannels', next, { shouldDirty: true })}
+                          ariaLabel={t('settings.reminders.channels')}
+                        />
+                      </SettingRow>
+                      <SettingRow label={t('settings.reminders.whenToSend')} tooltip={t('settings.reminders.whenToSendTooltip')}>
+                        <MultiPillSelect
+                          options={REMINDER_OFFSET_OPTIONS}
+                          value={formValues.reminderMinBefore}
+                          onChange={next => setValue('reminderMinBefore', next, { shouldDirty: true })}
+                          ariaLabel={t('settings.reminders.whenToSend')}
+                        />
+                      </SettingRow>
+                    </>
+                  )}
+                </div>
+              </Card>
+            </section>
+          </TabsContent>
+
+          {/* ================================================================ Clases */}
+          <TabsContent value="clases" forceMount hidden={activeTab !== 'clases'} data-settings-tab="clases" className="mt-0 space-y-8">
+            <p className="text-sm text-muted-foreground">{t('settings.tabs.classesHint')}</p>
+
+            {/* --------------------------------------------------- Cobro de las clases */}
+            <section className="space-y-3" data-tour="reservation-settings-payments-classes">
+              <h2 className="text-base font-semibold">{t('settings.payments.classesTitle')}</h2>
+              {formValues.classUpfrontDefault !== 'at_venue' && (
+                <OnlineChargeStatus canChargeOnline={canChargeOnline} fullBasePath={fullBasePath} />
+              )}
+              <Card className="border-input">
+                <div className="divide-y divide-input">
+                  <SettingRow
+                    label={t('settings.payments.classUpfrontDefault')}
+                    tooltip={t('settings.payments.classUpfrontDefaultTooltip')}
+                  >
+                    <Select
+                      value={formValues.classUpfrontDefault}
+                      onValueChange={v =>
+                        setValue('classUpfrontDefault', v as SettingsFormData['classUpfrontDefault'], {
+                          shouldDirty: true,
+                        })
+                      }
+                    >
+                      <SelectTrigger aria-label={t('settings.payments.classUpfrontDefault')} className="h-10">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="required" disabled={!canChargeOnline}>
+                          {t('settings.payments.options.required')}
                         </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </SettingRow>
-                {!canChargeOnline && (
-                  <div className="flex items-start gap-3 p-4 text-sm">
-                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
-                    <div className="flex-1 space-y-2">
-                      <p className="text-muted-foreground">{t('settings.onlineCharge.missingDeposits')}</p>
-                      <Button asChild size="sm" variant="outline" className="h-8">
-                        <Link to={`${fullBasePath}/settings/integrations`}>{t('settings.onlineCharge.connect')}</Link>
+                        <SelectItem value="at_venue">{t('settings.payments.options.at_venue')}</SelectItem>
+                        <SelectItem value="optional" disabled={!canChargeOnline}>
+                          {t('settings.payments.options.optional')}
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </SettingRow>
+                </div>
+              </Card>
+            </section>
+
+            {/* Las clases y los paquetes se crean en el menú; sólo con permiso de verlo. */}
+            {canReadMenu && (
+              <section className="space-y-3">
+                <Card className="border-input">
+                  <div className="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+                    <div className="min-w-0">
+                      <h2 className="text-sm font-medium text-foreground">{t('settings.classShortcut.title')}</h2>
+                      <p className="text-sm text-muted-foreground">{t('settings.classShortcut.description')}</p>
+                    </div>
+                    <div className="flex shrink-0 flex-wrap gap-2">
+                      <Button asChild size="sm" variant="outline">
+                        <Link to={`${fullBasePath}/menumaker/services`}>{t('settings.classShortcut.classes')}</Link>
+                      </Button>
+                      <Button asChild size="sm" variant="outline">
+                        <Link to={`${fullBasePath}/menumaker/credit-packs`}>{t('settings.classShortcut.packs')}</Link>
                       </Button>
                     </div>
                   </div>
-                )}
-                {formValues.depositMode !== 'none' && (
-                  <>
-                    <SettingRow label={t('settings.deposits.fixedAmount')} tooltip={t('settings.deposits.fixedAmountTooltip')}>
-                      <SelectField
-                        options={DEPOSIT_FIXED_OPTIONS}
-                        value={encodeValue(formValues.depositFixedAmount)}
-                        onChange={raw => setNullableNumber('depositFixedAmount', raw)}
-                        ariaLabel={t('settings.deposits.fixedAmount')}
-                      />
-                    </SettingRow>
-                    <SettingRow label={t('settings.deposits.percentage')} tooltip={t('settings.deposits.percentageTooltip')}>
-                      <SelectField
-                        options={DEPOSIT_PERCENT_OPTIONS}
-                        value={encodeValue(formValues.depositPercentage)}
-                        onChange={raw => setNullableNumber('depositPercentage', raw)}
-                        ariaLabel={t('settings.deposits.percentage')}
-                      />
-                    </SettingRow>
-                    <SettingRow label={t('settings.deposits.partySizeGte')} tooltip={t('settings.deposits.partySizeGteHelp')}>
-                      <SelectField
-                        options={PARTY_SIZE_OPTIONS}
-                        value={encodeValue(formValues.depositPartySizeGte)}
-                        onChange={raw => setNullableNumber('depositPartySizeGte', raw)}
-                        ariaLabel={t('settings.deposits.partySizeGte')}
-                      />
-                    </SettingRow>
-                  </>
-                )}
-              </div>
-            </Card>
-          </section>
-
-          {/* ------------------------------------------------------ Pagos por tipo */}
-          <section className="space-y-3" data-tour="reservation-settings-payments">
-            <div>
-              <h2 className="text-base font-semibold">{t('settings.payments.sectionTitle')}</h2>
-              <p className="text-sm text-muted-foreground">{t('settings.payments.sectionSubtitle')}</p>
-            </div>
-            {/* Stripe Connect status — both `required` and `optional` presets
-						    need a working Stripe channel for the customer to actually pay
-						    online. Without it the booking falls back to "owesAtVenue"
-						    semantics (spot held, charge collected in person), which is
-						    rarely what the operator expects when they pick "Prepago obligatorio".
-						    Show a warning when missing, and a positive confirmation when
-						    connected — so the operator always knows the state. */}
-            {(formValues.appointmentUpfrontDefault !== 'at_venue' || formValues.classUpfrontDefault !== 'at_venue') &&
-              (canChargeOnline ? (
-                <div className="flex items-start gap-3 rounded-md border border-emerald-500/40 bg-emerald-50 p-3 text-sm dark:border-emerald-500/30 dark:bg-emerald-950/40">
-                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
-                  <div className="flex flex-1 flex-wrap items-center justify-between gap-2">
-                    <p className="text-emerald-900 dark:text-emerald-100">{t('settings.onlineCharge.active')}</p>
-                    <Link
-                      to={`${fullBasePath}/settings/integrations`}
-                      className="font-medium text-emerald-700 underline-offset-4 hover:underline dark:text-emerald-300"
-                    >
-                      {t('settings.onlineCharge.manage')}
-                    </Link>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex items-start gap-3 rounded-md border border-amber-500/40 bg-amber-50 p-3 text-sm dark:border-amber-500/30 dark:bg-amber-950/40">
-                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
-                  <div className="flex-1 space-y-2">
-                    <p className="text-amber-900 dark:text-amber-100">{t('settings.onlineCharge.missingUpfront')}</p>
-                    <Button asChild size="sm" variant="outline" className="h-8">
-                      <Link to={`${fullBasePath}/settings/integrations`}>{t('settings.onlineCharge.connect')}</Link>
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            <Card className="border-input">
-              <div className="divide-y divide-input">
-                <SettingRow
-                  label={t('settings.payments.appointmentUpfrontDefault')}
-                  tooltip={t('settings.payments.appointmentUpfrontDefaultTooltip')}
-                  scope="appointments"
-                >
-                  <Select
-                    value={formValues.appointmentUpfrontDefault}
-                    onValueChange={v =>
-                      setValue('appointmentUpfrontDefault', v as SettingsFormData['appointmentUpfrontDefault'], {
-                        shouldDirty: true,
-                      })
-                    }
-                  >
-                    <SelectTrigger aria-label={t('settings.payments.appointmentUpfrontDefault')} className="h-10">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="required" disabled={!canChargeOnline}>
-                        {t('settings.payments.options.required')}
-                      </SelectItem>
-                      <SelectItem value="at_venue">{t('settings.payments.options.at_venue')}</SelectItem>
-                      <SelectItem value="optional" disabled={!canChargeOnline}>
-                        {t('settings.payments.options.optional')}
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </SettingRow>
-                <SettingRow
-                  label={t('settings.payments.classUpfrontDefault')}
-                  tooltip={t('settings.payments.classUpfrontDefaultTooltip')}
-                  scope="classes"
-                >
-                  <Select
-                    value={formValues.classUpfrontDefault}
-                    onValueChange={v =>
-                      setValue('classUpfrontDefault', v as SettingsFormData['classUpfrontDefault'], {
-                        shouldDirty: true,
-                      })
-                    }
-                  >
-                    <SelectTrigger aria-label={t('settings.payments.classUpfrontDefault')} className="h-10">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="required" disabled={!canChargeOnline}>
-                        {t('settings.payments.options.required')}
-                      </SelectItem>
-                      <SelectItem value="at_venue">{t('settings.payments.options.at_venue')}</SelectItem>
-                      <SelectItem value="optional" disabled={!canChargeOnline}>
-                        {t('settings.payments.options.optional')}
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </SettingRow>
-              </div>
-            </Card>
-          </section>
-
-          {/* ------------------------------------------------- Reservaciones Online */}
-          <section className="space-y-3" data-tour="reservation-settings-public-booking">
-            <h2 className="text-base font-semibold">{t('settings.sections.publicBooking')}</h2>
-            <Card className="border-input">
-              <div className="divide-y divide-input">
-                <SettingToggleRow
-                  label={t('settings.publicBooking.enabled')}
-                  tooltip={t('settings.publicBooking.enabledHelp')}
-                  checked={formValues.publicBookingEnabled}
-                  onCheckedChange={v => setValue('publicBookingEnabled', v, { shouldDirty: true })}
-                  tourId="reservation-public-booking-enabled"
-                />
-                <SettingToggleRow
-                  label={t('settings.publicBooking.showStaffPicker')}
-                  tooltip={t('settings.publicBooking.showStaffPickerHelp')}
-                  scope="appointments"
-                  checked={formValues.showStaffPicker}
-                  onCheckedChange={v => setValue('showStaffPicker', v, { shouldDirty: true })}
-                  tourId="reservation-show-staff-picker"
-                />
-                <SettingToggleRow
-                  label={t('settings.publicBooking.requirePhone')}
-                  tooltip={t('settings.publicBooking.requirePhoneTooltip')}
-                  checked={formValues.requirePhone}
-                  onCheckedChange={v => setValue('requirePhone', v, { shouldDirty: true })}
-                />
-                <SettingToggleRow
-                  label={t('settings.publicBooking.requireEmail')}
-                  tooltip={t('settings.publicBooking.requireEmailTooltip')}
-                  checked={formValues.requireEmail}
-                  onCheckedChange={v => setValue('requireEmail', v, { shouldDirty: true })}
-                />
-                {/* El server y el widget respetaban `requireAccount` desde antes, pero el
-                    dashboard nunca lo expuso: sólo se podía prender por API. Además es el
-                    prerequisito del switch de abajo, así que sin esta fila la aprobación de
-                    clientes sería imposible de activar desde la pantalla. */}
-                <SettingToggleRow
-                  label={t('settings.publicBooking.requireAccount')}
-                  tooltip={t('settings.publicBooking.requireAccountTooltip')}
-                  checked={formValues.requireAccount}
-                  onCheckedChange={v => {
-                    setValue('requireAccount', v, { shouldDirty: true })
-                    // Apagar la cuenta apaga la aprobación: dejarla prendida guardaría un
-                    // estado que el server rechaza, y el error saldría al guardar sin decir
-                    // cuál de los dos switches lo causó.
-                    if (!v) setValue('requireCustomerApproval', false, { shouldDirty: true })
-                  }}
-                  tourId="reservation-require-account"
-                />
-                {/* Fase 1 — aprobar clientes EXIGE requerir cuenta: sin cuenta no hay a quién
-                    aprobar (el server lo rechaza con un CHECK). En vez de dejar prenderlo y
-                    fallar al guardar, el switch se deshabilita y se explica qué prender
-                    primero — "apagado se VE y se EXPLICA". */}
-                <SettingToggleRow
-                  label={t('settings.publicBooking.requireCustomerApproval')}
-                  tooltip={t('settings.publicBooking.requireCustomerApprovalTooltip')}
-                  checked={formValues.requireCustomerApproval}
-                  onCheckedChange={v => setValue('requireCustomerApproval', v, { shouldDirty: true })}
-                  tourId="reservation-require-customer-approval"
-                  disabled={!formValues.requireAccount}
-                  requirementHint={t('settings.publicBooking.requireCustomerApprovalNeedsAccount')}
-                  activeHint={t('settings.publicBooking.requireCustomerApprovalActiveHint')}
-                />
-              </div>
-            </Card>
-          </section>
-
-          {/* -------------------------------------------------------- Cancelación */}
-          <section className="space-y-3" data-tour="reservation-settings-cancellation">
-            <h2 className="text-base font-semibold">{t('settings.sections.cancellation')}</h2>
-            <Card className="border-input">
-              <div className="divide-y divide-input">
-                <SettingToggleRow
-                  label={t('settings.cancellation.allowCustomerCancel')}
-                  tooltip={t('settings.cancellation.allowCustomerCancelTooltip')}
-                  checked={formValues.allowCustomerCancel}
-                  onCheckedChange={v => setValue('allowCustomerCancel', v, { shouldDirty: true })}
-                />
-                <SettingToggleRow
-                  label={t('settings.cancellation.allowReschedule')}
-                  tooltip={t('settings.cancellation.allowRescheduleHelp')}
-                  checked={formValues.allowCustomerReschedule}
-                  onCheckedChange={v => setValue('allowCustomerReschedule', v, { shouldDirty: true })}
-                />
-                <SettingRow label={t('settings.cancellation.minHoursBefore')} tooltip={t('settings.cancellation.minHoursBeforeHelp')}>
-                  <SelectField
-                    options={MIN_HOURS_BEFORE_CANCEL_OPTIONS}
-                    value={encodeValue(formValues.minHoursBeforeCancel)}
-                    onChange={raw => setNullableNumber('minHoursBeforeCancel', raw)}
-                    ariaLabel={t('settings.cancellation.minHoursBefore')}
-                  />
-                </SettingRow>
-                <SettingRow
-                  label={
-                    <span className="inline-flex items-center gap-2">
-                      {t('settings.cancellation.noShowFee')}
-                      <Badge variant="outline" className="text-[10px] h-4 px-1.5">
-                        {t('calendarAttributes.comingSoon')}
-                      </Badge>
-                    </span>
-                  }
-                  tooltip={t('settings.cancellation.noShowFeeHelp')}
-                >
-                  {/* Disabled until the no-show fee is actually captured. Today the
-									    auto-no-show job only records the intended amount on the
-									    reservation; nothing charges the customer. Leaving this editable
-									    would promise the venue a charge that never happens. */}
-                  <SelectField
-                    options={NO_SHOW_FEE_OPTIONS}
-                    value={encodeValue(formValues.noShowFeePercent)}
-                    onChange={raw => setNullableNumber('noShowFeePercent', raw)}
-                    ariaLabel={t('settings.cancellation.noShowFee')}
-                    disabled
-                  />
-                </SettingRow>
-                <SettingToggleRow
-                  label={t('settings.cancellation.forfeitDeposit')}
-                  tooltip={t('settings.cancellation.forfeitDepositTooltip')}
-                  checked={formValues.forfeitDeposit}
-                  onCheckedChange={v => setValue('forfeitDeposit', v, { shouldDirty: true })}
-                />
-              </div>
-            </Card>
-          </section>
-
-          {/* ----------------------------------------- Reembolsos en créditos */}
-          <section className="space-y-3" data-tour="reservation-settings-credit-refund">
-            <div>
-              <h2 className="text-base font-semibold">{t('settings.cancellation.creditRefundTitle')}</h2>
-              <p className="text-sm text-muted-foreground">{t('settings.cancellation.creditRefundHelp')}</p>
-            </div>
-            <Card className="border-input">
-              <div className="divide-y divide-input">
-                <SettingRow
-                  label={t('settings.cancellation.creditRefundMode')}
-                  tooltip={t('settings.cancellation.creditRefundModeTooltip')}
-                  scope="classes"
-                >
-                  <Select
-                    value={formValues.creditRefundMode}
-                    onValueChange={v => setValue('creditRefundMode', v as SettingsFormData['creditRefundMode'], { shouldDirty: true })}
-                  >
-                    <SelectTrigger aria-label={t('settings.cancellation.creditRefundMode')} className="h-10">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="ALWAYS">{t('settings.cancellation.creditRefundAlways')}</SelectItem>
-                      <SelectItem value="TIME_BASED">{t('settings.cancellation.creditRefundTimeBased')}</SelectItem>
-                      <SelectItem value="NEVER">{t('settings.cancellation.creditRefundNever')}</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </SettingRow>
-                {formValues.creditRefundMode === 'TIME_BASED' && (
-                  <>
-                    <SettingRow
-                      label={t('settings.cancellation.creditFreeRefundHoursBefore')}
-                      tooltip={t('settings.cancellation.creditFreeRefundHoursHelp')}
-                      scope="classes"
-                    >
-                      <SelectField
-                        options={CREDIT_REFUND_HOURS_OPTIONS}
-                        value={encodeValue(formValues.creditFreeRefundHoursBefore)}
-                        onChange={raw => setNumber('creditFreeRefundHoursBefore', raw)}
-                        ariaLabel={t('settings.cancellation.creditFreeRefundHoursBefore')}
-                      />
-                    </SettingRow>
-                    <SettingRow
-                      label={t('settings.cancellation.creditLateRefundPercent')}
-                      tooltip={t('settings.cancellation.creditLateRefundHelp')}
-                      scope="classes"
-                    >
-                      <SelectField
-                        options={CREDIT_LATE_PERCENT_OPTIONS}
-                        value={encodeValue(formValues.creditLateRefundPercent)}
-                        onChange={raw => setNumber('creditLateRefundPercent', raw)}
-                        ariaLabel={t('settings.cancellation.creditLateRefundPercent')}
-                      />
-                    </SettingRow>
-                  </>
-                )}
-                <SettingToggleRow
-                  label={t('settings.cancellation.creditNoShowRefund')}
-                  tooltip={t('settings.cancellation.creditNoShowRefundHelp')}
-                  scope="classes"
-                  checked={formValues.creditNoShowRefund}
-                  onCheckedChange={v => setValue('creditNoShowRefund', v, { shouldDirty: true })}
-                />
-              </div>
-            </Card>
-          </section>
-
-          {/* --------------------------------------------------- Lista de espera */}
-          <section className="space-y-3" data-tour="reservation-settings-waitlist">
-            <h2 className="text-base font-semibold">{t('settings.sections.waitlist')}</h2>
-            <Card className="border-input">
-              <div className="divide-y divide-input">
-                <SettingToggleRow
-                  label={t('settings.waitlist.enabled')}
-                  tooltip={t('settings.waitlist.enabledTooltip')}
-                  checked={formValues.waitlistEnabled}
-                  onCheckedChange={v => setValue('waitlistEnabled', v, { shouldDirty: true })}
-                />
-                {formValues.waitlistEnabled && (
-                  <>
-                    <SettingRow label={t('settings.waitlist.maxSize')} tooltip={t('settings.waitlist.maxSizeTooltip')}>
-                      <SelectField
-                        options={WAITLIST_MAX_SIZE_OPTIONS}
-                        value={encodeValue(formValues.waitlistMaxSize)}
-                        onChange={raw => setNumber('waitlistMaxSize', raw)}
-                        ariaLabel={t('settings.waitlist.maxSize')}
-                      />
-                    </SettingRow>
-                    <SettingRow label={t('settings.waitlist.priorityMode')} tooltip={t('settings.waitlist.priorityModeTooltip')}>
-                      <Select
-                        value={formValues.waitlistPriorityMode}
-                        onValueChange={v =>
-                          setValue('waitlistPriorityMode', v as SettingsFormData['waitlistPriorityMode'], {
-                            shouldDirty: true,
-                          })
-                        }
-                      >
-                        <SelectTrigger aria-label={t('settings.waitlist.priorityMode')} className="h-10">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {WAITLIST_PRIORITY_OPTIONS.map(o => (
-                            <SelectItem key={o.value} value={o.value}>
-                              {o.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </SettingRow>
-                    <SettingRow label={t('settings.waitlist.notifyWindow')} tooltip={t('settings.waitlist.notifyWindowHelp')}>
-                      <SelectField
-                        options={WAITLIST_NOTIFY_OPTIONS}
-                        value={encodeValue(formValues.waitlistNotifyWindow)}
-                        onChange={raw => setNumber('waitlistNotifyWindow', raw)}
-                        ariaLabel={t('settings.waitlist.notifyWindow')}
-                      />
-                    </SettingRow>
-                  </>
-                )}
-              </div>
-            </Card>
-          </section>
-
-          {/* -------------------------------------------- Google Calendar Sync */}
-          {/* Independent of the settings form — its own mutations sit inside
-					    the card component. Rendered inside the fieldset only so the
-					    section header lines up visually with the rest of the page;
-					    PermissionGate gates the connect CTA, so non-admin users see
-					    just the explainer copy. */}
-          <section className="space-y-3" data-tour="reservation-settings-google-calendar">
-            <div>
-              <h2 className="text-base font-semibold">{tGcal('venue.title')}</h2>
-              <p className="text-sm text-muted-foreground">{tGcal('venue.description')}</p>
-            </div>
-            <GoogleCalendarConnectionCard
-              variant="venue"
-              connection={venueGoogleCalendarConnection}
-              isLoading={gcalLoading}
-              requiredPermission="calendar:manage_venue"
-            />
-            {/* Privacy controls — only meaningful once a calendar is
-						    connected. Operators without an active connection don't
-						    see the section to avoid configuring a no-op. */}
-            {venueGoogleCalendarConnection?.status === 'CONNECTED' && (
-              <GoogleCalendarPrivacySection
-                value={formValues.googleCalendarEventDetailLevel}
-                onChange={next => setValue('googleCalendarEventDetailLevel', next, { shouldDirty: true })}
-              />
+                </Card>
+              </section>
             )}
-          </section>
+          </TabsContent>
 
-          {/* ----------------------------------------------------- Recordatorios */}
-          <section className="space-y-3" data-tour="reservation-settings-reminders">
-            <h2 className="text-base font-semibold">{t('settings.sections.reminders')}</h2>
-            <Card className="border-input">
-              <div className="divide-y divide-input">
-                <SettingToggleRow
-                  label={t('settings.reminders.enabled')}
-                  tooltip={t('settings.reminders.enabledTooltip')}
-                  checked={formValues.remindersEnabled}
-                  onCheckedChange={v => setValue('remindersEnabled', v, { shouldDirty: true })}
-                />
-                {formValues.remindersEnabled && (
-                  <>
-                    <SettingRow label={t('settings.reminders.channels')} tooltip={t('settings.reminders.channelsTooltip')}>
-                      <MultiPillSelect
-                        options={REMINDER_CHANNEL_OPTIONS}
-                        value={formValues.reminderChannels}
-                        onChange={next => setValue('reminderChannels', next, { shouldDirty: true })}
-                        ariaLabel={t('settings.reminders.channels')}
-                      />
-                    </SettingRow>
-                    <SettingRow label={t('settings.reminders.whenToSend')} tooltip={t('settings.reminders.whenToSendTooltip')}>
-                      <MultiPillSelect
-                        options={REMINDER_OFFSET_OPTIONS}
-                        value={formValues.reminderMinBefore}
-                        onChange={next => setValue('reminderMinBefore', next, { shouldDirty: true })}
-                        ariaLabel={t('settings.reminders.whenToSend')}
-                      />
-                    </SettingRow>
-                  </>
-                )}
-              </div>
-            </Card>
-          </section>
+          {/* ================================================================= Citas */}
+          <TabsContent value="citas" forceMount hidden={activeTab !== 'citas'} data-settings-tab="citas" className="mt-0 space-y-8">
+            <p className="text-sm text-muted-foreground">{t('settings.tabs.appointmentsHint')}</p>
+
+            {/* --------------------------------------------------- Horarios de las citas */}
+            <section className="space-y-3" data-tour="reservation-settings-appointment-scheduling">
+              <h2 className="text-base font-semibold">{t('settings.sections.appointmentScheduling')}</h2>
+              <Card className="border-input">
+                <div className="divide-y divide-input">
+                  <SettingRow label={t('settings.scheduling.capacityMode')} tooltip={t('settings.scheduling.capacityModeHelp')}>
+                    <Select
+                      value={formValues.capacityMode}
+                      onValueChange={v =>
+                        setValue('capacityMode', v as SettingsFormData['capacityMode'], {
+                          shouldDirty: true,
+                        })
+                      }
+                    >
+                      <SelectTrigger
+                        aria-label={t('settings.scheduling.capacityMode')}
+                        className="h-10"
+                        data-tour="reservation-capacity-mode"
+                      >
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="pacing">{t('settings.scheduling.capacityModes.pacing')}</SelectItem>
+                        <SelectItem value="per_staff">{t('settings.scheduling.capacityModes.perStaff')}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </SettingRow>
+                  <SettingRow
+                    label={t('settings.scheduling.slotInterval')}
+                    tooltip={t('settings.scheduling.slotIntervalHelp')}
+                    error={errorFor('slotIntervalMin')}
+                  >
+                    <SelectField
+                      options={SLOT_INTERVAL_OPTIONS}
+                      value={encodeValue(formValues.slotIntervalMin)}
+                      onChange={raw => setNumber('slotIntervalMin', raw)}
+                      ariaLabel={t('settings.scheduling.slotInterval')}
+                    />
+                  </SettingRow>
+                  <SettingRow
+                    label={t('settings.scheduling.defaultDuration')}
+                    tooltip={t('settings.scheduling.defaultDurationHelp')}
+                    error={errorFor('defaultDurationMin')}
+                  >
+                    <SelectField
+                      options={DURATION_OPTIONS}
+                      value={encodeValue(formValues.defaultDurationMin)}
+                      onChange={raw => setNumber('defaultDurationMin', raw)}
+                      ariaLabel={t('settings.scheduling.defaultDuration')}
+                    />
+                  </SettingRow>
+                  <SettingRow
+                    label={t('settings.pacing.maxPerSlot')}
+                    tooltip={t('settings.pacing.maxPerSlotHelp')}
+                    error={errorFor('pacingMaxPerSlot')}
+                  >
+                    <SelectField
+                      options={PACING_MAX_OPTIONS}
+                      value={encodeValue(formValues.pacingMaxPerSlot)}
+                      onChange={raw => setNullableNumber('pacingMaxPerSlot', raw)}
+                      ariaLabel={t('settings.pacing.maxPerSlot')}
+                    />
+                  </SettingRow>
+                  <SettingToggleRow
+                    label={t('settings.publicBooking.showStaffPicker')}
+                    tooltip={t('settings.publicBooking.showStaffPickerHelp')}
+                    checked={formValues.showStaffPicker}
+                    onCheckedChange={v => setValue('showStaffPicker', v, { shouldDirty: true })}
+                    tourId="reservation-show-staff-picker"
+                  />
+                </div>
+              </Card>
+            </section>
+
+            {/* Profesionistas: horarios y asignación. Guarda con sus PROPIOS botones, no con «Guardar cambios». */}
+            {venueId ? <ReservationStaffConfiguration venueId={venueId} venueHours={operatingHours} /> : null}
+
+            {/* ---------------------------------------------------- Cobro de las citas */}
+            <section className="space-y-3" data-tour="reservation-settings-payments-appointments">
+              <h2 className="text-base font-semibold">{t('settings.payments.appointmentsTitle')}</h2>
+              {formValues.appointmentUpfrontDefault !== 'at_venue' && (
+                <OnlineChargeStatus canChargeOnline={canChargeOnline} fullBasePath={fullBasePath} />
+              )}
+              <Card className="border-input">
+                <div className="divide-y divide-input">
+                  <SettingRow
+                    label={t('settings.payments.appointmentUpfrontDefault')}
+                    tooltip={t('settings.payments.appointmentUpfrontDefaultTooltip')}
+                  >
+                    <Select
+                      value={formValues.appointmentUpfrontDefault}
+                      onValueChange={v =>
+                        setValue('appointmentUpfrontDefault', v as SettingsFormData['appointmentUpfrontDefault'], {
+                          shouldDirty: true,
+                        })
+                      }
+                    >
+                      <SelectTrigger aria-label={t('settings.payments.appointmentUpfrontDefault')} className="h-10">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="required" disabled={!canChargeOnline}>
+                          {t('settings.payments.options.required')}
+                        </SelectItem>
+                        <SelectItem value="at_venue">{t('settings.payments.options.at_venue')}</SelectItem>
+                        <SelectItem value="optional" disabled={!canChargeOnline}>
+                          {t('settings.payments.options.optional')}
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </SettingRow>
+                </div>
+              </Card>
+            </section>
+          </TabsContent>
         </fieldset>
       </form>
-    </div>
+    </Tabs>
   )
 }

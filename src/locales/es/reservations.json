@@ -499,10 +499,29 @@
   "settings": {
     "title": "Configuración de Reservaciones",
     "subtitle": "Configura horarios, depósitos y políticas",
+    "tabs": {
+      "general": "General",
+      "classes": "Clases",
+      "appointments": "Citas",
+      "unsaved": "Cambios sin guardar",
+      "generalHint": "Estos ajustes aplican a tus clases y a tus citas.",
+      "classesHint": "Estos ajustes sólo los usan tus clases.",
+      "appointmentsHint": "Estos ajustes sólo los usan tus citas."
+    },
+    "classShortcut": {
+      "title": "Tus clases y tus paquetes",
+      "description": "Las clases y los paquetes de créditos se crean y se editan en el Menú.",
+      "classes": "Ver mis clases",
+      "packs": "Ver mis paquetes"
+    },
+    "validation": {
+      "title": "Hay un ajuste que corregir antes de guardar",
+      "invalidOption": "Este valor no está en la lista. Elige una opción."
+    },
     "sections": {
       "operatingHours": "Horario de Operación",
       "scheduling": "Programación",
-      "pacing": "Ritmo",
+      "appointmentScheduling": "Horarios de las citas",
       "staffing": "Profesionistas y horarios",
       "deposits": "Depósitos",
       "publicBooking": "Reservaciones Online",
@@ -606,10 +625,6 @@
         "INVALID_HOURS": "La hora final debe ser posterior a la hora inicial."
       }
     },
-    "scope": {
-      "appointments": "Citas",
-      "classes": "Clases"
-    },
     "settingsTour": {
       "start": "Ver tour",
       "welcome": {
@@ -658,8 +673,8 @@
       }
     },
     "payments": {
-      "sectionTitle": "Pagos por tipo",
-      "sectionSubtitle": "Define qué se cobra de entrada según el tipo de reserva: el cobro al venue, prepago obligatorio, o que el cliente elija.",
+      "classesTitle": "Cobro de las clases",
+      "appointmentsTitle": "Cobro de las citas",
       "appointmentUpfrontDefault": "Cobro por adelantado en citas",
       "appointmentUpfrontDefaultTooltip": "Cómo se cobra una cita por defecto: pagar en el local, requerir prepago al reservar, u opcional. Cada servicio puede sobreescribirlo.",
       "classUpfrontDefault": "Cobro por adelantado en clases",
@@ -717,9 +732,9 @@
       "allowReschedule": "Permitir cambio de horario",
       "allowRescheduleHelp": "El cliente puede mover su reserva a otro horario de la misma clase, dentro de la ventana de cancelación.",
       "creditRefundTitle": "Reembolso de créditos al cancelar",
-      "creditRefundHelp": "Decide cuántos créditos recuperan los clientes cuando cancelan una clase pagada con paquete.",
+      "creditRefundHelp": "Decide cuántos créditos recuperan tus clientes cuando cancelan. Aplica a clases y citas pagadas con créditos.",
       "creditRefundMode": "Política de reembolso",
-      "creditRefundModeTooltip": "Cuando un cliente cancela una clase pagada con paquete, decide cuántos créditos se le devuelven a su saldo.",
+      "creditRefundModeTooltip": "Cuando un cliente cancela una clase o una cita pagada con créditos, decide cuántos se le devuelven a su saldo.",
       "creditRefundAlways": "Siempre devolver 100%",
       "creditRefundTimeBased": "Según anticipación",
       "creditRefundNever": "Nunca devolver",

@@ -499,10 +499,29 @@
   "settings": {
     "title": "Reservation Settings",
     "subtitle": "Configure schedules, deposits, and policies",
+    "tabs": {
+      "general": "General",
+      "classes": "Classes",
+      "appointments": "Appointments",
+      "unsaved": "Unsaved changes",
+      "generalHint": "These settings apply to your classes and your appointments.",
+      "classesHint": "Only your classes use these settings.",
+      "appointmentsHint": "Only your appointments use these settings."
+    },
+    "classShortcut": {
+      "title": "Your classes and packages",
+      "description": "Classes and credit packages are created and edited in the Menu.",
+      "classes": "View my classes",
+      "packs": "View my packages"
+    },
+    "validation": {
+      "title": "A setting needs fixing before you can save",
+      "invalidOption": "This value is not in the list. Pick an option."
+    },
     "sections": {
       "operatingHours": "Operating Hours",
       "scheduling": "Scheduling",
-      "pacing": "Pacing",
+      "appointmentScheduling": "Appointment schedule",
       "staffing": "Professionals and schedules",
       "deposits": "Deposits",
       "publicBooking": "Online Booking",
@@ -606,10 +625,6 @@
         "INVALID_HOURS": "The special end time must be after the start time."
       }
     },
-    "scope": {
-      "appointments": "Appointments",
-      "classes": "Classes"
-    },
     "settingsTour": {
       "start": "Take tour",
       "welcome": {
@@ -658,8 +673,8 @@
       }
     },
     "payments": {
-      "sectionTitle": "Payments by type",
-      "sectionSubtitle": "Set the default upfront-payment behavior per reservation type: pay at venue, prepayment required, or let the customer choose.",
+      "classesTitle": "Class payments",
+      "appointmentsTitle": "Appointment payments",
       "appointmentUpfrontDefault": "Upfront for appointments",
       "appointmentUpfrontDefaultTooltip": "Default upfront-payment behavior for appointments: pay at the venue, require prepayment at booking, or optional. Each service can override this.",
       "classUpfrontDefault": "Upfront for classes",
@@ -717,9 +732,9 @@
       "allowReschedule": "Allow rescheduling",
       "allowRescheduleHelp": "Customer can move their booking to another time slot of the same class, within the cancellation window.",
       "creditRefundTitle": "Credit refunds on cancellation",
-      "creditRefundHelp": "Decide how many credits customers recover when they cancel a class paid with a package.",
+      "creditRefundHelp": "Decide how many credits customers get back when they cancel. Applies to classes and appointments paid with credits.",
       "creditRefundMode": "Refund policy",
-      "creditRefundModeTooltip": "When a customer cancels a class paid with a credit pack, decide how many credits are returned to their balance.",
+      "creditRefundModeTooltip": "When a customer cancels a class or an appointment paid with credits, decide how many credits return to their balance.",
       "creditRefundAlways": "Always refund 100%",
       "creditRefundTimeBased": "Based on notice",
       "creditRefundNever": "Never refund",

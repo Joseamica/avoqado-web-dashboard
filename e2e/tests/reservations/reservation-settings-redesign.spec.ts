@@ -63,48 +63,60 @@ test.describe('ReservationSettings — redesign smoke (real backend)', () => {
     await expect(page.getByRole('button', { name: /Ver tour/i })).toBeVisible()
   })
 
-  test('every section renders as flat-row card (Programación → Recordatorios)', async ({ page }) => {
-    for (const heading of [
-      'Programación',
-      'Ritmo',
-      'Depósitos',
-      'Pagos por tipo',
-      'Reservaciones Online',
-      'Cancelación',
-      'Reembolso de créditos al cancelar',
-      'Lista de Espera',
-      'Recordatorios',
-    ]) {
-      // Long page with sticky header — toBeAttached covers headings
-      // scrolled below the fold without needing per-section scroll plumbing.
-      await expect(page.getByRole('heading', { name: heading, exact: true })).toBeAttached()
+  // D680: la página va en pestañas General · Clases · Citas (dirección `#general|#clases|#citas`).
+  test('every section renders in its tab (General · Clases · Citas)', async ({ page }) => {
+    const sections: [string, string[]][] = [
+      [
+        'General',
+        [
+          'Reservaciones Online',
+          'Programación',
+          'Depósitos',
+          'Cancelación',
+          'Reembolso de créditos al cancelar',
+          'Lista de Espera',
+          'Recordatorios',
+        ],
+      ],
+      ['Clases', ['Cobro de las clases']],
+      ['Citas', ['Horarios de las citas', 'Profesionistas y horarios', 'Cobro de las citas']],
+    ]
+    for (const [tab, headings] of sections) {
+      await page.getByRole('tab', { name: tab }).click()
+      for (const heading of headings) {
+        // Long page with sticky header — toBeAttached covers headings
+        // scrolled below the fold without needing per-section scroll plumbing.
+        await expect(page.getByRole('heading', { name: heading, exact: true })).toBeAttached()
+      }
     }
   })
 
-  test('citas-only fields show "Citas" badge', async ({ page }) => {
-    // "Intervalo de slots" is appointments-only — should have a CITAS badge.
-    const row = page.locator('text=Intervalo de slots').locator('xpath=..')
-    await expect(row.getByText('Citas', { exact: true })).toBeVisible()
+  test('the tab follows the address', async ({ page }) => {
+    await page.goto(`/venues/${VENUE_SLUG}/reservations/settings#citas`)
+    await expect(page.getByRole('tab', { name: 'Citas' })).toHaveAttribute('data-state', 'active')
+    await expect(page.getByText('Intervalo de slots')).toBeVisible()
+    await page.getByRole('tab', { name: 'Clases' }).click()
+    await expect(page).toHaveURL(/#clases$/)
+    await expect(page.getByText('Cobro por adelantado en clases')).toBeVisible()
   })
 
-  test('clases-only fields show "Clases" badge', async ({ page }) => {
-    // "Política de reembolso" in credit-refund section is classes-only.
-    const row = page.locator('text=Política de reembolso').locator('xpath=..')
-    await expect(row.getByText('Clases', { exact: true })).toBeVisible()
-  })
-
-  test('Programación section uses dropdowns (no free numeric inputs)', async ({ page }) => {
+  test('Programación (General) uses dropdowns (no free numeric inputs)', async ({ page }) => {
     const section = page.locator('[data-tour="reservation-settings-scheduling"]')
     // All numeric inputs in this section should be Select triggers, not <input type="number">.
     await expect(section.locator('input[type="number"]')).toHaveCount(0)
-    await expect(section.getByRole('combobox')).toHaveCount(6) // capacity, slot, duration, advance, notice, no-show grace
+    await expect(section.getByRole('combobox')).toHaveCount(4) // advance, notice, no-show grace, online capacity
   })
 
-  test('Pagos por tipo exposes two dropdowns for appointment vs class upfront', async ({ page }) => {
-    const section = page.locator('[data-tour="reservation-settings-payments"]')
-    await expect(section.locator('text=Cobro por adelantado en citas')).toBeVisible()
-    await expect(section.locator('text=Cobro por adelantado en clases')).toBeVisible()
-    await expect(section.getByRole('combobox')).toHaveCount(2)
+  test('each upfront payment lives in its own tab', async ({ page }) => {
+    await page.getByRole('tab', { name: 'Clases' }).click()
+    const classes = page.locator('[data-tour="reservation-settings-payments-classes"]')
+    await expect(classes.locator('text=Cobro por adelantado en clases')).toBeVisible()
+    await expect(classes.getByRole('combobox')).toHaveCount(1)
+
+    await page.getByRole('tab', { name: 'Citas' }).click()
+    const appointments = page.locator('[data-tour="reservation-settings-payments-appointments"]')
+    await expect(appointments.locator('text=Cobro por adelantado en citas')).toBeVisible()
+    await expect(appointments.getByRole('combobox')).toHaveCount(1)
   })
 
   test('Recordatorios section reveals channel + offset pills when enabled', async ({ page }) => {
