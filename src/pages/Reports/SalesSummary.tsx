@@ -1688,7 +1688,10 @@ export default function SalesSummary() {
           initialCardType={cardTypeFilter}
           initialMerchantAccountId={merchantAccountId}
           merchantAccounts={merchantAccounts}
-          estimatedCount={apiResponse?.summary?.transactionCount ?? undefined}
+          // El detalle trae cobros Y devoluciones; desde D10.1 `transactionCount` ya no cuenta las devoluciones.
+          estimatedCount={
+            apiResponse?.summary ? apiResponse.summary.transactionCount + (apiResponse.summary.refundCount ?? 0) : undefined
+          }
         />
       )}
 
