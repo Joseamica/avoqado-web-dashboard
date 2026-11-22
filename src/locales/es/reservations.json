@@ -499,10 +499,29 @@
   "settings": {
     "title": "Configuración de Reservaciones",
     "subtitle": "Configura horarios, depósitos y políticas",
+    "tabs": {
+      "general": "General",
+      "classes": "Clases",
+      "appointments": "Citas",
+      "unsaved": "Cambios sin guardar",
+      "generalHint": "Lo que no es sólo de clases ni sólo de citas. Si un ajuste aplica sólo a unas, su ayuda (i) lo dice.",
+      "classesHint": "Estos ajustes sólo los usan tus clases.",
+      "appointmentsHint": "Estos ajustes sólo los usan tus citas."
+    },
+    "classShortcut": {
+      "title": "Tus clases y tus paquetes",
+      "description": "Las clases y los paquetes de créditos se crean y se editan en el Menú.",
+      "classes": "Ver mis clases",
+      "packs": "Ver mis paquetes"
+    },
+    "validation": {
+      "title": "Hay un ajuste que corregir antes de guardar",
+      "invalidOption": "Este valor no está en la lista. Elige una opción."
+    },
     "sections": {
       "operatingHours": "Horario de Operación",
       "scheduling": "Programación",
-      "pacing": "Ritmo",
+      "appointmentScheduling": "Capacidad de las citas",
       "staffing": "Profesionistas y horarios",
       "deposits": "Depósitos",
       "publicBooking": "Reservaciones Online",
@@ -531,9 +550,9 @@
     },
     "scheduling": {
       "slotInterval": "Intervalo de slots",
-      "slotIntervalHelp": "Cada cuántos minutos se ofrecen horarios",
+      "slotIntervalHelp": "Cada cuántos minutos se ofrecen horarios: en citas, mesas y reservas sin sesión. Las clases en línea usan el horario de cada sesión.",
       "defaultDuration": "Duración predeterminada",
-      "defaultDurationHelp": "Duración estándar de una reservación",
+      "defaultDurationHelp": "Cuánto dura una reservación cuando su servicio no tiene duración propia.",
       "autoConfirm": "Confirmar automáticamente",
       "autoConfirmHelp": "Las reservaciones se confirman al crearlas",
       "nightlyOutreach": "Aviso nocturno de renovación",
@@ -545,7 +564,7 @@
       "noShowGrace": "Gracia para No Show",
       "noShowGraceHelp": "Minutos de espera antes de marcar No Show",
       "capacityMode": "Capacidad para citas",
-      "capacityModeHelp": "Elige si la disponibilidad se limita por el ritmo general del negocio o por los horarios del personal elegible.",
+      "capacityModeHelp": "Elige si la disponibilidad se limita por el ritmo general del negocio o por los horarios del personal elegible. También cambia los horarios que ofrece la reserva manual del panel: con «Personal disponible», ahí sólo salen horarios para servicios de cita.",
       "capacityModes": {
         "pacing": "Ritmo del negocio",
         "perStaff": "Personal disponible"
@@ -555,7 +574,7 @@
       "maxPerSlot": "Máximo por slot",
       "maxPerSlotHelp": "Reservaciones simultáneas permitidas por horario. Para servicios 1:1 (citas individuales), el mínimo efectivo es 1 incluso si seleccionas 'Sin límite' — elige el número exacto de recursos paralelos (cabinas, estaciones, sillas) si tu negocio recibe varias reservas a la vez.",
       "onlineCapacity": "Capacidad online",
-      "onlineCapacityHelp": "Porcentaje de capacidad disponible para reservaciones online"
+      "onlineCapacityHelp": "Qué parte del cupo de cada clase (o de un producto con cupo) se ofrece para reservar en línea. No cambia los horarios de las citas."
     },
     "staffing": {
       "sectionHelp": "Elige quién puede realizar cada servicio con cita y define la disponibilidad de cada profesionista.",
@@ -606,35 +625,23 @@
         "INVALID_HOURS": "La hora final debe ser posterior a la hora inicial."
       }
     },
-    "scope": {
-      "appointments": "Citas",
-      "classes": "Clases"
-    },
     "settingsTour": {
       "start": "Ver tour",
       "welcome": {
         "title": "📅 Configuración de Reservaciones",
-        "description": "Te llevo en un recorrido por cada sección. Algunas opciones aplican solo a citas, otras solo a clases — busca los badges \"Citas\" y \"Clases\" junto a los nombres."
+        "description": "Te llevo por las tres pestañas: General tiene lo que aplica a tus clases y a tus citas; Clases y Citas, lo que sólo usa cada una. El recorrido cambia de pestaña solo."
       },
       "save": {
         "title": "Guardar Cambios",
         "description": "El botón queda fijo arriba mientras haces scroll. Solo se habilita cuando hay algo nuevo que guardar."
       },
       "scheduling": {
-        "title": "Programación (Citas)",
-        "description": "Define cómo se generan los horarios disponibles para citas: cada cuántos minutos hay un slot, cuánto dura por defecto, qué tan lejos pueden reservar tus clientes y el aviso mínimo antes del inicio. Las clases tienen su propio horario por sesión."
-      },
-      "pacing": {
-        "title": "Ritmo (Citas)",
-        "description": "Controla cuántas reservas simultáneas aceptas por slot y qué porcentaje de tu capacidad expones online. Para clases, la capacidad se define por sesión."
+        "title": "Programación",
+        "description": "Cada cuántos minutos hay un horario, cuánto dura una reservación, cuántas aceptas a la misma hora, qué tan lejos y con cuánto aviso pueden reservar, cuánto esperas antes de marcar No Show y si las reservas se confirman solas. El % de cupo en línea aplica a clases, no a citas: la ayuda (i) de cada ajuste dice a qué aplica."
       },
       "deposits": {
         "title": "Depósitos",
         "description": "Decide si pides depósito al reservar y cómo: retención de tarjeta, monto fijo, porcentaje del total, o solo para grupos grandes. Aplica a ambos tipos."
-      },
-      "payments": {
-        "title": "Pagos por tipo",
-        "description": "Aquí defines cómo cobras por defecto — diferente para citas y clases. Patrón típico: clases con prepago obligatorio, citas se pagan en el local. Cada servicio puede sobreescribir su default."
       },
       "publicBooking": {
         "title": "Reservaciones Online",
@@ -645,8 +652,8 @@
         "description": "Política de cancelaciones: ¿los clientes pueden cancelar solos? ¿hasta cuántas horas antes? ¿pierden el depósito si cancelan tarde? Aplica a ambos tipos."
       },
       "creditRefund": {
-        "title": "Reembolsos en créditos (solo Clases)",
-        "description": "Cuando alguien cancela una clase pagada con paquete de créditos, decide cuántos créditos vuelven a su saldo. Solo aplica a clases — las citas no usan paquetes."
+        "title": "Reembolso de créditos al cancelar",
+        "description": "Cuando alguien cancela una clase o una cita pagada con créditos, decide cuántos créditos vuelven a su saldo."
       },
       "waitlist": {
         "title": "Lista de espera",
@@ -654,12 +661,24 @@
       },
       "reminders": {
         "title": "Recordatorios",
-        "description": "Envía recordatorios automáticos antes de la reserva (email, SMS o WhatsApp) para reducir no-shows. Los canales y tiempos se configuran en backoffice por ahora."
+        "description": "Envía recordatorios automáticos antes de la reserva (email, SMS o WhatsApp) para reducir no-shows. Elige los canales y cuándo se mandan."
+      },
+      "paymentsClasses": {
+        "title": "Cobro de las clases",
+        "description": "Pestaña Clases. Cómo se cobra una clase por defecto: prepago obligatorio, pagar en el local u opcional. Cada clase puede cambiarlo."
+      },
+      "appointmentScheduling": {
+        "title": "Capacidad de las citas",
+        "description": "Pestaña Citas. Si la disponibilidad de las citas la marca el ritmo del negocio o el personal libre, y si tu cliente elige a su profesionista."
+      },
+      "paymentsAppointments": {
+        "title": "Cobro de las citas",
+        "description": "Cómo se cobra una cita por defecto: pagar en el local, prepago obligatorio u opcional. Cada servicio puede cambiarlo."
       }
     },
     "payments": {
-      "sectionTitle": "Pagos por tipo",
-      "sectionSubtitle": "Define qué se cobra de entrada según el tipo de reserva: el cobro al venue, prepago obligatorio, o que el cliente elija.",
+      "classesTitle": "Cobro de las clases",
+      "appointmentsTitle": "Cobro de las citas",
       "appointmentUpfrontDefault": "Cobro por adelantado en citas",
       "appointmentUpfrontDefaultTooltip": "Cómo se cobra una cita por defecto: pagar en el local, requerir prepago al reservar, u opcional. Cada servicio puede sobreescribirlo.",
       "classUpfrontDefault": "Cobro por adelantado en clases",
@@ -693,7 +712,7 @@
       "enabled": "Habilitar reservaciones online",
       "enabledHelp": "Los clientes pueden reservar desde tu sitio web",
       "showStaffPicker": "Permitir que el cliente elija profesionista",
-      "showStaffPickerHelp": "Muestra profesionistas elegibles y disponibles en la reserva en línea. Déjalo apagado para asignar uno automáticamente.",
+      "showStaffPickerHelp": "Muestra profesionistas elegibles y disponibles en la reserva en línea. Déjalo apagado para asignar uno automáticamente. También cambia los horarios que ofrece la reserva manual del panel: prendido, ahí sólo salen horarios para servicios de cita.",
       "requirePhone": "Requerir teléfono",
       "requirePhoneTooltip": "El cliente debe ingresar su teléfono al hacer la reserva online.",
       "requireEmail": "Requerir email",
@@ -717,9 +736,9 @@
       "allowReschedule": "Permitir cambio de horario",
       "allowRescheduleHelp": "El cliente puede mover su reserva a otro horario de la misma clase, dentro de la ventana de cancelación.",
       "creditRefundTitle": "Reembolso de créditos al cancelar",
-      "creditRefundHelp": "Decide cuántos créditos recuperan los clientes cuando cancelan una clase pagada con paquete.",
+      "creditRefundHelp": "Decide cuántos créditos recuperan tus clientes cuando cancelan. Aplica a clases y citas pagadas con créditos.",
       "creditRefundMode": "Política de reembolso",
-      "creditRefundModeTooltip": "Cuando un cliente cancela una clase pagada con paquete, decide cuántos créditos se le devuelven a su saldo.",
+      "creditRefundModeTooltip": "Cuando un cliente cancela una clase o una cita pagada con créditos, decide cuántos se le devuelven a su saldo.",
       "creditRefundAlways": "Siempre devolver 100%",
       "creditRefundTimeBased": "Según anticipación",
       "creditRefundNever": "Nunca devolver",
