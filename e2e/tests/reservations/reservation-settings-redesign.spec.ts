@@ -79,7 +79,7 @@ test.describe('ReservationSettings — redesign smoke (real backend)', () => {
         ],
       ],
       ['Clases', ['Cobro de las clases']],
-      ['Citas', ['Horarios de las citas', 'Profesionistas y horarios', 'Cobro de las citas']],
+      ['Citas', ['Capacidad de las citas', 'Profesionistas y horarios', 'Cobro de las citas']],
     ]
     for (const [tab, headings] of sections) {
       await page.getByRole('tab', { name: tab }).click()
@@ -94,7 +94,7 @@ test.describe('ReservationSettings — redesign smoke (real backend)', () => {
   test('the tab follows the address', async ({ page }) => {
     await page.goto(`/venues/${VENUE_SLUG}/reservations/settings#citas`)
     await expect(page.getByRole('tab', { name: 'Citas' })).toHaveAttribute('data-state', 'active')
-    await expect(page.getByText('Intervalo de slots')).toBeVisible()
+    await expect(page.getByText('Capacidad para citas')).toBeVisible()
     await page.getByRole('tab', { name: 'Clases' }).click()
     await expect(page).toHaveURL(/#clases$/)
     await expect(page.getByText('Cobro por adelantado en clases')).toBeVisible()
@@ -104,7 +104,8 @@ test.describe('ReservationSettings — redesign smoke (real backend)', () => {
     const section = page.locator('[data-tour="reservation-settings-scheduling"]')
     // All numeric inputs in this section should be Select triggers, not <input type="number">.
     await expect(section.locator('input[type="number"]')).toHaveCount(0)
-    await expect(section.getByRole('combobox')).toHaveCount(4) // advance, notice, no-show grace, online capacity
+    // interval, duration, max per slot, advance, notice, no-show grace, online capacity
+    await expect(section.getByRole('combobox')).toHaveCount(7)
   })
 
   test('each upfront payment lives in its own tab', async ({ page }) => {

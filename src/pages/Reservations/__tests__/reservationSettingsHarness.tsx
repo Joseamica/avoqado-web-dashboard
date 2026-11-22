@@ -13,7 +13,9 @@ export const SETTINGS_PATH = '/venues/test/reservations/settings'
 const day = (enabled: boolean): DaySchedule => ({ enabled, ranges: enabled ? [{ open: '09:00', close: '18:00' }] : [] })
 
 /** Ajustes guardados DISTINTOS de los de fábrica del formulario: un cambio colado se nota. */
-export function savedSettings(overrides: { defaultDurationMin?: number } = {}): ReservationSettingsData {
+export function savedSettings(
+  overrides: { defaultDurationMin?: number; waitlist?: Partial<ReservationSettingsData['waitlist']> } = {},
+): ReservationSettingsData {
   return {
     scheduling: {
       slotIntervalMin: 30,
@@ -55,7 +57,7 @@ export function savedSettings(overrides: { defaultDurationMin?: number } = {}): 
       creditLateRefundPercent: 50,
       creditNoShowRefund: true,
     },
-    waitlist: { enabled: true, maxSize: 25, priorityMode: 'broadcast', notifyWindowMin: 45 },
+    waitlist: { enabled: true, maxSize: 25, priorityMode: 'broadcast', notifyWindowMin: 45, ...overrides.waitlist },
     reminders: { enabled: true, channels: ['WHATSAPP', 'EMAIL'], minutesBefore: [60, 1440] },
     googleCalendar: { eventDetailLevel: 'SERVICE' },
     operatingHours: {

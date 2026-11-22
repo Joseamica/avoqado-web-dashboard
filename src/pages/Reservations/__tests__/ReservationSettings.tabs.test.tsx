@@ -46,7 +46,7 @@ const select = (label: string) => screen.getByRole('combobox', { name: label })
 
 beforeEach(() => {
   venue.fullBasePath = '/venues/test'
-  grants.list = ['menu:read']
+  grants.list = ['menu:read', 'creditPacks:read']
   getSettings.mockResolvedValue(savedSettings())
   updateSettings.mockResolvedValue(savedSettings())
 })
@@ -151,20 +151,47 @@ describe('Configuración de Reservaciones en pestañas (D680)', () => {
   })
 
   it('un error en otra pestaña no guarda, cambia a esa pestaña y se ve junto a su campo', async () => {
-    // 10 min: el SERVIDOR lo acepta y el formulario lo rechaza (mínimo 15).
+    // 10 min: el SERVIDOR lo acepta (mínimo 5) y el formulario lo rechaza (mínimo 15).
     getSettings.mockResolvedValue(savedSettings({ defaultDurationMin: 10 }))
     const user = userEvent.setup()
-    renderSettings()
+    renderSettings([`${SETTINGS_PATH}#citas`])
     await screen.findByText('settings.title')
 
-    await user.selectOptions(select('settings.scheduling.minNotice'), '240')
+    await user.selectOptions(select('settings.scheduling.capacityMode'), 'pacing')
     await user.click(screen.getByRole('button', { name: 'actions.saveChanges' }))
 
-    await waitFor(() => expect(location()).toBe(`${SETTINGS_PATH}#citas`))
+    await waitFor(() => expect(location()).toBe(`${SETTINGS_PATH}#general`))
     expect(updateSettings).not.toHaveBeenCalled()
-    expect(panel('citas')).not.toHaveAttribute('hidden')
+    expect(panel('general')).not.toHaveAttribute('hidden')
     const duration = select('settings.scheduling.defaultDuration')
     expect(within(duration.parentElement!).getByText('settings.validation.invalidOption')).toBeVisible()
+  })
+
+  it('intervalo, duración y máximo por horario están en General (el motor de horarios los usa para todo producto sin sesión)', async () => {
+    renderSettings([`${SETTINGS_PATH}#general`])
+    await screen.findByText('settings.title')
+
+    for (const label of ['settings.scheduling.slotInterval', 'settings.scheduling.defaultDuration', 'settings.pacing.maxPerSlot']) {
+      expect(within(panel('general')).getByRole('combobox', { name: label })).toBeVisible()
+    }
+    expect(within(panel('citas')).queryByRole('combobox', { name: 'settings.scheduling.slotInterval', hidden: true })).toBeNull()
+  })
+
+  it('una fila escondida con un valor inválido no bloquea en silencio: se muestra con su error', async () => {
+    // Lista de espera APAGADA con 600 lugares: el SERVIDOR acepta hasta 5000; el formulario, hasta 500.
+    getSettings.mockResolvedValue(savedSettings({ waitlist: { enabled: false, maxSize: 600 } }))
+    const user = userEvent.setup()
+    renderSettings([`${SETTINGS_PATH}#clases`])
+    await screen.findByText('settings.title')
+    expect(screen.queryByRole('combobox', { name: 'settings.waitlist.maxSize', hidden: true })).toBeNull()
+
+    await user.selectOptions(select('settings.payments.classUpfrontDefault'), 'required')
+    await user.click(screen.getByRole('button', { name: 'actions.saveChanges' }))
+
+    await waitFor(() => expect(location()).toBe(`${SETTINGS_PATH}#general`))
+    expect(updateSettings).not.toHaveBeenCalled()
+    const maxSize = select('settings.waitlist.maxSize')
+    expect(within(maxSize.parentElement!).getByText('settings.validation.invalidOption')).toBeVisible()
   })
 
   it('la pestaña con cambios sin guardar lleva su punto', async () => {
@@ -193,6 +220,15 @@ describe('Configuración de Reservaciones en pestañas (D680)', () => {
         'href',
         '/venues/test/menumaker/credit-packs',
       )
+    })
+
+    it('sin permiso de paquetes (creditPacks:read, el que pide el SERVIDOR) no ofrece «Ver mis paquetes»', async () => {
+      grants.list = ['menu:read']
+      renderSettings([`${SETTINGS_PATH}#clases`])
+      await screen.findByText('settings.title')
+
+      expect(screen.getByRole('link', { name: 'settings.classShortcut.classes' })).toBeInTheDocument()
+      expect(screen.queryByRole('link', { name: 'settings.classShortcut.packs' })).toBeNull()
     })
 
     it('sin permiso de ver el menú no aparece', async () => {

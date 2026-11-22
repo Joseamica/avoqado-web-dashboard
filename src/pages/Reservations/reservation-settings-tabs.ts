@@ -23,40 +23,38 @@ export function hashForTab(tab: SettingsTab): string {
 
 /**
  * Dónde vive cada campo del formulario. La regla es lo que el SERVIDOR hace con él, no el título de
- * la sección: si aplica a clases y a citas, va en General. Las líneas son de `avoqado-server`
- * (`origin/develop`, 22-nov-2026) y justifican cada campo que NO va a General:
+ * la sección: si aplica a más de un tipo (o ante la duda), va en General y su ayuda dice a qué aplica.
+ * Las líneas son de `avoqado-server` (`origin/develop`, 22-nov-2026) y justifican cada campo que NO va a General:
  *
- *   slotIntervalMin           → citas: `reservationAvailability.service.ts:146` genera los horarios
- *                               sueltos (las clases usan su sesión, :590) y `appointmentSlotHold.service.ts:126`.
- *   defaultDurationMin        → citas: `resolveAppointmentWindow.ts:203,250`, `reservation.public.controller.ts:826`
- *                               (suma de servicios de cita) y `reservationAvailability.service.ts:192`.
  *   capacityMode              → citas: `reservationStaffMode.ts:7` y `appointmentStaffAssignment.service.ts:255`
- *                               (sólo `APPOINTMENTS_SERVICE`).
- *   pacingMaxPerSlot          → citas: `reservation.public.controller.ts:896-911` («Classes don't pass through
- *                               here», sólo `APPOINTMENTS_SERVICE`) y `appointmentSlotHold.service.ts:290`.
+ *                               (personal elegible de un `APPOINTMENTS_SERVICE`).
  *   showStaffPicker           → citas: `reservation.public.controller.ts:798` (`!classSessionId`) y
  *                               `appointmentStaffAssignment.service.ts:255`.
  *   appointmentUpfrontDefault → citas: `reservation.public.controller.ts:109` (`isClass ? class… : appointment…`).
  *   classUpfrontDefault       → clases: la misma línea `:109`.
  *
- * Compartidos que parecían de un tipo y van a General: la anticipación y la confirmación automática
- * (`reservation.public.controller.ts:1946-1980` también para clases), el % de cupo en línea
- * (`reservationAvailability.service.ts:590`, clases), la gracia de no-show (`reservation-auto-no-show.job.ts`
- * sin filtro de tipo), el aviso nocturno (`kioskOutreach.service.ts:50`, paquetes de créditos) y los créditos
- * al cancelar (`reservation.public.controller.ts:1221`, también citas pagadas con créditos).
+ * Compartidos que parecían de un tipo y van a General (r1 de Codex sobre el código):
+ *   - intervalo, duración por defecto y máximo por horario: el motor general de horarios
+ *     (`reservationAvailability.service.ts:146,192,226,384`) los aplica a TODO producto sin sesión —mesas, eventos y
+ *     la reserva manual de una clase en el DASHBOARD (`CreateReservation.tsx:179`)—, no sólo a citas;
+ *   - el % de cupo en línea aplica a clases y a productos con cupo, NO a citas (`reservationAvailability.service.ts:291`
+ *     excluye `APPOINTMENTS_SERVICE`; `:590` sesiones de clase): su ayuda lo dice;
+ *   - anticipación y confirmación automática (`reservation.public.controller.ts:1946-1980`, también clases), gracia de
+ *     no-show (`reservation-auto-no-show.job.ts`, sin filtro de tipo), aviso nocturno (`kioskOutreach.service.ts:50`,
+ *     paquetes de créditos) y créditos al cancelar (`reservation.public.controller.ts:1221`, también citas).
  *
  * Es un `Record` del formulario entero: un campo nuevo no compila hasta que alguien decide su pestaña.
  */
 export const FIELD_TAB: Record<keyof SettingsFormData, SettingsTab> = {
-  slotIntervalMin: 'citas',
-  defaultDurationMin: 'citas',
+  slotIntervalMin: 'general',
+  defaultDurationMin: 'general',
   autoConfirm: 'general',
   maxAdvanceDays: 'general',
   minNoticeMin: 'general',
   noShowGraceMin: 'general',
   nightlyOutreachEnabled: 'general',
   capacityMode: 'citas',
-  pacingMaxPerSlot: 'citas',
+  pacingMaxPerSlot: 'general',
   onlineCapacityPercent: 'general',
   depositMode: 'general',
   depositFixedAmount: 'general',

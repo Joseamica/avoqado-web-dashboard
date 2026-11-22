@@ -504,7 +504,7 @@
       "classes": "Classes",
       "appointments": "Appointments",
       "unsaved": "Unsaved changes",
-      "generalHint": "These settings apply to your classes and your appointments.",
+      "generalHint": "What is not only for classes or only for appointments. If a setting applies to just one, its help (i) says so.",
       "classesHint": "Only your classes use these settings.",
       "appointmentsHint": "Only your appointments use these settings."
     },
@@ -521,7 +521,7 @@
     "sections": {
       "operatingHours": "Operating Hours",
       "scheduling": "Scheduling",
-      "appointmentScheduling": "Appointment schedule",
+      "appointmentScheduling": "Appointment capacity",
       "staffing": "Professionals and schedules",
       "deposits": "Deposits",
       "publicBooking": "Online Booking",
@@ -550,9 +550,9 @@
     },
     "scheduling": {
       "slotInterval": "Slot interval",
-      "slotIntervalHelp": "How often time slots are offered",
+      "slotIntervalHelp": "How often time slots are offered: for appointments, tables and bookings without a session. Online classes use each session’s time.",
       "defaultDuration": "Default duration",
-      "defaultDurationHelp": "Standard reservation duration",
+      "defaultDurationHelp": "How long a reservation lasts when its service has no duration of its own.",
       "autoConfirm": "Auto-confirm",
       "autoConfirmHelp": "Reservations are confirmed upon creation",
       "nightlyOutreach": "Nightly renewal reminder",
@@ -574,7 +574,7 @@
       "maxPerSlot": "Max per slot",
       "maxPerSlotHelp": "Concurrent reservations allowed per slot. For 1:1 services (individual appointments), the effective minimum is 1 even if you select 'No limit' — pick the exact number of parallel resources (booths, stations, chairs) if your business takes multiple bookings at once.",
       "onlineCapacity": "Online capacity",
-      "onlineCapacityHelp": "Percentage of capacity available for online bookings"
+      "onlineCapacityHelp": "How much of each class (or product with a capacity) is offered for online booking. It does not change appointments: their limit is the max per slot and the available staff."
     },
     "staffing": {
       "sectionHelp": "Choose who can perform each appointment service and define each professional's availability.",
@@ -637,7 +637,7 @@
       },
       "scheduling": {
         "title": "Scheduling",
-        "description": "How far ahead and with how much notice customers can book, how long you wait before marking a No Show, whether bookings confirm automatically and how much of your capacity is offered online. Applies to classes and appointments."
+        "description": "How often a slot is offered, how long a reservation lasts, how many you accept at the same time, how far ahead and with how much notice customers can book, how long you wait before a No Show and whether bookings confirm automatically. Online capacity % applies to classes, not appointments: each setting’s help (i) says what it applies to."
       },
       "deposits": {
         "title": "Deposits",
@@ -668,8 +668,8 @@
         "description": "Classes tab. Default upfront payment for a class: prepayment required, pay at the venue, or optional. Each class can override it."
       },
       "appointmentScheduling": {
-        "title": "Appointment schedule",
-        "description": "Appointments tab. How often a time slot is offered, how long an appointment lasts by default, how many you accept at the same time and whether customers pick their professional. Classes have their own per-session schedule."
+        "title": "Appointment capacity",
+        "description": "Appointments tab. Whether appointment availability follows the venue pacing or the free staff, and whether customers pick their professional."
       },
       "paymentsAppointments": {
         "title": "Appointment payments",

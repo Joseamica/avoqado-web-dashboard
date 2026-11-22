@@ -504,7 +504,7 @@
       "classes": "Clases",
       "appointments": "Citas",
       "unsaved": "Cambios sin guardar",
-      "generalHint": "Estos ajustes aplican a tus clases y a tus citas.",
+      "generalHint": "Lo que no es sólo de clases ni sólo de citas. Si un ajuste aplica sólo a unas, su ayuda (i) lo dice.",
       "classesHint": "Estos ajustes sólo los usan tus clases.",
       "appointmentsHint": "Estos ajustes sólo los usan tus citas."
     },
@@ -521,7 +521,7 @@
     "sections": {
       "operatingHours": "Horario de Operación",
       "scheduling": "Programación",
-      "appointmentScheduling": "Horarios de las citas",
+      "appointmentScheduling": "Capacidad de las citas",
       "staffing": "Profesionistas y horarios",
       "deposits": "Depósitos",
       "publicBooking": "Reservaciones Online",
@@ -550,9 +550,9 @@
     },
     "scheduling": {
       "slotInterval": "Intervalo de slots",
-      "slotIntervalHelp": "Cada cuántos minutos se ofrecen horarios",
+      "slotIntervalHelp": "Cada cuántos minutos se ofrecen horarios: en citas, mesas y reservas sin sesión. Las clases en línea usan el horario de cada sesión.",
       "defaultDuration": "Duración predeterminada",
-      "defaultDurationHelp": "Duración estándar de una reservación",
+      "defaultDurationHelp": "Cuánto dura una reservación cuando su servicio no tiene duración propia.",
       "autoConfirm": "Confirmar automáticamente",
       "autoConfirmHelp": "Las reservaciones se confirman al crearlas",
       "nightlyOutreach": "Aviso nocturno de renovación",
@@ -574,7 +574,7 @@
       "maxPerSlot": "Máximo por slot",
       "maxPerSlotHelp": "Reservaciones simultáneas permitidas por horario. Para servicios 1:1 (citas individuales), el mínimo efectivo es 1 incluso si seleccionas 'Sin límite' — elige el número exacto de recursos paralelos (cabinas, estaciones, sillas) si tu negocio recibe varias reservas a la vez.",
       "onlineCapacity": "Capacidad online",
-      "onlineCapacityHelp": "Porcentaje de capacidad disponible para reservaciones online"
+      "onlineCapacityHelp": "Qué parte del cupo de cada clase (o de un producto con cupo) se ofrece para reservar en línea. No cambia las citas: su límite es el «Máximo por slot» y el personal disponible."
     },
     "staffing": {
       "sectionHelp": "Elige quién puede realizar cada servicio con cita y define la disponibilidad de cada profesionista.",
@@ -637,7 +637,7 @@
       },
       "scheduling": {
         "title": "Programación",
-        "description": "Qué tan lejos y con cuánto aviso pueden reservar, cuánto esperas antes de marcar No Show, si las reservas se confirman solas y qué parte de tu cupo se ofrece en línea. Aplica a clases y citas."
+        "description": "Cada cuántos minutos hay un horario, cuánto dura una reservación, cuántas aceptas a la misma hora, qué tan lejos y con cuánto aviso pueden reservar, cuánto esperas antes de marcar No Show y si las reservas se confirman solas. El % de cupo en línea aplica a clases, no a citas: la ayuda (i) de cada ajuste dice a qué aplica."
       },
       "deposits": {
         "title": "Depósitos",
@@ -668,8 +668,8 @@
         "description": "Pestaña Clases. Cómo se cobra una clase por defecto: prepago obligatorio, pagar en el local u opcional. Cada clase puede cambiarlo."
       },
       "appointmentScheduling": {
-        "title": "Horarios de las citas",
-        "description": "Pestaña Citas. Cada cuántos minutos hay un horario, cuánto dura una cita por defecto, cuántas aceptas a la misma hora y si tu cliente elige a su profesionista. Las clases tienen su horario por sesión."
+        "title": "Capacidad de las citas",
+        "description": "Pestaña Citas. Si la disponibilidad de las citas la marca el ritmo del negocio o el personal libre, y si tu cliente elige a su profesionista."
       },
       "paymentsAppointments": {
         "title": "Cobro de las citas",

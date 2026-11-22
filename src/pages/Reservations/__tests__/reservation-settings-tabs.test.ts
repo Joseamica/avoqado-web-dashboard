@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest'
+import es from '@/locales/es/reservations.json'
+import en from '@/locales/en/reservations.json'
 import {
   FIELD_TAB,
   TOUR_TARGET_TAB,
@@ -42,12 +44,15 @@ describe('tabOfField — lo que el SERVIDOR aplica a los dos tipos va a General'
   })
 
   it('lo que sólo usan las citas va a Citas', () => {
-    expect(tabOfField('slotIntervalMin')).toBe('citas')
-    expect(tabOfField('defaultDurationMin')).toBe('citas')
     expect(tabOfField('capacityMode')).toBe('citas')
-    expect(tabOfField('pacingMaxPerSlot')).toBe('citas')
     expect(tabOfField('showStaffPicker')).toBe('citas')
     expect(tabOfField('appointmentUpfrontDefault')).toBe('citas')
+  })
+
+  it('intervalo, duración y máximo por horario van a General: el motor de horarios los aplica a todo producto sin sesión', () => {
+    expect(tabOfField('slotIntervalMin')).toBe('general')
+    expect(tabOfField('defaultDurationMin')).toBe('general')
+    expect(tabOfField('pacingMaxPerSlot')).toBe('general')
   })
 
   it('el cobro de las clases va a Clases', () => {
@@ -56,7 +61,7 @@ describe('tabOfField — lo que el SERVIDOR aplica a los dos tipos va a General'
 
   it('un campo desconocido o anidado se resuelve por su raíz, y si no existe es General', () => {
     expect(tabOfField('reminderMinBefore.0')).toBe('general')
-    expect(tabOfField('slotIntervalMin.algo')).toBe('citas')
+    expect(tabOfField('capacityMode.algo')).toBe('citas')
     expect(tabOfField('noExiste')).toBe('general')
     expect(tabOfField('toString')).toBe('general')
   })
@@ -66,25 +71,15 @@ describe('tabOfField — lo que el SERVIDOR aplica a los dos tipos va a General'
       .filter(([, tab]) => tab !== 'general')
       .map(([campo]) => campo)
       .sort()
-    expect(fueraDeGeneral).toEqual(
-      [
-        'appointmentUpfrontDefault',
-        'capacityMode',
-        'classUpfrontDefault',
-        'defaultDurationMin',
-        'pacingMaxPerSlot',
-        'showStaffPicker',
-        'slotIntervalMin',
-      ].sort(),
-    )
+    expect(fueraDeGeneral).toEqual(['appointmentUpfrontDefault', 'capacityMode', 'classUpfrontDefault', 'showStaffPicker'].sort())
   })
 })
 
 describe('firstTabWithError', () => {
   it('elige en orden General → Clases → Citas', () => {
-    expect(firstTabWithError(['defaultDurationMin', 'classUpfrontDefault'])).toBe('clases')
-    expect(firstTabWithError(['defaultDurationMin', 'waitlistMaxSize'])).toBe('general')
-    expect(firstTabWithError(['defaultDurationMin'])).toBe('citas')
+    expect(firstTabWithError(['appointmentUpfrontDefault', 'classUpfrontDefault'])).toBe('clases')
+    expect(firstTabWithError(['appointmentUpfrontDefault', 'waitlistMaxSize'])).toBe('general')
+    expect(firstTabWithError(['appointmentUpfrontDefault'])).toBe('citas')
   })
 
   it('sin errores no hay pestaña', () => {
@@ -99,7 +94,7 @@ describe('tabsWithChanges', () => {
   })
 
   it('ignora campos que RHF reporta sin cambio', () => {
-    expect(tabsWithChanges({ slotIntervalMin: false, reminderChannels: [false, false] }).size).toBe(0)
+    expect(tabsWithChanges({ capacityMode: false, reminderChannels: [false, false] }).size).toBe(0)
   })
 })
 
@@ -113,5 +108,17 @@ describe('TOUR_TARGET_TAB', () => {
   it('las secciones compartidas viven en General', () => {
     expect(TOUR_TARGET_TAB['reservation-settings-scheduling']).toBe('general')
     expect(TOUR_TARGET_TAB['reservation-settings-credit-refund']).toBe('general')
+  })
+})
+
+describe('ayudas de General que no aplican a los dos tipos', () => {
+  it('el % de cupo en línea dice que no cambia las citas (el SERVIDOR lo excluye)', () => {
+    expect(es.settings.pacing.onlineCapacityHelp).toMatch(/no cambia las citas/i)
+    expect(en.settings.pacing.onlineCapacityHelp).toMatch(/does not change appointments/i)
+  })
+
+  it('el tour de Programación no promete que todo aplica a clases y citas', () => {
+    expect(es.settings.settingsTour.scheduling.description).not.toMatch(/Aplica a clases y citas\./)
+    expect(en.settings.settingsTour.scheduling.description).not.toMatch(/Applies to classes and appointments\./)
   })
 })

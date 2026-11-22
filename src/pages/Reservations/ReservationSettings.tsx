@@ -538,6 +538,7 @@ export default function ReservationSettings() {
   const { t: tGcal } = useTranslation('googleCalendar')
   const { can } = useAccess()
   const canReadMenu = can('menu:read')
+  const canReadCreditPacks = can('creditPacks:read')
 
   // D680: la dirección (`#general|#clases|#citas`) es la única verdad de la pestaña. Se DERIVA
   // de `location.hash` (sigue a «atrás» y a una liga copiada) y todo cambio de pestaña —tocarla,
@@ -797,6 +798,9 @@ export default function ReservationSettings() {
   )
   const changedTabs = tabsWithChanges(dirtyFields)
   const errorFor = (field: keyof SettingsFormData) => (errors[field] ? t('settings.validation.invalidOption') : undefined)
+  // Una fila que un interruptor esconde se muestra si su valor no pasa (p. ej. lista de espera apagada con 600 lugares,
+  // que el SERVIDOR acepta y el formulario no): si no, el guardado se frenaba sin enseñar qué corregir.
+  const shownOr = (visible: boolean, ...fields: (keyof SettingsFormData)[]) => visible || fields.some(field => !!errors[field])
   const { start: startTour } = useReservationSettingsTour(setSettingsTab)
 
   if (isLoading) {
@@ -955,13 +959,49 @@ export default function ReservationSettings() {
             </section>
 
             {/* ------------------------------------------------------------ Programación */}
-            {/* Lo de la agenda que el SERVIDOR aplica a clases Y citas (anticipación, aviso mínimo,
-                gracia, confirmación, aviso nocturno, cupo en línea). Lo que sólo usan las citas
-                vive en la pestaña Citas. */}
+            {/* Lo de la agenda que no es sólo de un tipo. Intervalo, duración y máximo por horario los usa el
+                motor general de horarios para todo producto sin sesión (citas, mesas, la reserva manual de una
+                clase); el % de cupo aplica a clases y productos con cupo, no a citas (su ayuda lo dice). */}
             <section className="space-y-3" data-tour="reservation-settings-scheduling">
               <h2 className="text-base font-semibold">{t('settings.sections.scheduling')}</h2>
               <Card className="border-input">
                 <div className="divide-y divide-input">
+                  <SettingRow
+                    label={t('settings.scheduling.slotInterval')}
+                    tooltip={t('settings.scheduling.slotIntervalHelp')}
+                    error={errorFor('slotIntervalMin')}
+                  >
+                    <SelectField
+                      options={SLOT_INTERVAL_OPTIONS}
+                      value={encodeValue(formValues.slotIntervalMin)}
+                      onChange={raw => setNumber('slotIntervalMin', raw)}
+                      ariaLabel={t('settings.scheduling.slotInterval')}
+                    />
+                  </SettingRow>
+                  <SettingRow
+                    label={t('settings.scheduling.defaultDuration')}
+                    tooltip={t('settings.scheduling.defaultDurationHelp')}
+                    error={errorFor('defaultDurationMin')}
+                  >
+                    <SelectField
+                      options={DURATION_OPTIONS}
+                      value={encodeValue(formValues.defaultDurationMin)}
+                      onChange={raw => setNumber('defaultDurationMin', raw)}
+                      ariaLabel={t('settings.scheduling.defaultDuration')}
+                    />
+                  </SettingRow>
+                  <SettingRow
+                    label={t('settings.pacing.maxPerSlot')}
+                    tooltip={t('settings.pacing.maxPerSlotHelp')}
+                    error={errorFor('pacingMaxPerSlot')}
+                  >
+                    <SelectField
+                      options={PACING_MAX_OPTIONS}
+                      value={encodeValue(formValues.pacingMaxPerSlot)}
+                      onChange={raw => setNullableNumber('pacingMaxPerSlot', raw)}
+                      ariaLabel={t('settings.pacing.maxPerSlot')}
+                    />
+                  </SettingRow>
                   <SettingRow
                     label={t('settings.scheduling.maxAdvanceDays')}
                     tooltip={t('settings.scheduling.maxAdvanceDaysHelp')}
@@ -1073,7 +1113,7 @@ export default function ReservationSettings() {
                       </div>
                     </div>
                   )}
-                  {formValues.depositMode !== 'none' && (
+                  {shownOr(formValues.depositMode !== 'none', 'depositFixedAmount', 'depositPercentage', 'depositPartySizeGte') && (
                     <>
                       <SettingRow
                         label={t('settings.deposits.fixedAmount')}
@@ -1208,7 +1248,7 @@ export default function ReservationSettings() {
                       </SelectContent>
                     </Select>
                   </SettingRow>
-                  {formValues.creditRefundMode === 'TIME_BASED' && (
+                  {shownOr(formValues.creditRefundMode === 'TIME_BASED', 'creditFreeRefundHoursBefore', 'creditLateRefundPercent') && (
                     <>
                       <SettingRow
                         label={t('settings.cancellation.creditFreeRefundHoursBefore')}
@@ -1257,7 +1297,7 @@ export default function ReservationSettings() {
                     checked={formValues.waitlistEnabled}
                     onCheckedChange={v => setValue('waitlistEnabled', v, { shouldDirty: true })}
                   />
-                  {formValues.waitlistEnabled && (
+                  {shownOr(formValues.waitlistEnabled, 'waitlistMaxSize', 'waitlistNotifyWindow') && (
                     <>
                       <SettingRow
                         label={t('settings.waitlist.maxSize')}
@@ -1349,9 +1389,13 @@ export default function ReservationSettings() {
                     checked={formValues.remindersEnabled}
                     onCheckedChange={v => setValue('remindersEnabled', v, { shouldDirty: true })}
                   />
-                  {formValues.remindersEnabled && (
+                  {shownOr(formValues.remindersEnabled, 'reminderChannels', 'reminderMinBefore') && (
                     <>
-                      <SettingRow label={t('settings.reminders.channels')} tooltip={t('settings.reminders.channelsTooltip')}>
+                      <SettingRow
+                        label={t('settings.reminders.channels')}
+                        tooltip={t('settings.reminders.channelsTooltip')}
+                        error={errorFor('reminderChannels')}
+                      >
                         <MultiPillSelect
                           options={REMINDER_CHANNEL_OPTIONS}
                           value={formValues.reminderChannels}
@@ -1359,7 +1403,11 @@ export default function ReservationSettings() {
                           ariaLabel={t('settings.reminders.channels')}
                         />
                       </SettingRow>
-                      <SettingRow label={t('settings.reminders.whenToSend')} tooltip={t('settings.reminders.whenToSendTooltip')}>
+                      <SettingRow
+                        label={t('settings.reminders.whenToSend')}
+                        tooltip={t('settings.reminders.whenToSendTooltip')}
+                        error={errorFor('reminderMinBefore')}
+                      >
                         <MultiPillSelect
                           options={REMINDER_OFFSET_OPTIONS}
                           value={formValues.reminderMinBefore}
@@ -1429,9 +1477,12 @@ export default function ReservationSettings() {
                       <Button asChild size="sm" variant="outline">
                         <Link to={`${fullBasePath}/menumaker/services`}>{t('settings.classShortcut.classes')}</Link>
                       </Button>
-                      <Button asChild size="sm" variant="outline">
-                        <Link to={`${fullBasePath}/menumaker/credit-packs`}>{t('settings.classShortcut.packs')}</Link>
-                      </Button>
+                      {/* El SERVIDOR lee los paquetes con `creditPacks:read` (creditPack.routes.ts:62), como el menú lateral. */}
+                      {canReadCreditPacks && (
+                        <Button asChild size="sm" variant="outline">
+                          <Link to={`${fullBasePath}/menumaker/credit-packs`}>{t('settings.classShortcut.packs')}</Link>
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </Card>
@@ -1443,7 +1494,7 @@ export default function ReservationSettings() {
           <TabsContent value="citas" forceMount hidden={activeTab !== 'citas'} data-settings-tab="citas" className="mt-0 space-y-8">
             <p className="text-sm text-muted-foreground">{t('settings.tabs.appointmentsHint')}</p>
 
-            {/* --------------------------------------------------- Horarios de las citas */}
+            {/* --------------------------------------------------- Capacidad de las citas */}
             <section className="space-y-3" data-tour="reservation-settings-appointment-scheduling">
               <h2 className="text-base font-semibold">{t('settings.sections.appointmentScheduling')}</h2>
               <Card className="border-input">
@@ -1469,42 +1520,6 @@ export default function ReservationSettings() {
                         <SelectItem value="per_staff">{t('settings.scheduling.capacityModes.perStaff')}</SelectItem>
                       </SelectContent>
                     </Select>
-                  </SettingRow>
-                  <SettingRow
-                    label={t('settings.scheduling.slotInterval')}
-                    tooltip={t('settings.scheduling.slotIntervalHelp')}
-                    error={errorFor('slotIntervalMin')}
-                  >
-                    <SelectField
-                      options={SLOT_INTERVAL_OPTIONS}
-                      value={encodeValue(formValues.slotIntervalMin)}
-                      onChange={raw => setNumber('slotIntervalMin', raw)}
-                      ariaLabel={t('settings.scheduling.slotInterval')}
-                    />
-                  </SettingRow>
-                  <SettingRow
-                    label={t('settings.scheduling.defaultDuration')}
-                    tooltip={t('settings.scheduling.defaultDurationHelp')}
-                    error={errorFor('defaultDurationMin')}
-                  >
-                    <SelectField
-                      options={DURATION_OPTIONS}
-                      value={encodeValue(formValues.defaultDurationMin)}
-                      onChange={raw => setNumber('defaultDurationMin', raw)}
-                      ariaLabel={t('settings.scheduling.defaultDuration')}
-                    />
-                  </SettingRow>
-                  <SettingRow
-                    label={t('settings.pacing.maxPerSlot')}
-                    tooltip={t('settings.pacing.maxPerSlotHelp')}
-                    error={errorFor('pacingMaxPerSlot')}
-                  >
-                    <SelectField
-                      options={PACING_MAX_OPTIONS}
-                      value={encodeValue(formValues.pacingMaxPerSlot)}
-                      onChange={raw => setNullableNumber('pacingMaxPerSlot', raw)}
-                      ariaLabel={t('settings.pacing.maxPerSlot')}
-                    />
                   </SettingRow>
                   <SettingToggleRow
                     label={t('settings.publicBooking.showStaffPicker')}
