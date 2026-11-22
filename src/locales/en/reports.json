@@ -482,9 +482,9 @@
       "upsell": {
         "title": "Unlock full reporting with Pro",
         "history": "View sales from any day or date range",
-        "periods": "Compare hourly, daily, weekly and monthly periods",
-        "breakdowns": "Detailed breakdowns by terminal, merchant and payment type",
-        "export": "Export your reports to CSV"
+        "periods": "See your sales by hour, day, week and month",
+        "breakdowns": "Detailed breakdowns by merchant and payment type",
+        "export": "Export your reports to Excel, CSV or PDF"
       }
     },
     "actions": {
@@ -689,15 +689,6 @@
           "tableDesc": "Detailed table view"
         }
       },
-      "terminal": {
-        "label": "Terminals",
-        "description": "Filter data by terminal",
-        "longDescription": "Select which terminals to include in the report.",
-        "options": {
-          "all": "All",
-          "allDesc": "Include all terminals"
-        }
-      },
       "merchant": {
         "label": "Merchant",
         "description": "Filter sales by merchant account",
@@ -711,25 +702,6 @@
         "tertiary": "Tertiary",
         "provider": "Provider",
         "affiliation": "Affiliation"
-      },
-      "groupBy": {
-        "label": "Group metrics by",
-        "description": "Group metrics in the data table",
-        "longDescription": "Segment the report data by different criteria.",
-        "options": {
-          "none": "None",
-          "noneDesc": "No grouping (default)",
-          "origin": "Origin",
-          "originDesc": "Group by order type (dine-in, takeout, delivery)",
-          "channel": "Channel",
-          "channelDesc": "Group by sales channel (TPV, QR, Web, App)",
-          "paymentMethod": "Payment method",
-          "paymentMethodDesc": "Group by payment type (cash, card, digital)",
-          "shift": "Shift",
-          "shiftDesc": "Group by cashier shift",
-          "staff": "Staff",
-          "staffDesc": "Group by cashier or server who processed the sale"
-        }
       },
       "filterBy": {
         "label": "Filter by",
@@ -775,7 +747,6 @@
         "label": "Metrics",
         "description": "Choose which metrics to show in the report",
         "longDescription": "Selected metrics will be shown in the report and exports.",
-        "chartHint": "The selected metric will be shown in the report. If you select the chart icon, it will modify the report visualization.",
         "allMetrics": "All metrics",
         "options": {
           "grossSales": "Gross sales",

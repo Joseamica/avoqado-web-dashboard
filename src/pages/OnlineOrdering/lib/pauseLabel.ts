@@ -10,6 +10,8 @@ export function pauseLabel(store: StoreState | null | undefined, formatTime: (is
   if (store?.status !== 'PAUSED') return null
   if (store.reason === 'TOO_BUSY') return { key: 'settings.status.pausedBusy' }
   if (store.manualPause) return { key: 'settings.status.pausedManual' }
+  // D662: la pausa sola no termina con la hora: va antes que `pausedUntil`.
+  if (store.autoPausedAt) return { key: 'settings.status.pausedMissed' }
   if (store.pausedUntil) return { key: 'settings.status.pausedUntil', params: { time: formatTime(store.pausedUntil) } }
   return null
 }

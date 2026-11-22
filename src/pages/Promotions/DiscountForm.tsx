@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft } from 'lucide-react'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useParams } from 'react-router-dom'
@@ -18,6 +18,8 @@ import type { CreateDiscountRequest, DiscountScope, DiscountType } from '@/types
 
 import { DiscountFormFields } from './components/DiscountFormFields'
 import { useDiscountFormData } from './hooks/useDiscountFormData'
+import { vigenciaDelFormulario, vigenciaParaFormulario } from './paraGuardar'
+import { useVenueDateTime, zonaValida } from '@/utils/datetime'
 
 export default function DiscountForm() {
   const { t } = useTranslation('promotions')
@@ -27,6 +29,8 @@ export default function DiscountForm() {
   const navigate = useNavigate()
   const { toast } = useToast()
   const queryClient = useQueryClient()
+  // D37: «Válido desde/hasta» son días del negocio, en su zona (la ruta …/discounts/create sigue usando este formulario).
+  const venueTimezone = zonaValida(useVenueDateTime().venueTimezone)
 
   const isEditing = !!discountId
 
@@ -95,8 +99,8 @@ export default function DiscountForm() {
         maxDiscountAmount: existingDiscount.maxDiscountAmount,
         maxTotalUses: existingDiscount.maxTotalUses,
         maxUsesPerCustomer: existingDiscount.maxUsesPerCustomer,
-        validFrom: existingDiscount.validFrom ? existingDiscount.validFrom.split('T')[0] : '',
-        validUntil: existingDiscount.validUntil ? existingDiscount.validUntil.split('T')[0] : '',
+        validFrom: vigenciaParaFormulario(existingDiscount.validFrom, venueTimezone),
+        validUntil: vigenciaParaFormulario(existingDiscount.validUntil, venueTimezone),
         daysOfWeek: existingDiscount.daysOfWeek || [],
         timeFrom: existingDiscount.timeFrom || '',
         timeUntil: existingDiscount.timeUntil || '',
@@ -113,15 +117,22 @@ export default function DiscountForm() {
         active: existingDiscount.active,
       })
     }
-  }, [existingDiscount, form])
+  }, [existingDiscount, form, venueTimezone])
+
+  // D38 (21-nov): `isPending` apaga el botón un render tarde y un doble clic mandaba dos peticiones (dos descuentos iguales,
+  // o dos ediciones). Candado síncrono; se suelta al terminar.
+  const enVuelo = useRef(false)
 
   // Create/Update mutation
   const mutation = useMutation({
     mutationFn: async (data: CreateDiscountRequest & { active: boolean }) => {
       if (isEditing) {
-        return discountService.updateDiscount(venueId, discountId!, data)
+        return discountService.updateDiscount(venueId, discountId!, {
+          ...data,
+          ...vigenciaDelFormulario(data, venueTimezone, existingDiscount),
+        })
       }
-      return discountService.createDiscount(venueId, data)
+      return discountService.createDiscount(venueId, { ...data, ...vigenciaDelFormulario(data, venueTimezone) })
     },
     onSuccess: () => {
       toast({
@@ -137,10 +148,14 @@ export default function DiscountForm() {
         variant: 'destructive',
       })
     },
+    onSettled: () => {
+      enVuelo.current = false
+    },
   })
 
   // Handle form submit
   const onSubmit = (data: CreateDiscountRequest & { active: boolean }) => {
+    if (enVuelo.current) return
     // Clean up data based on scope
     const cleanedData = { ...data }
 
@@ -194,6 +209,7 @@ export default function DiscountForm() {
       cleanedData.getItemIds = cleanedData.getItemIds.map((item: any) => (typeof item === 'object' ? item.value : item))
     }
 
+    enVuelo.current = true
     mutation.mutate(cleanedData)
   }
 

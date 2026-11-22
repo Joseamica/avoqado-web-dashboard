@@ -14,12 +14,17 @@ const toast = vi.fn()
 vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast }) }))
 
 const handlers: Record<string, (p: unknown) => void> = {}
+// Varios oyentes por evento, como el socket real (la Bandeja y la relectura de la tienda escuchan `order_updated`; D662 v4).
+const oyentes: Record<string, Set<(p: unknown) => void>> = {}
 const fakeSocket = {
   on: (event: string, h: (p: unknown) => void) => {
-    handlers[event] = h
+    ;(oyentes[event] ??= new Set()).add(h)
+    handlers[event] = (p: unknown) => oyentes[event]?.forEach(f => f(p))
   },
-  off: (event: string) => {
-    delete handlers[event]
+  off: (event: string, h?: (p: unknown) => void) => {
+    if (h) oyentes[event]?.delete(h)
+    else oyentes[event]?.clear()
+    if (!oyentes[event]?.size) delete handlers[event]
   },
 }
 const noop = () => {}

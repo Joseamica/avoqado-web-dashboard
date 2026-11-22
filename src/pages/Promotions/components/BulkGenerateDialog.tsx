@@ -1,6 +1,6 @@
 import { useMutation } from '@tanstack/react-query'
 import { Check, Copy, Download } from 'lucide-react'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 
@@ -12,6 +12,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast'
 import couponService from '@/services/coupon.service'
 import type { BulkGenerateCouponsRequest, Discount } from '@/types/discount'
+import { useVenueDateTime, zonaValida } from '@/utils/datetime'
+
+import { vigenciaDelFormulario } from '../paraGuardar'
 
 interface BulkGenerateDialogProps {
 	venueId: string
@@ -23,6 +26,8 @@ export default function BulkGenerateDialog({ venueId, discounts, onSuccess }: Bu
 	const { t } = useTranslation('promotions')
 	const { t: tCommon } = useTranslation()
 	const { toast } = useToast()
+	// D37: «Válido desde/hasta» son días del negocio, en su zona.
+	const venueTimezone = zonaValida(useVenueDateTime().venueTimezone)
 
 	const [generatedCodes, setGeneratedCodes] = useState<string[]>([])
 	const [copied, setCopied] = useState(false)
@@ -40,6 +45,9 @@ export default function BulkGenerateDialog({ venueId, discounts, onSuccess }: Bu
 		},
 	})
 
+	// D38 (21-nov): `isPending` apaga el botón un render tarde y un doble clic mandaba dos peticiones (dos lotes de códigos).
+	// Candado síncrono; se suelta al terminar.
+	const enVuelo = useRef(false)
 	const mutation = useMutation({
 		mutationFn: (data: BulkGenerateCouponsRequest) => couponService.bulkGenerate(venueId, data),
 		onSuccess: (response) => {
@@ -56,15 +64,18 @@ export default function BulkGenerateDialog({ venueId, discounts, onSuccess }: Bu
 				variant: 'destructive',
 			})
 		},
+		onSettled: () => {
+			enVuelo.current = false
+		},
 	})
 
 	const onSubmit = (data: BulkGenerateCouponsRequest) => {
+		if (enVuelo.current) return
 		// Clean up empty values
 		const cleanedData = { ...data }
 		if (!cleanedData.prefix) cleanedData.prefix = undefined
-		if (!cleanedData.validFrom) cleanedData.validFrom = undefined
-		if (!cleanedData.validUntil) cleanedData.validUntil = undefined
-		mutation.mutate(cleanedData)
+		enVuelo.current = true
+		mutation.mutate({ ...cleanedData, ...vigenciaDelFormulario(cleanedData, venueTimezone) })
 	}
 
 	const handleCopyAll = async () => {

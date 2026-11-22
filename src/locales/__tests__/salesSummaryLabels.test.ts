@@ -32,3 +32,38 @@ describe.each([
     expect(s.controls.metrics.options.itemsDesc).not.toMatch(/sin incluir impuestos|excluding taxes/i)
   })
 })
+
+/**
+ * D3 (Resumen de ventas): el aviso del plan Gratis prometía «desgloses por terminal» (no existen) y «exporta a CSV» (también hay
+ * Excel y PDF), y «compara periodos» (se ven las ventas por hora, día, semana y mes, sin comparar). Y los textos de tres controles que
+ * ya no están en la pantalla («Terminales», «Agrupar las métricas por» y el icono de gráfica por métrica) se quitan con ellos.
+ */
+describe.each([
+  ['es', es],
+  ['en', en],
+])('Resumen de ventas · el aviso del plan Gratis sólo promete lo que hay (%s)', (_, loc) => {
+  const { upsell } = loc.salesSummary.basic
+
+  it('no promete desgloses por terminal: no existen', () => {
+    expect(upsell.breakdowns).not.toMatch(/terminal/i)
+  })
+
+  it('las tres promesas tienen texto (una vacía no se vería y la prueba de arriba pasaría igual)', () => {
+    for (const promesa of [upsell.periods, upsell.breakdowns, upsell.export]) expect(promesa.trim().length).toBeGreaterThan(10)
+  })
+
+  it('dice los tres formatos de exporte que sí hay', () => {
+    for (const formato of ['Excel', 'CSV', 'PDF']) expect(upsell.export).toContain(formato)
+  })
+
+  it('no dice que compara periodos: sólo se ven las ventas por hora, día, semana y mes', () => {
+    expect(upsell.periods).not.toMatch(/compar/i)
+  })
+
+  it('los textos de los controles que ya no existen se fueron con ellos', () => {
+    const { controls } = loc.salesSummary
+    expect(controls).not.toHaveProperty('terminal')
+    expect(controls).not.toHaveProperty('groupBy')
+    expect(controls.metrics).not.toHaveProperty('chartHint')
+  })
+})

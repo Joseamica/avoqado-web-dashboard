@@ -27,6 +27,8 @@ const base = (venueId: string) => `/api/v1/dashboard/venues/${venueId}/online-or
 
 export const onlineOrderingKeys = {
   settings: (v: string) => ['online-ordering', v, 'settings'] as const,
+  /** D662: el estado de la tienda que Configuración vuelve a leer sola (no es hija de `settings`: no pisa el formulario). */
+  storeStatus: (v: string) => ['online-ordering', v, 'store-status'] as const,
   categories: (v: string) => ['online-ordering', v, 'menu', 'categories'] as const,
   products: (v: string, q: object) => ['online-ordering', v, 'menu', 'products', q] as const,
   toPay: (v: string) => ['online-ordering', v, 'to-pay'] as const,
@@ -35,8 +37,16 @@ export const onlineOrderingKeys = {
   cardRefunds: (v: string, orderId: string) => ['online-ordering', v, 'order', orderId, 'card-refunds'] as const,
 }
 
-export const getSettings = async (venueId: string): Promise<OnlineOrderingSettings> =>
-  (await api.get(`${base(venueId)}/settings`)).data.data
+/**
+ * D662 v4: `pausaSola=1` le dice al SERVIDOR que este panel entiende la pausa sola (sin él, le manda la forma de la pestaña vieja). Va en
+ * la URL y no en una cabecera: el CORS del SERVIDOR no deja pasar cabeceras nuevas. `enviadoEn` (reloj del navegador, al salir) sirve
+ * para volver a leer justo después de la próxima hora límite.
+ */
+export const getSettings = async (venueId: string): Promise<OnlineOrderingSettings> => {
+  const enviadoEn = Date.now()
+  const data: OnlineOrderingSettings = (await api.get(`${base(venueId)}/settings`, { params: { pausaSola: '1' } })).data.data
+  return { ...data, enviadoEn }
+}
 
 /**
  * D661 · Ruling 64: este PUT NO se repite solo tras un corte (sólo él; el cliente global sigue igual). Un reenvío tardío de «prender la
@@ -59,13 +69,16 @@ export const setMenuAvailability = async (
 ): Promise<{ updated: number }> => (await api.put(`${base(venueId)}/menu/availability`, body)).data.data
 
 /** `tray:true` = la bandeja en primer plano: la cabecera le dice al servidor que mantenga abierta la tienda. */
-export const getInbox = async (venueId: string, opts: { tray: boolean; status?: 'all' | 'active'; cursor?: string }): Promise<Inbox> =>
-  (
+export const getInbox = async (venueId: string, opts: { tray: boolean; status?: 'all' | 'active'; cursor?: string }): Promise<Inbox> => {
+  const enviadoEn = Date.now()
+  const data: Inbox = (
     await api.get(`${base(venueId)}/orders`, {
-      params: { status: opts.status ?? 'all', ...(opts.cursor ? { cursor: opts.cursor } : {}) },
+      params: { status: opts.status ?? 'all', pausaSola: '1', ...(opts.cursor ? { cursor: opts.cursor } : {}) },
       ...(opts.tray ? { headers: { 'x-online-orders-tray': '1' } } : {}),
     })
   ).data.data
+  return { ...data, enviadoEn }
+}
 
 /** Folios de «Nadie»: por pagar y por entregar. Sin cabecera de latido a propósito. `section`+`cursor` piden la siguiente página. */
 export const getToPay = async (venueId: string, params?: { section?: 'toPay' | 'toDeliver'; cursor?: string }): Promise<ToPayResponse> =>

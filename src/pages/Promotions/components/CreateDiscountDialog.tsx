@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Plus } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 
@@ -15,6 +15,8 @@ import { DiscountType, DiscountScope } from '@/types'
 
 import { DiscountFormFields } from './DiscountFormFields'
 import { useDiscountFormData } from '../hooks/useDiscountFormData'
+import { vigenciaDelFormulario } from '../paraGuardar'
+import { useVenueDateTime, zonaValida } from '@/utils/datetime'
 
 interface CreateDiscountDialogProps {
   venueId: string
@@ -25,6 +27,8 @@ export function CreateDiscountDialog({ venueId, onSuccess }: CreateDiscountDialo
   const { t } = useTranslation('promotions')
   const { t: tCommon } = useTranslation()
   const { toast } = useToast()
+  // D37: «Válido desde/hasta» son días del negocio, en su zona.
+  const venueTimezone = zonaValida(useVenueDateTime().venueTimezone)
   const queryClient = useQueryClient()
   const [open, setOpen] = useState(false)
 
@@ -72,6 +76,9 @@ export function CreateDiscountDialog({ venueId, onSuccess }: CreateDiscountDialo
     }
   }, [open, form])
 
+  // D38 (21-nov): `isPending` apaga el botón un render tarde y un doble clic mandaba dos peticiones (dos descuentos iguales).
+  // Candado síncrono; se suelta al terminar.
+  const enVuelo = useRef(false)
   const mutation = useMutation({
     mutationFn: (data: CreateDiscountRequest & { active: boolean }) => discountService.createDiscount(venueId, data),
     onSuccess: data => {
@@ -89,9 +96,13 @@ export function CreateDiscountDialog({ venueId, onSuccess }: CreateDiscountDialo
         variant: 'destructive',
       })
     },
+    onSettled: () => {
+      enVuelo.current = false
+    },
   })
 
   const onSubmit = (data: CreateDiscountRequest & { active: boolean }) => {
+    if (enVuelo.current) return
     // Clean up data based on scope (same logic as DiscountForm)
     const cleanedData = { ...data }
 
@@ -110,8 +121,7 @@ export function CreateDiscountDialog({ venueId, onSuccess }: CreateDiscountDialo
     if (data.type !== 'COMP') cleanedData.compReason = undefined
     if (!['COMP', 'PERCENTAGE', 'FIXED_AMOUNT'].includes(data.type)) cleanedData.requiresApproval = undefined
 
-    if (!cleanedData.validFrom) cleanedData.validFrom = undefined
-    if (!cleanedData.validUntil) cleanedData.validUntil = undefined
+    Object.assign(cleanedData, vigenciaDelFormulario(cleanedData, venueTimezone))
     if (!cleanedData.timeFrom) cleanedData.timeFrom = undefined
     if (!cleanedData.timeUntil) cleanedData.timeUntil = undefined
     if (!cleanedData.description) cleanedData.description = undefined
@@ -135,6 +145,7 @@ export function CreateDiscountDialog({ venueId, onSuccess }: CreateDiscountDialo
       cleanedData.getItemIds = cleanedData.getItemIds.map((item: any) => (typeof item === 'object' ? item.value : item))
     }
 
+    enVuelo.current = true
     mutation.mutate(cleanedData)
   }
 
