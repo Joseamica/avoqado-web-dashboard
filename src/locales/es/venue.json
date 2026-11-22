@@ -675,7 +675,11 @@
     "photoTitle": "Foto de entrada",
     "photoDesc": "Al marcar entrada en el POS (tableta, celular o computadora) se pide una selfie, y la ves en Asistencia. Si el aparato no tiene cámara, la entrada queda marcada «Sin foto». En las terminales de cobro se prende aparte, en la configuración de cada terminal.",
     "photoToastEnabled": "Foto de entrada activada",
-    "photoToastDisabled": "Foto de entrada desactivada"
+    "photoToastDisabled": "Foto de entrada desactivada",
+    "forgottenTitle": "Salida olvidada",
+    "forgottenDesc": "Si alguien no marca su salida, su turno se cierra solo al terminar el día (4:00 a. m.): con la hora de salida de su horario, o en 0 horas si no tiene horario. Queda «Salida olvidada · revisar» en Asistencia para que lo corrijas. Así nadie queda con turnos de días ni bloqueado para entrar al día siguiente.",
+    "forgottenToastEnabled": "Salida olvidada activada",
+    "forgottenToastDisabled": "Salida olvidada desactivada: los turnos sin salida se quedan abiertos"
   },
   "rotatingShifts": {
     "title": "Turnos rotativos",

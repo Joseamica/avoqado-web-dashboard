@@ -1,5 +1,5 @@
 import { useAuth } from '@/context/AuthContext'
-import { DateTime } from 'luxon'
+import { DateTime, IANAZone } from 'luxon'
 import { useTranslation } from 'react-i18next'
 import { getIntlLocale } from '@/utils/i18n-locale'
 
@@ -53,6 +53,14 @@ export interface VenueDateTimeUtils {
  * **CRITICAL:** This hook uses the venue timezone, NOT the browser timezone!
  * This ensures all users see consistent times regardless of their location.
  */
+/**
+ * La zona del negocio si es una zona IANA válida; si no (vacía o mal escrita), la de Ciudad de México. Sólo la usan Promociones
+ * (D37, Codex r1 #4): un día de vigencia corrido unas horas es mejor que guardar 1970 o que la lista truene. NO va en
+ * `useVenueDateTime`: ahí cambiaría en silencio la hora de una clase en Reservaciones (Codex r2 #3).
+ */
+export const zonaValida = (zona: string | null | undefined): string =>
+  zona && IANAZone.isValidZone(zona) ? zona : 'America/Mexico_City'
+
 export function useVenueDateTime(): VenueDateTimeUtils {
   const { activeVenue } = useAuth()
   const { i18n } = useTranslation()

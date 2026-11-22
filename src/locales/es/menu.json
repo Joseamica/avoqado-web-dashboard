@@ -420,7 +420,7 @@
       "selectUnit": "Seleccionar unidad",
       "linked": {
         "title": "Este extra es un platillo del menú",
-        "desc": "Al venderse, baja el inventario de ese platillo (sus piezas o su receta). No cuenta como venta de ese platillo: su precio es el del extra.",
+        "desc": "Al venderse, sus unidades salen en Ventas por artículo como «Dentro de paquete» (no como venta suelta de ese platillo) y, si el platillo lleva inventario, lo descuenta (sus piezas o su receta). Su precio es el del extra.",
         "pick": "Platillo",
         "search": "Buscar platillo…",
         "methodQuantity": "Por piezas",
@@ -432,13 +432,15 @@
         "retry": "Reintentar",
         "blocked": {
           "NOT_INVENTORIED": "No lleva inventario: actívaselo en su ficha (por piezas o por receta) para poder ligarlo.",
-          "SOLD_BY_WEIGHT": "Se vende por kilo: un extra no puede descontarlo."
+          "SOLD_BY_WEIGHT": "Se vende por kilo: un extra no puede descontarlo.",
+          "DEDUCT_NEEDS_PREMIUM": "Lleva inventario: ligarlo para que lo descuente es del plan Premium. Sin inventario, sólo cuenta en el reporte."
         },
         "remove": "Quitar platillo",
-        "noLongerTracked": "Este platillo ya no lleva inventario: el extra no descuenta nada hasta que se lo vuelvas a activar.",
+        "noInventory": "Este platillo no lleva inventario: el extra no descuenta nada y sólo cuenta en Ventas por artículo, columna «Dentro de paquete». Para que lo descuente, actívale el inventario (plan Premium).",
         "inactive": "Inactivo",
         "required": "Elige el platillo o apaga «Este extra es un platillo del menú».",
-        "exclusive": "Un extra descuenta un ingrediente o un platillo, no los dos: al prender uno se apaga el otro."
+        "exclusive": "Un extra descuenta un ingrediente o un platillo, no los dos: al prender uno se apaga el otro.",
+        "countOnly": "Sin inventario: sólo cuenta en el reporte"
       }
     },
     "editor": {

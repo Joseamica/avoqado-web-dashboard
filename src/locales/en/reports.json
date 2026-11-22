@@ -29,7 +29,8 @@
       "MATCHED": "Matches",
       "CONFIRMED": "Confirmed",
       "DUPLICATE": "Duplicate",
-      "UNMATCHED": "Unmatched"
+      "UNMATCHED": "Unmatched",
+      "PENDING_FEE": "Waiting for fee"
     }
   },
   "incomeStatement": {
@@ -297,7 +298,9 @@
       "generated": "{{posted}} entries generated from your payments",
       "generateNone": "No new entries — already generated",
       "generateMapping": "Some accounts are unmapped in Accounting setup",
-      "generateError": "Could not generate the entries"
+      "generateError": "Could not generate the entries",
+      "generateWaitingFee": "{{count}} card payment(s) are waiting for their processing fee: generate again in a few minutes to post them, and don't close the month until they are.",
+      "generateStuckFee": "{{count}} have their fee calculation stuck: ask support to review it."
     }
   },
   "trialBalance": {
@@ -898,6 +901,8 @@
       "unit": "Unit",
       "itemsSold": "Items Sold",
       "unitsSold": "Units Sold",
+      "insidePackages": "Inside packages",
+      "totalUnits": "Total",
       "grossSales": "Gross Sales",
       "discounts": "Discounts",
       "netSales": "Net Sales"
@@ -969,7 +974,8 @@
     },
     "totals": {
       "label": "Total"
-    }
+    },
+    "insidePackagesHelp": "Units sold as an extra linked to this item (for example, inside a combo). They add no money: the price is in the main product. “Total” = units sold + inside packages. It uses the extra's current link: if you change it, past days change too."
   },
   "salesByCategory": {
     "title": "Sales by Category",

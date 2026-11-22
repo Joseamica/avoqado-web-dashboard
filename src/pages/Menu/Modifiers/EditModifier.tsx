@@ -13,6 +13,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { useToast } from '@/hooks/use-toast'
 import { useUnitTranslation } from '@/hooks/use-unit-translation'
 import { updateModifier } from '@/services/menu.service'
+import { salesByItemKeys } from '@/services/reports/salesByItem.service'
 import { rawMaterialsApi, type RawMaterial } from '@/services/inventory.service'
 import { apiErrorDescription } from '@/utils/apiError'
 import { Currency } from '@/utils/currency'
@@ -216,7 +217,7 @@ export default function EditModifier({
         payload.inventoryMode = null
       }
 
-      // El platillo ligado sólo viaja si CAMBIÓ: re-mandar el mismo pediría Premium otra vez a un negocio que ya bajó de plan.
+      // El platillo ligado sólo viaja si CAMBIÓ: re-mandar el mismo pediría el plan otra vez a un negocio que ya bajó de plan.
       const linkedProductId = formValues.linkedEnabled && formValues.linkedProduct ? formValues.linkedProduct.id : null
       if (linkedProductId !== (initialValues.linkedProductId ?? null)) payload.linkedProductId = linkedProductId
 
@@ -243,6 +244,10 @@ export default function EditModifier({
         queryKey: ['modifiers', venueId],
         refetchType: 'all',
       })
+
+      // La liga del extra mueve «Dentro de paquete» de Ventas por artículo (incluso el pasado): que el reporte no reuse su copia
+      // en memoria de hasta 5 min, ni en pantalla ni en el CSV (Codex r1 #11).
+      queryClient.invalidateQueries({ queryKey: salesByItemKeys.all })
 
       // Call the success callback
       onSuccess()
@@ -637,7 +642,7 @@ export default function EditModifier({
                 </>
               )}
 
-              {/* «Este extra es un platillo del menú» (encargo 27771e): Premium, excluye al ingrediente */}
+              {/* «Este extra es un platillo del menú» (encargo 27771e): Pro y Premium (20-nov), excluye al ingrediente */}
               <LinkedProductField
                 venueId={venueId}
                 enabled={linkedEnabled}

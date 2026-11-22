@@ -12,6 +12,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast'
 import couponService from '@/services/coupon.service'
 import type { BulkGenerateCouponsRequest, Discount } from '@/types/discount'
+import { useVenueDateTime, zonaValida } from '@/utils/datetime'
+
+import { vigenciaDelFormulario } from '../paraGuardar'
 
 interface BulkGenerateDialogProps {
 	venueId: string
@@ -23,6 +26,8 @@ export default function BulkGenerateDialog({ venueId, discounts, onSuccess }: Bu
 	const { t } = useTranslation('promotions')
 	const { t: tCommon } = useTranslation()
 	const { toast } = useToast()
+	// D37: «Válido desde/hasta» son días del negocio, en su zona.
+	const venueTimezone = zonaValida(useVenueDateTime().venueTimezone)
 
 	const [generatedCodes, setGeneratedCodes] = useState<string[]>([])
 	const [copied, setCopied] = useState(false)
@@ -62,9 +67,7 @@ export default function BulkGenerateDialog({ venueId, discounts, onSuccess }: Bu
 		// Clean up empty values
 		const cleanedData = { ...data }
 		if (!cleanedData.prefix) cleanedData.prefix = undefined
-		if (!cleanedData.validFrom) cleanedData.validFrom = undefined
-		if (!cleanedData.validUntil) cleanedData.validUntil = undefined
-		mutation.mutate(cleanedData)
+		mutation.mutate({ ...cleanedData, ...vigenciaDelFormulario(cleanedData, venueTimezone) })
 	}
 
 	const handleCopyAll = async () => {

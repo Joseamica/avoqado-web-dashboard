@@ -72,6 +72,10 @@ export interface GeneratePoliciesResult {
   posted: number
   alreadyPosted: number
   skipped: number
+  /** D24: pagos con tarjeta cuya comisión todavía se calcula; no se postean hasta tenerla (los toma la siguiente corrida). */
+  pendientesDeCosto?: number
+  /** D24: de esos, los que tienen el cálculo de la comisión detenido (hay que revisarlos). */
+  costoSinCalcular?: number
 }
 
 /** Posteo automático: genera las pólizas del periodo desde los pagos. Idempotente. */

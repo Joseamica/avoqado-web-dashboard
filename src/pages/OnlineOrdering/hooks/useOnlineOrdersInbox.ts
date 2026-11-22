@@ -5,6 +5,7 @@ import { useSocket } from '@/context/SocketContext'
 import { getInbox, onlineOrderingKeys } from '@/services/onlineOrdering.service'
 
 import { invalidateToPay } from '../lib/toPayLive'
+import { releerSinReusar, useRelecturaDeLaTienda } from './useRelecturaDeLaTienda'
 
 /**
  * El ÚNICO sondeo de la bandeja (cada 10 s, se detiene con la pestaña oculta) más el aviso en vivo del servidor.
@@ -28,7 +29,8 @@ export function useOnlineOrdersInbox(venueId: string, opts: { trayActive: () => 
     if (!venueId || !socket) return
     joinVenueRoom(venueId)
     const refresh = () => {
-      void queryClient.invalidateQueries({ queryKey: onlineOrderingKeys.inbox(venueId) })
+      // D662 v5: nunca reusar la petición en camino (salió antes de este aviso).
+      void releerSinReusar(queryClient, onlineOrderingKeys.inbox(venueId))
       void invalidateToPay(queryClient, venueId)
     }
     // Un evento de OTRO negocio (el socket puede estar en varios cuartos) no toca esta bandeja.
@@ -48,6 +50,12 @@ export function useOnlineOrdersInbox(venueId: string, opts: { trayActive: () => 
       leaveVenueRoom(venueId)
     }
   }, [venueId, socket, joinVenueRoom, leaveVenueRoom, queryClient])
+
+  // D662 v4 (hueco 5): la cabecera de la bandeja también dice «se pausó sola» en cuanto pasa (aviso, reconexión, pestaña visible y la
+  // próxima hora límite), sin esperar el sondeo.
+  useRelecturaDeLaTienda(venueId, query.data, () => void releerSinReusar(queryClient, onlineOrderingKeys.inbox(venueId)), {
+    conPedidos: false,
+  })
 
   return query
 }

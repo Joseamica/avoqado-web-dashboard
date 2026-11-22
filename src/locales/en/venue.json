@@ -645,7 +645,11 @@
     "photoTitle": "Clock-in photo",
     "photoDesc": "When clocking in on the POS (tablet, phone or computer) a selfie is required, and you see it in Attendance. If the device has no camera, the entry is marked “No photo”. On payment terminals it is turned on separately, in each terminal's settings.",
     "photoToastEnabled": "Clock-in photo turned on",
-    "photoToastDisabled": "Clock-in photo turned off"
+    "photoToastDisabled": "Clock-in photo turned off",
+    "forgottenTitle": "Missed clock-out",
+    "forgottenDesc": "If someone forgets to clock out, their shift closes by itself when the day ends (4:00 a.m.): at the end time of their schedule, or at 0 hours if they have no schedule. It shows as “Missed clock-out · review” in Attendance so you can fix it. Nobody ends up with multi-day shifts or locked out the next day.",
+    "forgottenToastEnabled": "Missed clock-out turned on",
+    "forgottenToastDisabled": "Missed clock-out turned off: shifts without a clock-out stay open"
   },
   "rotatingShifts": {
     "title": "Rotating shifts",

@@ -1,7 +1,7 @@
 import { keepPreviousData, useInfiniteQuery } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { AlertTriangle, Loader2, Search, UtensilsCrossed, X } from 'lucide-react'
+import { Info, Loader2, Search, UtensilsCrossed, X } from 'lucide-react'
 
 import { FeatureGate } from '@/components/billing/FeatureGate'
 import { Badge } from '@/components/ui/badge'
@@ -25,19 +25,34 @@ interface LinkedProductFieldProps {
   showRequired?: boolean
 }
 
-/** ¿El platillo ligado sigue pudiendo descontar? Si se le apagó el inventario (o pasó a kilo), el extra no baja nada. */
+/**
+ * Plan para ligar (founder, 20-nov-2026, opción A): Pro y Premium, el mismo que el reporte «Ventas por artículo». Espejo VISUAL del
+ * candado del servidor, que es quien manda: `LIGA_DE_EXTRA_PLAN` en avoqado-server/src/services/dashboard/menu.dashboard.service.ts.
+ * `null` = todos los planes (sin candado).
+ */
+const LINKED_PRODUCT_FEATURE: string | null = 'ADVANCED_REPORTS'
+
+function CandadoDePlan({ children }: { children: React.ReactNode }) {
+  return LINKED_PRODUCT_FEATURE ? <FeatureGate feature={LINKED_PRODUCT_FEATURE}>{children}</FeatureGate> : <>{children}</>
+}
+
+/**
+ * ¿El extra descuenta el platillo? Sólo si el platillo lleva inventario (y no se volvió por kilo ni se borró). Si no, la liga sólo
+ * cuenta sus unidades en «Ventas por artículo» › «Dentro de paquete» (founder «B», 20-nov).
+ */
 function stillDeducts(product: ModifierLinkedProduct): boolean {
-  if (product.trackInventory === undefined) return true // recién elegido del buscador: ya venía filtrado
+  if (product.trackInventory === undefined) return !!product.inventoryMethod // recién elegido del buscador
   return !!product.trackInventory && !!product.inventoryMethod && !product.soldByWeight && !product.deletedAt
 }
 
 /**
- * «Este extra es un platillo del menú» (encargo 27771e; founder, 16-nov-2026: como Fudo y Toast; Premium con INVENTORY_TRACKING).
- * Al venderse el extra, el SERVIDOR descuenta 1 porción del platillo (sus piezas o su receta) y no lo cuenta como venta de ese
- * platillo. El buscador es una página acotada del servidor (20 por página, «Cargar más», total visible).
+ * «Este extra es un platillo del menú» (encargo 27771e; founder, 16-nov-2026: como Fudo y Toast). Al venderse el extra, sus unidades
+ * salen en «Ventas por artículo» como «Dentro de paquete» (no como venta suelta) y, si el platillo lleva inventario, el SERVIDOR
+ * descuenta 1 porción (sus piezas o su receta). Sin inventario también se liga (founder «B», 20-nov): sólo cuenta. Plan: Pro y
+ * Premium (`LINKED_PRODUCT_FEATURE`). El buscador es una página acotada del servidor (20 por página, «Cargar más», total visible).
  *
- * El interruptor siempre se ve. Al prenderlo sin Premium, el buscador sale borroso con su candado y la explicación (FeatureGate). Si
- * el extra YA estaba ligado, se ve y se puede quitar aunque el negocio ya no tenga Premium (el servidor nunca lo pide para quitar).
+ * El interruptor siempre se ve. Al prenderlo sin el plan, el buscador sale borroso con su candado y la explicación (FeatureGate). Si
+ * el extra YA estaba ligado, se ve y se puede quitar aunque el negocio ya no tenga el plan (el servidor nunca lo pide para quitar).
  */
 export function LinkedProductField({ venueId, enabled, onEnabledChange, value, onChange, showRequired }: LinkedProductFieldProps) {
   const { t } = useTranslation('menu')
@@ -51,7 +66,9 @@ export function LinkedProductField({ venueId, enabled, onEnabledChange, value, o
     getNextPageParam: last => (last.hasMore ? last.nextCursor : undefined),
     enabled: !!venueId && enabled && !value,
     placeholderData: keepPreviousData,
-    staleTime: 30_000,
+    // Sin vigencia: la fila «en gris por Premium» depende del plan de HOY; tras subir de plan no se reusa la respuesta vieja
+    // (Codex r2 #2). Es una página acotada de 20, barata de volver a pedir.
+    staleTime: 0,
     retry: 1,
     refetchOnWindowFocus: false,
   })
@@ -117,14 +134,14 @@ export function LinkedProductField({ venueId, enabled, onEnabledChange, value, o
                 </Button>
               </div>
               {!stillDeducts(value) && (
-                <p className="mt-2 flex items-start gap-1.5 text-xs text-amber-600 dark:text-amber-400" role="status">
-                  <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                  {t('modifiers.inventory.linked.noLongerTracked')}
+                <p className="mt-2 flex items-start gap-1.5 text-xs text-muted-foreground" role="status">
+                  <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                  {t('modifiers.inventory.linked.noInventory')}
                 </p>
               )}
             </div>
           ) : (
-            <FeatureGate feature="INVENTORY_TRACKING">
+            <CandadoDePlan>
               <div className="space-y-2">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -169,10 +186,14 @@ export function LinkedProductField({ venueId, enabled, onEnabledChange, value, o
                             <div className="min-w-0">
                               <p className="truncate text-sm font-medium text-foreground">{p.name}</p>
                               {p.categoryName && <p className="truncate text-xs text-muted-foreground">{p.categoryName}</p>}
-                              {p.blockedReason && (
+                              {p.blockedReason ? (
                                 <p className="text-xs text-muted-foreground">
                                   {t(`modifiers.inventory.linked.blocked.${p.blockedReason}`)}
                                 </p>
+                              ) : (
+                                !p.inventoryMethod && (
+                                  <p className="text-xs text-muted-foreground">{t('modifiers.inventory.linked.countOnly')}</p>
+                                )
                               )}
                             </div>
                             <div className="flex shrink-0 items-center gap-1.5">
@@ -202,7 +223,9 @@ export function LinkedProductField({ venueId, enabled, onEnabledChange, value, o
                         variant="ghost"
                         size="sm"
                         className="cursor-pointer"
-                        disabled={query.isFetchingNextPage}
+                        // Mientras se recarga la primera página (o espera la red para hacerlo), «Cargar más» la cancelaría y mezclaría filas
+                        // viejas con nuevas (Codex r3 #2 y r4).
+                        disabled={query.isFetching || query.fetchStatus === 'paused'}
                         onClick={() => query.fetchNextPage()}
                       >
                         {query.isFetchingNextPage ? <Loader2 className="h-4 w-4 animate-spin" /> : t('modifiers.inventory.linked.loadMore')}
@@ -212,7 +235,7 @@ export function LinkedProductField({ venueId, enabled, onEnabledChange, value, o
                 )}
                 {showRequired && <p className="text-sm font-medium text-destructive">{t('modifiers.inventory.linked.required')}</p>}
               </div>
-            </FeatureGate>
+            </CandadoDePlan>
           )}
         </div>
       )}

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
-import { ArrowDown, ArrowUp, Building2, Clock, ExternalLink, Plus, RotateCcw, Store, Trash2 } from 'lucide-react'
+import { ArrowDown, ArrowUp, Building2, ChefHat, Clock, ExternalLink, Plus, RotateCcw, Store, Trash2 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { useAccess } from '@/hooks/use-access'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
@@ -15,6 +15,7 @@ import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { Switch } from '@/components/ui/switch'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import {
   AlertDialog,
@@ -31,6 +32,7 @@ import {
   courseValidation,
   getServiceCourses,
   normalizeCourses,
+  saveKitchenRelease,
   saveServiceCourses,
   serviceCourseKey,
   type ServiceCourse,
@@ -364,6 +366,7 @@ export function ServiceCoursesContent({
               </Alert>
             ))}
           {(data.enabled || scope.kind === 'organization') && <CourseList courses={data.courses} />}
+          {scope.kind === 'venue' && <KitchenRelease data={data} canManage={canManage} venueId={scope.id} />}
           {scope.kind === 'venue' && (
             <section className="rounded-xl border border-border bg-muted/30 p-5" data-tour="service-courses-organization-link">
               <p className="font-medium">{t('organizationTitle')}</p>
@@ -416,6 +419,55 @@ export function ServiceCoursesContent({
         </>
       )}
     </div>
+  )
+}
+
+/**
+ * D17 (founder, 20-nov-2026; Flautas): «La cocina puede liberar tiempos desde su pantalla». De la sucursal, apagado de fábrica,
+ * mismo plan que los tiempos. Apagado se ve y se explica; sin permiso o sin Pro se ve deshabilitado.
+ */
+function KitchenRelease({ data, canManage, venueId }: { data: ServiceCoursesRead; canManage: boolean; venueId: string }) {
+  const { t } = useTranslation('serviceCourses')
+  const client = useQueryClient()
+  const { toast } = useToast()
+  const mutation = useMutation({
+    mutationFn: (enabled: boolean) => saveKitchenRelease(venueId, enabled),
+    onSuccess: saved => {
+      client.setQueryData(serviceCourseKey({ kind: 'venue', id: venueId }), saved)
+      toast({ title: t(saved.kitchenCanRelease ? 'kitchenReleaseOn' : 'kitchenReleaseOff') })
+    },
+  })
+  const supported = typeof data.kitchenCanRelease === 'boolean'
+  const checked = data.kitchenCanRelease === true
+  return (
+    <section className="space-y-3 rounded-xl border border-border bg-card p-5" data-tour="service-courses-kitchen-release">
+      <div className="flex items-center gap-2 text-sm font-semibold">
+        <ChefHat className="h-4 w-4" />
+        {t('kitchenReleaseTitle')}
+      </div>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <label htmlFor="kitchen-release" className="text-sm font-medium">
+            {t('kitchenReleaseLabel')}
+          </label>
+          <p className="mt-1 text-sm text-muted-foreground">{t('kitchenReleaseBody')}</p>
+          {!supported && <p className="mt-1 text-sm text-muted-foreground">{t('kitchenReleaseNeedsServer')}</p>}
+          {!canManage && <p className="mt-1 text-sm text-muted-foreground">{t('kitchenReleaseReadOnly')}</p>}
+        </div>
+        <Switch
+          id="kitchen-release"
+          checked={checked}
+          disabled={!supported || !canManage || !data.enabled || mutation.isPending}
+          onCheckedChange={value => mutation.mutate(value)}
+          aria-label={t('kitchenReleaseLabel')}
+        />
+      </div>
+      {mutation.isError && (
+        <p role="alert" className="text-sm text-destructive">
+          {t('kitchenReleaseError')}
+        </p>
+      )}
+    </section>
   )
 }
 
