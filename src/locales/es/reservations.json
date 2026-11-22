@@ -564,7 +564,7 @@
       "noShowGrace": "Gracia para No Show",
       "noShowGraceHelp": "Minutos de espera antes de marcar No Show",
       "capacityMode": "Capacidad para citas",
-      "capacityModeHelp": "Elige si la disponibilidad se limita por el ritmo general del negocio o por los horarios del personal elegible.",
+      "capacityModeHelp": "Elige si la disponibilidad se limita por el ritmo general del negocio o por los horarios del personal elegible. También cambia los horarios que ofrece la reserva manual del panel: con «Personal disponible», ahí sólo salen horarios para servicios de cita.",
       "capacityModes": {
         "pacing": "Ritmo del negocio",
         "perStaff": "Personal disponible"
@@ -574,7 +574,7 @@
       "maxPerSlot": "Máximo por slot",
       "maxPerSlotHelp": "Reservaciones simultáneas permitidas por horario. Para servicios 1:1 (citas individuales), el mínimo efectivo es 1 incluso si seleccionas 'Sin límite' — elige el número exacto de recursos paralelos (cabinas, estaciones, sillas) si tu negocio recibe varias reservas a la vez.",
       "onlineCapacity": "Capacidad online",
-      "onlineCapacityHelp": "Qué parte del cupo de cada clase (o de un producto con cupo) se ofrece para reservar en línea. No cambia las citas: su límite es el «Máximo por slot» y el personal disponible."
+      "onlineCapacityHelp": "Qué parte del cupo de cada clase (o de un producto con cupo) se ofrece para reservar en línea. No cambia los horarios de las citas."
     },
     "staffing": {
       "sectionHelp": "Elige quién puede realizar cada servicio con cita y define la disponibilidad de cada profesionista.",

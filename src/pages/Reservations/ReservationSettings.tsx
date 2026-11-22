@@ -1399,7 +1399,15 @@ export default function ReservationSettings() {
                         <MultiPillSelect
                           options={REMINDER_CHANNEL_OPTIONS}
                           value={formValues.reminderChannels}
-                          onChange={next => setValue('reminderChannels', next, { shouldDirty: true })}
+                          // Un canal que la pantalla no conoce (p. ej. «PUSH», guardado por API) se descarta al tocar uno:
+                          // si no, seguía en la lista y el guardado quedaba frenado aunque se siguiera el aviso.
+                          onChange={next =>
+                            setValue(
+                              'reminderChannels',
+                              next.filter(channel => REMINDER_CHANNEL_OPTIONS.some(option => option.value === channel)),
+                              { shouldDirty: true },
+                            )
+                          }
                           ariaLabel={t('settings.reminders.channels')}
                         />
                       </SettingRow>

@@ -14,7 +14,11 @@ const day = (enabled: boolean): DaySchedule => ({ enabled, ranges: enabled ? [{ 
 
 /** Ajustes guardados DISTINTOS de los de fábrica del formulario: un cambio colado se nota. */
 export function savedSettings(
-  overrides: { defaultDurationMin?: number; waitlist?: Partial<ReservationSettingsData['waitlist']> } = {},
+  overrides: {
+    defaultDurationMin?: number
+    waitlist?: Partial<ReservationSettingsData['waitlist']>
+    reminders?: Partial<ReservationSettingsData['reminders']>
+  } = {},
 ): ReservationSettingsData {
   return {
     scheduling: {
@@ -58,7 +62,7 @@ export function savedSettings(
       creditNoShowRefund: true,
     },
     waitlist: { enabled: true, maxSize: 25, priorityMode: 'broadcast', notifyWindowMin: 45, ...overrides.waitlist },
-    reminders: { enabled: true, channels: ['WHATSAPP', 'EMAIL'], minutesBefore: [60, 1440] },
+    reminders: { enabled: true, channels: ['WHATSAPP', 'EMAIL'], minutesBefore: [60, 1440], ...overrides.reminders },
     googleCalendar: { eventDetailLevel: 'SERVICE' },
     operatingHours: {
       monday: day(true),

@@ -112,9 +112,16 @@ describe('TOUR_TARGET_TAB', () => {
 })
 
 describe('ayudas de General que no aplican a los dos tipos', () => {
-  it('el % de cupo en línea dice que no cambia las citas (el SERVIDOR lo excluye)', () => {
-    expect(es.settings.pacing.onlineCapacityHelp).toMatch(/no cambia las citas/i)
-    expect(en.settings.pacing.onlineCapacityHelp).toMatch(/does not change appointments/i)
+  it('el % de cupo en línea dice que no cambia los horarios de las citas, sin prometer nada del personal', () => {
+    expect(es.settings.pacing.onlineCapacityHelp).toMatch(/No cambia los horarios de las citas\./)
+    expect(en.settings.pacing.onlineCapacityHelp).toMatch(/does not change appointment time slots\./i)
+    expect(es.settings.pacing.onlineCapacityHelp).not.toMatch(/personal/i)
+    expect(en.settings.pacing.onlineCapacityHelp).not.toMatch(/staff/i)
+  })
+
+  it('el modo de capacidad (pestaña Citas) avisa que también cambia la reserva manual del panel', () => {
+    expect(es.settings.scheduling.capacityModeHelp).toMatch(/reserva manual del panel/)
+    expect(en.settings.scheduling.capacityModeHelp).toMatch(/manual booking in the dashboard/i)
   })
 
   it('el tour de Programación no promete que todo aplica a clases y citas', () => {

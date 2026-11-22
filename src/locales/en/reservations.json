@@ -564,7 +564,7 @@
       "noShowGrace": "No Show grace period",
       "noShowGraceHelp": "Minutes to wait before marking No Show",
       "capacityMode": "Appointment capacity",
-      "capacityModeHelp": "Choose whether availability is limited by the venue pacing cap or by the schedules of eligible staff members.",
+      "capacityModeHelp": "Choose whether availability is limited by the venue pacing cap or by the schedules of eligible staff members. It also changes the slots offered by the manual booking in the dashboard: with “Available staff”, only appointment services get slots there.",
       "capacityModes": {
         "pacing": "Venue pacing",
         "perStaff": "Available staff"
@@ -574,7 +574,7 @@
       "maxPerSlot": "Max per slot",
       "maxPerSlotHelp": "Concurrent reservations allowed per slot. For 1:1 services (individual appointments), the effective minimum is 1 even if you select 'No limit' — pick the exact number of parallel resources (booths, stations, chairs) if your business takes multiple bookings at once.",
       "onlineCapacity": "Online capacity",
-      "onlineCapacityHelp": "How much of each class (or product with a capacity) is offered for online booking. It does not change appointments: their limit is the max per slot and the available staff."
+      "onlineCapacityHelp": "How much of each class (or product with a capacity) is offered for online booking. It does not change appointment time slots."
     },
     "staffing": {
       "sectionHelp": "Choose who can perform each appointment service and define each professional's availability.",

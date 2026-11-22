@@ -194,6 +194,26 @@ describe('Configuración de Reservaciones en pestañas (D680)', () => {
     expect(within(maxSize.parentElement!).getByText('settings.validation.invalidOption')).toBeVisible()
   })
 
+  it('un canal de recordatorio que la pantalla no conoce (PUSH, guardado por API) se descarta al tocar un canal y el guardado pasa', async () => {
+    getSettings.mockResolvedValue(savedSettings({ reminders: { enabled: false, channels: ['PUSH'] } }))
+    const user = userEvent.setup()
+    renderSettings([`${SETTINGS_PATH}#clases`])
+    await screen.findByText('settings.title')
+
+    await user.selectOptions(select('settings.payments.classUpfrontDefault'), 'required')
+    await user.click(screen.getByRole('button', { name: 'actions.saveChanges' }))
+    await waitFor(() => expect(location()).toBe(`${SETTINGS_PATH}#general`))
+    expect(updateSettings).not.toHaveBeenCalled()
+    const canales = screen.getByRole('group', { name: 'settings.reminders.channels' })
+    expect(within(canales.parentElement!).getByText('settings.validation.invalidOption')).toBeVisible()
+
+    await user.click(within(canales).getByRole('button', { name: 'Email' }))
+    await user.click(screen.getByRole('button', { name: 'actions.saveChanges' }))
+
+    await waitFor(() => expect(updateSettings).toHaveBeenCalledTimes(1))
+    expect(updateSettings.mock.calls[0][1].reminders).toEqual({ enabled: false, channels: ['EMAIL'], minutesBefore: [1440, 60] })
+  })
+
   it('la pestaña con cambios sin guardar lleva su punto', async () => {
     const user = userEvent.setup()
     renderSettings([`${SETTINGS_PATH}#clases`])
