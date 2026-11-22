@@ -832,7 +832,13 @@
         "lastDepositLands": "último depósito ~{{date}}",
         "lastDepositLanded": "último depósito debió caer ~{{date}}",
         "otherRow": "Otros métodos",
-        "cardDetailToggle": "Ver detalle por tipo de tarjeta"
+        "cardDetailToggle": "Ver detalle por tipo de tarjeta",
+        "refunds": "Devoluciones ({{count}})",
+        "tenderCommissions": "Comisión de plataformas y tipos de pago (según la tasa que configuraste)",
+        "cancelledRefunds": "Incluye {{amount}} devueltos de cuentas canceladas: aquí se restan porque el dinero sí salió; en «Ventas netas» no, porque esas ventas tampoco se cuentan.",
+        "bankRowNegative": "Se descuenta de tu banco",
+        "bankRefunds": "ya descuenta {{amount}} de devoluciones",
+        "tenderRow": "Comisión de plataformas y tipos de pago"
       },
       "merchants": {
         "title": "Por comercio",
@@ -842,24 +848,30 @@
           "commission": "Comisión",
           "net": "Neto a recibir",
           "share": "Parte",
-          "payout": "Depósito"
+          "payout": "Depósito",
+          "refunds": "Devoluciones"
         },
         "payout": {
           "lands": "Cae ~{{date}}",
           "landed": "Debió caer ~{{date}}",
           "nextEstimated": "Próx. ≈{{amount}} · ~{{date}}",
-          "noRule": "Sin regla de liquidación"
+          "noRule": "Sin regla de liquidación",
+          "online": "Sin fecha estimada"
         },
         "rules": {
           "title": "Reglas de liquidación",
           "visaMc": "Visa/MC"
         },
-        "deposits": "Depósitos de este comercio"
+        "deposits": "Depósitos de este comercio",
+        "online": {
+          "name": "Cobros en línea",
+          "subtitle": "Tienda en línea, ligas de pago y checkout"
+        }
       },
       "timeline": {
         "title": "Cuándo cae",
         "incoming": "Por caer",
-        "unprojected": "Sin fecha estimada: {{amount}} (cuentas sin regla de liquidación)",
+        "unprojected": "Sin fecha estimada: {{amount}} (comercios sin regla de liquidación o cobros con la comisión por calcular)",
         "status": {
           "settled": "debió caer",
           "pending": "hoy",

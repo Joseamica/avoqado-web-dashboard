@@ -832,7 +832,13 @@
         "lastDepositLands": "last deposit ~{{date}}",
         "lastDepositLanded": "last deposit should have landed ~{{date}}",
         "otherRow": "Other methods",
-        "cardDetailToggle": "View card type detail"
+        "cardDetailToggle": "View card type detail",
+        "refunds": "Refunds ({{count}})",
+        "tenderCommissions": "Platform and payment-type commissions (at the rate you set)",
+        "cancelledRefunds": "Includes {{amount}} refunded from cancelled accounts: subtracted here because the money did leave; not in «Net sales», because those sales are not counted either.",
+        "bankRowNegative": "Deducted from your bank",
+        "bankRefunds": "already deducts {{amount}} of refunds",
+        "tenderRow": "Platform and payment-type commissions"
       },
       "merchants": {
         "title": "By merchant",
@@ -842,24 +848,30 @@
           "commission": "Commission",
           "net": "Net to receive",
           "share": "Share",
-          "payout": "Payout"
+          "payout": "Payout",
+          "refunds": "Refunds"
         },
         "payout": {
           "lands": "Lands ~{{date}}",
           "landed": "Should have landed ~{{date}}",
           "nextEstimated": "Next ≈{{amount}} · ~{{date}}",
-          "noRule": "No settlement rule"
+          "noRule": "No settlement rule",
+          "online": "No estimated date"
         },
         "rules": {
           "title": "Settlement rules",
           "visaMc": "Visa/MC"
         },
-        "deposits": "This merchant's deposits"
+        "deposits": "This merchant's deposits",
+        "online": {
+          "name": "Online payments",
+          "subtitle": "Online store, payment links and checkout"
+        }
       },
       "timeline": {
         "title": "When it lands",
         "incoming": "Incoming",
-        "unprojected": "No estimated date: {{amount}} (accounts without a settlement rule)",
+        "unprojected": "No estimated date: {{amount}} (merchants without a settlement rule or payments whose fee is still being calculated)",
         "status": {
           "settled": "should have landed",
           "pending": "today",

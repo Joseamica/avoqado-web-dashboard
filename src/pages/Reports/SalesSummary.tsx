@@ -1043,6 +1043,7 @@ export default function SalesSummary() {
   const merchantBreakdown = useMemo(() => apiResponse?.byMerchantAccount ?? [], [apiResponse])
   const detailedBuckets = useMemo(() => apiResponse?.byPaymentMethodDetailed ?? [], [apiResponse])
   const settlementCalendar = useMemo(() => apiResponse?.settlementCalendar ?? [], [apiResponse])
+  const statementDestinations = apiResponse?.statementDestinations
   // Show the statement only when advanced reporting is unlocked, no payment-method
   // filter is active (it would collapse the by-method view to 100%), and the
   // backend returned the detailed buckets the hero bar needs.
@@ -2295,12 +2296,14 @@ export default function SalesSummary() {
           <StatementSection
             buckets={detailedBuckets}
             merchants={merchantBreakdown}
+            destinations={statementDestinations}
             calendar={settlementCalendar}
             venueTimezone={venueTimezone}
             formatCurrency={Currency}
           />
           {lineaDeSaldo('px-1')}
-          {venueId && <SettlementWeekStrip venueId={venueId} venueTimezone={venueTimezone} />}
+          {/* The week strip reads the whole venue: with one merchant chosen it would contradict the statement above (D9.2). */}
+          {venueId && !merchantAccountId && <SettlementWeekStrip venueId={venueId} venueTimezone={venueTimezone} />}
         </>
       )}
       {hasAccess && isFiltered && (

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ChevronDown, Landmark, Wallet } from 'lucide-react'
+import { ChevronDown, Info, Landmark, ReceiptText, Wallet } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { StatementModel, StatementSegment } from './types'
 import { formatVenueDate } from './venueDates'
@@ -23,6 +23,13 @@ const CARD_TYPE_LABEL_KEYS: Record<string, string> = {
   INTERNATIONAL: 'salesSummary.controls.filterBy.cardType.options.international',
 }
 
+/** Below half a cent, a figure is zero (sums of cents in float leave noise). */
+const hay = (n: number) => Math.abs(n) >= 0.005
+
+/** A deduction: «−$X», or «+$X» when it came back (a fee a refund reversed), «$0.00» when nothing. Never «−−$X». */
+const deduccion = (n: number, formatCurrency: (n: number) => string) =>
+  !hay(n) ? formatCurrency(0) : n < 0 ? `+${formatCurrency(-n)}` : `−${formatCurrency(n)}`
+
 /**
  * Statement hero: the period's money story in one place. Big "you keep" number,
  * a flat segmented bar of what was collected by method, the single fee deduction,
@@ -32,8 +39,8 @@ const CARD_TYPE_LABEL_KEYS: Record<string, string> = {
 export function StatementFlow({ model, formatCurrency }: Props) {
   const { t, i18n } = useTranslation('reports')
   const [showCardDetail, setShowCardDetail] = useState(false)
-  const { segments, cardBucket, other, cash, cardNet } = model
-  const subBuckets = cardBucket?.subBuckets ?? []
+  const { segments, other, cash, cardNet } = model
+  const subBuckets = model.cardSubs
 
   return (
     <div className="p-5 sm:p-6" data-tour="statement-flow">
@@ -79,12 +86,38 @@ export function StatementFlow({ model, formatCurrency }: Props) {
         </>
       )}
 
-      {/* Fee deduction — the only place the commission total appears */}
-      <div className="mt-4 flex items-baseline justify-between gap-4 border-t border-input pt-4">
-        <span className="text-sm text-muted-foreground">{t('salesSummary.statement.flow.fees')}</span>
-        <span className="text-sm font-medium tabular-nums text-muted-foreground" data-testid="statement-fees">
-          −{formatCurrency(model.commissions)}
-        </span>
+      {/* Deductions: refunds (D10.2), Avoqado's fees, and the commission of platforms / own payment types (D1) */}
+      <div className="mt-4 space-y-2 border-t border-input pt-4">
+        {hay(model.refunds.amount) && (
+          <div className="flex items-baseline justify-between gap-4">
+            <span className="text-sm text-muted-foreground">
+              {t('salesSummary.statement.flow.refunds', { count: model.refunds.count })}
+            </span>
+            <span className="text-sm font-medium tabular-nums text-muted-foreground" data-testid="statement-refunds">
+              {deduccion(model.refunds.amount, formatCurrency)}
+            </span>
+          </div>
+        )}
+        <div className="flex items-baseline justify-between gap-4">
+          <span className="text-sm text-muted-foreground">{t('salesSummary.statement.flow.fees')}</span>
+          <span className="text-sm font-medium tabular-nums text-muted-foreground" data-testid="statement-fees">
+            {deduccion(model.commissions, formatCurrency)}
+          </span>
+        </div>
+        {hay(model.tenderCommissions) && (
+          <div className="flex items-baseline justify-between gap-4">
+            <span className="text-sm text-muted-foreground">{t('salesSummary.statement.flow.tenderCommissions')}</span>
+            <span className="text-sm font-medium tabular-nums text-muted-foreground" data-testid="statement-tender-commissions">
+              {deduccion(model.tenderCommissions, formatCurrency)}
+            </span>
+          </div>
+        )}
+        {hay(model.cancelledOrderRefunds) && (
+          <p className="flex items-start gap-1.5 text-xs text-muted-foreground" data-testid="statement-cancelled-refunds">
+            <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
+            <span>{t('salesSummary.statement.flow.cancelledRefunds', { amount: formatCurrency(model.cancelledOrderRefunds) })}</span>
+          </p>
+        )}
       </div>
 
       {/* Where the money ends up */}
@@ -106,7 +139,9 @@ export function StatementFlow({ model, formatCurrency }: Props) {
           <div className="flex items-center justify-between gap-3 rounded-lg border border-input p-3" data-testid="statement-bank-row">
             <span className="flex min-w-0 items-center gap-2 text-sm">
               <Landmark className="h-4 w-4 shrink-0 text-blue-600 dark:text-blue-400" aria-hidden />
-              <span className="truncate">{t('salesSummary.statement.flow.bankRow')}</span>
+              <span className="truncate">
+                {t(cardNet < 0 ? 'salesSummary.statement.flow.bankRowNegative' : 'salesSummary.statement.flow.bankRow')}
+              </span>
               {model.lastDepositDate && (
                 <span className="hidden shrink-0 text-xs text-muted-foreground sm:inline">
                   ·{' '}
@@ -119,17 +154,36 @@ export function StatementFlow({ model, formatCurrency }: Props) {
                 </span>
               )}
             </span>
-            <span className="shrink-0 font-semibold tabular-nums">{formatCurrency(cardNet)}</span>
+            <span className="flex shrink-0 flex-col items-end">
+              <span className="font-semibold tabular-nums">{formatCurrency(cardNet)}</span>
+              {hay(model.bankRefunds) && (
+                <span className="text-[11px] text-muted-foreground" data-testid="statement-bank-refunds">
+                  {t('salesSummary.statement.flow.bankRefunds', { amount: formatCurrency(model.bankRefunds) })}
+                </span>
+              )}
+            </span>
           </div>
         )}
 
-        {other.amount !== 0 && (
+        {(hay(other.net) || other.amount > 0) && (
           <div className="flex items-center justify-between gap-3 rounded-lg border border-input p-3" data-testid="statement-other-row">
             <span className="flex min-w-0 items-center gap-2 text-sm">
               <Wallet className="h-4 w-4 shrink-0 text-orange-600 dark:text-orange-400" aria-hidden />
               <span className="truncate">{t('salesSummary.statement.flow.otherRow')}</span>
             </span>
             <span className="shrink-0 font-semibold tabular-nums">{formatCurrency(other.net)}</span>
+          </div>
+        )}
+
+        {hay(model.tenderCommissions) && (
+          <div className="flex items-center justify-between gap-3 rounded-lg border border-dashed border-input p-3" data-testid="statement-tender-row">
+            <span className="flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
+              <ReceiptText className="h-4 w-4 shrink-0" aria-hidden />
+              <span className="truncate">{t('salesSummary.statement.flow.tenderRow')}</span>
+            </span>
+            <span className="shrink-0 font-semibold tabular-nums text-muted-foreground">
+              {deduccion(model.tenderCommissions, formatCurrency)}
+            </span>
           </div>
         )}
       </div>
@@ -161,7 +215,7 @@ export function StatementFlow({ model, formatCurrency }: Props) {
                   </span>
                   <span className="flex shrink-0 items-center gap-3 tabular-nums text-muted-foreground">
                     <span>{sub.count} {t('salesSummary.transactionsShort')}</span>
-                    <span className="w-10 text-right">{sub.percentage.toFixed(1)}%</span>
+                    <span className="w-10 text-right">{sub.pct.toFixed(1)}%</span>
                     <span className="w-20 text-right font-medium text-foreground">{formatCurrency(sub.amount)}</span>
                   </span>
                 </li>

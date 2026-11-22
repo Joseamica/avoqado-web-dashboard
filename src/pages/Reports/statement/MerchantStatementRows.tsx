@@ -18,6 +18,24 @@ const CARD_TYPE_LABEL_KEYS: Record<string, string> = {
   INTERNATIONAL: 'salesSummary.controls.filterBy.cardType.options.international',
 }
 
+/** Below half a cent, a figure is zero. */
+const hay = (n: number | undefined) => Math.abs(n ?? 0) >= 0.005
+
+/** A deduction: «−$X», or «+$X» when it came back (a fee a refund reversed), «$0.00» when nothing. Never «−−$X». */
+const deduccion = (n: number, formatCurrency: (n: number) => string) =>
+  !hay(n) ? formatCurrency(0) : n < 0 ? `+${formatCurrency(-n)}` : `−${formatCurrency(n)}`
+
+/** Name and subtitle of a row: a terminal merchant, or the online collections (D11), which have no merchant of their own. */
+function rowName(row: MerchantStatementRowModel, t: TFn): { name: string; subtitle: string } {
+  if (row.kind === 'online') {
+    return { name: t('salesSummary.statement.merchants.online.name'), subtitle: t('salesSummary.statement.merchants.online.subtitle') }
+  }
+  return {
+    name: row.displayName,
+    subtitle: [row.provider, row.affiliation && `${t('salesSummary.controls.merchant.affiliation')}: ${row.affiliation}`].filter(Boolean).join(' · '),
+  }
+}
+
 const PAYOUT_TESTID: Record<PayoutStatus, string> = {
   lands: 'payout-chip-lands',
   landed: 'payout-chip-landed',
@@ -36,6 +54,13 @@ type TFn = (key: string, opts?: Record<string, unknown>) => string
 function PayoutChip({ row, locale, formatCurrency, t }: { row: MerchantStatementRowModel; locale: string; formatCurrency: (n: number) => string; t: TFn }) {
   const base = 'inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium whitespace-nowrap'
   const blue = 'border-blue-600/40 text-blue-600 dark:border-blue-400/40 dark:text-blue-400'
+  if (row.kind === 'online') {
+    return (
+      <span className={cn(base, 'border-input text-muted-foreground')} data-testid="payout-chip-online">
+        {t('salesSummary.statement.merchants.payout.online')}
+      </span>
+    )
+  }
   if (row.payoutStatus === 'noRule' || !row.payoutDate) {
     return (
       <span className={cn(base, 'border-input text-muted-foreground')} data-testid={PAYOUT_TESTID.noRule}>
@@ -128,6 +153,8 @@ export function MerchantStatementRows({ rows, formatCurrency }: Props) {
   if (rows.length === 0) return null
 
   const showShare = rows.length > 1
+  // D10.2: only when some row had refunds, so a normal day keeps its 5-6 columns.
+  const showRefunds = rows.some(r => hay(r.refunds))
   const toggle = (id: string) =>
     setExpanded(prev => {
       const next = new Set(prev)
@@ -137,8 +164,9 @@ export function MerchantStatementRows({ rows, formatCurrency }: Props) {
 
   const feeLabel = (row: MerchantStatementRowModel) =>
     row.effectiveRatePct != null
-      ? `−${formatCurrency(row.platformFee)} · ${row.effectiveRatePct.toFixed(1)}%`
-      : `−${formatCurrency(row.platformFee)}`
+      ? `${deduccion(row.platformFee, formatCurrency)} · ${row.effectiveRatePct.toFixed(1)}%`
+      : deduccion(row.platformFee, formatCurrency)
+  const colCount = 5 + (showShare ? 1 : 0) + (showRefunds ? 1 : 0)
 
   return (
     <div className="p-5 sm:p-6" data-tour="statement-merchants">
@@ -151,6 +179,7 @@ export function MerchantStatementRows({ rows, formatCurrency }: Props) {
             <th className="py-2 pr-2 text-left font-medium">{t('salesSummary.statement.merchants.cols.merchant')}</th>
             <th className="px-2 py-2 text-right font-medium">{t('salesSummary.statement.merchants.cols.collected')}</th>
             <th className="px-2 py-2 text-right font-medium">{t('salesSummary.statement.merchants.cols.commission')}</th>
+            {showRefunds && <th className="px-2 py-2 text-right font-medium">{t('salesSummary.statement.merchants.cols.refunds')}</th>}
             <th className="px-2 py-2 text-right font-medium">{t('salesSummary.statement.merchants.cols.net')}</th>
             {showShare && <th className="px-2 py-2 text-right font-medium">{t('salesSummary.statement.merchants.cols.share')}</th>}
             <th className="py-2 pl-2 text-right font-medium">{t('salesSummary.statement.merchants.cols.payout')}</th>
@@ -159,6 +188,7 @@ export function MerchantStatementRows({ rows, formatCurrency }: Props) {
         <tbody>
           {rows.map(row => {
             const isOpen = expanded.has(row.merchantAccountId)
+            const { name, subtitle } = rowName(row, t)
             return (
               <Fragment key={row.merchantAccountId}>
                 <tr
@@ -171,17 +201,20 @@ export function MerchantStatementRows({ rows, formatCurrency }: Props) {
                     <div className="flex items-center gap-2">
                       <ChevronDown className={cn('h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform', !isOpen && '-rotate-90')} aria-hidden />
                       <div className="flex min-w-0 flex-col">
-                        <span className="truncate font-medium" title={row.displayName}>
-                          {row.displayName}
+                        <span className="truncate font-medium" title={name}>
+                          {name}
                         </span>
-                        <span className="truncate text-[11px] text-muted-foreground">
-                          {[row.provider, row.affiliation && `${t('salesSummary.controls.merchant.affiliation')}: ${row.affiliation}`].filter(Boolean).join(' · ')}
-                        </span>
+                        <span className="truncate text-[11px] text-muted-foreground">{subtitle}</span>
                       </div>
                     </div>
                   </td>
                   <td className="px-2 py-2.5 text-right tabular-nums">{formatCurrency(row.collectedOnCard)}</td>
                   <td className="px-2 py-2.5 text-right tabular-nums text-muted-foreground">{feeLabel(row)}</td>
+                  {showRefunds && (
+                    <td className="px-2 py-2.5 text-right tabular-nums text-muted-foreground">
+                      {hay(row.refunds) ? deduccion(row.refunds ?? 0, formatCurrency) : '—'}
+                    </td>
+                  )}
                   <td className="px-2 py-2.5 text-right font-semibold tabular-nums">{formatCurrency(row.netToReceive)}</td>
                   {showShare && (
                     <td className="px-2 py-2.5">
@@ -199,7 +232,7 @@ export function MerchantStatementRows({ rows, formatCurrency }: Props) {
                 </tr>
                 {isOpen && (
                   <tr className="border-b border-input/60 last:border-0">
-                    <td colSpan={showShare ? 6 : 5} className="bg-muted/20 px-2 pb-3 pl-9">
+                    <td colSpan={colCount} className="bg-muted/20 px-2 pb-3 pl-9">
                       <MerchantDetail row={row} formatCurrency={formatCurrency} locale={locale} t={t} />
                     </td>
                   </tr>
@@ -214,14 +247,15 @@ export function MerchantStatementRows({ rows, formatCurrency }: Props) {
       <div className="mt-3 space-y-2 md:hidden">
         {rows.map(row => {
           const isOpen = expanded.has(row.merchantAccountId)
+          const { name, subtitle } = rowName(row, t)
           return (
             <div key={row.merchantAccountId} className="rounded-lg border border-input p-3" data-testid="merchant-statement-card" data-merchant-id={row.merchantAccountId}>
               <button type="button" className="flex w-full items-start justify-between gap-3 text-left" onClick={() => toggle(row.merchantAccountId)} aria-expanded={isOpen}>
                 <div className="flex min-w-0 flex-col">
-                  <span className="truncate font-medium" title={row.displayName}>
-                    {row.displayName}
+                  <span className="truncate font-medium" title={name}>
+                    {name}
                   </span>
-                  <span className="truncate text-[11px] text-muted-foreground">{row.provider}</span>
+                  <span className="truncate text-[11px] text-muted-foreground">{subtitle}</span>
                 </div>
                 <PayoutChip row={row} locale={locale} formatCurrency={formatCurrency} t={t} />
               </button>
@@ -230,6 +264,12 @@ export function MerchantStatementRows({ rows, formatCurrency }: Props) {
                 <dd className="text-right tabular-nums">{formatCurrency(row.collectedOnCard)}</dd>
                 <dt className="text-muted-foreground">{t('salesSummary.statement.merchants.cols.commission')}</dt>
                 <dd className="text-right tabular-nums text-muted-foreground">{feeLabel(row)}</dd>
+                {hay(row.refunds) && (
+                  <>
+                    <dt className="text-muted-foreground">{t('salesSummary.statement.merchants.cols.refunds')}</dt>
+                    <dd className="text-right tabular-nums text-muted-foreground">{deduccion(row.refunds ?? 0, formatCurrency)}</dd>
+                  </>
+                )}
                 <dt className="text-muted-foreground">{t('salesSummary.statement.merchants.cols.net')}</dt>
                 <dd className="text-right font-semibold tabular-nums">{formatCurrency(row.netToReceive)}</dd>
               </dl>
