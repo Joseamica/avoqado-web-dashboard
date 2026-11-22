@@ -493,3 +493,51 @@ describe('Resumen de ventas · sólo controles que hacen algo (D3)', () => {
     expect(screen.queryByText('salesSummary.controls.reportType.label')).not.toBeInTheDocument()
   })
 })
+
+describe('SalesSummary · canales y lo cobrado por adelantado (carril G: D4, D5)', () => {
+  it('🔴 D5 · «Paquetes vendidos en línea» y «Depósitos de reservas» van debajo de «Ganancia neta», con su conteo y su ayuda', async () => {
+    h.response = respuesta({
+      summary: { ...CON_TARJETAS, packagesSoldOnline: 2000, packagesSoldOnlineCount: 2, reservationDeposits: 220, reservationDepositsCount: 3, reservationDepositsRefunded: 230 },
+    })
+    pintar()
+    const paquetes = await screen.findByText('salesSummary.rows.packagesSoldOnline')
+    const depositos = screen.getByText('salesSummary.rows.reservationDeposits')
+    expect(antes(screen.getByText('salesSummary.rows.netProfit'), paquetes)).toBe(true)
+    expect(antes(screen.getByText('salesSummary.rows.netProfit'), depositos)).toBe(true)
+    expect(screen.getByText('2 salesSummary.packagesCountLabel(count=2)')).toBeInTheDocument()
+    expect(screen.getByText(/^3 salesSummary\.depositsCountLabelWithRefunds\(count=3,refunded=/)).toBeInTheDocument()
+    expect(screen.getByText('salesSummary.tooltips.packagesSoldOnline')).toBeInTheDocument()
+    expect(screen.getByText('salesSummary.tooltips.reservationDeposits')).toBeInTheDocument()
+  })
+
+  it('🔴 D5 · un depósito cobrado y devuelto en el mismo periodo ($0 neto) no desaparece: dice su conteo y lo devuelto', async () => {
+    h.response = respuesta({
+      summary: { ...CON_TARJETAS, packagesSoldOnline: 0, packagesSoldOnlineCount: 0, reservationDeposits: 0, reservationDepositsCount: 1, reservationDepositsRefunded: 300 },
+    })
+    pintar()
+    expect(await screen.findByText('salesSummary.rows.reservationDeposits')).toBeInTheDocument()
+    expect(screen.queryByText('salesSummary.rows.packagesSoldOnline')).not.toBeInTheDocument()
+    expect(screen.getByText(/^1 salesSummary\.depositsCountLabelWithRefunds\(count=1,refunded=/)).toBeInTheDocument()
+  })
+
+  it('control · sin paquetes ni depósitos (o con un servidor viejo) no hay renglones', async () => {
+    pintar()
+    await tarjetaDelTotal()
+    expect(screen.queryByText('salesSummary.rows.packagesSoldOnline')).not.toBeInTheDocument()
+    expect(screen.queryByText('salesSummary.rows.reservationDeposits')).not.toBeInTheDocument()
+  })
+
+  it('D4 · la sección «Ventas por canal» sale con lo que manda el servidor (Pro) y con candado en Gratis', async () => {
+    const fila = { grossSales: 100, discounts: 0, refunds: 0, netSales: 100, tips: 0, platformFees: 0, tenderCommissions: 0, totalCollected: 100, orderCount: 1, transactionCount: 1, refundCount: 0 }
+    h.response = respuesta({ byChannel: [{ key: 'RAPPI', ...fila }], byOrderType: [{ key: 'DELIVERY', ...fila }] })
+    pintar()
+    expect(await screen.findByTestId('ventas-por-canal')).toBeInTheDocument()
+    expect(screen.getAllByText('salesSummary.channels.names.RAPPI').length).toBeGreaterThan(0)
+  })
+
+  it('D4 · plan Gratis: la sección se ve con su candado', async () => {
+    h.access = false
+    pintar()
+    expect(await screen.findByTestId('ventas-por-canal-candado')).toBeInTheDocument()
+  })
+})

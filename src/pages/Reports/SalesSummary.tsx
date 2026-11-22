@@ -60,6 +60,7 @@ import {
 } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { PeriodBreakdownTable } from './components/PeriodBreakdownTable'
+import { SalesByChannelSection } from './components/SalesByChannelSection'
 import { StatementSection } from './statement/StatementSection'
 import { SettlementWeekStrip } from '@/components/settlement/SettlementWeekStrip'
 import { FeatureGate } from '@/components/billing/FeatureGate'
@@ -992,6 +993,9 @@ export default function SalesSummary() {
       // the reconciliation view (both additive / opt-in on the backend).
       includeMerchantBreakdown: true,
       includeSettlementProjection: true,
+      // Carril G: «Ventas por canal» (Pro: el servidor la deja fuera sin el plan y lo dice) y lo cobrado por adelantado (D5).
+      includeChannelBreakdown: true,
+      includePrepaid: true,
     }
   }, [venueId, hasAccess, dateRange.from, dateRange.to, todayRange.from, todayRange.to, effectiveReportType, merchantAccountId, paymentMethodFilter, cardTypeFilter])
 
@@ -1082,6 +1086,12 @@ export default function SalesSummary() {
         giftCardLoads: apiResponse.summary.giftCardLoads ?? null,
         giftCardLoadsCount: apiResponse.summary.giftCardLoadsCount ?? null,
         paidWithGiftCardBalance: apiResponse.summary.paidWithGiftCardBalance ?? null,
+        // Carril G · D5: cobrado por adelantado que no es venta (opcional: un servidor viejo no lo manda).
+        packagesSoldOnline: apiResponse.summary.packagesSoldOnline ?? null,
+        packagesSoldOnlineCount: apiResponse.summary.packagesSoldOnlineCount ?? 0,
+        reservationDeposits: apiResponse.summary.reservationDeposits ?? null,
+        reservationDepositsCount: apiResponse.summary.reservationDepositsCount ?? 0,
+        reservationDepositsRefunded: apiResponse.summary.reservationDepositsRefunded ?? 0,
       },
       transactions: {
         total: apiResponse.summary.transactionCount,
@@ -2139,6 +2149,40 @@ export default function SalesSummary() {
                 </>
               )}
 
+              {/* Carril G · D5: paquetes comprados en línea y depósitos de reservas. Tampoco son venta ni entran a «Neto cobrado»
+                  (no crean cuenta ni cobro; se decide después si son venta al usarse). Sin filtro de pago; el de depósitos sale
+                  también si se cobró y se devolvió en el mismo periodo ($0 neto), para que su conteo no desaparezca. */}
+              {!sinMetricasDeOrden && (data.summary.packagesSoldOnline ?? 0) !== 0 && (
+                <SummaryRow
+                  label={t('salesSummary.rows.packagesSoldOnline')}
+                  value={data.summary.packagesSoldOnline ?? 0}
+                  count={data.summary.packagesSoldOnlineCount || undefined}
+                  countLabel={t('salesSummary.packagesCountLabel', { count: data.summary.packagesSoldOnlineCount })}
+                  type="neutral"
+                  tooltip={t('salesSummary.tooltips.packagesSoldOnline')}
+                />
+              )}
+              {!sinMetricasDeOrden &&
+                data.summary.reservationDeposits !== null &&
+                (data.summary.reservationDeposits !== 0 || data.summary.reservationDepositsCount > 0 || data.summary.reservationDepositsRefunded !== 0) && (
+                  <SummaryRow
+                    label={t('salesSummary.rows.reservationDeposits')}
+                    value={data.summary.reservationDeposits}
+                    // Siempre con su conteo: un depósito de ayer devuelto hoy dice «0 cobrados · $80 devuelto», no un número suelto.
+                    count={data.summary.reservationDepositsCount}
+                    countLabel={
+                      data.summary.reservationDepositsRefunded !== 0
+                        ? t('salesSummary.depositsCountLabelWithRefunds', {
+                            count: data.summary.reservationDepositsCount,
+                            refunded: Currency(data.summary.reservationDepositsRefunded),
+                          })
+                        : t('salesSummary.depositsCountLabel', { count: data.summary.reservationDepositsCount })
+                    }
+                    type="neutral"
+                    tooltip={t('salesSummary.tooltips.reservationDeposits')}
+                  />
+                )}
+
               {/* Order-level metrics (gross sales, taxes, discounts…) are hidden
                   under a payment filter — they can't be attributed per method. */}
               {sinMetricasDeOrden && (
@@ -2151,6 +2195,16 @@ export default function SalesSummary() {
         </GlassCard>
       </Collapsible>
       )}
+
+      {/* Carril G · D4: «Ventas por canal» y «Por tipo de pedido» (Pro). Gratis ve la sección con su candado. */}
+      <SalesByChannelSection
+        byChannel={apiResponse?.byChannel}
+        byOrderType={apiResponse?.byOrderType}
+        sinPlan={!hasAccess}
+        bloqueadoPorElServidor={apiResponse?.channelBreakdownLocked === true}
+        conFiltro={sinMetricasDeOrden}
+        formatCurrency={Currency}
+      />
 
       {/* Period statement (Mercury-style): "cuánto gané, cuánto me pagan, cuándo
           y cómo" in one cohesive card. Advanced analysis → Pro-only. Hidden under

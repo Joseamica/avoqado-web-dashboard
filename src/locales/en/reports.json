@@ -609,7 +609,9 @@
       "totalCollected": "Net collected",
       "netProfit": "Net profit",
       "giftCardLoads": "Gift cards loaded",
-      "paidWithGiftCardBalance": "Paid with gift balance"
+      "paidWithGiftCardBalance": "Paid with gift balance",
+      "packagesSoldOnline": "Packages sold online",
+      "reservationDeposits": "Reservation deposits"
     },
     "tooltips": {
       "grossSales": "What was sold on checks already collected (items and service charges), before discounts and refunds. Open checks go in «Unpaid»",
@@ -637,7 +639,9 @@
       "totalCollectedSettlement": "Deposit timing varies by payment method: debit and credit cards settle in {{debitDays}} business day(s), while Amex and international cards take {{amexDays}} business day(s).",
       "netProfit": "Net sales - platform fees - third-party fees - staff commissions. It does not subtract what the goods you sold cost you",
       "giftCardLoads": "Balance you sold on gift cards, minus cancellations. It isn't a sale yet: it counts as a sale when the customer uses it.",
-      "paidWithGiftCardBalance": "Part of your sales and tips paid with gift card balance, minus what went back to the balance. That money came in when the card was sold."
+      "paidWithGiftCardBalance": "Part of your sales and tips paid with gift card balance, minus what went back to the balance. That money came in when the card was sold.",
+      "packagesSoldOnline": "Class packages your customers bought online in the period, on the day they paid. It is not a sale yet and is not in «Net collected»: you collected it in advance and it is used on their classes. Packages sold at the register are already in sales.",
+      "reservationDeposits": "Deposits your customers paid online to hold a reservation, on the day they paid, minus the ones you refunded in the period. It is not a sale and is not in «Net collected»: it is an advance."
     },
     "giftBalanceLine_one": "Also, {{amount}} was paid with gift card balance (1 payment). That money came in when the cards were sold.",
     "giftBalanceLine_other": "Also, {{amount}} was paid with gift card balance ({{count}} payments). That money came in when the cards were sold.",
@@ -645,6 +649,12 @@
     "giftBalanceLineWithRefunds_other": "Also, {{amount}} was paid with gift card balance ({{count}} payments); {{refunds}} went back to the balance. That money came in when the cards were sold.",
     "giftCardsCountLabel_one": "card",
     "giftCardsCountLabel_other": "cards",
+    "packagesCountLabel_one": "package",
+    "packagesCountLabel_other": "packages",
+    "depositsCountLabel_one": "collected",
+    "depositsCountLabel_other": "collected",
+    "depositsCountLabelWithRefunds_one": "collected · {{refunded}} refunded",
+    "depositsCountLabelWithRefunds_other": "collected · {{refunded}} refunded",
     "unpaidOrdersLabel_one": "check",
     "unpaidOrdersLabel_other": "checks",
     "refundsCountLabel_one": "refund",
@@ -878,6 +888,58 @@
       "merchantLine": "fee {{commission}} · you receive {{net}}",
       "empty": "Nothing lands this week.",
       "note": "How much lands in your bank each day, by settlement date. Estimated from each merchant's rules (business days + holidays). Cash isn't shown here — it's already in your hand."
+    },
+    "channels": {
+      "title": "Sales by channel",
+      "description": "Where your sales came in and how they were delivered. It adds up to the summary.",
+      "tabs": {
+        "channel": "By channel",
+        "orderType": "By order type"
+      },
+      "cols": {
+        "channel": "Channel",
+        "orderType": "Order type",
+        "netSales": "Net sales",
+        "tips": "Tips",
+        "platformFees": "Avoqado fee",
+        "tenderCommissions": "Third-party fees",
+        "totalCollected": "Net collected"
+      },
+      "total": "Total",
+      "orders_one": "{{count}} order",
+      "orders_other": "{{count}} orders",
+      "transactions_one": "{{count}} charge",
+      "transactions_other": "{{count}} charges",
+      "empty": "There were no sales in this period.",
+      "filteredNote": "Sales by channel only show without a payment method or merchant filter: with a filter the report counts charges, not checks.",
+      "lockedByPlan": "Your plan does not include sales by channel. It is part of the Pro plan.",
+      "names": {
+        "COUNTER": "Counter",
+        "TABLES": "Tables",
+        "KIOSK": "Self-service",
+        "QR": "Customer QR",
+        "ONLINE_STORE": "Online store",
+        "WEB_CHECKOUT": "Online payments",
+        "PAYMENT_LINK": "Payment links",
+        "PHONE": "Phone",
+        "DASHBOARD": "Recorded in the dashboard",
+        "RAPPI": "Rappi",
+        "UBER_EATS": "Uber Eats",
+        "DIDI_FOOD": "DiDi Food",
+        "OTHER_DELIVERY": "Other delivery apps",
+        "QR_LEGACY": "QR (previous system)",
+        "OTHER": "Other channel"
+      },
+      "orderTypes": {
+        "DINE_IN": "In the venue",
+        "TAKEOUT": "Takeout",
+        "DELIVERY": "Delivery",
+        "PICKUP": "Pickup",
+        "MANUAL_ENTRY": "Direct record",
+        "QUICK_PAYMENT": "Amount-only charge",
+        "QR_LEGACY": "QR (previous system)",
+        "OTHER": "Other type"
+      }
     }
   },
   "salesByItem": {
