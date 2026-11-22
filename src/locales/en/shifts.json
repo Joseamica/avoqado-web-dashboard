@@ -239,6 +239,7 @@
     "loadError": "The list could not be loaded. Check your connection and try again.",
     "retry": "Retry",
     "empty": "No payments in doubt. Everything from the machine is recorded.",
+    "noDoubts": "No payments in doubt.",
     "showing": "Showing {{shown}} of {{total}} pending machine items",
     "loadMore": "Load more",
     "resolveButton": "Resolve",

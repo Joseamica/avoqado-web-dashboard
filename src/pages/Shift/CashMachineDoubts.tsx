@@ -115,6 +115,10 @@ export default function CashMachineDoubts() {
       ) : (
         <div className="space-y-4">
           <p className="text-sm text-muted-foreground">{t('cashMachineDoubts.showing', { shown: filas.length, total })}</p>
+          {/* Full-testing final (WARN 3): con sólo incidencias, el conteo de arriba no es de cobros en duda; se dice que no hay. */}
+          {dudas.length === 0 && porTerminar.length === 0 && (
+            <div className="rounded-lg border border-input p-4 text-sm text-muted-foreground">{t('cashMachineDoubts.noDoubts')}</div>
+          )}
           {dudas.length > 0 && (
             <div className="rounded-lg border border-input">
               <Table>

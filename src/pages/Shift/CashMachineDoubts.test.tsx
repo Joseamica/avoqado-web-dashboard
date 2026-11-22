@@ -171,6 +171,15 @@ describe('CashMachineDoubts', () => {
     await screen.findByText('AQ000000000091')
     expect(screen.queryByText(`${D}columns.due`)).not.toBeInTheDocument()
     expect(screen.queryByText(`${D}empty`)).not.toBeInTheDocument()
+    // Full-testing final (WARN 3): «Mostrando 1 de 1 pendientes» sin ninguna duda confundía; el panel dice que no hay cobros en duda.
+    expect(screen.getByText(`${D}noDoubts`)).toBeInTheDocument()
+  })
+
+  it('con dudas no dice «no hay cobros en duda»', async () => {
+    h.get.mockResolvedValueOnce({ data: { success: true, data: [fila(1), incidencia(2)], total: 2, nextCursor: null } })
+    pintar()
+    await screen.findByText('AQ000000000001')
+    expect(screen.queryByText(`${D}noDoubts`)).not.toBeInTheDocument()
   })
 
   it('«Revisar» → 409 «llegó evidencia nueva»: vuelve a pedir la lista y la ventana manda la versión NUEVA', async () => {

@@ -239,6 +239,7 @@
     "loadError": "No se pudo cargar la lista. Revisa tu conexión e inténtalo otra vez.",
     "retry": "Reintentar",
     "empty": "No hay cobros en duda. Todo lo de la máquina está registrado.",
+    "noDoubts": "No hay cobros en duda.",
     "showing": "Mostrando {{shown}} de {{total}} pendientes de la máquina",
     "loadMore": "Cargar más",
     "resolveButton": "Resolver",
