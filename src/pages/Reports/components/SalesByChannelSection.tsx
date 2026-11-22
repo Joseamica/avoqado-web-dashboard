@@ -150,6 +150,9 @@ export function SalesByChannelSection({
   )
 }
 
+/** Una comisión se enseña en negativo; en cero, «$0.00» y no «-$0.00». */
+const costo = (n: number) => (n === 0 ? 0 : -n)
+
 function Tabla({
   filas,
   vista,
@@ -230,9 +233,9 @@ function Tabla({
                   {!muestra && p != null && <div className="text-xs text-muted-foreground tabular-nums">{p.toFixed(1)}%</div>}
                 </td>
                 <td className="py-2.5 px-3 text-right tabular-nums">{dinero(r.tips)}</td>
-                <td className="py-2.5 px-3 text-right tabular-nums text-muted-foreground">{dinero(-r.platformFees)}</td>
+                <td className="py-2.5 px-3 text-right tabular-nums text-muted-foreground">{dinero(costo(r.platformFees))}</td>
                 {hayTerceros && (
-                  <td className="py-2.5 px-3 text-right tabular-nums text-muted-foreground">{dinero(-r.tenderCommissions)}</td>
+                  <td className="py-2.5 px-3 text-right tabular-nums text-muted-foreground">{dinero(costo(r.tenderCommissions))}</td>
                 )}
                 <td className="py-2.5 pl-3 text-right font-medium tabular-nums">{dinero(r.totalCollected)}</td>
               </tr>
@@ -248,8 +251,8 @@ function Tabla({
               </td>
               <td className="pt-3 px-3 text-right tabular-nums">{formatCurrency(total.netSales)}</td>
               <td className="pt-3 px-3 text-right tabular-nums">{formatCurrency(total.tips)}</td>
-              <td className="pt-3 px-3 text-right tabular-nums">{formatCurrency(-total.platformFees)}</td>
-              {hayTerceros && <td className="pt-3 px-3 text-right tabular-nums">{formatCurrency(-total.tenderCommissions)}</td>}
+              <td className="pt-3 px-3 text-right tabular-nums">{formatCurrency(costo(total.platformFees))}</td>
+              {hayTerceros && <td className="pt-3 px-3 text-right tabular-nums">{formatCurrency(costo(total.tenderCommissions))}</td>}
               <td className="pt-3 pl-3 text-right tabular-nums">{formatCurrency(total.totalCollected)}</td>
             </tr>
           </tfoot>
@@ -321,11 +324,11 @@ function Tarjeta({
         <dt>{t('salesSummary.channels.cols.tips')}</dt>
         <dd className="text-right tabular-nums">{dinero(fila.tips)}</dd>
         <dt>{t('salesSummary.channels.cols.platformFees')}</dt>
-        <dd className="text-right tabular-nums">{dinero(-fila.platformFees)}</dd>
+        <dd className="text-right tabular-nums">{dinero(costo(fila.platformFees))}</dd>
         {hayTerceros && (
           <>
             <dt>{t('salesSummary.channels.cols.tenderCommissions')}</dt>
-            <dd className="text-right tabular-nums">{dinero(-fila.tenderCommissions)}</dd>
+            <dd className="text-right tabular-nums">{dinero(costo(fila.tenderCommissions))}</dd>
           </>
         )}
         <dt className="font-medium text-foreground">{t('salesSummary.channels.cols.totalCollected')}</dt>
