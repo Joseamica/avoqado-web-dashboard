@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Plus } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 
@@ -76,6 +76,9 @@ export function CreateDiscountDialog({ venueId, onSuccess }: CreateDiscountDialo
     }
   }, [open, form])
 
+  // D38 (21-nov): `isPending` apaga el botón un render tarde y un doble clic mandaba dos peticiones (dos descuentos iguales).
+  // Candado síncrono; se suelta al terminar.
+  const enVuelo = useRef(false)
   const mutation = useMutation({
     mutationFn: (data: CreateDiscountRequest & { active: boolean }) => discountService.createDiscount(venueId, data),
     onSuccess: data => {
@@ -93,9 +96,13 @@ export function CreateDiscountDialog({ venueId, onSuccess }: CreateDiscountDialo
         variant: 'destructive',
       })
     },
+    onSettled: () => {
+      enVuelo.current = false
+    },
   })
 
   const onSubmit = (data: CreateDiscountRequest & { active: boolean }) => {
+    if (enVuelo.current) return
     // Clean up data based on scope (same logic as DiscountForm)
     const cleanedData = { ...data }
 
@@ -138,6 +145,7 @@ export function CreateDiscountDialog({ venueId, onSuccess }: CreateDiscountDialo
       cleanedData.getItemIds = cleanedData.getItemIds.map((item: any) => (typeof item === 'object' ? item.value : item))
     }
 
+    enVuelo.current = true
     mutation.mutate(cleanedData)
   }
 
