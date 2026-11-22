@@ -165,4 +165,74 @@ describe('StatementFlow', () => {
     expect(screen.getByTestId('statement-bank-row')).toHaveTextContent('$116.00')
     expect(screen.getByTestId('statement-hero-net')).toHaveTextContent('$116.00')
   })
+
+  it('D12.3: «Otros métodos» se abre por tipo de pago, con su nombre y la comisión de la plataforma', () => {
+    const d = (o: Record<string, number> = {}) => ({ collected: 0, refunds: 0, refundCount: 0, platformFee: 0, netToReceive: 0, transactionCount: 0, ...o })
+    const m = model({
+      buckets: [bucket({ bucket: 'OTHER', amount: 150, count: 2, chargedAmount: 150, chargedCount: 2, tenderCommissions: 30 })],
+      merchants: [],
+      destinations: {
+        drawer: d(),
+        terminal: d(),
+        online: d(),
+        other: d({ collected: 150, netToReceive: 150, transactionCount: 2 }),
+        tenderCommissions: 30,
+        otherByType: [
+          { key: 't-uber', label: 'Uber Eats', method: 'OTHER', ...d({ collected: 100, netToReceive: 100, transactionCount: 1 }), tenderCommissions: 30 },
+          { key: 'BANK_TRANSFER', label: null, method: 'BANK_TRANSFER', ...d({ collected: 50, netToReceive: 50, transactionCount: 1 }), tenderCommissions: 0 },
+        ],
+      },
+      calendar: [],
+      todayKey: '2026-07-04',
+    })
+    render(<StatementFlow model={m} formatCurrency={fmt} />)
+    expect(screen.queryByTestId('statement-other-types')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('statement-other-toggle'))
+    const lista = screen.getByTestId('statement-other-types')
+    expect(lista).toHaveTextContent('Uber Eats')
+    expect(lista).toHaveTextContent('$100.00')
+    expect(lista).toHaveTextContent('salesSummary.statement.flow.otherTypeCommission −$30.00')
+    expect(lista).toHaveTextContent('salesSummary.statement.flow.otherTypes.BANK_TRANSFER')
+  })
+
+  it('D12.3: con neto $0 en «Otros» (una venta de terminal externa devuelta entera) el desglose sigue a la vista', () => {
+    const d = (o: Record<string, number> = {}) => ({ collected: 0, refunds: 0, refundCount: 0, platformFee: 0, netToReceive: 0, transactionCount: 0, ...o })
+    const m = model({
+      buckets: [bucket({ bucket: 'CARD', amount: 0, count: 2, chargedAmount: 100, chargedCount: 1 })],
+      merchants: [],
+      destinations: {
+        drawer: d(),
+        terminal: d(),
+        online: d(),
+        other: d({ collected: 0, refunds: 100, refundCount: 1, transactionCount: 2 }),
+        tenderCommissions: 0,
+        otherByType: [{ key: 'CARD', label: null, method: 'CARD', ...d({ collected: 0, refunds: 100, refundCount: 1, transactionCount: 2 }), tenderCommissions: 0 }],
+      },
+      calendar: [],
+      todayKey: '2026-07-04',
+    })
+    render(<StatementFlow model={m} formatCurrency={fmt} />)
+    expect(screen.getByTestId('statement-other-toggle')).toBeInTheDocument()
+  })
+
+  it('D17: los cobros en otra moneda se dicen en su moneda y no entran a las cuentas en pesos', () => {
+    const d = (o: Record<string, number> = {}) => ({ collected: 0, refunds: 0, refundCount: 0, platformFee: 0, netToReceive: 0, transactionCount: 0, ...o })
+    const m = model({
+      // El cajón de tarjeta trae la liga en dólares (US$80) en su movimiento de siempre; lo cobrado en pesos es 0.
+      buckets: [
+        bucket({ bucket: 'CASH', amount: 100, count: 1, chargedAmount: 100, chargedCount: 1 }),
+        bucket({ bucket: 'CARD', amount: 80, count: 2, chargedAmount: 0, chargedCount: 0, foreignAmount: 80, foreignCount: 2, platformFees: 4 }),
+      ],
+      merchants: [],
+      destinations: { drawer: d({ collected: 100, netToReceive: 100, transactionCount: 1 }), terminal: d(), online: d(), other: d(), tenderCommissions: 0, foreignCurrency: [{ currency: 'USD', net: 80, transactionCount: 1, refundCount: 1 }] },
+      calendar: [],
+      todayKey: '2026-07-04',
+    })
+    render(<StatementFlow model={m} formatCurrency={fmt} />)
+    expect(screen.getByTestId('statement-foreign-currency')).toHaveTextContent('USD 80.00')
+    expect(screen.getByTestId('statement-foreign-currency')).toHaveTextContent('salesSummary.statement.flow.foreignCurrencyRefunds 1')
+    expect(screen.getByTestId('statement-collected')).toHaveTextContent('$100.00')
+    expect(screen.queryByTestId('statement-refunds')).not.toBeInTheDocument()
+    expect(screen.getByTestId('statement-hero-net')).toHaveTextContent('$100.00')
+  })
 })
