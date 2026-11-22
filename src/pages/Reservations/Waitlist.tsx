@@ -28,6 +28,7 @@ import {
 import { FeatureGate } from '@/components/billing/FeatureGate'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
+import { nombreCompleto } from '@/lib/nombreCompleto'
 import { useVenueDateTime } from '@/utils/datetime'
 import reservationService from '@/services/reservation.service'
 import type { WaitlistEntry, WaitlistStatus } from '@/types/reservation'
@@ -147,11 +148,7 @@ export default function Waitlist() {
 
   // Guest display name helper
   const getGuestName = useCallback(
-    (entry: WaitlistEntry) => {
-      if (entry.customer) return `${entry.customer.firstName} ${entry.customer.lastName}`
-      if (entry.guestName) return entry.guestName
-      return t('unnamedGuest')
-    },
+    (entry: WaitlistEntry) => nombreCompleto(entry.customer) || entry.guestName || t('unnamedGuest'),
     [t],
   )
 

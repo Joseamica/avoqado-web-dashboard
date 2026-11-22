@@ -7,6 +7,7 @@ import { useParams } from 'react-router-dom'
 
 import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { detalleNoCargo } from '@/lib/falloDeCarga'
+import { nombreCompleto } from '@/lib/nombreCompleto'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -236,9 +237,7 @@ export default function ReservationDetail() {
     )
   }
 
-  const guestName = reservation.customer
-    ? `${reservation.customer.firstName} ${reservation.customer.lastName}`
-    : reservation.guestName || t('unnamedGuest')
+  const guestName = nombreCompleto(reservation.customer) || reservation.guestName || t('unnamedGuest')
 
   const guestPhone = reservation.customer?.phone || reservation.guestPhone
   const guestEmail = reservation.customer?.email || reservation.guestEmail
