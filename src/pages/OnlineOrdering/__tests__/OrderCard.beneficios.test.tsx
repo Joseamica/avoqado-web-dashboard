@@ -162,6 +162,67 @@ describe('OrderCard: de quién es y qué beneficio lleva', () => {
   })
 })
 
+// D661: con una marca el SERVIDOR ya no deja «Listo» ni «Entregado» (409 ORDER_STATE_CHANGED): la tarjeta no los ofrece y enseña
+// la marca. El mismo pedido sin marca sí los ofrece, para que la prueba diga que la causa es la marca.
+describe('OrderCard · D661: un pedido marcado no ofrece «Listo» ni «Entregado»', () => {
+  const pagadoEnLinea = (over: Partial<InboxOrder> = {}) =>
+    order({ requiresAcceptance: false, paymentMode: 'CARD_ONLINE', paymentStatus: 'PAID', remaining: 0, ...over })
+
+  it.each([
+    ['ACCEPTED', esOnline.inbox.actions.ready],
+    ['READY', esOnline.inbox.actions.delivered],
+  ] as const)('%s con «Devolviendo…»: la marca en lugar de «%s»', (status, boton) => {
+    const { unmount } = card(pagadoEnLinea({ status }))
+    expect(screen.getByRole('button', { name: boton })).toBeInTheDocument()
+    unmount()
+    card(pagadoEnLinea({ status, refundRequestedAt: '2026-11-10T18:10:00.000Z' }))
+    expect(screen.getByText(esOnline.inbox.card.mark.refunding)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: esOnline.inbox.actions.ready })).toBeNull()
+    expect(screen.queryByRole('button', { name: esOnline.inbox.actions.delivered })).toBeNull()
+  })
+
+  // Ruling 60: el SERVIDOR conserva `refundedAt` tras una reversa (el pedido sigue cerrado), así que la fecha no prueba que la clienta
+  // recibió su dinero. Con `refund` ({ status: PENDING | DONE | REVERSED, medio }, la forma del seguimiento público) la marca dice el
+  // estado real en cada paso: en camino, hecha, regresada por el banco y pagada por otro medio.
+  const pedidoEn = '2026-11-10T18:10:00.000Z'
+  const cerradoEn = '2026-11-10T18:10:02.000Z'
+  const cerrado = { status: 'COMPLETED', refundRequestedAt: pedidoEn, refundedAt: cerradoEn } as const
+  it.each([
+    ['en camino', { status: 'READY', refundRequestedAt: pedidoEn, refund: { status: 'PENDING', medio: 'TARJETA' } }, 'Devolviendo…'],
+    ['hecha a su tarjeta', { ...cerrado, refund: { status: 'DONE', medio: 'TARJETA' } }, 'Devuelto'],
+    ['hecha como saldo a favor', { ...cerrado, refund: { status: 'DONE', medio: 'SALDO' } }, 'Devuelto'],
+    [
+      'regresada por el banco (el pedido sigue cerrado)',
+      { ...cerrado, refund: { status: 'REVERSED', medio: 'TARJETA' } },
+      'El banco regresó la devolución: se le debe a la clienta',
+    ],
+    ['pagada en efectivo tras la reversa', { ...cerrado, refund: { status: 'DONE', medio: 'EFECTIVO' } }, 'Devuelto en efectivo'],
+    [
+      'pagada por transferencia tras la reversa',
+      { ...cerrado, refund: { status: 'DONE', medio: 'TRANSFERENCIA' } },
+      'Devuelto por transferencia',
+    ],
+  ] as const)('«Nadie», devolución %s: la marca dice cómo está el dinero', (_n, estado, texto) => {
+    card(pagadoEnLinea(estado))
+    expect(screen.getByText(texto)).toBeInTheDocument()
+    // Una sola marca: la de la fecha (`refundedAt` ⇒ «Devuelto») no se cuela.
+    const marcas = [
+      'Devolviendo…',
+      'Devuelto',
+      'Devuelto en efectivo',
+      'Devuelto por transferencia',
+      'El banco regresó la devolución: se le debe a la clienta',
+    ]
+    for (const otra of marcas) if (otra !== texto) expect(screen.queryByText(otra)).toBeNull()
+  })
+
+  it('«Mi equipo» no toma marca de `refund`: una devolución parcial en camino no quita «Listo»', () => {
+    card(order({ paymentMode: 'CARD_ONLINE', paymentStatus: 'PAID', remaining: 0, refund: { status: 'PENDING', medio: 'TARJETA' } }))
+    expect(screen.queryByText(esOnline.inbox.card.mark.refunding)).toBeNull()
+    expect(screen.getByRole('button', { name: esOnline.inbox.actions.ready })).toBeInTheDocument()
+  })
+})
+
 describe('FolioSections: «Por pagar» y «Por entregar» dicen lo mismo', () => {
   const toPay = (pagar: FolioOrder[], entregar: FolioOrder[]) => ({
     serverTime: '2026-11-10T18:05:00.000Z',

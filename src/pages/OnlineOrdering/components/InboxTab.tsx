@@ -305,6 +305,7 @@ export function InboxTab() {
       venueId={venueId}
       canAnswer={canAnswer}
       canCancel={canCancel}
+      canRefund={canRefund}
       busy={action.isPending}
       hidden={touched}
       actionsLocked={isError}
