@@ -640,8 +640,8 @@
       "netProfit": "Ventas netas - comisiones de plataforma - comisiones de terceros - comisiones a empleados. No resta lo que te costó lo que vendiste",
       "giftCardLoads": "Saldo que vendiste en tarjetas de regalo, menos las cancelaciones. No es venta todavía: cuenta como venta cuando el cliente lo usa.",
       "paidWithGiftCardBalance": "Parte de las ventas y propinas que se pagó con saldo de tarjetas de regalo, menos lo devuelto al saldo. Ese dinero entró cuando se vendió la tarjeta.",
-      "packagesSoldOnline": "Paquetes de clases que tus clientes compraron en línea en el periodo, por el día en que pagaron. No es venta todavía ni entra a «Neto cobrado»: lo cobraste por adelantado y se usa en sus clases. Los paquetes vendidos en la caja ya están en las ventas.",
-      "reservationDeposits": "Depósitos que tus clientes pagaron en línea para apartar una reserva, por el día en que pagaron, menos los que devolviste en el periodo. No es venta ni entra a «Neto cobrado»: es un anticipo."
+      "packagesSoldOnline": "Paquetes de clases que tus clientes compraron en línea en el periodo, por el día en que Avoqado confirmó el cobro. No es venta todavía ni entra a «Neto cobrado»: lo cobraste por adelantado y se usa en sus clases. Los paquetes vendidos en la caja ya están en las ventas.",
+      "reservationDeposits": "Depósitos que tus clientes pagaron en línea para apartar una reserva, por el día en que Avoqado confirmó el cobro, menos los que devolviste en el periodo. No es venta ni entra a «Neto cobrado»: es un anticipo."
     },
     "giftBalanceLine_one": "Además, {{amount}} se pagó con saldo de tarjetas de regalo (1 cobro). Ese dinero entró cuando se vendieron.",
     "giftBalanceLine_other": "Además, {{amount}} se pagó con saldo de tarjetas de regalo ({{count}} cobros). Ese dinero entró cuando se vendieron.",
@@ -651,6 +651,8 @@
     "giftCardsCountLabel_other": "tarjetas",
     "packagesCountLabel_one": "paquete",
     "packagesCountLabel_other": "paquetes",
+    "packagesOtherCurrency_one": "Además, en otra moneda (no se suma): {{amount}} · {{count}} paquete",
+    "packagesOtherCurrency_other": "Además, en otra moneda (no se suma): {{amount}} · {{count}} paquetes",
     "depositsCountLabel_one": "cobrado",
     "depositsCountLabel_other": "cobrados",
     "depositsCountLabelWithRefunds_one": "cobrado · {{refunded}} devuelto",
@@ -939,7 +941,10 @@
         "QUICK_PAYMENT": "Cobro de un monto",
         "QR_LEGACY": "QR (sistema anterior)",
         "OTHER": "Otro tipo"
-      }
+      },
+      "outOfSync": "Entró una venta mientras se leía el reporte: esta tabla puede no cuadrar con el resumen. Vuelve a cargar la página.",
+      "ordersWithoutLegacy_one": "{{count}} pedido (sin los del QR anterior)",
+      "ordersWithoutLegacy_other": "{{count}} pedidos (sin los del QR anterior)"
     }
   },
   "salesByItem": {

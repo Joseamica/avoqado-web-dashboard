@@ -79,11 +79,39 @@ describe('SalesByChannelSection (carril G · D4)', () => {
     expect(within(total).getByText('$436.62')).toBeInTheDocument()
   })
 
-  it('el % es de las ventas netas y no se pinta en un renglón negativo (sólo una devolución)', () => {
+  it('el % es de las ventas netas cuando todos los renglones son ≥ 0', () => {
+    pintar({ byChannel: CANALES.slice(0, 2) })
+    const tabla = screen.getByTestId('ventas-por-canal-tabla')
+    // 285 / (285 + 225) = 55.9 %
+    expect(within(within(tabla).getByTestId('canal-TABLES')).getByText('55.9%')).toBeInTheDocument()
+  })
+
+  it('🔴 Codex r2 #10 · con un renglón negativo (sólo una devolución) no se pinta ningún %, ni en escritorio ni en celular', () => {
     pintar()
     const tabla = screen.getByTestId('ventas-por-canal-tabla')
-    expect(within(within(tabla).getByTestId('canal-TABLES')).getByText('59.4%')).toBeInTheDocument()
-    expect(within(within(tabla).getByTestId('canal-COUNTER')).queryByText(/%$/)).not.toBeInTheDocument()
+    expect(within(tabla).queryByText(/%$/)).not.toBeInTheDocument()
+    const lista = screen.getByTestId('ventas-por-canal-lista')
+    expect(lista.querySelector('.bg-sky-500')).toBeNull()
+  })
+
+  it('🔴 Codex r2 #11 · en celular el Total trae las mismas cifras que en escritorio', () => {
+    pintar()
+    const total = screen.getByTestId('canal-total-celular')
+    expect(within(total).getByText('$480.00')).toBeInTheDocument()
+    expect(within(total).getByText('$436.62')).toBeInTheDocument()
+    expect(within(total).getByText('$20.00')).toBeInTheDocument()
+    expect(within(total).getByText(/salesSummary.channels.transactions/)).toBeInTheDocument()
+  })
+
+  it('🔴 Codex r2 #9 · si el SERVIDOR trajo las tablas, se enseñan aunque la pantalla tuviera guardado el plan Gratis', () => {
+    pintar({ sinPlan: true })
+    expect(screen.getByTestId('ventas-por-canal')).toBeInTheDocument()
+    expect(screen.queryByTestId('ventas-por-canal-candado')).toBeNull()
+  })
+
+  it('🔴 Codex r2 #1 · si el SERVIDOR avisa que las tablas se leyeron a destiempo, lo dice arriba de la tabla', () => {
+    pintar({ desfasado: true })
+    expect(screen.getByTestId('ventas-por-canal-desfasado')).toHaveTextContent('salesSummary.channels.outOfSync')
   })
 
   it('la columna de comisiones de terceros sale sólo si algún renglón la tiene', () => {
@@ -128,10 +156,18 @@ describe('SalesByChannelSection (carril G · D4)', () => {
     expect(container).toBeEmptyDOMElement()
   })
 
-  it('el QR del sistema anterior no inventa pedidos (no los trae): sólo sus cobros', () => {
-    pintar({ byChannel: [fila('QR_LEGACY', { netSales: 300, totalCollected: 330, tips: 30, orderCount: null, transactionCount: 3 })] })
-    const qr = within(screen.getByTestId('ventas-por-canal-tabla')).getByTestId('canal-QR_LEGACY')
+  it('el QR del sistema anterior no inventa pedidos (no los trae): sólo sus cobros, y el total lo dice', () => {
+    pintar({
+      byChannel: [
+        fila('TABLES', { netSales: 100, totalCollected: 100 }),
+        fila('QR_LEGACY', { netSales: 300, totalCollected: 330, tips: 30, orderCount: null, transactionCount: 3 }),
+      ],
+    })
+    const tabla = screen.getByTestId('ventas-por-canal-tabla')
+    const qr = within(tabla).getByTestId('canal-QR_LEGACY')
     expect(within(qr).queryByText(/channels.orders/)).toBeNull()
     expect(within(qr).getByText('salesSummary.channels.transactions(count=3)')).toBeInTheDocument()
+    // Codex r2 #11: «1 pedido · 4 cobros» sin aclarar parecía completo.
+    expect(within(within(tabla).getByTestId('canal-total')).getByText(/ordersWithoutLegacy\(count=1\)/)).toBeInTheDocument()
   })
 })

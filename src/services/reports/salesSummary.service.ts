@@ -71,6 +71,8 @@ export interface SalesSummaryMetrics {
   reservationDepositsCount?: number
   /** Lo devuelto de depósitos en el rango. */
   reservationDepositsRefunded?: number
+  /** Paquetes en línea cobrados en otra moneda: aparte, nunca sumados a los pesos. */
+  packagesSoldOnlineOtherCurrencies?: Array<{ currency: string; amount: number; count: number }>
 }
 
 /**
@@ -247,6 +249,8 @@ export interface SalesSummaryResponse {
   byOrderType?: SalesBreakdownRow[]
   /** El servidor dejó fuera el desglose por canal porque el plan del negocio no lo incluye. */
   channelBreakdownLocked?: true
+  /** Las tablas por canal se leyeron un instante después de la cabecera y alguna cifra cambió (entró una venta): recargar. */
+  channelBreakdownOutOfSync?: true
 }
 
 export interface SalesSummaryFilters {

@@ -520,6 +520,15 @@ describe('SalesSummary · canales y lo cobrado por adelantado (carril G: D4, D5)
     expect(screen.getByText(/^1 salesSummary\.depositsCountLabelWithRefunds\(count=1,refunded=/)).toBeInTheDocument()
   })
 
+  it('🔴 Codex r2 #5 · los paquetes en otra moneda se dicen aparte y no se suman a los pesos', async () => {
+    h.response = respuesta({
+      summary: { ...CON_TARJETAS, packagesSoldOnline: 0, packagesSoldOnlineCount: 0, packagesSoldOnlineOtherCurrencies: [{ currency: 'USD', amount: 100, count: 1 }] },
+    })
+    pintar()
+    expect(await screen.findByText('salesSummary.rows.packagesSoldOnline')).toBeInTheDocument()
+    expect(screen.getByTestId('paquetes-otra-moneda')).toHaveTextContent(/salesSummary\.packagesOtherCurrency\(amount=.*100.*,count=1\)/)
+  })
+
   it('control · sin paquetes ni depósitos (o con un servidor viejo) no hay renglones', async () => {
     pintar()
     await tarjetaDelTotal()

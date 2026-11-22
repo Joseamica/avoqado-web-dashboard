@@ -640,8 +640,8 @@
       "netProfit": "Net sales - platform fees - third-party fees - staff commissions. It does not subtract what the goods you sold cost you",
       "giftCardLoads": "Balance you sold on gift cards, minus cancellations. It isn't a sale yet: it counts as a sale when the customer uses it.",
       "paidWithGiftCardBalance": "Part of your sales and tips paid with gift card balance, minus what went back to the balance. That money came in when the card was sold.",
-      "packagesSoldOnline": "Class packages your customers bought online in the period, on the day they paid. It is not a sale yet and is not in «Net collected»: you collected it in advance and it is used on their classes. Packages sold at the register are already in sales.",
-      "reservationDeposits": "Deposits your customers paid online to hold a reservation, on the day they paid, minus the ones you refunded in the period. It is not a sale and is not in «Net collected»: it is an advance."
+      "packagesSoldOnline": "Class packages your customers bought online in the period, on the day Avoqado confirmed the payment. It is not a sale yet and is not in «Net collected»: you collected it in advance and it is used on their classes. Packages sold at the register are already in sales.",
+      "reservationDeposits": "Deposits your customers paid online to hold a reservation, on the day Avoqado confirmed the payment, minus the ones you refunded in the period. It is not a sale and is not in «Net collected»: it is an advance."
     },
     "giftBalanceLine_one": "Also, {{amount}} was paid with gift card balance (1 payment). That money came in when the cards were sold.",
     "giftBalanceLine_other": "Also, {{amount}} was paid with gift card balance ({{count}} payments). That money came in when the cards were sold.",
@@ -651,6 +651,8 @@
     "giftCardsCountLabel_other": "cards",
     "packagesCountLabel_one": "package",
     "packagesCountLabel_other": "packages",
+    "packagesOtherCurrency_one": "Also, in another currency (not added): {{amount}} · {{count}} package",
+    "packagesOtherCurrency_other": "Also, in another currency (not added): {{amount}} · {{count}} packages",
     "depositsCountLabel_one": "collected",
     "depositsCountLabel_other": "collected",
     "depositsCountLabelWithRefunds_one": "collected · {{refunded}} refunded",
@@ -939,7 +941,10 @@
         "QUICK_PAYMENT": "Amount-only charge",
         "QR_LEGACY": "QR (previous system)",
         "OTHER": "Other type"
-      }
+      },
+      "outOfSync": "A sale came in while the report was loading: this table may not match the summary. Reload the page.",
+      "ordersWithoutLegacy_one": "{{count}} order (without the previous QR ones)",
+      "ordersWithoutLegacy_other": "{{count}} orders (without the previous QR ones)"
     }
   },
   "salesByItem": {

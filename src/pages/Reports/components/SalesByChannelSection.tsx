@@ -21,6 +21,8 @@ interface Props {
   bloqueadoPorElServidor: boolean
   /** Vista de movimientos (filtro de método o de comercio): no hay cuentas que repartir. */
   conFiltro: boolean
+  /** El SERVIDOR avisó que las tablas se leyeron un instante después de la cabecera y ya no cuadran (entró una venta). */
+  desfasado?: boolean
   formatCurrency: (n: number) => string
 }
 
@@ -42,7 +44,15 @@ const MUESTRA: SalesBreakdownRow[] = ['COUNTER', 'TABLES', 'ONLINE_STORE', 'RAPP
   refundCount: 0,
 }))
 
-export function SalesByChannelSection({ byChannel, byOrderType, sinPlan, bloqueadoPorElServidor, conFiltro, formatCurrency }: Props) {
+export function SalesByChannelSection({
+  byChannel,
+  byOrderType,
+  sinPlan,
+  bloqueadoPorElServidor,
+  conFiltro,
+  desfasado = false,
+  formatCurrency,
+}: Props) {
   const { t } = useTranslation('reports')
   const [vista, setVista] = useState<Vista>('channel')
 
@@ -58,32 +68,6 @@ export function SalesByChannelSection({ byChannel, byOrderType, sinPlan, bloquea
     </div>
   )
 
-  // Apagado se ve y se explica: Gratis ve la sección con su candado (renglones de muestra borrosos, sin datos del negocio).
-  if (sinPlan) {
-    return (
-      <GlassCard className="overflow-hidden border-input p-0" data-testid="ventas-por-canal-candado">
-        {encabezado}
-        <div className="p-4 sm:p-5">
-          <FeatureGate feature="ADVANCED_REPORTS">
-            <Tabla filas={MUESTRA} vista="channel" formatCurrency={() => '—'} muestra />
-          </FeatureGate>
-        </div>
-      </GlassCard>
-    )
-  }
-
-  if (bloqueadoPorElServidor) {
-    return (
-      <GlassCard className="overflow-hidden border-input p-0" data-testid="ventas-por-canal-candado">
-        {encabezado}
-        <p className="flex items-center gap-2 px-5 py-4 text-sm text-muted-foreground sm:px-6">
-          <Lock className="h-4 w-4 shrink-0" />
-          {t('salesSummary.channels.lockedByPlan')}
-        </p>
-      </GlassCard>
-    )
-  }
-
   if (conFiltro) {
     return (
       <GlassCard className="overflow-hidden border-input p-0" data-testid="ventas-por-canal-filtro">
@@ -96,8 +80,38 @@ export function SalesByChannelSection({ byChannel, byOrderType, sinPlan, bloquea
     )
   }
 
-  // Un SERVIDOR anterior a la función no manda las tablas: no hay nada que enseñar todavía.
-  if (!byChannel || !byOrderType) return null
+  // El SERVIDOR manda: si trajo las tablas, el plan las incluye aunque la pantalla tuviera guardado otro plan (Codex r2 #9); si no las
+  // trajo, Gratis ve el candado con su botón de plan y, si la pantalla creía que sí, el aviso del SERVIDOR.
+  if (!byChannel || !byOrderType) {
+    // Apagado se ve y se explica: Gratis ve la sección con su candado (renglones de muestra borrosos, sin datos del negocio).
+    if (sinPlan) {
+      return (
+        <GlassCard className="overflow-hidden border-input p-0" data-testid="ventas-por-canal-candado">
+          {encabezado}
+          <div className="p-4 sm:p-5">
+            <FeatureGate feature="ADVANCED_REPORTS">
+              <Tabla filas={MUESTRA} vista="channel" formatCurrency={() => '—'} muestra />
+            </FeatureGate>
+          </div>
+        </GlassCard>
+      )
+    }
+    // La pantalla creía que sí (plan sin leer o guardado viejo) y el SERVIDOR dijo que no.
+    if (bloqueadoPorElServidor) {
+      return (
+        <GlassCard className="overflow-hidden border-input p-0" data-testid="ventas-por-canal-candado">
+          {encabezado}
+          <p className="flex items-center gap-2 px-5 py-4 text-sm text-muted-foreground sm:px-6">
+            <Lock className="h-4 w-4 shrink-0" />
+            {t('salesSummary.channels.lockedByPlan')}
+          </p>
+        </GlassCard>
+      )
+    }
+
+    // Un SERVIDOR anterior a la función no manda las tablas: no hay nada que enseñar todavía.
+    return null
+  }
 
   const filas = vista === 'channel' ? byChannel : byOrderType
   return (
@@ -118,6 +132,14 @@ export function SalesByChannelSection({ byChannel, byOrderType, sinPlan, bloquea
         </div>
       </div>
       <div className="p-4 sm:p-5">
+        {desfasado && (
+          <p
+            className="mb-3 rounded-lg border border-input bg-muted/40 px-3 py-2 text-xs text-muted-foreground"
+            data-testid="ventas-por-canal-desfasado"
+          >
+            {t('salesSummary.channels.outOfSync')}
+          </p>
+        )}
         {filas.length === 0 ? (
           <p className="px-1 py-3 text-sm text-muted-foreground">{t('salesSummary.channels.empty')}</p>
         ) : (
@@ -159,11 +181,19 @@ function Tabla({
     }
   }, [filas])
   const hayTerceros = filas.some(r => r.tenderCommissions !== 0)
-  // El % es de las ventas netas; con un total ≤ 0 (puras devoluciones) o un renglón negativo no se pinta: mentiría.
-  const pct = (v: number) => (total.netSales > 0 && v >= 0 ? (v / total.netSales) * 100 : null)
-  const conteos = (r: { orderCount: number | null; transactionCount: number }) =>
+  // El % es de las ventas netas y sólo si todos los renglones son ≥ 0 (la regla de la barra de métodos del resumen): con una
+  // devolución que deja un canal en negativo, «200 %» y «160 %» o dos barras llenas mentirían (Codex r2 #10).
+  const hayReparto = total.netSales > 0 && filas.every(r => r.netSales >= 0)
+  const pct = (v: number) => (hayReparto ? (v / total.netSales) * 100 : null)
+  // El QR del sistema anterior no trae pedidos: si hay, el total de pedidos lo dice en vez de presentarlo como completo (Codex r2 #11).
+  const sinPedidosContados = filas.some(r => r.orderCount == null)
+  const conteos = (r: { orderCount: number | null; transactionCount: number }, esTotal = false) =>
     [
-      r.orderCount != null ? t('salesSummary.channels.orders', { count: r.orderCount }) : null,
+      r.orderCount != null
+        ? t(esTotal && sinPedidosContados ? 'salesSummary.channels.ordersWithoutLegacy' : 'salesSummary.channels.orders', {
+            count: r.orderCount,
+          })
+        : null,
       t('salesSummary.channels.transactions', { count: r.transactionCount }),
     ]
       .filter(Boolean)
@@ -214,7 +244,7 @@ function Tabla({
             <tr className="border-t border-input font-semibold" data-testid="canal-total">
               <td className="pt-3 pr-3">
                 <div>{t('salesSummary.channels.total')}</div>
-                <div className="text-xs font-normal text-muted-foreground">{conteos(total)}</div>
+                <div className="text-xs font-normal text-muted-foreground">{conteos(total, true)}</div>
               </td>
               <td className="pt-3 px-3 text-right tabular-nums">{formatCurrency(total.netSales)}</td>
               <td className="pt-3 px-3 text-right tabular-nums">{formatCurrency(total.tips)}</td>
@@ -226,46 +256,82 @@ function Tabla({
         )}
       </table>
 
-      {/* Celular: tarjetas apiladas */}
+      {/* Celular: tarjetas apiladas, y el total con las mismas cifras que en escritorio (Codex r2 #11) */}
       <ul className="space-y-2 md:hidden" data-testid="ventas-por-canal-lista">
-        {filas.map(r => {
-          const p = pct(r.netSales)
-          return (
-            <li key={r.key} className="rounded-xl border border-input p-3">
-              <div className="flex items-baseline justify-between gap-3">
-                <span className="font-medium">{nombre(r.key)}</span>
-                <span className="font-semibold tabular-nums">{dinero(r.netSales)}</span>
-              </div>
-              {!muestra && p != null && (
-                <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-muted">
-                  <div className="h-full rounded-full bg-sky-500" style={{ width: `${Math.min(100, p)}%` }} />
-                </div>
-              )}
-              <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                <dt>{t('salesSummary.channels.cols.tips')}</dt>
-                <dd className="text-right tabular-nums">{dinero(r.tips)}</dd>
-                <dt>{t('salesSummary.channels.cols.platformFees')}</dt>
-                <dd className="text-right tabular-nums">{dinero(-r.platformFees)}</dd>
-                {hayTerceros && (
-                  <>
-                    <dt>{t('salesSummary.channels.cols.tenderCommissions')}</dt>
-                    <dd className="text-right tabular-nums">{dinero(-r.tenderCommissions)}</dd>
-                  </>
-                )}
-                <dt className="font-medium text-foreground">{t('salesSummary.channels.cols.totalCollected')}</dt>
-                <dd className="text-right font-medium tabular-nums text-foreground">{dinero(r.totalCollected)}</dd>
-              </dl>
-              <p className="mt-1 text-xs text-muted-foreground">{muestra ? '—' : conteos(r)}</p>
-            </li>
-          )
-        })}
+        {filas.map(r => (
+          <Tarjeta
+            key={r.key}
+            nombre={nombre(r.key)}
+            fila={r}
+            pct={pct(r.netSales)}
+            conteos={muestra ? '—' : conteos(r)}
+            hayTerceros={hayTerceros}
+            dinero={dinero}
+          />
+        ))}
         {!muestra && (
-          <li className="flex items-baseline justify-between gap-3 rounded-xl bg-muted/40 p-3 font-semibold">
-            <span>{t('salesSummary.channels.total')}</span>
-            <span className="tabular-nums">{formatCurrency(total.netSales)}</span>
-          </li>
+          <Tarjeta
+            nombre={t('salesSummary.channels.total')}
+            fila={total}
+            pct={null}
+            conteos={conteos(total, true)}
+            hayTerceros={hayTerceros}
+            dinero={dinero}
+            esTotal
+          />
         )}
       </ul>
     </div>
+  )
+}
+
+function Tarjeta({
+  nombre,
+  fila,
+  pct,
+  conteos,
+  hayTerceros,
+  dinero,
+  esTotal = false,
+}: {
+  nombre: string
+  fila: Pick<SalesBreakdownRow, 'netSales' | 'tips' | 'platformFees' | 'tenderCommissions' | 'totalCollected'>
+  pct: number | null
+  conteos: string
+  hayTerceros: boolean
+  dinero: (n: number) => string
+  esTotal?: boolean
+}) {
+  const { t } = useTranslation('reports')
+  return (
+    <li
+      className={cn('rounded-xl border border-input p-3', esTotal && 'bg-muted/40 font-semibold')}
+      data-testid={esTotal ? 'canal-total-celular' : undefined}
+    >
+      <div className="flex items-baseline justify-between gap-3">
+        <span className="font-medium">{nombre}</span>
+        <span className="font-semibold tabular-nums">{dinero(fila.netSales)}</span>
+      </div>
+      {pct != null && (
+        <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+          <div className="h-full rounded-full bg-sky-500" style={{ width: `${Math.min(100, pct)}%` }} />
+        </div>
+      )}
+      <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-xs font-normal text-muted-foreground">
+        <dt>{t('salesSummary.channels.cols.tips')}</dt>
+        <dd className="text-right tabular-nums">{dinero(fila.tips)}</dd>
+        <dt>{t('salesSummary.channels.cols.platformFees')}</dt>
+        <dd className="text-right tabular-nums">{dinero(-fila.platformFees)}</dd>
+        {hayTerceros && (
+          <>
+            <dt>{t('salesSummary.channels.cols.tenderCommissions')}</dt>
+            <dd className="text-right tabular-nums">{dinero(-fila.tenderCommissions)}</dd>
+          </>
+        )}
+        <dt className="font-medium text-foreground">{t('salesSummary.channels.cols.totalCollected')}</dt>
+        <dd className="text-right font-medium tabular-nums text-foreground">{dinero(fila.totalCollected)}</dd>
+      </dl>
+      <p className="mt-1 text-xs font-normal text-muted-foreground">{conteos}</p>
+    </li>
   )
 }

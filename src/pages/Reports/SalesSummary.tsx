@@ -244,6 +244,15 @@ const ControlRow: React.FC<{
   </button>
 )
 
+/** Un importe en otra moneda (paquetes en USD): con su código; si el código no es válido, número y código. */
+function enSuMoneda(amount: number, currency: string, locale: string): string {
+  try {
+    return amount.toLocaleString(locale, { style: 'currency', currency })
+  } catch {
+    return `${amount.toFixed(2)} ${currency}`
+  }
+}
+
 // ============================================
 // GlassCard Component (Modern Dashboard Design)
 // ============================================
@@ -1092,6 +1101,7 @@ export default function SalesSummary() {
         reservationDeposits: apiResponse.summary.reservationDeposits ?? null,
         reservationDepositsCount: apiResponse.summary.reservationDepositsCount ?? 0,
         reservationDepositsRefunded: apiResponse.summary.reservationDepositsRefunded ?? 0,
+        packagesSoldOnlineOtherCurrencies: apiResponse.summary.packagesSoldOnlineOtherCurrencies ?? [],
       },
       transactions: {
         total: apiResponse.summary.transactionCount,
@@ -2152,16 +2162,25 @@ export default function SalesSummary() {
               {/* Carril G · D5: paquetes comprados en línea y depósitos de reservas. Tampoco son venta ni entran a «Neto cobrado»
                   (no crean cuenta ni cobro; se decide después si son venta al usarse). Sin filtro de pago; el de depósitos sale
                   también si se cobró y se devolvió en el mismo periodo ($0 neto), para que su conteo no desaparezca. */}
-              {!sinMetricasDeOrden && (data.summary.packagesSoldOnline ?? 0) !== 0 && (
-                <SummaryRow
-                  label={t('salesSummary.rows.packagesSoldOnline')}
-                  value={data.summary.packagesSoldOnline ?? 0}
-                  count={data.summary.packagesSoldOnlineCount || undefined}
-                  countLabel={t('salesSummary.packagesCountLabel', { count: data.summary.packagesSoldOnlineCount })}
-                  type="neutral"
-                  tooltip={t('salesSummary.tooltips.packagesSoldOnline')}
-                />
-              )}
+              {!sinMetricasDeOrden &&
+                ((data.summary.packagesSoldOnline ?? 0) !== 0 || data.summary.packagesSoldOnlineOtherCurrencies.length > 0) && (
+                  <>
+                    <SummaryRow
+                      label={t('salesSummary.rows.packagesSoldOnline')}
+                      value={data.summary.packagesSoldOnline ?? 0}
+                      count={data.summary.packagesSoldOnlineCount || undefined}
+                      countLabel={t('salesSummary.packagesCountLabel', { count: data.summary.packagesSoldOnlineCount })}
+                      type="neutral"
+                      tooltip={t('salesSummary.tooltips.packagesSoldOnline')}
+                    />
+                    {/* Paquetes en otra moneda (el panel deja crearlos en USD): se dicen, nunca se suman a los pesos. */}
+                    {data.summary.packagesSoldOnlineOtherCurrencies.map(o => (
+                      <p key={o.currency} className="pl-8 pr-4 pb-1 text-xs text-muted-foreground" data-testid="paquetes-otra-moneda">
+                        {t('salesSummary.packagesOtherCurrency', { amount: enSuMoneda(o.amount, o.currency, i18n.language), count: o.count })}
+                      </p>
+                    ))}
+                  </>
+                )}
               {!sinMetricasDeOrden &&
                 data.summary.reservationDeposits !== null &&
                 (data.summary.reservationDeposits !== 0 || data.summary.reservationDepositsCount > 0 || data.summary.reservationDepositsRefunded !== 0) && (
@@ -2203,6 +2222,7 @@ export default function SalesSummary() {
         sinPlan={!hasAccess}
         bloqueadoPorElServidor={apiResponse?.channelBreakdownLocked === true}
         conFiltro={sinMetricasDeOrden}
+        desfasado={apiResponse?.channelBreakdownOutOfSync === true}
         formatCurrency={Currency}
       />
 
