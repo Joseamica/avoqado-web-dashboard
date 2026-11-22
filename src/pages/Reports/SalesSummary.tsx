@@ -1677,6 +1677,7 @@ export default function SalesSummary() {
           initialMerchantAccountId={merchantAccountId}
           merchantAccounts={merchantAccounts}
           estimatedCount={apiResponse?.summary?.transactionCount ?? undefined}
+          reportType={effectiveReportType}
         />
       )}
 

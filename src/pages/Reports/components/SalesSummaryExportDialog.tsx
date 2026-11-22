@@ -38,9 +38,13 @@ interface SalesSummaryExportDialogProps {
   /** Merchant accounts already loaded on the page (getVenueMerchantAccountsByVenueId). */
   merchantAccounts?: MerchantAccount[]
   estimatedCount?: number
+  /** The page's report type: «Por periodo» exports this breakdown (by day when the page shows the plain summary). */
+  reportType?: string
 }
 
-const SUMMARY_SECTIONS = ['totals', 'paymentMethods', 'cardTypes', 'merchantAccounts', 'byPeriod'] as const
+const SUMMARY_SECTIONS = ['totals', 'paymentMethods', 'cardTypes', 'merchantAccounts', 'statement', 'byPeriod'] as const
+/** Sections the server leaves empty under a payment-method filter (it only breaks down the unfiltered view). */
+const NEEDS_NO_METHOD_FILTER = new Set<string>(['paymentMethods', 'cardTypes'])
 const DETAIL_COLUMNS = [
   'createdAt', 'paymentId', 'waiterName', 'merchantAccount', 'method',
   'cardBrand', 'last4', 'international', 'amount', 'tipAmount', 'totalAmount', 'status', 'source',
@@ -52,7 +56,7 @@ const CARD_TYPES: CardTypeFilter[] = ['CREDIT', 'DEBIT', 'AMEX', 'INTERNATIONAL'
 
 export function SalesSummaryExportDialog({
   open, onClose, venueId, initialDateFrom, initialDateTo,
-  initialPaymentMethod, initialCardType, initialMerchantAccountId, merchantAccounts = [], estimatedCount,
+  initialPaymentMethod, initialCardType, initialMerchantAccountId, merchantAccounts = [], estimatedCount, reportType,
 }: SalesSummaryExportDialogProps) {
   const { t } = useTranslation('reports')
   const { toast } = useToast()
@@ -82,6 +86,19 @@ export function SalesSummaryExportDialog({
   const [staffIds, setStaffIds] = useState<string[]>([]) // detailed mode only
   const [shiftId, setShiftId] = useState<string | null>(null) // detailed mode only
 
+  // D13.1: the dialog stays mounted, so `useState(initial…)` only read the screen ONCE. Every opening brings back the dates and
+  // filters the screen shows now; the rest (mode, format, sections, an export being built) stays as the user left it.
+  const [estabaAbierto, setEstabaAbierto] = useState(false)
+  if (open !== estabaAbierto) {
+    setEstabaAbierto(open)
+    if (open) {
+      setDateRange({ from: initialDateFrom, to: initialDateTo })
+      setPaymentMethod(initialPaymentMethod ?? null)
+      setCardType(initialCardType ?? null)
+      setMerchantAccountId(initialMerchantAccountId ?? null)
+    }
+  }
+
   // Staff list — only fetch when the staff pill can be shown (detailed mode, dialog open).
   const { data: teamResp } = useQuery({
     queryKey: ['exportDialogTeam', venueId],
@@ -108,11 +125,18 @@ export function SalesSummaryExportDialog({
     [venueId],
   )
 
-  // FIX 7: card-type detail (summary section) is only produced when NO paymentMethod filter is
-  // active (getSalesSummary builds byPaymentMethodDetailed for the unfiltered view only). Disable
-  // the checkbox + drop the section when a paymentMethod filter is set, so the user can't pick a
-  // section that silently yields nothing.
-  const cardTypesSectionDisabled = mode === 'summary' && paymentMethod !== null
+  // FIX 7 + D13.5: the payment-method breakdown and the card-type detail are only produced when NO paymentMethod filter is
+  // active (getSalesSummary builds them for the unfiltered view only). Disable those checkboxes + drop them when a filter is
+  // set, so the user can't pick a section that silently yields nothing; with nothing left, the button says why it is off.
+  const sectionDisabled = (id: string) => NEEDS_NO_METHOD_FILTER.has(id) && paymentMethod !== null
+  const effectiveSections = Array.from(sections).filter(id => !sectionDisabled(id))
+  const noSections = mode === 'summary' && effectiveSections.length === 0
+  // D13.2: «Por periodo» = the breakdown of the report type on screen; the plain summary goes by day.
+  const periodType = reportType && reportType !== 'summary' ? reportType : 'days'
+  // Legacy QR payments are not stored one by one: there is no detailed file for them (the server answers 400).
+  const qrSinDetalle = paymentMethod === 'QR_LEGACY'
+  const paymentMethodOptions: PaymentMethodFilter[] =
+    initialPaymentMethod === 'QR_LEGACY' ? [...PAYMENT_METHODS, 'QR_LEGACY'] : PAYMENT_METHODS
 
   const toggle = (set: Set<string>, setter: (s: Set<string>) => void, id: string, required = false) => {
     if (required) return
@@ -171,10 +195,6 @@ export function SalesSummaryExportDialog({
         cerrar()
         return
       }
-      // Drop the card-type detail section if a payment filter is active (see FIX 7).
-      const effectiveSections = cardTypesSectionDisabled
-        ? Array.from(sections).filter(s => s !== 'cardTypes')
-        : Array.from(sections)
       const params: Record<string, string> = {
         mode,
         format,
@@ -188,6 +208,7 @@ export function SalesSummaryExportDialog({
         ...(mode === 'detailed' && staffIds.length > 0 ? { staffIds: staffIds.join(',') } : {}),
         ...(mode === 'detailed' && shiftId ? { shiftId } : {}),
         ...(mode === 'summary' ? { sections: effectiveSections.join(',') } : { columns: Array.from(columns).join(',') }),
+        ...(mode === 'summary' && effectiveSections.includes('byPeriod') ? { reportType: periodType } : {}),
       }
       const response = await api.get(endpoint, { params, responseType: 'blob' })
       const ext = format === 'xlsx' ? 'xlsx' : format
@@ -229,7 +250,7 @@ export function SalesSummaryExportDialog({
     }
   }
 
-  const detailedDisabled = !canDetailedExport
+  const detailedDisabled = !canDetailedExport || qrSinDetalle
 
   return (
     <FullScreenModal
@@ -240,7 +261,7 @@ export function SalesSummaryExportDialog({
       actions={
         <Button
           onClick={handleExport}
-          disabled={isExporting || (mode === 'detailed' && detailedDisabled) || armando}
+          disabled={isExporting || (mode === 'detailed' && detailedDisabled) || noSections || armando}
           className="cursor-pointer"
           data-tour="export-dialog-submit"
         >
@@ -273,15 +294,19 @@ export function SalesSummaryExportDialog({
               </div>
             </label>
           </RadioGroup>
-          {mode === 'detailed' && detailedDisabled && (
+          {mode === 'detailed' && !canDetailedExport && (
             <p className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-900/40 dark:bg-amber-900/20 dark:text-amber-200">
               {t('salesSummary.export.premium.body')}
             </p>
+          )}
+          {qrSinDetalle && (
+            <p className="mt-3 text-xs text-muted-foreground">{t('salesSummary.export.mode.detailedQrHint')}</p>
           )}
         </section>
 
         {/* Date range filter pill */}
         <section className="rounded-2xl border border-input bg-card p-6">
+          <h3 className="mb-4 text-base font-semibold">{t('salesSummary.export.dateRange.label')}</h3>
           <DateRangePicker
             initialDateFrom={dateRange.from}
             initialDateTo={dateRange.to}
@@ -313,7 +338,7 @@ export function SalesSummaryExportDialog({
                     />
                     <span className="text-sm">{t('salesSummary.export.filters.paymentMethodOptions.all')}</span>
                   </label>
-                  {PAYMENT_METHODS.map(pm => (
+                  {paymentMethodOptions.map(pm => (
                     <label key={pm} className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 hover:bg-muted/50">
                       <input
                         type="radio"
@@ -446,8 +471,8 @@ export function SalesSummaryExportDialog({
               <h3 className="mb-4 text-base font-semibold">{t('salesSummary.export.sections.label')}</h3>
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 {SUMMARY_SECTIONS.map(id => {
-                  // FIX 7: card-type detail needs the unfiltered view — disable under a payment filter.
-                  const disabled = id === 'cardTypes' && cardTypesSectionDisabled
+                  // FIX 7: these need the unfiltered view — disable under a payment filter.
+                  const disabled = sectionDisabled(id)
                   return (
                     <label
                       key={id}
@@ -462,12 +487,24 @@ export function SalesSummaryExportDialog({
                         <span className="text-sm">{t(`salesSummary.export.sections.${id}`)}</span>
                       </div>
                       {disabled && (
-                        <span className="ml-7 text-xs text-muted-foreground">{t('salesSummary.export.sections.cardTypesDisabledHint')}</span>
+                        <span className="ml-7 text-xs text-muted-foreground">
+                          {t(id === 'cardTypes' ? 'salesSummary.export.sections.cardTypesDisabledHint' : 'salesSummary.export.sections.paymentMethodsDisabledHint')}
+                        </span>
+                      )}
+                      {id === 'byPeriod' && !disabled && (
+                        <span className="ml-7 text-xs text-muted-foreground">
+                          {reportType && reportType !== 'summary'
+                            ? t('salesSummary.export.sections.byPeriodHint', { type: t(`salesSummary.controls.reportType.options.${periodType}`) })
+                            : t('salesSummary.export.sections.byPeriodDefaultHint')}
+                        </span>
                       )}
                     </label>
                   )
                 })}
               </div>
+              {noSections && (
+                <p className="mt-3 text-sm text-destructive" role="status">{t('salesSummary.export.sections.noneSelected')}</p>
+              )}
             </>
           ) : (
             <>

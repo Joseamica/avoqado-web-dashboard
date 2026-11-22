@@ -500,7 +500,11 @@
         "summary": "Resumen",
         "summaryDesc": "Totales y desgloses agregados",
         "detailed": "Transacciones detalladas",
-        "detailedDesc": "Una fila por transacción"
+        "detailedDesc": "Una fila por transacción",
+        "detailedQrHint": "Los cobros del QR anterior no se pueden exportar uno por uno. Quita ese filtro de método de pago para usar este modo."
+      },
+      "dateRange": {
+        "label": "Fechas"
       },
       "sections": {
         "label": "Secciones a incluir",
@@ -508,8 +512,13 @@
         "paymentMethods": "Desglose por método de pago",
         "cardTypes": "Detalle por tipo de tarjeta",
         "cardTypesDisabledHint": "Quita el filtro de método de pago para incluir el detalle por tipo de tarjeta.",
+        "paymentMethodsDisabledHint": "Quita el filtro de método de pago para incluir el desglose por método.",
         "merchantAccounts": "Desglose por comercio",
-        "byPeriod": "Por periodo"
+        "statement": "Estado del periodo",
+        "byPeriod": "Por periodo",
+        "byPeriodHint": "Una fila por periodo: {{type}}, el tipo de informe que ves.",
+        "byPeriodDefaultHint": "Una fila por día. Para otro desglose, cambia el tipo de informe en la pantalla.",
+        "noneSelected": "Elige al menos una sección para exportar."
       },
       "filters": {
         "label": "Filtros",
@@ -518,7 +527,8 @@
           "all": "Todos",
           "cash": "Efectivo",
           "card": "Tarjeta",
-          "other": "Otro"
+          "other": "Otro",
+          "qr_legacy": "QR anterior"
         },
         "cardType": "Tipo de tarjeta",
         "cardTypeOptions": {
@@ -746,7 +756,7 @@
       "metrics": {
         "label": "Métricas",
         "description": "Elige qué métricas mostrar en el informe",
-        "longDescription": "Las métricas seleccionadas se mostrarán en el informe y en las exportaciones.",
+        "longDescription": "Las métricas seleccionadas se muestran en el informe. Al exportar, el archivo trae todos los totales.",
         "allMetrics": "Todas las métricas",
         "options": {
           "grossSales": "Ventas brutas",
