@@ -504,7 +504,7 @@ const settingsSchema = z.object({
   googleCalendarEventDetailLevel: z.enum(['MINIMAL', 'SERVICE', 'FULL']),
 })
 
-type SettingsFormData = z.infer<typeof settingsSchema>
+export type SettingsFormData = z.infer<typeof settingsSchema>
 
 export default function ReservationSettings() {
   const { venueId, fullBasePath } = useCurrentVenue()
