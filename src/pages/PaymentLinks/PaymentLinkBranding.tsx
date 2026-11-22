@@ -18,6 +18,7 @@ import { fontFamilyValue } from './font-loader'
 import './fonts-eager'
 import { FONT_CATEGORY_LABELS, PAYMENT_LINK_FONTS } from './payment-link-fonts'
 import { includesNormalized } from '@/lib/utils'
+import { motivoDelError } from '@/lib/motivoDelError'
 
 const BUTTON_SHAPES = ['rounded', 'square', 'pill'] as const
 type ButtonShape = (typeof BUTTON_SHAPES)[number]
@@ -105,7 +106,7 @@ export default function PaymentLinkBranding() {
     onError: (err: any) => {
       toast({
         title: t('branding.saveErrorTitle', { defaultValue: 'No se pudo guardar' }),
-        description: err?.response?.data?.error || err?.message,
+        description: motivoDelError(err),
         variant: 'destructive',
       })
     },

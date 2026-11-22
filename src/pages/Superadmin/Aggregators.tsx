@@ -45,6 +45,7 @@ import {
 } from '@/services/aggregator.service'
 import RevenueShareReportSection from './components/RevenueShareReportSection'
 import AggregatorDetailSheet from './components/AggregatorDetailSheet'
+import { motivoDelError } from '@/lib/motivoDelError'
 
 // ─── Types ────────────────────────────────────────────────────
 
@@ -402,7 +403,7 @@ export default function Aggregators() {
       }, 200)
     },
     onError: (error: any) => {
-      toast({ title: 'Error', description: error?.response?.data?.error || 'Error al crear', variant: 'destructive' })
+      toast({ title: 'Error', description: motivoDelError(error, 'Error al crear'), variant: 'destructive' })
     },
   })
 
@@ -427,7 +428,7 @@ export default function Aggregators() {
     onError: (error: any) => {
       toast({
         title: 'Error',
-        description: error?.response?.data?.error || 'Error al actualizar',
+        description: motivoDelError(error, 'Error al actualizar'),
         variant: 'destructive',
       })
     },
@@ -440,7 +441,7 @@ export default function Aggregators() {
       toast({ title: 'Estado actualizado' })
     },
     onError: (error: any) => {
-      toast({ title: 'Error', description: error?.response?.data?.error || 'Error', variant: 'destructive' })
+      toast({ title: 'Error', description: motivoDelError(error, 'Error'), variant: 'destructive' })
     },
   })
 
@@ -470,7 +471,7 @@ export default function Aggregators() {
       toast({ title: 'Link de reporte generado' })
     },
     onError: (error: any) => {
-      toast({ title: 'Error', description: error?.response?.data?.error || 'Error', variant: 'destructive' })
+      toast({ title: 'Error', description: motivoDelError(error, 'Error'), variant: 'destructive' })
     },
   })
 
@@ -481,7 +482,7 @@ export default function Aggregators() {
       toast({ title: 'Link revocado' })
     },
     onError: (error: any) => {
-      toast({ title: 'Error', description: error?.response?.data?.error || 'Error', variant: 'destructive' })
+      toast({ title: 'Error', description: motivoDelError(error, 'Error'), variant: 'destructive' })
     },
   })
 
@@ -503,7 +504,7 @@ export default function Aggregators() {
       setCommDialogOpen(false)
     },
     onError: (error: any) => {
-      toast({ title: 'Error', description: error?.response?.data?.error || 'Error al crear', variant: 'destructive' })
+      toast({ title: 'Error', description: motivoDelError(error, 'Error al crear'), variant: 'destructive' })
     },
   })
 
@@ -522,7 +523,7 @@ export default function Aggregators() {
     onError: (error: any) => {
       toast({
         title: 'Error',
-        description: error?.response?.data?.error || 'Error al actualizar',
+        description: motivoDelError(error, 'Error al actualizar'),
         variant: 'destructive',
       })
     },
@@ -535,7 +536,7 @@ export default function Aggregators() {
       toast({ title: 'Comisión eliminada' })
     },
     onError: (error: any) => {
-      toast({ title: 'Error', description: error?.response?.data?.error || 'Error al eliminar', variant: 'destructive' })
+      toast({ title: 'Error', description: motivoDelError(error, 'Error al eliminar'), variant: 'destructive' })
     },
   })
 

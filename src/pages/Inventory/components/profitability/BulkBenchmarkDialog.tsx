@@ -16,6 +16,7 @@ import { getIntlLocale } from '@/utils/i18n-locale'
 import { AddTokensDialog } from '@/pages/Settings/components/AddTokensDialog'
 import api from '@/api'
 import type { DerivedRow } from '../../types/profitability'
+import { motivoDelError } from '@/lib/motivoDelError'
 
 interface Props {
   open: boolean
@@ -100,7 +101,7 @@ export function BulkBenchmarkDialog({ open, onOpenChange, rows }: Props) {
       toast({
         variant: 'destructive',
         title: 'Error al comprar tokens',
-        description: err?.response?.data?.error || err?.message || 'Intenta de nuevo.',
+        description: motivoDelError(err, 'Intenta de nuevo.'),
       })
     },
   })

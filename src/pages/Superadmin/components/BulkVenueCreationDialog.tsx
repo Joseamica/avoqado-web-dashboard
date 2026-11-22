@@ -37,6 +37,7 @@ import {
   Upload,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { motivoDelError } from '@/lib/motivoDelError'
 
 // ── Types ────────────────────────────────────────────────────────────
 
@@ -113,7 +114,7 @@ const BulkVenueCreationDialog: React.FC<Props> = ({ open, onOpenChange }) => {
       if (errorData?.errors?.length > 0) {
         setJsonError(errorData.errors.map((e: any) => `[${e.index}] ${e.field}: ${e.error}`).join('\n'))
       } else {
-        const msg = errorData?.message || error?.response?.data?.error || error.message
+        const msg = errorData?.message || motivoDelError(error)
         setJsonError(msg)
       }
       toast({

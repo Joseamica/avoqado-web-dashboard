@@ -20,6 +20,7 @@ import { AlertTriangle, Loader2, Settings2, Zap } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { AddTokensDialog } from './AddTokensDialog'
+import { motivoDelError } from '@/lib/motivoDelError'
 
 interface TokenBudgetSectionProps {
   venueId: string
@@ -69,7 +70,7 @@ export function TokenBudgetSection({ venueId }: TokenBudgetSectionProps) {
       })
     },
     onError: (error: any) => {
-      const message = error?.response?.data?.error || error.message
+      const message = motivoDelError(error)
       toast({
         title: t('tokenBudget.purchaseError'),
         description: message,
