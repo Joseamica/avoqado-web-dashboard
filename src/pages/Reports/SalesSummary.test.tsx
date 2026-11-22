@@ -526,7 +526,22 @@ describe('SalesSummary · canales y lo cobrado por adelantado (carril G: D4, D5)
     })
     pintar()
     expect(await screen.findByText('salesSummary.rows.packagesSoldOnline')).toBeInTheDocument()
-    expect(screen.getByTestId('paquetes-otra-moneda')).toHaveTextContent(/salesSummary\.packagesOtherCurrency\(amount=.*100.*,count=1\)/)
+    // Con su código (Codex r3 #5): «USD 100.00», nunca un «$100.00» que se lee como pesos.
+    expect(screen.getByTestId('paquetes-otra-moneda')).toHaveTextContent('salesSummary.packagesOtherCurrency(amount=USD 100.00,count=1)')
+  })
+
+  it('🔴 Codex r3 #2 · un filtro de pago guardado que la petición no llevó (plan Gratis) no esconde los anticipos ni pinta el aviso de filtro', async () => {
+    h.access = false
+    vi.mocked(localStorage.getItem).mockReturnValue(JSON.stringify({ paymentMethodFilter: 'CASH' }))
+    h.response = respuesta({
+      summary: { ...CON_TARJETAS, packagesSoldOnline: 1200, packagesSoldOnlineCount: 1 },
+      filtered: false,
+      channelBreakdownLocked: true,
+    })
+    pintar()
+    expect(await screen.findByText('salesSummary.rows.packagesSoldOnline')).toBeInTheDocument()
+    expect(screen.getByTestId('ventas-por-canal-candado')).toBeInTheDocument()
+    expect(screen.queryByTestId('ventas-por-canal-filtro')).toBeNull()
   })
 
   it('control · sin paquetes ni depósitos (o con un servidor viejo) no hay renglones', async () => {

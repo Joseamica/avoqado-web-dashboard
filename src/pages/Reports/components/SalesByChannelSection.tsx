@@ -316,8 +316,12 @@ function Tarjeta({
         <span className="font-semibold tabular-nums">{dinero(fila.netSales)}</span>
       </div>
       {pct != null && (
-        <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-muted">
-          <div className="h-full rounded-full bg-sky-500" style={{ width: `${Math.min(100, pct)}%` }} />
+        // El % escrito además de la barra (Codex r3 #6): en celular y para un lector de pantalla.
+        <div className="mt-1.5 flex items-center gap-2">
+          <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted" aria-hidden>
+            <div className="h-full rounded-full bg-sky-500" style={{ width: `${Math.min(100, pct)}%` }} />
+          </div>
+          <span className="text-xs font-normal text-muted-foreground tabular-nums">{pct.toFixed(1)}%</span>
         </div>
       )}
       <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-xs font-normal text-muted-foreground">

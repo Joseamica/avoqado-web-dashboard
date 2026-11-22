@@ -86,6 +86,13 @@ describe('SalesByChannelSection (carril G · D4)', () => {
     expect(within(within(tabla).getByTestId('canal-TABLES')).getByText('55.9%')).toBeInTheDocument()
   })
 
+  it('🔴 Codex r3 #6 · en celular cada tarjeta también dice su % (no sólo la barra)', () => {
+    pintar({ byChannel: CANALES.slice(0, 2) })
+    const lista = screen.getByTestId('ventas-por-canal-lista')
+    expect(within(lista).getByText('55.9%')).toBeInTheDocument()
+    expect(within(lista).getByText('44.1%')).toBeInTheDocument()
+  })
+
   it('🔴 Codex r2 #10 · con un renglón negativo (sólo una devolución) no se pinta ningún %, ni en escritorio ni en celular', () => {
     pintar()
     const tabla = screen.getByTestId('ventas-por-canal-tabla')
