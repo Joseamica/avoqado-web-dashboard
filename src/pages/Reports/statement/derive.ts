@@ -154,8 +154,9 @@ export function deriveStatement(input: DeriveStatementInput): StatementModel {
       // the week strip and the expanded per-day list render — so the chip can never
       // disagree with them (e.g. all-past slices must not flip to a future "Cae" from a
       // separately-clocked nextDate). Derive everything here from the slices + venue today.
-      // Also `next` when part of this merchant's money has no date (Codex r2 #7): «Cae ~lunes» would imply the whole net lands.
-      const partial = (m.unprojectedNet ?? 0) > 1
+      // Also `next` when ANY part of this merchant's net has no date — a charge without a rule, or a refund without a cost yet
+      // (Codex r2 #7, r3 #3): «Cae ~lunes» would imply the whole net lands that day.
+      const partial = Math.abs(m.unprojectedNet ?? 0) >= 0.005
       if ((deposits.length > 1 || partial) && upcoming.length > 0) {
         payoutStatus = 'next'
         payoutDate = upcoming[0].date

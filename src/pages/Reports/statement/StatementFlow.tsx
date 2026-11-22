@@ -122,7 +122,7 @@ export function StatementFlow({ model, formatCurrency }: Props) {
 
       {/* Where the money ends up */}
       <div className="mt-4 space-y-2">
-        {(cash.amount > 0 || cash.count > 0) && (
+        {(hay(cash.amount) || cash.count > 0) && (
           <div className="flex items-center justify-between gap-3 rounded-lg border border-input p-3" data-testid="statement-cash-row">
             <span className="flex min-w-0 items-center gap-2 text-sm">
               <Wallet className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" aria-hidden />

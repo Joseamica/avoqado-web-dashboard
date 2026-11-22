@@ -422,6 +422,14 @@ describe('deriveStatement — devoluciones, en línea y comisión de terceros', 
     expect(m.unprojected).toBe(200)
   })
 
+  it('una devolución sin costo todavía (o centavos sin fecha) tampoco deja «Cae» junto al neto completo', () => {
+    const cal = [{ date: '2026-07-06', status: 'projected' as const, totalNet: 97, byMerchant: [{ merchantAccountId: 'x', displayName: 'X', platformFee: 3, netToReceive: 97, transactionCount: 1 }] }]
+    for (const unprojectedNet of [-30, 0.75]) {
+      const m = deriveStatement({ buckets: [], merchants: [merchant({ merchantAccountId: 'x', netToReceive: 97 + unprojectedNet, unprojectedNet })], calendar: cal, todayKey: TODAY })
+      expect([m.merchants[0].payoutStatus, m.merchants[0].payoutAmount]).toEqual(['next', 97])
+    }
+  })
+
   it('la nota «sin fecha» suma por comercio: la devolución sin costo de uno no esconde lo de otro', () => {
     const m = deriveStatement({
       buckets: [],

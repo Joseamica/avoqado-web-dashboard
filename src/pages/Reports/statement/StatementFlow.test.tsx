@@ -119,4 +119,34 @@ describe('StatementFlow', () => {
     expect(screen.queryByTestId('statement-tender-commissions')).not.toBeInTheDocument()
     expect(screen.queryByTestId('statement-cancelled-refunds')).not.toBeInTheDocument()
   })
+
+  it('con los destinos del SERVIDOR: una devolución en efectivo sin cobros hoy se ve como salida de la caja', () => {
+    const d = (o: Record<string, number> = {}) => ({ collected: 0, refunds: 0, refundCount: 0, platformFee: 0, netToReceive: 0, transactionCount: 0, ...o })
+    const m = model({
+      buckets: [bucket({ bucket: 'CASH', amount: -30, count: 1, refunds: 30, chargedAmount: 0, chargedCount: 0 })],
+      merchants: [],
+      destinations: { drawer: d({ collected: -30, refunds: 30, refundCount: 1, netToReceive: -30, transactionCount: 1 }), terminal: d(), online: d(), other: d(), tenderCommissions: 0 },
+      calendar: [],
+      todayKey: '2026-07-04',
+    })
+    render(<StatementFlow model={m} formatCurrency={fmt} />)
+    expect(screen.getByTestId('statement-hero-net')).toHaveTextContent('$-30.00')
+    expect(screen.getByTestId('statement-cash-row')).toHaveTextContent('$-30.00')
+    expect(screen.getByTestId('statement-refunds')).toHaveTextContent('−$30.00')
+  })
+
+  it('con los destinos del SERVIDOR: el efectivo de un pedido de Rappi queda entero y la comisión va aparte', () => {
+    const d = (o: Record<string, number> = {}) => ({ collected: 0, refunds: 0, refundCount: 0, platformFee: 0, netToReceive: 0, transactionCount: 0, ...o })
+    const m = model({
+      buckets: [bucket({ bucket: 'CASH', amount: 100, count: 1, chargedAmount: 100, chargedCount: 1, tenderCommissions: 30 })],
+      merchants: [],
+      destinations: { drawer: d({ collected: 100, netToReceive: 100, transactionCount: 1 }), terminal: d(), online: d(), other: d(), tenderCommissions: 30 },
+      calendar: [],
+      todayKey: '2026-07-04',
+    })
+    render(<StatementFlow model={m} formatCurrency={fmt} />)
+    expect(screen.getByTestId('statement-cash-row')).toHaveTextContent('$100.00')
+    expect(screen.getByTestId('statement-tender-row')).toHaveTextContent('−$30.00')
+    expect(screen.getByTestId('statement-hero-net')).toHaveTextContent('$70.00')
+  })
 })
