@@ -857,7 +857,11 @@
           "nextEstimated": "Próx. ≈{{amount}} · ~{{date}}",
           "noRule": "Sin regla de liquidación",
           "online": "Sin fecha estimada",
-          "landedPartial": "Debió caer ≈{{amount}} · ~{{date}}"
+          "landedPartial": "Debió caer ≈{{amount}} · ~{{date}}",
+          "landsDeduction": "Se descuenta ~{{date}}",
+          "landedDeduction": "Debió descontarse ~{{date}}",
+          "nextDeduction": "Próx. descuento ≈{{amount}} · ~{{date}}",
+          "landedDeductionPartial": "Debió descontarse ≈{{amount}} · ~{{date}}"
         },
         "rules": {
           "title": "Reglas de liquidación",

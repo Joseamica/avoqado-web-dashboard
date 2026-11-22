@@ -468,6 +468,26 @@ describe('deriveStatement — devoluciones, en línea y comisión de terceros', 
     expect(m.cardSubs[0].platformFees).toBe(1.08)
   })
 
+  it('un día que termina en devolución neta es un descuento, no un depósito (nunca «Cae»)', () => {
+    const slice = (date: string, net: number) => ({ date, status: 'settled' as const, totalNet: net, byMerchant: [{ merchantAccountId: 'x', displayName: 'X', platformFee: 0, netToReceive: net, transactionCount: 1 }] })
+    const conSinFecha = deriveStatement({
+      buckets: [],
+      merchants: [merchant({ merchantAccountId: 'x', netToReceive: 217.9, unprojectedNet: 150 })],
+      calendar: [slice('2026-07-01', 97), slice('2026-07-02', -29.1)],
+      todayKey: TODAY,
+    }).merchants[0]
+    expect([conSinFecha.payoutStatus, conSinFecha.payoutAmount, conSinFecha.payoutIsDeduction]).toEqual(['landed', -29.1, true])
+    const soloDevolucion = deriveStatement({
+      buckets: [],
+      merchants: [merchant({ merchantAccountId: 'r', netToReceive: -29.1 })],
+      calendar: [{ ...slice('2026-07-06', -29.1), status: 'projected' as const, byMerchant: [{ merchantAccountId: 'r', displayName: 'R', platformFee: -0.9, netToReceive: -29.1, transactionCount: 1 }] }],
+      todayKey: TODAY,
+    }).merchants[0]
+    expect([soloDevolucion.payoutStatus, soloDevolucion.payoutIsDeduction]).toEqual(['lands', true])
+    const normal = deriveStatement({ buckets: [], merchants: [merchant({ merchantAccountId: 'x', netToReceive: 97 })], calendar: [slice('2026-07-01', 97)], todayKey: TODAY }).merchants[0]
+    expect(normal.payoutIsDeduction).toBe(false)
+  })
+
   it('la nota «sin fecha» suma por comercio: la devolución sin costo de uno no esconde lo de otro', () => {
     const m = deriveStatement({
       buckets: [],

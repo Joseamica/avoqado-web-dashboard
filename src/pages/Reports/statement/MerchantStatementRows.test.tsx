@@ -106,4 +106,11 @@ describe('MerchantStatementRows', () => {
     expect(screen.getAllByTestId('payout-chip-landed')[0]).toHaveTextContent('salesSummary.statement.merchants.payout.landedPartial $97.00')
     expect(screen.getAllByTestId('payout-chip-no-rule')[0]).toHaveTextContent('salesSummary.statement.merchants.payout.online')
   })
+
+  it('un descuento (devolución neta) nunca dice «Cae»', () => {
+    render(<MerchantStatementRows rows={[row({ merchantAccountId: 'r', payoutStatus: 'lands', payoutDate: '2026-07-06', payoutIsDeduction: true, netToReceive: -29.1 })]} formatCurrency={fmt} />)
+    const chip = screen.getAllByTestId('payout-chip-deduction')[0]
+    expect(chip).toHaveTextContent('salesSummary.statement.merchants.payout.landsDeduction')
+    expect(screen.queryByTestId('payout-chip-lands')).not.toBeInTheDocument()
+  })
 })

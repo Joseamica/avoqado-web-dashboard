@@ -857,7 +857,11 @@
           "nextEstimated": "Next ≈{{amount}} · ~{{date}}",
           "noRule": "No settlement rule",
           "online": "No estimated date",
-          "landedPartial": "Should have landed ≈{{amount}} · ~{{date}}"
+          "landedPartial": "Should have landed ≈{{amount}} · ~{{date}}",
+          "landsDeduction": "Deducted ~{{date}}",
+          "landedDeduction": "Should have been deducted ~{{date}}",
+          "nextDeduction": "Next deduction ≈{{amount}} · ~{{date}}",
+          "landedDeductionPartial": "Should have been deducted ≈{{amount}} · ~{{date}}"
         },
         "rules": {
           "title": "Settlement rules",

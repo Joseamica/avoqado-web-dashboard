@@ -180,6 +180,9 @@ export function deriveStatement(input: DeriveStatementInput): StatementModel {
       payoutStatus = 'noRule'
       payoutDate = null
     }
+    // Which money the chip talks about: its slice when it shows one amount, else the whole net (Codex r6 #1: a refund the processor
+    // deducts must read «Se descuenta», not «Cae»).
+    const sliceNet = payoutAmount ?? (payoutDate ? (deposits.find(d => d.date === payoutDate)?.netToReceive ?? m.netToReceive) : m.netToReceive)
     return {
       merchantAccountId: m.merchantAccountId,
       displayName: m.displayName,
@@ -189,6 +192,7 @@ export function deriveStatement(input: DeriveStatementInput): StatementModel {
       payoutStatus,
       payoutDate,
       payoutAmount,
+      payoutIsDeduction: payoutStatus !== 'noRule' && sliceNet < -0.004,
       settlementRules: m.settlementRules,
       deposits,
     }

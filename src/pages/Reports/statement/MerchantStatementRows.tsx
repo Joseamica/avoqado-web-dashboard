@@ -70,6 +70,19 @@ function PayoutChip({ row, locale, formatCurrency, t }: { row: MerchantStatement
     )
   }
   const date = formatVenueDate(row.payoutDate, locale)
+  if (row.payoutIsDeduction) {
+    // Money OUT of the bank (a card refund the processor deducts): same states, never «Cae» (Codex r6 #1).
+    const amount = row.payoutAmount != null ? formatCurrency(Math.abs(row.payoutAmount)) : null
+    const key =
+      row.payoutStatus === 'landed'
+        ? amount ? 'landedDeductionPartial' : 'landedDeduction'
+        : amount ? 'nextDeduction' : 'landsDeduction'
+    return (
+      <span className={cn(base, 'border-input text-muted-foreground')} data-testid="payout-chip-deduction">
+        {t(`salesSummary.statement.merchants.payout.${key}`, amount ? { amount, date } : { date })}
+      </span>
+    )
+  }
   if (row.payoutStatus === 'landed') {
     return (
       <span className={cn(base, 'border-amber-600/40 text-amber-600 dark:border-amber-400/40 dark:text-amber-400')} data-testid={PAYOUT_TESTID.landed}>

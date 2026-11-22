@@ -60,6 +60,8 @@ export interface MerchantStatementRowModel {
   payoutDate: string | null // YYYY-MM-DD — the relevant estimated date for the chip
   /** For `next`: the estimated net of the NEXT upcoming deposit (< full net). Else null. */
   payoutAmount: number | null
+  /** The dated slice the chip talks about is money OUT (a refund the processor deducts), so it must not read «Cae». */
+  payoutIsDeduction?: boolean
   settlementRules?: MerchantSettlementRule[]
   /** This merchant's slices pulled out of the settlement calendar days. */
   deposits: Array<{ date: string; status: SettlementCalendarDay['status']; platformFee: number; netToReceive: number }>
