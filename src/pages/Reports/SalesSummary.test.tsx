@@ -47,6 +47,8 @@ import SalesSummary from './SalesSummary'
 const SUMMARY: SalesSummaryResponse['summary'] = {
   grossSales: 10000, items: 10000, serviceCosts: 0, discounts: 0, netSales: 10000, deferredSales: 0, taxes: 1379.31, refunds: 0,
   tips: 800, platformFees: 300, staffCommissions: 0, commissions: 300, totalCollected: 10500, netProfit: 9700, transactionCount: 20,
+  // Carril B (21-nov): lo que manda el servidor con base de caja. El caso del servidor viejo los quita.
+  unpaidSales: 0, unpaidOrders: 0, tenderCommissions: 0, refundCount: 0,
 }
 const CON_TARJETAS = { ...SUMMARY, giftCardLoads: 2000, giftCardLoadsCount: 2, paidWithGiftCardBalance: 330 }
 const BUCKETS: NonNullable<SalesSummaryResponse['byPaymentMethodDetailed']> = [
@@ -233,6 +235,82 @@ describe('SalesSummary · cifras de tarjetas de regalo (D5 r1)', () => {
     pintar()
     // La leyenda y el tooltip (que aquí se pinta en línea) dicen el método.
     expect((await screen.findAllByText('salesSummary.paymentTypes.cash')).length).toBeGreaterThan(0)
+  })
+})
+
+/** El monto que pinta el renglón de `etiqueta` (la llave i18n), en la misma fila. */
+const montoDe = (etiqueta: string) =>
+  (screen.getByText(etiqueta).closest('.justify-between') as HTMLElement).querySelector('.font-mono')?.textContent
+
+describe('SalesSummary · cabecera (carril B, 21-nov: D6, D2, D1, D9.1)', () => {
+  it('🔴 D6 · «Sin cobrar» lee unpaidSales (no deferredSales) con cuántas cuentas, y sale solo si hay cuentas abiertas', async () => {
+    h.response = respuesta({ summary: { ...SUMMARY, deferredSales: 747.5, unpaidSales: 695, unpaidOrders: 3 } })
+    pintar()
+    const fila = await screen.findByText('salesSummary.rows.deferredSales')
+    expect(montoDe('salesSummary.rows.deferredSales')).toBe('$695.00')
+    expect(within(fila.closest('.justify-between') as HTMLElement).getByText('3 salesSummary.unpaidOrdersLabel(count=3)')).toBeInTheDocument()
+    expect(screen.getByText('salesSummary.tooltips.deferredSales')).toBeInTheDocument()
+  })
+
+  it('D6 · sin cuentas abiertas y sin elegirla en Métricas, «Sin cobrar» no sale', async () => {
+    h.response = respuesta({ summary: { ...SUMMARY, unpaidSales: 0, unpaidOrders: 0 } })
+    pintar()
+    await screen.findByText('salesSummary.rows.netSales')
+    expect(screen.queryByText('salesSummary.rows.deferredSales')).not.toBeInTheDocument()
+  })
+
+  it('D6 · con un servidor viejo (sin unpaidSales) y elegida en Métricas, «Sin cobrar» cae a deferredSales', async () => {
+    vi.mocked(localStorage.getItem).mockReturnValue(
+      JSON.stringify({ selectedMetrics: ['grossSales', 'netSales', 'deferredSales', 'netProfit'] }),
+    )
+    const { unpaidSales, unpaidOrders, tenderCommissions, refundCount, ...viejo } = SUMMARY
+    h.response = respuesta({ summary: { ...viejo, deferredSales: 80 } })
+    pintar()
+    await screen.findByText('salesSummary.rows.deferredSales')
+    expect(montoDe('salesSummary.rows.deferredSales')).toBe('$80.00')
+    // Codex r2 #9: sus cifras traen propina y cuentas abiertas en el bruto: las ayudas no afirman la regla nueva.
+    expect(screen.getByText('salesSummary.tooltips.deferredSalesOld')).toBeInTheDocument()
+    expect(screen.getByText('salesSummary.tooltips.grossSalesOld')).toBeInTheDocument()
+    expect(screen.queryByText('salesSummary.tooltips.deferredSales')).not.toBeInTheDocument()
+    // Codex r3 #9: tampoco dice que «Neto cobrado» y «Ganancia neta» restan comisiones de terceros.
+    expect(screen.getByText('salesSummary.tooltips.netProfitOld')).toBeInTheDocument()
+  })
+
+  it('🔴 D1 · «Comisiones de terceros» va bajo «Comisiones de plataforma», en negativo, sólo si no es 0', async () => {
+    h.response = respuesta({ summary: { ...SUMMARY, tenderCommissions: 27 } })
+    pintar()
+    const terceros = await screen.findByText('salesSummary.rows.tenderCommissions')
+    expect(antes(screen.getByText('salesSummary.rows.platformFees'), terceros)).toBe(true)
+    expect(antes(terceros, screen.getByText('salesSummary.rows.totalCollected'))).toBe(true)
+    expect(montoDe('salesSummary.rows.tenderCommissions')).toBe('-$27.00')
+    expect(screen.getByText('salesSummary.tooltips.tenderCommissions')).toBeInTheDocument()
+  })
+
+  it('D1 · en 0 (o con un servidor viejo) no hay renglón de terceros', async () => {
+    h.response = respuesta({ summary: { ...SUMMARY, tenderCommissions: 0 } })
+    pintar()
+    await screen.findByText('salesSummary.rows.platformFees')
+    expect(screen.queryByText('salesSummary.rows.tenderCommissions')).not.toBeInTheDocument()
+  })
+
+  it('🔴 D9.1 · con un comercio elegido el servidor manda la vista de movimientos: sin renglones de orden y con el aviso', async () => {
+    h.response = respuesta({
+      filtered: true,
+      summary: {
+        ...SUMMARY, grossSales: null, items: null, serviceCosts: null, discounts: null, netSales: null, deferredSales: null,
+        taxes: null, unpaidSales: null, unpaidOrders: null, totalCollected: 97, netProfit: 97, transactionCount: 1,
+      },
+    })
+    pintar()
+    await screen.findByText('salesSummary.rows.totalCollected')
+    for (const k of ['grossSales', 'discounts', 'netSales', 'taxes', 'totalSales', 'deferredSales'])
+      expect(screen.queryByText(`salesSummary.rows.${k}`)).not.toBeInTheDocument()
+    expect(screen.getByText('salesSummary.controls.filterBy.hiddenMetricsMessage')).toBeInTheDocument()
+    // Codex r4 #4: las ayudas dicen que «Neto cobrado» y «Ganancia neta» salen de los pagos del filtro, no de las ventas netas.
+    expect(screen.getByText('salesSummary.tooltips.totalCollectedMovements')).toBeInTheDocument()
+    expect(screen.getByText('salesSummary.tooltips.netProfitMovements')).toBeInTheDocument()
+    // Un cero en un renglón negativo es «$0.00», nunca «−$0.00» (visto en la pasada del navegador).
+    expect(montoDe('salesSummary.rows.refunds')).toBe('$0.00')
   })
 })
 

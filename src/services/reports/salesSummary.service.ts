@@ -43,7 +43,17 @@ export interface SalesSummaryMetrics {
   totalCollected: number
   // True profit after all costs
   netProfit: number
+  /** Cobros (desde el 21-nov el servidor ya no cuenta aquí las devoluciones: van en `refundCount`). */
   transactionCount: number
+  // Carril B (21-nov-2026) — aditivos y opcionales: un servidor viejo no los manda.
+  /** «Sin cobrar» (D6): lo que deben las cuentas abiertas o pagadas a medias, sin propina. NO es venta. Null en la vista de movimientos. */
+  unpaidSales?: number | null
+  /** Cuántas cuentas abiertas deben algo. */
+  unpaidOrders?: number | null
+  /** Comisiones de terceros (D1): Rappi, Uber Eats, DiDi, tipos de pago con comisión. Ya restadas de `totalCollected`. */
+  tenderCommissions?: number
+  /** Cuántas devoluciones hay en `refunds`. */
+  refundCount?: number
   // Tarjetas de regalo (fase 1a, Parte B · B5) — aditivos y opcionales: un server sin la función no los manda.
   /** Tarjetas cargadas en el rango, menos sus cancelaciones. NO es venta: no está en grossSales. */
   giftCardLoads?: number

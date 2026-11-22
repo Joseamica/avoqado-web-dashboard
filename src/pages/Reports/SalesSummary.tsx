@@ -1096,6 +1096,14 @@ export default function SalesSummary() {
         refunds: apiResponse.summary.refunds,
         netSales: apiResponse.summary.netSales,
         deferredSales: apiResponse.summary.deferredSales,
+        // «Sin cobrar» (D6, 21-nov): lo que deben las cuentas abiertas, sin propina. Un servidor viejo sólo manda `deferredSales`.
+        unpaid: apiResponse.summary.unpaidSales !== undefined ? apiResponse.summary.unpaidSales : apiResponse.summary.deferredSales,
+        unpaidOrders: apiResponse.summary.unpaidOrders ?? null,
+        // Un servidor anterior a la base de caja no manda `unpaidSales`: sus ventas brutas traen cuentas abiertas y su «diferidas»
+        // trae propina. Las ayudas lo dicen así en vez de afirmar la regla nueva (Codex r2 #9).
+        baseDeCaja: apiResponse.summary.unpaidSales !== undefined,
+        // Comisiones de terceros (D1): Rappi, Uber Eats, tipos de pago con comisión. Ya restadas de «Neto cobrado».
+        tenderCommissions: apiResponse.summary.tenderCommissions ?? 0,
         taxes: apiResponse.summary.taxes,
         tips: apiResponse.summary.tips,
         // Costs breakdown (NEW - for clarity)
@@ -1111,7 +1119,8 @@ export default function SalesSummary() {
       transactions: {
         total: apiResponse.summary.transactionCount,
         completed: apiResponse.summary.transactionCount, // API doesn't break down by status
-        refunded: 0, // Not available in current API
+        // D10.1: las devoluciones ya no son «transacciones»; el servidor nuevo manda cuántas hubo.
+        refunded: apiResponse.summary.refundCount ?? 0,
         voided: 0,
         deferred: 0,
       },
@@ -1143,7 +1152,10 @@ export default function SalesSummary() {
     if (!apiResponse?.byPeriod || effectiveReportType === 'summary') {
       return null
     }
-    return apiResponse.byPeriod
+    // «Sin cobrar» (D6): el renglón de la tabla se llama así y lee `unpaidSales`; un servidor viejo sólo trae `deferredSales`.
+    return apiResponse.byPeriod.map(p =>
+      p.metrics.unpaidSales !== undefined ? { ...p, metrics: { ...p.metrics, deferredSales: p.metrics.unpaidSales } } : p,
+    )
   }, [apiResponse?.byPeriod, effectiveReportType])
 
   // Handle date range change
@@ -1959,6 +1971,9 @@ export default function SalesSummary() {
   // La barra, la dona y la tabla de arriba: UN arreglo (antes se repetía tres veces). El saldo de tarjeta sale sólo si hubo.
   // Sin nada que repartir, o con un método en negativo (una devolución del día, Codex r1 #1), no se pintan: serían «0 %» o
   // porcentajes imposibles. El total, su conteo y «Métodos de pago» siguen.
+  // Vista de movimientos (D9.1): con un método elegido, o con un comercio en un servidor que ya lo trata igual (`filtered`), las
+  // métricas de orden vienen en null y sus renglones no se pintan. `isFiltered` sigue mandando en lo demás (repartos, estado de cuenta).
+  const sinMetricasDeOrden = isFiltered || apiResponse?.filtered === true
   const rv = data.repartoDeVentas
   const totalVendido = rv.card + rv.cash + rv.other + rv.giftCard
   const hayReparto = totalVendido > 0 && [rv.card, rv.cash, rv.other, rv.giftCard].every(v => v >= 0)
@@ -1972,8 +1987,11 @@ export default function SalesSummary() {
     !isFiltered && ((data.summary.giftCardLoads ?? 0) !== 0 || (data.summary.paidWithGiftCardBalance ?? 0) !== 0)
   // El renglón «Tarjetas de regalo cargadas»: sin filtro de pago y si no es cero. Sin él, el tooltip no lo menciona (lote ⭐).
   const hayRenglonDeCargas = !isFiltered && typeof data.summary.giftCardLoads === 'number' && data.summary.giftCardLoads !== 0
-  const tooltipTotalCobrado = !hayCifrasDeTarjetas
-    ? t('salesSummary.tooltips.totalCollected')
+  // En la vista de movimientos «Neto cobrado» sale de los pagos del filtro, no de las ventas netas (Codex r4 #4).
+  const tooltipTotalCobrado = sinMetricasDeOrden
+    ? t('salesSummary.tooltips.totalCollectedMovements')
+    : !hayCifrasDeTarjetas
+    ? t(data.summary.baseDeCaja ? 'salesSummary.tooltips.totalCollected' : 'salesSummary.tooltips.totalCollectedOld')
     : hayRenglonDeCargas
       ? t('salesSummary.tooltips.totalCollectedWithGiftCards')
       : t('salesSummary.tooltips.totalCollectedWithGiftCardsNoLoadsRow')
@@ -2077,14 +2095,14 @@ export default function SalesSummary() {
 
               {/* Ventas brutas - Collapsible parent with children.
                   Order-derived → hidden under a payment filter (can't be split per method). */}
-              {!isFiltered && selectedMetrics.includes('grossSales') && (
+              {!sinMetricasDeOrden && selectedMetrics.includes('grossSales') && (
                 <CollapsibleSummaryRow
                   label={t('salesSummary.rows.grossSales')}
                   value={data.summary.totalGross}
                   count={data.transactions.completed}
                   countLabel={t('salesSummary.transactionsLabel')}
                   type="positive"
-                  tooltip={t('salesSummary.tooltips.grossSales')}
+                  tooltip={t(data.summary.baseDeCaja ? 'salesSummary.tooltips.grossSales' : 'salesSummary.tooltips.grossSalesOld')}
                   isOpen={grossSalesOpen}
                   onToggle={() => setGrossSalesOpen(!grossSalesOpen)}
                 >
@@ -2097,7 +2115,8 @@ export default function SalesSummary() {
                       tooltip={t('salesSummary.tooltips.items')}
                     />
                   )}
-                  {selectedMetrics.includes('serviceCosts') && (
+                  {/* D2: los cargos por servicio ya son venta; si hubo, se ven aunque no estén elegidos en Métricas. */}
+                  {(selectedMetrics.includes('serviceCosts') || (data.summary.serviceCosts ?? 0) !== 0) && (
                     <SummaryRow
                       label={t('salesSummary.rows.serviceCosts')}
                       value={data.summary.serviceCosts}
@@ -2113,16 +2132,16 @@ export default function SalesSummary() {
               {selectedMetrics.includes('refunds') && (
                 <SummaryRow
                   label={t('salesSummary.rows.refunds')}
-                  value={-data.summary.refunds}
-                  count={data.transactions.refunded > 0 ? data.transactions.refunded : undefined}
-                  countLabel={t('salesSummary.transactionsLabel')}
+                  value={-data.summary.refunds || 0}
+                  count={data.transactions.refunded > 0 && data.summary.refunds !== 0 ? data.transactions.refunded : undefined}
+                  countLabel={t('salesSummary.refundsCountLabel', { count: data.transactions.refunded })}
                   type="negative"
                   tooltip={t('salesSummary.tooltips.refunds')}
                 />
               )}
 
               {/* Descuentos - order-derived → hidden under filter */}
-              {!isFiltered && selectedMetrics.includes('discounts') && (
+              {!sinMetricasDeOrden && selectedMetrics.includes('discounts') && (
                 <SummaryRow
                   label={t('salesSummary.rows.discounts')}
                   value={-data.summary.discounts}
@@ -2132,7 +2151,7 @@ export default function SalesSummary() {
               )}
 
               {/* Ventas netas - order-derived → hidden under filter */}
-              {!isFiltered && selectedMetrics.includes('netSales') && (
+              {!sinMetricasDeOrden && selectedMetrics.includes('netSales') && (
                 <>
                   <div className="h-px bg-border/30 mx-4 my-2" />
                   <SummaryRow
@@ -2145,20 +2164,23 @@ export default function SalesSummary() {
                 </>
               )}
 
-              {/* Ventas diferidas - order-derived → hidden under filter */}
-              {!isFiltered && selectedMetrics.includes('deferredSales') && (
+              {/* «Sin cobrar» (D6, base de caja): cuentas abiertas o pagadas a medias, sin propina. NO es venta. Order-derived → hidden
+                  in the movement view. Con cuentas abiertas se ve aunque no esté elegido en Métricas (Toast enseña siempre lo no cobrado). */}
+              {!sinMetricasDeOrden &&
+                data.summary.unpaid !== null &&
+                (selectedMetrics.includes('deferredSales') || (data.summary.unpaidOrders ?? 0) > 0) && (
                 <SummaryRow
                   label={t('salesSummary.rows.deferredSales')}
-                  value={data.summary.deferredSales}
-                  count={data.transactions.deferred > 0 ? data.transactions.deferred : undefined}
-                  countLabel={t('salesSummary.transactionsLabel')}
+                  value={data.summary.unpaid}
+                  count={data.summary.unpaidOrders ?? undefined}
+                  countLabel={t('salesSummary.unpaidOrdersLabel', { count: data.summary.unpaidOrders ?? 0 })}
                   type="neutral"
-                  tooltip={t('salesSummary.tooltips.deferredSales')}
+                  tooltip={t(data.summary.baseDeCaja ? 'salesSummary.tooltips.deferredSales' : 'salesSummary.tooltips.deferredSalesOld')}
                 />
               )}
 
               {/* Impuestos - order-derived → hidden under filter */}
-              {!isFiltered && selectedMetrics.includes('taxes') && (
+              {!sinMetricasDeOrden && selectedMetrics.includes('taxes') && (
                 <SummaryRow
                   label={t('salesSummary.rows.taxes')}
                   value={data.summary.taxes}
@@ -2169,7 +2191,7 @@ export default function SalesSummary() {
 
               {/* Total de las ventas - Mexico model: taxes already included in prices.
                   netSales-based → order-derived, hidden under filter. */}
-              {!isFiltered && selectedMetrics.includes('totalCollected') && (
+              {!sinMetricasDeOrden && selectedMetrics.includes('totalCollected') && (
                 <>
                   <div className="h-px bg-border/30 mx-4 my-2" />
                   <SummaryRow
@@ -2209,9 +2231,20 @@ export default function SalesSummary() {
               {selectedMetrics.includes('platformFees') && (
                 <SummaryRow
                   label={t('salesSummary.rows.platformFees')}
-                  value={-data.summary.platformFees}
+                  value={-data.summary.platformFees || 0}
                   type="negative"
                   tooltip={t('salesSummary.tooltips.platformFees')}
+                />
+              )}
+
+              {/* Comisiones de terceros (D1): Rappi, Uber Eats, tipos de pago con comisión. Ya están restadas de «Neto cobrado»: si hubo,
+                  se ven siempre, para que la cuenta cuadre. */}
+              {data.summary.tenderCommissions !== 0 && (
+                <SummaryRow
+                  label={t('salesSummary.rows.tenderCommissions')}
+                  value={-data.summary.tenderCommissions}
+                  type="negative"
+                  tooltip={t('salesSummary.tooltips.tenderCommissions')}
                 />
               )}
 
@@ -2219,7 +2252,7 @@ export default function SalesSummary() {
               {selectedMetrics.includes('staffCommissions') && (
                 <SummaryRow
                   label={t('salesSummary.rows.staffCommissions')}
-                  value={-data.summary.staffCommissions}
+                  value={-data.summary.staffCommissions || 0}
                   type="negative"
                   tooltip={t('salesSummary.tooltips.staffCommissions')}
                 />
@@ -2252,7 +2285,13 @@ export default function SalesSummary() {
                     value={data.summary.netProfit}
                     type="positive"
                     bold
-                    tooltip={t('salesSummary.tooltips.netProfit')}
+                    tooltip={t(
+                      sinMetricasDeOrden
+                        ? 'salesSummary.tooltips.netProfitMovements'
+                        : data.summary.baseDeCaja
+                          ? 'salesSummary.tooltips.netProfit'
+                          : 'salesSummary.tooltips.netProfitOld',
+                    )}
                   />
                 </>
               )}
@@ -2276,7 +2315,7 @@ export default function SalesSummary() {
 
               {/* Order-level metrics (gross sales, taxes, discounts…) are hidden
                   under a payment filter — they can't be attributed per method. */}
-              {isFiltered && (
+              {sinMetricasDeOrden && (
                 <p className="px-4 pt-3 text-xs italic text-muted-foreground">
                   {t('salesSummary.controls.filterBy.hiddenMetricsMessage')}
                 </p>
