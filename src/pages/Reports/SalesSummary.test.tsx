@@ -6,7 +6,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { SalesSummaryResponse } from '@/services/reports/salesSummary.service'
 
 // Funciones normales, no vi.fn: `mockReset: true` vaciaría un vi.fn() del factory antes de cada prueba.
-const h = vi.hoisted(() => ({ response: null as unknown, access: true, merchants: [] as unknown[] }))
+const h = vi.hoisted(() => ({
+  response: null as unknown,
+  access: true,
+  merchants: [] as unknown[],
+  statementProps: null as Record<string, unknown> | null,
+}))
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     // «llave(a=1,b=2)»: se lee qué llave se usó y con qué valores.
@@ -30,7 +35,12 @@ vi.mock('@/services/paymentProvider.service', () => ({
 }))
 vi.mock('@/pages/Reports/components/SalesSummaryExportDialog', () => ({ SalesSummaryExportDialog: () => null }))
 vi.mock('./components/PeriodBreakdownTable', () => ({ PeriodBreakdownTable: () => null }))
-vi.mock('./statement/StatementSection', () => ({ StatementSection: () => <div data-testid="estado-de-cuenta" /> }))
+vi.mock('./statement/StatementSection', () => ({
+  StatementSection: (props: Record<string, unknown>) => {
+    h.statementProps = props
+    return <div data-testid="estado-de-cuenta" />
+  },
+}))
 vi.mock('@/components/settlement/SettlementWeekStrip', () => ({ SettlementWeekStrip: () => null }))
 vi.mock('@/components/billing/FeatureGate', () => ({ FeatureGate: ({ children }: { children: ReactNode }) => <>{children}</> }))
 vi.mock('@/components/date-range-picker', () => ({ DateRangePicker: () => null }))
@@ -260,6 +270,22 @@ describe('Reporte de Ventas si falla la carga', () => {
     )
     expect(await screen.findByText('loadFailure.forbidden', {}, { timeout: 800 })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'retry' })).toBeNull()
+  })
+})
+
+describe('SalesSummary · estado del periodo (carril C)', () => {
+  it('le pasa al estado de cuenta los destinos de cada cobro que manda el SERVIDOR', async () => {
+    const destinos = {
+      drawer: { collected: 100, refunds: 0, refundCount: 0, platformFee: 0, netToReceive: 100, transactionCount: 1 },
+      terminal: { collected: 0, refunds: 0, refundCount: 0, platformFee: 0, netToReceive: 0, transactionCount: 0 },
+      online: { collected: 200, refunds: 0, refundCount: 0, platformFee: 6, netToReceive: 194, transactionCount: 1 },
+      other: { collected: 0, refunds: 0, refundCount: 0, platformFee: 0, netToReceive: 0, transactionCount: 0 },
+      tenderCommissions: 0,
+    }
+    h.response = respuesta({ statementDestinations: destinos })
+    pintar()
+    await screen.findByTestId('estado-de-cuenta')
+    expect(h.statementProps?.destinations).toEqual(destinos)
   })
 })
 

@@ -67,4 +67,50 @@ describe('MerchantStatementRows', () => {
     const table = screen.getByRole('table')
     expect(within(table).getByText(/3\.6%/)).toBeInTheDocument()
   })
+
+  it('D11: la fila «Cobros en línea» lleva su nombre y el chip «sin fecha estimada»', () => {
+    render(
+      <MerchantStatementRows
+        rows={[
+          row({ merchantAccountId: 'a' }),
+          row({ merchantAccountId: 'online', kind: 'online', displayName: '', provider: '', payoutStatus: 'noRule', payoutDate: null, netToReceive: 194 }),
+        ]}
+        formatCurrency={fmt}
+      />,
+    )
+    expect(screen.getAllByText('salesSummary.statement.merchants.online.name').length).toBeGreaterThan(0)
+    const chips = screen.getAllByTestId('payout-chip-online')
+    expect(chips[0]).toHaveTextContent('salesSummary.statement.merchants.payout.online')
+  })
+
+  it('D10: un comercio con devoluciones las enseña aparte de lo cobrado', () => {
+    render(<MerchantStatementRows rows={[row({ merchantAccountId: 'r', collectedOnCard: 0, refunds: 30, platformFee: -0.9, netToReceive: -29.1, effectiveRatePct: null })]} formatCurrency={fmt} />)
+    const table = screen.getByRole('table')
+    expect(within(table).getByText('salesSummary.statement.merchants.cols.refunds')).toBeInTheDocument()
+    expect(within(table).getByText('−$30.00')).toBeInTheDocument()
+    // Una comisión revertida no pinta «−−$0.90».
+    expect(table.textContent).not.toContain('−-')
+    expect(within(table).getByText('+$0.90')).toBeInTheDocument()
+  })
+
+  it('«Debió caer» con dinero sin fecha dice cuánto; un comercio con reglas y nada proyectable dice «sin fecha», no «sin regla»', () => {
+    render(
+      <MerchantStatementRows
+        rows={[
+          row({ merchantAccountId: 'a', payoutStatus: 'landed', payoutDate: '2026-07-01', payoutAmount: 97 }),
+          row({ merchantAccountId: 'b', payoutStatus: 'noRule', payoutDate: null, settlementRules: [{ cardType: 'CREDIT', settlementDays: 1 }] }),
+        ]}
+        formatCurrency={fmt}
+      />,
+    )
+    expect(screen.getAllByTestId('payout-chip-landed')[0]).toHaveTextContent('salesSummary.statement.merchants.payout.landedPartial $97.00')
+    expect(screen.getAllByTestId('payout-chip-no-rule')[0]).toHaveTextContent('salesSummary.statement.merchants.payout.online')
+  })
+
+  it('un descuento (devolución neta) nunca dice «Cae»', () => {
+    render(<MerchantStatementRows rows={[row({ merchantAccountId: 'r', payoutStatus: 'lands', payoutDate: '2026-07-06', payoutIsDeduction: true, netToReceive: -29.1 })]} formatCurrency={fmt} />)
+    const chip = screen.getAllByTestId('payout-chip-deduction')[0]
+    expect(chip).toHaveTextContent('salesSummary.statement.merchants.payout.landsDeduction')
+    expect(screen.queryByTestId('payout-chip-lands')).not.toBeInTheDocument()
+  })
 })
