@@ -1,116 +1,116 @@
 import api from '@/api'
 import type {
-  CreditPack,
-  CreditPackPurchase,
-  CreditTransaction,
-  CreateCreditPackRequest,
-  UpdateCreditPackRequest,
-  PurchaseQueryParams,
-  TransactionQueryParams,
-  PaginatedResponse,
+	CreditPack,
+	CreditPackPurchase,
+	CreditTransaction,
+	CreateCreditPackRequest,
+	UpdateCreditPackRequest,
+	PurchaseQueryParams,
+	TransactionQueryParams,
+	PaginatedResponse,
 } from '@/types/creditPack'
 
 const buildPurchaseQueryString = (params: PurchaseQueryParams): string => {
-  const searchParams = new URLSearchParams()
-  if (params.page) searchParams.append('page', params.page.toString())
-  if (params.limit) searchParams.append('limit', params.limit.toString())
-  if (params.customerId) searchParams.append('customerId', params.customerId)
-  if (params.status) searchParams.append('status', params.status)
-  const qs = searchParams.toString()
-  return qs ? `?${qs}` : ''
+	const searchParams = new URLSearchParams()
+	if (params.page) searchParams.append('page', params.page.toString())
+	if (params.limit) searchParams.append('limit', params.limit.toString())
+	if (params.customerId) searchParams.append('customerId', params.customerId)
+	if (params.status) searchParams.append('status', params.status)
+	const qs = searchParams.toString()
+	return qs ? `?${qs}` : ''
 }
 
 const buildTransactionQueryString = (params: TransactionQueryParams): string => {
-  const searchParams = new URLSearchParams()
-  if (params.page) searchParams.append('page', params.page.toString())
-  if (params.limit) searchParams.append('limit', params.limit.toString())
-  if (params.customerId) searchParams.append('customerId', params.customerId)
-  if (params.type) searchParams.append('type', params.type)
-  const qs = searchParams.toString()
-  return qs ? `?${qs}` : ''
+	const searchParams = new URLSearchParams()
+	if (params.page) searchParams.append('page', params.page.toString())
+	if (params.limit) searchParams.append('limit', params.limit.toString())
+	if (params.customerId) searchParams.append('customerId', params.customerId)
+	if (params.type) searchParams.append('type', params.type)
+	const qs = searchParams.toString()
+	return qs ? `?${qs}` : ''
 }
 
 // El servidor manda los Decimal como texto («1450»). Sin convertirlos, el formulario de editar devolvía el precio como texto
 // y el servidor rechazaba con «Se esperaba un número y llegó texto» (Mindform BSF, 22-nov-2026).
 const conPreciosNumericos = (pack: CreditPack): CreditPack => ({
-  ...pack,
-  price: Number(pack.price),
-  items: pack.items?.map(item => (item.product ? { ...item, product: { ...item.product, price: Number(item.product.price) } } : item)),
+	...pack,
+	price: Number(pack.price),
+	items: pack.items?.map(item => (item.product ? { ...item, product: { ...item.product, price: Number(item.product.price) } } : item)),
 })
 
 export const creditPackService = {
-  // ==================== CRUD ====================
+	// ==================== CRUD ====================
 
-  async getCreditPacks(venueId: string): Promise<CreditPack[]> {
-    const response = await api.get(`/api/v1/dashboard/venues/${venueId}/credit-packs`)
-    return response.data.map(conPreciosNumericos)
-  },
+	async getCreditPacks(venueId: string): Promise<CreditPack[]> {
+		const response = await api.get(`/api/v1/dashboard/venues/${venueId}/credit-packs`)
+		return response.data.map(conPreciosNumericos)
+	},
 
-  async getCreditPack(venueId: string, packId: string): Promise<CreditPack> {
-    const response = await api.get(`/api/v1/dashboard/venues/${venueId}/credit-packs/${packId}`)
-    return conPreciosNumericos(response.data)
-  },
+	async getCreditPack(venueId: string, packId: string): Promise<CreditPack> {
+		const response = await api.get(`/api/v1/dashboard/venues/${venueId}/credit-packs/${packId}`)
+		return conPreciosNumericos(response.data)
+	},
 
-  async createCreditPack(venueId: string, data: CreateCreditPackRequest): Promise<CreditPack> {
-    const response = await api.post(`/api/v1/dashboard/venues/${venueId}/credit-packs`, data)
-    return response.data
-  },
+	async createCreditPack(venueId: string, data: CreateCreditPackRequest): Promise<CreditPack> {
+		const response = await api.post(`/api/v1/dashboard/venues/${venueId}/credit-packs`, data)
+		return response.data
+	},
 
-  async updateCreditPack(venueId: string, packId: string, data: UpdateCreditPackRequest): Promise<CreditPack> {
-    const response = await api.patch(`/api/v1/dashboard/venues/${venueId}/credit-packs/${packId}`, data)
-    return response.data
-  },
+	async updateCreditPack(venueId: string, packId: string, data: UpdateCreditPackRequest): Promise<CreditPack> {
+		const response = await api.patch(`/api/v1/dashboard/venues/${venueId}/credit-packs/${packId}`, data)
+		return response.data
+	},
 
-  async deactivateCreditPack(venueId: string, packId: string): Promise<void> {
-    await api.delete(`/api/v1/dashboard/venues/${venueId}/credit-packs/${packId}`)
-  },
+	async deactivateCreditPack(venueId: string, packId: string): Promise<void> {
+		await api.delete(`/api/v1/dashboard/venues/${venueId}/credit-packs/${packId}`)
+	},
 
-  // ==================== PURCHASES ====================
+	// ==================== PURCHASES ====================
 
-  async getPurchases(venueId: string, params: PurchaseQueryParams = {}): Promise<PaginatedResponse<CreditPackPurchase>> {
-    const qs = buildPurchaseQueryString(params)
-    const response = await api.get(`/api/v1/dashboard/venues/${venueId}/credit-packs/purchases${qs}`)
-    const raw = response.data
-    // Backend returns { purchases, total, page, limit, totalPages }
-    return {
-      data: raw.purchases ?? raw.data ?? [],
-      meta: { page: raw.page ?? 1, limit: raw.limit ?? 20, total: raw.total ?? 0, totalPages: raw.totalPages ?? 1 },
-    }
-  },
+	async getPurchases(venueId: string, params: PurchaseQueryParams = {}): Promise<PaginatedResponse<CreditPackPurchase>> {
+		const qs = buildPurchaseQueryString(params)
+		const response = await api.get(`/api/v1/dashboard/venues/${venueId}/credit-packs/purchases${qs}`)
+		const raw = response.data
+		// Backend returns { purchases, total, page, limit, totalPages }
+		return {
+			data: raw.purchases ?? raw.data ?? [],
+			meta: { page: raw.page ?? 1, limit: raw.limit ?? 20, total: raw.total ?? 0, totalPages: raw.totalPages ?? 1 },
+		}
+	},
 
-  async getCustomerPurchases(venueId: string, customerId: string): Promise<CreditPackPurchase[]> {
-    const response = await api.get(`/api/v1/dashboard/venues/${venueId}/credit-packs/purchases/${customerId}`)
-    // Backend returns { purchases, total, page, limit, totalPages } — same shape as the list endpoint.
-    const raw = response.data
-    return Array.isArray(raw) ? raw : (raw.purchases ?? raw.data ?? [])
-  },
+	async getCustomerPurchases(venueId: string, customerId: string): Promise<CreditPackPurchase[]> {
+		const response = await api.get(`/api/v1/dashboard/venues/${venueId}/credit-packs/purchases/${customerId}`)
+		// Backend returns { purchases, total, page, limit, totalPages } — same shape as the list endpoint.
+		const raw = response.data
+		return Array.isArray(raw) ? raw : (raw.purchases ?? raw.data ?? [])
+	},
 
-  // ==================== TRANSACTIONS ====================
+	// ==================== TRANSACTIONS ====================
 
-  async getTransactions(venueId: string, params: TransactionQueryParams = {}): Promise<PaginatedResponse<CreditTransaction>> {
-    const qs = buildTransactionQueryString(params)
-    const response = await api.get(`/api/v1/dashboard/venues/${venueId}/credit-packs/transactions${qs}`)
-    const raw = response.data
-    // Backend returns { transactions, total, page, limit, totalPages }
-    return {
-      data: raw.transactions ?? raw.data ?? [],
-      meta: { page: raw.page ?? 1, limit: raw.limit ?? 20, total: raw.total ?? 0, totalPages: raw.totalPages ?? 1 },
-    }
-  },
+	async getTransactions(venueId: string, params: TransactionQueryParams = {}): Promise<PaginatedResponse<CreditTransaction>> {
+		const qs = buildTransactionQueryString(params)
+		const response = await api.get(`/api/v1/dashboard/venues/${venueId}/credit-packs/transactions${qs}`)
+		const raw = response.data
+		// Backend returns { transactions, total, page, limit, totalPages }
+		return {
+			data: raw.transactions ?? raw.data ?? [],
+			meta: { page: raw.page ?? 1, limit: raw.limit ?? 20, total: raw.total ?? 0, totalPages: raw.totalPages ?? 1 },
+		}
+	},
 
-  // ==================== BALANCE OPERATIONS ====================
+	// ==================== BALANCE OPERATIONS ====================
 
-  async redeemItem(venueId: string, balanceId: string, data: { quantity: number; reservationId?: string }): Promise<void> {
-    await api.post(`/api/v1/dashboard/venues/${venueId}/credit-packs/balances/${balanceId}/redeem`, data)
-  },
+	async redeemItem(venueId: string, balanceId: string, data: { quantity: number; reservationId?: string }): Promise<void> {
+		await api.post(`/api/v1/dashboard/venues/${venueId}/credit-packs/balances/${balanceId}/redeem`, data)
+	},
 
-  async adjustBalance(venueId: string, balanceId: string, data: { quantity: number; reason: string }): Promise<void> {
-    await api.post(`/api/v1/dashboard/venues/${venueId}/credit-packs/balances/${balanceId}/adjust`, data)
-  },
+	async adjustBalance(venueId: string, balanceId: string, data: { quantity: number; reason: string }): Promise<void> {
+		await api.post(`/api/v1/dashboard/venues/${venueId}/credit-packs/balances/${balanceId}/adjust`, data)
+	},
 
-  async refundPurchase(venueId: string, purchaseId: string, data: { reason: string }): Promise<void> {
-    await api.post(`/api/v1/dashboard/venues/${venueId}/credit-packs/purchases/${purchaseId}/refund`, data)
-  },
+	async refundPurchase(venueId: string, purchaseId: string, data: { reason: string }): Promise<void> {
+		await api.post(`/api/v1/dashboard/venues/${venueId}/credit-packs/purchases/${purchaseId}/refund`, data)
+	},
 }
 
 export default creditPackService
