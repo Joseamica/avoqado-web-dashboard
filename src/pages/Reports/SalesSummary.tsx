@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useId } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
@@ -137,9 +137,9 @@ function loadPreferences(): Partial<SalesSummaryPreferences> | null {
       if (parsed.selectedMetrics) {
         const validKeys = AVAILABLE_METRICS.map(m => m.key)
         // Sin repetidas: «Quitar» una métrica repetida borraba las dos copias y «Aplicar» dejaba cero métricas.
-        parsed.selectedMetrics = [...new Set<string>(parsed.selectedMetrics)].filter(
+        parsed.selectedMetrics = [...new Set<string>(parsed.selectedMetrics.filter(
           (key: string) => validKeys.includes(key as MetricKey)
-        )
+        ))]
         // Ensure at least one metric is selected
         if (parsed.selectedMetrics.length === 0) {
           parsed.selectedMetrics = DEFAULT_SELECTED_METRICS
@@ -187,30 +187,35 @@ const ControlOption: React.FC<{
   description: string
   isSelected: boolean
   icon?: React.ReactNode
-}> = ({ value, label, description, isSelected, icon }) => (
-  <Label
-    htmlFor={value}
-    className={cn(
-      'flex items-start gap-4 p-4 rounded-lg cursor-pointer transition-colors border border-transparent',
-      'hover:bg-muted/50',
-      isSelected && 'bg-muted/30 border-border'
-    )}
-  >
-    {icon && (
-      <div className={cn(
-        'p-2 rounded-lg shrink-0 mt-0.5',
-        isSelected ? 'bg-foreground/10' : 'bg-muted/50'
-      )}>
-        {icon}
+}> = ({ value, label, description, isSelected, icon }) => {
+  // Id propio: los subpaneles viven todos en el DOM y comparten valores («all» en Comercio y en Filtrar por); con `id={value}`,
+  // el `htmlFor` de una opción activaba el radio de OTRA (el primero con ese id), y «Todos» de un panel movía el borrador de otro.
+  const id = useId()
+  return (
+    <Label
+      htmlFor={id}
+      className={cn(
+        'flex items-start gap-4 p-4 rounded-lg cursor-pointer transition-colors border border-transparent',
+        'hover:bg-muted/50',
+        isSelected && 'bg-muted/30 border-border'
+      )}
+    >
+      {icon && (
+        <div className={cn(
+          'p-2 rounded-lg shrink-0 mt-0.5',
+          isSelected ? 'bg-foreground/10' : 'bg-muted/50'
+        )}>
+          {icon}
+        </div>
+      )}
+      <div className="flex-1 space-y-1 min-w-0">
+        <p className="text-sm font-semibold leading-tight">{label}</p>
+        <p className="text-xs text-muted-foreground leading-relaxed">{description}</p>
       </div>
-    )}
-    <div className="flex-1 space-y-1 min-w-0">
-      <p className="text-sm font-semibold leading-tight">{label}</p>
-      <p className="text-xs text-muted-foreground leading-relaxed">{description}</p>
-    </div>
-    <RadioGroupItem value={value} id={value} className="mt-0.5 shrink-0" />
-  </Label>
-)
+      <RadioGroupItem value={value} id={id} className="mt-0.5 shrink-0" />
+    </Label>
+  )
+}
 
 // ============================================
 // ControlRow Component (Square style - title, description, badge)

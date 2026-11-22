@@ -48,6 +48,10 @@ describe.each([
     expect(upsell.breakdowns).not.toMatch(/terminal/i)
   })
 
+  it('las tres promesas tienen texto (una vacía no se vería y la prueba de arriba pasaría igual)', () => {
+    for (const promesa of [upsell.periods, upsell.breakdowns, upsell.export]) expect(promesa.trim().length).toBeGreaterThan(10)
+  })
+
   it('dice los tres formatos de exporte que sí hay', () => {
     for (const formato of ['Excel', 'CSV', 'PDF']) expect(upsell.export).toContain(formato)
   })

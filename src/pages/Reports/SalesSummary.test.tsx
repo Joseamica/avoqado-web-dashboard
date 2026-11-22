@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { SalesSummaryResponse } from '@/services/reports/salesSummary.service'
 
 // Funciones normales, no vi.fn: `mockReset: true` vaciaría un vi.fn() del factory antes de cada prueba.
-const h = vi.hoisted(() => ({ response: null as unknown, access: true }))
+const h = vi.hoisted(() => ({ response: null as unknown, access: true, merchants: [] as unknown[] }))
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     // «llave(a=1,b=2)»: se lee qué llave se usó y con qué valores.
@@ -25,7 +25,7 @@ vi.mock('@/services/reports/salesSummary.service', async importOriginal => ({
   fetchSalesSummary: () => (h.response instanceof Error ? Promise.reject(h.response) : Promise.resolve(h.response)),
 }))
 vi.mock('@/services/paymentProvider.service', () => ({
-  getVenueMerchantAccountsByVenueId: () => Promise.resolve([]),
+  getVenueMerchantAccountsByVenueId: () => Promise.resolve(h.merchants),
   getVenueSettlementInfo: () => Promise.resolve([]),
 }))
 vi.mock('@/pages/Reports/components/SalesSummaryExportDialog', () => ({ SalesSummaryExportDialog: () => null }))
@@ -94,6 +94,7 @@ const antes = (a: HTMLElement, b: HTMLElement) => !!(a.compareDocumentPosition(b
 
 beforeEach(() => {
   h.access = true
+  h.merchants = []
   h.response = respuesta()
 })
 
@@ -341,6 +342,36 @@ describe('Resumen de ventas · sólo controles que hacen algo (D3)', () => {
     expect(screen.getByRole('button', { name: /salesSummary\.controls\.metrics\.label\s*1$/ })).toBeInTheDocument()
   })
 
+  it('🔴 Codex r1 #1 · cada opción de los subpaneles tiene su propio id: «Todos» de Filtrar por no mueve el borrador de Comercio', async () => {
+    h.merchants = [
+      { id: 'm1', displayName: 'Comercio Uno', provider: { name: 'Blumon' } },
+      { id: 'm2', displayName: 'Comercio Dos', provider: { name: 'AngelPay' } },
+    ]
+    pintar()
+    const panel = await abrirPanelDeControles()
+    // Los subpaneles viven todos en el DOM; si dos opciones comparten id, el `htmlFor` de una activa el radio de OTRA.
+    const ids = within(panel).getAllByRole('radio', { hidden: true }).map(r => r.id)
+    expect(ids.length).toBeGreaterThan(10)
+    expect(new Set(ids).size).toBe(ids.length)
+    // El caso de Codex: en Filtrar por, elegir Efectivo y volver a «Todos» regresa su borrador a «sin filtro» (Aplicar apagado).
+    const filtrarPor = within(panel).getByText('salesSummary.controls.filterBy.longDescription').closest('.absolute') as HTMLElement
+    fireEvent.click(within(filtrarPor).getByText('salesSummary.controls.filterBy.paymentMethod.options.cash'))
+    expect(within(filtrarPor).getByRole('button', { name: 'salesSummary.controls.apply', hidden: true })).toBeEnabled()
+    fireEvent.click(within(filtrarPor).getByText('salesSummary.controls.filterBy.paymentMethod.options.all'))
+    expect(within(filtrarPor).getByRole('button', { name: 'salesSummary.controls.apply', hidden: true })).toBeDisabled()
+  })
+
+  it('🔴 Codex r1 #2 · una preferencia con `selectedMetrics` que no es lista descarta TODO lo guardado (no deja un filtro corrupto vivo)', async () => {
+    vi.mocked(localStorage.getItem).mockReturnValue(
+      JSON.stringify({ selectedMetrics: 'grossSales', paymentMethodFilter: 'CARD', cardTypeFilter: 42 }),
+    )
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    pintar()
+    await tarjetaDelTotal()
+    expect(screen.getByText('salesSummary.controls.viewType.options.gauge')).toBeInTheDocument()
+    expect(screen.queryByText('salesSummary.controls.filterBy.active')).not.toBeInTheDocument()
+  })
+
   it('control · una preferencia corrupta no tumba la pantalla (arranca con lo de siempre)', async () => {
     vi.mocked(localStorage.getItem).mockReturnValue('{no es json')
     vi.spyOn(console, 'error').mockImplementation(() => {})
@@ -352,7 +383,9 @@ describe('Resumen de ventas · sólo controles que hacen algo (D3)', () => {
   it('el aviso del plan Gratis se queda sin controles (Pro) y con sus tres promesas', async () => {
     h.access = false
     pintar()
-    expect(await screen.findByText(/salesSummary\.basic\.upsell\.periods/)).toBeInTheDocument()
+    for (const promesa of ['history', 'periods', 'breakdowns', 'export']) {
+      expect(await screen.findByText(new RegExp(`salesSummary\\.basic\\.upsell\\.${promesa}$`))).toBeInTheDocument()
+    }
     expect(screen.queryByText('salesSummary.controls.reportType.label')).not.toBeInTheDocument()
   })
 })
