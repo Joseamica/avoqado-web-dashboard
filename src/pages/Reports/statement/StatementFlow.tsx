@@ -142,7 +142,7 @@ export function StatementFlow({ model, formatCurrency }: Props) {
               <span className="truncate">
                 {t(cardNet < 0 ? 'salesSummary.statement.flow.bankRowNegative' : 'salesSummary.statement.flow.bankRow')}
               </span>
-              {model.lastDepositDate && (
+              {model.lastDepositDate && cardNet >= 0 && (
                 <span className="hidden shrink-0 text-xs text-muted-foreground sm:inline">
                   ·{' '}
                   {t(
