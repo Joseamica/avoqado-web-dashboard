@@ -164,7 +164,7 @@ test('guardar Configuración con la respuesta real del PUT (sin store ni require
   })
   let gets = 0
   let putBody: unknown = null
-  await page.route(`${BASE}/settings`, route => {
+  await page.route(`${BASE}/settings*`, route => {
     if (route.request().method() === 'PUT') {
       putBody = route.request().postDataJSON()
       Object.assign(settings, putBody)
@@ -289,7 +289,7 @@ async function setupNadie(page: Page, opts: { settings?: Record<string, unknown>
   await page.route('https://pedidos.avoqado.io/**', route =>
     route.fulfill({ status: 200, contentType: 'text/html', body: '<p>tienda</p>' }),
   )
-  await page.route(`${BASE}/settings`, route => route.fulfill(json(nadieSettings(opts.settings))))
+  await page.route(`${BASE}/settings*`, route => route.fulfill(json(nadieSettings(opts.settings))))
 }
 
 async function mockToPay(page: Page, data: { toPay: unknown[]; toDeliver: unknown[]; requiresAcceptance?: boolean }) {
@@ -513,7 +513,7 @@ test('Nadie · Bandeja: «Cancelar folio» pide confirmar y el folio sale', asyn
 
 test('«Mi equipo» no muestra nada nuevo: ni nota, ni «Por pagar», ni «Por entregar»', async ({ page }) => {
   await setup(page)
-  await page.route(`${BASE}/settings`, route =>
+  await page.route(`${BASE}/settings*`, route =>
     route.fulfill(
       json(nadieSettings({ requiresAcceptance: true, hasSavedSettings: true, suggestedRequiresAcceptance: true, lastToPayPollAt: null })),
     ),

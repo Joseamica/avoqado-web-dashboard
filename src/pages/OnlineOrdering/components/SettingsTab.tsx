@@ -1,5 +1,5 @@
-import { useMemo, useRef, useState, type RefObject } from 'react'
-import { Controller, useForm } from 'react-hook-form'
+import { useEffect, useMemo, useRef, useState, type RefObject } from 'react'
+import { Controller, useController, useForm } from 'react-hook-form'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -32,7 +32,9 @@ import type { OperatingHours } from '@/types/reservation'
 import { useVenueDateTime } from '@/utils/datetime'
 
 import { defaultWeek, overnightNotes, validateWeek } from '../lib/hours'
+import { laMasNueva, releerSinReusar, useRelecturaDeLaTienda } from '../hooks/useRelecturaDeLaTienda'
 import { pauseLabel } from '../lib/pauseLabel'
+import { PauseControl } from './PauseControl'
 import { StorefrontShareCard } from './StorefrontShareCard'
 
 const PREP_OPTIONS = [10, 15, 20, 25, 30, 40, 45, 60, 90]
@@ -83,12 +85,23 @@ const sameAllWeek = (h: OperatingHours | null) => {
   )
 }
 
+/** Para comparar por valor: las claves de cada objeto en orden; los arreglos conservan el suyo (los rangos de un día sí lo tienen). */
+const clavesOrdenadas = (_: string, v: unknown) =>
+  v && typeof v === 'object' && !Array.isArray(v)
+    ? Object.fromEntries(Object.entries(v).sort(([x], [y]) => (x < y ? -1 : x > y ? 1 : 0)))
+    : v
+/**
+ * El mismo valor aunque las claves vengan en otro orden (Codex p2v5-r4 #1): Postgres (jsonb) devuelve el horario con sus claves
+ * ordenadas a su modo, no como lo mandó el panel, y comparar el texto JSON lo veía distinto.
+ */
+const mismoValor = (a: unknown, b: unknown) => JSON.stringify(a, clavesOrdenadas) === JSON.stringify(b, clavesOrdenadas)
+
 /** Patch estricto: sólo lo que cambió. `minOrderAmount` vacío NO se manda (nunca 0 a escondidas). */
 function buildPatch(values: FormValues, saved: FormValues): Partial<OnlineOrderingSettingsInput> {
   const patch: Record<string, unknown> = {}
   for (const k of Object.keys(values) as (keyof FormValues)[]) {
     if (values[k] === undefined) continue
-    if (JSON.stringify(values[k]) !== JSON.stringify(saved[k])) patch[k] = values[k]
+    if (!mismoValor(values[k], saved[k])) patch[k] = values[k]
   }
   return patch as Partial<OnlineOrderingSettingsInput>
 }
@@ -201,7 +214,7 @@ export function SettingsTab() {
   const { venueId, venueSlug, fullBasePath } = useCurrentVenue()
   const { formatTime } = useVenueDateTime()
   const { toast } = useToast()
-  const { role } = useAccess()
+  const { role, can } = useAccess()
   // La misma regla que la guardia de `settings/local` (AdminProtectedRoute, nivel ADMIN): ADMIN, OWNER o SUPERADMIN.
   const canOpenBusinessSettings = role === StaffRole.ADMIN || role === StaffRole.OWNER || role === StaffRole.SUPERADMIN
   const qc = useQueryClient()
@@ -218,6 +231,42 @@ export function SettingsTab() {
     enabled: !!venueId,
   })
   const { data: settings } = settingsQuery
+  // Su propia llave (pausar o reanudar también la invalida: `PauseControl`). Arranca con lo ya leído: no hay otra petición al abrir.
+  const storeQuery = useQuery({
+    queryKey: onlineOrderingKeys.storeStatus(venueId ?? ''),
+    queryFn: () => getSettings(venueId!),
+    enabled: !!venueId && !!settings,
+    initialData: settings,
+    staleTime: 30_000,
+    refetchInterval: 30_000,
+    refetchOnWindowFocus: false,
+    retry: 1,
+  })
+
+  // D662 v4 (hueco 5): de las dos lecturas gana la que el SERVIDOR hizo más tarde (su hora se toma ANTES de leer: si es posterior a un
+  // cambio, ya lo trae; Codex p2-r8 #4 y p2v4-r1 #11). Y el estado se vuelve a leer en cuanto puede cambiar, no cada 30 s.
+  // Con un SERVIDOR viejo (sin `storeReadAt`), gana la que llegó al último.
+  const lecturaMasNueva =
+    settings && storeQuery.data && !(settings.storeReadAt && storeQuery.data.storeReadAt)
+      ? storeQuery.dataUpdatedAt > settingsQuery.dataUpdatedAt
+        ? storeQuery.data
+        : settings
+      : laMasNueva(settings, storeQuery.data)
+  useRelecturaDeLaTienda(venueId, lecturaMasNueva, () => void releerSinReusar(qc, onlineOrderingKeys.storeStatus(venueId ?? '')))
+
+  // D662 v5 (Codex p2v5-r1 #2): UNA sola foto en la pantalla. Si la relectura del estado leyó ajustes GUARDADOS más nuevos (otra persona
+  // apagó, pausó o reanudó), esos ajustes pasan a ser «lo guardado» de esta pantalla: el interruptor, la pausa temporal y el encabezado
+  // salen de la misma lectura. Lo que el gerente está editando se conserva (`keepDirtyValues` del formulario, abajo).
+  const lecturaDelEstado = storeQuery.data
+  useEffect(() => {
+    // Sin versión en lo que se tenía (el negocio nunca había guardado) cualquier versión es más nueva (Codex p2v5-r2 #9).
+    // La versión es un entero que empieza en 0 (una fila nueva): se compara contra null, nunca por «verdadero».
+    const nueva = lecturaDelEstado?.storeVersion
+    // Codex p2v5-r5 #3: sólo una versión NUMÉRICA cuenta (una marca de otro tipo nunca reemplaza lo guardado).
+    if (!venueId || !settings || typeof nueva !== 'number') return
+    if (typeof settings.storeVersion === 'number' && nueva <= settings.storeVersion) return
+    qc.setQueryData(onlineOrderingKeys.settings(venueId), lecturaDelEstado)
+  }, [venueId, settings, lecturaDelEstado, qc])
 
   const saved = useMemo(() => (settings ? toForm(settings) : undefined), [settings])
   // R37/R66: el servidor nunca pone «Nadie» solo. Sólo si el negocio NO tiene ajustes guardados (`hasSavedSettings === false`) el
@@ -225,8 +274,25 @@ export function SettingsTab() {
   // Sin el campo (servidor viejo) o con true: se muestra lo guardado, sin preselección.
   const preselectNoOne = !!settings && settings.hasSavedSettings === false && settings.suggestedRequiresAcceptance === false
   const formValues = useMemo(() => (saved && preselectNoOne ? { ...saved, requiresAcceptance: false } : saved), [saved, preselectNoOne])
-  const form = useForm<FormValues>({ resolver: zodResolver(schema), values: formValues })
+  // `keepDirtyValues`: cuando «lo guardado» cambia por otra persona (arriba), los campos que el gerente NO tocó toman lo nuevo y los que
+  // sí tocó se quedan como los dejó (D662 v5).
+  const form = useForm<FormValues>({ resolver: zodResolver(schema), values: formValues, resetOptions: { keepDirtyValues: true } })
   const { control, watch, setValue, handleSubmit, reset, formState } = form
+  // Codex p2v5-r3 #3: el horario no tiene un input propio (se cambia con `setValue`) y React Hook Form ignora `resetField` en un campo sin
+  // registrar: su marca de editado se quedaba pegada y un guardado posterior de otra persona no le llegaba («Guardar» lo revertía).
+  // Registrado, `resetField` (abajo) y `keepDirtyValues` lo tratan igual que al monto mínimo.
+  useController({ control, name: 'hours' })
+  // D662 v5 (Codex p2v5-r2 #10): con `keepDirtyValues`, un campo que el gerente editó y que OTRA persona guardó con ese mismo valor ya no
+  // es una edición: se le quita la marca, para que un guardado posterior de esa otra persona sí lo actualice (y «Guardar» no lo revierta).
+  useEffect(() => {
+    if (!formValues) return
+    for (const nombre of Object.keys(formValues) as Array<keyof FormValues>) {
+      if (!form.getFieldState(nombre).isDirty) continue
+      if (mismoValor(form.getValues(nombre), formValues[nombre])) {
+        form.resetField(nombre, { defaultValue: formValues[nombre] })
+      }
+    }
+  }, [formValues, form])
   const hours = watch('hours')
   const enabled = watch('enabled')
   const payAtPickup = !!watch('acceptsPayAtPickup')
@@ -270,6 +336,9 @@ export function SettingsTab() {
         qc.setQueryData(key, merged)
         reset(toForm(merged))
       }
+      // D662 (Codex p2-r6 #4): un sondeo del estado que ya iba en camino trae lo de ANTES de guardar; se cancela para que no pinte
+      // encima (el de los ajustes, recién releído, gana por ser el más nuevo) y el siguiente sondeo ya lee lo guardado.
+      void qc.cancelQueries({ queryKey: onlineOrderingKeys.storeStatus(venueId!) })
       void qc.invalidateQueries({ queryKey: key })
       setServerMissing([])
       setSaveError(null)
@@ -343,7 +412,9 @@ export function SettingsTab() {
   const waitingDevice = noOne && !deviceLive
   const enableBlocked = !settings.enabled && (missing.length > 0 || !hasPayment || waitingDevice)
 
-  const store = settings.store
+  // D662 (Codex p2-r5 #5): el estado de la tienda se vuelve a leer solo (la pausa sola puede llegar con esta pantalla abierta), en su
+  // propia consulta: la del formulario no se refresca para no pisar lo que el gerente está editando.
+  const store = lecturaMasNueva?.store ?? settings.store
   const pause = pauseLabel(store, formatTime)
   const statusText = pause
     ? t(pause.key, pause.params)
@@ -357,9 +428,13 @@ export function SettingsTab() {
     <form noValidate onSubmit={onSubmit} className="space-y-6 dark:[&_[role=switch][data-state=unchecked]]:bg-muted-foreground/60">
       <AvisoDeCarga query={settingsQuery} hayDatos />
       <div className="sticky top-0 z-10 flex items-center justify-between gap-3 rounded-xl border border-border bg-background/95 p-3 backdrop-blur">
-        <div className="text-sm" data-tour="online-ordering-store-status">
-          <span className="text-muted-foreground">{t('settings.status.label')}: </span>
-          <span className="font-medium">{statusText}</span>
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="text-sm" data-tour="online-ordering-store-status">
+            <span className="text-muted-foreground">{t('settings.status.label')}: </span>
+            <span className="font-medium">{statusText}</span>
+          </div>
+          {/* D662: la pausa SOLA dice «Toca Reanudar»: el botón también está aquí, no sólo en la bandeja (mismo permiso que pausar). */}
+          {store?.autoPausedAt && venueId && <PauseControl venueId={venueId} store={store} canPause={can('online-orders:pause')} />}
         </div>
         <div className="flex items-center gap-3">
           {hasChanges && <span className="text-xs font-medium text-muted-foreground">{t('settings.unsaved')}</span>}
