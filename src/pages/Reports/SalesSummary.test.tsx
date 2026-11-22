@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -259,5 +259,100 @@ describe('Reporte de Ventas si falla la carga', () => {
     )
     expect(await screen.findByText('loadFailure.forbidden', {}, { timeout: 800 })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'retry' })).toBeNull()
+  })
+})
+
+// D3 (Resumen de ventas): tres controles que no hacían nada. «Terminales» sólo tenía «Todas»; «Agrupar las métricas por» se elegía,
+// se «Aplicaba» y los números no cambiaban (la petición manda `groupBy: 'paymentMethod'` fijo); y el botón de gráfica por métrica
+// no tenía ninguna gráfica que lo use. Una pantalla no puede ofrecer lo que no hace.
+describe('Resumen de ventas · sólo controles que hacen algo (D3)', () => {
+  const abrirPanelDeControles = async () => {
+    await tarjetaDelTotal()
+    // La píldora «Métricas» abre el panel lateral, que pinta TODOS sus subpaneles (los inactivos fuera de pantalla).
+    fireEvent.click(screen.getByRole('button', { name: /salesSummary\.controls\.metrics\.label/ }))
+    return screen.findByRole('dialog')
+  }
+
+  it('🔴 la fila de píldoras ya no trae «Terminales» ni «Agrupar las métricas por»; las demás siguen', async () => {
+    pintar()
+    await tarjetaDelTotal()
+    expect(screen.queryByText('salesSummary.controls.terminal.label')).not.toBeInTheDocument()
+    expect(screen.queryByText('salesSummary.controls.groupBy.label')).not.toBeInTheDocument()
+    for (const llave of ['reportType', 'viewType', 'filterBy', 'metrics']) {
+      expect(screen.getByText(`salesSummary.controls.${llave}.label`)).toBeInTheDocument()
+    }
+  })
+
+  it('🔴 el panel de controles no trae renglones ni subpaneles de «Terminales» ni de «Agrupar…»', async () => {
+    pintar()
+    const panel = await abrirPanelDeControles()
+    expect(within(panel).queryByText('salesSummary.controls.terminal.label')).not.toBeInTheDocument()
+    expect(within(panel).queryByText('salesSummary.controls.groupBy.label')).not.toBeInTheDocument()
+    expect(within(panel).queryByText('salesSummary.controls.terminal.longDescription')).not.toBeInTheDocument()
+    expect(within(panel).queryByText('salesSummary.controls.groupBy.longDescription')).not.toBeInTheDocument()
+    // Los renglones que sí hacen algo siguen en su lugar.
+    expect(within(panel).getByText('salesSummary.controls.reportType.description')).toBeInTheDocument()
+    expect(within(panel).getByText('salesSummary.controls.filterBy.description')).toBeInTheDocument()
+  })
+
+  it('🔴 «Métricas» ya no ofrece la gráfica por métrica ni explica un icono que no existe', async () => {
+    pintar()
+    const panel = await abrirPanelDeControles()
+    expect(within(panel).queryByText('salesSummary.controls.metrics.chartHint')).not.toBeInTheDocument()
+    // Cada métrica es una fila con su casilla y ningún botón (antes, las cuatro «graficables» traían el del icono de barras).
+    for (const metrica of ['grossSales', 'netSales', 'totalCollected', 'netProfit']) {
+      const fila = within(panel).getByText(`salesSummary.controls.metrics.options.${metrica}`).closest('.cursor-pointer') as HTMLElement
+      expect(within(fila).queryByRole('button')).toBeNull()
+    }
+  })
+
+  it('🔴 una preferencia vieja con terminal, groupBy y chartMetric no rompe la pantalla y se vuelve a guardar sin esas llaves', async () => {
+    // `localStorage` es un vi.fn() de setup.ts (mockReset lo vacía en cada prueba): lo guardado antes se finge aquí.
+    vi.mocked(localStorage.getItem).mockReturnValue(
+      JSON.stringify({
+        selectedMetrics: ['grossSales', 'netSales', 'totalCollected'],
+        chartMetric: 'netSales',
+        viewType: 'pie',
+        reportType: 'summary',
+        groupBy: 'channel',
+        terminal: 'all',
+        paymentMethodFilter: null,
+        cardTypeFilter: null,
+      }),
+    )
+    pintar()
+    await tarjetaDelTotal()
+    // Lo que sí cuenta de lo viejo se respeta: tres métricas y la vista «circular».
+    expect(screen.getByText('salesSummary.controls.viewType.options.pie')).toBeInTheDocument()
+    const guardados = vi.mocked(localStorage.setItem).mock.calls
+    const guardado = guardados[guardados.length - 1]
+    expect(guardado?.[0]).toBe('avoqado:salesSummary:preferences')
+    const prefs = JSON.parse(guardado?.[1] as string)
+    expect(prefs.selectedMetrics).toEqual(['grossSales', 'netSales', 'totalCollected'])
+    expect(prefs).not.toHaveProperty('groupBy')
+    expect(prefs).not.toHaveProperty('chartMetric')
+    expect(prefs).not.toHaveProperty('terminal')
+  })
+
+  it('🔴 Codex r0 · una selección guardada con métricas repetidas se limpia: la píldora cuenta una, no dos (si no, «Aplicar» dejaría cero)', async () => {
+    vi.mocked(localStorage.getItem).mockReturnValue(JSON.stringify({ selectedMetrics: ['grossSales', 'grossSales'] }))
+    pintar()
+    await tarjetaDelTotal()
+    expect(screen.getByRole('button', { name: /salesSummary\.controls\.metrics\.label\s*1$/ })).toBeInTheDocument()
+  })
+
+  it('control · una preferencia corrupta no tumba la pantalla (arranca con lo de siempre)', async () => {
+    vi.mocked(localStorage.getItem).mockReturnValue('{no es json')
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    pintar()
+    await tarjetaDelTotal()
+    expect(screen.getByText('salesSummary.controls.viewType.options.gauge')).toBeInTheDocument()
+  })
+
+  it('el aviso del plan Gratis se queda sin controles (Pro) y con sus tres promesas', async () => {
+    h.access = false
+    pintar()
+    expect(await screen.findByText(/salesSummary\.basic\.upsell\.periods/)).toBeInTheDocument()
+    expect(screen.queryByText('salesSummary.controls.reportType.label')).not.toBeInTheDocument()
   })
 })

@@ -49,7 +49,6 @@ import {
   Settings2,
   PieChart,
   Table2,
-  BarChart3,
   LayoutGrid,
   Store,
   Clock,
@@ -85,40 +84,36 @@ const REPORT_TYPE_OPTIONS = {
 
 const CONTROL_OPTION_KEYS = {
   viewType: ['gauge', 'pie', 'table'],
-  groupBy: ['none', 'origin', 'channel', 'paymentMethod', 'shift', 'staff'],
-  terminal: ['all'], // Will be populated with actual terminals from venue
 }
 
 // Available metrics for the report (based on database schema)
-// Some metrics can be shown in the chart visualization (hasChart: true)
 // Organized following Square's structure: Sales breakdown → Deductions → Totals → Costs → Profit
 const AVAILABLE_METRICS = [
   // Sales breakdown
-  { key: 'grossSales', hasChart: true },      // Ventas brutas - includes modifiers
-  { key: 'items', hasChart: false },          // Artículos - pure item sales before tax/discounts
-  { key: 'serviceCosts', hasChart: false },   // Costes del servicio - tips integrated, surcharges
+  { key: 'grossSales' },      // Ventas brutas - includes modifiers
+  { key: 'items' },          // Artículos - pure item sales before tax/discounts
+  { key: 'serviceCosts' },   // Costes del servicio - tips integrated, surcharges
   // Deductions
-  { key: 'discounts', hasChart: false },      // Descuentos y artículos gratuitos
-  { key: 'refunds', hasChart: false },        // Devoluciones
+  { key: 'discounts' },      // Descuentos y artículos gratuitos
+  { key: 'refunds' },        // Devoluciones
   // Calculated totals
-  { key: 'netSales', hasChart: true },        // Ventas netas
-  { key: 'deferredSales', hasChart: false },  // Ventas diferidas - open orders/pay-later
+  { key: 'netSales' },        // Ventas netas
+  { key: 'deferredSales' },  // Ventas diferidas - open orders/pay-later
   // Fees and taxes
-  { key: 'taxes', hasChart: false },          // Impuestos
-  { key: 'tips', hasChart: false },           // Propinas
+  { key: 'taxes' },          // Impuestos
+  { key: 'tips' },           // Propinas
   // Costs breakdown (NEW - for clarity)
-  { key: 'platformFees', hasChart: false },   // Comisiones de plataforma (Avoqado)
-  { key: 'staffCommissions', hasChart: false }, // Comisiones a empleados
+  { key: 'platformFees' },   // Comisiones de plataforma (Avoqado)
+  { key: 'staffCommissions' }, // Comisiones a empleados
   // Final totals
-  { key: 'totalCollected', hasChart: true },  // Total cobrado
-  { key: 'netProfit', hasChart: true },       // Ganancia neta (after all costs)
+  { key: 'totalCollected' },  // Total cobrado
+  { key: 'netProfit' },       // Ganancia neta (after all costs)
 ] as const
 
 type MetricKey = typeof AVAILABLE_METRICS[number]['key']
 
 // Default selected metrics (most commonly used)
 const DEFAULT_SELECTED_METRICS: MetricKey[] = ['grossSales', 'discounts', 'refunds', 'netSales', 'taxes', 'tips', 'platformFees', 'staffCommissions', 'totalCollected', 'netProfit']
-const DEFAULT_CHART_METRIC: MetricKey = 'totalCollected'
 
 // LocalStorage key for persisting user preferences
 const STORAGE_KEY = 'avoqado:salesSummary:preferences'
@@ -126,10 +121,8 @@ const STORAGE_KEY = 'avoqado:salesSummary:preferences'
 // Preferences interface
 interface SalesSummaryPreferences {
   selectedMetrics: MetricKey[]
-  chartMetric: MetricKey
   viewType: string
   reportType: string
-  groupBy: string
   paymentMethodFilter?: PaymentMethodFilter | null
   cardTypeFilter?: CardTypeFilter | null
 }
@@ -143,7 +136,8 @@ function loadPreferences(): Partial<SalesSummaryPreferences> | null {
       // Validate that selectedMetrics contains valid metric keys
       if (parsed.selectedMetrics) {
         const validKeys = AVAILABLE_METRICS.map(m => m.key)
-        parsed.selectedMetrics = parsed.selectedMetrics.filter(
+        // Sin repetidas: «Quitar» una métrica repetida borraba las dos copias y «Aplicar» dejaba cero métricas.
+        parsed.selectedMetrics = [...new Set<string>(parsed.selectedMetrics)].filter(
           (key: string) => validKeys.includes(key as MetricKey)
         )
         // Ensure at least one metric is selected
@@ -772,7 +766,7 @@ export default function SalesSummary() {
 
   // State for controls drawer
   const [controlsOpen, setControlsOpen] = useState(false)
-  const [activePanel, setActivePanel] = useState<'main' | 'reportType' | 'viewType' | 'groupBy' | 'terminal' | 'metrics' | 'merchant' | 'filterBy' | null>('main')
+  const [activePanel, setActivePanel] = useState<'main' | 'reportType' | 'viewType' | 'metrics' | 'merchant' | 'filterBy' | null>('main')
 
   // Load saved preferences from localStorage
   const savedPrefs = useMemo(() => loadPreferences(), [])
@@ -783,13 +777,8 @@ export default function SalesSummary() {
   // increment preference must not leak the period-breakdown view. Force "summary".
   const effectiveReportType: ReportType = hasAccess ? reportType : 'summary'
   const [viewType, setViewType] = useState(() => savedPrefs?.viewType || 'gauge')
-  const [groupBy, setGroupBy] = useState(() => savedPrefs?.groupBy || 'none')
-  const [terminal, setTerminal] = useState('all')
   const [selectedMetrics, setSelectedMetrics] = useState<MetricKey[]>(
     () => savedPrefs?.selectedMetrics || DEFAULT_SELECTED_METRICS
-  )
-  const [chartMetric, setChartMetric] = useState<MetricKey>(
-    () => savedPrefs?.chartMetric || DEFAULT_CHART_METRIC
   )
 
   // Merchant filter state
@@ -861,48 +850,38 @@ export default function SalesSummary() {
   // Pending control values (temporary state while editing in drawer)
   const [pendingReportType, setPendingReportType] = useState<ReportType>('summary')
   const [pendingViewType, setPendingViewType] = useState('gauge')
-  const [pendingGroupBy, setPendingGroupBy] = useState('none')
-  const [pendingTerminal, setPendingTerminal] = useState('all')
   const [pendingSelectedMetrics, setPendingSelectedMetrics] = useState<MetricKey[]>(DEFAULT_SELECTED_METRICS)
-  const [pendingChartMetric, setPendingChartMetric] = useState<MetricKey>(DEFAULT_CHART_METRIC)
 
   // Save preferences to localStorage when they change
   useEffect(() => {
     savePreferences({
       selectedMetrics,
-      chartMetric,
       viewType,
       reportType,
-      groupBy,
       paymentMethodFilter,
       cardTypeFilter,
     })
-  }, [selectedMetrics, chartMetric, viewType, reportType, groupBy, paymentMethodFilter, cardTypeFilter])
+  }, [selectedMetrics, viewType, reportType, paymentMethodFilter, cardTypeFilter])
 
   // Get translated label for current selection
-  const getSelectedLabel = (category: 'reportType' | 'viewType' | 'groupBy' | 'terminal', value: string) => {
+  const getSelectedLabel = (category: 'reportType' | 'viewType', value: string) => {
     return t(`salesSummary.controls.${category}.options.${value}`, value)
   }
 
   // Check if there are pending changes for each control
   const hasReportTypeChange = pendingReportType !== reportType
   const hasViewTypeChange = pendingViewType !== viewType
-  const hasGroupByChange = pendingGroupBy !== groupBy
-  const hasTerminalChange = pendingTerminal !== terminal
-  const hasMetricsChange = JSON.stringify(pendingSelectedMetrics) !== JSON.stringify(selectedMetrics) || pendingChartMetric !== chartMetric
+  const hasMetricsChange = JSON.stringify(pendingSelectedMetrics) !== JSON.stringify(selectedMetrics)
   const hasMerchantChange = pendingMerchantAccountId !== merchantAccountId
   const hasFilterByChange =
     pendingPaymentMethodFilter !== paymentMethodFilter || pendingCardTypeFilter !== cardTypeFilter
 
   // Open sheet and navigate to specific panel, initialize pending with current value
-  const openControlPanel = (panel: 'main' | 'reportType' | 'viewType' | 'groupBy' | 'terminal' | 'metrics' | 'merchant' | 'filterBy') => {
+  const openControlPanel = (panel: 'main' | 'reportType' | 'viewType' | 'metrics' | 'merchant' | 'filterBy') => {
     // Initialize pending values with current values when opening
     setPendingReportType(reportType)
     setPendingViewType(viewType)
-    setPendingGroupBy(groupBy)
-    setPendingTerminal(terminal)
     setPendingSelectedMetrics([...selectedMetrics])
-    setPendingChartMetric(chartMetric)
     setPendingMerchantAccountId(merchantAccountId)
     setPendingPaymentMethodFilter(paymentMethodFilter)
     setPendingCardTypeFilter(cardTypeFilter)
@@ -923,21 +902,8 @@ export default function SalesSummary() {
     setActivePanel('main')
   }
 
-  const applyGroupBy = () => {
-    setGroupBy(pendingGroupBy)
-    setControlsOpen(false)
-    setActivePanel('main')
-  }
-
-  const applyTerminal = () => {
-    setTerminal(pendingTerminal)
-    setControlsOpen(false)
-    setActivePanel('main')
-  }
-
   const applyMetrics = () => {
     setSelectedMetrics([...pendingSelectedMetrics])
-    setChartMetric(pendingChartMetric)
     setControlsOpen(false)
     setActivePanel('main')
   }
@@ -999,11 +965,6 @@ export default function SalesSummary() {
     } else {
       setPendingSelectedMetrics(allMetrics)
     }
-  }
-
-  // Set chart metric (only one can be selected for chart visualization)
-  const setMetricAsChart = (metric: MetricKey) => {
-    setPendingChartMetric(metric)
   }
 
   // Build API filters
@@ -1246,13 +1207,6 @@ export default function SalesSummary() {
                     onClick={() => setActivePanel('reportType')}
                   />
                   <Separator />
-                  <ControlRow
-                    label={t('salesSummary.controls.terminal.label')}
-                    description={t('salesSummary.controls.terminal.description')}
-                    value={getSelectedLabel('terminal', terminal)}
-                    onClick={() => setActivePanel('terminal')}
-                  />
-                  <Separator />
                   {merchantAccounts.length > 1 && (
                     <>
                       <ControlRow
@@ -1274,13 +1228,6 @@ export default function SalesSummary() {
                     description={t('salesSummary.controls.viewType.description')}
                     value={getSelectedLabel('viewType', viewType)}
                     onClick={() => setActivePanel('viewType')}
-                  />
-                  <Separator />
-                  <ControlRow
-                    label={t('salesSummary.controls.groupBy.label')}
-                    description={t('salesSummary.controls.groupBy.description')}
-                    value={getSelectedLabel('groupBy', groupBy)}
-                    onClick={() => setActivePanel('groupBy')}
                   />
                   <Separator />
                   <ControlRow
@@ -1364,51 +1311,6 @@ export default function SalesSummary() {
                         ))}
                       </div>
                     </div>
-                  </RadioGroup>
-                </div>
-              </div>
-
-              {/* Terminal Sub-Panel */}
-              <div
-                className={cn(
-                  'absolute inset-0 transition-transform duration-300 ease-in-out bg-background flex flex-col',
-                  activePanel === 'terminal' ? 'translate-x-0' : 'translate-x-full'
-                )}
-              >
-                <div className="flex items-center justify-between p-4 border-b">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-10 w-10 rounded-full cursor-pointer"
-                    onClick={() => setActivePanel('main')}
-                  >
-                    <ChevronLeft className="w-5 h-5" />
-                  </Button>
-                  <Button
-                    className="rounded-full px-6 cursor-pointer"
-                    disabled={!hasTerminalChange}
-                    onClick={applyTerminal}
-                  >
-                    {t('salesSummary.controls.apply')}
-                  </Button>
-                </div>
-                <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                  <div className="space-y-3">
-                    <h2 className="text-2xl font-bold">{t('salesSummary.controls.terminal.label')}</h2>
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      {t('salesSummary.controls.terminal.longDescription')}
-                    </p>
-                  </div>
-                  <RadioGroup value={pendingTerminal} onValueChange={setPendingTerminal} className="space-y-1">
-                    {CONTROL_OPTION_KEYS.terminal.map((key) => (
-                      <ControlOption
-                        key={key}
-                        value={key}
-                        label={t(`salesSummary.controls.terminal.options.${key}`)}
-                        description={t(`salesSummary.controls.terminal.options.${key}Desc`)}
-                        isSelected={pendingTerminal === key}
-                      />
-                    ))}
                   </RadioGroup>
                 </div>
               </div>
@@ -1529,51 +1431,6 @@ export default function SalesSummary() {
                 </div>
               </div>
 
-              {/* Group By Sub-Panel */}
-              <div
-                className={cn(
-                  'absolute inset-0 transition-transform duration-300 ease-in-out bg-background flex flex-col',
-                  activePanel === 'groupBy' ? 'translate-x-0' : 'translate-x-full'
-                )}
-              >
-                <div className="flex items-center justify-between p-4 border-b">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-10 w-10 rounded-full cursor-pointer"
-                    onClick={() => setActivePanel('main')}
-                  >
-                    <ChevronLeft className="w-5 h-5" />
-                  </Button>
-                  <Button
-                    className="rounded-full px-6 cursor-pointer"
-                    disabled={!hasGroupByChange}
-                    onClick={applyGroupBy}
-                  >
-                    {t('salesSummary.controls.apply')}
-                  </Button>
-                </div>
-                <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                  <div className="space-y-3">
-                    <h2 className="text-2xl font-bold">{t('salesSummary.controls.groupBy.label')}</h2>
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      {t('salesSummary.controls.groupBy.longDescription')}
-                    </p>
-                  </div>
-                  <RadioGroup value={pendingGroupBy} onValueChange={setPendingGroupBy} className="space-y-1">
-                    {CONTROL_OPTION_KEYS.groupBy.map((key) => (
-                      <ControlOption
-                        key={key}
-                        value={key}
-                        label={t(`salesSummary.controls.groupBy.options.${key}`)}
-                        description={t(`salesSummary.controls.groupBy.options.${key}Desc`)}
-                        isSelected={pendingGroupBy === key}
-                      />
-                    ))}
-                  </RadioGroup>
-                </div>
-              </div>
-
               {/* Metrics Sub-Panel */}
               <div
                 className={cn(
@@ -1606,14 +1463,6 @@ export default function SalesSummary() {
                     </p>
                   </div>
 
-                  {/* Chart hint - Square style info box */}
-                  <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/50 border border-border/50">
-                    <BarChart3 className="w-5 h-5 text-muted-foreground mt-0.5 shrink-0" />
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      {t('salesSummary.controls.metrics.chartHint')}
-                    </p>
-                  </div>
-
                   {/* All metrics toggle */}
                   <div
                     className={cn(
@@ -1634,7 +1483,6 @@ export default function SalesSummary() {
                   <div className="space-y-1">
                     {AVAILABLE_METRICS.map((metric) => {
                       const isSelected = pendingSelectedMetrics.includes(metric.key)
-                      const isChartMetric = pendingChartMetric === metric.key
                       return (
                         <div
                           key={metric.key}
@@ -1654,27 +1502,6 @@ export default function SalesSummary() {
                             </p>
                           </div>
                           <div className="flex items-center gap-3 shrink-0">
-                            {/* Chart toggle - only for metrics that can be charted */}
-                            {metric.hasChart && (
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className={cn(
-                                  'h-8 w-8 cursor-pointer',
-                                  isChartMetric && 'bg-foreground/10'
-                                )}
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  if (isSelected) setMetricAsChart(metric.key)
-                                }}
-                                disabled={!isSelected}
-                              >
-                                <BarChart3 className={cn(
-                                  'w-4 h-4',
-                                  isChartMetric ? 'text-foreground' : 'text-muted-foreground'
-                                )} />
-                              </Button>
-                            )}
                             {/* Include checkbox */}
                             <Checkbox
                               checked={isSelected}
@@ -1904,11 +1731,6 @@ export default function SalesSummary() {
           value={getSelectedLabel('reportType', reportType)}
           onClick={() => openControlPanel('reportType')}
         />
-        <ControlPill
-          label={t('salesSummary.controls.terminal.label')}
-          value={getSelectedLabel('terminal', terminal)}
-          onClick={() => openControlPanel('terminal')}
-        />
         {merchantAccounts.length > 1 && (
           <ControlPill
             label={t('salesSummary.controls.merchant.label')}
@@ -1926,11 +1748,6 @@ export default function SalesSummary() {
           label={t('salesSummary.controls.viewType.label')}
           value={getSelectedLabel('viewType', viewType)}
           onClick={() => openControlPanel('viewType')}
-        />
-        <ControlPill
-          label={t('salesSummary.controls.groupBy.label')}
-          value={getSelectedLabel('groupBy', groupBy)}
-          onClick={() => openControlPanel('groupBy')}
         />
         <ControlPill
           label={t('salesSummary.controls.filterBy.label')}
