@@ -37,6 +37,7 @@ import {
 } from '@/components/ui/select'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
+import { nombreCompleto } from '@/lib/nombreCompleto'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import customerService from '@/services/customer.service'
 import type { Customer, CustomerGroup } from '@/types/customer'
@@ -564,7 +565,7 @@ export default function Customers() {
 							<AlertDialogTitle>{t('delete.title')}</AlertDialogTitle>
 							<AlertDialogDescription>
 								{t('delete.description', {
-									name: `${deletingCustomer.firstName} ${deletingCustomer.lastName}`,
+									name: nombreCompleto(deletingCustomer) || deletingCustomer.email || deletingCustomer.phone,
 								})}
 							</AlertDialogDescription>
 						</AlertDialogHeader>
@@ -598,7 +599,7 @@ export default function Customers() {
 							<DialogTitle>{t('settleBalance.title')}</DialogTitle>
 							<DialogDescription>
 								{t('settleBalance.description', {
-									name: `${settlingCustomer.firstName} ${settlingCustomer.lastName}`,
+									name: nombreCompleto(settlingCustomer) || settlingCustomer.email || settlingCustomer.phone,
 								})}
 							</DialogDescription>
 						</DialogHeader>
