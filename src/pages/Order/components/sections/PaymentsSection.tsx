@@ -12,9 +12,17 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 
+/**
+ * D661, de una cuenta en línea con reembolso (sin el dato, como siempre). Ruling 89, `seLeDebe`: el banco regresó la devolución; el
+ * SERVIDOR conserva el asiento (la cuenta sigue cerrada), pero el dinero no le llegó a la clienta. Ronda 5: `revisando` mientras llega la
+ * lectura del pedido en línea, `sinRevisar` si falló: en esos dos no se dice «Reembolsado».
+ */
+export type EstadoDevolucion = 'seLeDebe' | 'revisando' | 'sinRevisar'
+
 interface Props {
   order: Order
   venueTimezone: string
+  devolucion?: EstadoDevolucion
 }
 
 const PaymentIcon = ({ p }: { p: Payment }) => {
@@ -154,8 +162,9 @@ const PaymentRow = ({ p, venueTimezone }: { p: Payment; venueTimezone: string })
 /** Estados con los que la cuenta ya no se cobra. `DELETED` existe en el SERVIDOR aunque el enum del panel no lo traiga. */
 const ESTADOS_CERRADOS = new Set(['COMPLETED', 'CANCELLED', 'DELETED'])
 
-export function PaymentsSection({ order, venueTimezone }: Props) {
+export function PaymentsSection({ order, venueTimezone, devolucion }: Props) {
   const { t } = useTranslation('orders')
+  const { t: tOnline } = useTranslation('onlineOrdering')
   const payments = order.payments ?? []
   const remainingBalance = Number(order.remainingBalance ?? 0)
   // Carril del reembolso (server, 2026-08-18). Si el campo no viene, todo se
@@ -176,16 +185,28 @@ export function PaymentsSection({ order, venueTimezone }: Props) {
       <h2 className="text-lg font-semibold text-foreground mb-3">{t('drawer.sections.payments')}</h2>
       <div className="rounded-lg border border-border bg-background px-4">
         {payments.length > 0 && payments.map(p => <PaymentRow key={p.id} p={p} venueTimezone={venueTimezone} />)}
-        {isRefunded && (
-          <div className="py-3 flex items-center justify-between gap-3 border-t border-rose-200/60 dark:border-rose-800/40 first:border-t-0">
-            <span className="text-sm font-medium text-rose-700 dark:text-rose-400">
-              {refundState === 'FULL'
-                ? t('drawer.refund.full', { defaultValue: 'Reembolsada' })
-                : t('drawer.refund.partialLabel', { defaultValue: 'Reembolso parcial' })}
-            </span>
-            <span className="text-sm font-semibold text-rose-700 dark:text-rose-400">-{Currency(refundedAmount)}</span>
-          </div>
-        )}
+        {isRefunded &&
+          (devolucion === 'revisando' || devolucion === 'sinRevisar' ? (
+            // Ronda 5: todavía no se sabe en qué quedó el dinero (o no se pudo revisar): ni «Reembolsado» ni un monto.
+            <p className="py-3 border-t border-border first:border-t-0 text-sm text-muted-foreground">
+              {t(devolucion === 'revisando' ? 'drawer.refund.checking' : 'drawer.refund.unchecked')}
+            </p>
+          ) : (
+            <div className="py-3 flex items-center justify-between gap-3 border-t border-rose-200/60 dark:border-rose-800/40 first:border-t-0">
+              <span className="text-sm font-medium text-rose-700 dark:text-rose-400">
+                {devolucion === 'seLeDebe'
+                  ? tOnline('inbox.card.mark.reversed')
+                  : refundState === 'FULL'
+                    ? t('drawer.refund.full', { defaultValue: 'Reembolsada' })
+                    : t('drawer.refund.partialLabel', { defaultValue: 'Reembolso parcial' })}
+              </span>
+              {/* Con la reversa, lo que se le debe (el asiento de arriba sigue a la vista, como historia). */}
+              <span className="text-sm font-semibold text-rose-700 dark:text-rose-400">
+                {devolucion !== 'seLeDebe' && '-'}
+                {Currency(refundedAmount)}
+              </span>
+            </div>
+          ))}
         {hasPendingBalance ? (
           <div className="py-3 flex items-center justify-between gap-3 border-t border-red-200/60 dark:border-red-800/40 first:border-t-0">
             <span className="text-sm font-medium text-red-700 dark:text-red-400">

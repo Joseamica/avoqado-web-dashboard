@@ -7,6 +7,8 @@ import type { InboxOrder } from '@/types/onlineOrdering'
 import { Currency } from '@/utils/currency'
 import { useVenueDateTime } from '@/utils/datetime'
 
+import { marcaDelPedido } from '../lib/marcaDelPedido'
+
 /** Cerrados SIN cobro: nunca hubo (ni habrá) dinero que cobrar al recoger. */
 const NO_CHARGE: ReadonlySet<string> = new Set(['REJECTED', 'EXPIRED', 'CANCELLED_BY_CUSTOMER', 'CANCELLED_BY_STAFF'])
 
@@ -43,6 +45,13 @@ function Countdown({ deadline, skewMs }: { deadline: string; skewMs: number }) {
   const minutes = Math.floor(left / 60_000)
   const seconds = String(Math.floor((left % 60_000) / 1000)).padStart(2, '0')
   return <span className="font-medium tabular-nums">{t('inbox.card.deadline', { time: `${minutes}:${seconds}` })}</span>
+}
+
+/** D661: «Devuelto», «Devolviendo…» o «No lo recogió» (ver `marcaDelPedido`); sin marca, nada. */
+export function MarcaDelPedido({ order }: { order: InboxOrder }) {
+  const { t } = useTranslation('onlineOrdering')
+  const mark = marcaDelPedido(order)
+  return mark ? <Badge variant="secondary">{t(`inbox.card.mark.${mark}`)}</Badge> : null
 }
 
 /** Parte 2 (D1): de qué clienta es la cuenta. Sin `cliente` (sin cuenta o SERVIDOR viejo) no dice nada; nunca su contacto. */
@@ -103,6 +112,8 @@ export function OrderCard({ order, skewMs, canAnswer, canCancel, busy, acceptLoc
   const isPending = order.status === 'PENDING_ACCEPTANCE'
   const isActive = order.status === 'ACCEPTED' || order.status === 'READY'
   const isDone = !isPending && !isActive
+  // D661: con una marca el SERVIDOR ya no deja «Listo» ni «Entregado»: no se ofrecen, y la marca va en lugar de «Entregado».
+  const mark = marcaDelPedido(order)
 
   return (
     <div data-testid={`order-${order.orderId}`} className="space-y-3 rounded-xl border border-input bg-card p-4">
@@ -169,9 +180,13 @@ export function OrderCard({ order, skewMs, canAnswer, canCancel, busy, acceptLoc
               : t('inbox.card.paid')}
       </p>
 
-      {isDone && (
+      {(isDone || mark) && (
         <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="secondary">{t(`inbox.card.status.${order.status}`, { defaultValue: order.status })}</Badge>
+          {mark ? (
+            <MarcaDelPedido order={order} />
+          ) : (
+            <Badge variant="secondary">{t(`inbox.card.status.${order.status}`, { defaultValue: order.status })}</Badge>
+          )}
           {order.status === 'REJECTED' && order.rejectReason && (
             <span className="text-sm text-muted-foreground">{t(`inbox.reject.reasons.${order.rejectReason}`)}</span>
           )}
@@ -189,7 +204,7 @@ export function OrderCard({ order, skewMs, canAnswer, canCancel, busy, acceptLoc
         </div>
       )}
 
-      {isActive && (canAnswer || canCancel) && (
+      {isActive && !mark && (canAnswer || canCancel) && (
         <div className="flex flex-wrap items-center gap-2">
           {canAnswer && order.status === 'ACCEPTED' && (
             <Button className="flex-1" disabled={busy} onClick={() => onAction('ready')}>

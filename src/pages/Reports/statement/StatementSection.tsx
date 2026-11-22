@@ -3,7 +3,12 @@ import { useTranslation } from 'react-i18next'
 import { AlertCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { GlassCard } from '@/components/ui/glass-card'
-import type { MerchantAccountBreakdown, PaymentMethodDetailedBreakdown, SettlementCalendarDay } from '@/services/reports/salesSummary.service'
+import type {
+  MerchantAccountBreakdown,
+  PaymentMethodDetailedBreakdown,
+  SettlementCalendarDay,
+  StatementDestinations,
+} from '@/services/reports/salesSummary.service'
 import { deriveStatement } from './derive'
 import { MerchantStatementRows } from './MerchantStatementRows'
 import { StatementFlow } from './StatementFlow'
@@ -12,6 +17,8 @@ import { todayInVenue } from './venueDates'
 interface Props {
   buckets: PaymentMethodDetailedBreakdown[]
   merchants: MerchantAccountBreakdown[]
+  /** Where each charge went (carril C); absent with an old SERVIDOR. */
+  destinations?: StatementDestinations
   calendar: SettlementCalendarDay[]
   /** IANA venue timezone — decides past/upcoming for payout dates. */
   venueTimezone: string
@@ -26,10 +33,13 @@ interface Props {
  * All money math is derived once here (pure) and flows down to three parts that
  * reconcile visibly with each other.
  */
-export function StatementSection({ buckets, merchants, calendar, venueTimezone, formatCurrency, className }: Props) {
+export function StatementSection({ buckets, merchants, destinations, calendar, venueTimezone, formatCurrency, className }: Props) {
   const { t } = useTranslation('reports')
   const todayKey = useMemo(() => todayInVenue(venueTimezone), [venueTimezone])
-  const model = useMemo(() => deriveStatement({ buckets, merchants, calendar, todayKey }), [buckets, merchants, calendar, todayKey])
+  const model = useMemo(
+    () => deriveStatement({ buckets, merchants, destinations, calendar, todayKey }),
+    [buckets, merchants, destinations, calendar, todayKey],
+  )
 
   const showMerchants = model.merchants.length > 0
 
