@@ -345,6 +345,7 @@
       "failed": "The bank didn't make the refund; nothing was recorded",
       "reversed": "The refund failed later: refund it another way",
       "resolved": "Already refunded another way",
+      "resolvedStripe": "Already refunded directly in Stripe",
       "unknown": "The refund is in progress; check again in a moment",
       "storeCredit": "Returned as store credit"
     },
@@ -373,12 +374,15 @@
       "title": "Refund another way:",
       "cash": "Cash from the drawer",
       "transfer": "Bank transfer",
+      "stripe": "Already refunded in Stripe",
       "confirmCASH": "Before you hand over the money: record that you're returning {{amount}} in cash from the open drawer? It can't be undone.",
       "confirmBANK_TRANSFER": "Before you transfer: record that you're transferring {{amount}} to the customer? It can't be undone.",
+      "confirmSTRIPE": "Did the customer already get the {{amount}} refund made directly in Stripe? Avoqado checks Stripe and, if it's done, marks it as refunded without taking money from the drawer. If Stripe sends it back later, it becomes pending again.",
       "confirmYes": "Yes, record it",
       "confirmNo": "Not yet",
       "doneCASH": "Recorded: now give the customer {{amount}}",
       "doneBANK_TRANSFER": "Recorded: now transfer {{amount}} to the customer",
+      "doneSTRIPE": "Done: it was already refunded in Stripe. Don't give {{amount}} again",
       "doneReplay": "It was already recorded: check whether the customer already got it; don't give it again"
     }
   },

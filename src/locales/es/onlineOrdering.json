@@ -345,6 +345,7 @@
       "failed": "El banco no hizo la devolución; no se anotó nada",
       "reversed": "La devolución falló después: devuélvelo por otro medio",
       "resolved": "Ya se devolvió por otro medio",
+      "resolvedStripe": "Ya se había devuelto directo en Stripe",
       "unknown": "La devolución está en proceso; revisa en un momento",
       "storeCredit": "Devuelto como saldo a favor"
     },
@@ -373,12 +374,15 @@
       "title": "Devolver por otro medio:",
       "cash": "Efectivo de la caja",
       "transfer": "Transferencia",
+      "stripe": "Ya se devolvió en Stripe",
       "confirmCASH": "Antes de darle el dinero: ¿registras que le devuelves {{amount}} en efectivo de la caja abierta? No se puede deshacer.",
       "confirmBANK_TRANSFER": "Antes de transferir: ¿registras que le transfieres {{amount}} al cliente? No se puede deshacer.",
+      "confirmSTRIPE": "¿Al cliente ya le llegó la devolución de {{amount}} hecha directo en Stripe? Avoqado lo revisa en Stripe y, si ya está hecha, la da por devuelta sin sacar dinero de la caja. Si Stripe la regresa después, vuelve a quedar pendiente.",
       "confirmYes": "Sí, registrar",
       "confirmNo": "Todavía no",
       "doneCASH": "Registrado: ahora sí, dale {{amount}} al cliente",
       "doneBANK_TRANSFER": "Registrado: ahora sí, transfiérele {{amount}} al cliente",
+      "doneSTRIPE": "Listo: ya estaba devuelta en Stripe. No le des {{amount}} otra vez",
       "doneReplay": "Ya estaba registrada: revisa si ya se le entregó; no se lo des otra vez"
     }
   },

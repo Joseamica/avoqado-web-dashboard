@@ -195,7 +195,8 @@ export type PauseMinutes = 15 | 30 | 60 | null
 export type CardRefundStatus =
   'REQUESTED' | 'SENDING' | 'PENDING' | 'SUCCEEDED' | 'RECORDED' | 'FAILED' | 'CANCELED' | 'REVERSED' | 'RESOLVED'
 export type CardRefundReason = 'RETURNED_GOODS' | 'ACCIDENTAL_CHARGE' | 'CANCELLED_ORDER' | 'FRAUDULENT_CHARGE' | 'OTHER'
-export type CardRefundResolveMethod = 'CASH' | 'BANK_TRANSFER'
+/** D670: `STRIPE` = «Ya se devolvió en Stripe» (el SERVIDOR lo comprueba en Stripe; no sale dinero de la caja). */
+export type CardRefundResolveMethod = 'CASH' | 'BANK_TRANSFER' | 'STRIPE'
 /** D661: a dónde va el dinero. `CARD` (lo de siempre) o `STORE_CREDIT`, saldo a favor en el negocio (sólo pedidos de «Nadie»). */
 export type CardRefundDestino = 'CARD' | 'STORE_CREDIT'
 

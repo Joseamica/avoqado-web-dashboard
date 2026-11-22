@@ -803,6 +803,76 @@ describe('Devolver a la tarjeta', () => {
     expect(toast).toHaveBeenCalledTimes(1)
   })
 
+  // ── D670: «Ya se devolvió en Stripe» (el SERVIDOR lo comprueba en Stripe; no sale dinero) ──
+  it('D670: «Ya se devolvió en Stripe» pregunta antes, manda method STRIPE y dice que no se entregue otra vez', async () => {
+    listCardRefunds.mockResolvedValue([refund({ id: 'r2', status: 'REVERSED', reversal: reversal(null) })])
+    resolveCardRefund.mockResolvedValue({ status: 'RESOLVED', replay: false })
+    await abrir()
+    const r2 = await screen.findByTestId('card-refund-r2')
+    await userEvent.click(within(r2).getByRole('button', { name: 'cardRefund.other.stripe' }))
+    expect(within(r2).getByText(`cardRefund.other.confirmSTRIPE|${Currency(50)}`)).toBeInTheDocument()
+    expect(resolveCardRefund).not.toHaveBeenCalled()
+    await userEvent.click(within(r2).getByRole('button', { name: 'cardRefund.other.confirmYes' }))
+    await waitFor(() => expect(resolveCardRefund).toHaveBeenCalledWith('venue-1', 'o1', 'r2', { method: 'STRIPE' }))
+    await waitFor(() => expect(toast).toHaveBeenCalledWith({ title: `cardRefund.other.doneSTRIPE|${Currency(50)}` }))
+  })
+
+  it('D670: un doble clic en «Sí, registrar» de «Ya se devolvió en Stripe» manda UNA petición', async () => {
+    listCardRefunds.mockResolvedValue([refund({ id: 'r2', status: 'REVERSED', reversal: reversal(null) })])
+    resolveCardRefund.mockResolvedValue({ status: 'RESOLVED', replay: false })
+    await abrir()
+    const r2 = await screen.findByTestId('card-refund-r2')
+    await userEvent.click(within(r2).getByRole('button', { name: 'cardRefund.other.stripe' }))
+    const si = within(r2).getByRole('button', { name: 'cardRefund.other.confirmYes' })
+    act(() => {
+      fireEvent.click(si)
+      fireEvent.click(si)
+    })
+    await waitFor(() => expect(toast).toHaveBeenCalledWith({ title: `cardRefund.other.doneSTRIPE|${Currency(50)}` }))
+    await act(() => new Promise(r => setTimeout(r, 20)))
+    expect(resolveCardRefund).toHaveBeenCalledTimes(1)
+  })
+
+  it('D670: si Stripe no lo cubre (409), el texto del servidor con lo que falta, sin éxito', async () => {
+    const message = 'En Stripe sólo hay $10.00 devueltos por fuera de Avoqado: faltan $40.00 para los $50.00 de esta devolución.'
+    listCardRefunds.mockResolvedValue([refund({ id: 'r2', status: 'REVERSED', reversal: reversal(null) })])
+    resolveCardRefund.mockRejectedValue(http(409, { code: 'EXTERNAL_REFUND_NOT_COVERED', message }))
+    await abrir()
+    const r2 = await screen.findByTestId('card-refund-r2')
+    await userEvent.click(within(r2).getByRole('button', { name: 'cardRefund.other.stripe' }))
+    await userEvent.click(within(r2).getByRole('button', { name: 'cardRefund.other.confirmYes' }))
+    await waitFor(() => expect(toast).toHaveBeenCalledWith({ title: message, variant: 'destructive' }))
+    expect(toast).toHaveBeenCalledTimes(1)
+  })
+
+  it('D670: una cerrada «en Stripe» se ve como tal en la lista; una en efectivo sigue como «por otro medio»', async () => {
+    listCardRefunds.mockResolvedValue([
+      refund({ id: 'r3', status: 'RESOLVED', reversal: { ...reversal('2026-11-02T20:00:00.000Z'), resolvedMethod: 'STRIPE' } }),
+      refund({ id: 'r4', status: 'RESOLVED', reversal: reversal('2026-11-02T20:00:00.000Z') }),
+    ])
+    await abrir()
+    expect(await screen.findByTestId('card-refund-r3')).toHaveTextContent('cardRefund.outcome.resolvedStripe')
+    expect(screen.getByTestId('card-refund-r4')).toHaveTextContent('cardRefund.outcome.resolved')
+    expect(screen.getByTestId('card-refund-r4')).not.toHaveTextContent('resolvedStripe')
+  })
+
+  it('D670: los textos de «Ya se devolvió en Stripe»', () => {
+    const es = esOnline.cardRefund
+    const en = enOnline.cardRefund
+    expect(es.other.stripe).toBe('Ya se devolvió en Stripe')
+    expect(es.other.confirmSTRIPE).toBe(
+      '¿Al cliente ya le llegó la devolución de {{amount}} hecha directo en Stripe? Avoqado lo revisa en Stripe y, si ya está hecha, la da por devuelta sin sacar dinero de la caja. Si Stripe la regresa después, vuelve a quedar pendiente.',
+    )
+    expect(es.other.doneSTRIPE).toBe('Listo: ya estaba devuelta en Stripe. No le des {{amount}} otra vez')
+    expect(es.outcome.resolvedStripe).toBe('Ya se había devuelto directo en Stripe')
+    expect(en.other.stripe).toBe('Already refunded in Stripe')
+    expect(en.other.confirmSTRIPE).toBe(
+      "Did the customer already get the {{amount}} refund made directly in Stripe? Avoqado checks Stripe and, if it's done, marks it as refunded without taking money from the drawer. If Stripe sends it back later, it becomes pending again.",
+    )
+    expect(en.other.doneSTRIPE).toBe("Done: it was already refunded in Stripe. Don't give {{amount}} again")
+    expect(en.outcome.resolvedStripe).toBe('Already refunded directly in Stripe')
+  })
+
   it('sin payments:refund-to-cash no hay «Efectivo de la caja», sí «Transferencia»', async () => {
     access.denied = ['payments:refund-to-cash']
     listCardRefunds.mockResolvedValue([refund({ id: 'r2', status: 'REVERSED', reversal: reversal(null) })])

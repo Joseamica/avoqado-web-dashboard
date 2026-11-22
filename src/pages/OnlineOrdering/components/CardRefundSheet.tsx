@@ -528,7 +528,13 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
                     <span className="font-medium">{Currency(Number(r.amount))}</span>
                     {/* D661: la de saldo a favor nace RESOLVED; en la tarjeta eso es «ya se devolvió por otro medio». */}
                     <span className="text-right text-muted-foreground">
-                      {t(r.toStoreCredit ? 'cardRefund.outcome.storeCredit' : statusKey(r.status))}
+                      {t(
+                        r.toStoreCredit
+                          ? 'cardRefund.outcome.storeCredit'
+                          : r.status === 'RESOLVED' && r.reversal?.resolvedMethod === 'STRIPE'
+                            ? 'cardRefund.outcome.resolvedStripe' // D670: ya se le había devuelto directo en Stripe
+                            : statusKey(r.status),
+                      )}
                     </span>
                   </div>
                   <p className="text-xs text-muted-foreground">
@@ -574,6 +580,12 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
                         {can('payments:refund') && (
                           <Button type="button" size="sm" variant="outline" onClick={() => setOther({ id: r.id, method: 'BANK_TRANSFER' })}>
                             {t('cardRefund.other.transfer')}
+                          </Button>
+                        )}
+                        {/* D670: si al cliente ya le llegó directo en Stripe; el SERVIDOR lo comprueba y no sale dinero. */}
+                        {can('payments:refund') && (
+                          <Button type="button" size="sm" variant="outline" onClick={() => setOther({ id: r.id, method: 'STRIPE' })}>
+                            {t('cardRefund.other.stripe')}
                           </Button>
                         )}
                       </div>
