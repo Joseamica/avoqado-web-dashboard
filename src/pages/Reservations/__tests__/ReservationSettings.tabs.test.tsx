@@ -214,6 +214,23 @@ describe('Configuración de Reservaciones en pestañas (D680)', () => {
     expect(updateSettings.mock.calls[0][1].reminders).toEqual({ enabled: false, channels: ['EMAIL'], minutesBefore: [1440, 60] })
   })
 
+  it('sin cobro en línea, cada cobro explica por qué el prepago está deshabilitado y ofrece conectar, aunque esté en «Pagar en el local»', async () => {
+    const base = savedSettings({ canChargeOnline: false })
+    getSettings.mockResolvedValue({ ...base, payments: { appointmentUpfrontDefault: 'at_venue', classUpfrontDefault: 'at_venue' } })
+    renderSettings([`${SETTINGS_PATH}#citas`])
+    await screen.findByText('settings.title')
+
+    for (const id of ['reservation-settings-payments-appointments', 'reservation-settings-payments-classes']) {
+      const cobro = document.querySelector<HTMLElement>(`[data-tour="${id}"]`)!
+      expect(within(cobro).getByText('settings.onlineCharge.missingUpfront')).toBeInTheDocument()
+      expect(within(cobro).getByRole('link', { name: 'settings.onlineCharge.connect', hidden: true })).toHaveAttribute(
+        'href',
+        '/venues/test/settings/integrations',
+      )
+    }
+    expect(within(panel('citas')).getByText('settings.onlineCharge.missingUpfront')).toBeVisible()
+  })
+
   it('la pestaña con cambios sin guardar lleva su punto', async () => {
     const user = userEvent.setup()
     renderSettings([`${SETTINGS_PATH}#clases`])

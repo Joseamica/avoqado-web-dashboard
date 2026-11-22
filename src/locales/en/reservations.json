@@ -712,7 +712,7 @@
       "enabled": "Enable online booking",
       "enabledHelp": "Customers can book from your website",
       "showStaffPicker": "Let customers choose a professional",
-      "showStaffPickerHelp": "Shows eligible available professionals in self-service booking. Leave off to assign one automatically.",
+      "showStaffPickerHelp": "Shows eligible available professionals in self-service booking. Leave off to assign one automatically. It also changes the slots offered by the manual booking in the dashboard: when on, only appointment services get slots there.",
       "requirePhone": "Require phone",
       "requirePhoneTooltip": "The customer must enter a phone number when booking online.",
       "requireEmail": "Require email",

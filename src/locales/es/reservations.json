@@ -712,7 +712,7 @@
       "enabled": "Habilitar reservaciones online",
       "enabledHelp": "Los clientes pueden reservar desde tu sitio web",
       "showStaffPicker": "Permitir que el cliente elija profesionista",
-      "showStaffPickerHelp": "Muestra profesionistas elegibles y disponibles en la reserva en línea. Déjalo apagado para asignar uno automáticamente.",
+      "showStaffPickerHelp": "Muestra profesionistas elegibles y disponibles en la reserva en línea. Déjalo apagado para asignar uno automáticamente. También cambia los horarios que ofrece la reserva manual del panel: prendido, ahí sólo salen horarios para servicios de cita.",
       "requirePhone": "Requerir teléfono",
       "requirePhoneTooltip": "El cliente debe ingresar su teléfono al hacer la reserva online.",
       "requireEmail": "Requerir email",

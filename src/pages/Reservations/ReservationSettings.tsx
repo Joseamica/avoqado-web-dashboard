@@ -437,8 +437,9 @@ function SelectField<T extends { value: number | null; label: string } | { value
 // falls back to "owesAtVenue" semantics (spot held, charge collected in person),
 // which is rarely what the operator expects when they pick "Prepago obligatorio".
 // Show a warning when missing, and a positive confirmation when connected — so
-// the operator always knows the state. D680: cada cobro (clases, citas) lo muestra
-// en su propia pestaña cuando ESE cobro no es «Pagar en el local».
+// the operator always knows the state. D680: cada cobro (clases, citas) lo muestra en su
+// propia pestaña: SIEMPRE sin cobro en línea (explica por qué el prepago está deshabilitado
+// y ofrece conectar), y con cobro en línea sólo cuando ESE cobro no es «Pagar en el local».
 function OnlineChargeStatus({ canChargeOnline, fullBasePath }: { canChargeOnline: boolean; fullBasePath: string }) {
   const { t } = useTranslation('reservations')
   return canChargeOnline ? (
@@ -1437,7 +1438,7 @@ export default function ReservationSettings() {
             {/* --------------------------------------------------- Cobro de las clases */}
             <section className="space-y-3" data-tour="reservation-settings-payments-classes">
               <h2 className="text-base font-semibold">{t('settings.payments.classesTitle')}</h2>
-              {formValues.classUpfrontDefault !== 'at_venue' && (
+              {(!canChargeOnline || formValues.classUpfrontDefault !== 'at_venue') && (
                 <OnlineChargeStatus canChargeOnline={canChargeOnline} fullBasePath={fullBasePath} />
               )}
               <Card className="border-input">
@@ -1546,7 +1547,7 @@ export default function ReservationSettings() {
             {/* ---------------------------------------------------- Cobro de las citas */}
             <section className="space-y-3" data-tour="reservation-settings-payments-appointments">
               <h2 className="text-base font-semibold">{t('settings.payments.appointmentsTitle')}</h2>
-              {formValues.appointmentUpfrontDefault !== 'at_venue' && (
+              {(!canChargeOnline || formValues.appointmentUpfrontDefault !== 'at_venue') && (
                 <OnlineChargeStatus canChargeOnline={canChargeOnline} fullBasePath={fullBasePath} />
               )}
               <Card className="border-input">

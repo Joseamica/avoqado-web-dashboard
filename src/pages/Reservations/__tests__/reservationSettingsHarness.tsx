@@ -18,6 +18,7 @@ export function savedSettings(
     defaultDurationMin?: number
     waitlist?: Partial<ReservationSettingsData['waitlist']>
     reminders?: Partial<ReservationSettingsData['reminders']>
+    canChargeOnline?: boolean
   } = {},
 ): ReservationSettingsData {
   return {
@@ -73,7 +74,7 @@ export function savedSettings(
       saturday: day(false),
       sunday: day(false),
     },
-    canChargeOnline: true,
+    canChargeOnline: overrides.canChargeOnline ?? true,
   } as ReservationSettingsData
 }
 

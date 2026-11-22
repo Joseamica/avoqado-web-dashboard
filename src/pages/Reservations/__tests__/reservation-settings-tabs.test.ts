@@ -124,6 +124,11 @@ describe('ayudas de General que no aplican a los dos tipos', () => {
     expect(en.settings.scheduling.capacityModeHelp).toMatch(/manual booking in the dashboard/i)
   })
 
+  it('«Elegir profesionista» (pestaña Citas) avisa lo mismo: también cambia la reserva manual del panel', () => {
+    expect(es.settings.publicBooking.showStaffPickerHelp).toMatch(/reserva manual del panel/)
+    expect(en.settings.publicBooking.showStaffPickerHelp).toMatch(/manual booking in the dashboard/i)
+  })
+
   it('el tour de Programación no promete que todo aplica a clases y citas', () => {
     expect(es.settings.settingsTour.scheduling.description).not.toMatch(/Aplica a clases y citas\./)
     expect(en.settings.settingsTour.scheduling.description).not.toMatch(/Applies to classes and appointments\./)
