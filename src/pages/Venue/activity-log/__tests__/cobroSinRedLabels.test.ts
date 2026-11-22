@@ -10,8 +10,8 @@ type Bitacora = { activityLog: { actions: Record<string, string>; detailKeys: Re
 const ACCIONES = {
   COBRO_SIN_RED_CON_DIFERENCIA: ['paymentId', 'saldoEsperado', 'saldoDelServidor', 'diferencia', 'aparato'],
   SOBREPAGO_DETECTADO: ['paymentId', 'totalPaid', 'orderTotal', 'overpaidBy', 'wasAlreadyPaid'],
-  // D7 (encargo a25cd7): `avisoDeTarjetaTardiaConEfectivo.ts`, sobre `Payment` (la tarjeta).
-  LATE_CARD_AFTER_CASH: ['paymentId', 'orderId', 'amount', 'cashPaymentIds', 'cashOrderIds', 'attemptStartedAt', 'recordedAt'],
+  // D7 (encargo a25cd7): `avisoDeTarjetaTardia.ts`, sobre `Payment` (la tarjeta de Pago rápido confirmada tarde).
+  LATE_CARD_RECORDED: ['paymentId', 'orderId', 'terminalId', 'amount', 'tipAmount', 'attemptStartedAt', 'recordedAt', 'minutesLate'],
 } as const
 
 describe('bitácora: cobro sin red con diferencia y sobrepago', () => {
@@ -38,6 +38,6 @@ describe('bitácora: cobro sin red con diferencia y sobrepago', () => {
   it('🔴 una diferencia de dinero se pinta para revisar, como su hermana del sobrepago (nunca neutra)', () => {
     expect(actionTone('COBRO_SIN_RED_CON_DIFERENCIA')).toBe('attention')
     expect(actionTone('SOBREPAGO_DETECTADO')).toBe('attention')
-    expect(actionTone('LATE_CARD_AFTER_CASH')).toBe('attention')
+    expect(actionTone('LATE_CARD_RECORDED')).toBe('attention')
   })
 })
