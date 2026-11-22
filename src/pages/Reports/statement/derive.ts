@@ -183,6 +183,9 @@ export function deriveStatement(input: DeriveStatementInput): StatementModel {
     // Which money the chip talks about: its slice when it shows one amount, else the whole net (Codex r6 #1: a refund the processor
     // deducts must read «Se descuenta», not «Cae»).
     const sliceNet = payoutAmount ?? (payoutDate ? (deposits.find(d => d.date === payoutDate)?.netToReceive ?? m.netToReceive) : m.netToReceive)
+    // A deduction that is only PART of the row's net says its own amount (Codex r7 #1): beside a positive net, «Debió
+    // descontarse» alone would read as if the whole net were deducted.
+    if (sliceNet < -0.004 && payoutAmount == null && Math.abs(sliceNet - m.netToReceive) >= 0.005) payoutAmount = sliceNet
     return {
       merchantAccountId: m.merchantAccountId,
       displayName: m.displayName,

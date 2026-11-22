@@ -484,6 +484,14 @@ describe('deriveStatement — devoluciones, en línea y comisión de terceros', 
       todayKey: TODAY,
     }).merchants[0]
     expect([soloDevolucion.payoutStatus, soloDevolucion.payoutIsDeduction]).toEqual(['lands', true])
+    // Todo con fecha, pero el último día es descuento y el neto es positivo: el chip dice CUÁNTO se descuenta ese día.
+    const mezcla = deriveStatement({
+      buckets: [],
+      merchants: [merchant({ merchantAccountId: 'x', netToReceive: 67.9 })],
+      calendar: [slice('2026-07-01', 97), slice('2026-07-02', -29.1)],
+      todayKey: TODAY,
+    }).merchants[0]
+    expect([mezcla.payoutStatus, mezcla.payoutAmount, mezcla.payoutIsDeduction]).toEqual(['landed', -29.1, true])
     const normal = deriveStatement({ buckets: [], merchants: [merchant({ merchantAccountId: 'x', netToReceive: 97 })], calendar: [slice('2026-07-01', 97)], todayKey: TODAY }).merchants[0]
     expect(normal.payoutIsDeduction).toBe(false)
   })
