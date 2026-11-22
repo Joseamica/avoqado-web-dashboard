@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft } from 'lucide-react'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useParams } from 'react-router-dom'
@@ -119,6 +119,10 @@ export default function DiscountForm() {
     }
   }, [existingDiscount, form, venueTimezone])
 
+  // D38 (21-nov): `isPending` apaga el botón un render tarde y un doble clic mandaba dos peticiones (dos descuentos iguales,
+  // o dos ediciones). Candado síncrono; se suelta al terminar.
+  const enVuelo = useRef(false)
+
   // Create/Update mutation
   const mutation = useMutation({
     mutationFn: async (data: CreateDiscountRequest & { active: boolean }) => {
@@ -144,10 +148,14 @@ export default function DiscountForm() {
         variant: 'destructive',
       })
     },
+    onSettled: () => {
+      enVuelo.current = false
+    },
   })
 
   // Handle form submit
   const onSubmit = (data: CreateDiscountRequest & { active: boolean }) => {
+    if (enVuelo.current) return
     // Clean up data based on scope
     const cleanedData = { ...data }
 
@@ -201,6 +209,7 @@ export default function DiscountForm() {
       cleanedData.getItemIds = cleanedData.getItemIds.map((item: any) => (typeof item === 'object' ? item.value : item))
     }
 
+    enVuelo.current = true
     mutation.mutate(cleanedData)
   }
 

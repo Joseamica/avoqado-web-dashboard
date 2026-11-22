@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
@@ -212,6 +212,13 @@ export function DiscountWizard({ open, onOpenChange, venueId, editDiscount, onSu
     // eslint-disable-next-line react-hooks/exhaustive-deps -- form refs are stable from useForm
   }, [open, editDiscount, venueTimezone])
 
+  // D38 (21-nov): `isPending` apaga el botón un render tarde y un doble clic en el último paso mandaba dos peticiones (dos
+  // descuentos iguales). Candado síncrono para crear y editar; se suelta al terminar.
+  const enVuelo = useRef(false)
+  const soltar = () => {
+    enVuelo.current = false
+  }
+
   // Create discount mutation
   const createDiscountMutation = useMutation({
     mutationFn: (data: CreateDiscountRequest & { active: boolean }) => discountService.createDiscount(venueId, data),
@@ -230,6 +237,7 @@ export function DiscountWizard({ open, onOpenChange, venueId, editDiscount, onSu
         variant: 'destructive',
       })
     },
+    onSettled: soltar,
   })
 
   // Update discount mutation (for edit mode)
@@ -252,6 +260,7 @@ export function DiscountWizard({ open, onOpenChange, venueId, editDiscount, onSu
         variant: 'destructive',
       })
     },
+    onSettled: soltar,
   })
 
   // Calculate progress
@@ -296,6 +305,7 @@ export function DiscountWizard({ open, onOpenChange, venueId, editDiscount, onSu
 
   // Handle complete - collect all data and submit
   const handleComplete = () => {
+    if (enVuelo.current) return
     if (!step1Data || !step2Data || !step3Data) {
       toast({
         title: tCommon('common.error'),
@@ -348,6 +358,7 @@ export function DiscountWizard({ open, onOpenChange, venueId, editDiscount, onSu
     }
 
     // Use update or create mutation based on mode
+    enVuelo.current = true
     if (isEditMode) {
       // Sólo lo que cambió frente a lo abierto (alcance, categorías, límites y lo demás): un campo sin tocar no pisa lo que otra
       // persona guardó en medio (Codex D14 v2 r1 #1 y r3).
