@@ -87,6 +87,8 @@ export interface PaymentMethodDetailedBreakdown {
     platformFees: number
     chargedAmount?: number
     chargedCount?: number
+    /** Aditivo (carril C): la comisión redondeada por cobro, la misma base del estado de cuenta. */
+    platformFeesCents?: number
   }>
 }
 

@@ -149,4 +149,20 @@ describe('StatementFlow', () => {
     expect(screen.getByTestId('statement-tender-row')).toHaveTextContent('−$30.00')
     expect(screen.getByTestId('statement-hero-net')).toHaveTextContent('$70.00')
   })
+
+  it('con los destinos del SERVIDOR: un OXXO viejo guardado como efectivo pero de Avoqado no está en caja sino en el banco', () => {
+    const d = (o: Record<string, number> = {}) => ({ collected: 0, refunds: 0, refundCount: 0, platformFee: 0, netToReceive: 0, transactionCount: 0, ...o })
+    const m = model({
+      buckets: [bucket({ bucket: 'CASH', amount: 120, count: 1, platformFees: 4, chargedAmount: 120, chargedCount: 1 })],
+      merchants: [],
+      destinations: { drawer: d(), terminal: d(), online: d({ collected: 120, platformFee: 4, netToReceive: 116, transactionCount: 1 }), other: d(), tenderCommissions: 0 },
+      calendar: [],
+      todayKey: '2026-07-04',
+    })
+    render(<StatementFlow model={m} formatCurrency={fmt} />)
+    // Sin destinos (servidor viejo) estos $120 saldrían en «Ya en tu mano»: aquí no.
+    expect(screen.queryByTestId('statement-cash-row')).not.toBeInTheDocument()
+    expect(screen.getByTestId('statement-bank-row')).toHaveTextContent('$116.00')
+    expect(screen.getByTestId('statement-hero-net')).toHaveTextContent('$116.00')
+  })
 })

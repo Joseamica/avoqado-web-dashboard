@@ -91,7 +91,8 @@ export function deriveStatement(input: DeriveStatementInput): StatementModel {
 
   const cardCharged = cardBucket ? chargedOf(cardBucket) : 0
   const cardSubs: StatementCardSub[] = (cardBucket?.subBuckets ?? [])
-    .map(sub => ({ type: sub.type, amount: chargedOf(sub), count: chargedCountOf(sub), platformFees: sub.platformFees, pct: 0 }))
+    // The fee on the same per-charge rounding as «Comisiones» and the merchants (Codex r5 #2); an old SERVIDOR: the raw sum.
+    .map(sub => ({ type: sub.type, amount: chargedOf(sub), count: chargedCountOf(sub), platformFees: sub.platformFeesCents ?? sub.platformFees, pct: 0 }))
     .filter(sub => sub.amount > 0)
     .map(sub => ({ ...sub, pct: pctOf(sub.amount, cardCharged) }))
 
@@ -167,8 +168,8 @@ export function deriveStatement(input: DeriveStatementInput): StatementModel {
       } else {
         payoutStatus = 'landed' // every slice is in the past
         payoutDate = deposits[deposits.length - 1].date
-        // With undated money too, say how much of the net those past slices are (Codex r4 #1), never the full net.
-        if (partial) payoutAmount = Math.round(deposits.reduce((s, d) => s + d.netToReceive, 0) * 100) / 100
+        // With undated money too, the amount of THAT dated slice (Codex r4 #1, r5 #3), never the full net nor other days' sum.
+        if (partial) payoutAmount = deposits[deposits.length - 1].netToReceive
       }
     } else if (nextDate != null) {
       // No per-day slices for this merchant (calendar not requested, or no projectable

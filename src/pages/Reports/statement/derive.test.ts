@@ -440,6 +440,34 @@ describe('deriveStatement — devoluciones, en línea y comisión de terceros', 
     expect([m.merchants[0].payoutStatus, m.merchants[0].payoutAmount]).toEqual(['landed', 97])
   })
 
+  it('varios depósitos pasados y dinero sin fecha: el chip dice el importe del último día, no la suma de todos', () => {
+    const slice = (date: string) => ({ date, status: 'settled' as const, totalNet: 97, byMerchant: [{ merchantAccountId: 'x', displayName: 'X', platformFee: 3, netToReceive: 97, transactionCount: 1 }] })
+    const m = deriveStatement({
+      buckets: [],
+      merchants: [merchant({ merchantAccountId: 'x', netToReceive: 344, unprojectedNet: 150 })],
+      calendar: [slice('2026-07-01'), slice('2026-07-02')],
+      todayKey: TODAY,
+    })
+    expect([m.merchants[0].payoutStatus, m.merchants[0].payoutDate, m.merchants[0].payoutAmount]).toEqual(['landed', '2026-07-02', 97])
+  })
+
+  it('el detalle por tipo de tarjeta usa la comisión redondeada por cobro, la misma de «Comisiones»', () => {
+    const m = deriveStatement({
+      buckets: [
+        bucket({
+          bucket: 'CARD', amount: 42, count: 2, platformFees: 1.071, chargedAmount: 42, chargedCount: 2,
+          subBuckets: [{ type: 'CREDIT', amount: 42, count: 2, percentage: 100, platformFees: 1.071, chargedAmount: 42, chargedCount: 2, platformFeesCents: 1.08 }],
+        }),
+      ],
+      merchants: [merchant({ merchantAccountId: 'a', collectedOnCard: 42, platformFee: 1.08, netToReceive: 40.92, transactionCount: 2 })],
+      destinations: destinations({ terminal: dest({ collected: 42, platformFee: 1.08, netToReceive: 40.92, transactionCount: 2 }) }),
+      calendar: [],
+      todayKey: TODAY,
+    })
+    expect(m.commissions).toBe(1.08)
+    expect(m.cardSubs[0].platformFees).toBe(1.08)
+  })
+
   it('la nota «sin fecha» suma por comercio: la devolución sin costo de uno no esconde lo de otro', () => {
     const m = deriveStatement({
       buckets: [],
