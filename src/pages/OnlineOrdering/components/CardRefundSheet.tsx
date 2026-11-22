@@ -233,6 +233,7 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
   const [other, setOther] = useState<{ id: string; method: CardRefundResolveMethod } | null>(null)
   const attempt = useRef<Attempt | null>(null)
   const busy = useRef(false) // candado síncrono: `isPending` aún no cambia en el segundo de dos clics pegados
+  const resolviendo = useRef(false) // lo mismo para «Sí, registrar» (full-testing r2: dos POST y dos avisos que se contradicen)
   // Ruling 61: lo mandado puede ganar hasta que se sepa qué pasó. Destino, monto, motivo, nota y llave quedan fijos desde que sale (también
   // si la hoja se cierra y se vuelve a abrir); sin una respuesta definitiva, sólo «Reintentar» (lo mismo) y «Cerrar».
   const enDuda = useDuda<EnDuda>(venueId, order.orderId)
@@ -426,6 +427,7 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
     // 409 CASH_DRAWER_NOT_OPEN y los demás: el texto del servidor. Repetir es idempotente.
     onError: err => toast({ title: serverMessage(err, t('cardRefund.error')), variant: 'destructive' }),
     onSettled: () => {
+      resolviendo.current = false
       setOther(null)
       reread()
     },
@@ -548,7 +550,11 @@ function CardRefundSheet({ venueId, order, onClose }: { venueId: string; order: 
                             size="sm"
                             variant="destructive"
                             disabled={resolve.isPending}
-                            onClick={() => resolve.mutate({ refundId: r.id, method: other.method, amount: r.amount })}
+                            onClick={() => {
+                              if (resolviendo.current) return
+                              resolviendo.current = true
+                              resolve.mutate({ refundId: r.id, method: other.method, amount: r.amount })
+                            }}
                           >
                             {t('cardRefund.other.confirmYes')}
                           </Button>

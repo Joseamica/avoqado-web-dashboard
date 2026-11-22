@@ -772,6 +772,25 @@ describe('Devolver a la tarjeta', () => {
     expect(toast).toHaveBeenCalledTimes(1)
   })
 
+  // Full-testing ronda 2 (21-nov): un doble clic en «Sí, registrar» mandaba 2 POST. El SERVIDOR pagaba una vez, pero la cajera veía
+  // «Registrado: ahora sí, dale…» y luego «Ya estaba registrada: … no se lo des otra vez».
+  it('«Devolver por otro medio»: un doble clic en «Sí, registrar» manda UNA petición y un solo aviso', async () => {
+    listCardRefunds.mockResolvedValue([refund({ id: 'r2', status: 'REVERSED', reversal: reversal(null) })])
+    resolveCardRefund.mockResolvedValue({ status: 'RESOLVED', replay: false })
+    await abrir()
+    const r2 = await screen.findByTestId('card-refund-r2')
+    await userEvent.click(within(r2).getByRole('button', { name: 'cardRefund.other.cash' }))
+    const si = within(r2).getByRole('button', { name: 'cardRefund.other.confirmYes' })
+    act(() => {
+      fireEvent.click(si)
+      fireEvent.click(si)
+    })
+    await waitFor(() => expect(toast).toHaveBeenCalledWith({ title: `cardRefund.other.doneCASH|${Currency(50)}` }))
+    await act(() => new Promise(r => setTimeout(r, 20)))
+    expect(resolveCardRefund).toHaveBeenCalledTimes(1)
+    expect(toast).toHaveBeenCalledTimes(1)
+  })
+
   it('«Devolver por otro medio» con 409 EXTERNAL_REFUND_DETECTED: el texto del servidor, sin éxito', async () => {
     const message = 'Este cobro ya tiene $50.00 devueltos directo en Stripe: no pagues los $50.00 otra vez.'
     listCardRefunds.mockResolvedValue([refund({ id: 'r2', status: 'REVERSED', reversal: reversal(null) })])
