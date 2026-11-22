@@ -994,6 +994,10 @@
     },
     "detailKeys": {
       "amount": "Monto",
+      "cashPaymentIds": "Cobros en efectivo en medio",
+      "cashOrderIds": "Ventas en efectivo en medio",
+      "attemptStartedAt": "Inicio del intento con tarjeta",
+      "recordedAt": "Registro de la tarjeta",
       "amountPesos": "Monto (MXN)",
       "brand": "Marca",
       "candidateShiftId": "Turno candidato",
@@ -1223,6 +1227,7 @@
       "CASH_PAYMENT_DEDUPLICATED": "Cobro en efectivo repetido descartado",
       "CASH_RECONCILIATION_SETTING_UPDATED": "Ajuste de arqueo actualizado",
       "CASH_WITH_CARD_IN_DOUBT": "Cobro en efectivo con un cobro con tarjeta en duda",
+      "LATE_CARD_AFTER_CASH": "Tarjeta aprobada tarde con un efectivo del mismo importe en medio (posible doble cobro)",
       "CATALOG_BINDING_APPLIED": "Vinculación de catálogo aplicada",
       "CATALOG_CONFIG_UPDATED": "Config. del catálogo actualizada",
       "CATALOG_ENTITLEMENT_UPDATED": "Acceso al catálogo actualizado",
