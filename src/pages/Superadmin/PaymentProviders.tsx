@@ -40,6 +40,7 @@ import { paymentProviderAPI, type PaymentProvider } from '@/services/paymentProv
 import { PaymentProviderDialog } from './components/PaymentProviderDialog'
 import { useToast } from '@/hooks/use-toast'
 import { cn, includesNormalized } from '@/lib/utils'
+import { motivoDelError } from '@/lib/motivoDelError'
 
 // ===========================================
 // GLASS CARD COMPONENT
@@ -316,7 +317,7 @@ const PaymentProviders: React.FC = () => {
     onError: (error: any) => {
       toast({
         title: 'Error al crear proveedor',
-        description: error?.response?.data?.error || error.message,
+        description: motivoDelError(error),
         variant: 'destructive',
       })
     },
@@ -333,7 +334,7 @@ const PaymentProviders: React.FC = () => {
     onError: (error: any) => {
       toast({
         title: 'Error al actualizar proveedor',
-        description: error?.response?.data?.error || error.message,
+        description: motivoDelError(error),
         variant: 'destructive',
       })
     },
@@ -351,7 +352,7 @@ const PaymentProviders: React.FC = () => {
     onError: (error: any) => {
       toast({
         title: 'Error al eliminar proveedor',
-        description: error?.response?.data?.error || error.message,
+        description: motivoDelError(error),
         variant: 'destructive',
       })
     },

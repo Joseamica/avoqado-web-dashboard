@@ -22,6 +22,7 @@ import { Step4SettlementTerms } from './steps/Step4SettlementTerms'
 import { Step5TeamFeatures } from './steps/Step5TeamFeatures'
 import { Step6ReviewConfirm } from './steps/Step6ReviewConfirm'
 import { useNavigate } from 'react-router-dom'
+import { motivoDelError } from '@/lib/motivoDelError'
 
 const STEPS = [
   { label: 'Organizacion y Venue' },
@@ -75,7 +76,7 @@ const OnboardingWizardPage: React.FC = () => {
       // Clear draft from localStorage on successful creation
       clearWizardStorage()
     } catch (err: any) {
-      setError(err?.response?.data?.error || err.message || 'Error al crear venue')
+      setError(motivoDelError(err, 'Error al crear venue'))
     } finally {
       setLoading(false)
     }

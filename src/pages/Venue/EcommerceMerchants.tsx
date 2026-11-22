@@ -54,6 +54,7 @@ import { useToast } from '@/hooks/use-toast'
 import { ecommerceMerchantAPI, type EcommerceMerchant } from '@/services/ecommerceMerchant.service'
 import { EcommerceMerchantWizard } from './components/EcommerceMerchantWizard'
 import { APIKeysDialog } from './components/APIKeysDialog'
+import { motivoDelError } from '@/lib/motivoDelError'
 
 const EcommerceMerchants: React.FC = () => {
   const { t } = useTranslation(['ecommerce', 'payment', 'common'])
@@ -181,7 +182,7 @@ const EcommerceMerchants: React.FC = () => {
     onError: (error: any) => {
       toast({
         title: t('common:error'),
-        description: error.response?.data?.error || 'No se pudo cambiar el estado',
+        description: motivoDelError(error, 'No se pudo cambiar el estado'),
         variant: 'destructive',
       })
     },
@@ -202,7 +203,7 @@ const EcommerceMerchants: React.FC = () => {
     onError: (error: any) => {
       toast({
         title: t('common:error'),
-        description: error.response?.data?.error || 'No se pudo eliminar el canal',
+        description: motivoDelError(error, 'No se pudo eliminar el canal'),
         variant: 'destructive',
       })
     },
@@ -220,7 +221,7 @@ const EcommerceMerchants: React.FC = () => {
     onError: (error: any) => {
       toast({
         title: t('common:error'),
-        description: error.response?.data?.error || 'No se pudo actualizar el estado de Stripe',
+        description: motivoDelError(error, 'No se pudo actualizar el estado de Stripe'),
         variant: 'destructive',
       })
     },
@@ -314,7 +315,7 @@ const EcommerceMerchants: React.FC = () => {
       toast({
         variant: 'destructive',
         title: 'Error al desconectar',
-        description: err?.response?.data?.error || err?.message || 'Intenta de nuevo.',
+        description: motivoDelError(err, 'Intenta de nuevo.'),
       })
     },
   })

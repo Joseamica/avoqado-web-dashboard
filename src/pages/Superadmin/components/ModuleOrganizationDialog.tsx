@@ -28,6 +28,7 @@ import { ArrowDownToLine, Building2, ChevronDown, ChevronRight, Power, PowerOff,
 import React, { useCallback, useMemo, useState } from 'react'
 import type { WhiteLabelConfig } from '@/types/white-label'
 import JsonBooleanToggles from '@/pages/Superadmin/components/JsonBooleanToggles'
+import { motivoDelError } from '@/lib/motivoDelError'
 
 // ===========================================
 // STATUS PULSE (duplicated from parent for encapsulation)
@@ -147,7 +148,7 @@ const ModuleOrganizationDialog: React.FC<ModuleOrganizationDialogProps> = ({
     onError: (error: any) => {
       toast({
         title: 'Error al activar módulo',
-        description: error?.response?.data?.error || error.message,
+        description: motivoDelError(error),
         variant: 'destructive',
       })
     },
@@ -163,7 +164,7 @@ const ModuleOrganizationDialog: React.FC<ModuleOrganizationDialogProps> = ({
     onError: (error: any) => {
       toast({
         title: 'Error al desactivar módulo',
-        description: error?.response?.data?.error || error.message,
+        description: motivoDelError(error),
         variant: 'destructive',
       })
     },
@@ -179,7 +180,7 @@ const ModuleOrganizationDialog: React.FC<ModuleOrganizationDialogProps> = ({
     onError: (error: any) => {
       toast({
         title: 'Error al activar módulo',
-        description: error?.response?.data?.error || error.message,
+        description: motivoDelError(error),
         variant: 'destructive',
       })
     },
@@ -195,7 +196,7 @@ const ModuleOrganizationDialog: React.FC<ModuleOrganizationDialogProps> = ({
     onError: (error: any) => {
       toast({
         title: 'Error al desactivar módulo',
-        description: error?.response?.data?.error || error.message,
+        description: motivoDelError(error),
         variant: 'destructive',
       })
     },
@@ -212,7 +213,7 @@ const ModuleOrganizationDialog: React.FC<ModuleOrganizationDialogProps> = ({
     onError: (error: any) => {
       toast({
         title: 'Error al restablecer',
-        description: error?.response?.data?.error || error.message,
+        description: motivoDelError(error),
         variant: 'destructive',
       })
     },
@@ -236,7 +237,7 @@ const ModuleOrganizationDialog: React.FC<ModuleOrganizationDialogProps> = ({
     onError: (error: any) => {
       toast({
         title: 'Error al guardar',
-        description: error?.response?.data?.error || error.message,
+        description: motivoDelError(error),
         variant: 'destructive',
       })
     },

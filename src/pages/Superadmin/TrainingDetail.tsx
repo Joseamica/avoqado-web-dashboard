@@ -54,6 +54,7 @@ import {
 } from 'lucide-react'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { motivoDelError } from '@/lib/motivoDelError'
 
 // ===== HELPERS =====
 
@@ -166,7 +167,7 @@ const TrainingDetail: React.FC = () => {
       setIsEditingInfo(false)
     },
     onError: (error: any) => {
-      toast({ title: 'Error', description: error?.response?.data?.error || error.message, variant: 'destructive' })
+      toast({ title: 'Error', description: motivoDelError(error), variant: 'destructive' })
     },
   })
 
@@ -186,7 +187,7 @@ const TrainingDetail: React.FC = () => {
       resetStepForm()
     },
     onError: (error: any) => {
-      toast({ title: 'Error', description: error?.response?.data?.error || error.message, variant: 'destructive' })
+      toast({ title: 'Error', description: motivoDelError(error), variant: 'destructive' })
     },
   })
 
@@ -201,7 +202,7 @@ const TrainingDetail: React.FC = () => {
       resetStepForm()
     },
     onError: (error: any) => {
-      toast({ title: 'Error', description: error?.response?.data?.error || error.message, variant: 'destructive' })
+      toast({ title: 'Error', description: motivoDelError(error), variant: 'destructive' })
     },
   })
 
@@ -212,7 +213,7 @@ const TrainingDetail: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['superadmin-training', trainingId] })
     },
     onError: (error: any) => {
-      toast({ title: 'Error', description: error?.response?.data?.error || error.message, variant: 'destructive' })
+      toast({ title: 'Error', description: motivoDelError(error), variant: 'destructive' })
     },
   })
 
@@ -226,7 +227,7 @@ const TrainingDetail: React.FC = () => {
       resetQuizForm()
     },
     onError: (error: any) => {
-      toast({ title: 'Error', description: error?.response?.data?.error || error.message, variant: 'destructive' })
+      toast({ title: 'Error', description: motivoDelError(error), variant: 'destructive' })
     },
   })
 
@@ -241,7 +242,7 @@ const TrainingDetail: React.FC = () => {
       resetQuizForm()
     },
     onError: (error: any) => {
-      toast({ title: 'Error', description: error?.response?.data?.error || error.message, variant: 'destructive' })
+      toast({ title: 'Error', description: motivoDelError(error), variant: 'destructive' })
     },
   })
 
@@ -252,7 +253,7 @@ const TrainingDetail: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['superadmin-training', trainingId] })
     },
     onError: (error: any) => {
-      toast({ title: 'Error', description: error?.response?.data?.error || error.message, variant: 'destructive' })
+      toast({ title: 'Error', description: motivoDelError(error), variant: 'destructive' })
     },
   })
 

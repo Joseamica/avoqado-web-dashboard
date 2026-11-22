@@ -21,6 +21,7 @@ import { Switch } from '@/components/ui/switch'
 import { useToast } from '@/hooks/use-toast'
 import { useVenueDateTime } from '@/utils/datetime'
 import type { PlanState } from '@/services/features.service'
+import { motivoDelError } from '@/lib/motivoDelError'
 
 // Lazy load superadmin service — same pattern as Subscriptions.tsx (only loaded when
 // a superadmin actually triggers an action; the panel itself is superadmin-gated).
@@ -72,7 +73,7 @@ export function SuperadminPlanControl({ venueId, venueName, planState }: Superad
   }
 
   const errorToast = (title: string, error: any) => {
-    toast({ title, description: error?.response?.data?.error || error?.message, variant: 'destructive' })
+    toast({ title, description: motivoDelError(error), variant: 'destructive' })
   }
 
   const grandfatheredMutation = useMutation({

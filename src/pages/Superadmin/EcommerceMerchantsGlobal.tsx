@@ -30,6 +30,7 @@ import { useDebounce } from '@/hooks/useDebounce'
 import { FilterPill, CheckboxFilterContent } from '@/components/filters'
 import api from '@/api'
 import { ecommerceMerchantAPI } from '@/services/ecommerceMerchant.service'
+import { motivoDelError } from '@/lib/motivoDelError'
 
 interface MerchantRow {
   id: string
@@ -118,7 +119,7 @@ function DefaultFeePanel() {
     onError: (err: any) => {
       toast({
         title: 'Error',
-        description: err?.response?.data?.error || err?.message || 'No se pudo guardar',
+        description: motivoDelError(err, 'No se pudo guardar'),
         variant: 'destructive',
       })
     },
@@ -364,7 +365,7 @@ export default function EcommerceMerchantsGlobal() {
     onError: (err: any) => {
       toast({
         title: 'Error',
-        description: err?.response?.data?.error || err?.message || 'No se pudo actualizar la comisión',
+        description: motivoDelError(err, 'No se pudo actualizar la comisión'),
         variant: 'destructive',
       })
     },

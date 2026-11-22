@@ -42,6 +42,7 @@ import { usePassIntegrationsOverview } from '@/hooks/use-passes'
 import { useShopifyOverview } from '@/hooks/use-shopify'
 import { conexionDetenida } from '@/types/shopify'
 import VenueChat from './VenueChat'
+import { motivoDelError } from '@/lib/motivoDelError'
 
 interface VenueIntegrations {
   id: string
@@ -457,7 +458,7 @@ export function EcommercePaymentsSection({ venueId }: { venueId: string }) {
     onError: (err: any) => {
       toast({
         title: 'Error',
-        description: err?.response?.data?.error || err?.message || 'No se pudo eliminar el canal',
+        description: motivoDelError(err, 'No se pudo eliminar el canal'),
         variant: 'destructive',
       })
     },
@@ -477,7 +478,7 @@ export function EcommercePaymentsSection({ venueId }: { venueId: string }) {
     onError: (err: any) => {
       toast({
         title: 'Error',
-        description: err?.response?.data?.error || err?.message || 'No se pudo cambiar el estado',
+        description: motivoDelError(err, 'No se pudo cambiar el estado'),
         variant: 'destructive',
       })
     },
@@ -521,7 +522,7 @@ export function EcommercePaymentsSection({ venueId }: { venueId: string }) {
       toast({
         variant: 'destructive',
         title: 'Error al desconectar',
-        description: err?.response?.data?.error || err?.message || 'Intenta de nuevo.',
+        description: motivoDelError(err, 'Intenta de nuevo.'),
       })
     },
   })
@@ -538,7 +539,7 @@ export function EcommercePaymentsSection({ venueId }: { venueId: string }) {
     onError: (err: any) => {
       toast({
         title: 'Error',
-        description: err?.response?.data?.error || err?.message || 'No se pudo actualizar la comisión',
+        description: motivoDelError(err, 'No se pudo actualizar la comisión'),
         variant: 'destructive',
       })
     },

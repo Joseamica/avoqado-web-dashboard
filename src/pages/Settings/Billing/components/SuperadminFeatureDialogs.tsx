@@ -25,6 +25,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useToast } from '@/hooks/use-toast'
 import type { VenueFeatureStatus } from '@/services/features.service'
+import { motivoDelError } from '@/lib/motivoDelError'
 
 const loadSuperadminService = () => import('@/services/superadmin.service')
 
@@ -142,7 +143,7 @@ export function SuperadminFeatureDialogs({
     onError: (error: any) => {
       toast({
         title: t('superadmin.toast.enableError', { defaultValue: 'Failed to enable feature' }),
-        description: error.response?.data?.error || error.message,
+        description: motivoDelError(error),
         variant: 'destructive',
       })
     },
@@ -166,7 +167,7 @@ export function SuperadminFeatureDialogs({
     onError: (error: any) => {
       toast({
         title: t('superadmin.toast.disableError', { defaultValue: 'Failed to disable feature' }),
-        description: error.response?.data?.error || error.message,
+        description: motivoDelError(error),
         variant: 'destructive',
       })
       setDisablingFeatureCode(null)
@@ -200,7 +201,7 @@ export function SuperadminFeatureDialogs({
     onError: (error: any) => {
       toast({
         title: t('superadmin.toast.trialError', { defaultValue: 'Failed to grant trial' }),
-        description: error.response?.data?.error || error.message,
+        description: motivoDelError(error),
         variant: 'destructive',
       })
     },

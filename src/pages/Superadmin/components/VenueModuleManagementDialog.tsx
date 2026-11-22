@@ -21,6 +21,7 @@ import {
   type ModuleForVenue,
 } from '@/services/superadmin.service'
 import { Loader2, Package, Power, PowerOff, Building2, ArrowDown, ExternalLink } from 'lucide-react'
+import { motivoDelError } from '@/lib/motivoDelError'
 
 // ===========================================
 // GLASS CARD COMPONENT
@@ -91,7 +92,7 @@ const VenueModuleManagementDialog: React.FC<VenueModuleManagementDialogProps> = 
     onError: (error: any) => {
       toast({
         title: 'Error al activar módulo',
-        description: error?.response?.data?.error || error.message,
+        description: motivoDelError(error),
         variant: 'destructive',
       })
     },
@@ -108,7 +109,7 @@ const VenueModuleManagementDialog: React.FC<VenueModuleManagementDialogProps> = 
     onError: (error: any) => {
       toast({
         title: 'Error al desactivar módulo',
-        description: error?.response?.data?.error || error.message,
+        description: motivoDelError(error),
         variant: 'destructive',
       })
     },

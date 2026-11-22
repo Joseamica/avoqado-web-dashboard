@@ -13,6 +13,7 @@ import {
   getRawMaterialPresentations,
   setRawMaterialPresentations,
 } from '@/services/inventory.service'
+import { motivoDelError } from '@/lib/motivoDelError'
 
 /** Espejo exacto del regex del backend (`SetRawMaterialPresentationsSchema`). */
 const NAME_PATTERN = /^[\p{L}\p{N} .,'/()-]+$/u
@@ -67,7 +68,7 @@ export function RawMaterialPresentationsSection({ venueId, rawMaterialId, baseUn
     onError: (error: any) => {
       toast({
         title: t('presentations.saveError'),
-        description: error?.response?.data?.error || error?.message,
+        description: motivoDelError(error),
         variant: 'destructive',
       })
     },
