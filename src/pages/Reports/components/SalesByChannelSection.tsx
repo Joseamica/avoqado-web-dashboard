@@ -68,18 +68,6 @@ export function SalesByChannelSection({
     </div>
   )
 
-  if (conFiltro) {
-    return (
-      <GlassCard className="overflow-hidden border-input p-0" data-testid="ventas-por-canal-filtro">
-        {encabezado}
-        <p className="flex items-center gap-2 px-5 py-4 text-sm text-muted-foreground sm:px-6">
-          <Filter className="h-4 w-4 shrink-0" />
-          {t('salesSummary.channels.filteredNote')}
-        </p>
-      </GlassCard>
-    )
-  }
-
   // El SERVIDOR manda: si trajo las tablas, el plan las incluye aunque la pantalla tuviera guardado otro plan (Codex r2 #9); si no las
   // trajo, Gratis ve el candado con su botón de plan y, si la pantalla creía que sí, el aviso del SERVIDOR.
   if (!byChannel || !byOrderType) {
@@ -104,6 +92,20 @@ export function SalesByChannelSection({
           <p className="flex items-center gap-2 px-5 py-4 text-sm text-muted-foreground sm:px-6">
             <Lock className="h-4 w-4 shrink-0" />
             {t('salesSummary.channels.lockedByPlan')}
+          </p>
+        </GlassCard>
+      )
+    }
+
+    // Con un filtro de método o comercio (vista de movimientos) no hay cuentas que repartir. Va DESPUÉS del candado: a un negocio
+    // sin el plan no se le pide quitar un filtro que no le abriría el desglose (Codex r4 #1).
+    if (conFiltro) {
+      return (
+        <GlassCard className="overflow-hidden border-input p-0" data-testid="ventas-por-canal-filtro">
+          {encabezado}
+          <p className="flex items-center gap-2 px-5 py-4 text-sm text-muted-foreground sm:px-6">
+            <Filter className="h-4 w-4 shrink-0" />
+            {t('salesSummary.channels.filteredNote')}
           </p>
         </GlassCard>
       )

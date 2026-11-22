@@ -7,13 +7,19 @@ import { SalesByChannelSection } from './SalesByChannelSection'
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (k: string, o?: unknown) =>
-      o && typeof o === 'object' ? `${k}(${Object.entries(o).map(([a, b]) => `${a}=${String(b)}`).join(',')})` : k,
+      o && typeof o === 'object'
+        ? `${k}(${Object.entries(o)
+            .map(([a, b]) => `${a}=${String(b)}`)
+            .join(',')})`
+        : k,
     i18n: { language: 'es' },
   }),
 }))
 // El candado de verdad decide con el plan; aquí sólo importa que la sección lo use y que adentro no haya datos del negocio.
 vi.mock('@/components/billing/FeatureGate', () => ({
-  FeatureGate: ({ feature, children }: { feature: string; children: ReactNode }) => <div data-testid={`candado-${feature}`}>{children}</div>,
+  FeatureGate: ({ feature, children }: { feature: string; children: ReactNode }) => (
+    <div data-testid={`candado-${feature}`}>{children}</div>
+  ),
 }))
 // Las pestañas de Radix necesitan eventos de puntero: aquí se cambian con un clic llano.
 vi.mock('@/components/ui/tabs', () => ({
@@ -123,9 +129,13 @@ describe('SalesByChannelSection (carril G · D4)', () => {
 
   it('la columna de comisiones de terceros sale sólo si algún renglón la tiene', () => {
     pintar()
-    expect(within(screen.getByTestId('ventas-por-canal-tabla')).getByText('salesSummary.channels.cols.tenderCommissions')).toBeInTheDocument()
+    expect(
+      within(screen.getByTestId('ventas-por-canal-tabla')).getByText('salesSummary.channels.cols.tenderCommissions'),
+    ).toBeInTheDocument()
     pintar({ byChannel: [CANALES[0]] })
-    expect(within(screen.getAllByTestId('ventas-por-canal-tabla')[1]).queryByText('salesSummary.channels.cols.tenderCommissions')).toBeNull()
+    expect(
+      within(screen.getAllByTestId('ventas-por-canal-tabla')[1]).queryByText('salesSummary.channels.cols.tenderCommissions'),
+    ).toBeNull()
   })
 
   it('«Por tipo de pedido» cambia la tabla', () => {
@@ -147,6 +157,12 @@ describe('SalesByChannelSection (carril G · D4)', () => {
   it('🔴 si el servidor lo dejó fuera por el plan (la pantalla no lo sabía), lo dice en vez de desaparecer', () => {
     pintar({ bloqueadoPorElServidor: true, byChannel: undefined, byOrderType: undefined })
     expect(within(screen.getByTestId('ventas-por-canal-candado')).getByText('salesSummary.channels.lockedByPlan')).toBeInTheDocument()
+  })
+
+  it('🔴 Codex r4 #1 · con filtro y candado del SERVIDOR a la vez, sale el candado (no «quita el filtro»)', () => {
+    pintar({ conFiltro: true, bloqueadoPorElServidor: true, byChannel: undefined, byOrderType: undefined })
+    expect(screen.getByTestId('ventas-por-canal-candado')).toBeInTheDocument()
+    expect(screen.queryByText('salesSummary.channels.filteredNote')).toBeNull()
   })
 
   it('con un filtro de método o comercio explica por qué no hay desglose', () => {
