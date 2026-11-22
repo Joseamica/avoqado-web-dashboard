@@ -128,7 +128,9 @@ export function SalesSummaryExportDialog({
   // FIX 7 + D13.5: the payment-method breakdown and the card-type detail are only produced when NO paymentMethod filter is
   // active (getSalesSummary builds them for the unfiltered view only). Disable those checkboxes + drop them when a filter is
   // set, so the user can't pick a section that silently yields nothing; with nothing left, the button says why it is off.
-  const sectionDisabled = (id: string) => NEEDS_NO_METHOD_FILTER.has(id) && paymentMethod !== null
+  // Legacy QR payments have no merchant: «Desglose por comercio» would come out empty under that filter (Codex D13 r2 #4).
+  const sectionDisabled = (id: string) =>
+    (NEEDS_NO_METHOD_FILTER.has(id) && paymentMethod !== null) || (id === 'merchantAccounts' && paymentMethod === 'QR_LEGACY')
   const effectiveSections = Array.from(sections).filter(id => !sectionDisabled(id))
   const noSections = mode === 'summary' && effectiveSections.length === 0
   // D13.2: «Por periodo» = the breakdown of the report type on screen; the plain summary goes by day.
@@ -488,7 +490,13 @@ export function SalesSummaryExportDialog({
                       </div>
                       {disabled && (
                         <span className="ml-7 text-xs text-muted-foreground">
-                          {t(id === 'cardTypes' ? 'salesSummary.export.sections.cardTypesDisabledHint' : 'salesSummary.export.sections.paymentMethodsDisabledHint')}
+                          {t(
+                            id === 'cardTypes'
+                              ? 'salesSummary.export.sections.cardTypesDisabledHint'
+                              : id === 'merchantAccounts'
+                                ? 'salesSummary.export.sections.merchantAccountsQrHint'
+                                : 'salesSummary.export.sections.paymentMethodsDisabledHint',
+                          )}
                         </span>
                       )}
                       {id === 'byPeriod' && !disabled && (

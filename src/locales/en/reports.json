@@ -501,7 +501,7 @@
         "summaryDesc": "Aggregated totals and breakdowns",
         "detailed": "Detailed transactions",
         "detailedDesc": "One row per transaction",
-        "detailedQrHint": "Payments from the previous QR system cannot be exported one by one. Remove that payment-method filter to use this mode."
+        "detailedQrHint": "Payments from the previous QR system are not included in detailed transactions, with or without this filter: use «Summary» to see them."
       },
       "dateRange": {
         "label": "Dates"
@@ -514,6 +514,7 @@
         "cardTypesDisabledHint": "Remove the payment-method filter to include card-type detail.",
         "paymentMethodsDisabledHint": "Remove the payment-method filter to include the payment-method breakdown.",
         "merchantAccounts": "Merchant-account breakdown",
+        "merchantAccountsQrHint": "Payments from the previous QR system have no merchant account.",
         "statement": "Period statement",
         "byPeriod": "By period",
         "byPeriodHint": "One row per period: {{type}}, the report type you are viewing.",

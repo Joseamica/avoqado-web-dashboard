@@ -174,4 +174,12 @@ describe('QR anterior (Mindform)', () => {
     expect(screen.getByText('salesSummary.export.mode.detailedQrHint')).toBeInTheDocument()
     expect(document.getElementById('mode-detailed')).toBeDisabled()
   })
+
+  it('apaga «Desglose por comercio» (esos cobros no tienen comercio): marcarlo solo no deja bajar un archivo vacío', () => {
+    pintar(base({ open: true, initialPaymentMethod: 'QR_LEGACY' }))
+    expect(screen.getByText('salesSummary.export.sections.merchantAccountsQrHint')).toBeInTheDocument()
+    fireEvent.click(casilla('salesSummary.export.sections.merchantAccounts'))
+    fireEvent.click(casilla('salesSummary.export.sections.totals'))
+    expect(screen.getByRole('button', { name: /salesSummary\.export\.button/ })).toBeDisabled()
+  })
 })

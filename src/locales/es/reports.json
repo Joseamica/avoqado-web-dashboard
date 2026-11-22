@@ -501,7 +501,7 @@
         "summaryDesc": "Totales y desgloses agregados",
         "detailed": "Transacciones detalladas",
         "detailedDesc": "Una fila por transacción",
-        "detailedQrHint": "Los cobros del QR anterior no se pueden exportar uno por uno. Quita ese filtro de método de pago para usar este modo."
+        "detailedQrHint": "Los cobros del QR anterior no salen en las transacciones detalladas, ni con este filtro ni sin él: para verlos usa «Resumen»."
       },
       "dateRange": {
         "label": "Fechas"
@@ -514,6 +514,7 @@
         "cardTypesDisabledHint": "Quita el filtro de método de pago para incluir el detalle por tipo de tarjeta.",
         "paymentMethodsDisabledHint": "Quita el filtro de método de pago para incluir el desglose por método.",
         "merchantAccounts": "Desglose por comercio",
+        "merchantAccountsQrHint": "Los cobros del QR anterior no tienen comercio.",
         "statement": "Estado del periodo",
         "byPeriod": "Por periodo",
         "byPeriodHint": "Una fila por periodo: {{type}}, el tipo de informe que ves.",
