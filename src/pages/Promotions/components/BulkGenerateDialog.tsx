@@ -1,6 +1,6 @@
 import { useMutation } from '@tanstack/react-query'
 import { Check, Copy, Download } from 'lucide-react'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 
@@ -45,6 +45,9 @@ export default function BulkGenerateDialog({ venueId, discounts, onSuccess }: Bu
 		},
 	})
 
+	// D38 (21-nov): `isPending` apaga el botón un render tarde y un doble clic mandaba dos peticiones (dos lotes de códigos).
+	// Candado síncrono; se suelta al terminar.
+	const enVuelo = useRef(false)
 	const mutation = useMutation({
 		mutationFn: (data: BulkGenerateCouponsRequest) => couponService.bulkGenerate(venueId, data),
 		onSuccess: (response) => {
@@ -61,12 +64,17 @@ export default function BulkGenerateDialog({ venueId, discounts, onSuccess }: Bu
 				variant: 'destructive',
 			})
 		},
+		onSettled: () => {
+			enVuelo.current = false
+		},
 	})
 
 	const onSubmit = (data: BulkGenerateCouponsRequest) => {
+		if (enVuelo.current) return
 		// Clean up empty values
 		const cleanedData = { ...data }
 		if (!cleanedData.prefix) cleanedData.prefix = undefined
+		enVuelo.current = true
 		mutation.mutate({ ...cleanedData, ...vigenciaDelFormulario(cleanedData, venueTimezone) })
 	}
 
