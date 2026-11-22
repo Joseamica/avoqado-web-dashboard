@@ -108,7 +108,6 @@ export interface StatementDestinations {
   terminal: MoneyDestination
   drawer: MoneyDestination
   online: MoneyDestination
-  unassignedCard: MoneyDestination
   other: MoneyDestination
   tenderCommissions: number
 }

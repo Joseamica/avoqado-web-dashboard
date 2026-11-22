@@ -430,6 +430,16 @@ describe('deriveStatement — devoluciones, en línea y comisión de terceros', 
     }
   })
 
+  it('con todos sus depósitos ya pasados y dinero sin fecha, «Debió caer» dice cuánto, no el neto completo', () => {
+    const m = deriveStatement({
+      buckets: [],
+      merchants: [merchant({ merchantAccountId: 'x', netToReceive: 297, unprojectedNet: 200 })],
+      calendar: [{ date: '2026-07-01', status: 'settled', totalNet: 97, byMerchant: [{ merchantAccountId: 'x', displayName: 'X', platformFee: 3, netToReceive: 97, transactionCount: 1 }] }],
+      todayKey: TODAY,
+    })
+    expect([m.merchants[0].payoutStatus, m.merchants[0].payoutAmount]).toEqual(['landed', 97])
+  })
+
   it('la nota «sin fecha» suma por comercio: la devolución sin costo de uno no esconde lo de otro', () => {
     const m = deriveStatement({
       buckets: [],

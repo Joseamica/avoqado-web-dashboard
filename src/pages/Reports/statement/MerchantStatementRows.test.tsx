@@ -92,4 +92,18 @@ describe('MerchantStatementRows', () => {
     expect(table.textContent).not.toContain('−-')
     expect(within(table).getByText('+$0.90')).toBeInTheDocument()
   })
+
+  it('«Debió caer» con dinero sin fecha dice cuánto; un comercio con reglas y nada proyectable dice «sin fecha», no «sin regla»', () => {
+    render(
+      <MerchantStatementRows
+        rows={[
+          row({ merchantAccountId: 'a', payoutStatus: 'landed', payoutDate: '2026-07-01', payoutAmount: 97 }),
+          row({ merchantAccountId: 'b', payoutStatus: 'noRule', payoutDate: null, settlementRules: [{ cardType: 'CREDIT', settlementDays: 1 }] }),
+        ]}
+        formatCurrency={fmt}
+      />,
+    )
+    expect(screen.getAllByTestId('payout-chip-landed')[0]).toHaveTextContent('salesSummary.statement.merchants.payout.landedPartial $97.00')
+    expect(screen.getAllByTestId('payout-chip-no-rule')[0]).toHaveTextContent('salesSummary.statement.merchants.payout.online')
+  })
 })

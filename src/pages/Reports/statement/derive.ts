@@ -167,6 +167,8 @@ export function deriveStatement(input: DeriveStatementInput): StatementModel {
       } else {
         payoutStatus = 'landed' // every slice is in the past
         payoutDate = deposits[deposits.length - 1].date
+        // With undated money too, say how much of the net those past slices are (Codex r4 #1), never the full net.
+        if (partial) payoutAmount = Math.round(deposits.reduce((s, d) => s + d.netToReceive, 0) * 100) / 100
       }
     } else if (nextDate != null) {
       // No per-day slices for this merchant (calendar not requested, or no projectable

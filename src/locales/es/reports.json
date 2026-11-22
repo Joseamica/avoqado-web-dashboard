@@ -856,7 +856,8 @@
           "landed": "Debió caer ~{{date}}",
           "nextEstimated": "Próx. ≈{{amount}} · ~{{date}}",
           "noRule": "Sin regla de liquidación",
-          "online": "Sin fecha estimada"
+          "online": "Sin fecha estimada",
+          "landedPartial": "Debió caer ≈{{amount}} · ~{{date}}"
         },
         "rules": {
           "title": "Reglas de liquidación",

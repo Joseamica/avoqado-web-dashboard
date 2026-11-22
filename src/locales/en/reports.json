@@ -856,7 +856,8 @@
           "landed": "Should have landed ~{{date}}",
           "nextEstimated": "Next ≈{{amount}} · ~{{date}}",
           "noRule": "No settlement rule",
-          "online": "No estimated date"
+          "online": "No estimated date",
+          "landedPartial": "Should have landed ≈{{amount}} · ~{{date}}"
         },
         "rules": {
           "title": "Settlement rules",

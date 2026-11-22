@@ -62,9 +62,10 @@ function PayoutChip({ row, locale, formatCurrency, t }: { row: MerchantStatement
     )
   }
   if (row.payoutStatus === 'noRule' || !row.payoutDate) {
+    // With rules but nothing projectable yet (every charge still waits for its fee), the date is unknown — not the rule.
     return (
       <span className={cn(base, 'border-input text-muted-foreground')} data-testid={PAYOUT_TESTID.noRule}>
-        {t('salesSummary.statement.merchants.payout.noRule')}
+        {t(row.settlementRules?.length ? 'salesSummary.statement.merchants.payout.online' : 'salesSummary.statement.merchants.payout.noRule')}
       </span>
     )
   }
@@ -72,7 +73,9 @@ function PayoutChip({ row, locale, formatCurrency, t }: { row: MerchantStatement
   if (row.payoutStatus === 'landed') {
     return (
       <span className={cn(base, 'border-amber-600/40 text-amber-600 dark:border-amber-400/40 dark:text-amber-400')} data-testid={PAYOUT_TESTID.landed}>
-        {t('salesSummary.statement.merchants.payout.landed', { date })}
+        {row.payoutAmount != null
+          ? t('salesSummary.statement.merchants.payout.landedPartial', { amount: formatCurrency(row.payoutAmount), date })
+          : t('salesSummary.statement.merchants.payout.landed', { date })}
       </span>
     )
   }
