@@ -629,27 +629,19 @@
       "start": "Ver tour",
       "welcome": {
         "title": "📅 Configuración de Reservaciones",
-        "description": "Te llevo en un recorrido por cada sección. Algunas opciones aplican solo a citas, otras solo a clases — busca los badges \"Citas\" y \"Clases\" junto a los nombres."
+        "description": "Te llevo por las tres pestañas: General tiene lo que aplica a tus clases y a tus citas; Clases y Citas, lo que sólo usa cada una. El recorrido cambia de pestaña solo."
       },
       "save": {
         "title": "Guardar Cambios",
         "description": "El botón queda fijo arriba mientras haces scroll. Solo se habilita cuando hay algo nuevo que guardar."
       },
       "scheduling": {
-        "title": "Programación (Citas)",
-        "description": "Define cómo se generan los horarios disponibles para citas: cada cuántos minutos hay un slot, cuánto dura por defecto, qué tan lejos pueden reservar tus clientes y el aviso mínimo antes del inicio. Las clases tienen su propio horario por sesión."
-      },
-      "pacing": {
-        "title": "Ritmo (Citas)",
-        "description": "Controla cuántas reservas simultáneas aceptas por slot y qué porcentaje de tu capacidad expones online. Para clases, la capacidad se define por sesión."
+        "title": "Programación",
+        "description": "Qué tan lejos y con cuánto aviso pueden reservar, cuánto esperas antes de marcar No Show, si las reservas se confirman solas y qué parte de tu cupo se ofrece en línea. Aplica a clases y citas."
       },
       "deposits": {
         "title": "Depósitos",
         "description": "Decide si pides depósito al reservar y cómo: retención de tarjeta, monto fijo, porcentaje del total, o solo para grupos grandes. Aplica a ambos tipos."
-      },
-      "payments": {
-        "title": "Pagos por tipo",
-        "description": "Aquí defines cómo cobras por defecto — diferente para citas y clases. Patrón típico: clases con prepago obligatorio, citas se pagan en el local. Cada servicio puede sobreescribir su default."
       },
       "publicBooking": {
         "title": "Reservaciones Online",
@@ -660,8 +652,8 @@
         "description": "Política de cancelaciones: ¿los clientes pueden cancelar solos? ¿hasta cuántas horas antes? ¿pierden el depósito si cancelan tarde? Aplica a ambos tipos."
       },
       "creditRefund": {
-        "title": "Reembolsos en créditos (solo Clases)",
-        "description": "Cuando alguien cancela una clase pagada con paquete de créditos, decide cuántos créditos vuelven a su saldo. Solo aplica a clases — las citas no usan paquetes."
+        "title": "Reembolso de créditos al cancelar",
+        "description": "Cuando alguien cancela una clase o una cita pagada con créditos, decide cuántos créditos vuelven a su saldo."
       },
       "waitlist": {
         "title": "Lista de espera",
@@ -669,7 +661,19 @@
       },
       "reminders": {
         "title": "Recordatorios",
-        "description": "Envía recordatorios automáticos antes de la reserva (email, SMS o WhatsApp) para reducir no-shows. Los canales y tiempos se configuran en backoffice por ahora."
+        "description": "Envía recordatorios automáticos antes de la reserva (email, SMS o WhatsApp) para reducir no-shows. Elige los canales y cuándo se mandan."
+      },
+      "paymentsClasses": {
+        "title": "Cobro de las clases",
+        "description": "Pestaña Clases. Cómo se cobra una clase por defecto: prepago obligatorio, pagar en el local u opcional. Cada clase puede cambiarlo."
+      },
+      "appointmentScheduling": {
+        "title": "Horarios de las citas",
+        "description": "Pestaña Citas. Cada cuántos minutos hay un horario, cuánto dura una cita por defecto, cuántas aceptas a la misma hora y si tu cliente elige a su profesionista. Las clases tienen su horario por sesión."
+      },
+      "paymentsAppointments": {
+        "title": "Cobro de las citas",
+        "description": "Cómo se cobra una cita por defecto: pagar en el local, prepago obligatorio u opcional. Cada servicio puede cambiarlo."
       }
     },
     "payments": {

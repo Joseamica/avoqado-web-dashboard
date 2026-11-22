@@ -797,7 +797,7 @@ export default function ReservationSettings() {
   )
   const changedTabs = tabsWithChanges(dirtyFields)
   const errorFor = (field: keyof SettingsFormData) => (errors[field] ? t('settings.validation.invalidOption') : undefined)
-  const { start: startTour } = useReservationSettingsTour()
+  const { start: startTour } = useReservationSettingsTour(setSettingsTab)
 
   if (isLoading) {
     return (

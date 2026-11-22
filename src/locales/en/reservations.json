@@ -629,27 +629,19 @@
       "start": "Take tour",
       "welcome": {
         "title": "📅 Reservation Settings",
-        "description": "I'll walk you through every section. Some options only apply to appointments, others only to classes — look for the \"Appointments\" and \"Classes\" badges next to each label."
+        "description": "I’ll walk you through the three tabs: General holds what applies to both your classes and your appointments; Classes and Appointments hold what only each one uses. The tour switches tabs for you."
       },
       "save": {
         "title": "Save Changes",
         "description": "The button stays pinned at the top while you scroll. Enabled only when there's something new to save."
       },
       "scheduling": {
-        "title": "Scheduling (Appointments)",
-        "description": "Controls how available appointment slots are generated: interval between slots, default duration, max booking lead time, and minimum notice. Classes have their own per-session schedule."
-      },
-      "pacing": {
-        "title": "Pacing (Appointments)",
-        "description": "Cap how many simultaneous appointments you accept per slot and what percentage of your capacity is exposed online. Class capacity is defined per session."
+        "title": "Scheduling",
+        "description": "How far ahead and with how much notice customers can book, how long you wait before marking a No Show, whether bookings confirm automatically and how much of your capacity is offered online. Applies to classes and appointments."
       },
       "deposits": {
         "title": "Deposits",
         "description": "Decide if you require a deposit at booking and how: card hold, fixed amount, percentage of total, or only for large parties. Applies to both types."
-      },
-      "payments": {
-        "title": "Payments by type",
-        "description": "Set the default upfront-payment behavior separately for appointments and classes. Typical pattern: classes require prepayment, appointments pay at the venue. Each service can override its default."
       },
       "publicBooking": {
         "title": "Online Booking",
@@ -660,8 +652,8 @@
         "description": "Cancellation policy: can customers cancel themselves? Up to how many hours before? Do they lose the deposit on late cancels? Applies to both types."
       },
       "creditRefund": {
-        "title": "Credit refunds (Classes only)",
-        "description": "When someone cancels a class paid with a credit pack, decide how many credits return to their balance. Only applies to classes — appointments don't use credit packs."
+        "title": "Credit refunds on cancellation",
+        "description": "When someone cancels a class or an appointment paid with credits, decide how many credits return to their balance."
       },
       "waitlist": {
         "title": "Waitlist",
@@ -669,7 +661,19 @@
       },
       "reminders": {
         "title": "Reminders",
-        "description": "Automatic reminders before each booking (email, SMS, or WhatsApp) to reduce no-shows. Channels and timings are configured in backoffice for now."
+        "description": "Automatic reminders before each booking (email, SMS, or WhatsApp) to reduce no-shows. Pick the channels and when they are sent."
+      },
+      "paymentsClasses": {
+        "title": "Class payments",
+        "description": "Classes tab. Default upfront payment for a class: prepayment required, pay at the venue, or optional. Each class can override it."
+      },
+      "appointmentScheduling": {
+        "title": "Appointment schedule",
+        "description": "Appointments tab. How often a time slot is offered, how long an appointment lasts by default, how many you accept at the same time and whether customers pick their professional. Classes have their own per-session schedule."
+      },
+      "paymentsAppointments": {
+        "title": "Appointment payments",
+        "description": "Default upfront payment for an appointment: pay at the venue, prepayment required, or optional. Each service can override it."
       }
     },
     "payments": {
