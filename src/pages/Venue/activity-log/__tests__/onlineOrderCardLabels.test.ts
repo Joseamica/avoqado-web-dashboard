@@ -18,7 +18,12 @@ const ALERTA = [
   'ONLINE_ORDER_CARD_REFUND_REVERSED',
   'ONLINE_ORDER_CARD_REFUND_STAMP_STUCK',
 ] as const
-const NEUTRAS = ['ONLINE_ORDERING_CARD_TOGGLED', 'ONLINE_ORDER_CARD_AUTHORIZED', 'ONLINE_ORDER_CARD_CAPTURED', 'ONLINE_ORDER_CARD_RELEASED'] as const
+const NEUTRAS = [
+  'ONLINE_ORDERING_CARD_TOGGLED',
+  'ONLINE_ORDER_CARD_AUTHORIZED',
+  'ONLINE_ORDER_CARD_CAPTURED',
+  'ONLINE_ORDER_CARD_RELEASED',
+] as const
 // Las devoluciones se pintan como TODO reembolso de la bitácora (familia REFUND ⇒ «revisar»), igual que PAYMENT_REFUNDED.
 const DEVOLUCIONES = [
   'ONLINE_ORDER_CARD_REFUNDED',
@@ -61,5 +66,18 @@ describe('bitácora: tarjeta en línea de pedidos en línea', () => {
 
   it('las devoluciones, como cualquier reembolso de la bitácora', () => {
     for (const a of DEVOLUCIONES) expect(actionTone(a), a).toBe(actionTone('PAYMENT_REFUNDED'))
+  })
+
+  // D661 (tarjeta en «Nadie»): devolver a saldo a favor, cerrar el pedido como «Devuelto» y el «No lo recogió» del cierre del día.
+  const D661 = ['ONLINE_ORDER_REFUNDED_TO_STORE_CREDIT', 'ONLINE_ORDER_CLOSED_AS_REFUNDED', 'ONLINE_ORDER_NOT_PICKED_UP'] as const
+
+  it('D661: las acciones nuevas tienen su etiqueta en los dos idiomas; las de devolver se pintan como reembolso', () => {
+    for (const bundle of [es, en]) {
+      const { actions } = (bundle as unknown as Bitacora).activityLog
+      for (const a of D661) expect(actions[a], a).toEqual(expect.stringMatching(/\S/))
+    }
+    expect((es as unknown as Bitacora).activityLog.actions.ONLINE_ORDER_REFUNDED_TO_STORE_CREDIT).toBe('Devuelto como saldo a favor')
+    for (const a of ['ONLINE_ORDER_REFUNDED_TO_STORE_CREDIT', 'ONLINE_ORDER_CLOSED_AS_REFUNDED'])
+      expect(actionTone(a), a).toBe(actionTone('PAYMENT_REFUNDED'))
   })
 })

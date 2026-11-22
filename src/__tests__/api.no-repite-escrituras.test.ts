@@ -177,4 +177,20 @@ describe('D6 · lo que sí se sigue repitiendo solo (como antes de D6)', () => {
     expect(r.salidas).toBe(2)
     expect(r.fallo).toBeNull()
   }, 10_000)
+
+  it('🔴 la devolución de un pedido en línea NO se repite sola aunque lleve llave: sin respuesta queda en duda (D661, Ruling 61)', async () => {
+    const { createCardRefund } = await import('@/services/onlineOrdering.service')
+    const r = await cortarLaPrimera(() =>
+      createCardRefund('v1', 'o1', { amount: '10.00', reason: 'OTHER' as never, expectedLatestRefundId: null }, 'llave-12345678'),
+    )
+    expect(r.salidas).toBe(1)
+    expect(r.fallo?.code).toBe(AxiosError.ERR_NETWORK)
+  }, 10_000)
+
+  it('🔴 guardar los ajustes de pedidos en línea (PUT) NO se repite: un reenvío tardío volvía a prender la tarjeta (D661, Ruling 64)', async () => {
+    const { updateSettings } = await import('@/services/onlineOrdering.service')
+    const r = await cortarLaPrimera(() => updateSettings('v1', { cardOnlineNadie: true }))
+    expect(r.salidas).toBe(1)
+    expect(r.fallo?.code).toBe(AxiosError.ERR_NETWORK)
+  }, 10_000)
 })

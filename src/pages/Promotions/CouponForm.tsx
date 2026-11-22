@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, RefreshCw } from 'lucide-react'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useParams } from 'react-router-dom'
@@ -91,6 +91,10 @@ export default function CouponForm() {
     }
   }, [existingCoupon, form, venueTimezone])
 
+  // D38 (21-nov): `isPending` apaga el botón un render tarde y un doble clic mandaba dos peticiones (el segundo POST de un
+  // cupón chocaba con el código único y salía un error aunque el cupón sí se creó). Candado síncrono; se suelta al terminar.
+  const enVuelo = useRef(false)
+
   // Create/Update mutation
   const mutation = useMutation({
     mutationFn: async (data: CreateCouponRequest & { active: boolean }) => {
@@ -128,15 +132,20 @@ export default function CouponForm() {
         variant: 'destructive',
       })
     },
+    onSettled: () => {
+      enVuelo.current = false
+    },
   })
 
   // Handle form submit
   const onSubmit = (data: CreateCouponRequest & { active: boolean }) => {
+    if (enVuelo.current) return
     // Clean up empty values
     const cleanedData = { ...data }
     if (!cleanedData.validFrom) cleanedData.validFrom = undefined
     if (!cleanedData.validUntil) cleanedData.validUntil = undefined
 
+    enVuelo.current = true
     mutation.mutate(cleanedData)
   }
 

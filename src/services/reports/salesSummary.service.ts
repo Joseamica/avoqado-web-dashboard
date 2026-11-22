@@ -62,19 +62,56 @@ export interface PaymentMethodBreakdown {
 
 export interface PaymentMethodDetailedBreakdown {
   bucket: 'CARD' | 'CASH' | 'OTHER' | 'QR_LEGACY'
+  /** Movimiento del cajón: cobros MENOS devoluciones, con propina (puede ser negativo el día de una devolución). */
   amount: number
+  /** Filas del cajón, devoluciones incluidas. */
   count: number
   percentage: number
   tips: number
   refunds: number
   platformFees: number
+  // Aditivos (carril C, 21-nov-2026). Un SERVIDOR viejo no los manda: el estado de cuenta cae a las cifras de antes.
+  /** Sólo cobros (sin devoluciones), con propina. */
+  chargedAmount?: number
+  /** Cuántos cobros (sin devoluciones). */
+  chargedCount?: number
+  /** Comisión congelada de Rappi/Uber o de un tipo de pago propio, con signo. */
+  tenderCommissions?: number
+  /** Devuelto de cuentas canceladas o borradas: salió dinero, pero la cabecera no lo resta (su venta tampoco se cuenta). */
+  cancelledOrderRefunds?: number
   subBuckets?: Array<{
     type: 'CREDIT' | 'DEBIT' | 'AMEX' | 'INTERNATIONAL'
     amount: number
     count: number
     percentage: number
     platformFees: number
+    chargedAmount?: number
+    chargedCount?: number
+    /** Aditivo (carril C): la comisión redondeada por cobro, la misma base del estado de cuenta. */
+    platformFeesCents?: number
   }>
+}
+
+/** El dinero de un destino del estado de cuenta (misma forma que un comercio: neto con sus devoluciones). Aditivo, carril C. */
+export interface MoneyDestination {
+  collected: number
+  refunds: number
+  refundCount: number
+  platformFee: number
+  netToReceive: number
+  transactionCount: number
+}
+
+/**
+ * Aditivo (carril C): a dónde fue cada cobro, UN destino por cobro, leído con los cajones (el SERVIDOR lo decide con su
+ * autoridad de «¿está en el cajón?» y «¿lo deposita Avoqado?»). `tenderCommissions` se resta aparte.
+ */
+export interface StatementDestinations {
+  terminal: MoneyDestination
+  drawer: MoneyDestination
+  online: MoneyDestination
+  other: MoneyDestination
+  tenderCommissions: number
 }
 
 /** Lo pagado con saldo de tarjeta de regalo, FUERA de los buckets (B5: un bucket nuevo tumbaría al panel que no lo conoce). */
@@ -118,6 +155,12 @@ export interface MerchantAccountBreakdown {
   /** Per-card-type settlement rules (active SettlementConfiguration); present
    *  only when includeMerchantBreakdown=true and the account has rules. */
   settlementRules?: MerchantSettlementRule[]
+  /** Aditivo (carril C): lo devuelto a tarjeta en el rango (positivo), ya restado de `collectedOnCard` y `netToReceive`. */
+  refunds?: number
+  /** Aditivo (carril C): cuántas de `transactionCount` son devoluciones. */
+  refundCount?: number
+  /** Aditivo (carril C): neto de sus cobros sin fecha estimada (sin costo todavía o sin regla). */
+  unprojectedNet?: number
 }
 
 // Entrega 2 — settlement projection ("¿cuándo cae el dinero?").
@@ -150,6 +193,8 @@ export interface SalesSummaryResponse {
   byPeriod?: TimePeriodMetrics[]
   /** Per-merchant-account card breakdown; present only when includeMerchantBreakdown=true. */
   byMerchantAccount?: MerchantAccountBreakdown[]
+  /** Aditivo (carril C): a dónde fue cada cobro; con `includeMerchantBreakdown` y sin filtro de método. */
+  statementDestinations?: StatementDestinations
   /** Settlement projection calendar; present only when includeSettlementProjection=true. */
   settlementCalendar?: SettlementCalendarDay[]
   /** True when a payment filter is active; order-level metrics are then null. */
