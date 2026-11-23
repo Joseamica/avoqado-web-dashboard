@@ -230,5 +230,159 @@
       "counted": "Counted",
       "result": "Result"
     }
+  },
+  "cashMachineDoubts": {
+    "title": "Cash machine payments in doubt",
+    "tooltip": "Cash machine payments whose outcome the PC could not record.",
+    "intro": "The cash machine PC could not tell how these payments ended. Go to the machine, check its screen or receipt, and record here what happened. The PC picks it up automatically.",
+    "loading": "Loading payments in doubt…",
+    "loadError": "The list could not be loaded. Check your connection and try again.",
+    "retry": "Retry",
+    "empty": "No payments in doubt. Everything from the machine is recorded.",
+    "noDoubts": "No payments in doubt.",
+    "showing": "Showing {{shown}} of {{total}} pending machine items",
+    "loadMore": "Load more",
+    "resolveButton": "Resolve",
+    "promotionLine": "Promotion",
+    "columns": {
+      "folio": "Reference",
+      "startedAt": "Started at",
+      "sale": "Sale",
+      "tip": "Tip",
+      "due": "Due",
+      "cart": "Cart",
+      "machineReported": "Machine reported going in"
+    },
+    "resolve": {
+      "title": "Resolve payment {{folio}}",
+      "due": "Due {{due}} (sale {{sale}} + tip {{tip}}).",
+      "startedAt": "Started {{time}}.",
+      "cart": "Being charged: {{items}}",
+      "lastSeen": "Last thing the PC saw:",
+      "whatHappened": "What happened at the machine?",
+      "outcomes": {
+        "PAGADO": {
+          "label": "It was paid",
+          "hint": "The machine received the full amount due. The sale is recorded."
+        },
+        "CANCELADO": {
+          "label": "Cancelled and refunded",
+          "hint": "The payment was cancelled and the machine returned the money it took."
+        },
+        "GUARDADO": {
+          "label": "Cancelled and kept the money",
+          "hint": "The payment was cancelled and the machine kept what it took without returning it."
+        }
+      },
+      "received": "Received $",
+      "returned": "Returned $",
+      "receiptTime": "Receipt time (optional)",
+      "receiptTimeHelp": "If you don't have it, the sale stays with its shift pending reconciliation.",
+      "evidence": "What you saw on the machine",
+      "evidencePlaceholder": "E.g.: the screen says \"Payment completed\", $200 went in and it gave $50 change",
+      "submit": "Save",
+      "close": "Close",
+      "saved": "Done: payment {{folio}} is resolved",
+      "owed": "{{amount}} still needs to be returned to the customer.",
+      "notRegistered": "Logged as an incident: {{motivo}}",
+      "motivos": {
+        "DESCUENTO": "the cash machine doesn't take sales with discounts",
+        "PC_REVOCADA": "the PC had already been unpaired from the machine",
+        "SIN_SALDAR": "what went in wasn't enough to pay the check",
+        "SIN_CARRITO": "the payment arrived without its products",
+        "CARRITO_ILEGIBLE": "the payment's products couldn't be read",
+        "VENTA_RECHAZADA": "the sale could no longer be recorded (for example, a product no longer exists)",
+        "PREMIO_PENDIENTE": "the payment included a stamp reward",
+        "LLAVE_OCUPADA": "the folio already belonged to another sale",
+        "RESERVA": "reservations and classes are not charged at the machine"
+      },
+      "processing": "Received: it's still being recorded.",
+      "changed": "New evidence arrived: review it again.",
+      "errors": {
+        "invalidAmount": "Enter amounts in pesos, with up to 2 decimals.",
+        "paidNeedsFull": "For \"It was paid\", the amount received must be at least the amount due ({{due}}).",
+        "changeTooHigh": "It could not return more than {{max}} (received minus due).",
+        "cancelNeedsLess": "If it received the full amount due ({{due}}), the payment could not be cancelled: choose \"It was paid\".",
+        "refundTooHigh": "It could not return more than it received.",
+        "keptMustBeZero": "If it kept the money, the amount returned is $0.",
+        "cancelModeMismatch": "What the machine did with the money doesn't match what you chose above. Check the machine's screen.",
+        "belowSeen": "The machine already reported {{amount}} went in: you can't record less. Check the machine's screen."
+      },
+      "conflict": {
+        "title": "This payment was already resolved as:",
+        "received": "Received {{amount}}",
+        "returned": "Returned {{amount}}",
+        "evidence": "What they saw: {{text}}"
+      },
+      "cancelMode": {
+        "question": "What did the machine do with the money?",
+        "1": "It returned it",
+        "2": "It kept it",
+        "NO_SE": "I don't know",
+        "unknown": "If you don't know, leave the payment in doubt and check the machine's screen."
+      },
+      "machineReported": "The machine reported {{amount}} went in"
+    },
+    "toFinish": {
+      "label": "Cash machine payment to finish: the machine already charged but the sale was not fully recorded",
+      "intro": "The machine already closed these payments and reported how they ended, but the sale was not fully recorded. Check what the machine reported and tap \"Finish\": it is recorded as is, without typing any amounts.",
+      "columns": {
+        "machineSaid": "What the machine reported"
+      },
+      "button": "Finish",
+      "title": "Finish payment {{folio}}",
+      "explain": "It is recorded with what the machine already reported; you don't need to type anything. If something new arrives from the machine while you read it, we'll ask you to confirm again.",
+      "receiptTime": "Receipt time: {{time}}.",
+      "noReceiptTime": "No receipt time: the sale stays with its shift pending reconciliation."
+    },
+    "incidents": {
+      "heading": "Other machine incidents",
+      "intro": "The machine or its PC sent something that doesn't add up. Read what arrived and mark it as reviewed; that doesn't move any money.",
+      "columns": {
+        "kind": "What happened",
+        "createdAt": "Arrived",
+        "times": "Times"
+      },
+      "times_one": "Arrived {{count}} time",
+      "times_other": "Arrived {{count}} times",
+      "repeated_one": "{{count}} repeated",
+      "repeated_other": "{{count}} repeated",
+      "reviewedBefore_one": "reviewed {{count}} time before",
+      "reviewedBefore_other": "reviewed {{count}} times before",
+      "reviewButton": "Review",
+      "title": "Review incident {{folio}}",
+      "kinds": {
+        "IMPOSIBLE": {
+          "label": "Impossible amounts",
+          "hint": "The machine sent amounts that cannot be right, for example returning more than went in."
+        },
+        "CONFLICTO": {
+          "label": "Reference with two versions",
+          "hint": "This reference was already recorded differently or from another PC."
+        },
+        "NO_SE_PUDO_REGISTRAR": {
+          "label": "Sale not recorded",
+          "hint": "The machine took the payment, but the sale could not be recorded (for example, a product no longer exists). The money is logged here."
+        },
+        "TRAS_REVOCAR": {
+          "label": "Reference from an unpaired PC",
+          "hint": "A reference arrived from a PC that had already been unpaired from the machine."
+        }
+      },
+      "createdAt": "Arrived {{time}}.",
+      "arrivedAt": "Received {{time}}",
+      "reason": "Reason: {{reason}}",
+      "raw": "See everything that arrived",
+      "evidenceTitle": "What arrived",
+      "firstEvent": "The first time",
+      "lastEvent": "The last time",
+      "previousReviews": "Previous reviews",
+      "reviewLine": "{{time}} · version {{version}}: {{note}}",
+      "note": "What you reviewed",
+      "notePlaceholder": "E.g.: I checked the machine and the receipt; the money matches the cash count",
+      "markReviewed": "Mark as reviewed",
+      "reviewed": "Done: incident {{folio}} is reviewed",
+      "changed": "New evidence arrived: review it again."
+    }
   }
 }

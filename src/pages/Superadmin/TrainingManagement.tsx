@@ -56,6 +56,7 @@ import {
 } from 'lucide-react'
 import React, { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { motivoDelError } from '@/lib/motivoDelError'
 
 // ===========================================
 // HELPERS
@@ -200,7 +201,7 @@ const TrainingManagement: React.FC = () => {
     onError: (error: any) => {
       toast({
         title: 'Error al crear',
-        description: error?.response?.data?.error || error.message,
+        description: motivoDelError(error),
         variant: 'destructive',
       })
     },
@@ -217,7 +218,7 @@ const TrainingManagement: React.FC = () => {
     onError: (error: any) => {
       toast({
         title: 'Error al eliminar',
-        description: error?.response?.data?.error || error.message,
+        description: motivoDelError(error),
         variant: 'destructive',
       })
     },

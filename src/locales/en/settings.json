@@ -213,6 +213,7 @@
       "payments": "Payments",
       "shifts": "Shifts",
       "cash_drawer": "Cash Drawer",
+      "cash_machine": "Cash Machine",
       "tpv": "TPV Management",
       "inventory": "Inventory",
       "reviews": "Reviews",
@@ -326,6 +327,7 @@
       "venue_crypto": "Configure and manage cryptocurrency payments.",
       "accounting": "View, reconcile and manage the venue accounting.",
       "cash_out": "View and perform cash withdrawals, and see their reports.",
+      "cash_machine": "Set up the cash machine on the device and resolve the payments the machine left in doubt.",
       "estimates": "Create estimates without turning them into a sale.",
       "manual_sales": "Record sales entered by hand, outside the checkout flow.",
       "payment_link": "Create and manage payment links to send to customers.",
@@ -652,6 +654,8 @@
       "customers_approve": "Approve new customers",
       "cash-drawer_view-expected": "See expected drawer cash (not a blind count)",
       "cash-drawer_pay-out": "Withdraw cash from the drawer",
+      "cash-machine_configure": "Set up the machine on the device",
+      "cash-machine_resolve": "Resolve cash machine payments in doubt",
       "marketing_read": "View the privacy notice",
       "marketing_manage": "Edit the privacy notice",
       "marketing_send": "Send email campaigns"
@@ -727,7 +731,8 @@
       "commissions": "Commissions",
       "goals": "Goals",
       "billing": "Billing",
-      "cash-drawer": "Cash drawer"
+      "cash-drawer": "Cash drawer",
+      "cash-machine": "Cash machine"
     },
     "impliedByInline": "included in",
     "includedInBadge": "Included",

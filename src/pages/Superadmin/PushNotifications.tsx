@@ -14,6 +14,7 @@ import { DateTime } from 'luxon'
 import { Bell, CheckCircle2, RefreshCw, Search, Send, Smartphone, Users } from 'lucide-react'
 import { useState } from 'react'
 import api from '@/api'
+import { motivoDelError } from '@/lib/motivoDelError'
 
 interface DeviceToken {
   id: string
@@ -109,7 +110,7 @@ function PushNotifications() {
     onError: (error: any) => {
       toast({
         title: 'Error al enviar',
-        description: error.response?.data?.error || 'No se pudo enviar la notificacion',
+        description: motivoDelError(error, 'No se pudo enviar la notificacion'),
         variant: 'destructive',
       })
     },
