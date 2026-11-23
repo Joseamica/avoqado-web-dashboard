@@ -71,7 +71,14 @@ export interface SalesSummaryMetrics {
   reservationDepositsCount?: number
   /** Lo devuelto de depósitos en el rango. */
   reservationDepositsRefunded?: number
-  /** Paquetes en línea cobrados en otra moneda: aparte, nunca sumados a los pesos. */
+}
+
+/**
+ * La cabecera de la respuesta: las cifras (también las de cada periodo) y lo que sólo trae el total. Una lista no va en
+ * `SalesSummaryMetrics`, que la tabla por periodo recorre como números.
+ */
+export interface SalesSummaryHeadline extends SalesSummaryMetrics {
+  /** Carril G · D5: paquetes en línea cobrados en otra moneda; aparte, nunca sumados a los pesos. */
   packagesSoldOnlineOtherCurrencies?: Array<{ currency: string; amount: number; count: number }>
 }
 
@@ -226,7 +233,7 @@ export interface SalesSummaryResponse {
     endDate: string
   }
   reportType: ReportType
-  summary: SalesSummaryMetrics
+  summary: SalesSummaryHeadline
   byPaymentMethod?: PaymentMethodBreakdown[]
   /** Aditivo (tarjetas de regalo, full-testing v2 #1): VENTAS por método para la barra bajo el total; `byPaymentMethod` es DINERO. */
   salesByPaymentMethod?: PaymentMethodBreakdown[]
