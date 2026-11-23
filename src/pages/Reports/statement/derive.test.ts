@@ -617,6 +617,17 @@ describe('deriveStatement — «Otros» por tipo, otra moneda y chip parcial', (
     expect([m.merchants[0].payoutStatus, m.merchants[0].payoutAmount]).toEqual(['next', 97])
   })
 
+  it('D17: con una devolución proyectada a otro día ya pasado, «Debió caer» dice el importe de su día', () => {
+    const day = (date: string, net: number) => ({ date, status: 'settled' as const, totalNet: net, byMerchant: [{ merchantAccountId: 'x', displayName: 'X', platformFee: 0, netToReceive: net, transactionCount: 1 }] })
+    const m = deriveStatement({
+      buckets: [],
+      merchants: [merchant({ merchantAccountId: 'x', netToReceive: 67.9, unprojectedNet: 0 })],
+      calendar: [day('2026-07-01', -29.1), day('2026-07-02', 97)],
+      todayKey: TODAY,
+    })
+    expect([m.merchants[0].payoutStatus, m.merchants[0].payoutDate, m.merchants[0].payoutAmount]).toEqual(['landed', '2026-07-02', 97])
+  })
+
   it('D17: un día en que sólo se descuenta una devolución no es el «último depósito»', () => {
     const day = (date: string, net: number) => ({ date, status: 'projected' as const, totalNet: net, byMerchant: [{ merchantAccountId: 'x', displayName: 'X', platformFee: 0, netToReceive: net, transactionCount: 1 }] })
     const m = deriveStatement({
@@ -636,6 +647,7 @@ describe('deriveStatement — «Otros» por tipo, otra moneda y chip parcial', (
       calendar: [slice('2026-07-01', 20.2), slice('2026-07-02', 10.1)],
       todayKey: TODAY,
     })
-    expect([m.merchants[0].payoutStatus, m.merchants[0].payoutAmount]).toEqual(['landed', null])
+    // Todo el neto tiene fecha (no es parcial); como el último día no es todo el neto, el chip dice el importe de ese día.
+    expect([m.merchants[0].payoutStatus, m.merchants[0].payoutAmount]).toEqual(['landed', 10.1])
   })
 })

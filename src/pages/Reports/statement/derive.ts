@@ -194,8 +194,10 @@ export function deriveStatement(input: DeriveStatementInput): StatementModel {
       } else {
         payoutStatus = 'landed' // every slice is in the past
         payoutDate = deposits[deposits.length - 1].date
-        // With undated money too, the amount of THAT dated slice (Codex r4 #1, r5 #3), never the full net nor other days' sum.
-        if (partial) payoutAmount = deposits[deposits.length - 1].netToReceive
+        // When that last slice is not the whole net — undated money, or other days before it (a refund projected to its own day)
+        // — the amount of THAT slice (Codex r4 #1, r5 #3; r4 #4 del carril C2), never the full net nor other days' sum.
+        const last = deposits[deposits.length - 1]
+        if (partial || centavos(last.netToReceive) !== centavos(m.netToReceive)) payoutAmount = last.netToReceive
       }
     } else if (nextDate != null) {
       // No per-day slices for this merchant (calendar not requested, or no projectable
