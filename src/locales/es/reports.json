@@ -984,7 +984,9 @@
       "positive": "Suma",
       "negative": "Resta",
       "neutral": "Informativo, no se suma"
-    }
+    },
+    "movementsLabel": "movimientos",
+    "netProfitCaption": "Neto cobrado sin propinas (son del personal) y sin comisiones a empleados"
   },
   "salesByItem": {
     "title": "Ventas por artículo",

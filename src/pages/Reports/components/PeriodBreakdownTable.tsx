@@ -39,6 +39,8 @@ interface MetricRowConfig {
   type: 'positive' | 'negative' | 'neutral' | 'bold'
   indent?: number
   parentKey?: string // For collapsible child rows
+  /** Renglón del que es parte (sangría sólo si ese renglón está a la vista), sin plegarse con él. */
+  bajo?: MetricKey
   showTransactions?: boolean
 }
 
@@ -58,7 +60,7 @@ const METRIC_ROWS: MetricRowConfig[] = [
   // D14.5: «Ventas netas» una sola vez (antes se repetía como «Total de las ventas», con el mismo número). Los impuestos ya van
   // dentro (México): renglón informativo debajo, como en el Resumen.
   { key: 'netSales', translationKey: 'netSales', type: 'bold' },
-  { key: 'taxes', translationKey: 'taxes', type: 'neutral', indent: 1 },
+  { key: 'taxes', translationKey: 'taxes', type: 'neutral', indent: 1, bajo: 'netSales' },
 
   // Propinas y comisiones: lo que lleva de «Ventas netas» a «Neto cobrado» (D14.1: antes faltaban; la llave era `commissions`).
   { key: 'tips', translationKey: 'tips', type: 'positive' },
@@ -77,8 +79,10 @@ const METRIC_ROWS: MetricRowConfig[] = [
 /** Renglones que salen aunque no estén en «Métricas» cuando algún periodo trae algo (como en el Resumen). */
 const SALEN_SI_HAY: MetricKey[] = ['tenderCommissions']
 
-/** Lo que resta se pinta en negativo; un reverso (valor negativo) suma. Nunca «−$0.00». */
-const comoResta = (n: number) => (n === 0 ? 0 : -n)
+/** Menos de medio centavo es cero: una comisión de 4 decimales o un residuo no se pintan «−$0.00» (Codex r1 #3 del carril F). */
+const sinMedioCentavo = (n: number) => (Math.abs(n) < 0.005 ? 0 : n)
+/** Lo que resta se pinta en negativo; un reverso (valor negativo) suma. */
+const comoResta = (n: number) => sinMedioCentavo(-n)
 
 // Parents that can be collapsed
 const COLLAPSIBLE_PARENTS = ['grossSales']
@@ -162,9 +166,11 @@ export function PeriodBreakdownTable({
     })
   }
 
-  // Check if a child row should be visible
+  const aLaVista = (key: string | undefined) => !!key && visibleMetrics.some(r => r.key === key && !r.parentKey)
+
+  // Check if a child row should be visible. Sin su padre a la vista (no elegido), sale solo: plegado antes no la esconde (Codex r1 #1).
   const isChildVisible = (row: MetricRowConfig): boolean => {
-    if (!row.parentKey) return true
+    if (!row.parentKey || !aLaVista(row.parentKey)) return true
     return expandedRows.has(row.parentKey)
   }
 
@@ -210,8 +216,9 @@ export function PeriodBreakdownTable({
                 </th>
               ))}
               {total && (
-                // Pegada a la derecha, como la primera a la izquierda: con 7 días o 24 horas el total no se pierde al fondo del scroll.
-                <th className="sticky right-0 z-20 px-4 py-5 text-sm font-semibold text-foreground w-[120px] min-w-[120px] sm:w-[150px] sm:min-w-[150px] text-center border-l border-border/40 bg-muted">
+                // Pegada a la derecha desde tableta, como la primera a la izquierda: con 7 días o 24 horas el total no se pierde al fondo
+                // del scroll. En un celular las dos fijas no dejaban ver ningún día (Codex r1 #6): ahí es la última columna.
+                <th className="sm:sticky sm:right-0 z-20 px-4 py-5 text-sm font-semibold text-foreground w-[120px] min-w-[120px] sm:w-[150px] sm:min-w-[150px] text-center border-l border-border/40 bg-muted">
                   {t('salesSummary.periodTable.total')}
                 </th>
               )}
@@ -228,7 +235,8 @@ export function PeriodBreakdownTable({
               const isParent =
                 isCollapsibleParent(row.key) && !row.parentKey && visibleMetrics.some(r => r.parentKey === row.key)
               const isExpanded = expandedRows.has(row.key)
-              const isChild = !!row.parentKey
+              // Sangría sólo bajo un renglón que se ve: sin «Ventas brutas» o sin «Ventas netas», sus partes van al ras.
+              const isChild = aLaVista(row.parentKey ?? row.bajo)
               const isBold = row.type === 'bold'
               const isNegative = row.type === 'negative'
 
@@ -245,7 +253,7 @@ export function PeriodBreakdownTable({
                   <td
                     className={cn(
                       'sticky left-0 z-10 bg-card/95 backdrop-blur-sm px-3 sm:px-6 py-3.5 border-r border-border/30',
-                      (isChild || row.indent) && 'pl-6 sm:pl-12'
+                      isChild && 'pl-6 sm:pl-12'
                     )}
                   >
                     <div className="flex items-center gap-2">
@@ -270,7 +278,7 @@ export function PeriodBreakdownTable({
                         className={cn(
                           'text-sm',
                           isBold ? 'font-semibold text-foreground' : 'text-foreground/90',
-                          (isChild || row.indent) && 'text-muted-foreground'
+                          isChild && 'text-muted-foreground'
                         )}
                       >
                         {t(`salesSummary.rows.${row.translationKey}`)}
@@ -283,7 +291,7 @@ export function PeriodBreakdownTable({
                     (col, colIdx, cols) => {
                       const value = col.metrics[row.key]
                       // D14.4: null = el SERVIDOR no puede medirlo con este filtro: «—», no un cero.
-                      const shown = value == null ? null : isNegative ? comoResta(Number(value)) : Number(value)
+                      const shown = value == null ? null : isNegative ? comoResta(Number(value)) : sinMedioCentavo(Number(value))
                       const transactionCount = row.showTransactions ? col.metrics.transactionCount : 0
                       // «Sin cobrar»: cuántas cuentas abiertas (sólo un servidor con base de caja lo manda).
                       const cuentasAbiertas = row.key === 'deferredSales' ? (col.metrics.unpaidOrders ?? 0) : 0
@@ -294,7 +302,7 @@ export function PeriodBreakdownTable({
                           className={cn(
                             'px-4 py-4 w-[150px] min-w-[150px] text-center',
                             colIdx < cols.length - 1 && !cols[colIdx + 1].esTotal && 'border-r border-border/20',
-                            col.esTotal && 'sticky right-0 z-10 w-[120px] min-w-[120px] sm:w-[150px] sm:min-w-[150px] border-l border-border/40 bg-muted font-semibold',
+                            col.esTotal && 'sm:sticky sm:right-0 z-10 w-[120px] min-w-[120px] sm:w-[150px] sm:min-w-[150px] border-l border-border/40 bg-muted font-semibold',
                             isBold && !col.esTotal && 'bg-muted/30'
                           )}
                         >

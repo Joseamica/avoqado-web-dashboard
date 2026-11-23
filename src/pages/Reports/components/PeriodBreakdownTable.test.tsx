@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import type { TimePeriodMetrics } from '@/services/reports/salesSummary.service'
 
@@ -117,4 +117,38 @@ describe('PeriodBreakdownTable · carril F (hz:fefa11b6:D14)', () => {
     render(<PeriodBreakdownTable periods={[periodo({})]} selectedMetrics={[...ELEGIDAS, 'items']} reportType="days" />)
     expect(screen.getByRole('button', { name: 'salesSummary.periodTable.collapse' })).toHaveAttribute('aria-expanded', 'true')
   })
+
+  it('🔴 Codex r1 #1 · «Ventas brutas» plegada y después quitada: «Artículos» elegido sigue saliendo, sin sangría', () => {
+    const { rerender } = render(
+      <PeriodBreakdownTable periods={[periodo({})]} selectedMetrics={[...ELEGIDAS, 'items']} reportType="days" />,
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'salesSummary.periodTable.collapse' }))
+    expect(screen.queryByText('salesSummary.rows.items')).not.toBeInTheDocument()
+    rerender(
+      <PeriodBreakdownTable periods={[periodo({})]} selectedMetrics={ELEGIDAS.filter(m => m !== 'grossSales').concat('items')} reportType="days" />,
+    )
+    expect(screen.getByText('salesSummary.rows.items').closest('td')).not.toHaveClass('pl-6')
+  })
+
+  it('🔴 Codex r1 #1 · «Impuestos incluidos» sólo lleva sangría si «Ventas netas» está a la vista', () => {
+    const { rerender } = render(<PeriodBreakdownTable periods={[periodo({})]} selectedMetrics={ELEGIDAS} reportType="days" />)
+    expect(screen.getByText('salesSummary.rows.taxes').closest('td')).toHaveClass('pl-6')
+    rerender(<PeriodBreakdownTable periods={[periodo({})]} selectedMetrics={ELEGIDAS.filter(m => m !== 'netSales')} reportType="days" />)
+    expect(screen.getByText('salesSummary.rows.taxes').closest('td')).not.toHaveClass('pl-6')
+  })
+
+  it('🔴 Codex r1 #3 · medio centavo (comisión de 4 decimales) se pinta «$0.00», nunca «−$0.00», también en el Total', () => {
+    render(
+      <PeriodBreakdownTable
+        periods={[periodo({ platformFees: 0.004, netSales: -0.004 })]}
+        total={{ ...BASE, platformFees: 0.004 }}
+        selectedMetrics={ELEGIDAS}
+        reportType="days"
+      />,
+    )
+    expect(celda('platformFees', 0)).toBe('$0.00')
+    expect(celda('platformFees', 1)).toBe('$0.00')
+    expect(celda('netSales', 0)).toBe('$0.00')
+  })
 })
+

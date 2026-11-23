@@ -154,12 +154,19 @@ describe('SalesSummary · cifras de tarjetas de regalo (D5 r1)', () => {
     expect(antes(pagado, screen.getByText('salesSummary.rows.tips'))).toBe(true)
   })
 
-  it('🔴 M3 · con «Ventas netas» apagado en las métricas, «Pagado con saldo» no queda colgado bajo otro renglón', async () => {
+  it('🔴 M3 · sin «Ventas netas» ni «Neto cobrado» en las métricas, «Pagado con saldo» no queda colgado bajo otro renglón', async () => {
     // `localStorage` es un vi.fn() de setup.ts (mockReset lo vacía en cada prueba): las preferencias guardadas se fingen aquí.
-    vi.mocked(localStorage.getItem).mockReturnValue(JSON.stringify({ selectedMetrics: ['grossSales', 'taxes', 'tips', 'totalCollected'] }))
+    vi.mocked(localStorage.getItem).mockReturnValue(JSON.stringify({ selectedMetrics: ['grossSales', 'taxes', 'tips'] }))
     pintar()
     await screen.findByText('salesSummary.rows.taxes')
     expect(screen.queryByText('salesSummary.rows.paidWithGiftCardBalance')).not.toBeInTheDocument()
+  })
+
+  it('🔴 Codex r1 #2 del carril F · con «Neto cobrado» y sin «Ventas netas», «Pagado con saldo» sigue saliendo (sin sangría)', async () => {
+    vi.mocked(localStorage.getItem).mockReturnValue(JSON.stringify({ selectedMetrics: ['grossSales', 'tips', 'totalCollected'] }))
+    pintar()
+    const pagado = await screen.findByText('salesSummary.rows.paidWithGiftCardBalance')
+    expect(pagado.closest('.justify-between')).toHaveClass('px-4')
   })
 
   it('🔴 M1 · con estado de cuenta (Pro), la línea de lo pagado con saldo sale justo después de él', async () => {
@@ -759,6 +766,55 @@ describe('SalesSummary · carril F, pantalla (hz:fefa11b6:D7, D14, D15, D16)', (
   it('🔴 D16.3 · con el estado de cuenta en pantalla, la ayuda de «Neto cobrado» dice por qué no da lo mismo que «Te queda»', async () => {
     pintar()
     expect(await screen.findByText('salesSummary.tooltips.totalCollectedVsStatement')).toBeInTheDocument()
+  })
+
+  it('🔴 Codex r1 #3 · medio centavo se pinta «$0.00» (una comisión de 4 decimales o un residuo de ventas netas)', async () => {
+    h.response = respuesta({ summary: { ...SUMMARY, platformFees: 0.004, netSales: -0.004 } })
+    pintar()
+    await screen.findByText('salesSummary.rows.platformFees')
+    expect(montoDe('salesSummary.rows.platformFees')).toBe('$0.00')
+    expect(montoDe('salesSummary.rows.netSales')).toBe('$0.00')
+  })
+
+  it('🔴 Codex r1 #4 · una comisión revertida lleva el punto de «suma», y «Ganancia neta» dice que también salen las propinas', async () => {
+    h.response = respuesta({ summary: { ...SUMMARY, platformFees: -3 } })
+    pintar()
+    const fila = (await screen.findByText('salesSummary.rows.platformFees')).closest('.justify-between') as HTMLElement
+    expect(fila.querySelector('.bg-green-500')).not.toBeNull()
+    expect(screen.getByText('salesSummary.netProfitCaption')).toBeInTheDocument()
+  })
+
+  it('🔴 Codex r1 #5 · «Métodos de pago» cuenta movimientos (cobros y devoluciones), no «cobros»', async () => {
+    h.access = false
+    pintar()
+    expect(await screen.findByText('18 salesSummary.movementsLabel')).toBeInTheDocument()
+  })
+
+  it('🔴 Codex r1 #8 · con el QR anterior sin leer (cifras incompletas), no dice «No hubo ventas»', async () => {
+    h.response = respuesta({
+      summary: { ...CEROS, grossSales: 0, items: 0, netSales: 0, taxes: 0, tips: 0, totalCollected: 0, netProfit: 0, transactionCount: 0 },
+      byPaymentMethodDetailed: [],
+      legacyUnavailable: true,
+    })
+    pintar()
+    await tarjetaDelTotal()
+    expect(screen.queryByText('salesSummary.empty')).not.toBeInTheDocument()
+  })
+
+  it('🔴 Codex r1 #7 · al entrar a un subpanel el foco pasa a él, y al cerrar regresa a la píldora que lo abrió', async () => {
+    pintar()
+    await tarjetaDelTotal()
+    const pildora = screen.getByRole('button', { name: /salesSummary\.controls\.filterBy\.label/ })
+    pildora.focus()
+    fireEvent.click(pildora)
+    const panel = await screen.findByRole('dialog')
+    const principal = within(panel).getByText('salesSummary.controls.title').closest('.absolute') as HTMLElement
+    fireEvent.click(within(principal).getByText('salesSummary.controls.metrics.label'))
+    const metricas = within(panel).getByText('salesSummary.controls.metrics.longDescription').closest('.absolute') as HTMLElement
+    await waitFor(() => expect(metricas.contains(document.activeElement)).toBe(true))
+    fireEvent.keyDown(document.activeElement as Element, { key: 'Escape' })
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    expect(document.activeElement).toBe(pildora)
   })
 
   it('🔴 D16.2 · con un filtro de pago, «Métodos de pago» ya no repite «Quita el filtro…» en una tarjeta vacía', async () => {

@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useId } from 'react'
+import { useState, useMemo, useEffect, useId, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
@@ -299,11 +299,14 @@ const StatusIndicator: React.FC<{ type: RowType }> = ({ type }) => (
   <span aria-hidden className={cn('shrink-0 w-2 h-2 rounded-sm', STATUS_COLORS[type])} />
 )
 
-/** Lo que resta se pinta en negativo; un reverso (comisión que regresó, valor negativo) suma. Nunca «−$0.00» (D16.1). */
-const comoResta = (n: number | null | undefined) => {
-  const v = Number(n ?? 0)
-  return v === 0 ? 0 : -v
-}
+/** Menos de medio centavo es cero: una comisión de 4 decimales o un residuo no se pintan «−$0.00» (D16.1; Codex r1 #3 del carril F). */
+const sinMedioCentavo = (n: number) => (Math.abs(n) < 0.005 ? 0 : n)
+
+/** Lo que resta se pinta en negativo; un reverso (comisión que regresó, valor negativo) suma. */
+const comoResta = (n: number | null | undefined) => sinMedioCentavo(-Number(n ?? 0))
+
+/** El punto de un renglón que normalmente resta: si el valor regresó (un reverso), suma (Codex r1 #4 del carril F). */
+const tipoDeResta = (n: number | null | undefined): RowType => (comoResta(n) > 0 ? 'positive' : 'negative')
 
 /**
  * La ayuda de un renglón (subrayado punteado). Un botón: se alcanza con el tabulador y abre al enfocarlo, y en un celular abre
@@ -379,7 +382,9 @@ const SummaryRow: React.FC<{
   tooltip?: string
   /** Un segundo párrafo de la ayuda. */
   nota?: string
-}> = ({ label, value, count, countLabel, type, indent = 0, bold = false, tooltip, nota }) => (
+  /** Una línea debajo del nombre que dice de dónde sale la cifra. */
+  caption?: string
+}> = ({ label, value, count, countLabel, type, indent = 0, bold = false, tooltip, nota, caption }) => (
   <div
     className={cn(
       'flex items-start justify-between gap-4 py-2.5 hover:bg-muted/30 rounded-lg transition-colors',
@@ -400,9 +405,10 @@ const SummaryRow: React.FC<{
       {count !== undefined && (
         <span className="text-xs text-muted-foreground ml-4">{count} {countLabel}</span>
       )}
+      {caption && <span className="text-xs text-muted-foreground ml-4">{caption}</span>}
     </div>
     <span data-monto className={cn('text-sm text-right min-w-[100px] tabular-nums', bold && 'font-semibold')}>
-      {Currency(value)}
+      {Currency(sinMedioCentavo(value))}
     </span>
   </div>
 )
@@ -459,7 +465,7 @@ const CollapsibleSummaryRow: React.FC<{
         )}
       </div>
       <span data-monto className={cn('text-sm text-right min-w-[100px] tabular-nums', bold && 'font-semibold')}>
-        {Currency(value)}
+        {Currency(sinMedioCentavo(value))}
       </span>
     </div>
     {isOpen && (
@@ -848,6 +854,18 @@ export default function SalesSummary() {
   // State for controls drawer
   const [controlsOpen, setControlsOpen] = useState(false)
   const [activePanel, setActivePanel] = useState<'main' | 'reportType' | 'viewType' | 'metrics' | 'merchant' | 'filterBy' | null>('main')
+  // Foco del panel (Codex r1 #7 del carril F): al cambiar de subpanel, el foco pasa al nuevo (el de antes queda `inert`); al cerrar,
+  // regresa al botón que lo abrió (⋮ o una píldora).
+  const sheetRef = useRef<HTMLDivElement>(null)
+  const abiertoDesde = useRef<HTMLElement | null>(null)
+  const enfocarPanel = (panel: string | null) =>
+    requestAnimationFrame(() =>
+      sheetRef.current?.querySelector<HTMLElement>(`[data-panel="${panel}"] button:not([disabled])`)?.focus(),
+    )
+  const irAPanel = (panel: 'main' | 'reportType' | 'viewType' | 'metrics' | 'merchant' | 'filterBy') => {
+    setActivePanel(panel)
+    enfocarPanel(panel)
+  }
 
   // Load saved preferences from localStorage
   const savedPrefs = useMemo(() => loadPreferences(), [])
@@ -967,6 +985,7 @@ export default function SalesSummary() {
     setPendingMerchantAccountId(merchantAccountId)
     setPendingPaymentMethodFilter(paymentMethodFilter)
     setPendingCardTypeFilter(cardTypeFilter)
+    abiertoDesde.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
     setActivePanel(panel)
     setControlsOpen(true)
   }
@@ -1296,7 +1315,18 @@ export default function SalesSummary() {
             if (!open) setActivePanel('main')
           }}>
             {/* En un celular de 390 px, 400 fijos quedaban cortados (D16.9). */}
-            <SheetContent className="w-full sm:w-[450px] sm:max-w-[450px] p-0 overflow-hidden">
+            <SheetContent
+              ref={sheetRef}
+              className="w-full sm:w-[450px] sm:max-w-[450px] p-0 overflow-hidden"
+              onOpenAutoFocus={e => {
+                e.preventDefault()
+                enfocarPanel(activePanel)
+              }}
+              onCloseAutoFocus={e => {
+                e.preventDefault()
+                abiertoDesde.current?.focus()
+              }}
+            >
               {/* Main Controls Panel */}
               <div
                 className={cn(
@@ -1304,6 +1334,7 @@ export default function SalesSummary() {
                   activePanel === 'main' ? 'translate-x-0' : '-translate-x-full'
                 )}
               
+                data-panel="main"
                 {...fueraDeVista(activePanel !== 'main')}
               >
                 <SheetHeader className="p-4 border-b">
@@ -1317,14 +1348,14 @@ export default function SalesSummary() {
                     label={t('salesSummary.controls.metrics.label')}
                     description={t('salesSummary.controls.metrics.description')}
                     value={`${selectedMetrics.length} ${t('salesSummary.controls.metrics.selected')}`}
-                    onClick={() => setActivePanel('metrics')}
+                    onClick={() => irAPanel('metrics')}
                   />
                   <Separator />
                   <ControlRow
                     label={t('salesSummary.controls.reportType.label')}
                     description={t('salesSummary.controls.reportType.description')}
                     value={getSelectedLabel('reportType', reportType)}
-                    onClick={() => setActivePanel('reportType')}
+                    onClick={() => irAPanel('reportType')}
                   />
                   <Separator />
                   {merchantAccounts.length > 1 && (
@@ -1338,7 +1369,7 @@ export default function SalesSummary() {
                             || t('salesSummary.controls.merchant.options.all')
                           : t('salesSummary.controls.merchant.options.all')
                         }
-                        onClick={() => setActivePanel('merchant')}
+                        onClick={() => irAPanel('merchant')}
                       />
                       <Separator />
                     </>
@@ -1347,14 +1378,14 @@ export default function SalesSummary() {
                     label={t('salesSummary.controls.viewType.label')}
                     description={t('salesSummary.controls.viewType.description')}
                     value={getSelectedLabel('viewType', viewType)}
-                    onClick={() => setActivePanel('viewType')}
+                    onClick={() => irAPanel('viewType')}
                   />
                   <Separator />
                   <ControlRow
                     label={t('salesSummary.controls.filterBy.label')}
                     description={t('salesSummary.controls.filterBy.description')}
                     value={filterByValueLabel()}
-                    onClick={() => setActivePanel('filterBy')}
+                    onClick={() => irAPanel('filterBy')}
                   />
                 </div>
               </div>
@@ -1366,6 +1397,7 @@ export default function SalesSummary() {
                   activePanel === 'reportType' ? 'translate-x-0' : 'translate-x-full'
                 )}
               
+                data-panel="reportType"
                 {...fueraDeVista(activePanel !== 'reportType')}
               >
                 {/* Header with back and apply buttons */}
@@ -1374,7 +1406,7 @@ export default function SalesSummary() {
                     variant="ghost"
                     size="icon"
                     className="h-10 w-10 rounded-full cursor-pointer"
-                    onClick={() => setActivePanel('main')}
+                    onClick={() => irAPanel('main')}
                   >
                     <ChevronLeft className="w-5 h-5" />
                   </Button>
@@ -1444,6 +1476,7 @@ export default function SalesSummary() {
                   activePanel === 'merchant' ? 'translate-x-0' : 'translate-x-full'
                 )}
               
+                data-panel="merchant"
                 {...fueraDeVista(activePanel !== 'merchant')}
               >
                 <div className="flex items-center justify-between p-4 border-b">
@@ -1451,7 +1484,7 @@ export default function SalesSummary() {
                     variant="ghost"
                     size="icon"
                     className="h-10 w-10 rounded-full cursor-pointer"
-                    onClick={() => setActivePanel('main')}
+                    onClick={() => irAPanel('main')}
                   >
                     <ChevronLeft className="w-5 h-5" />
                   </Button>
@@ -1516,6 +1549,7 @@ export default function SalesSummary() {
                   activePanel === 'viewType' ? 'translate-x-0' : 'translate-x-full'
                 )}
               
+                data-panel="viewType"
                 {...fueraDeVista(activePanel !== 'viewType')}
               >
                 <div className="flex items-center justify-between p-4 border-b">
@@ -1523,7 +1557,7 @@ export default function SalesSummary() {
                     variant="ghost"
                     size="icon"
                     className="h-10 w-10 rounded-full cursor-pointer"
-                    onClick={() => setActivePanel('main')}
+                    onClick={() => irAPanel('main')}
                   >
                     <ChevronLeft className="w-5 h-5" />
                   </Button>
@@ -1570,6 +1604,7 @@ export default function SalesSummary() {
                   activePanel === 'metrics' ? 'translate-x-0' : 'translate-x-full'
                 )}
               
+                data-panel="metrics"
                 {...fueraDeVista(activePanel !== 'metrics')}
               >
                 <div className="flex items-center justify-between p-4 border-b">
@@ -1577,7 +1612,7 @@ export default function SalesSummary() {
                     variant="ghost"
                     size="icon"
                     className="h-10 w-10 rounded-full cursor-pointer"
-                    onClick={() => setActivePanel('main')}
+                    onClick={() => irAPanel('main')}
                   >
                     <ChevronLeft className="w-5 h-5" />
                   </Button>
@@ -1660,6 +1695,7 @@ export default function SalesSummary() {
                   activePanel === 'filterBy' ? 'translate-x-0' : 'translate-x-full'
                 )}
               
+                data-panel="filterBy"
                 {...fueraDeVista(activePanel !== 'filterBy')}
               >
                 {/* Header with back and apply buttons */}
@@ -1668,7 +1704,7 @@ export default function SalesSummary() {
                     variant="ghost"
                     size="icon"
                     className="h-10 w-10 rounded-full cursor-pointer"
-                    onClick={() => setActivePanel('main')}
+                    onClick={() => irAPanel('main')}
                   >
                     <ChevronLeft className="w-5 h-5" />
                   </Button>
@@ -1959,7 +1995,9 @@ export default function SalesSummary() {
       )}
     </>
   )
+  // Con el QR anterior sin leer las cifras pueden estar incompletas: no se afirma que no hubo ventas (Codex r1 #8).
   const sinMovimientos =
+    !apiResponse?.legacyUnavailable &&
     data.transactions.total === 0 &&
     data.transactions.refunded === 0 &&
     data.summary.totalCollected === 0 &&
@@ -2140,7 +2178,7 @@ export default function SalesSummary() {
                 <SummaryRow
                   label={t('salesSummary.rows.discounts')}
                   value={comoResta(data.summary.discounts)}
-                  type="negative"
+                  type={tipoDeResta(data.summary.discounts)}
                   tooltip={t('salesSummary.tooltips.discounts')}
                 />
               )}
@@ -2172,14 +2210,16 @@ export default function SalesSummary() {
 
               {/* Tarjetas de regalo (spec §7, B5): PARTE de las ventas y propinas de arriba, con sangría bajo «Ventas netas» y con su
                   mismo gate (M3). El server la manda sólo sin filtro de pago; se pinta si no es cero. */}
-              {mostrarVentasNetas &&
+              {/* Sale con «Ventas netas» (debajo, con sangría) o con «Neto cobrado» (al ras), que también lo traen (Codex r1 #2). */}
+              {!sinMetricasDeOrden &&
+                (mostrarVentasNetas || selectedMetrics.includes('totalCollected')) &&
                 typeof data.summary.paidWithGiftCardBalance === 'number' &&
                 data.summary.paidWithGiftCardBalance !== 0 && (
                   <SummaryRow
                     label={t('salesSummary.rows.paidWithGiftCardBalance')}
                     value={data.summary.paidWithGiftCardBalance}
                     type="neutral"
-                    indent={1}
+                    indent={mostrarVentasNetas ? 1 : 0}
                     tooltip={t('salesSummary.tooltips.paidWithGiftCardBalance')}
                   />
                 )}
@@ -2199,7 +2239,7 @@ export default function SalesSummary() {
                 <SummaryRow
                   label={t('salesSummary.rows.platformFees')}
                   value={comoResta(data.summary.platformFees)}
-                  type="negative"
+                  type={tipoDeResta(data.summary.platformFees)}
                   tooltip={t('salesSummary.tooltips.platformFees')}
                 />
               )}
@@ -2210,7 +2250,7 @@ export default function SalesSummary() {
                 <SummaryRow
                   label={t('salesSummary.rows.tenderCommissions')}
                   value={comoResta(data.summary.tenderCommissions)}
-                  type="negative"
+                  type={tipoDeResta(data.summary.tenderCommissions)}
                   tooltip={t('salesSummary.tooltips.tenderCommissions')}
                 />
               )}
@@ -2242,7 +2282,7 @@ export default function SalesSummary() {
                 <SummaryRow
                   label={t('salesSummary.rows.staffCommissions')}
                   value={comoResta(data.summary.staffCommissions)}
-                  type="negative"
+                  type={tipoDeResta(data.summary.staffCommissions)}
                   tooltip={t('salesSummary.tooltips.staffCommissions')}
                 />
               )}
@@ -2256,6 +2296,8 @@ export default function SalesSummary() {
                     value={data.summary.netProfit}
                     type="total"
                     bold
+                    // Codex r1 #4: debajo de «Neto cobrado − empleados» la cuenta no da sin decir que también salen las propinas.
+                    caption={sinMetricasDeOrden ? undefined : t('salesSummary.netProfitCaption')}
                     tooltip={t(
                       sinMetricasDeOrden
                         ? 'salesSummary.tooltips.netProfitMovements'
@@ -2472,7 +2514,9 @@ export default function SalesSummary() {
                       count={bucket.count}
                       percentage={bucket.percentage}
                       platformFees={bucket.platformFees}
-                      countLabel={t('salesSummary.transactionsShort')}
+                      // El importe es el movimiento (cobros menos devoluciones) y el conteo incluye las devoluciones: «movimientos»,
+                      // no «cobros» (Codex r1 #5).
+                      countLabel={t('salesSummary.movementsLabel')}
                       feesLabel={t('salesSummary.rows.platformFees')}
                       settlementLabel={cfg.settlementLabel}
                       subBuckets={bucket.subBuckets}
@@ -2500,7 +2544,7 @@ export default function SalesSummary() {
                     amount={data.paymentMethods.card.amount}
                     count={data.paymentMethods.card.count}
                     percentage={data.paymentMethods.card.percentage}
-                    countLabel={t('salesSummary.transactionsShort')}
+                    countLabel={t('salesSummary.movementsLabel')}
                     settlementLabel={settlementLabels.card}
                   />
                   <PaymentMethodRow
@@ -2509,7 +2553,7 @@ export default function SalesSummary() {
                     amount={data.paymentMethods.cash.amount}
                     count={data.paymentMethods.cash.count}
                     percentage={data.paymentMethods.cash.percentage}
-                    countLabel={t('salesSummary.transactionsShort')}
+                    countLabel={t('salesSummary.movementsLabel')}
                     settlementLabel={settlementLabels.cash}
                   />
                   <PaymentMethodRow
@@ -2518,7 +2562,7 @@ export default function SalesSummary() {
                     amount={data.paymentMethods.other.amount}
                     count={data.paymentMethods.other.count}
                     percentage={data.paymentMethods.other.percentage}
-                    countLabel={t('salesSummary.transactionsShort')}
+                    countLabel={t('salesSummary.movementsLabel')}
                   />
                 </>
               )}

@@ -984,7 +984,9 @@
       "positive": "Adds",
       "negative": "Subtracts",
       "neutral": "For reference, not added"
-    }
+    },
+    "movementsLabel": "movements",
+    "netProfitCaption": "Net collected without tips (they belong to staff) and without employee commissions"
   },
   "salesByItem": {
     "title": "Sales by Item",
