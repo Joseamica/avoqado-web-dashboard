@@ -167,7 +167,7 @@ describe('D13.5 / D13.6 · secciones', () => {
   })
 })
 
-describe('QR anterior (Mindform)', () => {
+describe('QR anterior (un negocio que lo tuvo)', () => {
   it('se nombra en el filtro y apaga «Transacciones detalladas» con su razón', () => {
     pintar(base({ open: true, initialPaymentMethod: 'QR_LEGACY' }))
     expect(screen.getByText('salesSummary.export.filters.paymentMethodOptions.qr_legacy')).toBeInTheDocument()
