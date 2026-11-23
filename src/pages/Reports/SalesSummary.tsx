@@ -1692,6 +1692,7 @@ export default function SalesSummary() {
           estimatedCount={
             apiResponse?.summary ? apiResponse.summary.transactionCount + (apiResponse.summary.refundCount ?? 0) : undefined
           }
+          reportType={effectiveReportType}
         />
       )}
 
