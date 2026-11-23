@@ -25,7 +25,9 @@ vi.mock('react-i18next', () => ({
         if (typeof p.code === 'string') return `${key}:${p.code}`
         // Los textos de «Sí llegó» llevan variables (nombre, clase, hora, cuántas): se ven en la salida para poder afirmarlas.
         const vars = Object.fromEntries(Object.entries(p).filter(([k]) => k !== 'defaultValue'))
-        if (key.startsWith('undoNoShow') && Object.keys(vars).length > 0) return `${key}:${JSON.stringify(vars)}`
+        if ((key.startsWith('undoNoShow') || key === 'detail.deposit.waitingUntil') && Object.keys(vars).length > 0) {
+          return `${key}:${JSON.stringify(vars)}`
+        }
       }
       return key
     },
@@ -136,6 +138,30 @@ const renderDetail = async () => {
 beforeEach(() => {
   svc.getReservation.mockImplementation(async () => mockReservation)
   access.allowed = ['reservations:read', 'reservations:update']
+})
+
+describe('ReservationDetail — D681: depósito sin pagar', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('sin pagar todavía: «Esperando pago · vence HH:MM» con la hora del negocio', async () => {
+    mockReservation = {
+      ...createTestReservation('PENDING'),
+      depositAmount: 325,
+      depositStatus: 'PENDING',
+      depositExpiresAt: '2026-11-22T21:13:00.000Z',
+    }
+    await renderDetail()
+    expect(screen.getByText('detail.deposit.waitingUntil:{"time":"21:13"}')).toBeDefined()
+    expect(screen.queryByText('depositStatus.PENDING')).toBeNull()
+  })
+
+  it('sin hora del SERVIDOR (o ya pagado) se queda como antes', async () => {
+    mockReservation = { ...createTestReservation('PENDING'), depositAmount: 325, depositStatus: 'PENDING', depositExpiresAt: null }
+    await renderDetail()
+    expect(screen.getByText('depositStatus.PENDING')).toBeDefined()
+  })
 })
 
 describe('ReservationDetail — Action Buttons by Status', () => {

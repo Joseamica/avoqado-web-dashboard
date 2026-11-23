@@ -166,7 +166,8 @@
     "deposit": {
       "title": "Depósito",
       "amount": "Monto",
-      "status": "Estado"
+      "status": "Estado",
+      "waitingUntil": "Esperando pago · vence {{time}}"
     },
     "reschedule": {
       "title": "Reagendar Reservación",
