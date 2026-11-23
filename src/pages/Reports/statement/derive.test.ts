@@ -528,3 +528,126 @@ describe('deriveStatement — devoluciones, en línea y comisión de terceros', 
     expect(m.cardSubs.map(s => [s.type, s.amount, s.count, s.pct])).toEqual([['CREDIT', 100, 1, 100]])
   })
 })
+
+/** Carril C2 (22-nov-2026): «Otros» por tipo de pago (D12.3), cobros en otra moneda y el chip parcial por cualquier diferencia (D17). */
+describe('deriveStatement — «Otros» por tipo, otra moneda y chip parcial', () => {
+  const dest = (over: Partial<MoneyDestination> = {}): MoneyDestination => ({
+    collected: 0,
+    refunds: 0,
+    refundCount: 0,
+    platformFee: 0,
+    netToReceive: 0,
+    transactionCount: 0,
+    ...over,
+  })
+
+  it('D12.3: «Otros métodos» trae sus tipos con nombre, neto y comisión de la plataforma; suman el renglón', () => {
+    const m = deriveStatement({
+      buckets: [bucket({ bucket: 'OTHER', amount: 150, count: 2, chargedAmount: 150, chargedCount: 2, tenderCommissions: 30 })],
+      merchants: [],
+      destinations: {
+        drawer: dest(),
+        terminal: dest(),
+        online: dest(),
+        other: dest({ collected: 150, netToReceive: 150, transactionCount: 2 }),
+        tenderCommissions: 30,
+        otherByType: [
+          { key: 't-uber', label: 'Uber Eats', method: 'OTHER', ...dest({ collected: 100, netToReceive: 100, transactionCount: 1 }), tenderCommissions: 30 },
+          { key: 'BANK_TRANSFER', label: null, method: 'BANK_TRANSFER', ...dest({ collected: 50, netToReceive: 50, transactionCount: 1 }), tenderCommissions: 0 },
+        ],
+      },
+      calendar: [],
+      todayKey: TODAY,
+    })
+    expect(m.otherTypes.map(t => [t.key, t.label, t.method, t.net, t.count, t.tenderCommissions])).toEqual([
+      ['t-uber', 'Uber Eats', 'OTHER', 100, 1, 30],
+      ['BANK_TRANSFER', null, 'BANK_TRANSFER', 50, 1, 0],
+    ])
+    expect(m.otherTypes.reduce((s, t) => s + t.net, 0)).toBe(m.other.net)
+  })
+
+  it('D17: lo cobrado en otra moneda sale del estado (cobrado, devoluciones, «Te queda») y se dice aparte', () => {
+    const m = deriveStatement({
+      buckets: [
+        bucket({ bucket: 'CASH', amount: 100, count: 1, chargedAmount: 100, chargedCount: 1 }),
+        // La liga en dólares (100 − 20 devueltos) sigue en el movimiento de siempre del cajón; lo cobrado en pesos es 0.
+        bucket({ bucket: 'CARD', amount: 80, count: 2, chargedAmount: 0, chargedCount: 0, foreignAmount: 80, foreignCount: 2, platformFees: 4 }),
+      ],
+      merchants: [],
+      destinations: {
+        drawer: dest({ collected: 100, netToReceive: 100, transactionCount: 1 }),
+        terminal: dest(),
+        online: dest(),
+        other: dest(),
+        tenderCommissions: 0,
+        foreignCurrency: [{ currency: 'USD', net: 80, transactionCount: 1, refundCount: 1 }],
+      },
+      calendar: [],
+      todayKey: TODAY,
+    })
+    expect([m.collectedTotal, m.refunds.amount, m.refunds.count, m.youKeep, m.commissions]).toEqual([100, 0, 0, 100, 0])
+    expect(m.foreignCurrency).toEqual([{ currency: 'USD', net: 80, transactionCount: 1, refundCount: 1 }])
+  })
+
+  it('una cortesía de $0 (FREE_CART) no cuenta como devolución: el conteo sale de los destinos del SERVIDOR', () => {
+    const m = deriveStatement({
+      // El cajón de siempre cuenta la cortesía en `count` (3 filas: cobro, cortesía, devolución); lo cobrado, 1 cobro.
+      buckets: [bucket({ bucket: 'OTHER', amount: 70, count: 3, chargedAmount: 100, chargedCount: 1 })],
+      merchants: [],
+      destinations: {
+        drawer: dest(),
+        terminal: dest(),
+        online: dest(),
+        other: dest({ collected: 70, refunds: 30, refundCount: 1, netToReceive: 70, transactionCount: 2 }),
+        tenderCommissions: 0,
+      },
+      calendar: [],
+      todayKey: TODAY,
+    })
+    expect([m.refunds.amount, m.refunds.count]).toEqual([30, 1])
+  })
+
+  it('D17: el chip es parcial cuando los depósitos del comercio no suman su neto, aunque el servidor no diga por qué', () => {
+    const m = deriveStatement({
+      buckets: [],
+      merchants: [merchant({ merchantAccountId: 'x', netToReceive: 297 })],
+      calendar: [{ date: '2026-07-06', status: 'projected', totalNet: 97, byMerchant: [{ merchantAccountId: 'x', displayName: 'X', platformFee: 3, netToReceive: 97, transactionCount: 1 }] }],
+      todayKey: TODAY,
+    })
+    expect([m.merchants[0].payoutStatus, m.merchants[0].payoutAmount]).toEqual(['next', 97])
+  })
+
+  it('D17: con una devolución proyectada a otro día ya pasado, «Debió caer» dice el importe de su día', () => {
+    const day = (date: string, net: number) => ({ date, status: 'settled' as const, totalNet: net, byMerchant: [{ merchantAccountId: 'x', displayName: 'X', platformFee: 0, netToReceive: net, transactionCount: 1 }] })
+    const m = deriveStatement({
+      buckets: [],
+      merchants: [merchant({ merchantAccountId: 'x', netToReceive: 67.9, unprojectedNet: 0 })],
+      calendar: [day('2026-07-01', -29.1), day('2026-07-02', 97)],
+      todayKey: TODAY,
+    })
+    expect([m.merchants[0].payoutStatus, m.merchants[0].payoutDate, m.merchants[0].payoutAmount]).toEqual(['landed', '2026-07-02', 97])
+  })
+
+  it('D17: un día en que sólo se descuenta una devolución no es el «último depósito»', () => {
+    const day = (date: string, net: number) => ({ date, status: 'projected' as const, totalNet: net, byMerchant: [{ merchantAccountId: 'x', displayName: 'X', platformFee: 0, netToReceive: net, transactionCount: 1 }] })
+    const m = deriveStatement({
+      buckets: [],
+      merchants: [merchant({ merchantAccountId: 'x', netToReceive: 67, unprojectedNet: 0 })],
+      calendar: [day('2026-07-06', 97), day('2026-07-10', -30)],
+      todayKey: TODAY,
+    })
+    expect(m.lastDepositDate).toBe('2026-07-06')
+  })
+
+  it('D17: 20.20 + 10.10 no es «parcial» por la coma flotante (se compara en centavos)', () => {
+    const slice = (date: string, net: number) => ({ date, status: 'settled' as const, totalNet: net, byMerchant: [{ merchantAccountId: 'x', displayName: 'X', platformFee: 0, netToReceive: net, transactionCount: 1 }] })
+    const m = deriveStatement({
+      buckets: [],
+      merchants: [merchant({ merchantAccountId: 'x', netToReceive: 30.3, unprojectedNet: 0 })],
+      calendar: [slice('2026-07-01', 20.2), slice('2026-07-02', 10.1)],
+      todayKey: TODAY,
+    })
+    // Todo el neto tiene fecha (no es parcial); como el último día no es todo el neto, el chip dice el importe de ese día.
+    expect([m.merchants[0].payoutStatus, m.merchants[0].payoutAmount]).toEqual(['landed', 10.1])
+  })
+})

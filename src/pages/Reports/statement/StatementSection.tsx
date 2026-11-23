@@ -59,7 +59,8 @@ export function StatementSection({ buckets, merchants, destinations, calendar, v
 
       {/* Honesty: card money with no settlement rule can't be placed on a landing
           day (the week calendar below shows only what lands). Surface it here. */}
-      {model.unprojected > 1 && (
+      {/* D17: from half a cent — the SERVIDOR now rounds per charge like the settlement, so a small amount is real money. */}
+      {model.unprojected >= 0.005 && (
         <div className="border-t border-input px-5 py-3 sm:px-6" data-testid="statement-unprojected">
           <p className="flex items-center gap-2 text-xs text-amber-700 dark:text-amber-300">
             <AlertCircle className="h-3.5 w-3.5 shrink-0" aria-hidden />

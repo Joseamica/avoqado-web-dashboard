@@ -90,6 +90,10 @@ export interface StatementModel {
   cardSubs: StatementCardSub[]
   hasCardActivity: boolean
   other: { amount: number; count: number; net: number }
+  /** D12.3 (carril C2): «Otros métodos» by payment type; `label` is the own type's name, else `method` names it. */
+  otherTypes: Array<{ key: string; label: string | null; method: string; net: number; count: number; tenderCommissions: number }>
+  /** D17 (carril C2): what moved in another currency (net, unconverted), never summed as pesos; said apart in its currency. */
+  foreignCurrency: Array<{ currency: string; net: number; transactionCount: number; refundCount: number }>
   segments: StatementSegment[]
   // Payout timeline
   days: SettlementCalendarDay[]
