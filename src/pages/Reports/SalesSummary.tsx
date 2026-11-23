@@ -1004,7 +1004,7 @@ export default function SalesSummary() {
       // the reconciliation view (both additive / opt-in on the backend).
       includeMerchantBreakdown: true,
       includeSettlementProjection: true,
-      // Carril G: «Ventas por canal» (Pro: el servidor la deja fuera sin el plan y lo dice) y lo cobrado por adelantado (D5).
+      // Carril G: «Ventas por canal» (todos los planes, decisión del founder del 22-nov) y lo cobrado por adelantado (D5).
       includeChannelBreakdown: true,
       includePrepaid: true,
     }
