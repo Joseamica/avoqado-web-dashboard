@@ -620,7 +620,9 @@
       "totalCollected": "Neto cobrado",
       "netProfit": "Ganancia neta",
       "giftCardLoads": "Tarjetas de regalo cargadas",
-      "paidWithGiftCardBalance": "Pagado con saldo"
+      "paidWithGiftCardBalance": "Pagado con saldo",
+      "packagesSoldOnline": "Paquetes vendidos en línea",
+      "reservationDeposits": "Depósitos de reservas"
     },
     "tooltips": {
       "grossSales": "Lo vendido en cuentas ya cobradas (artículos y cargos por servicio), antes de descuentos y devoluciones. Las cuentas abiertas van en «Sin cobrar»",
@@ -648,7 +650,9 @@
       "totalCollectedSettlement": "El tiempo de depósito varía según el método de pago: tarjetas de débito y crédito se liquidan en {{debitDays}} día(s) hábil(es), mientras que Amex e internacionales tardan {{amexDays}} día(s) hábil(es).",
       "netProfit": "Ventas netas - comisiones de plataforma - comisiones de terceros - comisiones a empleados. No resta lo que te costó lo que vendiste",
       "giftCardLoads": "Saldo que vendiste en tarjetas de regalo, menos las cancelaciones. No es venta todavía: cuenta como venta cuando el cliente lo usa.",
-      "paidWithGiftCardBalance": "Parte de las ventas y propinas que se pagó con saldo de tarjetas de regalo, menos lo devuelto al saldo. Ese dinero entró cuando se vendió la tarjeta."
+      "paidWithGiftCardBalance": "Parte de las ventas y propinas que se pagó con saldo de tarjetas de regalo, menos lo devuelto al saldo. Ese dinero entró cuando se vendió la tarjeta.",
+      "packagesSoldOnline": "Paquetes de clases que tus clientes compraron en línea en el periodo, por el día en que Avoqado confirmó el cobro. No es venta todavía ni entra a «Neto cobrado»: lo cobraste por adelantado y se usa en sus clases. Los paquetes vendidos en la caja ya están en las ventas.",
+      "reservationDeposits": "Depósitos que tus clientes pagaron en línea para apartar una reserva, por el día en que Avoqado confirmó el cobro, menos los que devolviste en el periodo. No es venta ni entra a «Neto cobrado»: es un anticipo."
     },
     "giftBalanceLine_one": "Además, {{amount}} se pagó con saldo de tarjetas de regalo (1 cobro). Ese dinero entró cuando se vendieron.",
     "giftBalanceLine_other": "Además, {{amount}} se pagó con saldo de tarjetas de regalo ({{count}} cobros). Ese dinero entró cuando se vendieron.",
@@ -656,6 +660,14 @@
     "giftBalanceLineWithRefunds_other": "Además, {{amount}} se pagó con saldo de tarjetas de regalo ({{count}} cobros); {{refunds}} regresó al saldo. Ese dinero entró cuando se vendieron.",
     "giftCardsCountLabel_one": "tarjeta",
     "giftCardsCountLabel_other": "tarjetas",
+    "packagesCountLabel_one": "paquete",
+    "packagesCountLabel_other": "paquetes",
+    "packagesOtherCurrency_one": "Además, en otra moneda (no se suma): {{amount}} · {{count}} paquete",
+    "packagesOtherCurrency_other": "Además, en otra moneda (no se suma): {{amount}} · {{count}} paquetes",
+    "depositsCountLabel_one": "cobrado",
+    "depositsCountLabel_other": "cobrados",
+    "depositsCountLabelWithRefunds_one": "cobrado · {{refunded}} devuelto",
+    "depositsCountLabelWithRefunds_other": "cobrados · {{refunded}} devuelto",
     "unpaidOrdersLabel_one": "cuenta",
     "unpaidOrdersLabel_other": "cuentas",
     "refundsCountLabel_one": "devolución",
@@ -906,6 +918,60 @@
       "merchantLine": "comisión {{commission}} · recibes {{net}}",
       "empty": "Nada cae esta semana.",
       "note": "Cuánto cae en tu banco cada día, por fecha de liquidación. Estimado según las reglas de cada comercio (días hábiles + festivos). El efectivo no aparece aquí: ya está en tu mano."
+    },
+    "channels": {
+      "title": "Ventas por canal",
+      "description": "Por dónde entraron tus ventas y cómo se entregaron. La suma da lo mismo que el resumen.",
+      "tabs": {
+        "channel": "Por canal",
+        "orderType": "Por tipo de pedido"
+      },
+      "cols": {
+        "channel": "Canal",
+        "orderType": "Tipo de pedido",
+        "netSales": "Ventas netas",
+        "tips": "Propinas",
+        "platformFees": "Comisión Avoqado",
+        "tenderCommissions": "Comisiones de terceros",
+        "totalCollected": "Neto cobrado"
+      },
+      "total": "Total",
+      "orders_one": "{{count}} pedido",
+      "orders_other": "{{count}} pedidos",
+      "transactions_one": "{{count}} cobro",
+      "transactions_other": "{{count}} cobros",
+      "empty": "No hubo ventas en este periodo.",
+      "filteredNote": "Las ventas por canal sólo salen sin filtro de método de pago ni de comercio: con un filtro el reporte cuenta cobros, no cuentas.",
+      "names": {
+        "COUNTER": "Mostrador",
+        "TABLES": "Mesas",
+        "KIOSK": "Autoservicio",
+        "QR": "QR del cliente",
+        "ONLINE_STORE": "Tienda en línea",
+        "WEB_CHECKOUT": "Pagos en línea",
+        "PAYMENT_LINK": "Ligas de pago",
+        "PHONE": "Teléfono",
+        "DASHBOARD": "Registradas en el panel",
+        "RAPPI": "Rappi",
+        "UBER_EATS": "Uber Eats",
+        "DIDI_FOOD": "DiDi Food",
+        "OTHER_DELIVERY": "Otras apps de delivery",
+        "QR_LEGACY": "QR (sistema anterior)",
+        "OTHER": "Otro canal"
+      },
+      "orderTypes": {
+        "DINE_IN": "En el local",
+        "TAKEOUT": "Para llevar",
+        "DELIVERY": "A domicilio",
+        "PICKUP": "Para recoger",
+        "MANUAL_ENTRY": "Registro directo",
+        "QUICK_PAYMENT": "Cobro de un monto",
+        "QR_LEGACY": "QR (sistema anterior)",
+        "OTHER": "Otro tipo"
+      },
+      "outOfSync": "Entró una venta mientras se leía el reporte: esta tabla puede no cuadrar con el resumen. Vuelve a cargar la página.",
+      "ordersWithoutLegacy_one": "{{count}} pedido (sin los del QR anterior)",
+      "ordersWithoutLegacy_other": "{{count}} pedidos (sin los del QR anterior)"
     }
   },
   "salesByItem": {

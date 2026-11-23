@@ -61,6 +61,44 @@ export interface SalesSummaryMetrics {
   giftCardLoadsCount?: number
   /** Pagado con saldo (venta + propina), menos sus reversos. YA está dentro de las ventas: aquí sólo se separa. */
   paidWithGiftCardBalance?: number
+  // Carril G · D5 (22-nov-2026) — aditivos; con `includePrepaid` y sin filtro. Cobrado por adelantado que NO es venta.
+  /** Paquetes de clases comprados en línea en el rango. */
+  packagesSoldOnline?: number
+  packagesSoldOnlineCount?: number
+  /** Depósitos de reservas cobrados en el rango menos los devueltos en el rango (neto). */
+  reservationDeposits?: number
+  /** Cuántos depósitos se cobraron en el rango. */
+  reservationDepositsCount?: number
+  /** Lo devuelto de depósitos en el rango. */
+  reservationDepositsRefunded?: number
+}
+
+/**
+ * La cabecera de la respuesta: las cifras (también las de cada periodo) y lo que sólo trae el total. Una lista no va en
+ * `SalesSummaryMetrics`, que la tabla por periodo recorre como números.
+ */
+export interface SalesSummaryHeadline extends SalesSummaryMetrics {
+  /** Carril G · D5: paquetes en línea cobrados en otra moneda; aparte, nunca sumados a los pesos. */
+  packagesSoldOnlineOtherCurrencies?: Array<{ currency: string; amount: number; count: number }>
+}
+
+/**
+ * Carril G · D4: un renglón de «Ventas por canal» o «Por tipo de pedido». Las mismas unidades que la cabecera; el SERVIDOR reparte
+ * cada importe al centavo, así que la suma de los renglones da la cabecera. `orderCount` es null en el QR del sistema anterior.
+ */
+export interface SalesBreakdownRow {
+  key: string
+  grossSales: number
+  discounts: number
+  refunds: number
+  netSales: number
+  tips: number
+  platformFees: number
+  tenderCommissions: number
+  totalCollected: number
+  orderCount: number | null
+  transactionCount: number
+  refundCount: number
 }
 
 export interface PaymentMethodBreakdown {
@@ -210,7 +248,7 @@ export interface SalesSummaryResponse {
     endDate: string
   }
   reportType: ReportType
-  summary: SalesSummaryMetrics
+  summary: SalesSummaryHeadline
   byPaymentMethod?: PaymentMethodBreakdown[]
   /** Aditivo (tarjetas de regalo, full-testing v2 #1): VENTAS por método para la barra bajo el total; `byPaymentMethod` es DINERO. */
   salesByPaymentMethod?: PaymentMethodBreakdown[]
@@ -228,6 +266,11 @@ export interface SalesSummaryResponse {
   giftCardBalanceBreakdown?: GiftCardBalanceBreakdown
   /** Aditivo (D15): el servidor no pudo leer todos los cobros del sistema anterior de QR; estas cifras pueden estar incompletas. */
   legacyUnavailable?: true
+  /** Carril G · D4 (todos los planes): la cabecera por canal y por tipo de pedido; con `includeChannelBreakdown` y sin filtro. */
+  byChannel?: SalesBreakdownRow[]
+  byOrderType?: SalesBreakdownRow[]
+  /** Las tablas por canal se leyeron un instante después de la cabecera y alguna cifra cambió (entró una venta): recargar. */
+  channelBreakdownOutOfSync?: true
 }
 
 export interface SalesSummaryFilters {
@@ -243,6 +286,10 @@ export interface SalesSummaryFilters {
   cardType?: CardTypeFilter
   includeMerchantBreakdown?: boolean
   includeSettlementProjection?: boolean
+  /** Carril G · D4: «Ventas por canal» (el servidor la deja pasar sólo con el plan). */
+  includeChannelBreakdown?: boolean
+  /** Carril G · D5: paquetes en línea y depósitos de reservas en el resumen. */
+  includePrepaid?: boolean
 }
 
 export interface ApiResponse<T> {
@@ -276,6 +323,8 @@ export async function fetchSalesSummary(
         ...(filters.paymentMethod === 'CARD' && filters.cardType ? { cardType: filters.cardType } : {}),
         ...(filters.includeMerchantBreakdown ? { includeMerchantBreakdown: 'true' } : {}),
         ...(filters.includeSettlementProjection ? { includeSettlementProjection: 'true' } : {}),
+        ...(filters.includeChannelBreakdown ? { includeChannelBreakdown: 'true' } : {}),
+        ...(filters.includePrepaid ? { includePrepaid: 'true' } : {}),
       },
       // Tell the backend which venue is active. This endpoint has no :venueId in
       // its URL, so without this header it would fall back to the (possibly stale)

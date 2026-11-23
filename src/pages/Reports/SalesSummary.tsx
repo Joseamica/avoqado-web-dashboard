@@ -20,6 +20,7 @@ import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { Currency } from '@/utils/currency'
+import { getIntlLocale } from '@/utils/i18n-locale'
 import { getLast7Days, getToday } from '@/utils/datetime'
 import { useAuth } from '@/context/AuthContext'
 import { useTierFeatureAccess } from '@/hooks/use-tier-feature-access'
@@ -60,6 +61,7 @@ import {
 } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { PeriodBreakdownTable } from './components/PeriodBreakdownTable'
+import { SalesByChannelSection } from './components/SalesByChannelSection'
 import { StatementSection } from './statement/StatementSection'
 import { SettlementWeekStrip } from '@/components/settlement/SettlementWeekStrip'
 import { FeatureGate } from '@/components/billing/FeatureGate'
@@ -242,6 +244,16 @@ const ControlRow: React.FC<{
     </div>
   </button>
 )
+
+/** Un importe en otra moneda (paquetes en USD): con su código; si el código no es válido, número y código. */
+function enSuMoneda(amount: number, currency: string, locale: string): string {
+  try {
+    // Con su código (USD 100.00): en inglés el símbolo de dólar se confundiría con pesos (Codex r3 #5).
+    return amount.toLocaleString(getIntlLocale(locale), { style: 'currency', currency, currencyDisplay: 'code' })
+  } catch {
+    return `${amount.toFixed(2)} ${currency}`
+  }
+}
 
 // ============================================
 // GlassCard Component (Modern Dashboard Design)
@@ -992,12 +1004,17 @@ export default function SalesSummary() {
       // the reconciliation view (both additive / opt-in on the backend).
       includeMerchantBreakdown: true,
       includeSettlementProjection: true,
+      // Carril G: «Ventas por canal» (todos los planes, decisión del founder del 22-nov) y lo cobrado por adelantado (D5).
+      includeChannelBreakdown: true,
+      includePrepaid: true,
     }
   }, [venueId, hasAccess, dateRange.from, dateRange.to, todayRange.from, todayRange.to, effectiveReportType, merchantAccountId, paymentMethodFilter, cardTypeFilter])
 
   // Fetch sales summary data from API
   const salesQuery = useQuery({
-    queryKey: salesSummaryKeys.summary(apiFilters),
+    // Carril G (Codex r3 #2): el acceso va en la llave. Si el plan cambia con la pantalla abierta, no se reusa la respuesta de antes
+    // (con las tablas Pro para un negocio que ya es Gratis, o al revés).
+    queryKey: [...salesSummaryKeys.summary(apiFilters), hasAccess],
     queryFn: () => fetchSalesSummary(apiFilters),
     staleTime: 1000 * 60 * 5, // 5 minutes
     retry: reintentarSalvoSinPermiso, // D3: un 403 (cajero por liga directa) avisa «sin permiso» de inmediato
@@ -1082,6 +1099,13 @@ export default function SalesSummary() {
         giftCardLoads: apiResponse.summary.giftCardLoads ?? null,
         giftCardLoadsCount: apiResponse.summary.giftCardLoadsCount ?? null,
         paidWithGiftCardBalance: apiResponse.summary.paidWithGiftCardBalance ?? null,
+        // Carril G · D5: cobrado por adelantado que no es venta (opcional: un servidor viejo no lo manda).
+        packagesSoldOnline: apiResponse.summary.packagesSoldOnline ?? null,
+        packagesSoldOnlineCount: apiResponse.summary.packagesSoldOnlineCount ?? 0,
+        reservationDeposits: apiResponse.summary.reservationDeposits ?? null,
+        reservationDepositsCount: apiResponse.summary.reservationDepositsCount ?? 0,
+        reservationDepositsRefunded: apiResponse.summary.reservationDepositsRefunded ?? 0,
+        packagesSoldOnlineOtherCurrencies: apiResponse.summary.packagesSoldOnlineOtherCurrencies ?? [],
       },
       transactions: {
         total: apiResponse.summary.transactionCount,
@@ -2140,6 +2164,49 @@ export default function SalesSummary() {
                 </>
               )}
 
+              {/* Carril G · D5: paquetes comprados en línea y depósitos de reservas. Tampoco son venta ni entran a «Neto cobrado»
+                  (no crean cuenta ni cobro; se decide después si son venta al usarse). Sin filtro de pago; el de depósitos sale
+                  también si se cobró y se devolvió en el mismo periodo ($0 neto), para que su conteo no desaparezca. */}
+              {/* Sin `!sinMetricasDeOrden`: el SERVIDOR sólo los manda en la vista de ventas, y un filtro guardado que la petición no llevó
+                  (plan Gratis) los escondía (Codex r3 #2). */}
+              {((data.summary.packagesSoldOnline ?? 0) !== 0 || data.summary.packagesSoldOnlineOtherCurrencies.length > 0) && (
+                  <>
+                    <SummaryRow
+                      label={t('salesSummary.rows.packagesSoldOnline')}
+                      value={data.summary.packagesSoldOnline ?? 0}
+                      count={data.summary.packagesSoldOnlineCount || undefined}
+                      countLabel={t('salesSummary.packagesCountLabel', { count: data.summary.packagesSoldOnlineCount })}
+                      type="neutral"
+                      tooltip={t('salesSummary.tooltips.packagesSoldOnline')}
+                    />
+                    {/* Paquetes en otra moneda (el panel deja crearlos en USD): se dicen, nunca se suman a los pesos. */}
+                    {data.summary.packagesSoldOnlineOtherCurrencies.map(o => (
+                      <p key={o.currency} className="pl-8 pr-4 pb-1 text-xs text-muted-foreground" data-testid="paquetes-otra-moneda">
+                        {t('salesSummary.packagesOtherCurrency', { amount: enSuMoneda(o.amount, o.currency, i18n.language), count: o.count })}
+                      </p>
+                    ))}
+                  </>
+                )}
+              {data.summary.reservationDeposits !== null &&
+                (data.summary.reservationDeposits !== 0 || data.summary.reservationDepositsCount > 0 || data.summary.reservationDepositsRefunded !== 0) && (
+                  <SummaryRow
+                    label={t('salesSummary.rows.reservationDeposits')}
+                    value={data.summary.reservationDeposits}
+                    // Siempre con su conteo: un depósito de ayer devuelto hoy dice «0 cobrados · $80 devuelto», no un número suelto.
+                    count={data.summary.reservationDepositsCount}
+                    countLabel={
+                      data.summary.reservationDepositsRefunded !== 0
+                        ? t('salesSummary.depositsCountLabelWithRefunds', {
+                            count: data.summary.reservationDepositsCount,
+                            refunded: Currency(data.summary.reservationDepositsRefunded),
+                          })
+                        : t('salesSummary.depositsCountLabel', { count: data.summary.reservationDepositsCount })
+                    }
+                    type="neutral"
+                    tooltip={t('salesSummary.tooltips.reservationDeposits')}
+                  />
+                )}
+
               {/* Order-level metrics (gross sales, taxes, discounts…) are hidden
                   under a payment filter — they can't be attributed per method. */}
               {sinMetricasDeOrden && (
@@ -2152,6 +2219,16 @@ export default function SalesSummary() {
         </GlassCard>
       </Collapsible>
       )}
+
+      {/* Carril G · D4: «Ventas por canal» y «Por tipo de pedido», en todos los planes (decisión del founder del 22-nov). */}
+      <SalesByChannelSection
+        byChannel={apiResponse?.byChannel}
+        byOrderType={apiResponse?.byOrderType}
+        // La vista que de verdad pidió la pantalla (Codex r3 #2): con el plan Gratis la petición no lleva el filtro guardado.
+        conFiltro={apiResponse?.filtered === true}
+        desfasado={apiResponse?.channelBreakdownOutOfSync === true}
+        formatCurrency={Currency}
+      />
 
       {/* Period statement (Mercury-style): "cuánto gané, cuánto me pagan, cuándo
           y cómo" in one cohesive card. Advanced analysis → Pro-only. Hidden under
