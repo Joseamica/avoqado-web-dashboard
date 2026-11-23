@@ -55,7 +55,7 @@
     "THIRD_PARTY": "Tercero"
   },
   "depositStatus": {
-    "PENDING": "Esperando pago",
+    "PENDING": "Pendiente",
     "PAID": "Pagado",
     "REFUNDED": "Reembolsado"
   },
@@ -166,7 +166,8 @@
     "deposit": {
       "title": "Depósito",
       "amount": "Monto",
-      "status": "Estado"
+      "status": "Estado",
+      "waiting": "Esperando pago"
     },
     "reschedule": {
       "title": "Reagendar Reservación",

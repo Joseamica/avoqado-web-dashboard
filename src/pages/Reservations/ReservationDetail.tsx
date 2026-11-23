@@ -603,7 +603,12 @@ export default function ReservationDetail() {
                 {reservation.depositStatus && (
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">{t('detail.deposit.status')}</span>
-                    <span className="font-medium">{t(`depositStatus.${reservation.depositStatus}`)}</span>
+                    <span className="font-medium">
+                      {/* D681: «Esperando pago» sólo mientras la reserva sigue activa; cancelada, no llegó o terminada, nadie lo espera. */}
+                      {reservation.depositStatus === 'PENDING' && !['CANCELLED', 'NO_SHOW', 'COMPLETED'].includes(reservation.status)
+                        ? t('detail.deposit.waiting')
+                        : t(`depositStatus.${reservation.depositStatus}`)}
+                    </span>
                   </div>
                 )}
               </div>

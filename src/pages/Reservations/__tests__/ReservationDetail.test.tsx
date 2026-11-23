@@ -140,15 +140,29 @@ beforeEach(() => {
   access.allowed = ['reservations:read', 'reservations:update']
 })
 
-// D681 (sólo texto): el depósito por adelantado sin pagar se llama «Esperando pago», sin hora. El SERVIDOR no manda hasta cuándo
-// y no se cambia: el lugar lo suelta el aviso de Stripe cuando vence la liga.
+// D681 (sólo texto): el depósito por adelantado sin pagar de una reserva que sigue activa se llama «Esperando pago», sin hora. El
+// SERVIDOR no manda hasta cuándo y no se cambia: el lugar lo suelta el aviso de Stripe cuando vence la liga. Si la reserva ya se
+// canceló, no llegó o terminó, nadie espera ese pago: la etiqueta de antes («Pendiente») (Codex texto #6).
 describe('ReservationDetail — D681: depósito sin pagar', () => {
-  it('la etiqueta del depósito pendiente es «Esperando pago», sin hora', async () => {
-    mockReservation = { ...createTestReservation('PENDING'), depositAmount: 325, depositStatus: 'PENDING' }
+  it.each(['PENDING', 'CONFIRMED', 'CHECKED_IN'] as ReservationStatus[])('reserva %s activa: «Esperando pago», sin hora', async status => {
+    mockReservation = { ...createTestReservation(status), depositAmount: 325, depositStatus: 'PENDING' }
+    await renderDetail()
+    expect(screen.getByText('detail.deposit.waiting')).toBeDefined()
+    expect(screen.queryByText('depositStatus.PENDING')).toBeNull()
+  })
+
+  it.each(['CANCELLED', 'NO_SHOW', 'COMPLETED'] as ReservationStatus[])('🔴 reserva %s: la etiqueta de antes', async status => {
+    mockReservation = { ...createTestReservation(status), depositAmount: 325, depositStatus: 'PENDING' }
     await renderDetail()
     expect(screen.getByText('depositStatus.PENDING')).toBeDefined()
-    expect(reservationsEs.depositStatus.PENDING).toBe('Esperando pago')
-    expect(reservationsEn.depositStatus.PENDING).toBe('Awaiting payment')
+    expect(screen.queryByText('detail.deposit.waiting')).toBeNull()
+  })
+
+  it('los textos', () => {
+    expect(reservationsEs.detail.deposit.waiting).toBe('Esperando pago')
+    expect(reservationsEn.detail.deposit.waiting).toBe('Awaiting payment')
+    expect(reservationsEs.depositStatus.PENDING).toBe('Pendiente')
+    expect(reservationsEn.depositStatus.PENDING).toBe('Pending')
   })
 })
 
