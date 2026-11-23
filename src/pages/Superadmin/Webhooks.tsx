@@ -24,6 +24,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useVenueDateTime } from '@/utils/datetime'
 import { getIntlLocale } from '@/utils/i18n-locale'
+import { motivoDelError } from '@/lib/motivoDelError'
 
 function Webhooks() {
   const { t, i18n } = useTranslation('webhooks')
@@ -91,7 +92,7 @@ function Webhooks() {
     onError: (error: any) => {
       toast({
         title: t('toast.retryFailed'),
-        description: error.response?.data?.error || t('toast.retryFailedDesc'),
+        description: motivoDelError(error, t('toast.retryFailedDesc')),
         variant: 'destructive',
       })
     },

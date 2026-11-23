@@ -20,13 +20,15 @@ import { StaffRole } from '@/types'
  * Se guarda la lista LITERAL, comodines incluidos: un `scale:*` intacto sigue concediendo lo
  * que la plataforma agregue mañana bajo ese recurso. Expandirlo congelaría al dashboard.
  *
- * 9 roles · huella d3aa30fc9b4649cf.
- * ADMIN 119 · CASHIER 44 · HOST 18 · KITCHEN 9 · MANAGER 142 · OWNER 123 · SUPERADMIN 5 · VIEWER 16 · WAITER 44
+ * 9 roles · huella 0b9264e852f52e55.
+ * ADMIN 121 · CASHIER 44 · HOST 18 · KITCHEN 9 · MANAGER 144 · OWNER 125 · SUPERADMIN 5 · VIEWER 16 · WAITER 44
  */
 export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
   ADMIN: [
     'cash-drawer:view-expected',
     'cash-drawer:pay-out',
+    'cash-machine:configure',
+    'cash-machine:resolve',
     'class-sessions:read-assigned',
     'self-service:check-in',
     'attendance:read',
@@ -226,6 +228,8 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'inventory:log-waste',
     'cash-drawer:view-expected',
     'cash-drawer:pay-out',
+    'cash-machine:configure',
+    'cash-machine:resolve',
     'class-sessions:read-assigned',
     'self-service:check-in',
     'attendance:read',
@@ -369,6 +373,8 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
   OWNER: [
     'cash-drawer:view-expected',
     'cash-drawer:pay-out',
+    'cash-machine:configure',
+    'cash-machine:resolve',
     'class-sessions:read-assigned',
     'self-service:check-in',
     'attendance:read',
@@ -564,4 +570,4 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
   ],
 } as Record<StaffRole, string[]>
 
-export const DEFAULT_PERMISSIONS_DIGEST = 'd3aa30fc9b4649cf'
+export const DEFAULT_PERMISSIONS_DIGEST = '0b9264e852f52e55'

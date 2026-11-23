@@ -20,6 +20,7 @@ import { setupService } from '@/services/setup.service'
 import { ecommerceMerchantAPI } from '@/services/ecommerceMerchant.service'
 import { useToast } from '@/hooks/use-toast'
 import type { StepProps } from '../types'
+import { motivoDelError } from '@/lib/motivoDelError'
 
 const MP_INITIATE_PATH = '/api/v1/integrations/mercadopago/oauth/connect'
 
@@ -257,7 +258,7 @@ function TestLinkLauncher({ venueId, provider }: { venueId: string; provider: 'M
         })
       }
     } catch (err: any) {
-      toast({ title: 'Error', description: err?.response?.data?.error || String(err), variant: 'destructive' })
+      toast({ title: 'Error', description: motivoDelError(err), variant: 'destructive' })
     } finally {
       setSubmitting(false)
     }

@@ -5,6 +5,7 @@ import { useBreadcrumb } from '@/context/BreadcrumbContext'
 import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { Skeleton } from '@/components/ui/skeleton'
 import { detalleNoCargo } from '@/lib/falloDeCarga'
+import { nombreCompleto } from '@/lib/nombreCompleto'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
 	ArrowLeft,
@@ -725,7 +726,7 @@ export default function CustomerDetail() {
 						<AlertDialogHeader>
 							<AlertDialogTitle>{t('delete.title')}</AlertDialogTitle>
 							<AlertDialogDescription>
-								{t('delete.description', { name: `${customer.firstName} ${customer.lastName}` })}
+								{t('delete.description', { name: nombreCompleto(customer) || customer.email || customer.phone })}
 							</AlertDialogDescription>
 						</AlertDialogHeader>
 						<AlertDialogFooter>
@@ -749,7 +750,7 @@ export default function CustomerDetail() {
 						<DialogHeader>
 							<DialogTitle>{t('adjustPoints.title')}</DialogTitle>
 							<DialogDescription>
-								{t('adjustPoints.description', { name: `${customer.firstName} ${customer.lastName}` })}
+								{t('adjustPoints.description', { name: nombreCompleto(customer) || customer.email || customer.phone })}
 							</DialogDescription>
 						</DialogHeader>
 						<form onSubmit={handleAdjustSubmit(onAdjustSubmit)} className="space-y-4">

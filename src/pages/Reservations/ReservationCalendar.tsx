@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom'
 
 import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { falloDeCarga } from '@/lib/falloDeCarga'
+import { nombreCompleto } from '@/lib/nombreCompleto'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
@@ -869,9 +870,7 @@ export default function ReservationCalendar() {
     // D107: sólo lo que todavía no pasa se mueve arrastrando; lo demás se abre con un clic.
     const seMueve = puedeMoverCitas && (reservation.status === 'PENDING' || reservation.status === 'CONFIRMED')
 
-    const guestName = reservation.customer
-      ? `${reservation.customer.firstName} ${reservation.customer.lastName}`
-      : reservation.guestName || t('unnamedGuest')
+    const guestName = nombreCompleto(reservation.customer) || reservation.guestName || t('unnamedGuest')
 
     // Service(s) + modifiers are the booking's content. Salons need to see them
     // at a glance on the calendar block (matching how Vagaro / Booksy surface
@@ -1647,9 +1646,7 @@ export default function ReservationCalendar() {
               <AlertDialogDescription>
                 {moverCita &&
                   t('calendar.moveCita.description', {
-                    name: moverCita.cita.customer
-                      ? `${moverCita.cita.customer.firstName} ${moverCita.cita.customer.lastName}`
-                      : moverCita.cita.guestName || t('unnamedGuest'),
+                    name: nombreCompleto(moverCita.cita.customer) || moverCita.cita.guestName || t('unnamedGuest'),
                     from: `${DateTime.fromISO(moverCita.cita.startsAt, { zone: 'utc' }).setZone(venueTimezone).setLocale(locale).toFormat('ccc d LLL')} ${formatTime(moverCita.cita.startsAt)}`,
                     to: `${DateTime.fromISO(moverCita.startsAt, { zone: 'utc' }).setZone(venueTimezone).setLocale(locale).toFormat('ccc d LLL')} ${formatTime(moverCita.startsAt)}`,
                   })}

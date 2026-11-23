@@ -21,6 +21,7 @@ import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useVenueDateTime } from '@/utils/datetime'
 import { includesNormalized } from '@/lib/utils'
+import { motivoDelError } from '@/lib/motivoDelError'
 
 // Unified billing item type
 type BillingItem = {
@@ -185,7 +186,7 @@ export default function History() {
     onError: (error: any) => {
       toast({
         title: t('billingHistory.retryError'),
-        description: error.response?.data?.error || error.message,
+        description: motivoDelError(error),
         variant: 'destructive',
       })
       setRetryingInvoiceId(null)
