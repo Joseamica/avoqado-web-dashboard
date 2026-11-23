@@ -1056,6 +1056,35 @@ describe('F2 · Detalle del cliente: lealtad y créditos por su lado', () => {
     await screen.findByText(SIN_DATOS)
     expect(seVe('detail.credits.emptyState')).toBe(false)
   })
+
+  // D679 (N18): el Ilimitado es 99,999 por dentro; la ficha dice «Ilimitado · vence el … · usó N» o «reembolsado», y las faltas.
+  it('con un Ilimitado: «Ilimitado», sus faltas y nunca 99,999; el saldo normal como hoy', async () => {
+    const lagree = { productId: 'p1', product: { id: 'p1', name: 'Lagree', type: 'CLASS' }, originalQuantity: 99999, unlimited: true }
+    const compra = { creditPackId: 'pk1', creditPack: { name: 'Ilimitado' }, purchasedAt: '2026-11-22T06:00:00Z', expiresAt: '2026-12-22T06:00:00Z', amountPaid: 2500 }
+    const compras = [
+      {
+        ...compra,
+        id: 'activa',
+        status: 'ACTIVE',
+        faltas: { noLlego: 1, cancelTarde: 0 },
+        itemBalances: [
+          { ...lagree, id: 'b1', remainingQuantity: 99996 },
+          { id: 'b2', productId: 'p2', product: { id: 'p2', name: 'Shake', type: 'FOOD' }, originalQuantity: 5, remainingQuantity: 3 },
+        ],
+      },
+      { ...compra, id: 'reembolsada', status: 'REFUNDED', faltas: { noLlego: 0, cancelTarde: 0 }, itemBalances: [{ ...lagree, id: 'b3', remainingQuantity: 0 }] },
+    ]
+    pintar(<CustomerDetail />, { params: { customerId: 'c1' }, rutas: [[/customers\/c1$/, cliente], [/credit-packs\/purchases/, { purchases: compras }]] })
+    await screen.findByRole('tab', { name: /detail\.tabs\.credits/ })
+    fireEvent.mouseDown(pestana('detail\\.tabs\\.credits'))
+    await screen.findByText('Shake')
+    expect(screen.getByText('unlimited.active')).toBeInTheDocument()
+    expect(screen.getByText('unlimited.refunded')).toBeInTheDocument()
+    expect(screen.getAllByText('unlimited.faltas')).toHaveLength(2)
+    // Sólo el saldo normal usa el «X de Y».
+    expect(screen.getAllByText('detail.credits.remaining')).toHaveLength(1)
+    expect(seVe(/99999|99,999|99996/)).toBe(false)
+  })
 })
 
 // ─── Codex r7: cargar o reintentar no se lleva los filtros, y una fuente caída no esconde a las demás ───

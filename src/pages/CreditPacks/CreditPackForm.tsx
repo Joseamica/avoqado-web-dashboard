@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Package, Plus, Trash2, X } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useFieldArray, useForm, type ControllerRenderProps } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 
@@ -9,10 +9,11 @@ import { LoadingButton } from '@/components/loading-button'
 import { LoadingScreen } from '@/components/spinner'
 import { SearchCombobox, type SearchComboboxItem } from '@/components/search-combobox'
 import { Button } from '@/components/ui/button'
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
@@ -111,6 +112,15 @@ interface FormValues extends Omit<CreateCreditPackRequest, 'price'> {
   active: boolean
 }
 
+/** D679: cada renglón manda `unlimited` (el SERVIDOR distingue así al panel nuevo del editor viejo, W4); un Ilimitado no manda
+ * cantidad, la pone el SERVIDOR. */
+const renglonesParaGuardar = (items: FormValues['items']) =>
+  items.map(item =>
+    item.unlimited
+      ? { productId: item.productId, unlimited: true }
+      : { productId: item.productId, quantity: item.quantity, unlimited: false },
+  )
+
 export default function CreditPackFormModal({ open, onClose, packId, onSuccess }: CreditPackFormModalProps) {
   const { t } = useTranslation('creditPacks')
   const { t: tCommon } = useTranslation()
@@ -151,7 +161,7 @@ export default function CreditPackFormModal({ open, onClose, packId, onSuccess }
       validityDays: undefined,
       maxPerCustomer: undefined,
       displayOrder: 0,
-      items: [{ productId: '', quantity: 1 }],
+      items: [{ productId: '', quantity: 1, unlimited: false }],
       active: true,
     },
   })
@@ -160,11 +170,21 @@ export default function CreditPackFormModal({ open, onClose, packId, onSuccess }
     control: form.control,
     name: 'items',
   })
+  const renglones = form.watch('items')
+  // Los renglones tal como se cargaron del paquete: al editar sólo se mandan si la persona tocó alguno (Codex pantallas r1 #5).
+  const renglonesCargados = useRef<string | null>(null)
 
   // Reset form when modal opens/closes or pack changes
   useEffect(() => {
     if (!open) return
     if (existingPack) {
+      // Un renglón Ilimitado guarda 99,999 por dentro: el formulario no lo enseña ni lo devuelve (D679).
+      const items = existingPack.items.map(item => ({
+        productId: item.productId,
+        quantity: item.unlimited ? undefined : item.quantity,
+        unlimited: item.unlimited === true,
+      }))
+      renglonesCargados.current = JSON.stringify(renglonesParaGuardar(items))
       form.reset({
         name: existingPack.name,
         description: existingPack.description || '',
@@ -173,10 +193,7 @@ export default function CreditPackFormModal({ open, onClose, packId, onSuccess }
         validityDays: existingPack.validityDays || undefined,
         maxPerCustomer: existingPack.maxPerCustomer || undefined,
         displayOrder: existingPack.displayOrder,
-        items: existingPack.items.map((item: any) => ({
-          productId: item.productId,
-          quantity: item.quantity,
-        })),
+        items,
         active: existingPack.active,
       })
     } else if (!isEditing) {
@@ -188,7 +205,7 @@ export default function CreditPackFormModal({ open, onClose, packId, onSuccess }
         validityDays: undefined,
         maxPerCustomer: undefined,
         displayOrder: 0,
-        items: [{ productId: '', quantity: 1 }],
+        items: [{ productId: '', quantity: 1, unlimited: false }],
         active: true,
       })
     }
@@ -196,17 +213,22 @@ export default function CreditPackFormModal({ open, onClose, packId, onSuccess }
 
   const mutation = useMutation({
     mutationFn: async (data: FormValues) => {
-      const { active, ...packData } = data
+      const { active, items: renglonesDelFormulario, ...packData } = data
       const cleaned = {
         ...packData,
         description: packData.description || undefined,
         validityDays: packData.validityDays || undefined,
         maxPerCustomer: packData.maxPerCustomer || undefined,
       }
+      const items = renglonesParaGuardar(renglonesDelFormulario)
       if (isEditing) {
-        return creditPackService.updateCreditPack(venueId, packId!, cleaned)
+        // Sin tocar ningún renglón no se mandan: si otra persona cambió los renglones con este formulario abierto, guardar sólo
+        // el nombre o el precio no los pisa con los de antes (p. ej. no vuelve a prender un Ilimitado que ella apagó). Un PATCH
+        // sin `items` deja los renglones como estén en el SERVIDOR.
+        const tocoRenglones = JSON.stringify(items) !== renglonesCargados.current
+        return creditPackService.updateCreditPack(venueId, packId!, tocoRenglones ? { ...cleaned, items } : cleaned)
       }
-      return creditPackService.createCreditPack(venueId, cleaned)
+      return creditPackService.createCreditPack(venueId, { ...cleaned, items })
     },
     onSuccess: () => {
       toast({
@@ -356,6 +378,12 @@ export default function CreditPackFormModal({ open, onClose, packId, onSuccess }
                   <FormField
                     control={form.control}
                     name="validityDays"
+                    rules={{
+                      validate: (v, values) =>
+                        !values.items?.some(item => item.unlimited) ||
+                        (v != null && v > 0) ||
+                        t('form.validation.unlimitedNeedsValidity'),
+                    }}
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>{t('form.fields.validityDays')}</FormLabel>
@@ -412,7 +440,7 @@ export default function CreditPackFormModal({ open, onClose, packId, onSuccess }
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={() => append({ productId: '', quantity: 1 })}
+                    onClick={() => append({ productId: '', quantity: 1, unlimited: false })}
                     className="cursor-pointer"
                   >
                     <Plus className="h-4 w-4 mr-2" />
@@ -420,71 +448,102 @@ export default function CreditPackFormModal({ open, onClose, packId, onSuccess }
                   </Button>
                 </div>
 
-                {fields.map((field, index) => (
-                  // Grid with explicit column tracks — guarantees product +
-                  // quantity sit side-by-side regardless of modal width. The
-                  // previous flex layout was wrapping in narrower viewports.
-                  <div
-                    key={field.id}
-                    className="grid items-end gap-3"
-                    style={{ gridTemplateColumns: `1fr 96px ${fields.length > 1 ? 'auto' : ''}`.trim() }}
-                  >
-                    <FormField
-                      control={form.control}
-                      name={`items.${index}.productId`}
-                      rules={{ required: { value: true, message: t('form.validation.productRequired') } }}
-                      render={({ field: f }) => (
-                        <FormItem className="min-w-0">
-                          <FormLabel>{t('form.fields.product')}</FormLabel>
-                          <FormControl>
-                            <ProductPicker
-                              products={products as ProductOption[]}
-                              field={f}
-                              placeholder={t('form.fields.product')}
-                              changeLabel={tCommon('change', { defaultValue: 'Cambiar' })}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                {fields.map((field, index) => {
+                  const ilimitado = renglones?.[index]?.unlimited === true
+                  return (
+                    <div key={field.id} className="space-y-2">
+                      {/* Grid with explicit column tracks — guarantees product + quantity sit side-by-side regardless of
+                          modal width. Un renglón Ilimitado no tiene cantidad. */}
+                      <div
+                        className="grid items-end gap-3"
+                        style={{
+                          gridTemplateColumns: `1fr ${ilimitado ? '' : '96px'} ${fields.length > 1 ? 'auto' : ''}`.trim(),
+                        }}
+                      >
+                        <FormField
+                          control={form.control}
+                          name={`items.${index}.productId`}
+                          rules={{ required: { value: true, message: t('form.validation.productRequired') } }}
+                          render={({ field: f }) => (
+                            <FormItem className="min-w-0">
+                              <FormLabel>{t('form.fields.product')}</FormLabel>
+                              <FormControl>
+                                <ProductPicker
+                                  products={products as ProductOption[]}
+                                  field={f}
+                                  placeholder={t('form.fields.product')}
+                                  changeLabel={tCommon('change', { defaultValue: 'Cambiar' })}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
 
-                    <FormField
-                      control={form.control}
-                      name={`items.${index}.quantity`}
-                      rules={{
-                        required: { value: true, message: t('form.validation.quantityRequired') },
-                        min: { value: 1, message: t('form.validation.quantityPositive') },
-                      }}
-                      render={({ field: f }) => (
-                        <FormItem>
-                          <FormLabel>{t('form.fields.quantity')}</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              min={1}
-                              className="h-12 text-base"
-                              {...f}
-                              value={f.value ?? ''}
-                              onChange={e => {
-                                const raw = e.target.value
-                                // Allow clearing — `required` + `min:1` rules block submit if empty.
-                                f.onChange(raw === '' ? (undefined as unknown as number) : parseInt(raw))
-                              }}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                        {!ilimitado && (
+                          <FormField
+                            control={form.control}
+                            name={`items.${index}.quantity`}
+                            rules={{
+                              validate: (v, values) => {
+                                if (values.items?.[index]?.unlimited) return true
+                                // Allow clearing — the empty field is rejected here on submit.
+                                if (v == null || Number.isNaN(v)) return t('form.validation.quantityRequired')
+                                return v >= 1 || t('form.validation.quantityPositive')
+                              },
+                            }}
+                            render={({ field: f }) => (
+                              <FormItem>
+                                <FormLabel>{t('form.fields.quantity')}</FormLabel>
+                                <FormControl>
+                                  <Input
+                                    type="number"
+                                    min={1}
+                                    className="h-12 text-base"
+                                    {...f}
+                                    value={f.value ?? ''}
+                                    onChange={e => {
+                                      const raw = e.target.value
+                                      f.onChange(raw === '' ? undefined : parseInt(raw))
+                                    }}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        )}
 
-                    {fields.length > 1 && (
-                      <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} className="mb-0.5 cursor-pointer">
-                        <Trash2 className="h-4 w-4 text-red-500" />
-                      </Button>
-                    )}
-                  </div>
-                ))}
+                        {fields.length > 1 && (
+                          <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} className="mb-0.5 cursor-pointer">
+                            <Trash2 className="h-4 w-4 text-red-500" />
+                          </Button>
+                        )}
+                      </div>
+
+                      <FormField
+                        control={form.control}
+                        name={`items.${index}.unlimited`}
+                        render={({ field: f }) => (
+                          <FormItem className="flex items-center justify-between gap-4 rounded-lg border border-input px-3 py-2">
+                            <div className="space-y-0.5">
+                              <FormLabel>{t('form.fields.unlimited')}</FormLabel>
+                              <FormDescription>{t('form.unlimitedHelp')}</FormDescription>
+                            </div>
+                            <FormControl>
+                              <Switch
+                                data-tour="credit-pack-item-unlimited"
+                                checked={f.value === true}
+                                onCheckedChange={f.onChange}
+                                className="cursor-pointer"
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  )
+                })}
               </div>
             </form>
           </Form>

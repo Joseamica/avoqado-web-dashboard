@@ -38,7 +38,8 @@
       "items": "Pack Items",
       "addItem": "Add Item",
       "product": "Product",
-      "quantity": "Quantity"
+      "quantity": "Quantity",
+      "unlimited": "Unlimited"
     },
     "placeholders": {
       "name": "e.g., 10-Class Pack",
@@ -55,8 +56,10 @@
       "itemsRequired": "At least one item is required",
       "productRequired": "Product is required",
       "quantityRequired": "Quantity is required",
-      "quantityPositive": "Quantity must be greater than 0"
-    }
+      "quantityPositive": "Quantity must be greater than 0",
+      "unlimitedNeedsValidity": "An unlimited pack needs validity days"
+    },
+    "unlimitedHelp": "Personal: only in the buyer's name, one spot per class"
   },
   "purchases": {
     "title": "Purchases",
@@ -159,5 +162,13 @@
   "itemsSummary": "{{count}} item(s)",
   "filters": {
     "clearAll": "Clear filters"
+  },
+  "unlimited": {
+    "label": "Unlimited",
+    "active": "Unlimited · expires {{date}} · used {{used}}",
+    "refunded": "Unlimited · refunded",
+    "expiresOn": "Unlimited · expires {{date}}",
+    "faltas": "Missed: {{noLlego}} no-shows · {{cancelTarde}} late cancellations",
+    "voided": "Unlimited voided"
   }
 }

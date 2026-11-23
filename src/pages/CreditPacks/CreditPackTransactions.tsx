@@ -16,6 +16,8 @@ import type { CreditTransaction, CreditTransactionType } from '@/types/creditPac
 import { getIntlLocale } from '@/utils/i18n-locale'
 import { includesNormalized } from '@/lib/utils'
 
+import { describeMovement } from './creditBalanceDisplay'
+
 export default function CreditPackTransactionsTab() {
   const { venueId } = useCurrentVenue()
   const { t, i18n } = useTranslation('creditPacks')
@@ -144,11 +146,17 @@ export default function CreditPackTransactionsTab() {
           const productName = row.original.creditItemBalance?.product?.name
           const qty = row.original.quantity
           const isPositive = ['PURCHASE', 'ADJUST'].includes(row.original.type) && qty > 0
+          // La compra o la anulación de un Ilimitado mueven 99,999 por dentro: se dice «Ilimitado» (D679).
+          const ilimitado = describeMovement(row.original)
           return (
             <div className="flex items-center gap-2">
-              <span className={`font-medium tabular-nums ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
-                {isPositive ? `+${qty}` : `${qty}`}
-              </span>
+              {ilimitado ? (
+                <span className="font-medium">{t(`unlimited.${ilimitado}`)}</span>
+              ) : (
+                <span className={`font-medium tabular-nums ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
+                  {isPositive ? `+${qty}` : `${qty}`}
+                </span>
+              )}
               {productName && (
                 <span className="text-sm text-muted-foreground">{productName}</span>
               )}
