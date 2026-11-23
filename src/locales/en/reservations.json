@@ -166,7 +166,8 @@
     "deposit": {
       "title": "Deposit",
       "amount": "Amount",
-      "status": "Status"
+      "status": "Status",
+      "waiting": "Awaiting payment"
     },
     "reschedule": {
       "title": "Reschedule Reservation",
