@@ -80,8 +80,6 @@ export interface Reservation {
   } | null
   depositAmount: number | null
   depositStatus: DepositStatus | null
-  /** D681: hasta cuándo se aparta el lugar mientras el pago por adelantado sigue pendiente (campo opcional del SERVIDOR). */
-  depositExpiresAt?: string | null
   confirmedAt: string | null
   checkedInAt: string | null
   completedAt: string | null

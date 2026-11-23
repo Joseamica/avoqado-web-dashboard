@@ -6,6 +6,8 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { BreadcrumbProvider } from '@/context/BreadcrumbContext'
 import { Currency } from '@/utils/currency'
 import type { Reservation, ReservationStatus } from '@/types/reservation'
+import reservationsEn from '@/locales/en/reservations.json'
+import reservationsEs from '@/locales/es/reservations.json'
 
 const mockNavigate = vi.fn()
 
@@ -25,9 +27,7 @@ vi.mock('react-i18next', () => ({
         if (typeof p.code === 'string') return `${key}:${p.code}`
         // Los textos de «Sí llegó» llevan variables (nombre, clase, hora, cuántas): se ven en la salida para poder afirmarlas.
         const vars = Object.fromEntries(Object.entries(p).filter(([k]) => k !== 'defaultValue'))
-        if ((key.startsWith('undoNoShow') || key === 'detail.deposit.waitingUntil') && Object.keys(vars).length > 0) {
-          return `${key}:${JSON.stringify(vars)}`
-        }
+        if (key.startsWith('undoNoShow') && Object.keys(vars).length > 0) return `${key}:${JSON.stringify(vars)}`
       }
       return key
     },
@@ -140,27 +140,15 @@ beforeEach(() => {
   access.allowed = ['reservations:read', 'reservations:update']
 })
 
+// D681 (sólo texto): el depósito por adelantado sin pagar se llama «Esperando pago», sin hora. El SERVIDOR no manda hasta cuándo
+// y no se cambia: el lugar lo suelta el aviso de Stripe cuando vence la liga.
 describe('ReservationDetail — D681: depósito sin pagar', () => {
-  beforeEach(() => {
-    vi.clearAllMocks()
-  })
-
-  it('sin pagar todavía: «Esperando pago · vence HH:MM» con la hora del negocio', async () => {
-    mockReservation = {
-      ...createTestReservation('PENDING'),
-      depositAmount: 325,
-      depositStatus: 'PENDING',
-      depositExpiresAt: '2026-11-22T21:13:00.000Z',
-    }
-    await renderDetail()
-    expect(screen.getByText('detail.deposit.waitingUntil:{"time":"21:13"}')).toBeDefined()
-    expect(screen.queryByText('depositStatus.PENDING')).toBeNull()
-  })
-
-  it('sin hora del SERVIDOR (o ya pagado) se queda como antes', async () => {
-    mockReservation = { ...createTestReservation('PENDING'), depositAmount: 325, depositStatus: 'PENDING', depositExpiresAt: null }
+  it('la etiqueta del depósito pendiente es «Esperando pago», sin hora', async () => {
+    mockReservation = { ...createTestReservation('PENDING'), depositAmount: 325, depositStatus: 'PENDING' }
     await renderDetail()
     expect(screen.getByText('depositStatus.PENDING')).toBeDefined()
+    expect(reservationsEs.depositStatus.PENDING).toBe('Esperando pago')
+    expect(reservationsEn.depositStatus.PENDING).toBe('Awaiting payment')
   })
 })
 

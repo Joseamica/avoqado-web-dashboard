@@ -603,12 +603,7 @@ export default function ReservationDetail() {
                 {reservation.depositStatus && (
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">{t('detail.deposit.status')}</span>
-                    <span className="font-medium">
-                      {/* D681: sin pagar todavía, a qué hora se suelta el lugar si no paga. */}
-                      {reservation.depositStatus === 'PENDING' && reservation.depositExpiresAt
-                        ? t('detail.deposit.waitingUntil', { time: formatTime(reservation.depositExpiresAt) })
-                        : t(`depositStatus.${reservation.depositStatus}`)}
-                    </span>
+                    <span className="font-medium">{t(`depositStatus.${reservation.depositStatus}`)}</span>
                   </div>
                 )}
               </div>
