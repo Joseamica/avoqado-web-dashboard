@@ -5,7 +5,9 @@ export interface CreditPackItem {
 	id: string
 	productId: string
 	product: { id: string; name: string; type: string; price: number; imageUrl?: string; duration?: number }
+	/** Un renglón Ilimitado trae 99,999 por dentro: nunca se enseña (D679). */
 	quantity: number
+	unlimited?: boolean
 }
 
 export interface CreditPack {
@@ -38,6 +40,8 @@ export interface CreditPackPurchase {
 	status: CreditPurchaseStatus
 	amountPaid: number
 	itemBalances: CreditItemBalance[]
+	/** Sólo en compras con un Ilimitado (D679): faltas contadas por reserva; no castigan. */
+	faltas?: { noLlego: number; cancelTarde: number }
 	createdAt: string
 }
 
@@ -47,6 +51,8 @@ export interface CreditItemBalance {
 	product: { id: string; name: string; type: string; imageUrl?: string }
 	originalQuantity: number
 	remainingQuantity: number
+	/** Ilimitado (D679): las cantidades son 99,999 por dentro y no se enseñan. */
+	unlimited?: boolean
 }
 
 export interface CreditTransaction {
@@ -58,7 +64,7 @@ export interface CreditTransaction {
 	quantity: number
 	reason?: string
 	reservationId?: string
-	creditItemBalance?: { product: { id: string; name: string } }
+	creditItemBalance?: { unlimited?: boolean; product: { id: string; name: string } }
 	creditPackPurchase?: { creditPack: { name: string } }
 	createdBy?: { staff: { firstName: string; lastName: string } } | null
 	createdAt: string
@@ -72,7 +78,9 @@ export interface CreateCreditPackRequest {
 	validityDays?: number
 	maxPerCustomer?: number
 	displayOrder?: number
-	items: { productId: string; quantity: number }[]
+	/** Cada renglón manda `unlimited` (true o false): así el SERVIDOR sabe que es un panel nuevo (D679, W4). Un Ilimitado no
+	 * manda cantidad. */
+	items: { productId: string; quantity?: number; unlimited: boolean }[]
 }
 
 export type UpdateCreditPackRequest = Partial<CreateCreditPackRequest> & { active?: boolean }

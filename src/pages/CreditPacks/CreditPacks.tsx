@@ -18,6 +18,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -216,6 +217,12 @@ export default function CreditPacks() {
         cell: ({ row }) => (
           <span className="text-sm text-muted-foreground">
             {t('itemsSummary', { count: row.original.items.length })}
+            {/* D679: un paquete con un renglón Ilimitado se ve así en la lista. */}
+            {row.original.items.some(item => item.unlimited) && (
+              <Badge variant="secondary" className="ml-2">
+                {t('unlimited.label')}
+              </Badge>
+            )}
           </span>
         ),
       },

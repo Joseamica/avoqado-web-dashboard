@@ -42,7 +42,10 @@ import { useDebounce } from '@/hooks/useDebounce'
 import creditPackService from '@/services/creditPack.service'
 import type { CreditPackPurchase, CreditItemBalance, CreditPurchaseStatus } from '@/types/creditPack'
 import { getIntlLocale } from '@/utils/i18n-locale'
+import { useVenueDateTime } from '@/utils/datetime'
 import { includesNormalized } from '@/lib/utils'
+
+import { describeBalance } from './creditBalanceDisplay'
 
 export default function CreditPackPurchasesTab() {
   const { venueId } = useCurrentVenue()
@@ -62,6 +65,8 @@ export default function CreditPackPurchasesTab() {
   const [refundingPurchase, setRefundingPurchase] = useState<CreditPackPurchase | null>(null)
   const [refundReason, setRefundReason] = useState('')
   const [redeemingBalance, setRedeemingBalance] = useState<CreditItemBalance | null>(null)
+  // Vencimiento de la compra del saldo que se canjea: un Ilimitado lo enseña en lugar del restante (D679).
+  const [redeemingExpiresAt, setRedeemingExpiresAt] = useState<string | undefined>()
   const [redeemQuantity, setRedeemQuantity] = useState(1)
   const [adjustingBalance, setAdjustingBalance] = useState<CreditItemBalance | null>(null)
   const [adjustQuantity, setAdjustQuantity] = useState(0)
@@ -149,10 +154,8 @@ export default function CreditPackPurchasesTab() {
     }
   }, [])
 
-  const formatDate = useCallback(
-    (dateStr: string) => new Date(dateStr).toLocaleDateString(getIntlLocale(i18n.language), { dateStyle: 'medium' }),
-    [i18n.language],
-  )
+  // Fechas en la zona del negocio, no la del navegador.
+  const { formatDate } = useVenueDateTime()
 
   const formatPrice = useCallback(
     (amount: number) => new Intl.NumberFormat(getIntlLocale(i18n.language), { style: 'currency', currency: 'MXN' }).format(amount),
@@ -195,40 +198,56 @@ export default function CreditPackPurchasesTab() {
         <div className="px-12 py-4">
           <h4 className="font-medium mb-3 text-sm">{t('purchases.balances')}</h4>
           <div className="space-y-2">
-            {purchase.itemBalances.map((balance: CreditItemBalance) => (
-              <div key={balance.id} className="flex items-center justify-between p-3 rounded-xl border border-border/50 bg-muted/30">
-                <div>
-                  <span className="font-medium">{balance.product.name}</span>
-                  <span className="text-sm text-muted-foreground ml-2">
-                    {t('purchases.remaining', { remaining: balance.remainingQuantity, original: balance.originalQuantity })}
-                  </span>
-                </div>
-                {purchase.status === 'ACTIVE' && balance.remainingQuantity > 0 && (
-                  <div className="flex gap-2">
-                    {/* Canjear y ajustar dejaron de compartir permiso (founder, 2026-08-16):
-                        canjear es OPERAR (`creditPacks:redeem`, que el mostrador ya trae) y
-                        ajustar un saldo a mano sigue siendo ADMINISTRAR (`creditPacks:update`).
-                        Con un solo gate el boton se le escondia a quien el server SI autoriza. */}
-                    <PermissionGate permission="creditPacks:redeem">
-                      <Button size="sm" variant="outline" className="cursor-pointer" onClick={() => { setRedeemingBalance(balance); setRedeemQuantity(1) }}>
-                        <RefreshCcw className="h-3 w-3 mr-1" />
-                        {t('actions.redeem')}
-                      </Button>
-                    </PermissionGate>
-                    <PermissionGate permission="creditPacks:update">
-                      <Button size="sm" variant="outline" className="cursor-pointer" onClick={() => { setAdjustingBalance(balance); setAdjustQuantity(0); setAdjustReason('') }}>
-                        {t('actions.adjust')}
-                      </Button>
-                    </PermissionGate>
+            {purchase.itemBalances.map((balance: CreditItemBalance) => {
+              // Un Ilimitado es 99,999 por dentro: se enseña «Ilimitado · vence el … · usó N», nunca el número (D679).
+              const saldo = describeBalance(balance, purchase.status)
+              return (
+                <div key={balance.id} className="flex items-center justify-between p-3 rounded-xl border border-border/50 bg-muted/30">
+                  <div>
+                    <span className="font-medium">{balance.product.name}</span>
+                    <span className="text-sm text-muted-foreground ml-2">
+                      {saldo.kind === 'unlimited'
+                        ? saldo.used === null
+                          ? t('unlimited.refunded')
+                          : t('unlimited.active', { date: formatDate(purchase.expiresAt), used: saldo.used })
+                        : t('purchases.remaining', { remaining: saldo.remaining, original: saldo.total })}
+                    </span>
                   </div>
-                )}
-              </div>
-            ))}
+                  {purchase.status === 'ACTIVE' && balance.remainingQuantity > 0 && (
+                    <div className="flex gap-2">
+                      {/* Canjear y ajustar dejaron de compartir permiso (founder, 2026-08-16):
+                          canjear es OPERAR (`creditPacks:redeem`, que el mostrador ya trae) y
+                          ajustar un saldo a mano sigue siendo ADMINISTRAR (`creditPacks:update`).
+                          Con un solo gate el boton se le escondia a quien el server SI autoriza. */}
+                      <PermissionGate permission="creditPacks:redeem">
+                        <Button size="sm" variant="outline" className="cursor-pointer" onClick={() => { setRedeemingBalance(balance); setRedeemingExpiresAt(purchase.expiresAt); setRedeemQuantity(1) }}>
+                          <RefreshCcw className="h-3 w-3 mr-1" />
+                          {t('actions.redeem')}
+                        </Button>
+                      </PermissionGate>
+                      {/* Un Ilimitado no tiene saldo que ajustar (el SERVIDOR lo rechaza con CREDIT_UNLIMITED_NO_ADJUST). */}
+                      {saldo.kind === 'count' && (
+                        <PermissionGate permission="creditPacks:update">
+                          <Button size="sm" variant="outline" className="cursor-pointer" onClick={() => { setAdjustingBalance(balance); setAdjustQuantity(0); setAdjustReason('') }}>
+                            {t('actions.adjust')}
+                          </Button>
+                        </PermissionGate>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
           </div>
+          {purchase.faltas && (
+            <p className="text-sm text-muted-foreground mt-3">
+              {t('unlimited.faltas', { noLlego: purchase.faltas.noLlego, cancelTarde: purchase.faltas.cancelTarde })}
+            </p>
+          )}
         </div>
       )
     },
-    [expandedRows, t],
+    [expandedRows, t, formatDate],
   )
 
   const columns: ColumnDef<CreditPackPurchase>[] = useMemo(
@@ -419,11 +438,18 @@ export default function CreditPackPurchasesTab() {
               <DialogDescription>{redeemingBalance.product.name}</DialogDescription>
             </DialogHeader>
             <div className="py-2">
-              <Label>{t('redeem.quantityLabel')}</Label>
-              <Input type="number" min={1} max={redeemingBalance.remainingQuantity} value={redeemQuantity} onChange={e => setRedeemQuantity(parseInt(e.target.value) || 1)} className="mt-1" />
-              <p className="text-sm text-muted-foreground mt-1">
-                {t('purchases.remaining', { remaining: redeemingBalance.remainingQuantity, original: redeemingBalance.originalQuantity })}
-              </p>
+              {redeemingBalance.unlimited ? (
+                // Ilimitado: se registra 1 uso, sin máximo ni restante (D679).
+                <p className="text-sm text-muted-foreground">{t('unlimited.expiresOn', { date: formatDate(redeemingExpiresAt) })}</p>
+              ) : (
+                <>
+                  <Label>{t('redeem.quantityLabel')}</Label>
+                  <Input type="number" min={1} max={redeemingBalance.remainingQuantity} value={redeemQuantity} onChange={e => setRedeemQuantity(parseInt(e.target.value) || 1)} className="mt-1" />
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {t('purchases.remaining', { remaining: redeemingBalance.remainingQuantity, original: redeemingBalance.originalQuantity })}
+                  </p>
+                </>
+              )}
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setRedeemingBalance(null)}>{t('redeem.cancel')}</Button>

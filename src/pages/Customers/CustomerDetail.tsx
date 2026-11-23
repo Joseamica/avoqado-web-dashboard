@@ -55,6 +55,7 @@ import { getIntlLocale } from '@/utils/i18n-locale'
 import { useVenueDateTime } from '@/utils/datetime'
 import type { LoyaltyTransaction, CustomerGroup, LoyaltyTransactionType } from '@/types/customer'
 import type { CreditPackPurchase } from '@/types/creditPack'
+import { describeBalance } from '@/pages/CreditPacks/creditBalanceDisplay'
 
 import CustomerForm from './components/CustomerForm'
 import ReferralCard from './components/ReferralCard'
@@ -71,6 +72,7 @@ export default function CustomerDetail() {
 	const queryClient = useQueryClient()
 	const { t, i18n } = useTranslation('customers')
 	const { t: tCommon } = useTranslation()
+	const { t: tPacks } = useTranslation('creditPacks')
 	const { formatDate: formatDateVenue } = useVenueDateTime()
 
 	const [showEditDialog, setShowEditDialog] = useState(false)
@@ -663,8 +665,9 @@ export default function CustomerDetail() {
 															{purchase.itemBalances.map((balance) => {
 																const exhausted = balance.remainingQuantity === 0
 																// When admin has adjusted balance above the original purchase amount,
-																// "X of Y" misleads ("6 of 1"). Show "X available" instead.
-																const adjusted = balance.remainingQuantity > balance.originalQuantity
+																// "X of Y" misleads ("6 of 1"): `adjusted` shows "X available" instead.
+																// Un Ilimitado es 99,999 por dentro: «Ilimitado · vence el … · usó N» (D679).
+																const saldo = describeBalance(balance, purchase.status)
 																return (
 																	<div
 																		key={balance.id}
@@ -672,17 +675,29 @@ export default function CustomerDetail() {
 																	>
 																		<span className="text-sm truncate min-w-0 mr-3">{balance.product.name}</span>
 																		<span className={'text-sm font-medium tabular-nums whitespace-nowrap ' + (exhausted ? '' : 'text-foreground')}>
-																			{adjusted
-																				? t('detail.credits.remainingAdjusted', { remaining: balance.remainingQuantity })
-																				: t('detail.credits.remaining', {
-																					remaining: balance.remainingQuantity,
-																					total: balance.originalQuantity,
-																				})}
+																			{saldo.kind === 'unlimited'
+																				? saldo.used === null
+																					? tPacks('unlimited.refunded')
+																					: tPacks('unlimited.active', { date: formatDate(purchase.expiresAt), used: saldo.used })
+																				: saldo.adjusted
+																					? t('detail.credits.remainingAdjusted', { remaining: saldo.remaining })
+																					: t('detail.credits.remaining', {
+																						remaining: saldo.remaining,
+																						total: saldo.total,
+																					})}
 																		</span>
 																	</div>
 																)
 															})}
 														</div>
+														{purchase.faltas && (
+															<div className="text-xs text-muted-foreground mt-2">
+																{tPacks('unlimited.faltas', {
+																	noLlego: purchase.faltas.noLlego,
+																	cancelTarde: purchase.faltas.cancelTarde,
+																})}
+															</div>
+														)}
 													</div>
 												)
 											})}

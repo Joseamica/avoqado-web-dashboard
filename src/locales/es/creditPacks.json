@@ -38,7 +38,8 @@
       "items": "Items del Paquete",
       "addItem": "Agregar Item",
       "product": "Producto",
-      "quantity": "Cantidad"
+      "quantity": "Cantidad",
+      "unlimited": "Ilimitado"
     },
     "placeholders": {
       "name": "ej., Paquete 10 Clases",
@@ -55,8 +56,10 @@
       "itemsRequired": "Se requiere al menos un item",
       "productRequired": "El producto es requerido",
       "quantityRequired": "La cantidad es requerida",
-      "quantityPositive": "La cantidad debe ser mayor a 0"
-    }
+      "quantityPositive": "La cantidad debe ser mayor a 0",
+      "unlimitedNeedsValidity": "Un paquete Ilimitado necesita días de vigencia"
+    },
+    "unlimitedHelp": "Personal: sólo a nombre de quien lo compra, un lugar por clase"
   },
   "purchases": {
     "title": "Compras",
@@ -159,5 +162,13 @@
   "itemsSummary": "{{count}} item(s)",
   "filters": {
     "clearAll": "Limpiar filtros"
+  },
+  "unlimited": {
+    "label": "Ilimitado",
+    "active": "Ilimitado · vence el {{date}} · usó {{used}}",
+    "refunded": "Ilimitado · reembolsado",
+    "expiresOn": "Ilimitado · vence el {{date}}",
+    "faltas": "Faltas: {{noLlego}} sin llegar · {{cancelTarde}} cancelaciones tardías",
+    "voided": "Ilimitado anulado"
   }
 }
