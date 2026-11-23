@@ -302,6 +302,12 @@ const StatusIndicator: React.FC<{ type: RowType }> = ({ type }) => (
 /** Menos de medio centavo es cero: una comisión de 4 decimales o un residuo no se pintan «−$0.00» (D16.1; Codex r1 #3 del carril F). */
 const sinMedioCentavo = (n: number) => (Math.abs(n) < 0.005 ? 0 : n)
 
+/**
+ * El formateador de dinero de TODA la pantalla (número grande, renglones, métodos, estado, canales): sin medio centavo, así que
+ * nunca «−$0.00» (familia de D16.1; Codex r1 #3 y r2 #1 del carril F).
+ */
+const pesos = (n: number) => Currency(sinMedioCentavo(n))
+
 /** Lo que resta se pinta en negativo; un reverso (comisión que regresó, valor negativo) suma. */
 const comoResta = (n: number | null | undefined) => sinMedioCentavo(-Number(n ?? 0))
 
@@ -408,7 +414,7 @@ const SummaryRow: React.FC<{
       {caption && <span className="text-xs text-muted-foreground ml-4">{caption}</span>}
     </div>
     <span data-monto className={cn('text-sm text-right min-w-[100px] tabular-nums', bold && 'font-semibold')}>
-      {Currency(sinMedioCentavo(value))}
+      {pesos(value)}
     </span>
   </div>
 )
@@ -465,7 +471,7 @@ const CollapsibleSummaryRow: React.FC<{
         )}
       </div>
       <span data-monto className={cn('text-sm text-right min-w-[100px] tabular-nums', bold && 'font-semibold')}>
-        {Currency(sinMedioCentavo(value))}
+        {pesos(value)}
       </span>
     </div>
     {isOpen && (
@@ -501,7 +507,7 @@ const SalesBreakdownBar: React.FC<{
             </TooltipTrigger>
             <TooltipContent side="top" className="text-xs">
               <p className="font-medium">{segment.label}</p>
-              <p className="text-muted-foreground">{Currency(segment.value)} ({segment.percentage.toFixed(1)}%)</p>
+              <p className="text-muted-foreground">{pesos(segment.value)} ({segment.percentage.toFixed(1)}%)</p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
@@ -590,7 +596,7 @@ const SalesPieChart: React.FC<{
                   </TooltipTrigger>
                   <TooltipContent side="right" className="text-xs">
                     <p className="font-medium">{segment.label}</p>
-                    <p className="text-muted-foreground">{Currency(segment.value)} ({segment.percentage.toFixed(1)}%)</p>
+                    <p className="text-muted-foreground">{pesos(segment.value)} ({segment.percentage.toFixed(1)}%)</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
@@ -645,7 +651,7 @@ const SalesTable: React.FC<{
           <div className={cn('w-2.5 h-2.5 rounded-sm', segment.color)} />
           <span className="text-sm">{segment.label}</span>
         </div>
-        <span className="text-sm tabular-nums text-right">{Currency(segment.value)}</span>
+        <span className="text-sm tabular-nums text-right">{pesos(segment.value)}</span>
         <span className="text-sm text-right text-muted-foreground">{segment.percentage.toFixed(1)}%</span>
       </div>
     ))}
@@ -677,7 +683,7 @@ const PaymentMethodRow: React.FC<{
     </div>
     <span className="text-sm text-muted-foreground text-right">{count} {countLabel}</span>
     <span className="text-sm text-muted-foreground text-right min-w-[50px]">{percentage.toFixed(1)}%</span>
-    <span className="text-sm tabular-nums text-right min-w-[100px]">{Currency(amount)}</span>
+    <span className="text-sm tabular-nums text-right min-w-[100px]">{pesos(amount)}</span>
   </div>
 )
 
@@ -714,9 +720,21 @@ const DetailedBreakdownRow: React.FC<{
       >
         <div className="flex items-center gap-2">
           {hasSubBuckets ? (
-            <ChevronDown
-              className={cn('w-4 h-4 text-muted-foreground transition-transform shrink-0', !expanded && '-rotate-90')}
-            />
+            // El renglón entero despliega con el mouse; con teclado, este botón (Codex r2 #6 del carril F).
+            <button
+              type="button"
+              aria-expanded={expanded}
+              aria-label={label}
+              onClick={e => {
+                e.stopPropagation()
+                setExpanded(v => !v)
+              }}
+              className="rounded-sm cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <ChevronDown
+                className={cn('w-4 h-4 text-muted-foreground transition-transform shrink-0', !expanded && '-rotate-90')}
+              />
+            </button>
           ) : (
             <span className="w-4 shrink-0" />
           )}
@@ -732,13 +750,13 @@ const DetailedBreakdownRow: React.FC<{
           )}
           {platformFees > 0 && (
             <span className="text-[11px] text-muted-foreground mt-0.5">
-              {feesLabel}: {Currency(platformFees)}
+              {feesLabel}: {pesos(platformFees)}
             </span>
           )}
         </div>
         <span className="text-sm text-muted-foreground text-right">{count} {countLabel}</span>
         <span className="text-sm text-muted-foreground text-right min-w-[50px]">{percentage.toFixed(1)}%</span>
-        <span className="text-sm tabular-nums text-right min-w-[100px]">{Currency(amount)}</span>
+        <span className="text-sm tabular-nums text-right min-w-[100px]">{pesos(amount)}</span>
       </div>
 
       {hasSubBuckets && expanded && (
@@ -753,13 +771,13 @@ const DetailedBreakdownRow: React.FC<{
                 <span className="text-sm">{subLabels?.[sub.type] ?? sub.type}</span>
                 {sub.platformFees > 0 && (
                   <span className="text-[11px] text-muted-foreground mt-0.5">
-                    {feesLabel}: {Currency(sub.platformFees)}
+                    {feesLabel}: {pesos(sub.platformFees)}
                   </span>
                 )}
               </div>
               <span className="text-xs text-muted-foreground text-right">{sub.count} {countLabel}</span>
               <span className="text-xs text-muted-foreground text-right min-w-[50px]">{sub.percentage.toFixed(1)}%</span>
-              <span className="text-sm tabular-nums text-right min-w-[100px]">{Currency(sub.amount)}</span>
+              <span className="text-sm tabular-nums text-right min-w-[100px]">{pesos(sub.amount)}</span>
             </div>
           ))}
         </div>
@@ -2033,11 +2051,11 @@ export default function SalesSummary() {
         <WalletCards className="w-4 h-4 shrink-0" />
         {saldoDeRegalo.refunds > 0
           ? t('salesSummary.giftBalanceLineWithRefunds', {
-              amount: Currency(saldoDeRegalo.amount),
+              amount: pesos(saldoDeRegalo.amount),
               count: saldoDeRegalo.count,
-              refunds: Currency(saldoDeRegalo.refunds),
+              refunds: pesos(saldoDeRegalo.refunds),
             })
-          : t('salesSummary.giftBalanceLine', { amount: Currency(saldoDeRegalo.amount), count: saldoDeRegalo.count })}
+          : t('salesSummary.giftBalanceLine', { amount: pesos(saldoDeRegalo.amount), count: saldoDeRegalo.count })}
       </p>
     ) : null
 
@@ -2055,7 +2073,7 @@ export default function SalesSummary() {
           </div>
           <div>
             <p className="text-sm text-muted-foreground mb-1">{t('salesSummary.totalSales')}</p>
-            <p className="text-4xl font-bold tracking-tight">{Currency(data.summary.totalCollected)}</p>
+            <p className="text-4xl font-bold tracking-tight">{pesos(data.summary.totalCollected)}</p>
             <p className="text-sm text-muted-foreground mt-1">
               {data.transactions.total} {t('salesSummary.transactions')}
             </p>
@@ -2208,22 +2226,6 @@ export default function SalesSummary() {
                 />
               )}
 
-              {/* Tarjetas de regalo (spec §7, B5): PARTE de las ventas y propinas de arriba, con sangría bajo «Ventas netas» y con su
-                  mismo gate (M3). El server la manda sólo sin filtro de pago; se pinta si no es cero. */}
-              {/* Sale con «Ventas netas» (debajo, con sangría) o con «Neto cobrado» (al ras), que también lo traen (Codex r1 #2). */}
-              {!sinMetricasDeOrden &&
-                (mostrarVentasNetas || selectedMetrics.includes('totalCollected')) &&
-                typeof data.summary.paidWithGiftCardBalance === 'number' &&
-                data.summary.paidWithGiftCardBalance !== 0 && (
-                  <SummaryRow
-                    label={t('salesSummary.rows.paidWithGiftCardBalance')}
-                    value={data.summary.paidWithGiftCardBalance}
-                    type="neutral"
-                    indent={mostrarVentasNetas ? 1 : 0}
-                    tooltip={t('salesSummary.tooltips.paidWithGiftCardBalance')}
-                  />
-                )}
-
               {/* Propinas */}
               {selectedMetrics.includes('tips') && (
                 <SummaryRow
@@ -2271,9 +2273,22 @@ export default function SalesSummary() {
                         ? `${tooltipTotalCobrado.replace(/\.$/, '')}. ${t('salesSummary.tooltips.totalCollectedSettlement', { debitDays: settlementLabels.debitDays, amexDays: settlementLabels.amexDays })}`
                         : tooltipTotalCobrado
                     }
-                    // D16.3: los dos «netos» de la página miden distinto; se dice aquí, donde se comparan.
-                    nota={showStatement ? t('salesSummary.tooltips.totalCollectedVsStatement') : undefined}
+                    // D16.3: los dos «netos» de la página miden distinto; se dice aquí, donde se comparan. Con un filtro de pago o de
+                    // comercio, «Neto cobrado» ya sale de los pagos: la comparación no aplica (Codex r2 #2).
+                    nota={showStatement && !sinMetricasDeOrden ? t('salesSummary.tooltips.totalCollectedVsStatement') : undefined}
                   />
+                  {/* Tarjetas de regalo (spec §7, B5): de lo cobrado, lo que se pagó con saldo (venta y propina). Informativo y al ras: trae
+                      propina, así que no es una parte de «Ventas netas» (Codex r2 #3). El server la manda sólo sin filtro de pago. */}
+                  {!sinMetricasDeOrden &&
+                    typeof data.summary.paidWithGiftCardBalance === 'number' &&
+                    data.summary.paidWithGiftCardBalance !== 0 && (
+                      <SummaryRow
+                        label={t('salesSummary.rows.paidWithGiftCardBalance')}
+                        value={data.summary.paidWithGiftCardBalance}
+                        type="neutral"
+                        tooltip={t('salesSummary.tooltips.paidWithGiftCardBalance')}
+                      />
+                    )}
                 </>
               )}
 
@@ -2297,7 +2312,7 @@ export default function SalesSummary() {
                     type="total"
                     bold
                     // Codex r1 #4: debajo de «Neto cobrado − empleados» la cuenta no da sin decir que también salen las propinas.
-                    caption={sinMetricasDeOrden ? undefined : t('salesSummary.netProfitCaption')}
+                    caption={t('salesSummary.netProfitCaption')}
                     tooltip={t(
                       sinMetricasDeOrden
                         ? 'salesSummary.tooltips.netProfitMovements'
@@ -2378,7 +2393,7 @@ export default function SalesSummary() {
                       data.summary.reservationDepositsRefunded !== 0
                         ? t('salesSummary.depositsCountLabelWithRefunds', {
                             count: data.summary.reservationDepositsCount,
-                            refunded: Currency(data.summary.reservationDepositsRefunded),
+                            refunded: pesos(data.summary.reservationDepositsRefunded),
                           })
                         : t('salesSummary.depositsCountLabel', { count: data.summary.reservationDepositsCount })
                     }
@@ -2420,7 +2435,7 @@ export default function SalesSummary() {
         // La vista que de verdad pidió la pantalla (Codex r3 #2): con el plan Gratis la petición no lleva el filtro guardado.
         conFiltro={apiResponse?.filtered === true}
         desfasado={apiResponse?.channelBreakdownOutOfSync === true}
-        formatCurrency={Currency}
+        formatCurrency={pesos}
       />
 
       {/* Period statement (Mercury-style): "cuánto gané, cuánto me pagan, cuándo
@@ -2434,7 +2449,7 @@ export default function SalesSummary() {
             destinations={statementDestinations}
             calendar={settlementCalendar}
             venueTimezone={venueTimezone}
-            formatCurrency={Currency}
+            formatCurrency={pesos}
           />
           {lineaDeSaldo('px-1')}
           {/* The week strip reads the whole venue: with one merchant chosen it would contradict the statement above (D9.2). */}

@@ -147,16 +147,17 @@ describe('SalesSummary · cifras de tarjetas de regalo (D5 r1)', () => {
     expect(screen.queryByText('salesSummary.rows.paidWithGiftCardBalance')).not.toBeInTheDocument()
   })
 
-  it('«Pagado con saldo» va justo debajo de «Ventas netas» (carril F: ya no hay «Total de las ventas»), con sangría', async () => {
+  it('«Pagado con saldo» va justo después de «Neto cobrado», al ras: trae propina, no es una parte de «Ventas netas» (Codex r2 #3)', async () => {
     pintar()
     const pagado = await screen.findByText('salesSummary.rows.paidWithGiftCardBalance')
-    expect(antes(screen.getByText('salesSummary.rows.netSales'), pagado)).toBe(true)
-    expect(antes(pagado, screen.getByText('salesSummary.rows.tips'))).toBe(true)
+    expect(antes(screen.getByText('salesSummary.rows.totalCollected'), pagado)).toBe(true)
+    expect(pagado.closest('.justify-between')).toHaveClass('px-4')
+    expect(antes(pagado, screen.getByText('salesSummary.rows.netProfit'))).toBe(true)
   })
 
-  it('🔴 M3 · sin «Ventas netas» ni «Neto cobrado» en las métricas, «Pagado con saldo» no queda colgado bajo otro renglón', async () => {
+  it('🔴 M3 · sin «Neto cobrado» en las métricas, «Pagado con saldo» no queda colgado bajo otro renglón', async () => {
     // `localStorage` es un vi.fn() de setup.ts (mockReset lo vacía en cada prueba): las preferencias guardadas se fingen aquí.
-    vi.mocked(localStorage.getItem).mockReturnValue(JSON.stringify({ selectedMetrics: ['grossSales', 'taxes', 'tips'] }))
+    vi.mocked(localStorage.getItem).mockReturnValue(JSON.stringify({ selectedMetrics: ['grossSales', 'netSales', 'taxes', 'tips'] }))
     pintar()
     await screen.findByText('salesSummary.rows.taxes')
     expect(screen.queryByText('salesSummary.rows.paidWithGiftCardBalance')).not.toBeInTheDocument()
@@ -784,10 +785,42 @@ describe('SalesSummary · carril F, pantalla (hz:fefa11b6:D7, D14, D15, D16)', (
     expect(screen.getByText('salesSummary.netProfitCaption')).toBeInTheDocument()
   })
 
+  it('🔴 Codex r2 #4 · la línea de «Ganancia neta» también sale en la vista de movimientos (allí también salen las propinas)', async () => {
+    h.response = respuesta({
+      filtered: true,
+      summary: { ...SUMMARY, grossSales: null, items: null, serviceCosts: null, discounts: null, netSales: null, deferredSales: null, taxes: null },
+    })
+    pintar()
+    expect(await screen.findByText('salesSummary.netProfitCaption')).toBeInTheDocument()
+  })
+
   it('🔴 Codex r1 #5 · «Métodos de pago» cuenta movimientos (cobros y devoluciones), no «cobros»', async () => {
     h.access = false
     pintar()
     expect(await screen.findByText('18 salesSummary.movementsLabel')).toBeInTheDocument()
+  })
+
+  it('🔴 Codex r2 #1 · el número grande tampoco pinta «−$0.00» con medio centavo', async () => {
+    h.response = respuesta({ summary: { ...SUMMARY, totalCollected: -0.004 } })
+    pintar()
+    const tarjeta = await tarjetaDelTotal()
+    expect(within(tarjeta).getByText('$0.00')).toBeInTheDocument()
+  })
+
+  it('🔴 Codex r2 #6 · el detalle por tipo de tarjeta de «Métodos de pago» se abre con teclado (un botón con su estado)', async () => {
+    h.access = false
+    h.response = respuesta({
+      byPaymentMethodDetailed: [
+        { bucket: 'CARD', amount: 300, count: 3, percentage: 100, tips: 0, refunds: 0, platformFees: 9,
+          subBuckets: [{ type: 'CREDIT', amount: 200, count: 2, percentage: 66.7, platformFees: 6 }, { type: 'DEBIT', amount: 100, count: 1, percentage: 33.3, platformFees: 3 }] },
+      ],
+    })
+    pintar()
+    const boton = await screen.findByRole('button', { name: 'salesSummary.paymentTypes.card' })
+    expect(boton).toHaveAttribute('aria-expanded', 'false')
+    fireEvent.click(boton)
+    expect(boton).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByText('salesSummary.controls.filterBy.cardType.options.credit')).toBeInTheDocument()
   })
 
   it('🔴 Codex r1 #8 · con el QR anterior sin leer (cifras incompletas), no dice «No hubo ventas»', async () => {

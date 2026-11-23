@@ -215,7 +215,19 @@ export function MerchantStatementRows({ rows, formatCurrency }: Props) {
                 >
                   <td className="py-2.5 pr-2">
                     <div className="flex items-center gap-2">
-                      <ChevronDown className={cn('h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform', !isOpen && '-rotate-90')} aria-hidden />
+                      {/* El renglón entero despliega con el mouse; con teclado, este botón (familia de D16.7 / D7.9, carril F). */}
+                      <button
+                        type="button"
+                        aria-expanded={isOpen}
+                        aria-label={name}
+                        onClick={e => {
+                          e.stopPropagation()
+                          toggle(row.merchantAccountId)
+                        }}
+                        className="cursor-pointer rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      >
+                        <ChevronDown className={cn('h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform', !isOpen && '-rotate-90')} aria-hidden />
+                      </button>
                       <div className="flex min-w-0 flex-col">
                         <span className="truncate font-medium" title={name}>
                           {name}

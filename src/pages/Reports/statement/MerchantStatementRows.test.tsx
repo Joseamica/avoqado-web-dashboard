@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { MerchantStatementRows } from './MerchantStatementRows'
 import type { MerchantStatementRowModel } from './types'
@@ -113,4 +113,14 @@ describe('MerchantStatementRows', () => {
     expect(chip).toHaveTextContent('salesSummary.statement.merchants.payout.landsDeduction')
     expect(screen.queryByTestId('payout-chip-lands')).not.toBeInTheDocument()
   })
+
+  it('🔴 carril F (Codex r2 #6, misma familia) · en escritorio el renglón de un comercio se despliega con teclado', () => {
+    render(<MerchantStatementRows rows={[row({ merchantAccountId: 'm1', settlementRules: [{ cardType: 'CREDIT', settlementDays: 1 }] })]} formatCurrency={fmt} />)
+    const tabla = screen.getByRole('table')
+    const boton = within(tabla).getByRole('button', { name: 'm1' })
+    expect(boton).toHaveAttribute('aria-expanded', 'false')
+    fireEvent.click(boton)
+    expect(boton).toHaveAttribute('aria-expanded', 'true')
+  })
 })
+

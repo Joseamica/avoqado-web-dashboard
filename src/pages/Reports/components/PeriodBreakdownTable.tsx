@@ -153,6 +153,12 @@ export function PeriodBreakdownTable({
     })
   }, [selectedMetrics, periods])
 
+  // Con un filtro de pago o de comercio el SERVIDOR no puede medir las métricas de orden (null en todos los periodos): si alguna
+  // elegida quedó fuera, se dice, para que una tabla sin renglones no parezca vacía (Codex r2 #7).
+  const hayOcultasPorFiltro = METRIC_ROWS.some(
+    row => selectedMetrics.includes(row.key) && periods.length > 0 && periods.every(p => p.metrics[row.key] == null),
+  )
+
   // Toggle row expansion
   const toggleRow = (key: string) => {
     setExpandedRows(prev => {
@@ -184,7 +190,9 @@ export function PeriodBreakdownTable({
   }
 
   return (
-    <div className="mt-6 rounded-xl border border-border/50 bg-card/50 backdrop-blur-sm overflow-hidden">
+    // `@container`: lo que se fija depende del ancho de la TABLA, no de la ventana (con el menú lateral abierto una ventana ancha
+    // deja una tabla angosta; Codex r2 #5 del carril F).
+    <div className="@container rounded-xl border border-border/50 bg-card/50 backdrop-blur-sm overflow-hidden">
       {/* Scrollable container */}
       <div className="overflow-x-auto">
         <table className="w-full border-collapse table-fixed">
@@ -192,7 +200,7 @@ export function PeriodBreakdownTable({
           <thead>
             <tr className="border-b border-border/30">
               {/* Sticky first column - Report type header (Square-style: ~300px) */}
-              <th className="sticky left-0 z-20 bg-card/95 backdrop-blur-sm px-3 sm:px-6 py-5 text-left w-[140px] min-w-[140px] sm:w-[300px] sm:min-w-[300px] border-r border-border/30">
+              <th className="sticky left-0 z-20 bg-card/95 backdrop-blur-sm px-3 @xl:px-6 py-5 text-left w-[140px] min-w-[140px] @xl:w-[300px] @xl:min-w-[300px] border-r border-border/30">
                 <div>
                   <p className="text-sm font-medium text-foreground">
                     {getReportTypeLabel(reportType, t)}
@@ -216,9 +224,9 @@ export function PeriodBreakdownTable({
                 </th>
               ))}
               {total && (
-                // Pegada a la derecha desde tableta, como la primera a la izquierda: con 7 días o 24 horas el total no se pierde al fondo
-                // del scroll. En un celular las dos fijas no dejaban ver ningún día (Codex r1 #6): ahí es la última columna.
-                <th className="sm:sticky sm:right-0 z-20 px-4 py-5 text-sm font-semibold text-foreground w-[120px] min-w-[120px] sm:w-[150px] sm:min-w-[150px] text-center border-l border-border/40 bg-muted">
+                // Pegada a la derecha cuando la tabla es ancha, como la primera a la izquierda: con 7 días o 24 horas el total no se pierde
+                // al fondo del scroll. En una tabla angosta las dos fijas no dejaban ver ningún día (Codex r1 #6, r2 #5): ahí es la última.
+                <th className="@3xl:sticky @3xl:right-0 z-20 px-4 py-5 text-sm font-semibold text-foreground w-[120px] min-w-[120px] @xl:w-[150px] @xl:min-w-[150px] text-center border-l border-border/40 bg-muted">
                   {t('salesSummary.periodTable.total')}
                 </th>
               )}
@@ -252,8 +260,8 @@ export function PeriodBreakdownTable({
                   {/* Sticky metric name column (Square-style spacing) */}
                   <td
                     className={cn(
-                      'sticky left-0 z-10 bg-card/95 backdrop-blur-sm px-3 sm:px-6 py-3.5 border-r border-border/30',
-                      isChild && 'pl-6 sm:pl-12'
+                      'sticky left-0 z-10 bg-card/95 backdrop-blur-sm px-3 @xl:px-6 py-3.5 border-r border-border/30',
+                      isChild && 'pl-6 @xl:pl-12'
                     )}
                   >
                     <div className="flex items-center gap-2">
@@ -284,6 +292,10 @@ export function PeriodBreakdownTable({
                         {t(`salesSummary.rows.${row.translationKey}`)}
                       </span>
                     </div>
+                    {/* Debajo de «Neto cobrado − empleados» la cuenta no da sin decir que también salen las propinas (Codex r2 #4). */}
+                    {row.key === 'netProfit' && (
+                      <p className="mt-0.5 text-xs font-normal text-muted-foreground">{t('salesSummary.netProfitCaption')}</p>
+                    )}
                   </td>
 
                   {/* Value cells for each period (150px, centered), then the «Total» column */}
@@ -302,7 +314,7 @@ export function PeriodBreakdownTable({
                           className={cn(
                             'px-4 py-4 w-[150px] min-w-[150px] text-center',
                             colIdx < cols.length - 1 && !cols[colIdx + 1].esTotal && 'border-r border-border/20',
-                            col.esTotal && 'sm:sticky sm:right-0 z-10 w-[120px] min-w-[120px] sm:w-[150px] sm:min-w-[150px] border-l border-border/40 bg-muted font-semibold',
+                            col.esTotal && '@3xl:sticky @3xl:right-0 z-10 w-[120px] min-w-[120px] @xl:w-[150px] @xl:min-w-[150px] border-l border-border/40 bg-muted font-semibold',
                             isBold && !col.esTotal && 'bg-muted/30'
                           )}
                         >
@@ -338,6 +350,11 @@ export function PeriodBreakdownTable({
           </tbody>
         </table>
       </div>
+      {hayOcultasPorFiltro && (
+        <p className="border-t border-border/30 px-4 py-3 text-xs italic text-muted-foreground">
+          {t('salesSummary.controls.filterBy.hiddenMetricsMessage')}
+        </p>
+      )}
     </div>
   )
 }

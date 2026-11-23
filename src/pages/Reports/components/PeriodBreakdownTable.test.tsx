@@ -150,5 +150,28 @@ describe('PeriodBreakdownTable · carril F (hz:fefa11b6:D14)', () => {
     expect(celda('platformFees', 1)).toBe('$0.00')
     expect(celda('netSales', 0)).toBe('$0.00')
   })
+
+  it('🔴 Codex r2 #4 · «Ganancia neta» dice en la tabla que también salen las propinas', () => {
+    render(<PeriodBreakdownTable periods={[periodo({})]} selectedMetrics={ELEGIDAS} reportType="days" />)
+    expect(screen.getByText('salesSummary.netProfitCaption')).toBeInTheDocument()
+  })
+
+  it('🔴 Codex r2 #7 · con un filtro de pago y sólo métricas de orden elegidas, la tabla dice por qué no hay renglones', () => {
+    const nulas = { grossSales: null, items: null, serviceCosts: null, discounts: null, netSales: null, deferredSales: null, taxes: null }
+    render(<PeriodBreakdownTable periods={[periodo(nulas)]} selectedMetrics={['grossSales']} reportType="days" />)
+    expect(screen.getByText('salesSummary.controls.filterBy.hiddenMetricsMessage')).toBeInTheDocument()
+  })
+
+  it('control · sin filtro no sale el aviso de métricas ocultas', () => {
+    render(<PeriodBreakdownTable periods={[periodo({})]} selectedMetrics={ELEGIDAS} reportType="days" />)
+    expect(screen.queryByText('salesSummary.controls.filterBy.hiddenMetricsMessage')).not.toBeInTheDocument()
+  })
+
+  it('🔴 Codex r2 #5 · el «Total» sólo se fija a la derecha cuando la TABLA es ancha (contenedor), no la ventana', () => {
+    render(<PeriodBreakdownTable periods={[periodo({})]} total={BASE} selectedMetrics={ELEGIDAS} reportType="days" />)
+    const th = screen.getByRole('columnheader', { name: 'salesSummary.periodTable.total' })
+    expect(th.className).toMatch(/@3xl:sticky/)
+    expect(th.className).not.toMatch(/(^|\s)sm:sticky/)
+  })
 })
 
