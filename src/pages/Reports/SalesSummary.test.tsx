@@ -865,6 +865,36 @@ describe('SalesSummary · carril F, pantalla (hz:fefa11b6:D7, D14, D15, D16)', (
     expect(document.activeElement).toBe(pildora)
   })
 
+  it('🔴 D16.2 · con un filtro de pago, «Cobrado» abre la cuenta y cierra con «Neto cobrado»; las propinas son informativas', async () => {
+    h.response = respuesta({
+      filtered: true,
+      summary: {
+        ...SUMMARY, grossSales: null, items: null, serviceCosts: null, discounts: null, netSales: null, deferredSales: null, taxes: null,
+        chargedAmount: 160, refunds: 33, tips: 7, platformFees: 0, tenderCommissions: 0, totalCollected: 127,
+      },
+    })
+    pintar()
+    const cobrado = await screen.findByText('salesSummary.rows.chargedAmount')
+    expect(montoDe('salesSummary.rows.chargedAmount')).toBe('$160.00')
+    expect(antes(cobrado, screen.getByText('salesSummary.rows.refunds'))).toBe(true)
+    expect(antes(cobrado, screen.getByText('salesSummary.rows.totalCollected'))).toBe(true)
+    const propinas = screen.getByText('salesSummary.rows.tips').closest('.justify-between') as HTMLElement
+    expect(propinas.querySelector('.bg-blue-500')).not.toBeNull()
+    expect(screen.getByText('salesSummary.tooltips.tipsMovements')).toBeInTheDocument()
+  })
+
+  it('control · un SERVIDOR sin `chargedAmount` no pinta «Cobrado» y las propinas siguen sumando', async () => {
+    h.response = respuesta({
+      filtered: true,
+      summary: { ...SUMMARY, grossSales: null, items: null, serviceCosts: null, discounts: null, netSales: null, deferredSales: null, taxes: null },
+    })
+    pintar()
+    await screen.findByText('salesSummary.rows.tips')
+    expect(screen.queryByText('salesSummary.rows.chargedAmount')).not.toBeInTheDocument()
+    const propinas = screen.getByText('salesSummary.rows.tips').closest('.justify-between') as HTMLElement
+    expect(propinas.querySelector('.bg-green-500')).not.toBeNull()
+  })
+
   it('🔴 D16.2 · con un filtro de pago, «Métodos de pago» ya no repite «Quita el filtro…» en una tarjeta vacía', async () => {
     h.response = respuesta({
       filtered: true,

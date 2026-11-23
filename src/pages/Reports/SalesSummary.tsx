@@ -1193,6 +1193,8 @@ export default function SalesSummary() {
         baseDeCaja: apiResponse.summary.unpaidSales !== undefined,
         // Comisiones de terceros (D1): Rappi, Uber Eats, tipos de pago con comisión. Ya restadas de «Neto cobrado».
         tenderCommissions: apiResponse.summary.tenderCommissions ?? 0,
+        // D16.2: lo cobrado con el filtro (vista de movimientos), con propina y sin devoluciones. Un servidor viejo no lo manda.
+        chargedAmount: typeof apiResponse.summary.chargedAmount === 'number' ? apiResponse.summary.chargedAmount : null,
         taxes: apiResponse.summary.taxes,
         tips: apiResponse.summary.tips,
         // Costs breakdown (NEW - for clarity)
@@ -1981,6 +1983,7 @@ export default function SalesSummary() {
   // métricas de orden vienen en null y sus renglones no se pintan. `isFiltered` sigue mandando en lo demás (repartos, estado de cuenta).
   const sinMetricasDeOrden = isFiltered || apiResponse?.filtered === true
   const mostrarVentasNetas = !sinMetricasDeOrden && selectedMetrics.includes('netSales')
+  const cobradoConFiltro = sinMetricasDeOrden && data.summary.chargedAmount !== null
   const mostrarSinCobrar =
     !sinMetricasDeOrden &&
     data.summary.unpaid !== null &&
@@ -2182,6 +2185,17 @@ export default function SalesSummary() {
               {/* Nota de D16 (d): con «Ventas brutas» apagada, sus partes elegidas salen solas (antes desaparecían). */}
               {!sinMetricasDeOrden && !selectedMetrics.includes('grossSales') && renglonesDeVentasBrutas(0)}
 
+              {/* D16.2: con un filtro de pago, la cuenta abre con lo cobrado con ese filtro (con propina): Cobrado − Devoluciones −
+                  comisiones = Neto cobrado, al centavo. */}
+              {cobradoConFiltro && (
+                <SummaryRow
+                  label={t('salesSummary.rows.chargedAmount')}
+                  value={data.summary.chargedAmount ?? 0}
+                  type="positive"
+                  tooltip={t('salesSummary.tooltips.chargedAmount')}
+                />
+              )}
+
               {/* Devoluciones - Same level as Ventas brutas */}
               {selectedMetrics.includes('refunds') && (
                 <SummaryRow
@@ -2234,8 +2248,9 @@ export default function SalesSummary() {
                 <SummaryRow
                   label={t('salesSummary.rows.tips')}
                   value={data.summary.tips}
-                  type="positive"
-                  tooltip={t('salesSummary.tooltips.tips')}
+                  // Con «Cobrado» a la vista las propinas ya vienen dentro (y las devueltas, en «Devoluciones»): informativas.
+                  type={cobradoConFiltro ? 'neutral' : 'positive'}
+                  tooltip={t(cobradoConFiltro ? 'salesSummary.tooltips.tipsMovements' : 'salesSummary.tooltips.tips')}
                 />
               )}
 

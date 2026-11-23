@@ -621,7 +621,8 @@
       "giftCardLoads": "Gift cards loaded",
       "paidWithGiftCardBalance": "Paid with gift balance",
       "packagesSoldOnline": "Packages sold online",
-      "reservationDeposits": "Reservation deposits"
+      "reservationDeposits": "Reservation deposits",
+      "chargedAmount": "Charged"
     },
     "tooltips": {
       "grossSales": "What was sold on checks already collected (items and service charges), before discounts and refunds. Open checks go in «Unpaid»",
@@ -651,7 +652,9 @@
       "paidWithGiftCardBalance": "Part of your sales and tips paid with gift card balance, minus what went back to the balance. That money came in when the card was sold.",
       "packagesSoldOnline": "Class packages your customers bought online in the period, on the day Avoqado confirmed the payment. It is not a sale yet and is not in «Net collected»: you collected it in advance and it is used on their classes. Packages sold at the register are already in sales.",
       "reservationDeposits": "Deposits your customers paid online to hold a reservation, on the day Avoqado confirmed the payment, minus the ones you refunded in the period. It is not a sale and is not in «Net collected»: it is an advance.",
-      "totalCollectedVsStatement": "It may not match «You keep» in the period statement: here it counts sales already paid, on the day of the sale; there, every payment and refund on the day it happened (open-tab deposits included)."
+      "totalCollectedVsStatement": "It may not match «You keep» in the period statement: here it counts sales already paid, on the day of the sale; there, every payment and refund on the day it happened (open-tab deposits included).",
+      "chargedAmount": "This filter’s payments in the period, tips included, without refunds. Charged − refunds − fees = Net collected",
+      "tipsMovements": "Tips on these payments, minus refunded tips. They are already inside «Charged» and «Refunds»: not added again"
     },
     "giftBalanceLine_one": "Also, {{amount}} was paid with gift card balance (1 payment). That money came in when the cards were sold.",
     "giftBalanceLine_other": "Also, {{amount}} was paid with gift card balance ({{count}} payments). That money came in when the cards were sold.",

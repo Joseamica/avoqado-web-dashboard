@@ -621,7 +621,8 @@
       "giftCardLoads": "Tarjetas de regalo cargadas",
       "paidWithGiftCardBalance": "Pagado con saldo",
       "packagesSoldOnline": "Paquetes vendidos en línea",
-      "reservationDeposits": "Depósitos de reservas"
+      "reservationDeposits": "Depósitos de reservas",
+      "chargedAmount": "Cobrado"
     },
     "tooltips": {
       "grossSales": "Lo vendido en cuentas ya cobradas (artículos y cargos por servicio), antes de descuentos y devoluciones. Las cuentas abiertas van en «Sin cobrar»",
@@ -651,7 +652,9 @@
       "paidWithGiftCardBalance": "Parte de las ventas y propinas que se pagó con saldo de tarjetas de regalo, menos lo devuelto al saldo. Ese dinero entró cuando se vendió la tarjeta.",
       "packagesSoldOnline": "Paquetes de clases que tus clientes compraron en línea en el periodo, por el día en que Avoqado confirmó el cobro. No es venta todavía ni entra a «Neto cobrado»: lo cobraste por adelantado y se usa en sus clases. Los paquetes vendidos en la caja ya están en las ventas.",
       "reservationDeposits": "Depósitos que tus clientes pagaron en línea para apartar una reserva, por el día en que Avoqado confirmó el cobro, menos los que devolviste en el periodo. No es venta ni entra a «Neto cobrado»: es un anticipo.",
-      "totalCollectedVsStatement": "Puede no dar lo mismo que «Te queda» del estado del periodo: aquí cuentan las ventas ya cobradas, en el día de la venta; allá, cada cobro y cada devolución en el día en que pasó (también los abonos de cuentas abiertas)."
+      "totalCollectedVsStatement": "Puede no dar lo mismo que «Te queda» del estado del periodo: aquí cuentan las ventas ya cobradas, en el día de la venta; allá, cada cobro y cada devolución en el día en que pasó (también los abonos de cuentas abiertas).",
+      "chargedAmount": "Los cobros de este filtro en el periodo, con propina, sin las devoluciones. Cobrado − devoluciones − comisiones = Neto cobrado",
+      "tipsMovements": "Las propinas de estos cobros, menos las devueltas. Ya vienen dentro de «Cobrado» y de «Devoluciones»: no se suman otra vez"
     },
     "giftBalanceLine_one": "Además, {{amount}} se pagó con saldo de tarjetas de regalo (1 cobro). Ese dinero entró cuando se vendieron.",
     "giftBalanceLine_other": "Además, {{amount}} se pagó con saldo de tarjetas de regalo ({{count}} cobros). Ese dinero entró cuando se vendieron.",

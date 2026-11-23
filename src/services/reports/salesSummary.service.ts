@@ -54,6 +54,11 @@ export interface SalesSummaryMetrics {
   tenderCommissions?: number
   /** Cuántas devoluciones hay en `refunds`. */
   refundCount?: number
+  /**
+   * Carril F (hz:fefa11b6:D16.2) — sólo en la vista de movimientos: los cobros de ese filtro sin devoluciones, con propina. Cierra la
+   * cuenta al centavo: chargedAmount − refunds − platformFees − tenderCommissions = totalCollected. Un servidor viejo no lo manda.
+   */
+  chargedAmount?: number
   // Tarjetas de regalo (fase 1a, Parte B · B5) — aditivos y opcionales: un server sin la función no los manda.
   /** Tarjetas cargadas en el rango, menos sus cancelaciones. NO es venta: no está en grossSales. */
   giftCardLoads?: number
