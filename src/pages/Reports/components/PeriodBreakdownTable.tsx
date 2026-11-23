@@ -58,9 +58,10 @@ const METRIC_ROWS: MetricRowConfig[] = [
   { key: 'refunds', translationKey: 'refunds', type: 'negative' },
   { key: 'discounts', translationKey: 'discounts', type: 'negative' },
   // D14.5: «Ventas netas» una sola vez (antes se repetía como «Total de las ventas», con el mismo número). Los impuestos ya van
-  // dentro (México): renglón informativo debajo, como en el Resumen.
+  // dentro (México): renglón informativo después, como en el Resumen.
   { key: 'netSales', translationKey: 'netSales', type: 'bold' },
-  { key: 'taxes', translationKey: 'taxes', type: 'neutral', indent: 1, bajo: 'netSales' },
+  // Informativo y al ras: con una devolución de otro día las ventas netas pueden quedar por debajo de sus impuestos (Codex r3 C).
+  { key: 'taxes', translationKey: 'taxes', type: 'neutral' },
 
   // Propinas y comisiones: lo que lleva de «Ventas netas» a «Neto cobrado» (D14.1: antes faltaban; la llave era `commissions`).
   { key: 'tips', translationKey: 'tips', type: 'positive' },
@@ -200,7 +201,7 @@ export function PeriodBreakdownTable({
           <thead>
             <tr className="border-b border-border/30">
               {/* Sticky first column - Report type header (Square-style: ~300px) */}
-              <th className="sticky left-0 z-20 bg-card/95 backdrop-blur-sm px-3 @xl:px-6 py-5 text-left w-[140px] min-w-[140px] @xl:w-[300px] @xl:min-w-[300px] border-r border-border/30">
+              <th className="sticky left-0 z-20 bg-card/95 backdrop-blur-sm px-3 @xl:px-6 py-5 text-left w-[112px] min-w-[112px] @md:w-[140px] @md:min-w-[140px] @xl:w-[300px] @xl:min-w-[300px] border-r border-border/30">
                 <div>
                   <p className="text-sm font-medium text-foreground">
                     {getReportTypeLabel(reportType, t)}
@@ -216,7 +217,7 @@ export function PeriodBreakdownTable({
                 <th
                   key={period.period}
                   className={cn(
-                    'px-4 py-5 text-sm font-medium text-foreground w-[150px] min-w-[150px] text-center',
+                    'px-2 @md:px-4 py-5 text-sm font-medium text-foreground w-[128px] min-w-[128px] @xl:w-[150px] @xl:min-w-[150px] text-center',
                     idx < periods.length - 1 && 'border-r border-border/20'
                   )}
                 >
@@ -226,7 +227,7 @@ export function PeriodBreakdownTable({
               {total && (
                 // Pegada a la derecha cuando la tabla es ancha, como la primera a la izquierda: con 7 días o 24 horas el total no se pierde
                 // al fondo del scroll. En una tabla angosta las dos fijas no dejaban ver ningún día (Codex r1 #6, r2 #5): ahí es la última.
-                <th className="@3xl:sticky @3xl:right-0 z-20 px-4 py-5 text-sm font-semibold text-foreground w-[120px] min-w-[120px] @xl:w-[150px] @xl:min-w-[150px] text-center border-l border-border/40 bg-muted">
+                <th className="@3xl:sticky @3xl:right-0 z-20 px-4 py-5 text-sm font-semibold text-foreground w-[128px] min-w-[128px] @xl:w-[150px] @xl:min-w-[150px] text-center border-l border-border/40 bg-muted">
                   {t('salesSummary.periodTable.total')}
                 </th>
               )}
@@ -312,9 +313,9 @@ export function PeriodBreakdownTable({
                         <td
                           key={`${col.id}-${row.key}`}
                           className={cn(
-                            'px-4 py-4 w-[150px] min-w-[150px] text-center',
+                            'px-2 @md:px-4 py-4 w-[128px] min-w-[128px] @xl:w-[150px] @xl:min-w-[150px] text-center',
                             colIdx < cols.length - 1 && !cols[colIdx + 1].esTotal && 'border-r border-border/20',
-                            col.esTotal && '@3xl:sticky @3xl:right-0 z-10 w-[120px] min-w-[120px] @xl:w-[150px] @xl:min-w-[150px] border-l border-border/40 bg-muted font-semibold',
+                            col.esTotal && '@3xl:sticky @3xl:right-0 z-10 w-[128px] min-w-[128px] @xl:w-[150px] @xl:min-w-[150px] border-l border-border/40 bg-muted font-semibold',
                             isBold && !col.esTotal && 'bg-muted/30'
                           )}
                         >

@@ -108,7 +108,8 @@ const tarjetaDelTotal = async () => (await screen.findByText('salesSummary.total
 const porcentajeEnLeyenda = (contenedor: HTMLElement, metodo: string) =>
   within(contenedor)
     .getAllByText(metodo)
-    .map(el => el.nextElementSibling?.textContent ?? '')
+    // Desde el carril F la leyenda trae también el importe entre el nombre y el «N%».
+    .flatMap(el => [...(el.parentElement?.children ?? [])].map(hermano => hermano.textContent ?? ''))
     .find(texto => /^\d+%$/.test(texto))
 /** `a` aparece antes que `b` en la página. */
 const antes = (a: HTMLElement, b: HTMLElement) => !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING)
@@ -798,6 +799,20 @@ describe('SalesSummary · carril F, pantalla (hz:fefa11b6:D7, D14, D15, D16)', (
     h.access = false
     pintar()
     expect(await screen.findByText('18 salesSummary.movementsLabel')).toBeInTheDocument()
+  })
+
+  it('🔴 Codex r3 C · «Impuestos incluidos» va al ras (no como parte de «Ventas netas», que puede quedar por debajo)', async () => {
+    h.response = respuesta({ summary: { ...SUMMARY, netSales: 0, taxes: 16 } })
+    pintar()
+    const fila = (await screen.findByText('salesSummary.rows.taxes')).closest('.justify-between') as HTMLElement
+    expect(fila).toHaveClass('px-4')
+  })
+
+  it('🔴 Codex r3 E · la leyenda de la barra dice el importe de cada método (el tooltip sólo abre con el mouse)', async () => {
+    h.response = respuesta({ salesByPaymentMethod: [{ method: 'CASH', amount: 600, count: 3, percentage: 60 }, { method: 'CREDIT_CARD', amount: 400, count: 2, percentage: 40 }] })
+    pintar()
+    const tarjeta = await tarjetaDelTotal()
+    expect(within(tarjeta).getAllByText('$600.00').length).toBeGreaterThan(0)
   })
 
   it('🔴 Codex r2 #1 · el número grande tampoco pinta «−$0.00» con medio centavo', async () => {

@@ -519,6 +519,8 @@ const SalesBreakdownBar: React.FC<{
         <div key={index} className="flex items-center gap-1.5">
           <div className={cn('w-2.5 h-2.5 rounded-sm', segment.color)} />
           <span className="text-muted-foreground">{segment.label}</span>
+          {/* El importe también en la leyenda: el tooltip del segmento sólo abre con el mouse (Codex r3 E del carril F). */}
+          <span className="tabular-nums">{pesos(segment.value)}</span>
           <span className="font-medium">{segment.percentage.toFixed(0)}%</span>
         </div>
       ))}
@@ -610,6 +612,7 @@ const SalesPieChart: React.FC<{
           <div key={index} className="flex items-center gap-1.5">
             <div className={cn('w-2.5 h-2.5 rounded-sm', segment.color)} />
             <span className="text-muted-foreground">{segment.label}</span>
+            <span className="tabular-nums">{pesos(segment.value)}</span>
             <span className="font-medium">{segment.percentage.toFixed(0)}%</span>
           </div>
         ))}
@@ -2215,13 +2218,13 @@ export default function SalesSummary() {
                 </>
               )}
 
-              {/* Impuestos: ya vienen DENTRO de las ventas netas (México); informativo, debajo de ellas. */}
+              {/* Impuestos: ya vienen DENTRO de las ventas netas (México); informativo, después de ellas y al ras: con una devolución de
+                  otro día las ventas netas pueden quedar por debajo de sus impuestos (Codex r3 C del carril F). */}
               {!sinMetricasDeOrden && selectedMetrics.includes('taxes') && (
                 <SummaryRow
                   label={t('salesSummary.rows.taxes')}
                   value={data.summary.taxes}
                   type="neutral"
-                  indent={mostrarVentasNetas ? 1 : 0}
                   tooltip={t('salesSummary.tooltips.taxes')}
                 />
               )}

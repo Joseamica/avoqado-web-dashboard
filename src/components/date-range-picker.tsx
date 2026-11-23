@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
 import { CheckIcon, ChevronDownIcon, ChevronUpIcon } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { getToday, getYesterday, getLast7Days, getLast30Days } from '@/utils/datetime'
+import { getToday, getYesterday, getLast7Days, getLast30Days, zonaValida } from '@/utils/datetime'
 import { useAuth } from '@/context/AuthContext'
 import { DateTime } from 'luxon'
 import { getIntlLocale, getDateFnsLocale } from '@/utils/i18n-locale'
@@ -105,7 +105,8 @@ export const DateRangePicker: FC<DateRangePickerProps> & {
 }): JSX.Element => {
   const { t, i18n } = useTranslation()
   const { activeVenue } = useAuth()
-  const venueTimezone = activeVenue?.timezone || 'America/Mexico_City'
+  // «GMT-6» guardado (altas viejas) no es IANA: Luxon daba fechas inválidas y el selector tronaba (hz:fefa11b6:D15, carril F).
+  const venueTimezone = zonaValida(activeVenue?.timezone)
   // Resolve locale from i18n when not explicitly provided so day names and
   // formatted dates match the user's current language.
   const resolvedLocale = locale ?? getIntlLocale(i18n.language)

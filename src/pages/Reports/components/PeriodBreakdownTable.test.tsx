@@ -130,10 +130,8 @@ describe('PeriodBreakdownTable · carril F (hz:fefa11b6:D14)', () => {
     expect(screen.getByText('salesSummary.rows.items').closest('td')).not.toHaveClass('pl-6')
   })
 
-  it('🔴 Codex r1 #1 · «Impuestos incluidos» sólo lleva sangría si «Ventas netas» está a la vista', () => {
-    const { rerender } = render(<PeriodBreakdownTable periods={[periodo({})]} selectedMetrics={ELEGIDAS} reportType="days" />)
-    expect(screen.getByText('salesSummary.rows.taxes').closest('td')).toHaveClass('pl-6')
-    rerender(<PeriodBreakdownTable periods={[periodo({})]} selectedMetrics={ELEGIDAS.filter(m => m !== 'netSales')} reportType="days" />)
+  it('🔴 Codex r3 C · «Impuestos incluidos» va al ras: con una devolución de otro día puede ser mayor que «Ventas netas»', () => {
+    render(<PeriodBreakdownTable periods={[periodo({ netSales: 0, taxes: 16 })]} selectedMetrics={ELEGIDAS} reportType="days" />)
     expect(screen.getByText('salesSummary.rows.taxes').closest('td')).not.toHaveClass('pl-6')
   })
 
