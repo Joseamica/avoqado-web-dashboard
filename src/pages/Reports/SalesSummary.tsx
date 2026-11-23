@@ -2196,8 +2196,9 @@ export default function SalesSummary() {
                 />
               )}
 
-              {/* Devoluciones - Same level as Ventas brutas */}
-              {selectedMetrics.includes('refunds') && (
+              {/* Devoluciones - Same level as Ventas brutas. Con «Cobrado» a la vista sale si hubo, aunque no esté elegida: sin ella
+                  la cuenta hasta «Neto cobrado» no cierra (Codex r5 #4 del carril F). */}
+              {(selectedMetrics.includes('refunds') || (cobradoConFiltro && data.summary.refunds !== 0)) && (
                 <SummaryRow
                   label={t('salesSummary.rows.refunds')}
                   value={comoResta(data.summary.refunds)}
@@ -2254,8 +2255,8 @@ export default function SalesSummary() {
                 />
               )}
 
-              {/* Comisiones de plataforma (Avoqado) */}
-              {selectedMetrics.includes('platformFees') && (
+              {/* Comisiones de plataforma (Avoqado). Igual que las devoluciones con «Cobrado» a la vista. */}
+              {(selectedMetrics.includes('platformFees') || (cobradoConFiltro && data.summary.platformFees !== 0)) && (
                 <SummaryRow
                   label={t('salesSummary.rows.platformFees')}
                   value={comoResta(data.summary.platformFees)}

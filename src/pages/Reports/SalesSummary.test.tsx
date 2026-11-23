@@ -883,6 +883,21 @@ describe('SalesSummary · carril F, pantalla (hz:fefa11b6:D7, D14, D15, D16)', (
     expect(screen.getByText('salesSummary.tooltips.tipsMovements')).toBeInTheDocument()
   })
 
+  it('🔴 D16.2 (Codex r5 #4) · con «Cobrado», lo que resta sale aunque no esté en «Métricas» (si no, la cuenta no cierra)', async () => {
+    vi.mocked(localStorage.getItem).mockReturnValue(JSON.stringify({ selectedMetrics: ['totalCollected'] }))
+    h.response = respuesta({
+      filtered: true,
+      summary: {
+        ...SUMMARY, grossSales: null, items: null, serviceCosts: null, discounts: null, netSales: null, deferredSales: null, taxes: null,
+        chargedAmount: 100, refunds: 20, tips: 0, platformFees: 3, tenderCommissions: 0, totalCollected: 77,
+      },
+    })
+    pintar()
+    await screen.findByText('salesSummary.rows.chargedAmount')
+    expect(montoDe('salesSummary.rows.refunds')).toBe('-$20.00')
+    expect(montoDe('salesSummary.rows.platformFees')).toBe('-$3.00')
+  })
+
   it('control · un SERVIDOR sin `chargedAmount` no pinta «Cobrado» y las propinas siguen sumando', async () => {
     h.response = respuesta({
       filtered: true,
