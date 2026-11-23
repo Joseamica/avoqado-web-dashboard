@@ -24,6 +24,7 @@ import React, { Suspense, useMemo, useState } from 'react'
 import { lazyWithRetry } from '@/lib/lazyWithRetry'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import JsonBooleanToggles from '@/pages/Superadmin/components/JsonBooleanToggles'
+import { motivoDelError } from '@/lib/motivoDelError'
 
 // Lazy load WhiteLabelWizard to avoid loading it for all users
 // `lazyWithRetry` → auto hard-reload on stale chunks after deploys.
@@ -152,7 +153,7 @@ const ModuleManagement: React.FC = () => {
     onError: (error: any) => {
       toast({
         title: 'Error al crear módulo',
-        description: error?.response?.data?.error || error.message,
+        description: motivoDelError(error),
         variant: 'destructive',
       })
     },
@@ -171,7 +172,7 @@ const ModuleManagement: React.FC = () => {
     onError: (error: any) => {
       toast({
         title: 'Error al actualizar módulo',
-        description: error?.response?.data?.error || error.message,
+        description: motivoDelError(error),
         variant: 'destructive',
       })
     },
@@ -189,7 +190,7 @@ const ModuleManagement: React.FC = () => {
     onError: (error: any) => {
       toast({
         title: 'Error al eliminar módulo',
-        description: error?.response?.data?.error || error.message,
+        description: motivoDelError(error),
         variant: 'destructive',
       })
     },
@@ -768,7 +769,7 @@ const ModuleManagement: React.FC = () => {
                 } catch (error: any) {
                   toast({
                     title: 'Error al guardar',
-                    description: error?.response?.data?.error || error.message,
+                    description: motivoDelError(error),
                     variant: 'destructive',
                   })
                 }
@@ -815,7 +816,7 @@ const ModuleManagement: React.FC = () => {
                 } catch (error: any) {
                   toast({
                     title: 'Error al guardar',
-                    description: error?.response?.data?.error || error.message,
+                    description: motivoDelError(error),
                     variant: 'destructive',
                   })
                 }

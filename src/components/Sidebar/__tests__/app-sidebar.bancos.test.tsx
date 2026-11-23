@@ -36,7 +36,7 @@ vi.mock('react-i18next', async () => {
   const resultado = { t, i18n: { language: 'es' } }
   return { useTranslation: () => resultado }
 })
-vi.mock('@tanstack/react-query', () => ({ useQueryClient: () => ({}) }))
+vi.mock('@tanstack/react-query', () => ({ useQueryClient: () => ({}), useQuery: () => ({}) }))
 vi.mock('@/api', () => ({ default: {} }))
 vi.mock('@/context/AuthContext', () => ({
   useAuth: () => ({

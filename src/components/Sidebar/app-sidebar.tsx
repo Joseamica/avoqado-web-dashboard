@@ -69,6 +69,7 @@ import { useVenueTier } from '@/hooks/use-tier-feature-access'
 import { canAccessOperationalFeatures } from '@/lib/kyc-utils'
 import { useWhiteLabelConfig, getFeatureRoute } from '@/hooks/useWhiteLabelConfig'
 import { useTerminology } from '@/hooks/use-terminology'
+import { useHasOpenCashMachineDoubts } from '@/hooks/use-cash-machine-doubts'
 import api from '@/api'
 import { cn } from '@/lib/utils'
 
@@ -216,6 +217,9 @@ export function AppSidebar({
   const { term } = useTerminology()
 
   const queryClient = useQueryClient()
+
+  // Máquina de efectivo: la entrada sólo sale si el negocio tiene cobros de la máquina en duda abiertos (la ruta sigue por URL).
+  const hasCashMachineDoubts = useHasOpenCashMachineDoubts(activeVenue?.id, can('cash-machine:resolve'))
 
   // ========== Sidebar Visibility (Superadmin Toggle) ==========
   const isSuperadmin = effectiveRole === 'SUPERADMIN'
@@ -502,6 +506,18 @@ export function AppSidebar({
               url: 'shifts',
               permission: 'shifts:read',
               keywords: ['horarios', 'turnos', 'reloj checador', 'cortes de caja', 'caja', 'cierre', 'arqueo'],
+            },
+          ]
+        : []),
+      // Máquina de efectivo (fase 1a, R4-4): cobros cuyo final la PC no alcanzó a oír; los resuelve un gerente. Sólo con dudas
+      // abiertas: un negocio sin máquina no la ve.
+      ...(hasCashMachineDoubts
+        ? [
+            {
+              title: t('sidebar:routes.cashMachineDoubts'),
+              url: 'cash-machine-doubts',
+              permission: 'cash-machine:resolve',
+              keywords: ['maquina de efectivo', 'quickpay', 'en duda', 'esperando', 'efectivo', 'cobro', 'resolver'],
             },
           ]
         : []),
@@ -1351,6 +1367,7 @@ export function AppSidebar({
     wlNavigation,
     isFeatureEnabled,
     canFeature,
+    hasCashMachineDoubts,
   ])
 
   // Expose sidebar data to parent for command palette

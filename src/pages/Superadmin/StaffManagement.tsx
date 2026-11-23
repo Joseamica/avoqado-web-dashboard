@@ -67,6 +67,7 @@ import {
   Users,
   X,
 } from 'lucide-react'
+import { motivoDelError } from '@/lib/motivoDelError'
 import React, { useCallback, useMemo, useState } from 'react'
 import {
   DropdownMenu,
@@ -1022,12 +1023,12 @@ const StaffManagement: React.FC = () => {
   const createMutation = useMutation({
     mutationFn: (d: CreateStaffData) => staffAPI.createStaff(d),
     onSuccess: () => { toast({ title: 'Usuario creado' }); invalidateStaff(); setIsCreateOpen(false) },
-    onError: (e: any) => { toast({ title: 'Error', description: e?.response?.data?.error || e.message, variant: 'destructive' }) },
+    onError: (e: any) => { toast({ title: 'Error', description: motivoDelError(e), variant: 'destructive' }) },
   })
   const updateMutation = useMutation({
     mutationFn: ({ id, data: d }: { id: string; data: UpdateStaffData }) => staffAPI.updateStaff(id, d),
     onSuccess: () => { toast({ title: 'Usuario actualizado' }); invalidateStaff(); setIsEditOpen(false); setSelectedStaff(null) },
-    onError: (e: any) => { toast({ title: 'Error', description: e?.response?.data?.error || e.message, variant: 'destructive' }) },
+    onError: (e: any) => { toast({ title: 'Error', description: motivoDelError(e), variant: 'destructive' }) },
   })
   const assignAccessMutation = useMutation({
     mutationFn: async (params: AssignAccessParams) => {
@@ -1050,30 +1051,30 @@ const StaffManagement: React.FC = () => {
       invalidateStaff()
       setIsAssignAccessOpen(false)
     },
-    onError: (e: any) => { toast({ title: 'Error', description: e?.response?.data?.error || e.message, variant: 'destructive' }) },
+    onError: (e: any) => { toast({ title: 'Error', description: motivoDelError(e), variant: 'destructive' }) },
   })
   const resetPasswordMutation = useMutation({
     mutationFn: ({ staffId, newPassword }: { staffId: string; newPassword: string }) =>
       staffAPI.resetPassword(staffId, newPassword),
     onSuccess: () => { toast({ title: 'Contraseña actualizada' }); setIsResetPasswordOpen(false) },
-    onError: (e: any) => { toast({ title: 'Error', description: e?.response?.data?.error || e.message, variant: 'destructive' }) },
+    onError: (e: any) => { toast({ title: 'Error', description: motivoDelError(e), variant: 'destructive' }) },
   })
   const removeOrgMutation = useMutation({
     mutationFn: ({ staffId, organizationId }: { staffId: string; organizationId: string }) =>
       staffAPI.removeFromOrganization(staffId, organizationId),
     onSuccess: () => { toast({ title: 'Removido de organización' }); invalidateStaff() },
-    onError: (e: any) => { toast({ title: 'Error', description: e?.response?.data?.error || e.message, variant: 'destructive' }) },
+    onError: (e: any) => { toast({ title: 'Error', description: motivoDelError(e), variant: 'destructive' }) },
   })
   const removeVenueMutation = useMutation({
     mutationFn: ({ staffId, venueId }: { staffId: string; venueId: string }) =>
       staffAPI.removeFromVenue(staffId, venueId),
     onSuccess: () => { toast({ title: 'Removido de sucursal' }); invalidateStaff() },
-    onError: (e: any) => { toast({ title: 'Error', description: e?.response?.data?.error || e.message, variant: 'destructive' }) },
+    onError: (e: any) => { toast({ title: 'Error', description: motivoDelError(e), variant: 'destructive' }) },
   })
   const deleteMutation = useMutation({
     mutationFn: (staffId: string) => staffAPI.deleteStaff(staffId),
     onSuccess: () => { toast({ title: 'Usuario eliminado' }); invalidateStaff(); setIsDeleteOpen(false); setSelectedStaff(null) },
-    onError: (e: any) => { toast({ title: 'Error', description: e?.response?.data?.error || e.message, variant: 'destructive' }) },
+    onError: (e: any) => { toast({ title: 'Error', description: motivoDelError(e), variant: 'destructive' }) },
   })
 
   // Compute stats from dedicated count queries (real totals, not page-scoped)

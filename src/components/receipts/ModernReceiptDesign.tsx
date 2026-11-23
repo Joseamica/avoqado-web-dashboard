@@ -33,6 +33,7 @@ import { getIntlLocale } from '@/utils/i18n-locale'
 import { ReceiptUrls } from '@/constants/receipt'
 import type { UnifiedReceiptData, DigitalReceipt } from '@/types/receipt'
 import { useToast } from '@/hooks/use-toast'
+import { nombreCompleto } from '@/lib/nombreCompleto'
 import { Currency } from '@/utils/currency'
 import { totalesDelRecibo } from '@/components/receipts/totalesDelRecibo'
 import { productosDelRecibo } from '@/components/receipts/productosDelRecibo'
@@ -444,10 +445,7 @@ export const ModernReceiptDesign: React.FC<ModernReceiptDesignProps> = ({
                   <div>
                     <p className="text-xs text-muted-foreground">{t('receipt.labels.customer')}</p>
                     <p className="font-medium text-sm">
-                      {customer.name ||
-                        ((customer as any).firstName && (customer as any).lastName
-                          ? `${(customer as any).firstName} ${(customer as any).lastName}`
-                          : (customer as any).firstName || (customer as any).lastName || customer.email || 'N/A')}
+                      {customer.name || nombreCompleto(customer as any) || customer.email || 'N/A'}
                     </p>
                   </div>
                 </div>

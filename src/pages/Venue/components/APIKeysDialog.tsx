@@ -28,6 +28,7 @@ import { useToast } from '@/hooks/use-toast'
 import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { falloDeCarga } from '@/lib/falloDeCarga'
 import { ecommerceMerchantAPI, type EcommerceMerchant } from '@/services/ecommerceMerchant.service'
+import { motivoDelError } from '@/lib/motivoDelError'
 
 interface APIKeysDialogProps {
   open: boolean
@@ -76,7 +77,7 @@ export const APIKeysDialog: React.FC<APIKeysDialogProps> = ({
     onError: (error: any) => {
       toast({
         title: 'Error',
-        description: error.response?.data?.error || 'No se pudieron regenerar las claves',
+        description: motivoDelError(error, 'No se pudieron regenerar las claves'),
         variant: 'destructive',
       })
     },

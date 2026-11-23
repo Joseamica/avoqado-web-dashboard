@@ -36,6 +36,7 @@ import PermissionSearch from './PermissionSearch'
 import PermissionCategoryNav from './PermissionCategoryNav'
 import PermissionDetailPanel from './PermissionDetailPanel'
 import PermissionSuperCategory from './PermissionSuperCategory'
+import { motivoDelError } from '@/lib/motivoDelError'
 
 // Predefined colors for role badges
 const ROLE_COLORS = [
@@ -289,7 +290,7 @@ export function PermissionEditorModal({ open, onClose, role, venueId }: Permissi
     onError: (error: any) => {
       toast({
         title: tCommon('error'),
-        description: error.response?.data?.error || t('rolePermissions.updateError'),
+        description: motivoDelError(error, t('rolePermissions.updateError')),
         variant: 'destructive',
       })
     },
@@ -310,7 +311,7 @@ export function PermissionEditorModal({ open, onClose, role, venueId }: Permissi
     onError: (error: any) => {
       toast({
         title: tCommon('error'),
-        description: error.response?.data?.error || t('rolePermissions.revertError'),
+        description: motivoDelError(error, t('rolePermissions.revertError')),
         variant: 'destructive',
       })
     },
