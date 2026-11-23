@@ -2219,12 +2219,10 @@ export default function SalesSummary() {
       </Collapsible>
       )}
 
-      {/* Carril G · D4: «Ventas por canal» y «Por tipo de pedido» (Pro). Gratis ve la sección con su candado. */}
+      {/* Carril G · D4: «Ventas por canal» y «Por tipo de pedido», en todos los planes (decisión del founder del 22-nov). */}
       <SalesByChannelSection
         byChannel={apiResponse?.byChannel}
         byOrderType={apiResponse?.byOrderType}
-        sinPlan={!hasAccess}
-        bloqueadoPorElServidor={apiResponse?.channelBreakdownLocked === true}
         // La vista que de verdad pidió la pantalla (Codex r3 #2): con el plan Gratis la petición no lleva el filtro guardado.
         conFiltro={apiResponse?.filtered === true}
         desfasado={apiResponse?.channelBreakdownOutOfSync === true}

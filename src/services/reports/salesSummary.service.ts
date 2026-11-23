@@ -266,11 +266,9 @@ export interface SalesSummaryResponse {
   giftCardBalanceBreakdown?: GiftCardBalanceBreakdown
   /** Aditivo (D15): el servidor no pudo leer todos los cobros del sistema anterior de QR; estas cifras pueden estar incompletas. */
   legacyUnavailable?: true
-  /** Carril G · D4 (Pro): la cabecera por canal y por tipo de pedido; con `includeChannelBreakdown` y sin filtro. */
+  /** Carril G · D4 (todos los planes): la cabecera por canal y por tipo de pedido; con `includeChannelBreakdown` y sin filtro. */
   byChannel?: SalesBreakdownRow[]
   byOrderType?: SalesBreakdownRow[]
-  /** El servidor dejó fuera el desglose por canal porque el plan del negocio no lo incluye. */
-  channelBreakdownLocked?: true
   /** Las tablas por canal se leyeron un instante después de la cabecera y alguna cifra cambió (entró una venta): recargar. */
   channelBreakdownOutOfSync?: true
 }

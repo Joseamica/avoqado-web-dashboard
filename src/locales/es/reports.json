@@ -931,7 +931,6 @@
       "transactions_other": "{{count}} cobros",
       "empty": "No hubo ventas en este periodo.",
       "filteredNote": "Las ventas por canal sólo salen sin filtro de método de pago ni de comercio: con un filtro el reporte cuenta cobros, no cuentas.",
-      "lockedByPlan": "Tu plan no incluye las ventas por canal. Es parte del plan Pro.",
       "names": {
         "COUNTER": "Mostrador",
         "TABLES": "Mesas",

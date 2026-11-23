@@ -931,7 +931,6 @@
       "transactions_other": "{{count}} charges",
       "empty": "There were no sales in this period.",
       "filteredNote": "Sales by channel only show without a payment method or merchant filter: with a filter the report counts charges, not checks.",
-      "lockedByPlan": "Your plan does not include sales by channel. It is part of the Pro plan.",
       "names": {
         "COUNTER": "Counter",
         "TABLES": "Tables",

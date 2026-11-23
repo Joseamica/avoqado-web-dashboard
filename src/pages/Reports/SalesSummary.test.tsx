@@ -530,17 +530,19 @@ describe('SalesSummary · canales y lo cobrado por adelantado (carril G: D4, D5)
     expect(screen.getByTestId('paquetes-otra-moneda')).toHaveTextContent('salesSummary.packagesOtherCurrency(amount=USD 100.00,count=1)')
   })
 
-  it('🔴 Codex r3 #2 · un filtro de pago guardado que la petición no llevó (plan Gratis) no esconde los anticipos ni pinta el aviso de filtro', async () => {
+  it('🔴 Codex r3 #2 · un filtro de pago guardado que la petición no llevó (plan Gratis) no esconde los anticipos ni las tablas', async () => {
     h.access = false
     vi.mocked(localStorage.getItem).mockReturnValue(JSON.stringify({ paymentMethodFilter: 'CASH' }))
+    const fila = { grossSales: 100, discounts: 0, refunds: 0, netSales: 100, tips: 0, platformFees: 0, tenderCommissions: 0, totalCollected: 100, orderCount: 1, transactionCount: 1, refundCount: 0 }
     h.response = respuesta({
       summary: { ...CON_TARJETAS, packagesSoldOnline: 1200, packagesSoldOnlineCount: 1 },
       filtered: false,
-      channelBreakdownLocked: true,
+      byChannel: [{ key: 'COUNTER', ...fila }],
+      byOrderType: [{ key: 'DINE_IN', ...fila }],
     })
     pintar()
     expect(await screen.findByText('salesSummary.rows.packagesSoldOnline')).toBeInTheDocument()
-    expect(screen.getByTestId('ventas-por-canal-candado')).toBeInTheDocument()
+    expect(screen.getByTestId('ventas-por-canal')).toBeInTheDocument()
     expect(screen.queryByTestId('ventas-por-canal-filtro')).toBeNull()
   })
 
@@ -551,7 +553,7 @@ describe('SalesSummary · canales y lo cobrado por adelantado (carril G: D4, D5)
     expect(screen.queryByText('salesSummary.rows.reservationDeposits')).not.toBeInTheDocument()
   })
 
-  it('D4 · la sección «Ventas por canal» sale con lo que manda el servidor (Pro) y con candado en Gratis', async () => {
+  it('D4 · la sección «Ventas por canal» sale con lo que manda el servidor', async () => {
     const fila = { grossSales: 100, discounts: 0, refunds: 0, netSales: 100, tips: 0, platformFees: 0, tenderCommissions: 0, totalCollected: 100, orderCount: 1, transactionCount: 1, refundCount: 0 }
     h.response = respuesta({ byChannel: [{ key: 'RAPPI', ...fila }], byOrderType: [{ key: 'DELIVERY', ...fila }] })
     pintar()
@@ -559,9 +561,20 @@ describe('SalesSummary · canales y lo cobrado por adelantado (carril G: D4, D5)
     expect(screen.getAllByText('salesSummary.channels.names.RAPPI').length).toBeGreaterThan(0)
   })
 
-  it('D4 · plan Gratis: la sección se ve con su candado', async () => {
+  it('🔴 D4 · plan Gratis (decisión del founder del 22-nov): ve sus tablas de hoy, sin candado', async () => {
+    h.access = false
+    const fila = { grossSales: 100, discounts: 0, refunds: 0, netSales: 100, tips: 0, platformFees: 0, tenderCommissions: 0, totalCollected: 100, orderCount: 1, transactionCount: 1, refundCount: 0 }
+    h.response = respuesta({ byChannel: [{ key: 'COUNTER', ...fila }], byOrderType: [{ key: 'DINE_IN', ...fila }] })
+    pintar()
+    expect(await screen.findByTestId('ventas-por-canal')).toBeInTheDocument()
+    expect(screen.queryByTestId('ventas-por-canal-candado')).toBeNull()
+  })
+
+  it('🔴 D4 · plan Gratis con un servidor que no trae las tablas: no hay candado ni texto de «plan Pro»', async () => {
     h.access = false
     pintar()
-    expect(await screen.findByTestId('ventas-por-canal-candado')).toBeInTheDocument()
+    await tarjetaDelTotal()
+    expect(screen.queryByTestId('ventas-por-canal-candado')).toBeNull()
+    expect(screen.queryByText('salesSummary.channels.lockedByPlan')).toBeNull()
   })
 })

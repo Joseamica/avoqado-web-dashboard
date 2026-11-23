@@ -52,17 +52,7 @@ const CANALES = [
 const TIPOS = [fila('DINE_IN', { netSales: 255, totalCollected: 255 }), fila('QUICK_PAYMENT', { netSales: 225, totalCollected: 225 })]
 
 const pintar = (over: Partial<Parameters<typeof SalesByChannelSection>[0]> = {}) =>
-  render(
-    <SalesByChannelSection
-      byChannel={CANALES}
-      byOrderType={TIPOS}
-      sinPlan={false}
-      bloqueadoPorElServidor={false}
-      conFiltro={false}
-      formatCurrency={fmt}
-      {...over}
-    />,
-  )
+  render(<SalesByChannelSection byChannel={CANALES} byOrderType={TIPOS} conFiltro={false} formatCurrency={fmt} {...over} />)
 
 describe('SalesByChannelSection (carril G · D4)', () => {
   it('cada canal con su nombre llano, sus cifras y la fila «Total» que suma los renglones (lo mismo que el resumen)', () => {
@@ -110,10 +100,11 @@ describe('SalesByChannelSection (carril G · D4)', () => {
     expect(within(total).getByText(/salesSummary.channels.transactions/)).toBeInTheDocument()
   })
 
-  it('🔴 Codex r2 #9 · si el SERVIDOR trajo las tablas, se enseñan aunque la pantalla tuviera guardado el plan Gratis', () => {
-    pintar({ sinPlan: true })
-    expect(screen.getByTestId('ventas-por-canal')).toBeInTheDocument()
+  it('🔴 todos los planes (decisión del founder del 22-nov): nunca hay candado de plan ni un texto de «plan Pro»', () => {
+    const { container } = render(<SalesByChannelSection conFiltro={false} formatCurrency={fmt} />)
+    expect(container).toBeEmptyDOMElement()
     expect(screen.queryByTestId('ventas-por-canal-candado')).toBeNull()
+    expect(screen.queryByText('salesSummary.channels.lockedByPlan')).toBeNull()
   })
 
   it('🔴 Codex r2 #1 · si el SERVIDOR avisa que las tablas se leyeron a destiempo, lo dice arriba de la tabla', () => {
@@ -140,27 +131,6 @@ describe('SalesByChannelSection (carril G · D4)', () => {
     expect(within(tabla).queryByText('salesSummary.channels.names.RAPPI')).toBeNull()
   })
 
-  it('🔴 plan Gratis: la sección se ve con su candado y su texto, sin datos del negocio y sin un segundo botón de plan', () => {
-    pintar({ sinPlan: true, byChannel: undefined, byOrderType: undefined })
-    const seccion = screen.getByTestId('ventas-por-canal-candado')
-    expect(within(seccion).getByText('salesSummary.channels.title')).toBeInTheDocument()
-    expect(within(seccion).getByText('salesSummary.channels.lockedByPlan')).toBeInTheDocument()
-    expect(within(seccion).queryByText(/\$\d/)).toBeNull()
-    // El botón de «Mejora a Pro» es el del aviso del plan de la página (la prueba E2E del aviso espera uno solo).
-    expect(within(seccion).queryByRole('button')).toBeNull()
-  })
-
-  it('🔴 si el servidor lo dejó fuera por el plan (la pantalla no lo sabía), lo dice en vez de desaparecer', () => {
-    pintar({ bloqueadoPorElServidor: true, byChannel: undefined, byOrderType: undefined })
-    expect(within(screen.getByTestId('ventas-por-canal-candado')).getByText('salesSummary.channels.lockedByPlan')).toBeInTheDocument()
-  })
-
-  it('🔴 Codex r4 #1 · con filtro y candado del SERVIDOR a la vez, sale el candado (no «quita el filtro»)', () => {
-    pintar({ conFiltro: true, bloqueadoPorElServidor: true, byChannel: undefined, byOrderType: undefined })
-    expect(screen.getByTestId('ventas-por-canal-candado')).toBeInTheDocument()
-    expect(screen.queryByText('salesSummary.channels.filteredNote')).toBeNull()
-  })
-
   it('con un filtro de método o comercio explica por qué no hay desglose', () => {
     pintar({ conFiltro: true, byChannel: undefined, byOrderType: undefined })
     expect(screen.getByText('salesSummary.channels.filteredNote')).toBeInTheDocument()
@@ -169,9 +139,7 @@ describe('SalesByChannelSection (carril G · D4)', () => {
   it('sin ventas en el periodo dice que no hubo; con un servidor viejo (sin las tablas) no pinta nada', () => {
     pintar({ byChannel: [], byOrderType: [] })
     expect(screen.getByText('salesSummary.channels.empty')).toBeInTheDocument()
-    const { container } = render(
-      <SalesByChannelSection sinPlan={false} bloqueadoPorElServidor={false} conFiltro={false} formatCurrency={fmt} />,
-    )
+    const { container } = render(<SalesByChannelSection conFiltro={false} formatCurrency={fmt} />)
     expect(container).toBeEmptyDOMElement()
   })
 

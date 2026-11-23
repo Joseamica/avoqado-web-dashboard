@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Filter, Lock, Route } from 'lucide-react'
+import { Filter, Route } from 'lucide-react'
 import { GlassCard } from '@/components/ui/glass-card'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { cn } from '@/lib/utils'
@@ -9,15 +9,12 @@ import type { SalesBreakdownRow } from '@/services/reports/salesSummary.service'
 /**
  * «Ventas por canal» del Resumen de ventas (carril G, hz:fefa11b6:D4): la cabecera repartida por dónde entró la venta (mostrador,
  * mesas, tienda en línea, Rappi…) y por tipo de pedido (en el local, para llevar…). El SERVIDOR reparte cada importe al centavo:
- * la fila «Total» es la suma de los renglones y da lo mismo que el resumen de arriba. Plan Pro (ADVANCED_REPORTS).
+ * la fila «Total» es la suma de los renglones y da lo mismo que el resumen de arriba. En todos los planes, sin candado (decisión del
+ * founder del 22-nov, como Square y el channel-mix del Inicio).
  */
 interface Props {
   byChannel?: SalesBreakdownRow[]
   byOrderType?: SalesBreakdownRow[]
-  /** El plan del negocio no lo incluye (según la pantalla). */
-  sinPlan: boolean
-  /** El servidor lo dejó fuera por el plan, aunque la pantalla creyera que sí (plan sin leer o mal leído). */
-  bloqueadoPorElServidor: boolean
   /** Vista de movimientos (filtro de método o de comercio): no hay cuentas que repartir. */
   conFiltro: boolean
   /** El SERVIDOR avisó que las tablas se leyeron un instante después de la cabecera y ya no cuadran (entró una venta). */
@@ -27,15 +24,7 @@ interface Props {
 
 type Vista = 'channel' | 'orderType'
 
-export function SalesByChannelSection({
-  byChannel,
-  byOrderType,
-  sinPlan,
-  bloqueadoPorElServidor,
-  conFiltro,
-  desfasado = false,
-  formatCurrency,
-}: Props) {
+export function SalesByChannelSection({ byChannel, byOrderType, conFiltro, desfasado = false, formatCurrency }: Props) {
   const { t } = useTranslation('reports')
   const [vista, setVista] = useState<Vista>('channel')
 
@@ -51,26 +40,8 @@ export function SalesByChannelSection({
     </div>
   )
 
-  // El SERVIDOR manda: si trajo las tablas, el plan las incluye aunque la pantalla tuviera guardado otro plan (Codex r2 #9); si no las
-  // trajo, Gratis ve el candado con su botón de plan y, si la pantalla creía que sí, el aviso del SERVIDOR.
   if (!byChannel || !byOrderType) {
-    // Apagado se ve y se explica: sin el plan (según la pantalla o según el SERVIDOR), la sección con su candado y su texto. Sin
-    // un segundo botón de «Mejora a Pro»: el aviso del plan de la página ya lo trae (dos botones iguales confundían y rompían la
-    // prueba E2E del aviso).
-    if (sinPlan || bloqueadoPorElServidor) {
-      return (
-        <GlassCard className="overflow-hidden border-input p-0" data-testid="ventas-por-canal-candado">
-          {encabezado}
-          <p className="flex items-center gap-2 px-5 py-4 text-sm text-muted-foreground sm:px-6">
-            <Lock className="h-4 w-4 shrink-0" />
-            {t('salesSummary.channels.lockedByPlan')}
-          </p>
-        </GlassCard>
-      )
-    }
-
-    // Con un filtro de método o comercio (vista de movimientos) no hay cuentas que repartir. Va DESPUÉS del candado: a un negocio
-    // sin el plan no se le pide quitar un filtro que no le abriría el desglose (Codex r4 #1).
+    // Con un filtro de método o comercio (vista de movimientos) no hay cuentas que repartir.
     if (conFiltro) {
       return (
         <GlassCard className="overflow-hidden border-input p-0" data-testid="ventas-por-canal-filtro">
