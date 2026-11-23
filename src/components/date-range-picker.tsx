@@ -36,9 +36,17 @@ export interface DateRangePickerProps {
   showCompare?: boolean
 }
 
-const formatDate = (date: Date, locale: string = 'en-US'): string => {
-  // Compact 2-digit-year format ("20 may 25") so the trigger fits inside the table tab.
-  return DateTime.fromJSDate(date).setLocale(getIntlLocale(locale)).toFormat('d LLL yy')
+const formatDate = (date: Date, locale: string = 'en-US', withYear = true): string =>
+  DateTime.fromJSDate(date).setLocale(getIntlLocale(locale)).toFormat(withYear ? 'd LLL yyyy' : 'd LLL')
+
+/**
+ * «15 – 21 nov 2026» se leía «15 nov 26 – 21 nov 26»: el año de dos dígitos parecía un día (hz:fefa11b6:D16.16). Igual de corto
+ * que antes: el año completo una vez, al final; dos años distintos, los dos. Como el selector de Inicio.
+ */
+const formatRangeLabel = (from: Date, to: Date | undefined, locale: string): string => {
+  if (to == null) return formatDate(from, locale)
+  const sameYear = DateTime.fromJSDate(from).hasSame(DateTime.fromJSDate(to), 'year')
+  return `${formatDate(from, locale, !sameYear)} – ${formatDate(to, locale)}`
 }
 
 // Lo que llega de la pantalla, como DÍA del calendario: un 'YYYY-MM-DD' ya es un día; un instante es el día del negocio.
@@ -384,12 +392,11 @@ export const DateRangePicker: FC<DateRangePickerProps> & {
       <PopoverTrigger asChild>
         <Button ref={triggerRef} size="sm" variant="outline" className="h-7 gap-1.5 rounded-full px-3 text-xs font-normal">
           <span className="whitespace-nowrap">
-            {`${formatDate(range.from, resolvedLocale)}${range.to != null ? ' – ' + formatDate(range.to, resolvedLocale) : ''}`}
+            {formatRangeLabel(range.from, range.to, resolvedLocale)}
           </span>
           {rangeCompare != null && (
             <span className="opacity-60 text-[10px]">
-              vs. {formatDate(rangeCompare.from, resolvedLocale)}
-              {rangeCompare.to != null ? ` – ${formatDate(rangeCompare.to, resolvedLocale)}` : ''}
+              vs. {formatRangeLabel(rangeCompare.from, rangeCompare.to, resolvedLocale)}
             </span>
           )}
           {isOpen ? <ChevronUpIcon className="h-3 w-3 opacity-60" /> : <ChevronDownIcon className="h-3 w-3 opacity-60" />}

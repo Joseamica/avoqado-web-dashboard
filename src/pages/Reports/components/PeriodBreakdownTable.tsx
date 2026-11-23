@@ -16,7 +16,7 @@ import { useTranslation } from 'react-i18next'
 import { ChevronUp, ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Currency } from '@/utils/currency'
-import type { TimePeriodMetrics, ReportType } from '@/services/reports/salesSummary.service'
+import type { TimePeriodMetrics, ReportType, SalesSummaryMetrics } from '@/services/reports/salesSummary.service'
 
 // ============================================================
 // Types
@@ -27,6 +27,8 @@ interface PeriodBreakdownTableProps {
   selectedMetrics: string[]
   reportType: ReportType
   venueTimezone?: string
+  /** D14.2: la cabecera del SERVIDOR para la columna «Total» (la misma cifra que el Resumen; la pantalla no suma). */
+  total?: SalesSummaryMetrics
 }
 
 type MetricKey = keyof TimePeriodMetrics['metrics']
@@ -50,23 +52,33 @@ const METRIC_ROWS: MetricRowConfig[] = [
   { key: 'items', translationKey: 'items', type: 'positive', indent: 1, parentKey: 'grossSales' },
   { key: 'serviceCosts', translationKey: 'serviceCosts', type: 'positive', indent: 1, parentKey: 'grossSales' },
 
-  // Individual metrics
+  // Lo que resta a las ventas
   { key: 'refunds', translationKey: 'refunds', type: 'negative' },
   { key: 'discounts', translationKey: 'discounts', type: 'negative' },
-  { key: 'netSales', translationKey: 'netSales', type: 'positive', showTransactions: true },
-  { key: 'deferredSales', translationKey: 'deferredSales', type: 'neutral' },
-  { key: 'taxes', translationKey: 'taxes', type: 'neutral' },
+  // D14.5: «Ventas netas» una sola vez (antes se repetía como «Total de las ventas», con el mismo número). Los impuestos ya van
+  // dentro (México): renglón informativo debajo, como en el Resumen.
+  { key: 'netSales', translationKey: 'netSales', type: 'bold' },
+  { key: 'taxes', translationKey: 'taxes', type: 'neutral', indent: 1 },
 
-  // Total de las ventas (highlighted)
-  { key: 'netSales', translationKey: 'totalSales', type: 'bold', showTransactions: true },
-
-  // Propinas y comisiones
+  // Propinas y comisiones: lo que lleva de «Ventas netas» a «Neto cobrado» (D14.1: antes faltaban; la llave era `commissions`).
   { key: 'tips', translationKey: 'tips', type: 'positive' },
-  { key: 'commissions', translationKey: 'commissions', type: 'negative' },
+  { key: 'platformFees', translationKey: 'platformFees', type: 'negative' },
+  { key: 'tenderCommissions', translationKey: 'tenderCommissions', type: 'negative' },
+  { key: 'totalCollected', translationKey: 'totalCollected', type: 'bold', showTransactions: true },
 
-  // Total neto
-  { key: 'totalCollected', translationKey: 'totalCollected', type: 'bold' },
+  // De «Neto cobrado» a «Ganancia neta»
+  { key: 'staffCommissions', translationKey: 'staffCommissions', type: 'negative' },
+  { key: 'netProfit', translationKey: 'netProfit', type: 'bold' },
+
+  // Aparte: no es venta (D6)
+  { key: 'deferredSales', translationKey: 'deferredSales', type: 'neutral' },
 ]
+
+/** Renglones que salen aunque no estén en «Métricas» cuando algún periodo trae algo (como en el Resumen). */
+const SALEN_SI_HAY: MetricKey[] = ['tenderCommissions']
+
+/** Lo que resta se pinta en negativo; un reverso (valor negativo) suma. Nunca «−$0.00». */
+const comoResta = (n: number) => (n === 0 ? 0 : -n)
 
 // Parents that can be collapsed
 const COLLAPSIBLE_PARENTS = ['grossSales']
@@ -117,6 +129,7 @@ export function PeriodBreakdownTable({
   selectedMetrics,
   reportType,
   venueTimezone = 'America/Mexico_City',
+  total,
 }: PeriodBreakdownTableProps) {
   const { t } = useTranslation('reports')
 
@@ -126,18 +139,13 @@ export function PeriodBreakdownTable({
   // Filter metrics based on selection
   const visibleMetrics = useMemo(() => {
     return METRIC_ROWS.filter(row => {
-      // Always show if no filter or metric is selected
-      // Map translationKey to metric filter keys
-      const metricFilterKey = row.key === 'netSales' && row.translationKey === 'totalSales'
-        ? 'totalCollected'
-        : row.key
-
       // Vista de movimientos (filtro de método o de comercio, D9.1): el servidor manda las métricas de orden en null en TODOS los
       // periodos. Ese renglón no se pinta (antes salía «N/A», o «−$0.00» en los negativos), igual que en la cabecera.
       const tieneValor = periods.some(p => p.metrics[row.key] != null)
       // «Sin cobrar» (D6) sale sola si algún periodo tiene cuentas abiertas, como en la cabecera (Codex r2 #8).
       const hayCuentasAbiertas = row.key === 'deferredSales' && periods.some(p => (p.metrics.unpaidOrders ?? 0) > 0)
-      return tieneValor && (selectedMetrics.length === 0 || selectedMetrics.includes(metricFilterKey) || hayCuentasAbiertas)
+      const saleSola = SALEN_SI_HAY.includes(row.key) && periods.some(p => Number(p.metrics[row.key] ?? 0) !== 0)
+      return tieneValor && (selectedMetrics.length === 0 || selectedMetrics.includes(row.key) || hayCuentasAbiertas || saleSola)
     })
   }, [selectedMetrics, periods])
 
@@ -178,7 +186,7 @@ export function PeriodBreakdownTable({
           <thead>
             <tr className="border-b border-border/30">
               {/* Sticky first column - Report type header (Square-style: ~300px) */}
-              <th className="sticky left-0 z-20 bg-card/95 backdrop-blur-sm px-6 py-5 text-left w-[300px] min-w-[300px] border-r border-border/30">
+              <th className="sticky left-0 z-20 bg-card/95 backdrop-blur-sm px-3 sm:px-6 py-5 text-left w-[140px] min-w-[140px] sm:w-[300px] sm:min-w-[300px] border-r border-border/30">
                 <div>
                   <p className="text-sm font-medium text-foreground">
                     {getReportTypeLabel(reportType, t)}
@@ -201,6 +209,12 @@ export function PeriodBreakdownTable({
                   {period.periodLabel || period.period}
                 </th>
               ))}
+              {total && (
+                // Pegada a la derecha, como la primera a la izquierda: con 7 días o 24 horas el total no se pierde al fondo del scroll.
+                <th className="sticky right-0 z-20 px-4 py-5 text-sm font-semibold text-foreground w-[120px] min-w-[120px] sm:w-[150px] sm:min-w-[150px] text-center border-l border-border/40 bg-muted">
+                  {t('salesSummary.periodTable.total')}
+                </th>
+              )}
             </tr>
           </thead>
 
@@ -210,7 +224,9 @@ export function PeriodBreakdownTable({
               // Skip child rows if parent is collapsed
               if (!isChildVisible(row)) return null
 
-              const isParent = isCollapsibleParent(row.key) && !row.parentKey
+              // Sin hijos elegidos no hay nada que desplegar: sin flecha.
+              const isParent =
+                isCollapsibleParent(row.key) && !row.parentKey && visibleMetrics.some(r => r.parentKey === row.key)
               const isExpanded = expandedRows.has(row.key)
               const isChild = !!row.parentKey
               const isBold = row.type === 'bold'
@@ -228,8 +244,8 @@ export function PeriodBreakdownTable({
                   {/* Sticky metric name column (Square-style spacing) */}
                   <td
                     className={cn(
-                      'sticky left-0 z-10 bg-card/95 backdrop-blur-sm px-6 py-3.5 border-r border-border/30',
-                      isChild && 'pl-12'
+                      'sticky left-0 z-10 bg-card/95 backdrop-blur-sm px-3 sm:px-6 py-3.5 border-r border-border/30',
+                      (isChild || row.indent) && 'pl-6 sm:pl-12'
                     )}
                   >
                     <div className="flex items-center gap-2">
@@ -237,8 +253,10 @@ export function PeriodBreakdownTable({
                       {isParent && (
                         <button
                           onClick={() => toggleRow(row.key)}
-                          className="p-0.5 hover:bg-muted rounded transition-colors"
-                          aria-label={isExpanded ? 'Collapse' : 'Expand'}
+                          type="button"
+                          className="p-0.5 hover:bg-muted rounded transition-colors cursor-pointer"
+                          aria-expanded={isExpanded}
+                          aria-label={t(isExpanded ? 'salesSummary.periodTable.collapse' : 'salesSummary.periodTable.expand')}
                         >
                           {isExpanded ? (
                             <ChevronUp className="w-4 h-4 text-muted-foreground" />
@@ -252,7 +270,7 @@ export function PeriodBreakdownTable({
                         className={cn(
                           'text-sm',
                           isBold ? 'font-semibold text-foreground' : 'text-foreground/90',
-                          isChild && 'text-muted-foreground'
+                          (isChild || row.indent) && 'text-muted-foreground'
                         )}
                       >
                         {t(`salesSummary.rows.${row.translationKey}`)}
@@ -260,48 +278,52 @@ export function PeriodBreakdownTable({
                     </div>
                   </td>
 
-                  {/* Value cells for each period (150px, centered) */}
-                  {periods.map((period, colIdx) => {
-                    const value = period.metrics[row.key]
-                    const hasValue = value !== 0
-                    const transactionCount = row.showTransactions ? period.metrics.transactionCount : 0
-                    // «Sin cobrar»: cuántas cuentas abiertas (sólo un servidor con base de caja lo manda).
-                    const cuentasAbiertas = row.key === 'deferredSales' ? (period.metrics.unpaidOrders ?? 0) : 0
+                  {/* Value cells for each period (150px, centered), then the «Total» column */}
+                  {[...periods.map(p => ({ id: p.period, metrics: p.metrics, esTotal: false })), ...(total ? [{ id: 'total', metrics: total, esTotal: true }] : [])].map(
+                    (col, colIdx, cols) => {
+                      const value = col.metrics[row.key]
+                      // D14.4: null = el SERVIDOR no puede medirlo con este filtro: «—», no un cero.
+                      const shown = value == null ? null : isNegative ? comoResta(Number(value)) : Number(value)
+                      const transactionCount = row.showTransactions ? col.metrics.transactionCount : 0
+                      // «Sin cobrar»: cuántas cuentas abiertas (sólo un servidor con base de caja lo manda).
+                      const cuentasAbiertas = row.key === 'deferredSales' ? (col.metrics.unpaidOrders ?? 0) : 0
 
-                    return (
-                      <td
-                        key={`${period.period}-${row.key}`}
-                        className={cn(
-                          'px-4 py-4 w-[150px] min-w-[150px] text-center',
-                          colIdx < periods.length - 1 && 'border-r border-border/20',
-                          isBold && 'bg-muted/30'
-                        )}
-                      >
-                        <span
+                      return (
+                        <td
+                          key={`${col.id}-${row.key}`}
                           className={cn(
-                            'text-sm tabular-nums',
-                            isBold && 'font-semibold',
-                            isNegative && hasValue && 'text-red-500',
-                            !hasValue && 'text-muted-foreground'
+                            'px-4 py-4 w-[150px] min-w-[150px] text-center',
+                            colIdx < cols.length - 1 && !cols[colIdx + 1].esTotal && 'border-r border-border/20',
+                            col.esTotal && 'sticky right-0 z-10 w-[120px] min-w-[120px] sm:w-[150px] sm:min-w-[150px] border-l border-border/40 bg-muted font-semibold',
+                            isBold && !col.esTotal && 'bg-muted/30'
                           )}
                         >
-                          {isNegative && hasValue ? `-${Currency(Math.abs(value))}` : Currency(value)}
-                        </span>
+                          <span
+                            className={cn(
+                              'text-sm tabular-nums',
+                              (isBold || col.esTotal) && 'font-semibold',
+                              shown != null && shown < 0 && 'text-red-500',
+                              (shown == null || shown === 0) && 'text-muted-foreground'
+                            )}
+                          >
+                            {shown == null ? '—' : Currency(shown)}
+                          </span>
 
-                        {/* Transaction count */}
-                        {row.showTransactions && transactionCount > 0 && (
-                          <div className="text-xs text-muted-foreground mt-1">
-                            {transactionCount} {t('salesSummary.transactionsLabel')}
-                          </div>
-                        )}
-                        {cuentasAbiertas > 0 && (
-                          <div className="text-xs text-muted-foreground mt-1">
-                            {cuentasAbiertas} {t('salesSummary.unpaidOrdersLabel', { count: cuentasAbiertas })}
-                          </div>
-                        )}
-                      </td>
-                    )
-                  })}
+                          {/* Transaction count */}
+                          {row.showTransactions && transactionCount > 0 && (
+                            <div className="text-xs text-muted-foreground mt-1">
+                              {transactionCount} {t('salesSummary.transactionsLabel')}
+                            </div>
+                          )}
+                          {cuentasAbiertas > 0 && (
+                            <div className="text-xs text-muted-foreground mt-1">
+                              {cuentasAbiertas} {t('salesSummary.unpaidOrdersLabel', { count: cuentasAbiertas })}
+                            </div>
+                          )}
+                        </td>
+                      )
+                    },
+                  )}
                 </tr>
               )
             })}

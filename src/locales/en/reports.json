@@ -469,11 +469,11 @@
     }
   },
   "salesSummary": {
-    "title": "Sales Summary",
+    "title": "Sales summary",
     "totalSales": "Net collected",
-    "transactions": "transactions",
-    "transactionsLabel": "transactions",
-    "transactionsShort": "trans.",
+    "transactions": "payments",
+    "transactionsLabel": "payments",
+    "transactionsShort": "payments",
     "basic": {
       "today": "Today",
       "todayBadge": "Today only",
@@ -590,8 +590,8 @@
     },
     "sections": {
       "summary": "Summary",
-      "summaryDesc": "Sales breakdown for the period",
-      "paymentMethods": "Payment Methods",
+      "summaryDesc": "Breakdown of the period’s sales",
+      "paymentMethods": "Payment methods",
       "paymentMethodsDesc": "Distribution by payment type"
     },
     "columns": {
@@ -611,12 +611,11 @@
       "refunds": "Refunds",
       "netSales": "Net sales",
       "deferredSales": "Unpaid",
-      "taxes": "Taxes",
+      "taxes": "Taxes included",
       "tips": "Tips",
       "platformFees": "Platform fees",
       "tenderCommissions": "Third-party fees",
       "staffCommissions": "Staff commissions",
-      "totalSales": "Total sales",
       "totalCollected": "Net collected",
       "netProfit": "Net profit",
       "giftCardLoads": "Gift cards loaded",
@@ -629,8 +628,8 @@
       "items": "Item sales at the price charged (VAT included), before discounts, comps, and refunds",
       "serviceCosts": "Charges added to the check, such as service, corkage or own delivery. They are sales and already inside gross sales; tips are separate",
       "discounts": "Discounts applied to orders, including promotions and coupons",
-      "refunds": "Refunds processed during the selected period",
-      "netSales": "Gross sales minus discounts and refunds (Gross sales - Discounts - Refunds)",
+      "refunds": "What you refunded to your customers in the period, partial refunds included",
+      "netSales": "Gross sales minus discounts and refunds. Taxes are already included",
       "deferredSales": "Open or partly paid checks: what they still owe, without tips. Not a sale until they are collected",
       "deferredSalesOld": "What open or partly paid checks still owe, tips included",
       "grossSalesOld": "Total sales amount before discounts and refunds are applied",
@@ -638,12 +637,11 @@
       "totalCollectedMovements": "The payments in this filter (minus their refunds) + tips - platform and third-party fees",
       "netProfitMovements": "The payments in this filter (minus their refunds) - platform, third-party and staff fees",
       "netProfitOld": "Net sales - platform fees - staff commissions. It does not subtract what the goods you sold cost you",
-      "taxes": "Taxes collected on sales during the period",
+      "taxes": "VAT and other taxes on the period’s sales. They are already inside your prices and «Net sales»: for reference, not added",
       "tips": "Tips received by staff during the period",
       "platformFees": "Fees charged by Avoqado for payment processing and platform usage",
       "tenderCommissions": "What Rappi, Uber Eats, DiDi or a payment type with a fee (vouchers, for example) keep from each charge. Not Avoqado's",
-      "staffCommissions": "Commissions paid to employees based on venue commission configurations",
-      "totalSales": "Net sales (taxes are already included in prices)",
+      "staffCommissions": "Your employees’ commissions according to the business’s commission rules. «Net collected» does not subtract them; «Net profit» does",
       "totalCollected": "Money received: net sales + tips - platform and third-party fees",
       "totalCollectedWithGiftCards": "Net sales + tips − fees. It doesn't include what was loaded on gift cards (that has its own row) and it does include what was paid with gift card balance.",
       "totalCollectedWithGiftCardsNoLoadsRow": "Net sales + tips − fees. It doesn't include what was loaded on gift cards and it does include what was paid with gift card balance.",
@@ -652,7 +650,8 @@
       "giftCardLoads": "Balance you sold on gift cards, minus cancellations. It isn't a sale yet: it counts as a sale when the customer uses it.",
       "paidWithGiftCardBalance": "Part of your sales and tips paid with gift card balance, minus what went back to the balance. That money came in when the card was sold.",
       "packagesSoldOnline": "Class packages your customers bought online in the period, on the day Avoqado confirmed the payment. It is not a sale yet and is not in «Net collected»: you collected it in advance and it is used on their classes. Packages sold at the register are already in sales.",
-      "reservationDeposits": "Deposits your customers paid online to hold a reservation, on the day Avoqado confirmed the payment, minus the ones you refunded in the period. It is not a sale and is not in «Net collected»: it is an advance."
+      "reservationDeposits": "Deposits your customers paid online to hold a reservation, on the day Avoqado confirmed the payment, minus the ones you refunded in the period. It is not a sale and is not in «Net collected»: it is an advance.",
+      "totalCollectedVsStatement": "It may not match «You keep» in the period statement: here it counts sales already paid, on the day of the sale; there, every payment and refund on the day it happened (open-tab deposits included)."
     },
     "giftBalanceLine_one": "Also, {{amount}} was paid with gift card balance (1 payment). That money came in when the cards were sold.",
     "giftBalanceLine_other": "Also, {{amount}} was paid with gift card balance ({{count}} payments). That money came in when the cards were sold.",
@@ -690,10 +689,10 @@
       "apply": "Apply",
       "reportType": {
         "label": "Report type",
-        "description": "View the report in hourly, daily, weekly or monthly intervals.",
-        "longDescription": "Changing the report type will change how your data is displayed. Summary reports will show single total figures, while others may show changes by day, for example.",
-        "summariesSection": "Summaries",
-        "incrementsSection": "Individual increments",
+        "description": "See one total for the period, or one column per hour, day, week or month.",
+        "longDescription": "«Summary» gives one total for the period. «By period» shows one column per hour, day, week or month, with the total at the end.",
+        "summariesSection": "Totals",
+        "incrementsSection": "By period",
         "options": {
           "summary": "Summary",
           "summaryDesc": "Groups the same metrics from different days as total values, without segmenting them chronologically",
@@ -716,13 +715,14 @@
         "description": "Change how your information is displayed",
         "longDescription": "Select how you want to visualize your report data.",
         "options": {
-          "gauge": "Gauge chart",
+          "gauge": "Bar",
           "gaugeDesc": "Horizontal bar with percentage breakdown",
           "pie": "Pie chart",
-          "pieDesc": "Donut chart with value distribution",
+          "pieDesc": "Donut with the split by payment method",
           "table": "Table",
           "tableDesc": "Detailed table view"
-        }
+        },
+        "filteredNote": "With a payment filter there is no split to draw: the view shows once you remove the filter."
       },
       "merchant": {
         "label": "Merchant",
@@ -741,12 +741,12 @@
       "filterBy": {
         "label": "Filter by",
         "description": "Restrict the report to a payment method or card type",
-        "longDescription": "Filter to show only payments matching the chosen method or card type. Order-level metrics (gross sales, taxes, discounts) are hidden under filter because they cannot be attributed to a single payment method.",
+        "longDescription": "See only the payments of one method or card type. With a filter, gross sales, taxes and discounts are not shown, because a check can be paid with several methods.",
         "active": "Filtered",
         "clear": "Clear filter",
         "none": "All",
         "filteredMessage": "Clear the filter to see the full distribution",
-        "hiddenMetricsMessage": "Order-level metrics hidden under filter",
+        "hiddenMetricsMessage": "With a payment filter, gross sales, discounts and taxes are not shown: a check can be paid with several methods and cannot be split.",
         "paymentMethod": {
           "label": "Payment method",
           "options": {
@@ -756,7 +756,7 @@
             "cashDesc": "Cash payments only",
             "card": "Card",
             "cardDesc": "Credit or debit card payments only",
-            "qrLegacy": "QR Legacy",
+            "qrLegacy": "Previous QR",
             "qrLegacyDesc": "Payments from the previous QR system",
             "other": "Other",
             "otherDesc": "Digital wallet, transfer, crypto"
@@ -793,19 +793,19 @@
           "discounts": "Discounts",
           "discountsDesc": "Deductions applied to your sales for promotions, coupons, or comps",
           "refunds": "Refunds",
-          "refundsDesc": "All itemized refunds, excluding partial refunds",
+          "refundsDesc": "What you refunded to your customers in the period, partial refunds included",
           "netSales": "Net sales",
           "netSalesDesc": "Gross sales minus refunds, discounts, and comps",
           "deferredSales": "Unpaid",
           "deferredSalesDesc": "What open or partly paid checks still owe. Not a sale until it is collected",
           "taxes": "Taxes",
-          "taxesDesc": "Tax amount applied at the time of sale",
+          "taxesDesc": "Taxes already inside your prices. For reference: not added",
           "tips": "Tips",
           "tipsDesc": "Tips received by staff during the period",
           "platformFees": "Platform fees",
           "platformFeesDesc": "Fees charged by Avoqado for payment processing",
           "staffCommissions": "Staff commissions",
-          "staffCommissionsDesc": "Commissions paid to employees based on venue configurations",
+          "staffCommissionsDesc": "Your employees’ commissions. Subtracted in «Net profit», not in «Net collected»",
           "totalCollected": "Net collected",
           "totalCollectedDesc": "Money received: net sales + tips - platform and third-party fees",
           "netProfit": "Net profit",
@@ -815,16 +815,19 @@
       }
     },
     "periodTable": {
-      "hourly": "Hourly breakdown",
-      "daily": "Daily breakdown",
-      "weekly": "Weekly breakdown",
-      "monthly": "Monthly breakdown",
+      "hourly": "By hour",
+      "daily": "By day",
+      "weekly": "By week",
+      "monthly": "By month",
       "hourlySum": "Hourly summary",
       "dailySum": "Day of week summary",
       "allDaySubtitle": "All day (0:00-23:59 {{timezone}} time)",
       "allWeekSubtitle": "All days in the period",
       "allWeeksSubtitle": "All weeks in the period",
-      "allMonthsSubtitle": "All months in the period"
+      "allMonthsSubtitle": "All months in the period",
+      "total": "Total",
+      "expand": "Show detail",
+      "collapse": "Hide detail"
     },
     "statement": {
       "title": "Period statement",
@@ -914,10 +917,10 @@
       "title": "When it lands (week)",
       "prev": "Previous week",
       "next": "Next week",
-      "weekTotal": "Week total",
+      "weekTotal": "Lands this week",
       "merchantLine": "fee {{commission}} · you receive {{net}}",
       "empty": "Nothing lands this week.",
-      "note": "How much lands in your bank each day, by settlement date. Estimated from each merchant's rules (business days + holidays). Cash isn't shown here — it's already in your hand."
+      "note": "What lands in your bank each day of this week, by settlement date and from sales of any day: not the same as «Arriving to your bank», which is only the period above. Estimated from each merchant’s settlement rules (business days + holidays). Cash does not appear here: it is already in your hands."
     },
     "channels": {
       "title": "Sales by channel",
@@ -972,6 +975,15 @@
       "outOfSync": "A sale came in while the report was loading: this table may not match the summary. Reload the page.",
       "ordersWithoutLegacy_one": "{{count}} order (without the previous QR ones)",
       "ordersWithoutLegacy_other": "{{count}} orders (without the previous QR ones)"
+    },
+    "beta": "Beta",
+    "pageInfo": "Your sales for the period: totals, by channel and payment method, by hour or day, and when the money reaches your bank.",
+    "empty": "There were no sales in this period.",
+    "apart": "Separate: not part of «Net collected»",
+    "legend": {
+      "positive": "Adds",
+      "negative": "Subtracts",
+      "neutral": "For reference, not added"
     }
   },
   "salesByItem": {

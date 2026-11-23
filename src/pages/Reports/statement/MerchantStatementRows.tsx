@@ -267,11 +267,10 @@ export function MerchantStatementRows({ rows, formatCurrency }: Props) {
           return (
             <div key={row.merchantAccountId} className="rounded-lg border border-input p-3" data-testid="merchant-statement-card" data-merchant-id={row.merchantAccountId}>
               <button type="button" className="flex w-full items-start justify-between gap-3 text-left" onClick={() => toggle(row.merchantAccountId)} aria-expanded={isOpen}>
+                {/* El nombre completo, en dos renglones si hace falta: dos comercios «Restaurante …» no se distinguían (hz:fefa11b6:D16.11). */}
                 <div className="flex min-w-0 flex-col">
-                  <span className="truncate font-medium" title={name}>
-                    {name}
-                  </span>
-                  <span className="truncate text-[11px] text-muted-foreground">{subtitle}</span>
+                  <span className="break-words font-medium">{name}</span>
+                  <span className="break-words text-[11px] text-muted-foreground">{subtitle}</span>
                 </div>
                 <PayoutChip row={row} locale={locale} formatCurrency={formatCurrency} t={t} />
               </button>

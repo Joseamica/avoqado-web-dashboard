@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import type { TimePeriodMetrics } from '@/services/reports/salesSummary.service'
 
@@ -45,5 +45,76 @@ describe('PeriodBreakdownTable · vista de movimientos (carril B, D9.1)', () => 
     render(<PeriodBreakdownTable periods={[periodo({ discounts: 0 })]} selectedMetrics={[]} reportType="days" />)
     expect(screen.getByText('salesSummary.rows.grossSales')).toBeInTheDocument()
     expect(screen.getByText('salesSummary.rows.discounts')).toBeInTheDocument()
+  })
+})
+
+/** El texto de la celda de un renglón (por su etiqueta) en la columna `col` (0 = primer periodo). */
+const celda = (etiqueta: string, col: number) => {
+  const fila = screen.getByText(`salesSummary.rows.${etiqueta}`).closest('tr') as HTMLElement
+  return within(fila).getAllByRole('cell')[col + 1].textContent
+}
+
+describe('PeriodBreakdownTable · carril F (hz:fefa11b6:D14)', () => {
+  const ELEGIDAS = ['grossSales', 'discounts', 'refunds', 'netSales', 'taxes', 'tips', 'platformFees', 'staffCommissions', 'totalCollected', 'netProfit']
+
+  it('🔴 D14.1 · con las 10 métricas de siempre salen comisiones de plataforma, de terceros, a empleados y la ganancia neta', () => {
+    render(
+      <PeriodBreakdownTable
+        periods={[periodo({ platformFees: 3, tenderCommissions: 5, staffCommissions: 7, netProfit: 85 })]}
+        selectedMetrics={ELEGIDAS}
+        reportType="days"
+      />,
+    )
+    expect(celda('platformFees', 0)).toBe('-$3.00')
+    expect(celda('tenderCommissions', 0)).toBe('-$5.00')
+    expect(celda('staffCommissions', 0)).toBe('-$7.00')
+    expect(celda('netProfit', 0)).toBe('$85.00')
+  })
+
+  it('🔴 D14.5 · ya no repite «Ventas netas» como «Total de las ventas»', () => {
+    render(<PeriodBreakdownTable periods={[periodo({})]} selectedMetrics={ELEGIDAS} reportType="days" />)
+    expect(screen.queryByText('salesSummary.rows.totalSales')).not.toBeInTheDocument()
+    expect(screen.getAllByText('salesSummary.rows.netSales')).toHaveLength(1)
+  })
+
+  it('🔴 D14.2 · columna «Total» con la cabecera que manda el SERVIDOR (no una suma de la pantalla)', () => {
+    const total = { ...BASE, grossSales: 250, netSales: 250, tips: 30, totalCollected: 280, transactionCount: 4 }
+    render(<PeriodBreakdownTable periods={[periodo({}, 20), periodo({}, 21)]} total={total} selectedMetrics={ELEGIDAS} reportType="days" />)
+    expect(screen.getByRole('columnheader', { name: 'salesSummary.periodTable.total' })).toBeInTheDocument()
+    expect(celda('grossSales', 2)).toContain('$250.00')
+    expect(celda('totalCollected', 2)).toBe('$280.004 salesSummary.transactionsLabel')
+  })
+
+  it('🔴 D14.4 · un valor que el SERVIDOR manda en null se pinta «—», nunca «$0.00» ni «−$0.00»', () => {
+    render(
+      <PeriodBreakdownTable
+        periods={[periodo({ discounts: null }, 20), periodo({ discounts: 4 }, 21)]}
+        selectedMetrics={ELEGIDAS}
+        reportType="days"
+      />,
+    )
+    expect(celda('discounts', 0)).toBe('—')
+    expect(celda('discounts', 1)).toBe('-$4.00')
+  })
+
+  it('🔴 D14.5 / D16.1 · un cero que resta se pinta «$0.00», sin signo', () => {
+    render(<PeriodBreakdownTable periods={[periodo({ refunds: 0, discounts: 0 })]} selectedMetrics={ELEGIDAS} reportType="days" />)
+    expect(celda('refunds', 0)).toBe('$0.00')
+    expect(celda('discounts', 0)).toBe('$0.00')
+  })
+
+  it('🔴 nota de D14 · una comisión revertida (valor negativo) SUMA en la tabla, como en la cabecera: «$3.00», no «−$3.00»', () => {
+    render(<PeriodBreakdownTable periods={[periodo({ platformFees: -3 })]} selectedMetrics={ELEGIDAS} reportType="days" />)
+    expect(celda('platformFees', 0)).toBe('$3.00')
+  })
+
+  it('control · sin «Artículos» ni «Cargos por servicio» elegidos, «Ventas brutas» no trae flecha (no hay nada que desplegar)', () => {
+    render(<PeriodBreakdownTable periods={[periodo({})]} selectedMetrics={ELEGIDAS} reportType="days" />)
+    expect(screen.queryByRole('button', { name: /salesSummary\.periodTable\.(collapse|expand)/ })).not.toBeInTheDocument()
+  })
+
+  it('control · con «Artículos» elegido, la flecha despliega y pliega', () => {
+    render(<PeriodBreakdownTable periods={[periodo({})]} selectedMetrics={[...ELEGIDAS, 'items']} reportType="days" />)
+    expect(screen.getByRole('button', { name: 'salesSummary.periodTable.collapse' })).toHaveAttribute('aria-expanded', 'true')
   })
 })

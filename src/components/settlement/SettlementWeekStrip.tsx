@@ -116,7 +116,8 @@ export function SettlementWeekStrip({ venueId, venueTimezone, className }: Props
       {data === undefined ? (
         !falloDeCarga(weekQuery) && <Skeleton className="mt-3 h-24 w-full" />
       ) : (
-      <div className="mt-3 flex snap-x gap-2 overflow-x-auto pb-2">
+      // En un celular los 7 días en una rejilla de 3 (antes se veían 3 de 7 sin pista de que se deslizaba, hz:fefa11b6:D16.12).
+      <div className="mt-3 grid grid-cols-3 gap-2 sm:flex sm:snap-x sm:overflow-x-auto sm:pb-2">
         {cells.map(dateKey => {
           const day = byDate.get(dateKey)
           const status = day?.status ?? statusOf(dateKey)
@@ -132,7 +133,7 @@ export function SettlementWeekStrip({ venueId, venueTimezone, className }: Props
               disabled={!day}
               data-testid={`settlement-week-day-${dateKey}`}
               className={cn(
-                'flex min-w-[92px] shrink-0 snap-start flex-col items-center gap-1 rounded-lg border p-2.5 text-center transition-colors',
+                'flex min-w-0 flex-col items-center gap-1 rounded-lg border p-2.5 text-center transition-colors sm:min-w-[92px] sm:shrink-0 sm:snap-start',
                 openDate === dateKey ? 'border-blue-500/50 bg-muted/30' : 'border-input',
                 day ? 'cursor-pointer hover:bg-muted/30' : 'opacity-60',
               )}
