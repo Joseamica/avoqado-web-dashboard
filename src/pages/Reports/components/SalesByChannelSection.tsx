@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next'
 import { Filter, Lock, Route } from 'lucide-react'
 import { GlassCard } from '@/components/ui/glass-card'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { FeatureGate } from '@/components/billing/FeatureGate'
 import { cn } from '@/lib/utils'
 import type { SalesBreakdownRow } from '@/services/reports/salesSummary.service'
 
@@ -27,22 +26,6 @@ interface Props {
 }
 
 type Vista = 'channel' | 'orderType'
-
-/** Renglones de muestra para el candado: nombres de canal y cifras en guion, nunca datos del negocio. */
-const MUESTRA: SalesBreakdownRow[] = ['COUNTER', 'TABLES', 'ONLINE_STORE', 'RAPPI'].map(key => ({
-  key,
-  grossSales: 0,
-  discounts: 0,
-  refunds: 0,
-  netSales: 0,
-  tips: 0,
-  platformFees: 0,
-  tenderCommissions: 0,
-  totalCollected: 0,
-  orderCount: 0,
-  transactionCount: 0,
-  refundCount: 0,
-}))
 
 export function SalesByChannelSection({
   byChannel,
@@ -71,21 +54,10 @@ export function SalesByChannelSection({
   // El SERVIDOR manda: si trajo las tablas, el plan las incluye aunque la pantalla tuviera guardado otro plan (Codex r2 #9); si no las
   // trajo, Gratis ve el candado con su botón de plan y, si la pantalla creía que sí, el aviso del SERVIDOR.
   if (!byChannel || !byOrderType) {
-    // Apagado se ve y se explica: Gratis ve la sección con su candado (renglones de muestra borrosos, sin datos del negocio).
-    if (sinPlan) {
-      return (
-        <GlassCard className="overflow-hidden border-input p-0" data-testid="ventas-por-canal-candado">
-          {encabezado}
-          <div className="p-4 sm:p-5">
-            <FeatureGate feature="ADVANCED_REPORTS">
-              <Tabla filas={MUESTRA} vista="channel" formatCurrency={() => '—'} muestra />
-            </FeatureGate>
-          </div>
-        </GlassCard>
-      )
-    }
-    // La pantalla creía que sí (plan sin leer o guardado viejo) y el SERVIDOR dijo que no.
-    if (bloqueadoPorElServidor) {
+    // Apagado se ve y se explica: sin el plan (según la pantalla o según el SERVIDOR), la sección con su candado y su texto. Sin
+    // un segundo botón de «Mejora a Pro»: el aviso del plan de la página ya lo trae (dos botones iguales confundían y rompían la
+    // prueba E2E del aviso).
+    if (sinPlan || bloqueadoPorElServidor) {
       return (
         <GlassCard className="overflow-hidden border-input p-0" data-testid="ventas-por-canal-candado">
           {encabezado}
@@ -155,17 +127,7 @@ export function SalesByChannelSection({
 /** Una comisión se enseña en negativo; en cero, «$0.00» y no «-$0.00». */
 const costo = (n: number) => (n === 0 ? 0 : -n)
 
-function Tabla({
-  filas,
-  vista,
-  formatCurrency,
-  muestra = false,
-}: {
-  filas: SalesBreakdownRow[]
-  vista: Vista
-  formatCurrency: (n: number) => string
-  muestra?: boolean
-}) {
+function Tabla({ filas, vista, formatCurrency }: { filas: SalesBreakdownRow[]; vista: Vista; formatCurrency: (n: number) => string }) {
   const { t } = useTranslation('reports')
   const nombre = (key: string) =>
     t(vista === 'channel' ? `salesSummary.channels.names.${key}` : `salesSummary.channels.orderTypes.${key}`, key)
@@ -203,10 +165,10 @@ function Tabla({
     ]
       .filter(Boolean)
       .join(' · ')
-  const dinero = (n: number) => (muestra ? '—' : formatCurrency(n))
+  const dinero = formatCurrency
 
   return (
-    <div className={cn(muestra && 'pointer-events-none select-none')}>
+    <div>
       {/* Escritorio: tabla */}
       <table className="hidden w-full text-sm md:table" data-testid="ventas-por-canal-tabla">
         <thead>
@@ -228,11 +190,11 @@ function Tabla({
               <tr key={r.key} className="border-b border-input/60 last:border-0" data-testid={`canal-${r.key}`}>
                 <td className="py-2.5 pr-3">
                   <div className="font-medium">{nombre(r.key)}</div>
-                  <div className="text-xs text-muted-foreground">{muestra ? '—' : conteos(r)}</div>
+                  <div className="text-xs text-muted-foreground">{conteos(r)}</div>
                 </td>
                 <td className="py-2.5 px-3 text-right">
                   <div className="font-semibold tabular-nums">{dinero(r.netSales)}</div>
-                  {!muestra && p != null && <div className="text-xs text-muted-foreground tabular-nums">{p.toFixed(1)}%</div>}
+                  {p != null && <div className="text-xs text-muted-foreground tabular-nums">{p.toFixed(1)}%</div>}
                 </td>
                 <td className="py-2.5 px-3 text-right tabular-nums">{dinero(r.tips)}</td>
                 <td className="py-2.5 px-3 text-right tabular-nums text-muted-foreground">{dinero(costo(r.platformFees))}</td>
@@ -244,21 +206,19 @@ function Tabla({
             )
           })}
         </tbody>
-        {!muestra && (
-          <tfoot>
-            <tr className="border-t border-input font-semibold" data-testid="canal-total">
-              <td className="pt-3 pr-3">
-                <div>{t('salesSummary.channels.total')}</div>
-                <div className="text-xs font-normal text-muted-foreground">{conteos(total, true)}</div>
-              </td>
-              <td className="pt-3 px-3 text-right tabular-nums">{formatCurrency(total.netSales)}</td>
-              <td className="pt-3 px-3 text-right tabular-nums">{formatCurrency(total.tips)}</td>
-              <td className="pt-3 px-3 text-right tabular-nums">{formatCurrency(costo(total.platformFees))}</td>
-              {hayTerceros && <td className="pt-3 px-3 text-right tabular-nums">{formatCurrency(costo(total.tenderCommissions))}</td>}
-              <td className="pt-3 pl-3 text-right tabular-nums">{formatCurrency(total.totalCollected)}</td>
-            </tr>
-          </tfoot>
-        )}
+        <tfoot>
+          <tr className="border-t border-input font-semibold" data-testid="canal-total">
+            <td className="pt-3 pr-3">
+              <div>{t('salesSummary.channels.total')}</div>
+              <div className="text-xs font-normal text-muted-foreground">{conteos(total, true)}</div>
+            </td>
+            <td className="pt-3 px-3 text-right tabular-nums">{formatCurrency(total.netSales)}</td>
+            <td className="pt-3 px-3 text-right tabular-nums">{formatCurrency(total.tips)}</td>
+            <td className="pt-3 px-3 text-right tabular-nums">{formatCurrency(costo(total.platformFees))}</td>
+            {hayTerceros && <td className="pt-3 px-3 text-right tabular-nums">{formatCurrency(costo(total.tenderCommissions))}</td>}
+            <td className="pt-3 pl-3 text-right tabular-nums">{formatCurrency(total.totalCollected)}</td>
+          </tr>
+        </tfoot>
       </table>
 
       {/* Celular: tarjetas apiladas, y el total con las mismas cifras que en escritorio (Codex r2 #11) */}
@@ -269,22 +229,20 @@ function Tabla({
             nombre={nombre(r.key)}
             fila={r}
             pct={pct(r.netSales)}
-            conteos={muestra ? '—' : conteos(r)}
+            conteos={conteos(r)}
             hayTerceros={hayTerceros}
             dinero={dinero}
           />
         ))}
-        {!muestra && (
-          <Tarjeta
-            nombre={t('salesSummary.channels.total')}
-            fila={total}
-            pct={null}
-            conteos={conteos(total, true)}
-            hayTerceros={hayTerceros}
-            dinero={dinero}
-            esTotal
-          />
-        )}
+        <Tarjeta
+          nombre={t('salesSummary.channels.total')}
+          fila={total}
+          pct={null}
+          conteos={conteos(total, true)}
+          hayTerceros={hayTerceros}
+          dinero={dinero}
+          esTotal
+        />
       </ul>
     </div>
   )

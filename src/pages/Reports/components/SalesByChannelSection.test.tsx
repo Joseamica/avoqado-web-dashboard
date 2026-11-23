@@ -15,12 +15,6 @@ vi.mock('react-i18next', () => ({
     i18n: { language: 'es' },
   }),
 }))
-// El candado de verdad decide con el plan; aquí sólo importa que la sección lo use y que adentro no haya datos del negocio.
-vi.mock('@/components/billing/FeatureGate', () => ({
-  FeatureGate: ({ feature, children }: { feature: string; children: ReactNode }) => (
-    <div data-testid={`candado-${feature}`}>{children}</div>
-  ),
-}))
 // Las pestañas de Radix necesitan eventos de puntero: aquí se cambian con un clic llano.
 vi.mock('@/components/ui/tabs', () => ({
   Tabs: ({ children, onValueChange }: { children: ReactNode; onValueChange: (v: string) => void }) => (
@@ -146,12 +140,14 @@ describe('SalesByChannelSection (carril G · D4)', () => {
     expect(within(tabla).queryByText('salesSummary.channels.names.RAPPI')).toBeNull()
   })
 
-  it('🔴 plan Gratis: la sección se ve con su candado y sin datos del negocio', () => {
+  it('🔴 plan Gratis: la sección se ve con su candado y su texto, sin datos del negocio y sin un segundo botón de plan', () => {
     pintar({ sinPlan: true, byChannel: undefined, byOrderType: undefined })
     const seccion = screen.getByTestId('ventas-por-canal-candado')
     expect(within(seccion).getByText('salesSummary.channels.title')).toBeInTheDocument()
-    const candado = within(seccion).getByTestId('candado-ADVANCED_REPORTS')
-    expect(within(candado).queryByText(/\$\d/)).toBeNull()
+    expect(within(seccion).getByText('salesSummary.channels.lockedByPlan')).toBeInTheDocument()
+    expect(within(seccion).queryByText(/\$\d/)).toBeNull()
+    // El botón de «Mejora a Pro» es el del aviso del plan de la página (la prueba E2E del aviso espera uno solo).
+    expect(within(seccion).queryByRole('button')).toBeNull()
   })
 
   it('🔴 si el servidor lo dejó fuera por el plan (la pantalla no lo sabía), lo dice en vez de desaparecer', () => {
