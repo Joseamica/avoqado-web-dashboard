@@ -132,9 +132,14 @@ export function PeriodBreakdownTable({
         ? 'totalCollected'
         : row.key
 
-      return selectedMetrics.length === 0 || selectedMetrics.includes(metricFilterKey)
+      // Vista de movimientos (filtro de método o de comercio, D9.1): el servidor manda las métricas de orden en null en TODOS los
+      // periodos. Ese renglón no se pinta (antes salía «N/A», o «−$0.00» en los negativos), igual que en la cabecera.
+      const tieneValor = periods.some(p => p.metrics[row.key] != null)
+      // «Sin cobrar» (D6) sale sola si algún periodo tiene cuentas abiertas, como en la cabecera (Codex r2 #8).
+      const hayCuentasAbiertas = row.key === 'deferredSales' && periods.some(p => (p.metrics.unpaidOrders ?? 0) > 0)
+      return tieneValor && (selectedMetrics.length === 0 || selectedMetrics.includes(metricFilterKey) || hayCuentasAbiertas)
     })
-  }, [selectedMetrics])
+  }, [selectedMetrics, periods])
 
   // Toggle row expansion
   const toggleRow = (key: string) => {
@@ -260,6 +265,8 @@ export function PeriodBreakdownTable({
                     const value = period.metrics[row.key]
                     const hasValue = value !== 0
                     const transactionCount = row.showTransactions ? period.metrics.transactionCount : 0
+                    // «Sin cobrar»: cuántas cuentas abiertas (sólo un servidor con base de caja lo manda).
+                    const cuentasAbiertas = row.key === 'deferredSales' ? (period.metrics.unpaidOrders ?? 0) : 0
 
                     return (
                       <td
@@ -285,6 +292,11 @@ export function PeriodBreakdownTable({
                         {row.showTransactions && transactionCount > 0 && (
                           <div className="text-xs text-muted-foreground mt-1">
                             {transactionCount} {t('salesSummary.transactionsLabel')}
+                          </div>
+                        )}
+                        {cuentasAbiertas > 0 && (
+                          <div className="text-xs text-muted-foreground mt-1">
+                            {cuentasAbiertas} {t('salesSummary.unpaidOrdersLabel', { count: cuentasAbiertas })}
                           </div>
                         )}
                       </td>
