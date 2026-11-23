@@ -500,7 +500,11 @@
         "summary": "Summary",
         "summaryDesc": "Aggregated totals and breakdowns",
         "detailed": "Detailed transactions",
-        "detailedDesc": "One row per transaction"
+        "detailedDesc": "One row per transaction",
+        "detailedQrHint": "Payments from the previous QR system are not included in detailed transactions, with or without this filter: use «Summary» to see them."
+      },
+      "dateRange": {
+        "label": "Dates"
       },
       "sections": {
         "label": "Sections to include",
@@ -508,8 +512,14 @@
         "paymentMethods": "Payment-method breakdown",
         "cardTypes": "Card-type detail",
         "cardTypesDisabledHint": "Remove the payment-method filter to include card-type detail.",
+        "paymentMethodsDisabledHint": "Remove the payment-method filter to include the payment-method breakdown.",
         "merchantAccounts": "Merchant-account breakdown",
-        "byPeriod": "By period"
+        "merchantAccountsQrHint": "Payments from the previous QR system have no merchant account.",
+        "statement": "Period statement",
+        "byPeriod": "By period",
+        "byPeriodHint": "One row per period: {{type}}, the report type you are viewing.",
+        "byPeriodDefaultHint": "One row per day. For another breakdown, change the report type on the screen.",
+        "noneSelected": "Pick at least one section to export."
       },
       "filters": {
         "label": "Filters",
@@ -518,7 +528,8 @@
           "all": "All",
           "cash": "Cash",
           "card": "Card",
-          "other": "Other"
+          "other": "Other",
+          "qr_legacy": "Previous QR"
         },
         "cardType": "Card type",
         "cardTypeOptions": {
@@ -770,7 +781,7 @@
       "metrics": {
         "label": "Metrics",
         "description": "Choose which metrics to show in the report",
-        "longDescription": "Selected metrics will be shown in the report and exports.",
+        "longDescription": "Selected metrics are shown in the report. Exports always include every total.",
         "allMetrics": "All metrics",
         "options": {
           "grossSales": "Gross sales",
