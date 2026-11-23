@@ -66,6 +66,7 @@ export const EcommerceMerchants = lazyWithRetry(() => import('@/pages/Venue/Ecom
 export const Shifts = lazyWithRetry(() => import('@/pages/Shift/Shifts'))
 // export const WaiterId = lazyWithRetry(() => import('@/pages/Waiter/waiterId'))
 export const ShiftId = lazyWithRetry(() => import('@/pages/Shift/ShiftId'))
+export const CashMachineDoubts = lazyWithRetry(() => import('@/pages/Shift/CashMachineDoubts'))
 
 // Bill components
 export const Orders = lazyWithRetry(() => import('@/pages/Order/Orders'))

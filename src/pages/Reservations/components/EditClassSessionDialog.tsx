@@ -28,6 +28,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator'
 import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/hooks/use-toast'
+import { nombreCompleto } from '@/lib/nombreCompleto'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useVenueDateTime } from '@/utils/datetime'
 import { teamService } from '@/services/team.service'
@@ -454,9 +455,7 @@ export function EditClassSessionDialog({ open, onOpenChange, sessionId }: EditCl
                         <div key={a.id} className="flex items-center justify-between gap-2 px-3 py-2 rounded-md bg-muted/50 text-sm">
                           <div className="min-w-0">
                             <span className="font-medium truncate block">
-                              {a.customer
-                                ? `${a.customer.firstName} ${a.customer.lastName}`
-                                : a.guestName || t('unnamedGuest', { defaultValue: 'Sin nombre' })}
+                              {nombreCompleto(a.customer) || a.guestName || t('unnamedGuest', { defaultValue: 'Sin nombre' })}
                             </span>
                             {(a.guestPhone || a.customer?.phone) && (
                               <span className="text-xs text-muted-foreground">{a.guestPhone || a.customer?.phone}</span>
@@ -499,7 +498,7 @@ export function EditClassSessionDialog({ open, onOpenChange, sessionId }: EditCl
                     </Label>
                     <div className="space-y-1.5">
                       {noShows.map(n => {
-                        const nombre = n.customer ? `${n.customer.firstName} ${n.customer.lastName}` : n.guestName || t('unnamedGuest', { defaultValue: 'Sin nombre' })
+                        const nombre = nombreCompleto(n.customer) || n.guestName || t('unnamedGuest', { defaultValue: 'Sin nombre' })
                         return (
                           <div key={n.id} className="flex items-center justify-between gap-2 rounded-md bg-muted/50 px-3 py-2 text-sm">
                             <div className="min-w-0">

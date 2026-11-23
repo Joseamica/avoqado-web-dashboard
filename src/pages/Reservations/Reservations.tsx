@@ -18,6 +18,7 @@ import { FeatureGate } from '@/components/billing/FeatureGate'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useReservationsTour } from '@/hooks/useReservationsTour'
 import { useDebounce } from '@/hooks/useDebounce'
+import { nombreCompleto } from '@/lib/nombreCompleto'
 import reservationService from '@/services/reservation.service'
 import type { Reservation } from '@/types/reservation'
 import { useVenueDateTime } from '@/utils/datetime'
@@ -141,14 +142,7 @@ export default function Reservations() {
   const reservations = reservationsData?.data || []
 
   // Guest display name helper
-  const getGuestName = useCallback(
-    (r: Reservation) => {
-      if (r.customer) return `${r.customer.firstName} ${r.customer.lastName}`
-      if (r.guestName) return r.guestName
-      return t('unnamedGuest')
-    },
-    [t],
-  )
+  const getGuestName = useCallback((r: Reservation) => nombreCompleto(r.customer) || r.guestName || t('unnamedGuest'), [t])
 
   // Column definitions
   const columns: ColumnDef<Reservation>[] = useMemo(

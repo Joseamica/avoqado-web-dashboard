@@ -53,6 +53,7 @@ const routeKeyMap: Record<string, string> = {
   menu: 'sidebar:routes.menu',
   settings: 'sidebar:routes.settings',
   shifts: 'sidebar:routes.shifts',
+  'cash-machine-doubts': 'sidebar:routes.cashMachineDoubts',
   categories: 'sidebar:routes.categories',
   products: 'sidebar:routes.products',
   users: 'sidebar:routes.users',

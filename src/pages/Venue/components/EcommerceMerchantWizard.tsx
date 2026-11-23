@@ -41,6 +41,7 @@ import {
   type UpdateEcommerceMerchantData,
 } from '@/services/ecommerceMerchant.service'
 import { formatStripeRequirement } from './stripeRequirementLabels'
+import { motivoDelError } from '@/lib/motivoDelError'
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
@@ -597,7 +598,7 @@ function LocalInfoEditor({ merchant, venueId }: { merchant: EcommerceMerchant; v
     onError: (err: any) => {
       toast({
         title: 'Error',
-        description: err?.response?.data?.error || err?.message || 'No se pudo actualizar',
+        description: motivoDelError(err, 'No se pudo actualizar'),
         variant: 'destructive',
       })
     },
@@ -896,7 +897,7 @@ export function EcommerceMerchantWizard({ open, onClose, venueId, merchant }: Pr
     } catch (err: any) {
       toast({
         title: t('common:error', 'Error'),
-        description: err?.response?.data?.error || err?.message || 'No se pudo conectar con Stripe',
+        description: motivoDelError(err, 'No se pudo conectar con Stripe'),
         variant: 'destructive',
       })
     }
@@ -952,7 +953,7 @@ export function EcommerceMerchantWizard({ open, onClose, venueId, merchant }: Pr
     } catch (err: any) {
       toast({
         title: t('common:error', 'Error'),
-        description: err?.response?.data?.error || err?.message || 'No se pudo conectar Mercado Pago',
+        description: motivoDelError(err, 'No se pudo conectar Mercado Pago'),
         variant: 'destructive',
       })
     }
@@ -983,7 +984,7 @@ export function EcommerceMerchantWizard({ open, onClose, venueId, merchant }: Pr
     } catch (err: any) {
       toast({
         title: t('common:error', 'Error'),
-        description: err?.response?.data?.error || err?.message || 'No se pudo crear el canal',
+        description: motivoDelError(err, 'No se pudo crear el canal'),
         variant: 'destructive',
       })
     }
@@ -1003,7 +1004,7 @@ export function EcommerceMerchantWizard({ open, onClose, venueId, merchant }: Pr
     } catch (err: any) {
       toast({
         title: t('common:error', 'Error'),
-        description: err?.response?.data?.error || err?.message || 'No se pudo generar el enlace',
+        description: motivoDelError(err, 'No se pudo generar el enlace'),
         variant: 'destructive',
       })
     }
@@ -1071,7 +1072,7 @@ export function EcommerceMerchantWizard({ open, onClose, venueId, merchant }: Pr
                       } catch (err: any) {
                         toast({
                           title: t('common:error', 'Error'),
-                          description: err?.response?.data?.error || err?.message || 'No se pudo desactivar el canal',
+                          description: motivoDelError(err, 'No se pudo desactivar el canal'),
                           variant: 'destructive',
                         })
                       }

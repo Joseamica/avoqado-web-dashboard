@@ -50,6 +50,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
+import { motivoDelError } from '@/lib/motivoDelError'
 
 // ============================================================================
 // DESIGN SYSTEM COMPONENTS
@@ -323,7 +324,7 @@ function UploadDialog({ isOpen, onClose, onSuccess, platform, onPlatformChange }
       } catch (error: any) {
         toast({
           title: 'Error al analizar APK',
-          description: error.response?.data?.error || error.message || 'No se pudo leer el APK',
+          description: motivoDelError(error, 'No se pudo leer el APK'),
           variant: 'destructive',
         })
         setSelectedFile(null)

@@ -1517,6 +1517,12 @@ export interface PaymentMethodBreakdown {
   tips: number
   count: number
   percentage: number
+  /**
+   * Desglose por etiqueta del cobro dentro de este método (`tenderLabel`, o `externalSource` en lo viejo),
+   * tal como lo arma `buildPaymentBreakdown` del servidor: p. ej. bajo CASH, «Gaveta» y «Efectivo · máquina».
+   * Opcional: el servidor sólo lo manda cuando algún cobro del método trae etiqueta.
+   */
+  children?: Array<{ label: string; total: number; tips: number; count: number }>
 }
 
 export interface CardBrandBreakdown {

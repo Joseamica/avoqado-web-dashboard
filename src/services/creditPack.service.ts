@@ -30,17 +30,25 @@ const buildTransactionQueryString = (params: TransactionQueryParams): string => 
 	return qs ? `?${qs}` : ''
 }
 
+// El servidor manda los Decimal como texto («1450»). Sin convertirlos, el formulario de editar devolvía el precio como texto
+// y el servidor rechazaba con «Se esperaba un número y llegó texto» (Mindform BSF, 22-nov-2026).
+const conPreciosNumericos = (pack: CreditPack): CreditPack => ({
+	...pack,
+	price: Number(pack.price),
+	items: pack.items?.map(item => (item.product ? { ...item, product: { ...item.product, price: Number(item.product.price) } } : item)),
+})
+
 export const creditPackService = {
 	// ==================== CRUD ====================
 
 	async getCreditPacks(venueId: string): Promise<CreditPack[]> {
 		const response = await api.get(`/api/v1/dashboard/venues/${venueId}/credit-packs`)
-		return response.data
+		return response.data.map(conPreciosNumericos)
 	},
 
 	async getCreditPack(venueId: string, packId: string): Promise<CreditPack> {
 		const response = await api.get(`/api/v1/dashboard/venues/${venueId}/credit-packs/${packId}`)
-		return response.data
+		return conPreciosNumericos(response.data)
 	},
 
 	async createCreditPack(venueId: string, data: CreateCreditPackRequest): Promise<CreditPack> {

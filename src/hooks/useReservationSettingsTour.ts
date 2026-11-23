@@ -1,10 +1,12 @@
-import { driver, type Driver } from 'driver.js'
+import { driver, type Driver, type DriveStep } from 'driver.js'
 import 'driver.js/dist/driver.css'
 import { useCallback, useEffect, useRef } from 'react'
+import { flushSync } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { useAtomicTourListener } from '@/hooks/useAtomicTourListener'
 import { buildFinalStepFooter } from '@/lib/atomic-tour-final-step'
 import { getTourStepIndex, setTourStepIndex } from '@/lib/tour-progress'
+import { TOUR_TARGET_TAB, type SettingsTab } from '@/pages/Reservations/reservation-settings-tabs'
 
 /**
  * Interactive tour for the Reservation Settings page.
@@ -12,24 +14,63 @@ import { getTourStepIndex, setTourStepIndex } from '@/lib/tour-progress'
  * ⚠️ COHERENCIA: cada paso apunta a una sección de
  * `src/pages/Reservations/ReservationSettings.tsx`. Si renombras o eliminas
  * uno de los `data-tour="reservation-settings-*"` selectors, actualiza este
- * tour. Los selectores existentes:
+ * tour y `TOUR_TARGET_TAB` (`reservation-settings-tabs.ts`). D680: la página va
+ * en pestañas; antes de cada paso el tour cambia la dirección a la pestaña del
+ * destino (con `flushSync`, para que driver.js mida la sección ya visible).
  *
- *   - reservation-settings-save        → Botón "Guardar Cambios" sticky
- *   - reservation-settings-scheduling  → Sección "Programación" (citas)
- *   - reservation-settings-pacing      → Sección "Ritmo" (citas)
- *   - reservation-settings-deposits    → Sección "Depósitos"
- *   - reservation-settings-payments    → Sección "Pagos por tipo"
- *   - reservation-settings-public-booking → "Reservaciones Online"
- *   - reservation-settings-cancellation → "Cancelación"
- *   - reservation-settings-credit-refund → "Reembolsos en créditos" (clases)
- *   - reservation-settings-waitlist    → "Lista de espera"
- *   - reservation-settings-reminders   → "Recordatorios"
+ *   - reservation-settings-save                   → Botón «Guardar cambios» (arriba, fuera de las pestañas)
+ *   - reservation-settings-public-booking         → General · «Reservaciones Online»
+ *   - reservation-settings-scheduling             → General · «Programación» (lo que aplica a clases y citas)
+ *   - reservation-settings-deposits               → General · «Depósitos»
+ *   - reservation-settings-cancellation           → General · «Cancelación»
+ *   - reservation-settings-credit-refund          → General · «Reembolso de créditos al cancelar»
+ *   - reservation-settings-waitlist               → General · «Lista de espera»
+ *   - reservation-settings-reminders              → General · «Recordatorios»
+ *   - reservation-settings-payments-classes       → Clases · «Cobro de las clases»
+ *   - reservation-settings-appointment-scheduling → Citas · «Horarios de las citas»
+ *   - reservation-settings-payments-appointments  → Citas · «Cobro de las citas»
  */
-export function useReservationSettingsTour() {
+const SECTION_STEPS: { id: string; key: string }[] = [
+  { id: 'reservation-settings-public-booking', key: 'publicBooking' },
+  { id: 'reservation-settings-scheduling', key: 'scheduling' },
+  { id: 'reservation-settings-deposits', key: 'deposits' },
+  { id: 'reservation-settings-cancellation', key: 'cancellation' },
+  { id: 'reservation-settings-credit-refund', key: 'creditRefund' },
+  { id: 'reservation-settings-waitlist', key: 'waitlist' },
+  { id: 'reservation-settings-reminders', key: 'reminders' },
+  { id: 'reservation-settings-payments-classes', key: 'paymentsClasses' },
+  { id: 'reservation-settings-appointment-scheduling', key: 'appointmentScheduling' },
+  { id: 'reservation-settings-payments-appointments', key: 'paymentsAppointments' },
+]
+
+export function useReservationSettingsTour(setSettingsTab: (tab: SettingsTab) => void) {
   const { t } = useTranslation('reservations')
   const driverRef = useRef<Driver | null>(null)
 
   const buildDriver = useCallback((): Driver => {
+    const sectionSteps: DriveStep[] = SECTION_STEPS.map(({ id, key }, index) => ({
+      // Función y no selector: driver.js la llama al mostrar el paso, y la sección tiene que estar
+      // en su pestaña ACTIVA en ese momento (las otras están montadas pero ocultas).
+      element: () => {
+        flushSync(() => setSettingsTab(TOUR_TARGET_TAB[id]))
+        return document.querySelector(`[data-tour="${id}"]`) as Element
+      },
+      popover: {
+        title: t(`settings.settingsTour.${key}.title`),
+        description: t(`settings.settingsTour.${key}.description`),
+        side: 'top',
+        align: 'start',
+        ...(index === SECTION_STEPS.length - 1
+          ? buildFinalStepFooter({
+              tourName: 'reservation-settings-onboarding',
+              cancelLabel: t('tour.cancel', { defaultValue: 'Cancelar' }),
+              doneLabel: t('tour.done', { defaultValue: '¡Listo!' }),
+              homeLabel: t('tour.backToHome', { defaultValue: 'Volver a inicio' }),
+            })
+          : {}),
+      },
+    }))
+
     const d: Driver = driver({
       popoverClass: 'avoqado-tour-popover',
       showProgress: true,
@@ -64,97 +105,11 @@ export function useReservationSettingsTour() {
             align: 'end',
           },
         },
-        {
-          element: '[data-tour="reservation-settings-scheduling"]',
-          popover: {
-            title: t('settings.settingsTour.scheduling.title'),
-            description: t('settings.settingsTour.scheduling.description'),
-            side: 'top',
-            align: 'start',
-          },
-        },
-        {
-          element: '[data-tour="reservation-settings-pacing"]',
-          popover: {
-            title: t('settings.settingsTour.pacing.title'),
-            description: t('settings.settingsTour.pacing.description'),
-            side: 'top',
-            align: 'start',
-          },
-        },
-        {
-          element: '[data-tour="reservation-settings-deposits"]',
-          popover: {
-            title: t('settings.settingsTour.deposits.title'),
-            description: t('settings.settingsTour.deposits.description'),
-            side: 'top',
-            align: 'start',
-          },
-        },
-        {
-          element: '[data-tour="reservation-settings-payments"]',
-          popover: {
-            title: t('settings.settingsTour.payments.title'),
-            description: t('settings.settingsTour.payments.description'),
-            side: 'top',
-            align: 'start',
-          },
-        },
-        {
-          element: '[data-tour="reservation-settings-public-booking"]',
-          popover: {
-            title: t('settings.settingsTour.publicBooking.title'),
-            description: t('settings.settingsTour.publicBooking.description'),
-            side: 'top',
-            align: 'start',
-          },
-        },
-        {
-          element: '[data-tour="reservation-settings-cancellation"]',
-          popover: {
-            title: t('settings.settingsTour.cancellation.title'),
-            description: t('settings.settingsTour.cancellation.description'),
-            side: 'top',
-            align: 'start',
-          },
-        },
-        {
-          element: '[data-tour="reservation-settings-credit-refund"]',
-          popover: {
-            title: t('settings.settingsTour.creditRefund.title'),
-            description: t('settings.settingsTour.creditRefund.description'),
-            side: 'top',
-            align: 'start',
-          },
-        },
-        {
-          element: '[data-tour="reservation-settings-waitlist"]',
-          popover: {
-            title: t('settings.settingsTour.waitlist.title'),
-            description: t('settings.settingsTour.waitlist.description'),
-            side: 'top',
-            align: 'start',
-          },
-        },
-        {
-          element: '[data-tour="reservation-settings-reminders"]',
-          popover: {
-            title: t('settings.settingsTour.reminders.title'),
-            description: t('settings.settingsTour.reminders.description'),
-            side: 'top',
-            align: 'start',
-            ...buildFinalStepFooter({
-              tourName: 'reservation-settings-onboarding',
-              cancelLabel: t('tour.cancel', { defaultValue: 'Cancelar' }),
-              doneLabel: t('tour.done', { defaultValue: '¡Listo!' }),
-              homeLabel: t('tour.backToHome', { defaultValue: 'Volver a inicio' }),
-            }),
-          },
-        },
+        ...sectionSteps,
       ],
     })
     return d
-  }, [t])
+  }, [t, setSettingsTab])
 
   const start = useCallback(() => {
     document.body.classList.add('tour-active')

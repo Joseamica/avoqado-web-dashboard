@@ -213,6 +213,7 @@
       "payments": "Pagos",
       "shifts": "Turnos",
       "cash_drawer": "Cajón de efectivo",
+      "cash_machine": "Máquina de efectivo",
       "tpv": "Gestión de TPV",
       "inventory": "Inventario",
       "reviews": "Reseñas",
@@ -326,6 +327,7 @@
       "venue_crypto": "Configurar y gestionar pagos con criptomonedas.",
       "accounting": "Consultar, conciliar y administrar la contabilidad del negocio.",
       "cash_out": "Consultar y realizar retiros de efectivo, y ver sus reportes.",
+      "cash_machine": "Configurar la máquina de efectivo en el aparato y resolver los cobros que la máquina dejó en duda.",
       "estimates": "Crear cotizaciones sin que se conviertan en una venta.",
       "manual_sales": "Registrar ventas capturadas a mano, fuera del flujo de cobro.",
       "payment_link": "Crear y administrar links de cobro para enviar al cliente.",
@@ -657,6 +659,8 @@
       "customers_approve": "Aprobar clientes nuevos",
       "cash-drawer_view-expected": "Ver el efectivo esperado del cajón (sin conteo ciego)",
       "cash-drawer_pay-out": "Retirar efectivo de la caja",
+      "cash-machine_configure": "Configurar la máquina en el aparato",
+      "cash-machine_resolve": "Resolver cobros de la máquina en duda",
       "marketing_read": "Ver el aviso de privacidad",
       "marketing_manage": "Editar el aviso de privacidad",
       "marketing_send": "Enviar campañas de correo"
@@ -732,7 +736,8 @@
       "serialized-inventory": "Inventario Serializado",
       "commissions": "Comisiones",
       "goals": "Metas",
-      "cash-drawer": "Cajón físico"
+      "cash-drawer": "Cajón físico",
+      "cash-machine": "Máquina de efectivo"
     },
     "impliedByInline": "incluido en",
     "includedInBadge": "Incluido",

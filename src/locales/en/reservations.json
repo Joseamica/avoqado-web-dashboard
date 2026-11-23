@@ -166,7 +166,8 @@
     "deposit": {
       "title": "Deposit",
       "amount": "Amount",
-      "status": "Status"
+      "status": "Status",
+      "waiting": "Awaiting payment"
     },
     "reschedule": {
       "title": "Reschedule Reservation",
@@ -499,10 +500,29 @@
   "settings": {
     "title": "Reservation Settings",
     "subtitle": "Configure schedules, deposits, and policies",
+    "tabs": {
+      "general": "General",
+      "classes": "Classes",
+      "appointments": "Appointments",
+      "unsaved": "Unsaved changes",
+      "generalHint": "What is not only for classes or only for appointments. If a setting applies to just one, its help (i) says so.",
+      "classesHint": "Only your classes use these settings.",
+      "appointmentsHint": "Only your appointments use these settings."
+    },
+    "classShortcut": {
+      "title": "Your classes and packages",
+      "description": "Classes and credit packages are created and edited in the Menu.",
+      "classes": "View my classes",
+      "packs": "View my packages"
+    },
+    "validation": {
+      "title": "A setting needs fixing before you can save",
+      "invalidOption": "This value is not in the list. Pick an option."
+    },
     "sections": {
       "operatingHours": "Operating Hours",
       "scheduling": "Scheduling",
-      "pacing": "Pacing",
+      "appointmentScheduling": "Appointment capacity",
       "staffing": "Professionals and schedules",
       "deposits": "Deposits",
       "publicBooking": "Online Booking",
@@ -531,9 +551,9 @@
     },
     "scheduling": {
       "slotInterval": "Slot interval",
-      "slotIntervalHelp": "How often time slots are offered",
+      "slotIntervalHelp": "How often time slots are offered: for appointments, tables and bookings without a session. Online classes use each session’s time.",
       "defaultDuration": "Default duration",
-      "defaultDurationHelp": "Standard reservation duration",
+      "defaultDurationHelp": "How long a reservation lasts when its service has no duration of its own.",
       "autoConfirm": "Auto-confirm",
       "autoConfirmHelp": "Reservations are confirmed upon creation",
       "nightlyOutreach": "Nightly renewal reminder",
@@ -545,7 +565,7 @@
       "noShowGrace": "No Show grace period",
       "noShowGraceHelp": "Minutes to wait before marking No Show",
       "capacityMode": "Appointment capacity",
-      "capacityModeHelp": "Choose whether availability is limited by the venue pacing cap or by the schedules of eligible staff members.",
+      "capacityModeHelp": "Choose whether availability is limited by the venue pacing cap or by the schedules of eligible staff members. It also changes the slots offered by the manual booking in the dashboard: with “Available staff”, only appointment services get slots there.",
       "capacityModes": {
         "pacing": "Venue pacing",
         "perStaff": "Available staff"
@@ -555,7 +575,7 @@
       "maxPerSlot": "Max per slot",
       "maxPerSlotHelp": "Concurrent reservations allowed per slot. For 1:1 services (individual appointments), the effective minimum is 1 even if you select 'No limit' — pick the exact number of parallel resources (booths, stations, chairs) if your business takes multiple bookings at once.",
       "onlineCapacity": "Online capacity",
-      "onlineCapacityHelp": "Percentage of capacity available for online bookings"
+      "onlineCapacityHelp": "How much of each class (or product with a capacity) is offered for online booking. It does not change appointment time slots."
     },
     "staffing": {
       "sectionHelp": "Choose who can perform each appointment service and define each professional's availability.",
@@ -606,35 +626,23 @@
         "INVALID_HOURS": "The special end time must be after the start time."
       }
     },
-    "scope": {
-      "appointments": "Appointments",
-      "classes": "Classes"
-    },
     "settingsTour": {
       "start": "Take tour",
       "welcome": {
         "title": "📅 Reservation Settings",
-        "description": "I'll walk you through every section. Some options only apply to appointments, others only to classes — look for the \"Appointments\" and \"Classes\" badges next to each label."
+        "description": "I’ll walk you through the three tabs: General holds what applies to both your classes and your appointments; Classes and Appointments hold what only each one uses. The tour switches tabs for you."
       },
       "save": {
         "title": "Save Changes",
         "description": "The button stays pinned at the top while you scroll. Enabled only when there's something new to save."
       },
       "scheduling": {
-        "title": "Scheduling (Appointments)",
-        "description": "Controls how available appointment slots are generated: interval between slots, default duration, max booking lead time, and minimum notice. Classes have their own per-session schedule."
-      },
-      "pacing": {
-        "title": "Pacing (Appointments)",
-        "description": "Cap how many simultaneous appointments you accept per slot and what percentage of your capacity is exposed online. Class capacity is defined per session."
+        "title": "Scheduling",
+        "description": "How often a slot is offered, how long a reservation lasts, how many you accept at the same time, how far ahead and with how much notice customers can book, how long you wait before a No Show and whether bookings confirm automatically. Online capacity % applies to classes, not appointments: each setting’s help (i) says what it applies to."
       },
       "deposits": {
         "title": "Deposits",
         "description": "Decide if you require a deposit at booking and how: card hold, fixed amount, percentage of total, or only for large parties. Applies to both types."
-      },
-      "payments": {
-        "title": "Payments by type",
-        "description": "Set the default upfront-payment behavior separately for appointments and classes. Typical pattern: classes require prepayment, appointments pay at the venue. Each service can override its default."
       },
       "publicBooking": {
         "title": "Online Booking",
@@ -645,8 +653,8 @@
         "description": "Cancellation policy: can customers cancel themselves? Up to how many hours before? Do they lose the deposit on late cancels? Applies to both types."
       },
       "creditRefund": {
-        "title": "Credit refunds (Classes only)",
-        "description": "When someone cancels a class paid with a credit pack, decide how many credits return to their balance. Only applies to classes — appointments don't use credit packs."
+        "title": "Credit refunds on cancellation",
+        "description": "When someone cancels a class or an appointment paid with credits, decide how many credits return to their balance."
       },
       "waitlist": {
         "title": "Waitlist",
@@ -654,12 +662,24 @@
       },
       "reminders": {
         "title": "Reminders",
-        "description": "Automatic reminders before each booking (email, SMS, or WhatsApp) to reduce no-shows. Channels and timings are configured in backoffice for now."
+        "description": "Automatic reminders before each booking (email, SMS, or WhatsApp) to reduce no-shows. Pick the channels and when they are sent."
+      },
+      "paymentsClasses": {
+        "title": "Class payments",
+        "description": "Classes tab. Default upfront payment for a class: prepayment required, pay at the venue, or optional. Each class can override it."
+      },
+      "appointmentScheduling": {
+        "title": "Appointment capacity",
+        "description": "Appointments tab. Whether appointment availability follows the venue pacing or the free staff, and whether customers pick their professional."
+      },
+      "paymentsAppointments": {
+        "title": "Appointment payments",
+        "description": "Default upfront payment for an appointment: pay at the venue, prepayment required, or optional. Each service can override it."
       }
     },
     "payments": {
-      "sectionTitle": "Payments by type",
-      "sectionSubtitle": "Set the default upfront-payment behavior per reservation type: pay at venue, prepayment required, or let the customer choose.",
+      "classesTitle": "Class payments",
+      "appointmentsTitle": "Appointment payments",
       "appointmentUpfrontDefault": "Upfront for appointments",
       "appointmentUpfrontDefaultTooltip": "Default upfront-payment behavior for appointments: pay at the venue, require prepayment at booking, or optional. Each service can override this.",
       "classUpfrontDefault": "Upfront for classes",
@@ -693,7 +713,7 @@
       "enabled": "Enable online booking",
       "enabledHelp": "Customers can book from your website",
       "showStaffPicker": "Let customers choose a professional",
-      "showStaffPickerHelp": "Shows eligible available professionals in self-service booking. Leave off to assign one automatically.",
+      "showStaffPickerHelp": "Shows eligible available professionals in self-service booking. Leave off to assign one automatically. It also changes the slots offered by the manual booking in the dashboard: when on, only appointment services get slots there.",
       "requirePhone": "Require phone",
       "requirePhoneTooltip": "The customer must enter a phone number when booking online.",
       "requireEmail": "Require email",
@@ -717,9 +737,9 @@
       "allowReschedule": "Allow rescheduling",
       "allowRescheduleHelp": "Customer can move their booking to another time slot of the same class, within the cancellation window.",
       "creditRefundTitle": "Credit refunds on cancellation",
-      "creditRefundHelp": "Decide how many credits customers recover when they cancel a class paid with a package.",
+      "creditRefundHelp": "Decide how many credits customers get back when they cancel. Applies to classes and appointments paid with credits.",
       "creditRefundMode": "Refund policy",
-      "creditRefundModeTooltip": "When a customer cancels a class paid with a credit pack, decide how many credits are returned to their balance.",
+      "creditRefundModeTooltip": "When a customer cancels a class or an appointment paid with credits, decide how many credits return to their balance.",
       "creditRefundAlways": "Always refund 100%",
       "creditRefundTimeBased": "Based on notice",
       "creditRefundNever": "Never refund",

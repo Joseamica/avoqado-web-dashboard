@@ -51,7 +51,8 @@ export const ProtectedRoute = () => {
     )
   }
   if (!user && !isAuthenticated) {
-    const returnTo = encodeURIComponent(location.pathname + location.search)
+    // Con el `#`, como el 401 de `api.ts`: una liga a una pestaña (p. ej. `…/reservations/settings#citas`) regresa a ella.
+    const returnTo = encodeURIComponent(location.pathname + location.search + location.hash)
     return <Navigate to={`/login?returnTo=${returnTo}`} replace />
   }
 

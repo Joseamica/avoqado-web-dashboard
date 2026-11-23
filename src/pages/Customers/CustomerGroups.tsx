@@ -37,6 +37,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
+import { nombreCompleto } from '@/lib/nombreCompleto'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import customerService from '@/services/customer.service'
 import type { Customer, CustomerGroup } from '@/types/customer'
@@ -567,7 +568,7 @@ function CustomerGroupForm({ venueId, group, onSuccess }: CustomerGroupFormProps
                     return (
                       <CommandItem
                         key={customer.id}
-                        value={`${customer.firstName} ${customer.lastName} ${customer.email}`}
+                        value={`${nombreCompleto(customer)} ${customer.email ?? ''}`}
                         onSelect={() => toggleCustomer(customer)}
                       >
                         <Check className={cn('mr-2 h-4 w-4', isSelected ? 'opacity-100' : 'opacity-0')} />

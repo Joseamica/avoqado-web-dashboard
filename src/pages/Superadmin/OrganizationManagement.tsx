@@ -57,6 +57,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { motivoDelError } from '@/lib/motivoDelError'
 
 // ===========================================
 // SHARED COMPONENTS - Modern 2025/2026 Design
@@ -550,7 +551,7 @@ const ModuleManagementDialog: React.FC<ModuleManagementDialogProps> = ({ open, o
     onError: (error: any) => {
       toast({
         title: 'Error al activar módulo',
-        description: error?.response?.data?.error || error.message,
+        description: motivoDelError(error),
         variant: 'destructive',
       })
     },
@@ -567,7 +568,7 @@ const ModuleManagementDialog: React.FC<ModuleManagementDialogProps> = ({ open, o
     onError: (error: any) => {
       toast({
         title: 'Error al desactivar módulo',
-        description: error?.response?.data?.error || error.message,
+        description: motivoDelError(error),
         variant: 'destructive',
       })
     },
@@ -830,7 +831,7 @@ export const PaymentConfigDialog: React.FC<PaymentConfigDialogProps> = ({ open, 
     onError: (error: any) => {
       toast({
         title: 'Error al guardar tarifas',
-        description: error?.response?.data?.error || error.message,
+        description: motivoDelError(error),
         variant: 'destructive',
       })
     },
@@ -846,7 +847,7 @@ export const PaymentConfigDialog: React.FC<PaymentConfigDialogProps> = ({ open, 
     onError: (error: any) => {
       toast({
         title: 'Error al desactivar tarifa',
-        description: error?.response?.data?.error || error.message,
+        description: motivoDelError(error),
         variant: 'destructive',
       })
     },
@@ -1425,7 +1426,7 @@ const OrganizationManagement: React.FC = () => {
     onError: (error: any) => {
       toast({
         title: 'Error al crear organización',
-        description: error?.response?.data?.error || error.message,
+        description: motivoDelError(error),
         variant: 'destructive',
       })
     },
@@ -1443,7 +1444,7 @@ const OrganizationManagement: React.FC = () => {
     onError: (error: any) => {
       toast({
         title: 'Error al actualizar organización',
-        description: error?.response?.data?.error || error.message,
+        description: motivoDelError(error),
         variant: 'destructive',
       })
     },
@@ -1461,7 +1462,7 @@ const OrganizationManagement: React.FC = () => {
     onError: (error: any) => {
       toast({
         title: 'Error al eliminar organización',
-        description: error?.response?.data?.error || error.message,
+        description: motivoDelError(error),
         variant: 'destructive',
       })
     },
@@ -1480,7 +1481,7 @@ const OrganizationManagement: React.FC = () => {
     onError: (error: any) => {
       toast({
         title: 'Error al cambiar la exención de plan',
-        description: error?.response?.data?.error || error.message,
+        description: motivoDelError(error),
         variant: 'destructive',
       })
     },
