@@ -135,14 +135,46 @@ describe('CreditPackForm · Ilimitado', () => {
     expect(screen.getAllByLabelText('form.fields.quantity')).toHaveLength(1)
     expect(container.innerHTML).not.toMatch(/99999|99,999|99998/)
 
+    // Cambiar un renglón manda todos los renglones, cada uno con su llave.
+    fireEvent.change(screen.getByLabelText('form.fields.quantity'), { target: { value: '3' } })
     guardar()
     await waitFor(() => expect(paquetes.updateCreditPack).toHaveBeenCalledTimes(1))
     const [, id, cuerpo] = paquetes.updateCreditPack.mock.calls[0]
     expect(id).toBe('pk1')
     expect(cuerpo.items).toEqual([
       { productId: 'p1', unlimited: true },
-      { productId: 'p2', quantity: 2, unlimited: false },
+      { productId: 'p2', quantity: 3, unlimited: false },
     ])
+  })
+
+  // Codex pantallas r1 #5: con el formulario abierto, otra persona convirtió el Ilimitado en un paquete normal. Guardar sólo el
+  // título con el formulario viejo no puede reenviar los renglones (volvería a prender el Ilimitado): no se manda `items`.
+  it('al editar, guardar sólo el título no manda items', async () => {
+    paquetes.getCreditPack.mockResolvedValue({
+      id: 'pk1',
+      venueId: 'v1',
+      name: 'Ilimitado mensual',
+      price: 2500,
+      currency: 'MXN',
+      validityDays: 30,
+      active: true,
+      displayOrder: 0,
+      items: [
+        { id: 'i1', productId: 'p1', quantity: 99999, unlimited: true, product: { id: 'p1', name: 'Lagree', type: 'CLASS', price: 0 } },
+      ],
+      createdAt: '',
+      updatedAt: '',
+    })
+    pintar('pk1')
+
+    await screen.findByText('Lagree')
+    fireEvent.change(screen.getByPlaceholderText('form.placeholders.name'), { target: { value: 'Ilimitado de 30 días' } })
+    guardar()
+
+    await waitFor(() => expect(paquetes.updateCreditPack).toHaveBeenCalledTimes(1))
+    const [, , cuerpo] = paquetes.updateCreditPack.mock.calls[0]
+    expect(cuerpo.name).toBe('Ilimitado de 30 días')
+    expect(cuerpo).not.toHaveProperty('items')
   })
 
   it('apagar el Ilimitado al editar pide una cantidad (no se queda con 99999)', async () => {

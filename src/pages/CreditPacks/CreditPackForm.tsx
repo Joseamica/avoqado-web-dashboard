@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Package, Plus, Trash2, X } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useFieldArray, useForm, type ControllerRenderProps } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 
@@ -112,6 +112,15 @@ interface FormValues extends Omit<CreateCreditPackRequest, 'price'> {
   active: boolean
 }
 
+/** D679: cada renglón manda `unlimited` (el SERVIDOR distingue así al panel nuevo del editor viejo, W4); un Ilimitado no manda
+ * cantidad, la pone el SERVIDOR. */
+const renglonesParaGuardar = (items: FormValues['items']) =>
+  items.map(item =>
+    item.unlimited
+      ? { productId: item.productId, unlimited: true }
+      : { productId: item.productId, quantity: item.quantity, unlimited: false },
+  )
+
 export default function CreditPackFormModal({ open, onClose, packId, onSuccess }: CreditPackFormModalProps) {
   const { t } = useTranslation('creditPacks')
   const { t: tCommon } = useTranslation()
@@ -162,11 +171,20 @@ export default function CreditPackFormModal({ open, onClose, packId, onSuccess }
     name: 'items',
   })
   const renglones = form.watch('items')
+  // Los renglones tal como se cargaron del paquete: al editar sólo se mandan si la persona tocó alguno (Codex pantallas r1 #5).
+  const renglonesCargados = useRef<string | null>(null)
 
   // Reset form when modal opens/closes or pack changes
   useEffect(() => {
     if (!open) return
     if (existingPack) {
+      // Un renglón Ilimitado guarda 99,999 por dentro: el formulario no lo enseña ni lo devuelve (D679).
+      const items = existingPack.items.map(item => ({
+        productId: item.productId,
+        quantity: item.unlimited ? undefined : item.quantity,
+        unlimited: item.unlimited === true,
+      }))
+      renglonesCargados.current = JSON.stringify(renglonesParaGuardar(items))
       form.reset({
         name: existingPack.name,
         description: existingPack.description || '',
@@ -175,12 +193,7 @@ export default function CreditPackFormModal({ open, onClose, packId, onSuccess }
         validityDays: existingPack.validityDays || undefined,
         maxPerCustomer: existingPack.maxPerCustomer || undefined,
         displayOrder: existingPack.displayOrder,
-        // Un renglón Ilimitado guarda 99,999 por dentro: el formulario no lo enseña ni lo devuelve (D679).
-        items: existingPack.items.map(item => ({
-          productId: item.productId,
-          quantity: item.unlimited ? undefined : item.quantity,
-          unlimited: item.unlimited === true,
-        })),
+        items,
         active: existingPack.active,
       })
     } else if (!isEditing) {
@@ -200,24 +213,22 @@ export default function CreditPackFormModal({ open, onClose, packId, onSuccess }
 
   const mutation = useMutation({
     mutationFn: async (data: FormValues) => {
-      const { active, ...packData } = data
+      const { active, items: renglonesDelFormulario, ...packData } = data
       const cleaned = {
         ...packData,
         description: packData.description || undefined,
         validityDays: packData.validityDays || undefined,
         maxPerCustomer: packData.maxPerCustomer || undefined,
-        // D679: cada renglón manda `unlimited` (el SERVIDOR distingue así al panel nuevo del editor viejo, W4); un Ilimitado
-        // no manda cantidad, la pone el SERVIDOR.
-        items: packData.items.map(item =>
-          item.unlimited
-            ? { productId: item.productId, unlimited: true }
-            : { productId: item.productId, quantity: item.quantity, unlimited: false },
-        ),
       }
+      const items = renglonesParaGuardar(renglonesDelFormulario)
       if (isEditing) {
-        return creditPackService.updateCreditPack(venueId, packId!, cleaned)
+        // Sin tocar ningún renglón no se mandan: si otra persona cambió los renglones con este formulario abierto, guardar sólo
+        // el nombre o el precio no los pisa con los de antes (p. ej. no vuelve a prender un Ilimitado que ella apagó). Un PATCH
+        // sin `items` deja los renglones como estén en el SERVIDOR.
+        const tocoRenglones = JSON.stringify(items) !== renglonesCargados.current
+        return creditPackService.updateCreditPack(venueId, packId!, tocoRenglones ? { ...cleaned, items } : cleaned)
       }
-      return creditPackService.createCreditPack(venueId, cleaned)
+      return creditPackService.createCreditPack(venueId, { ...cleaned, items })
     },
     onSuccess: () => {
       toast({
