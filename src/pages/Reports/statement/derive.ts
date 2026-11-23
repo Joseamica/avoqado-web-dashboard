@@ -1,10 +1,17 @@
 import type { MerchantAccountBreakdown, MoneyDestination } from '@/services/reports/salesSummary.service'
 import type { DeriveStatementInput, MerchantStatementRowModel, StatementCardSub, StatementModel, StatementSegment } from './types'
 
+/**
+ * A bucket's movement in PESOS: `amount` still counts charges in another currency as they came (carril C2, D17: the SERVIDOR
+ * says how much in `foreignAmount`, and the statement leaves it out — it never sums dollars as pesos).
+ */
+const pesosOf = (b: { amount: number; foreignAmount?: number }) => b.amount - (b.foreignAmount ?? 0)
+const pesosCountOf = (b: { count: number; foreignCount?: number }) => b.count - (b.foreignCount ?? 0)
 /** What a bucket CHARGED (refunds apart). An old SERVIDOR doesn't send it: its net movement, never below 0. */
-const chargedOf = (b: { amount: number; chargedAmount?: number }) => b.chargedAmount ?? Math.max(b.amount, 0)
+const chargedOf = (b: { amount: number; chargedAmount?: number; foreignAmount?: number }) => b.chargedAmount ?? Math.max(pesosOf(b), 0)
 /** How many charges. Old SERVIDOR: its rows, unless the bucket only moved money out. */
-const chargedCountOf = (b: { amount: number; count: number; chargedCount?: number }) => b.chargedCount ?? (b.amount > 0 ? b.count : 0)
+const chargedCountOf = (b: { amount: number; count: number; chargedCount?: number; foreignAmount?: number; foreignCount?: number }) =>
+  b.chargedCount ?? (pesosOf(b) > 0 ? pesosCountOf(b) : 0)
 
 /** Money to the cent (sums of cents in float leave 1e-13 noise that would print «−$0.00»). */
 const r2 = (n: number) => Math.round(n * 100) / 100
@@ -33,8 +40,12 @@ export function deriveStatement(input: DeriveStatementInput): StatementModel {
   const collectedTotal = r2(buckets.reduce((s, b) => s + chargedOf(b), 0))
   const collectedCount = buckets.reduce((s, b) => s + chargedCountOf(b), 0)
   const refunds = {
-    amount: r2(buckets.reduce((s, b) => s + chargedOf(b) - b.amount, 0)),
-    count: buckets.reduce((s, b) => s + b.count - chargedCountOf(b), 0),
+    amount: r2(buckets.reduce((s, b) => s + chargedOf(b) - pesosOf(b), 0)),
+    // A new SERVIDOR counts refunds per destination (a $0 courtesy close is neither a charge nor a refund: Codex r2 del carril C2,
+    // #2); an old one: the bucket's rows that are not charges.
+    count: destinations
+      ? [destinations.drawer, destinations.terminal, destinations.online, destinations.other].reduce((s, d) => s + d.refundCount, 0)
+      : buckets.reduce((s, b) => s + pesosCountOf(b) - chargedCountOf(b), 0),
   }
   const cancelledOrderRefunds = buckets.reduce((s, b) => s + (b.cancelledOrderRefunds ?? 0), 0)
   // Fee total from the buckets — covers CARD + OTHER/QR fees (net of the ones a refund gave back).
@@ -77,6 +88,16 @@ export function deriveStatement(input: DeriveStatementInput): StatementModel {
   }
   const bankRefunds = merchants.reduce((s, m) => s + (m.refunds ?? 0), 0) + (online?.refunds ?? 0)
   const other = { amount: otherCharged, count: otherCount, net: otherNet }
+  // D12.3: «Otros métodos» by payment type (Rappi, Uber, Vales, Transferencia…); they add up to `other.net`.
+  const otherTypes: StatementModel['otherTypes'] = (destinations?.otherByType ?? []).map(t => ({
+    key: t.key,
+    label: t.label,
+    method: t.method,
+    net: t.netToReceive,
+    count: t.transactionCount - t.refundCount,
+    tenderCommissions: t.tenderCommissions,
+  }))
+  const foreignCurrency = destinations?.foreignCurrency ?? []
 
   // The bar shows what was CHARGED by method (D10.2): a refund is its own line, so a slice is never negative nor above 100%.
   const segments: StatementSegment[] = (
@@ -106,7 +127,10 @@ export function deriveStatement(input: DeriveStatementInput): StatementModel {
   const unprojected = merchants.some(m => m.unprojectedNet !== undefined)
     ? merchants.reduce((s, m) => s + Math.max(0, m.unprojectedNet ?? 0), 0)
     : cardNet - projectedTotal
-  const lastDepositDate = days.length ? days[days.length - 1].date : null
+  // The last day that DEPOSITS: a day where only a refund is deducted is not a deposit (D17: a refund now lands the day it was
+  // registered, so it can be the last day of the calendar; Codex r3 del carril C2, #3).
+  const depositDays = days.filter(d => d.totalNet > 0)
+  const lastDepositDate = depositDays.length ? depositDays[depositDays.length - 1].date : null
   const lastDepositIsPast = lastDepositDate ? lastDepositDate < todayKey : false
 
   // Pull each merchant's per-day slices out of the calendar for its expanded row.
@@ -155,9 +179,11 @@ export function deriveStatement(input: DeriveStatementInput): StatementModel {
       // the week strip and the expanded per-day list render — so the chip can never
       // disagree with them (e.g. all-past slices must not flip to a future "Cae" from a
       // separately-clocked nextDate). Derive everything here from the slices + venue today.
-      // Also `next` when ANY part of this merchant's net has no date — a charge without a rule, or a refund without a cost yet
-      // (Codex r2 #7, r3 #3): «Cae ~lunes» would imply the whole net lands that day.
-      const partial = Math.abs(m.unprojectedNet ?? 0) >= 0.005
+      // Also `next` when the dated slices are not this merchant's whole net, whatever the reason — a charge without a rule, a
+      // refund without a cost yet, a sale read a moment later (Codex r2 #7, r3 #3; C2 D17): «Cae ~lunes» would imply the whole net
+      // lands that day. Compared in whole cents: 20.20 + 10.10 is 30.299999999999997 in floats (Codex r1 del carril C2, #9).
+      const centavos = (n: number) => Math.round(n * 100)
+      const partial = centavos(deposits.reduce((s, d) => s + d.netToReceive, 0)) !== centavos(m.netToReceive)
       if ((deposits.length > 1 || partial) && upcoming.length > 0) {
         payoutStatus = 'next'
         payoutDate = upcoming[0].date
@@ -168,8 +194,10 @@ export function deriveStatement(input: DeriveStatementInput): StatementModel {
       } else {
         payoutStatus = 'landed' // every slice is in the past
         payoutDate = deposits[deposits.length - 1].date
-        // With undated money too, the amount of THAT dated slice (Codex r4 #1, r5 #3), never the full net nor other days' sum.
-        if (partial) payoutAmount = deposits[deposits.length - 1].netToReceive
+        // When that last slice is not the whole net — undated money, or other days before it (a refund projected to its own day)
+        // — the amount of THAT slice (Codex r4 #1, r5 #3; r4 #4 del carril C2), never the full net nor other days' sum.
+        const last = deposits[deposits.length - 1]
+        if (partial || centavos(last.netToReceive) !== centavos(m.netToReceive)) payoutAmount = last.netToReceive
       }
     } else if (nextDate != null) {
       // No per-day slices for this merchant (calendar not requested, or no projectable
@@ -231,6 +259,8 @@ export function deriveStatement(input: DeriveStatementInput): StatementModel {
     hasCardActivity,
     other,
     segments,
+    otherTypes,
+    foreignCurrency,
     days,
     incoming,
     unprojected,

@@ -89,6 +89,9 @@ export interface PaymentMethodDetailedBreakdown {
   tenderCommissions?: number
   /** Devuelto de cuentas canceladas o borradas: salió dinero, pero la cabecera no lo resta (su venta tampoco se cuenta). */
   cancelledOrderRefunds?: number
+  /** Aditivo (carril C2): de `amount`/`count`, lo cobrado en OTRA moneda (sin convertir); el estado lo descuenta. */
+  foreignAmount?: number
+  foreignCount?: number
   subBuckets?: Array<{
     type: 'CREDIT' | 'DEBIT' | 'AMEX' | 'INTERNATIONAL'
     amount: number
@@ -121,6 +124,18 @@ export interface StatementDestinations {
   drawer: MoneyDestination
   online: MoneyDestination
   other: MoneyDestination
+  tenderCommissions: number
+  /** Aditivo (carril C2, D12.3): «otros» por tipo de pago; suman `other`. */
+  otherByType?: OtherTypeBreakdown[]
+  /** Aditivo (carril C2, D17): lo movido en otra moneda (neto, sin convertir), fuera de las cuentas en pesos. */
+  foreignCurrency?: Array<{ currency: string; net: number; transactionCount: number; refundCount: number }>
+}
+
+/** Un tipo de «otros»: `key` es el id del tipo de pago propio (con su nombre en `label`) o el método (`label` null). */
+export interface OtherTypeBreakdown extends MoneyDestination {
+  key: string
+  label: string | null
+  method: string
   tenderCommissions: number
 }
 

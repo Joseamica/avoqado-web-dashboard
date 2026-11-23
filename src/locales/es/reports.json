@@ -821,7 +821,24 @@
         "cancelledRefunds": "Incluye {{amount}} devueltos de cuentas canceladas: aquí se restan porque el dinero sí salió; en «Ventas netas» no, porque esas ventas tampoco se cuentan.",
         "bankRowNegative": "Se descuenta de tu banco",
         "bankRefunds": "ya descuenta {{amount}} de devoluciones",
-        "tenderRow": "Comisión de plataformas y tipos de pago"
+        "tenderRow": "Comisión de plataformas y tipos de pago",
+        "otherTypesToggle": "Ver por tipo de pago",
+        "otherTypeCommission": "comisión de la plataforma {{amount}}",
+        "foreignCurrency": "Movimientos en otra moneda, sin convertir y fuera de las cuentas en pesos: {{amounts}}",
+        "otherTypes": {
+          "CARD": "Tarjeta de otra terminal",
+          "CASH": "Efectivo que no entró a la caja",
+          "BANK_TRANSFER": "Transferencia",
+          "DIGITAL_WALLET": "Monedero digital",
+          "CRYPTOCURRENCY": "Cripto",
+          "OTHER": "Otro método",
+          "QR_LEGACY": "QR del sistema anterior"
+        },
+        "foreignCurrencyItem": "{{amount}} neto ({{charges}}, {{refunds}})",
+        "foreignCurrencyCharges_one": "{{count}} cobro",
+        "foreignCurrencyCharges_other": "{{count}} cobros",
+        "foreignCurrencyRefunds_one": "{{count}} devolución",
+        "foreignCurrencyRefunds_other": "{{count}} devoluciones"
       },
       "merchants": {
         "title": "Por comercio",

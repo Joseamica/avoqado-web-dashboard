@@ -821,7 +821,24 @@
         "cancelledRefunds": "Includes {{amount}} refunded from cancelled accounts: subtracted here because the money did leave; not in «Net sales», because those sales are not counted either.",
         "bankRowNegative": "Deducted from your bank",
         "bankRefunds": "already deducts {{amount}} of refunds",
-        "tenderRow": "Platform and payment-type commissions"
+        "tenderRow": "Platform and payment-type commissions",
+        "otherTypesToggle": "View by payment type",
+        "otherTypeCommission": "platform commission {{amount}}",
+        "foreignCurrency": "Movements in another currency, unconverted and outside the peso figures: {{amounts}}",
+        "otherTypes": {
+          "CARD": "Card from another terminal",
+          "CASH": "Cash that did not go to the drawer",
+          "BANK_TRANSFER": "Bank transfer",
+          "DIGITAL_WALLET": "Digital wallet",
+          "CRYPTOCURRENCY": "Crypto",
+          "OTHER": "Other method",
+          "QR_LEGACY": "Previous system QR"
+        },
+        "foreignCurrencyItem": "{{amount}} net ({{charges}}, {{refunds}})",
+        "foreignCurrencyCharges_one": "{{count}} charge",
+        "foreignCurrencyCharges_other": "{{count}} charges",
+        "foreignCurrencyRefunds_one": "{{count}} refund",
+        "foreignCurrencyRefunds_other": "{{count}} refunds"
       },
       "merchants": {
         "title": "By merchant",

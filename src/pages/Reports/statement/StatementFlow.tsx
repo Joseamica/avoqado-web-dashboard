@@ -39,6 +39,10 @@ const deduccion = (n: number, formatCurrency: (n: number) => string) =>
 export function StatementFlow({ model, formatCurrency }: Props) {
   const { t, i18n } = useTranslation('reports')
   const [showCardDetail, setShowCardDetail] = useState(false)
+  const [showOtherTypes, setShowOtherTypes] = useState(false)
+  // D12.3: a type's name is its own name (Rappi, Vales…), else the method's (Transferencia, Tarjeta de otra terminal…).
+  const nombreDelTipo = (tipo: StatementModel['otherTypes'][number]) =>
+    tipo.label ?? t(`salesSummary.statement.flow.otherTypes.${tipo.method}`, { defaultValue: t('salesSummary.statement.flow.otherTypes.OTHER') })
   const { segments, other, cash, cardNet } = model
   const subBuckets = model.cardSubs
 
@@ -165,13 +169,51 @@ export function StatementFlow({ model, formatCurrency }: Props) {
           </div>
         )}
 
-        {(hay(other.net) || other.amount > 0) && (
-          <div className="flex items-center justify-between gap-3 rounded-lg border border-input p-3" data-testid="statement-other-row">
-            <span className="flex min-w-0 items-center gap-2 text-sm">
-              <Wallet className="h-4 w-4 shrink-0 text-orange-600 dark:text-orange-400" aria-hidden />
-              <span className="truncate">{t('salesSummary.statement.flow.otherRow')}</span>
-            </span>
-            <span className="shrink-0 font-semibold tabular-nums">{formatCurrency(other.net)}</span>
+        {(hay(other.net) || other.amount > 0 || model.otherTypes.length > 0) && (
+          <div className="rounded-lg border border-input p-3" data-testid="statement-other-row">
+            <div className="flex items-center justify-between gap-3">
+              <span className="flex min-w-0 items-center gap-2 text-sm">
+                <Wallet className="h-4 w-4 shrink-0 text-orange-600 dark:text-orange-400" aria-hidden />
+                <span className="truncate">{t('salesSummary.statement.flow.otherRow')}</span>
+              </span>
+              <span className="shrink-0 font-semibold tabular-nums">{formatCurrency(other.net)}</span>
+            </div>
+            {model.otherTypes.length > 0 && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setShowOtherTypes(v => !v)}
+                  aria-expanded={showOtherTypes}
+                  data-testid="statement-other-toggle"
+                  className="mt-2 flex cursor-pointer items-center gap-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  <ChevronDown className={cn('h-3.5 w-3.5 transition-transform', !showOtherTypes && '-rotate-90')} aria-hidden />
+                  {t('salesSummary.statement.flow.otherTypesToggle')}
+                </button>
+                {showOtherTypes && (
+                  <ul className="mt-2 space-y-1.5 pl-5" data-testid="statement-other-types">
+                    {model.otherTypes.map(tipo => (
+                      <li key={tipo.key} className="flex items-start justify-between gap-3 text-xs">
+                        <span className="flex min-w-0 flex-col">
+                          <span className="truncate text-foreground">{nombreDelTipo(tipo)}</span>
+                          {hay(tipo.tenderCommissions) && (
+                            <span className="text-[11px] text-muted-foreground">
+                              {t('salesSummary.statement.flow.otherTypeCommission', { amount: deduccion(tipo.tenderCommissions, formatCurrency) })}
+                            </span>
+                          )}
+                        </span>
+                        <span className="flex shrink-0 items-center gap-3 tabular-nums text-muted-foreground">
+                          <span>
+                            {tipo.count} {t('salesSummary.transactionsShort')}
+                          </span>
+                          <span className="w-20 text-right font-medium text-foreground">{formatCurrency(tipo.net)}</span>
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </>
+            )}
           </div>
         )}
 
@@ -185,6 +227,26 @@ export function StatementFlow({ model, formatCurrency }: Props) {
               {deduccion(model.tenderCommissions, formatCurrency)}
             </span>
           </div>
+        )}
+
+        {/* D17: charges in another currency are never summed as pesos: said apart, in their own currency. */}
+        {model.foreignCurrency.length > 0 && (
+          <p className="flex items-start gap-1.5 text-xs text-muted-foreground" data-testid="statement-foreign-currency">
+            <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
+            <span>
+              {t('salesSummary.statement.flow.foreignCurrency', {
+                amounts: model.foreignCurrency
+                  .map(f =>
+                    t('salesSummary.statement.flow.foreignCurrencyItem', {
+                      amount: `${f.currency} ${f.net < 0 ? '−' : ''}${Math.abs(f.net).toFixed(2)}`,
+                      charges: t('salesSummary.statement.flow.foreignCurrencyCharges', { count: f.transactionCount }),
+                      refunds: t('salesSummary.statement.flow.foreignCurrencyRefunds', { count: f.refundCount }),
+                    }),
+                  )
+                  .join(' · '),
+              })}
+            </span>
+          </p>
         )}
       </div>
 
