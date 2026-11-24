@@ -1096,6 +1096,7 @@ describe('SalesSummary · comparar con otro periodo (carril F2, hz:fefa11b6:D7)'
     )
     pintar()
     await tarjetaDelTotal()
+    const antesDeElegir = h.pedidos.length
     await elegir('previous_period')
     await waitFor(() => expect(h.pedidos[h.pedidos.length - 1]?.compareTo).toBe('previous_period'))
     // Las fechas de cada lado van junto al número grande, fuera del Resumen que se pliega.
@@ -1114,7 +1115,8 @@ describe('SalesSummary · comparar con otro periodo (carril F2, hz:fefa11b6:D7)'
     expect(deDevoluciones.querySelector('[data-tono]')?.getAttribute('data-tono')).toBe('empeora')
     const deImpuestos = comparados.find(c => c.textContent?.includes('$1,000.00') && c.textContent?.includes('37.9 %'))!
     expect(deImpuestos.querySelector('[data-tono]')?.getAttribute('data-tono')).toBe('neutro')
-    // Una sola petición con la comparación (no una aparte para el otro periodo).
+    // Elegir la opción hace UNA sola petición, que ya trae la comparación (no una aparte para el otro periodo).
+    expect(h.pedidos.slice(antesDeElegir)).toHaveLength(1)
     expect(h.pedidos.filter(p => p.compareTo)).toHaveLength(1)
   })
 
