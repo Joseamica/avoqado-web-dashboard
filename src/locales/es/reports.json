@@ -994,7 +994,7 @@
     "paymentSplit": {
       "title": "Entró por método",
       "tooltip": "Lo que entró por cada método en el periodo, ya menos las devoluciones, con propina y antes de comisiones; también los abonos de cuentas abiertas. Por eso no suma «Neto cobrado». Tampoco es «Cobraste» del estado del periodo, que no resta las devoluciones.",
-      "giftCardNote": "«Saldo de tarjeta de regalo» es lo que se pagó con saldo: ese dinero entró el día en que se vendió la tarjeta."
+      "giftCardNote": "«Saldo de tarjeta de regalo» es lo que se pagó con saldo: no es dinero que entró en este periodo (entró al vender o cargar la tarjeta; un ajuste de saldo no fue dinero)."
     }
   },
   "salesByItem": {

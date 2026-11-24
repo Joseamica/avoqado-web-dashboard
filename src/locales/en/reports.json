@@ -994,7 +994,7 @@
     "paymentSplit": {
       "title": "Came in by method",
       "tooltip": "What came in through each method in the period, minus refunds, tips included and before fees; open-tab deposits too. That is why it does not add up to «Net collected». It is not «You collected» in the period statement either, which does not subtract refunds.",
-      "giftCardNote": "«Gift card balance» is what was paid with balance: that money came in on the day the card was sold."
+      "giftCardNote": "«Gift card balance» is what was paid with balance: it is not money that came in during this period (it came in when the card was sold or loaded; a balance adjustment was not money)."
     }
   },
   "salesByItem": {
