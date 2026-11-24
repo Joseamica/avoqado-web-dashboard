@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter } from 'react-router-dom'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { SalesSummaryResponse } from '@/services/reports/salesSummary.service'
 
 // Funciones normales, no vi.fn: `mockReset: true` vaciaría un vi.fn() del factory antes de cada prueba.
@@ -28,12 +28,15 @@ vi.mock('@/hooks/use-current-venue', () => ({ useCurrentVenue: () => ({ venueId:
 vi.mock('@/context/AuthContext', () => ({ useAuth: () => ({ activeVenue: { timezone: h.timezone } }) }))
 vi.mock('@/hooks/use-tier-feature-access', () => ({
   useTierFeatureAccess: () => ({ hasAccess: h.access, isLoading: false, isResolved: true }),
+  planTierQueryKey: (v: string | undefined) => ['venueFeatures', v, 'planTier'],
 }))
 vi.mock('@/services/reports/salesSummary.service', async importOriginal => ({
   ...(await importOriginal<typeof import('@/services/reports/salesSummary.service')>()),
   fetchSalesSummary: (f: Record<string, unknown>) => {
     h.pedidos.push(f)
-    return h.response instanceof Error ? Promise.reject(h.response) : Promise.resolve(h.response)
+    // Carril F2: una respuesta puede depender de lo pedido (con o sin `compareTo`).
+    const r = typeof h.response === 'function' ? (h.response as (f: Record<string, unknown>) => unknown)(f) : h.response
+    return r instanceof Error ? Promise.reject(r) : Promise.resolve(r)
   },
 }))
 vi.mock('@/services/paymentProvider.service', () => ({
@@ -54,6 +57,17 @@ vi.mock('@/components/billing/FeatureGate', () => ({
   FeatureGate: ({ children }: { children: ReactNode }) => <div data-testid="feature-gate">{children}</div>,
 }))
 vi.mock('@/components/date-range-picker', () => ({ DateRangePicker: () => null }))
+// El menú de Radix necesita eventos de puntero que jsdom no da: aquí cada opción es un botón a la vista.
+vi.mock('@/components/ui/dropdown-menu', () => ({
+  DropdownMenu: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  DropdownMenuTrigger: ({ children }: { children: ReactNode }) => <>{children}</>,
+  DropdownMenuContent: ({ children }: { children: ReactNode }) => <div data-testid="menu-comparar">{children}</div>,
+  DropdownMenuItem: ({ children, onClick }: { children: ReactNode; onClick?: () => void }) => (
+    <button type="button" onClick={onClick}>
+      {children}
+    </button>
+  ),
+}))
 // El tooltip se pinta en línea para poder leer qué texto le tocó a cada renglón.
 vi.mock('@/components/ui/tooltip', () => ({
   TooltipProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
@@ -888,7 +902,8 @@ describe('SalesSummary · carril F, pantalla (hz:fefa11b6:D7, D14, D15, D16)', (
     h.response = respuesta({ salesByPaymentMethod: [{ method: 'CASH', amount: 600, count: 3, percentage: 60 }, { method: 'CREDIT_CARD', amount: 400, count: 2, percentage: 40 }] })
     pintar()
     const tarjeta = await tarjetaDelTotal()
-    const titulo = within(tarjeta).getByRole('button', { name: 'salesSummary.paymentSplit.title' })
+    // Re-revisión del carril F: con su propio total, para que no se lea como el desglose de «Neto cobrado».
+    const titulo = within(tarjeta).getByRole('button', { name: 'salesSummary.paymentSplit.titleWithTotal(amount=$1,000.00)' })
     expect(within(tarjeta).getByText('salesSummary.paymentSplit.tooltip')).toBeInTheDocument()
     // El título va antes de la leyenda con los importes.
     expect(antes(titulo, within(tarjeta).getAllByText('$600.00')[0])).toBe(true)
@@ -1026,5 +1041,161 @@ describe('SalesSummary · carril F, pantalla (hz:fefa11b6:D7, D14, D15, D16)', (
     await waitFor(() => expect(h.pedidos[h.pedidos.length - 1]?.paymentMethod).toBe('CASH'))
     expect(await screen.findAllByText('salesSummary.controls.filterBy.filteredMessage')).toHaveLength(1)
     expect(screen.queryByText('salesSummary.sections.paymentMethods')).not.toBeInTheDocument()
+  })
+})
+
+describe('SalesSummary · comparar con otro periodo (carril F2, hz:fefa11b6:D7)', () => {
+  // Un reloj fijo: las fechas de 2026 se escriben sin año sólo mientras «hoy» es de 2026.
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-11-23T20:00:00.000Z'))
+  })
+  afterEach(() => vi.useRealTimers())
+  const SEMANA = { startDate: '2026-11-16T06:00:00.000Z', endDate: '2026-11-23T05:59:59.999Z' }
+  const ANTERIOR = { startDate: '2026-11-09T06:00:00.000Z', endDate: '2026-11-16T05:59:59.999Z' }
+  const conComparacion = (comparison: Record<string, unknown>, summary: Partial<SalesSummaryResponse['summary']> = {}) => (f: Record<string, unknown>) =>
+    respuesta({
+      summary: { ...CON_TARJETAS, ...summary },
+      ...(f.compareTo ? { comparison: { compareTo: f.compareTo, ...comparison } as SalesSummaryResponse['comparison'] } : {}),
+    })
+  const ok = (summary: Partial<SalesSummaryResponse['summary']>, changes: Record<string, unknown>, extra: Record<string, unknown> = {}) => ({
+    status: 'ok',
+    asOf: '2026-11-23T20:00:00.000Z',
+    baseRange: SEMANA,
+    dateRange: ANTERIOR,
+    untilSameTime: false,
+    matchedWeekday: false,
+    summary: { ...SUMMARY, ...summary },
+    changes,
+    ...extra,
+  })
+  const elegir = async (opcion: string) => {
+    fireEvent.click(await screen.findByRole('button', { name: `salesSummary.compare.options.${opcion}` }))
+  }
+
+  it('por default no compara (Nada) y la petición no lleva compareTo', async () => {
+    pintar()
+    await tarjetaDelTotal()
+    expect(h.pedidos.every(p => p.compareTo === undefined)).toBe(true)
+    expect(screen.getAllByText('salesSummary.compare.options.none').length).toBeGreaterThan(0)
+    expect(screen.queryByTestId('sales-summary-compare-windows')).not.toBeInTheDocument()
+  })
+
+  it('🔴 «Periodo anterior»: una sola petición con compareTo; fechas exactas de cada lado y el «antes» de cada renglón con su cambio', async () => {
+    h.response = conComparacion(
+      ok(
+        { grossSales: 8000, refunds: 100, taxes: 1000, totalCollected: 10000 },
+        {
+          grossSales: { difference: 2000, percent: 25, isNew: false },
+          refunds: { difference: 200, percent: 200, isNew: false },
+          taxes: { difference: 379.31, percent: 37.9, isNew: false },
+          totalCollected: { difference: 500, percent: 5, isNew: false },
+        },
+      ),
+      { grossSales: 10000, refunds: 300 },
+    )
+    pintar()
+    await tarjetaDelTotal()
+    const antesDeElegir = h.pedidos.length
+    await elegir('previous_period')
+    await waitFor(() => expect(h.pedidos[h.pedidos.length - 1]?.compareTo).toBe('previous_period'))
+    // Las fechas de cada lado van junto al número grande, fuera del Resumen que se pliega.
+    const grande = await screen.findByTestId('sales-summary-compare-headline')
+    const ventanas = within(grande).getByTestId('sales-summary-compare-windows')
+    expect(ventanas.textContent).toContain('salesSummary.compare.thisPeriod: lun 16 nov – dom 22 nov')
+    expect(ventanas.textContent).toContain('salesSummary.compare.compared: lun 9 nov – dom 15 nov')
+    // El número grande dice siempre cuánto fue el otro periodo, y su cambio (verde: más neto cobrado).
+    expect(grande.textContent).toContain('salesSummary.compare.headline(amount=$10,000.00)')
+    expect(within(grande).getByText(/\$500\.00 · 5 %/).closest('[data-tono]')?.getAttribute('data-tono')).toBe('mejora')
+    // Más ventas = verde; más devoluciones = rojo (y el «antes» de lo que resta, en negativo como su renglón); impuestos = gris.
+    const comparados = screen.getAllByTestId('comparado')
+    const deVentas = comparados.find(c => c.textContent?.includes('$8,000.00'))!
+    expect(deVentas.querySelector('[data-tono]')?.getAttribute('data-tono')).toBe('mejora')
+    const deDevoluciones = comparados.find(c => c.textContent?.includes('-$100.00'))!
+    expect(deDevoluciones.querySelector('[data-tono]')?.getAttribute('data-tono')).toBe('empeora')
+    const deImpuestos = comparados.find(c => c.textContent?.includes('$1,000.00') && c.textContent?.includes('37.9 %'))!
+    expect(deImpuestos.querySelector('[data-tono]')?.getAttribute('data-tono')).toBe('neutro')
+    // Elegir la opción hace UNA sola petición, que ya trae la comparación (no una aparte para el otro periodo).
+    expect(h.pedidos.slice(antesDeElegir)).toHaveLength(1)
+    expect(h.pedidos.filter(p => p.compareTo)).toHaveLength(1)
+  })
+
+  it('🔴 antes en $0: «nuevo», sin un % infinito; los dos iguales: «sin cambio»', async () => {
+    h.response = conComparacion(
+      ok({ grossSales: 0, totalCollected: 10500 }, {
+        grossSales: { difference: 10000, percent: null, isNew: true },
+        totalCollected: { difference: 0, percent: 0, isNew: false },
+      }),
+    )
+    pintar()
+    await tarjetaDelTotal()
+    await elegir('previous_year')
+    expect(await screen.findByText(/\$10,000\.00 · salesSummary\.compare\.new/)).toBeInTheDocument()
+    expect(within(screen.getByTestId('sales-summary-compare-headline')).getByText('salesSummary.compare.noChange')).toBeInTheDocument()
+  })
+
+  it('🔴 sin Pro (el plan bajó): el reporte sale y se dice por qué no se compara', async () => {
+    h.response = conComparacion({ status: 'plan', message: 'Comparar con otro periodo requiere el plan Pro.' })
+    pintar()
+    await tarjetaDelTotal()
+    await elegir('previous_period')
+    expect(await screen.findByText('Comparar con otro periodo requiere el plan Pro.')).toBeInTheDocument()
+    expect(screen.queryByTestId('sales-summary-compare-windows')).not.toBeInTheDocument()
+    expect(screen.queryAllByTestId('comparado')).toHaveLength(0)
+  })
+
+  it('🔴 un SERVIDOR viejo que ignora compareTo: no pinta ningún «antes» y dice que no se pudo comparar', async () => {
+    h.response = respuesta()
+    pintar()
+    await tarjetaDelTotal()
+    await elegir('previous_period')
+    expect(await screen.findByText('salesSummary.compare.unavailable')).toBeInTheDocument()
+    expect(screen.queryAllByTestId('comparado')).toHaveLength(0)
+  })
+
+  it('🔴 el negocio del QR anterior: se ve lo de antes, sin cambio calculado, y la línea que lo explica', async () => {
+    h.response = conComparacion(ok({ grossSales: 8000 }, { grossSales: null, totalCollected: null }, { excludesLegacyQr: true }))
+    pintar()
+    await tarjetaDelTotal()
+    await elegir('previous_period')
+    expect(await screen.findByTestId('sales-summary-compare-legacy')).toHaveTextContent('salesSummary.compare.excludesLegacyQr')
+    expect(screen.getAllByTestId('comparado').some(c => c.textContent?.includes('$8,000.00'))).toBe(true)
+    expect(document.querySelectorAll('[data-tono]')).toHaveLength(0)
+  })
+
+  it('a la mitad: dice que los dos lados van hasta la misma hora (y el borde de la mesa abierta)', async () => {
+    h.response = conComparacion(
+      ok({}, {}, {
+        untilSameTime: true,
+        baseRange: { startDate: '2026-11-23T06:00:00.000Z', endDate: '2026-11-23T20:00:00.000Z' },
+        dateRange: { startDate: '2026-11-22T06:00:00.000Z', endDate: '2026-11-22T20:00:00.000Z' },
+      }),
+    )
+    pintar()
+    await tarjetaDelTotal()
+    await elegir('previous_period')
+    const ventanas = await screen.findByTestId('sales-summary-compare-windows')
+    expect(ventanas.textContent).toContain('salesSummary.compare.untilSameTimeNote')
+    // Con horas: no son días completos.
+    expect(ventanas.textContent).toMatch(/lun 23 nov, .+ – .+/)
+  })
+
+  it('🔴 un renglón que sale «si hay» sale si el otro periodo lo tuvo (comisiones de terceros: $0 hoy, $30 antes)', async () => {
+    h.response = conComparacion(ok({ tenderCommissions: 30 }, { tenderCommissions: { difference: -30, percent: -100, isNew: false } }))
+    pintar()
+    await tarjetaDelTotal()
+    expect(screen.queryByText('salesSummary.rows.tenderCommissions')).not.toBeInTheDocument()
+    await elegir('previous_period')
+    expect(await screen.findByText('salesSummary.rows.tenderCommissions')).toBeInTheDocument()
+  })
+
+  it('🔴 plan Gratis: la píldora va con candado, sin menú, y la petición nunca lleva compareTo', async () => {
+    h.access = false
+    pintar()
+    await tarjetaDelTotal()
+    expect(screen.getByTestId('sales-summary-compare-locked')).toBeDisabled()
+    expect(screen.queryByTestId('menu-comparar')).not.toBeInTheDocument()
+    expect(screen.getByText(/salesSummary\.basic\.upsell\.compare/)).toBeInTheDocument()
+    expect(h.pedidos.every(p => p.compareTo === undefined)).toBe(true)
   })
 })

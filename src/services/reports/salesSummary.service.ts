@@ -276,6 +276,36 @@ export interface SalesSummaryResponse {
   byOrderType?: SalesBreakdownRow[]
   /** Las tablas por canal se leyeron un instante después de la cabecera y alguna cifra cambió (entró una venta): recargar. */
   channelBreakdownOutOfSync?: true
+  /** Carril F2: sólo si se pidió `compareTo`. Lo que impide comparar viene en `status`; el reporte de arriba sale siempre. */
+  comparison?: SalesSummaryComparison
+}
+
+/** Carril F2 (hz:fefa11b6:D7): contra qué se compara el Resumen de ventas. */
+export type CompararCon = 'previous_period' | 'previous_year'
+
+/** La diferencia que calcula el SERVIDOR (la pantalla sólo pinta). `percent` null con base 0 o negativa; `isNew` si antes era $0. */
+export interface CambioDeCifra {
+  difference: number
+  percent: number | null
+  isNew: boolean
+}
+
+export interface SalesSummaryComparison {
+  compareTo: CompararCon
+  status: 'ok' | 'plan' | 'notStarted' | 'tooLong' | 'legacyQr'
+  /** En español, cuando `status` no es `ok`. */
+  message?: string
+  asOf?: string
+  /** Lo que se leyó de cada lado (el actual, hasta la hora del corte si va a la mitad). */
+  baseRange?: { startDate: string; endDate: string }
+  dateRange?: { startDate: string; endDate: string }
+  untilSameTime?: boolean
+  /** 52 semanas antes: mismos días de la semana. */
+  matchedWeekday?: boolean
+  summary?: SalesSummaryHeadline
+  changes?: Partial<Record<keyof SalesSummaryMetrics, CambioDeCifra | null>>
+  /** El negocio del QR anterior: el periodo comparado no trae esos cobros y no se calcula el cambio. */
+  excludesLegacyQr?: true
 }
 
 export interface SalesSummaryFilters {
@@ -295,6 +325,8 @@ export interface SalesSummaryFilters {
   includeChannelBreakdown?: boolean
   /** Carril G · D5: paquetes en línea y depósitos de reservas en el resumen. */
   includePrepaid?: boolean
+  /** Carril F2: también el otro periodo (Pro). */
+  compareTo?: CompararCon
 }
 
 export interface ApiResponse<T> {
@@ -330,6 +362,7 @@ export async function fetchSalesSummary(
         ...(filters.includeSettlementProjection ? { includeSettlementProjection: 'true' } : {}),
         ...(filters.includeChannelBreakdown ? { includeChannelBreakdown: 'true' } : {}),
         ...(filters.includePrepaid ? { includePrepaid: 'true' } : {}),
+        ...(filters.compareTo ? { compareTo: filters.compareTo } : {}),
       },
       // Tell the backend which venue is active. This endpoint has no :venueId in
       // its URL, so without this header it would fall back to the (possibly stale)

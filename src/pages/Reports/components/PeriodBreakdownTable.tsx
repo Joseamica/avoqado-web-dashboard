@@ -16,7 +16,9 @@ import { useTranslation } from 'react-i18next'
 import { ChevronUp, ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Currency } from '@/utils/currency'
-import type { TimePeriodMetrics, ReportType, SalesSummaryMetrics } from '@/services/reports/salesSummary.service'
+import type { CambioDeCifra, TimePeriodMetrics, ReportType, SalesSummaryMetrics } from '@/services/reports/salesSummary.service'
+import { AntesDelPeriodo } from './CambioDelPeriodo'
+import type { Sentido } from '../compararPeriodos'
 
 // ============================================================
 // Types
@@ -29,7 +31,11 @@ interface PeriodBreakdownTableProps {
   venueTimezone?: string
   /** D14.2: la cabecera del SERVIDOR para la columna «Total» (la misma cifra que el Resumen; la pantalla no suma). */
   total?: SalesSummaryMetrics
+  /** Carril F2: el otro periodo, en la celda de «Total» (su ventana exacta va en el encabezado). */
+  comparado?: { ventana: string; metrics: SalesSummaryMetrics; changes: Partial<Record<string, CambioDeCifra | null>> }
 }
+
+const SENTIDO: Record<MetricRowConfig['type'], Sentido> = { positive: 'subeBien', bold: 'subeBien', negative: 'subeMal', neutral: 'neutro' }
 
 type MetricKey = keyof TimePeriodMetrics['metrics']
 
@@ -135,6 +141,7 @@ export function PeriodBreakdownTable({
   reportType,
   venueTimezone = 'America/Mexico_City',
   total,
+  comparado,
 }: PeriodBreakdownTableProps) {
   const { t } = useTranslation('reports')
 
@@ -148,11 +155,14 @@ export function PeriodBreakdownTable({
       // periodos. Ese renglón no se pinta (antes salía «N/A», o «−$0.00» en los negativos), igual que en la cabecera.
       const tieneValor = periods.some(p => p.metrics[row.key] != null)
       // «Sin cobrar» (D6) sale sola si algún periodo tiene cuentas abiertas, como en la cabecera (Codex r2 #8).
-      const hayCuentasAbiertas = row.key === 'deferredSales' && periods.some(p => (p.metrics.unpaidOrders ?? 0) > 0)
-      const saleSola = SALEN_SI_HAY.includes(row.key) && periods.some(p => Number(p.metrics[row.key] ?? 0) !== 0)
+      const hayCuentasAbiertas =
+        row.key === 'deferredSales' && (periods.some(p => (p.metrics.unpaidOrders ?? 0) > 0) || (comparado?.metrics.unpaidOrders ?? 0) > 0)
+      const saleSola =
+        SALEN_SI_HAY.includes(row.key) &&
+        (periods.some(p => Number(p.metrics[row.key] ?? 0) !== 0) || Number(comparado?.metrics[row.key] ?? 0) !== 0)
       return tieneValor && (selectedMetrics.length === 0 || selectedMetrics.includes(row.key) || hayCuentasAbiertas || saleSola)
     })
-  }, [selectedMetrics, periods])
+  }, [selectedMetrics, periods, comparado])
 
   // Con un filtro de pago o de comercio el SERVIDOR no puede medir las métricas de orden (null en todos los periodos): si alguna
   // elegida quedó fuera, se dice, para que una tabla sin renglones no parezca vacía (Codex r2 #7).
@@ -229,6 +239,11 @@ export function PeriodBreakdownTable({
                 // al fondo del scroll. En una tabla angosta las dos fijas no dejaban ver ningún día (Codex r1 #6, r2 #5): ahí es la última.
                 <th className="@3xl:sticky @3xl:right-0 z-20 px-4 py-5 text-sm font-semibold text-foreground w-[128px] min-w-[128px] @xl:w-[150px] @xl:min-w-[150px] text-center border-l border-border/40 bg-muted">
                   {t('salesSummary.periodTable.total')}
+                  {comparado && (
+                    <span className="mt-0.5 block text-xs font-normal text-muted-foreground" data-testid="period-table-compared">
+                      {t('salesSummary.compare.versus', { window: comparado.ventana })}
+                    </span>
+                  )}
                 </th>
               )}
             </tr>
@@ -339,6 +354,17 @@ export function PeriodBreakdownTable({
                           {cuentasAbiertas > 0 && (
                             <div className="text-xs text-muted-foreground mt-1">
                               {cuentasAbiertas} {t('salesSummary.unpaidOrdersLabel', { count: cuentasAbiertas })}
+                            </div>
+                          )}
+                          {/* Carril F2: el total del otro periodo y su cambio, en la misma celda. */}
+                          {col.esTotal && comparado && (
+                            <div className="mt-1 font-normal">
+                              <AntesDelPeriodo
+                                valor={comparado.metrics[row.key] == null ? null : isNegative ? comoResta(Number(comparado.metrics[row.key])) : Number(comparado.metrics[row.key])}
+                                cambio={comparado.changes[row.key]}
+                                sentido={SENTIDO[row.type]}
+                                formatCurrency={n => Currency(sinMedioCentavo(n))}
+                              />
                             </div>
                           )}
                         </td>
