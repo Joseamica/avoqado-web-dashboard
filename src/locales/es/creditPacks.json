@@ -106,7 +106,7 @@
   },
   "refund": {
     "title": "Reembolsar Compra",
-    "description": "Vas a reembolsar «{{pack}}» de {{customer}} por {{amount}}. Esto cancelará todos los créditos restantes.",
+    "description": "Vas a marcar como reembolsado «{{pack}}» de {{customer}} ({{amount}}). Se cancelan sus créditos restantes. El dinero no se devuelve desde aquí: regrésalo por donde se cobró.",
     "reasonLabel": "Razón del reembolso",
     "reasonPlaceholder": "¿Por qué se reembolsa?",
     "confirm": "Confirmar Reembolso",

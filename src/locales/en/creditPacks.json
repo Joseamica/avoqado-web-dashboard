@@ -106,7 +106,7 @@
   },
   "refund": {
     "title": "Refund Purchase",
-    "description": "You're about to refund “{{pack}}” for {{customer}} ({{amount}}). This will cancel all remaining credits.",
+    "description": "You're about to mark “{{pack}}” for {{customer}} ({{amount}}) as refunded. Its remaining credits are cancelled. The money is not returned from here: return it the way it was collected.",
     "reasonLabel": "Refund reason",
     "reasonPlaceholder": "Why is this being refunded?",
     "confirm": "Confirm Refund",
