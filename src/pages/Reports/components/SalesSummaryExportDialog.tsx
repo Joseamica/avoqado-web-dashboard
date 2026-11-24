@@ -84,6 +84,9 @@ export function SalesSummaryExportDialog({
   const [cardType, setCardType] = useState<CardTypeFilter | null>(initialCardType ?? null)
   const [merchantAccountId, setMerchantAccountId] = useState<string | null>(initialMerchantAccountId ?? null)
   const [staffIds, setStaffIds] = useState<string[]>([]) // detailed mode only
+  // Codex r15 #1 (carril F): si la afiliación elegida sale de la lista con el diálogo abierto (soporte la retiró), se quita sola; el
+  // SERVIDOR rechaza con 400 un comercio que no es del negocio y el selector se esconde con una sola afiliación.
+  if (merchantAccountId !== null && !merchantAccounts.some(m => m.id === merchantAccountId)) setMerchantAccountId(null)
   const [shiftId, setShiftId] = useState<string | null>(null) // detailed mode only
 
   // D13.1: the dialog stays mounted, so `useState(initial…)` only read the screen ONCE. Every opening brings back the dates and

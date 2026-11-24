@@ -926,14 +926,15 @@ export default function SalesSummary() {
     queryFn: () => getVenueMerchantAccountsByVenueId(venueId),
     staleTime: 1000 * 60 * 30,
   })
-  // Codex r14 #2 (carril F): si la afiliación elegida sale de la lista (soporte la retiró), el filtro se quita solo. El SERVIDOR ya
-  // rechaza con 400 un comercio que no es del negocio, y sin él en la lista no queda selector para quitarlo.
+  // Codex r14 #2 y r15 #2 (carril F): si una afiliación elegida sale de la lista (soporte la retiró), se quita sola, en lo aplicado y en
+  // el borrador, cada uno por su cuenta. El SERVIDOR ya rechaza con 400 un comercio que no es del negocio, y sin él en la lista no
+  // queda selector para quitarlo.
   useEffect(() => {
-    if (comerciosListos && merchantAccountId && !merchantAccounts.some(m => m.id === merchantAccountId)) {
-      setMerchantAccountId(null)
-      setPendingMerchantAccountId(null)
-    }
-  }, [comerciosListos, merchantAccounts, merchantAccountId])
+    if (!comerciosListos) return
+    const fuera = (id: string | null) => id !== null && !merchantAccounts.some(m => m.id === id)
+    if (fuera(merchantAccountId)) setMerchantAccountId(null)
+    if (fuera(pendingMerchantAccountId)) setPendingMerchantAccountId(null)
+  }, [comerciosListos, merchantAccounts, merchantAccountId, pendingMerchantAccountId])
 
   const { data: settlementConfigs = [] } = useQuery({
     queryKey: ['venueSettlementInfo', venueId],

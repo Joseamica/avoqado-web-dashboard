@@ -509,6 +509,51 @@ describe('Resumen de ventas · sólo controles que hacen algo (D3)', () => {
     })
   })
 
+  describe('Codex r15 #2 · el borrador y lo aplicado se limpian cada uno por su cuenta cuando sale una afiliación de la lista', () => {
+    const alfa = { id: 'm1', displayName: 'Comercio Uno', provider: { name: 'Blumon' } }
+    const beta = { id: 'm2', displayName: 'Comercio Dos', provider: { name: 'AngelPay' } }
+    const gama = { id: 'm3', displayName: 'Comercio Tres', provider: { name: 'Blumon' } }
+    const preparar = async () => {
+      h.merchants = [alfa, beta, gama]
+      const qc = new QueryClient({ defaultOptions: { queries: { retry: false, retryDelay: 0 } } })
+      pintar(qc)
+      const comercio = (await abrirPanelDeControles()).querySelector('[data-panel="merchant"]') as HTMLElement
+      const aplicar = () => within(comercio).getByRole('button', { name: 'salesSummary.controls.apply', hidden: true })
+      const retirar = async (quedan: unknown[]) => {
+        h.merchants = quedan
+        await act(() => qc.invalidateQueries({ queryKey: ['venueMerchantAccounts'] }))
+      }
+      return { qc, comercio, aplicar, retirar }
+    }
+
+    it('🔴 retiran el aplicado (Alfa): Beta, elegido en el borrador, se queda y se puede aplicar', async () => {
+      const { qc, comercio, aplicar, retirar } = await preparar()
+      fireEvent.click(within(comercio).getByText('Comercio Uno'))
+      fireEvent.click(aplicar())
+      await waitFor(() => expect(h.pedidos[h.pedidos.length - 1]).toMatchObject({ merchantAccountId: 'm1' }))
+      // «Aplicar» cierra el panel: se vuelve a abrir y en el borrador se elige Beta, sin aplicar.
+      const otraVez = (await abrirPanelDeControles()).querySelector('[data-panel="merchant"]') as HTMLElement
+      const aplicarOtraVez = () => within(otraVez).getByRole('button', { name: 'salesSummary.controls.apply', hidden: true })
+      fireEvent.click(within(otraVez).getByText('Comercio Dos'))
+      expect(aplicarOtraVez()).toBeEnabled()
+      await retirar([beta, gama])
+      // Lo aplicado ya es «Todos» (la consulta activa no lleva Alfa) y el borrador sigue en Beta: hay un cambio por aplicar.
+      await waitFor(() => {
+        const activas = qc.getQueryCache().findAll({ type: 'active' }).map(q => JSON.stringify(q.queryKey))
+        expect(activas.some(k => k.includes('"merchantAccountId":"m1"'))).toBe(false)
+      })
+      expect(aplicarOtraVez()).toBeEnabled()
+    })
+
+    it('🔴 retiran el que sólo estaba en el borrador: el borrador vuelve a «Todos» y no queda nada por aplicar', async () => {
+      const { comercio, aplicar, retirar } = await preparar()
+      fireEvent.click(within(comercio).getByText('Comercio Dos'))
+      expect(aplicar()).toBeEnabled()
+      await retirar([alfa, gama])
+      await waitFor(() => expect(aplicar()).toBeDisabled())
+    })
+  })
+
   it('🔴 Codex r1 #2 · una preferencia con `selectedMetrics` que no es lista descarta TODO lo guardado (no deja un filtro corrupto vivo)', async () => {
     vi.mocked(localStorage.getItem).mockReturnValue(
       JSON.stringify({ selectedMetrics: 'grossSales', paymentMethodFilter: 'CARD', cardTypeFilter: 42 }),
