@@ -12,6 +12,7 @@ const h = vi.hoisted(() => ({
   merchants: [] as unknown[],
   statementProps: null as Record<string, unknown> | null,
   timezone: 'America/Mexico_City',
+  settlement: [] as unknown[],
   /** Lo que pidió la pantalla en cada lectura (fechas, filtro). */
   pedidos: [] as Array<Record<string, unknown>>,
 }))
@@ -37,7 +38,7 @@ vi.mock('@/services/reports/salesSummary.service', async importOriginal => ({
 }))
 vi.mock('@/services/paymentProvider.service', () => ({
   getVenueMerchantAccountsByVenueId: () => Promise.resolve(h.merchants),
-  getVenueSettlementInfo: () => Promise.resolve([]),
+  getVenueSettlementInfo: () => Promise.resolve(h.settlement),
 }))
 vi.mock('@/pages/Reports/components/SalesSummaryExportDialog', () => ({ SalesSummaryExportDialog: () => null }))
 vi.mock('./components/PeriodBreakdownTable', () => ({ PeriodBreakdownTable: () => null }))
@@ -120,6 +121,7 @@ beforeEach(() => {
   h.response = respuesta()
   h.pedidos = []
   h.timezone = 'America/Mexico_City'
+  h.settlement = []
 })
 
 describe('SalesSummary · cifras de tarjetas de regalo (D5 r1)', () => {
@@ -813,6 +815,36 @@ describe('SalesSummary · carril F, pantalla (hz:fefa11b6:D7, D14, D15, D16)', (
     pintar()
     const tarjeta = await tarjetaDelTotal()
     expect(within(tarjeta).getAllByText('$600.00').length).toBeGreaterThan(0)
+  })
+
+  it('🔴 full-testing FAIL 1 · lo de la barra se titula «Cobrado por método» (no es el desglose de «Neto cobrado») y dice qué trae', async () => {
+    h.response = respuesta({ salesByPaymentMethod: [{ method: 'CASH', amount: 600, count: 3, percentage: 60 }, { method: 'CREDIT_CARD', amount: 400, count: 2, percentage: 40 }] })
+    pintar()
+    const tarjeta = await tarjetaDelTotal()
+    const titulo = within(tarjeta).getByRole('button', { name: 'salesSummary.paymentSplit.title' })
+    expect(within(tarjeta).getByText('salesSummary.paymentSplit.tooltip')).toBeInTheDocument()
+    // El título va antes de la leyenda con los importes.
+    expect(antes(titulo, within(tarjeta).getAllByText('$600.00')[0])).toBe(true)
+  })
+
+  it('🔴 W6 · el botón «‹» de cada subpanel de Controles tiene nombre', async () => {
+    pintar()
+    await tarjetaDelTotal()
+    fireEvent.click(screen.getByRole('button', { name: /salesSummary\.controls\.metrics\.label/ }))
+    const panel = await screen.findByRole('dialog')
+    expect(within(panel).getAllByRole('button', { name: 'salesSummary.controls.back', hidden: true })).toHaveLength(5)
+  })
+
+  it('🔴 nota del full-testing · «Liquidación» no se repite cuando débito y crédito tardan distinto', async () => {
+    h.access = false
+    h.settlement = [
+      { cardType: 'DEBIT', settlementDays: 1 },
+      { cardType: 'CREDIT', settlementDays: 2 },
+    ]
+    h.response = respuesta({ byPaymentMethodDetailed: [{ bucket: 'CARD', amount: 300, count: 3, percentage: 100, tips: 0, refunds: 0, platformFees: 9 }] })
+    pintar()
+    const etiqueta = await screen.findByText(/salesSummary\.settlement\.label: .*debit/i)
+    expect(etiqueta.textContent?.match(/salesSummary\.settlement\.label/g)).toHaveLength(1)
   })
 
   it('🔴 Codex r2 #1 · el número grande tampoco pinta «−$0.00» con medio centavo', async () => {

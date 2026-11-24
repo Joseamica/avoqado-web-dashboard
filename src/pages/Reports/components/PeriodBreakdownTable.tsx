@@ -78,7 +78,7 @@ const METRIC_ROWS: MetricRowConfig[] = [
 ]
 
 /** Renglones que salen aunque no estén en «Métricas» cuando algún periodo trae algo (como en el Resumen). */
-const SALEN_SI_HAY: MetricKey[] = ['tenderCommissions']
+const SALEN_SI_HAY: MetricKey[] = ['tenderCommissions', 'serviceCosts']
 
 /** Menos de medio centavo es cero: una comisión de 4 decimales o un residuo no se pintan «−$0.00» (Codex r1 #3 del carril F). */
 const sinMedioCentavo = (n: number) => (Math.abs(n) < 0.005 ? 0 : n)

@@ -815,7 +815,8 @@
           "netProfitDesc": "Ventas netas menos comisiones de plataforma, de terceros y a empleados (sin el costo de lo vendido)"
         },
         "selected": "seleccionadas"
-      }
+      },
+      "back": "Regresar a Controles"
     },
     "periodTable": {
       "hourly": "Por horas",
@@ -989,7 +990,11 @@
       "neutral": "Informativo, no se suma"
     },
     "movementsLabel": "movimientos",
-    "netProfitCaption": "Neto cobrado sin propinas (son del personal) y sin comisiones a empleados"
+    "netProfitCaption": "Neto cobrado sin propinas (son del personal) y sin comisiones a empleados",
+    "paymentSplit": {
+      "title": "Cobrado por método",
+      "tooltip": "Lo que entró por cada método en el periodo: cobros menos devoluciones, con propina y también los abonos de cuentas abiertas, antes de comisiones. Por eso no suma «Neto cobrado»: es como «Cobraste» del estado del periodo."
+    }
   },
   "salesByItem": {
     "title": "Ventas por artículo",

@@ -171,5 +171,10 @@ describe('PeriodBreakdownTable · carril F (hz:fefa11b6:D14)', () => {
     expect(th.className).toMatch(/@3xl:sticky/)
     expect(th.className).not.toMatch(/(^|\s)sm:sticky/)
   })
+
+  it('🔴 full-testing W5 · «Cargos por servicio» sale si algún periodo lo trae, aunque no esté en «Métricas» (como el Resumen)', () => {
+    render(<PeriodBreakdownTable periods={[periodo({ serviceCosts: 9.4 })]} selectedMetrics={ELEGIDAS} reportType="days" />)
+    expect(screen.getByText('salesSummary.rows.serviceCosts')).toBeInTheDocument()
+  })
 })
 

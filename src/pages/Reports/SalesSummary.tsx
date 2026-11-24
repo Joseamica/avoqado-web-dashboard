@@ -954,7 +954,10 @@ export default function SalesSummary() {
     if (debitDays === creditDays) {
       cardParts.push(formatDays(debitDays))
     } else {
-      cardParts.push(`${t('salesSummary.settlement.label')}: ${formatDays(debitDays)} (débito), ${formatDays(creditDays)} (crédito)`)
+      // Sin repetir «Liquidación:» (ya va al principio) y con los nombres de los locales, no «(débito)» fijo en español.
+      const debito = t('salesSummary.controls.filterBy.cardType.options.debit').toLowerCase()
+      const credito = t('salesSummary.controls.filterBy.cardType.options.credit').toLowerCase()
+      cardParts.push(`${formatDays(debitDays)} (${debito}), ${formatDays(creditDays)} (${credito})`)
     }
     if (amex && amexDays !== cardMax) {
       cardParts.push(`Amex ${formatDays(amexDays)}`)
@@ -1430,6 +1433,7 @@ export default function SalesSummary() {
                     size="icon"
                     className="h-10 w-10 rounded-full cursor-pointer"
                     onClick={() => irAPanel('main')}
+                    aria-label={t('salesSummary.controls.back')}
                   >
                     <ChevronLeft className="w-5 h-5" />
                   </Button>
@@ -1508,6 +1512,7 @@ export default function SalesSummary() {
                     size="icon"
                     className="h-10 w-10 rounded-full cursor-pointer"
                     onClick={() => irAPanel('main')}
+                    aria-label={t('salesSummary.controls.back')}
                   >
                     <ChevronLeft className="w-5 h-5" />
                   </Button>
@@ -1581,6 +1586,7 @@ export default function SalesSummary() {
                     size="icon"
                     className="h-10 w-10 rounded-full cursor-pointer"
                     onClick={() => irAPanel('main')}
+                    aria-label={t('salesSummary.controls.back')}
                   >
                     <ChevronLeft className="w-5 h-5" />
                   </Button>
@@ -1636,6 +1642,7 @@ export default function SalesSummary() {
                     size="icon"
                     className="h-10 w-10 rounded-full cursor-pointer"
                     onClick={() => irAPanel('main')}
+                    aria-label={t('salesSummary.controls.back')}
                   >
                     <ChevronLeft className="w-5 h-5" />
                   </Button>
@@ -1728,6 +1735,7 @@ export default function SalesSummary() {
                     size="icon"
                     className="h-10 w-10 rounded-full cursor-pointer"
                     onClick={() => irAPanel('main')}
+                    aria-label={t('salesSummary.controls.back')}
                   >
                     <ChevronLeft className="w-5 h-5" />
                   </Button>
@@ -2091,6 +2099,15 @@ export default function SalesSummary() {
             )}
           </div>
         </div>
+
+        {/* Lo que pintan la barra, la dona y la tabla NO es el desglose de «Neto cobrado»: es lo que entró por método (cobros menos
+            devoluciones, con propina, también abonos de cuentas abiertas) y antes de comisiones. Se titula y se explica, para que no
+            se lea como la suma del número grande (full-testing FAIL 1 del carril F; como «Cobraste» del estado del periodo). */}
+        {!isFiltered && hayReparto && (
+          <p className="flex items-center gap-2 text-sm text-muted-foreground" data-testid="sales-summary-payment-split-title">
+            <Ayuda label={t('salesSummary.paymentSplit.title')} tooltip={t('salesSummary.paymentSplit.tooltip')} />
+          </p>
+        )}
 
         {/* Dynamic visualization based on viewType — hidden under a payment
             filter (the distribution would be a tautological 100% of the
