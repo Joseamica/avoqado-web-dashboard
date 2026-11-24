@@ -484,7 +484,8 @@
         "history": "Consulta las ventas de cualquier día o rango de fechas",
         "periods": "Consulta tus ventas por hora, día, semana y mes",
         "breakdowns": "Desgloses detallados por comercio y tipo de pago",
-        "export": "Exporta tus reportes a Excel, CSV o PDF"
+        "export": "Exporta tus reportes a Excel, CSV o PDF",
+        "compare": "Compara contra el periodo anterior o el mismo periodo del año pasado"
       }
     },
     "actions": {
@@ -993,7 +994,29 @@
     "netProfitCaption": "Neto cobrado sin propinas (son del personal) y sin comisiones a empleados",
     "paymentSplit": {
       "title": "Por método de pago",
-      "tooltip": "Cómo se reparte por método de pago lo registrado en el periodo. Es otra cuenta: no es «Neto cobrado» ni «Cobraste», y no resta comisiones. Puede traer propinas, abonos de cuentas abiertas y pagos con saldo (de tarjetas de regalo o a favor), que no siempre son dinero nuevo del periodo."
+      "tooltip": "Cómo se reparte por método de pago lo registrado en el periodo. Es otra cuenta: no es «Neto cobrado» ni «Cobraste», y no resta comisiones. Puede traer propinas, abonos de cuentas abiertas y pagos con saldo (de tarjetas de regalo o a favor), que no siempre son dinero nuevo del periodo.",
+      "titleWithTotal": "Por método de pago · {{amount}}"
+    },
+    "compare": {
+      "label": "Comparar con",
+      "options": {
+        "none": "Nada",
+        "previous_period": "Periodo anterior",
+        "previous_year": "Mismo periodo del año pasado"
+      },
+      "unavailable": "No se pudo comparar. Vuelve a cargar la página.",
+      "headline": "Antes ({{window}}): {{amount}}",
+      "excludesLegacyQr": "No incluye los cobros del QR anterior; por eso no se calcula el cambio.",
+      "thisPeriod": "Este periodo",
+      "compared": "Comparado",
+      "comparedWeekday": "Comparado (hace 52 semanas, mismo día de la semana)",
+      "untilSameTimeNote": "Este periodo todavía no termina: los dos lados se cuentan hasta la misma hora. Una cuenta abierta antes de esa hora y cobrada después cuenta como venta del periodo comparado; la de hoy sale en «Sin cobrar» hasta que se cobre. Un cobro que entra mientras se lee el reporte puede faltar hasta que recargues.",
+      "before": "antes",
+      "noChange": "sin cambio",
+      "new": "nuevo",
+      "up": "subió",
+      "down": "bajó",
+      "versus": "vs. {{window}}"
     }
   },
   "salesByItem": {

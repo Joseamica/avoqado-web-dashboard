@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useId, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { AvisoCobrosQrIncompletos } from '@/components/AvisoCobrosQrIncompletos'
 import { falloDeCarga } from '@/lib/falloDeCarga'
@@ -23,7 +23,10 @@ import { Currency } from '@/utils/currency'
 import { getIntlLocale } from '@/utils/i18n-locale'
 import { getLast7Days, getToday, zonaValida } from '@/utils/datetime'
 import { useAuth } from '@/context/AuthContext'
-import { useTierFeatureAccess } from '@/hooks/use-tier-feature-access'
+import { planTierQueryKey, useTierFeatureAccess } from '@/hooks/use-tier-feature-access'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { AntesDelPeriodo, CambioDelPeriodo } from './components/CambioDelPeriodo'
+import { sonDiasCompletos, ventanaDelPeriodo, type Sentido } from './compararPeriodos'
 import {
   fetchSalesSummary,
   salesSummaryKeys,
@@ -32,6 +35,8 @@ import {
   type PaymentMethodFilter,
   type CardTypeFilter,
   type PaymentMethodDetailedBreakdown,
+  type CompararCon,
+  type SalesSummaryMetrics,
   MINDFORM_VENUE_ID,
 } from '@/services/reports/salesSummary.service'
 import { getVenueMerchantAccountsByVenueId, getVenueSettlementInfo, type MerchantAccount } from '@/services/paymentProvider.service'
@@ -390,7 +395,9 @@ const SummaryRow: React.FC<{
   nota?: string
   /** Una línea debajo del nombre que dice de dónde sale la cifra. */
   caption?: string
-}> = ({ label, value, count, countLabel, type, indent = 0, bold = false, tooltip, nota, caption }) => (
+  /** Carril F2: lo del otro periodo, debajo del importe. */
+  antes?: React.ReactNode
+}> = ({ label, value, count, countLabel, type, indent = 0, bold = false, tooltip, nota, caption, antes }) => (
   <div
     className={cn(
       'flex items-start justify-between gap-4 py-2.5 hover:bg-muted/30 rounded-lg transition-colors',
@@ -413,8 +420,11 @@ const SummaryRow: React.FC<{
       )}
       {caption && <span className="text-xs text-muted-foreground ml-4">{caption}</span>}
     </div>
-    <span data-monto className={cn('text-sm text-right min-w-[100px] tabular-nums', bold && 'font-semibold')}>
-      {pesos(value)}
+    <span className="text-right min-w-[100px]">
+      <span data-monto className={cn('block text-sm tabular-nums', bold && 'font-semibold')}>
+        {pesos(value)}
+      </span>
+      {antes}
     </span>
   </div>
 )
@@ -435,7 +445,8 @@ const CollapsibleSummaryRow: React.FC<{
   /** Nombre del botón que pliega (para lector de pantalla). */
   toggleLabel: string
   children: React.ReactNode
-}> = ({ label, value, count, countLabel, type, bold = false, tooltip, isOpen, onToggle, toggleLabel, children }) => (
+  antes?: React.ReactNode
+}> = ({ label, value, count, countLabel, type, bold = false, tooltip, isOpen, onToggle, toggleLabel, children, antes }) => (
   <div>
     <div
       className="flex items-start justify-between gap-4 px-4 py-2.5 hover:bg-muted/30 rounded-lg transition-colors cursor-pointer"
@@ -470,8 +481,11 @@ const CollapsibleSummaryRow: React.FC<{
           <span className="text-xs text-muted-foreground ml-8">{count} {countLabel}</span>
         )}
       </div>
-      <span data-monto className={cn('text-sm text-right min-w-[100px] tabular-nums', bold && 'font-semibold')}>
-        {pesos(value)}
+      <span className="text-right min-w-[100px]">
+        <span data-monto className={cn('block text-sm tabular-nums', bold && 'font-semibold')}>
+          {pesos(value)}
+        </span>
+        {antes}
       </span>
     </div>
     {isOpen && (
@@ -914,6 +928,10 @@ export default function SalesSummary() {
   const [pendingPaymentMethodFilter, setPendingPaymentMethodFilter] = useState<PaymentMethodFilter | null>(null)
   const [pendingCardTypeFilter, setPendingCardTypeFilter] = useState<CardTypeFilter | null>(null)
 
+  // Carril F2 (hz:fefa11b6:D7): «Comparar con». Nada por default y no se guarda en el navegador (como los filtros, D7.7). Sólo Pro.
+  const [compararCon, setCompararCon] = useState<CompararCon | 'none'>('none')
+  const queryClient = useQueryClient()
+
   const isMindform = venueId === MINDFORM_VENUE_ID
   // El filtro que de verdad se aplica: sólo con el plan (el Gratis no tiene controles) y «QR» sólo en Mindform, que es donde
   // existe (fuera de ahí el SERVIDOR responde 400). Insignia, petición y pantalla leen éste (D15.3).
@@ -1124,8 +1142,10 @@ export default function SalesSummary() {
       // Carril G: «Ventas por canal» (todos los planes, decisión del founder del 22-nov) y lo cobrado por adelantado (D5).
       includeChannelBreakdown: true,
       includePrepaid: true,
+      // Carril F2: el otro periodo viene en la MISMA respuesta (una sola petición, un solo instante para los dos lados).
+      ...(hasAccess && compararCon !== 'none' ? { compareTo: compararCon } : {}),
     }
-  }, [venueId, hasAccess, dateRange.from, dateRange.to, todayRange.from, todayRange.to, effectiveReportType, merchantAccountId, filtroDePago, cardTypeFilter])
+  }, [venueId, hasAccess, dateRange.from, dateRange.to, todayRange.from, todayRange.to, effectiveReportType, merchantAccountId, filtroDePago, cardTypeFilter, compararCon])
 
   // Fetch sales summary data from API
   const salesQuery = useQuery({
@@ -1137,6 +1157,34 @@ export default function SalesSummary() {
     retry: reintentarSalvoSinPermiso, // D3: un 403 (cajero por liga directa) avisa «sin permiso» de inmediato
   })
   const { data: apiResponse } = salesQuery
+
+  // Carril F2: la comparación que se pinta. Sólo si es la de la opción elegida (un SERVIDOR viejo ignora `compareTo` y no la manda).
+  const comparacionPedida = hasAccess && compararCon !== 'none'
+  const comparacion = comparacionPedida && apiResponse?.comparison?.compareTo === compararCon ? apiResponse.comparison : undefined
+  const comparado = comparacion?.status === 'ok' ? comparacion : undefined
+  // Sin Pro (el plan bajó con la pantalla abierta): se vuelve a pedir el plan; con Gratis la píldora queda con candado.
+  useEffect(() => {
+    if (comparacion?.status === 'plan') void queryClient.invalidateQueries({ queryKey: planTierQueryKey(venueId) })
+  }, [comparacion?.status, queryClient, venueId])
+  // Las fechas exactas de cada lado: con horas si alguno de los dos no es de días completos (r9 #3 del plan).
+  const conHoras =
+    !!comparado?.baseRange &&
+    !!comparado.dateRange &&
+    !(sonDiasCompletos(comparado.baseRange, venueTimezone) && sonDiasCompletos(comparado.dateRange, venueTimezone))
+  const ventanaActual = comparado?.baseRange ? ventanaDelPeriodo(comparado.baseRange, venueTimezone, conHoras, i18n.language) : ''
+  const ventanaComparada = comparado?.dateRange ? ventanaDelPeriodo(comparado.dateRange, venueTimezone, conHoras, i18n.language) : ''
+  /** Lo del otro periodo para un renglón del Resumen. `mostrar` es cómo pinta el renglón su cifra (p. ej. lo que resta, en negativo). */
+  const antesDe = (campo: keyof SalesSummaryMetrics, sentido: Sentido, mostrar: (n: number) => number = n => n) =>
+    comparado?.summary ? (
+      <AntesDelPeriodo
+        valor={comparado.summary[campo] == null ? null : mostrar(Number(comparado.summary[campo]))}
+        cambio={comparado.changes?.[campo]}
+        sentido={sentido}
+        formatCurrency={pesos}
+      />
+    ) : undefined
+  /** Un renglón que sale «si hay» sale también si el otro periodo tiene algo. */
+  const enComparado = (campo: keyof SalesSummaryMetrics) => Number(comparado?.summary?.[campo] ?? 0) !== 0
 
   // Period statement inputs — the additive API fields powering the Mercury-style
   // "estado de cuenta" (StatementSection derives all money math from these).
@@ -1275,6 +1323,16 @@ export default function SalesSummary() {
     if (!cabecera) return undefined
     return cabecera.unpaidSales !== undefined ? { ...cabecera, deferredSales: cabecera.unpaidSales } : cabecera
   }, [apiResponse?.summary])
+  // Carril F2: el otro periodo en la celda de «Total», con la misma traducción de «Sin cobrar».
+  const comparadoDelPeriodo = useMemo(() => {
+    if (!comparado?.summary) return undefined
+    const m = comparado.summary
+    return {
+      ventana: ventanaComparada,
+      metrics: m.unpaidSales !== undefined ? { ...m, deferredSales: m.unpaidSales } : m,
+      changes: { ...comparado.changes, deferredSales: comparado.changes?.unpaidSales ?? null },
+    }
+  }, [comparado, ventanaComparada])
 
   // Handle date range change
   const handleDateRangeUpdate = (values: { range: { from: Date; to: Date | undefined } }) => {
@@ -1896,15 +1954,48 @@ export default function SalesSummary() {
       {/* Date Range Picker — Pro can pick any range; Free is locked to "Hoy" with an
           inline upsell to history. */}
       {hasAccess ? (
-        <div className="flex items-center">
-          <DateRangePicker
-            initialDateFrom={dateRange.from}
-            initialDateTo={dateRange.to}
-            onUpdate={handleDateRangeUpdate}
-            align="start"
-            locale={i18n.language}
-            showCompare={false}
-          />
+        <div className="space-y-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <DateRangePicker
+              initialDateFrom={dateRange.from}
+              initialDateTo={dateRange.to}
+              onUpdate={handleDateRangeUpdate}
+              align="start"
+              locale={i18n.language}
+              showCompare={false}
+            />
+            {/* Carril F2: «Comparar con», como la píldora del Inicio. */}
+            <DropdownMenu modal={false}>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="h-9 cursor-pointer gap-2 rounded-full border-input px-4 text-sm font-normal"
+                  data-tour="sales-summary-compare"
+                >
+                  <span className="text-muted-foreground">{t('salesSummary.compare.label')}</span>
+                  <span className="font-semibold">{t(`salesSummary.compare.options.${compararCon}`)}</span>
+                  <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="min-w-[260px] rounded-xl p-1">
+                {(['none', 'previous_period', 'previous_year'] as const).map(opcion => (
+                  <DropdownMenuItem
+                    key={opcion}
+                    onClick={() => setCompararCon(opcion)}
+                    className={cn('cursor-pointer rounded-lg px-3 py-2', opcion === compararCon && 'bg-muted font-semibold')}
+                  >
+                    {t(`salesSummary.compare.options.${opcion}`)}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+          {/* Lo que impide comparar lo dice el SERVIDOR; un SERVIDOR viejo que no sabe comparar no manda nada. */}
+          {comparacionPedida && apiResponse && !comparado && (
+            <p className="text-xs text-muted-foreground" data-testid="sales-summary-compare-notice">
+              {comparacion?.message ?? t('salesSummary.compare.unavailable')}
+            </p>
+          )}
         </div>
       ) : (
         <div className="flex flex-wrap items-center gap-3">
@@ -1918,6 +2009,18 @@ export default function SalesSummary() {
           >
             <Lock className="h-3.5 w-3.5 text-muted-foreground" />
             <span className="font-medium">{t('salesSummary.basic.today')}</span>
+          </Button>
+          {/* Carril F2: comparar es de Pro (lee periodos pasados). */}
+          <Button
+            type="button"
+            variant="outline"
+            disabled
+            aria-disabled
+            className="h-9 gap-2 rounded-full opacity-100 disabled:opacity-100 cursor-not-allowed"
+            data-testid="sales-summary-compare-locked"
+          >
+            <Lock className="h-3.5 w-3.5 text-muted-foreground" />
+            <span className="text-muted-foreground">{t('salesSummary.compare.label')}</span>
           </Button>
           <span className="text-xs text-muted-foreground">
             {t('salesSummary.basic.historyLocked')}{' '}
@@ -2004,13 +2107,19 @@ export default function SalesSummary() {
   const mostrarSinCobrar =
     !sinMetricasDeOrden &&
     data.summary.unpaid !== null &&
-    (selectedMetrics.includes('deferredSales') || (data.summary.unpaidOrders ?? 0) > 0)
-  const hayPaquetes = (data.summary.packagesSoldOnline ?? 0) !== 0 || data.summary.packagesSoldOnlineOtherCurrencies.length > 0
+    (selectedMetrics.includes('deferredSales') || (data.summary.unpaidOrders ?? 0) > 0 || enComparado('unpaidOrders'))
+  const hayPaquetes =
+    (data.summary.packagesSoldOnline ?? 0) !== 0 || data.summary.packagesSoldOnlineOtherCurrencies.length > 0 || enComparado('packagesSoldOnline')
   const hayDepositos =
     data.summary.reservationDeposits !== null &&
-    (data.summary.reservationDeposits !== 0 || data.summary.reservationDepositsCount > 0 || data.summary.reservationDepositsRefunded !== 0)
+    (data.summary.reservationDeposits !== 0 ||
+      data.summary.reservationDepositsCount > 0 ||
+      data.summary.reservationDepositsRefunded !== 0 ||
+      enComparado('reservationDeposits') ||
+      enComparado('reservationDepositsCount'))
   // El renglón «Tarjetas de regalo cargadas»: sin filtro de pago y si no es cero. Sin él, el tooltip no lo menciona (lote ⭐).
-  const hayRenglonDeCargas = !isFiltered && typeof data.summary.giftCardLoads === 'number' && data.summary.giftCardLoads !== 0
+  const hayRenglonDeCargas =
+    !isFiltered && typeof data.summary.giftCardLoads === 'number' && (data.summary.giftCardLoads !== 0 || enComparado('giftCardLoads'))
   const hayAparte = mostrarSinCobrar || hayRenglonDeCargas || hayPaquetes || hayDepositos
   /** Las partes de «Ventas brutas»: bajo su renglón (sangría 1) o solas si «Ventas brutas» no está elegida (sangría 0). */
   const renglonesDeVentasBrutas = (indent: 0 | 1) => (
@@ -2022,16 +2131,18 @@ export default function SalesSummary() {
           type={indent ? 'neutral' : 'positive'}
           indent={indent}
           tooltip={t('salesSummary.tooltips.items')}
+          antes={antesDe('items', 'subeBien')}
         />
       )}
       {/* D2: los cargos por servicio ya son venta; si hubo, se ven aunque no estén elegidos en Métricas. */}
-      {(selectedMetrics.includes('serviceCosts') || (data.summary.serviceCosts ?? 0) !== 0) && (
+      {(selectedMetrics.includes('serviceCosts') || (data.summary.serviceCosts ?? 0) !== 0 || enComparado('serviceCosts')) && (
         <SummaryRow
           label={t('salesSummary.rows.serviceCosts')}
           value={data.summary.serviceCosts ?? 0}
           type={indent ? 'neutral' : 'positive'}
           indent={indent}
           tooltip={t('salesSummary.tooltips.serviceCosts')}
+          antes={antesDe('serviceCosts', 'subeBien')}
         />
       )}
     </>
@@ -2100,6 +2211,22 @@ export default function SalesSummary() {
             <p className="text-sm text-muted-foreground mt-1">
               {data.transactions.total} {t('salesSummary.transactions')}
             </p>
+            {/* Carril F2: el número grande dice SIEMPRE cuánto fue el otro periodo y su ventana (así la caída se ve aunque la tabla por
+                días no tenga filas o el cambio no se calcule), y su cambio cuando lo hay. */}
+            {comparado?.summary && (
+              <div className="mt-2 space-y-0.5 text-sm text-muted-foreground" data-testid="sales-summary-compare-headline">
+                <p>
+                  {t('salesSummary.compare.headline', { window: ventanaComparada, amount: pesos(comparado.summary.totalCollected) })}
+                  {comparado.changes?.totalCollected && (
+                    <>
+                      {' · '}
+                      <CambioDelPeriodo cambio={comparado.changes.totalCollected} sentido="subeBien" formatCurrency={pesos} />
+                    </>
+                  )}
+                </p>
+                {comparado.excludesLegacyQr && <p data-testid="sales-summary-compare-legacy">{t('salesSummary.compare.excludesLegacyQr')}</p>}
+              </div>
+            )}
             {/* D7.5: un periodo sin nada se dice con palabras, no sólo con renglones en $0.00. */}
             {sinMovimientos && (
               <p className="text-sm text-muted-foreground mt-2" data-testid="sales-summary-empty">
@@ -2114,7 +2241,8 @@ export default function SalesSummary() {
             se lea como la suma del número grande (full-testing FAIL 1 del carril F; como «Cobraste» del estado del periodo). */}
         {!isFiltered && hayReparto && (
           <p className="flex items-center gap-2 text-sm text-muted-foreground" data-testid="sales-summary-payment-split-title">
-            <Ayuda label={t('salesSummary.paymentSplit.title')} tooltip={t('salesSummary.paymentSplit.tooltip')} />
+            {/* Con su propio total: no es el desglose de «Neto cobrado» (re-revisión del carril F). */}
+            <Ayuda label={t('salesSummary.paymentSplit.titleWithTotal', { amount: pesos(totalVendido) })} tooltip={t('salesSummary.paymentSplit.tooltip')} />
           </p>
         )}
 
@@ -2190,6 +2318,19 @@ export default function SalesSummary() {
                   </span>
                 ))}
               </p>
+              {/* Carril F2: las fechas y horas exactas de cada lado, siempre a la vista. */}
+              {comparado && (
+                <div className="px-4 pb-2 text-xs text-muted-foreground" data-testid="sales-summary-compare-windows">
+                  <p>
+                    {t('salesSummary.compare.thisPeriod')}: <span className="text-foreground">{ventanaActual}</span>
+                    {' · '}
+                    {t(comparado.matchedWeekday ? 'salesSummary.compare.comparedWeekday' : 'salesSummary.compare.compared')}:{' '}
+                    <span className="text-foreground">{ventanaComparada}</span>
+                  </p>
+                  {comparado.untilSameTime && <p>{t('salesSummary.compare.untilSameTimeNote')}</p>}
+                  {comparado.excludesLegacyQr && <p>{t('salesSummary.compare.excludesLegacyQr')}</p>}
+                </div>
+              )}
 
               {/* Ventas brutas - Collapsible parent with children.
                   Order-derived → hidden under a payment filter (can't be split per method). */}
@@ -2204,6 +2345,7 @@ export default function SalesSummary() {
                   isOpen={grossSalesOpen}
                   onToggle={() => setGrossSalesOpen(!grossSalesOpen)}
                   toggleLabel={t(grossSalesOpen ? 'salesSummary.periodTable.collapse' : 'salesSummary.periodTable.expand')}
+                  antes={antesDe('grossSales', 'subeBien')}
                 >
                   {renglonesDeVentasBrutas(1)}
                 </CollapsibleSummaryRow>
@@ -2219,6 +2361,7 @@ export default function SalesSummary() {
                   value={data.summary.chargedAmount ?? 0}
                   type="positive"
                   tooltip={t('salesSummary.tooltips.chargedAmount')}
+                  antes={antesDe('chargedAmount', 'subeBien')}
                 />
               )}
 
@@ -2232,6 +2375,7 @@ export default function SalesSummary() {
                   countLabel={t('salesSummary.refundsCountLabel', { count: data.transactions.refunded })}
                   type="negative"
                   tooltip={t('salesSummary.tooltips.refunds')}
+                  antes={antesDe('refunds', 'subeMal', comoResta)}
                 />
               )}
 
@@ -2242,6 +2386,7 @@ export default function SalesSummary() {
                   value={comoResta(data.summary.discounts)}
                   type={tipoDeResta(data.summary.discounts)}
                   tooltip={t('salesSummary.tooltips.discounts')}
+                  antes={antesDe('discounts', 'subeMal', comoResta)}
                 />
               )}
 
@@ -2255,6 +2400,7 @@ export default function SalesSummary() {
                     type="total"
                     bold
                     tooltip={t('salesSummary.tooltips.netSales')}
+                    antes={antesDe('netSales', 'subeBien')}
                   />
                 </>
               )}
@@ -2267,6 +2413,7 @@ export default function SalesSummary() {
                   value={data.summary.taxes}
                   type="neutral"
                   tooltip={t('salesSummary.tooltips.taxes')}
+                  antes={antesDe('taxes', 'neutro')}
                 />
               )}
 
@@ -2278,6 +2425,7 @@ export default function SalesSummary() {
                   // Con «Cobrado» a la vista las propinas ya vienen dentro (y las devueltas, en «Devoluciones»): informativas.
                   type={cobradoConFiltro ? 'neutral' : 'positive'}
                   tooltip={t(cobradoConFiltro ? 'salesSummary.tooltips.tipsMovements' : 'salesSummary.tooltips.tips')}
+                  antes={antesDe('tips', cobradoConFiltro ? 'neutro' : 'subeBien')}
                 />
               )}
 
@@ -2288,17 +2436,19 @@ export default function SalesSummary() {
                   value={comoResta(data.summary.platformFees)}
                   type={tipoDeResta(data.summary.platformFees)}
                   tooltip={t('salesSummary.tooltips.platformFees')}
+                  antes={antesDe('platformFees', 'subeMal', comoResta)}
                 />
               )}
 
               {/* Comisiones de terceros (D1): Rappi, Uber Eats, tipos de pago con comisión. Ya están restadas de «Neto cobrado»: si hubo,
                   se ven siempre, para que la cuenta cuadre. */}
-              {data.summary.tenderCommissions !== 0 && (
+              {(data.summary.tenderCommissions !== 0 || enComparado('tenderCommissions')) && (
                 <SummaryRow
                   label={t('salesSummary.rows.tenderCommissions')}
                   value={comoResta(data.summary.tenderCommissions)}
                   type={tipoDeResta(data.summary.tenderCommissions)}
                   tooltip={t('salesSummary.tooltips.tenderCommissions')}
+                  antes={antesDe('tenderCommissions', 'subeMal', comoResta)}
                 />
               )}
 
@@ -2321,17 +2471,19 @@ export default function SalesSummary() {
                     // D16.3: los dos «netos» de la página miden distinto; se dice aquí, donde se comparan. Con un filtro de pago o de
                     // comercio, «Neto cobrado» ya sale de los pagos: la comparación no aplica (Codex r2 #2).
                     nota={showStatement && !sinMetricasDeOrden ? t('salesSummary.tooltips.totalCollectedVsStatement') : undefined}
+                    antes={antesDe('totalCollected', 'subeBien')}
                   />
                   {/* Tarjetas de regalo (spec §7, B5): de lo cobrado, lo que se pagó con saldo (venta y propina). Informativo y al ras: trae
                       propina, así que no es una parte de «Ventas netas» (Codex r2 #3). El server la manda sólo sin filtro de pago. */}
                   {!sinMetricasDeOrden &&
                     typeof data.summary.paidWithGiftCardBalance === 'number' &&
-                    data.summary.paidWithGiftCardBalance !== 0 && (
+                    (data.summary.paidWithGiftCardBalance !== 0 || enComparado('paidWithGiftCardBalance')) && (
                       <SummaryRow
                         label={t('salesSummary.rows.paidWithGiftCardBalance')}
                         value={data.summary.paidWithGiftCardBalance}
                         type="neutral"
                         tooltip={t('salesSummary.tooltips.paidWithGiftCardBalance')}
+                        antes={antesDe('paidWithGiftCardBalance', 'neutro')}
                       />
                     )}
                 </>
@@ -2344,6 +2496,7 @@ export default function SalesSummary() {
                   value={comoResta(data.summary.staffCommissions)}
                   type={tipoDeResta(data.summary.staffCommissions)}
                   tooltip={t('salesSummary.tooltips.staffCommissions')}
+                  antes={antesDe('staffCommissions', 'subeMal', comoResta)}
                 />
               )}
 
@@ -2365,6 +2518,7 @@ export default function SalesSummary() {
                           ? 'salesSummary.tooltips.netProfit'
                           : 'salesSummary.tooltips.netProfitOld',
                     )}
+                    antes={antesDe('netProfit', 'subeBien')}
                   />
                 </>
               )}
@@ -2387,6 +2541,7 @@ export default function SalesSummary() {
                   countLabel={t('salesSummary.unpaidOrdersLabel', { count: data.summary.unpaidOrders ?? 0 })}
                   type="neutral"
                   tooltip={t(data.summary.baseDeCaja ? 'salesSummary.tooltips.deferredSales' : 'salesSummary.tooltips.deferredSalesOld')}
+                  antes={antesDe('unpaidSales', 'neutro')}
                 />
               )}
 
@@ -2401,6 +2556,7 @@ export default function SalesSummary() {
                   countLabel={t('salesSummary.giftCardsCountLabel', { count: data.summary.giftCardLoadsCount ?? 0 })}
                   type="neutral"
                   tooltip={t('salesSummary.tooltips.giftCardLoads')}
+                  antes={antesDe('giftCardLoads', 'neutro')}
                 />
               )}
 
@@ -2409,7 +2565,7 @@ export default function SalesSummary() {
                   también si se cobró y se devolvió en el mismo periodo ($0 neto), para que su conteo no desaparezca. */}
               {/* Sin `!sinMetricasDeOrden`: el SERVIDOR sólo los manda en la vista de ventas, y un filtro guardado que la petición no llevó
                   (plan Gratis) los escondía (Codex r3 #2). */}
-              {((data.summary.packagesSoldOnline ?? 0) !== 0 || data.summary.packagesSoldOnlineOtherCurrencies.length > 0) && (
+              {hayPaquetes && (
                   <>
                     <SummaryRow
                       label={t('salesSummary.rows.packagesSoldOnline')}
@@ -2418,6 +2574,7 @@ export default function SalesSummary() {
                       countLabel={t('salesSummary.packagesCountLabel', { count: data.summary.packagesSoldOnlineCount })}
                       type="neutral"
                       tooltip={t('salesSummary.tooltips.packagesSoldOnline')}
+                      antes={antesDe('packagesSoldOnline', 'neutro')}
                     />
                     {/* Paquetes en otra moneda (el panel deja crearlos en USD): se dicen, nunca se suman a los pesos. */}
                     {data.summary.packagesSoldOnlineOtherCurrencies.map(o => (
@@ -2427,8 +2584,7 @@ export default function SalesSummary() {
                     ))}
                   </>
                 )}
-              {data.summary.reservationDeposits !== null &&
-                (data.summary.reservationDeposits !== 0 || data.summary.reservationDepositsCount > 0 || data.summary.reservationDepositsRefunded !== 0) && (
+              {hayDepositos && (
                   <SummaryRow
                     label={t('salesSummary.rows.reservationDeposits')}
                     value={data.summary.reservationDeposits}
@@ -2444,6 +2600,7 @@ export default function SalesSummary() {
                     }
                     type="neutral"
                     tooltip={t('salesSummary.tooltips.reservationDeposits')}
+                    antes={antesDe('reservationDeposits', 'neutro')}
                   />
                 )}
 
@@ -2467,6 +2624,7 @@ export default function SalesSummary() {
         <PeriodBreakdownTable
           periods={periodData}
           total={totalDelPeriodo}
+          comparado={comparadoDelPeriodo}
           selectedMetrics={selectedMetrics}
           reportType={effectiveReportType}
           venueTimezone={venueTimezone}
@@ -2647,6 +2805,7 @@ export default function SalesSummary() {
               <li>• {t('salesSummary.basic.upsell.periods')}</li>
               <li>• {t('salesSummary.basic.upsell.breakdowns')}</li>
               <li>• {t('salesSummary.basic.upsell.export')}</li>
+              <li>• {t('salesSummary.basic.upsell.compare')}</li>
             </ul>
           </div>
           <FeatureGate feature="ADVANCED_REPORTS">

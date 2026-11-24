@@ -178,3 +178,41 @@ describe('PeriodBreakdownTable · carril F (hz:fefa11b6:D14)', () => {
   })
 })
 
+
+describe('PeriodBreakdownTable · comparar con otro periodo (carril F2, hz:fefa11b6:D7)', () => {
+  const TOTAL = { ...BASE, grossSales: 300, netSales: 300, refunds: 20, totalCollected: 290 }
+  const comparado = {
+    ventana: 'lun 9 nov – dom 15 nov',
+    metrics: { ...BASE, grossSales: 200, netSales: 200, refunds: 10, totalCollected: 200, tenderCommissions: 30 },
+    changes: {
+      grossSales: { difference: 100, percent: 50, isNew: false },
+      refunds: { difference: 10, percent: 100, isNew: false },
+      tenderCommissions: { difference: -30, percent: -100, isNew: false },
+    },
+  }
+
+  it('🔴 la celda de «Total» trae el total del otro periodo y su cambio; el encabezado, su ventana', () => {
+    render(<PeriodBreakdownTable periods={[periodo({}, 20)]} total={TOTAL} comparado={comparado} selectedMetrics={['grossSales', 'refunds']} reportType="days" />)
+    expect(screen.getByTestId('period-table-compared')).toHaveTextContent('salesSummary.compare.versus')
+    const fila = screen.getByText('salesSummary.rows.grossSales').closest('tr') as HTMLElement
+    const ultima = (f: HTMLElement) => within(f).getAllByRole('cell').slice(-1)[0]
+    const total = ultima(fila)
+    expect(total.textContent).toContain('$200.00')
+    expect(total.querySelector('[data-tono]')?.getAttribute('data-tono')).toBe('mejora')
+    // Lo que resta: el «antes» en negativo, y más devoluciones es rojo.
+    const devoluciones = ultima(screen.getByText('salesSummary.rows.refunds').closest('tr') as HTMLElement)
+    expect(devoluciones.textContent).toContain('-$10.00')
+    expect(devoluciones.querySelector('[data-tono]')?.getAttribute('data-tono')).toBe('empeora')
+  })
+
+  it('🔴 «Comisiones de terceros» sale si el otro periodo las tuvo, aunque este periodo no', () => {
+    render(<PeriodBreakdownTable periods={[periodo({ tenderCommissions: 0 }, 20)]} total={TOTAL} comparado={comparado} selectedMetrics={['grossSales']} reportType="days" />)
+    expect(screen.getByText('salesSummary.rows.tenderCommissions')).toBeInTheDocument()
+  })
+
+  it('control · sin comparación, la tabla de siempre (sin «antes»)', () => {
+    render(<PeriodBreakdownTable periods={[periodo({}, 20)]} total={TOTAL} selectedMetrics={['grossSales']} reportType="days" />)
+    expect(screen.queryByTestId('period-table-compared')).not.toBeInTheDocument()
+    expect(screen.queryAllByTestId('comparado')).toHaveLength(0)
+  })
+})

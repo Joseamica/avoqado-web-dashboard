@@ -484,7 +484,8 @@
         "history": "View sales from any day or date range",
         "periods": "See your sales by hour, day, week and month",
         "breakdowns": "Detailed breakdowns by merchant and payment type",
-        "export": "Export your reports to Excel, CSV or PDF"
+        "export": "Export your reports to Excel, CSV or PDF",
+        "compare": "Compare against the previous period or the same period last year"
       }
     },
     "actions": {
@@ -993,7 +994,29 @@
     "netProfitCaption": "Net collected without tips (they belong to staff) and without employee commissions",
     "paymentSplit": {
       "title": "By payment method",
-      "tooltip": "How what was recorded in the period splits by payment method. It is a different figure: it is not «Net collected» nor «You collected», and it does not subtract fees. It may include tips, open-tab deposits and payments with balance (gift card or store credit), which are not always new money for the period."
+      "tooltip": "How what was recorded in the period splits by payment method. It is a different figure: it is not «Net collected» nor «You collected», and it does not subtract fees. It may include tips, open-tab deposits and payments with balance (gift card or store credit), which are not always new money for the period.",
+      "titleWithTotal": "By payment method · {{amount}}"
+    },
+    "compare": {
+      "label": "Compare with",
+      "options": {
+        "none": "Nothing",
+        "previous_period": "Previous period",
+        "previous_year": "Same period last year"
+      },
+      "unavailable": "Could not compare. Reload the page.",
+      "headline": "Before ({{window}}): {{amount}}",
+      "excludesLegacyQr": "Does not include payments from the previous QR system, so the change is not calculated.",
+      "thisPeriod": "This period",
+      "compared": "Compared",
+      "comparedWeekday": "Compared (52 weeks earlier, same weekday)",
+      "untilSameTimeNote": "This period is not over yet: both sides are counted up to the same time. A tab opened before that time and paid after it counts as a sale of the compared period; today's shows in «Unpaid» until it is paid. A payment that comes in while the report is read may be missing until you reload.",
+      "before": "before",
+      "noChange": "no change",
+      "new": "new",
+      "up": "up",
+      "down": "down",
+      "versus": "vs. {{window}}"
     }
   },
   "salesByItem": {
