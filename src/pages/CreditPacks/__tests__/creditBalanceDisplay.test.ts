@@ -2,9 +2,12 @@
  * D679 · Paquete «Ilimitado». Por dentro un Ilimitado es un saldo de 99,999 con la marca `unlimited`; ninguna pantalla del
  * panel enseña ese número. Estas dos funciones deciden qué se pinta en compras, ficha de la clienta y movimientos.
  */
+import i18next from 'i18next'
 import { describe, expect, it } from 'vitest'
+import es from '@/locales/es/creditPacks.json'
+import en from '@/locales/en/creditPacks.json'
 import type { CreditItemBalance, CreditTransaction } from '@/types/creditPack'
-import { describeBalance, describeMovement } from '../creditBalanceDisplay'
+import { describeBalance, describeMovement, faltasText } from '../creditBalanceDisplay'
 
 const saldo = (over: Partial<CreditItemBalance>): CreditItemBalance => ({
   id: 'b1',
@@ -86,5 +89,20 @@ describe('describeMovement', () => {
       describeMovement(movimiento({ type: 'PURCHASE', quantity: 10, creditItemBalance: { product: { id: 'p1', name: 'Lagree' } } })),
     ).toBeNull()
     expect(describeMovement(movimiento({ type: 'PURCHASE', quantity: 10 }))).toBeNull()
+  })
+})
+
+// D687: «1 cancelaciones tardías» → cada número con su singular o plural, con i18next real y las traducciones de verdad.
+describe('faltasText (D687)', () => {
+  it.each([
+    ['es', { noLlego: 0, cancelTarde: 1 }, 'Faltas: 0 sin llegar · 1 cancelación tardía'],
+    ['es', { noLlego: 1, cancelTarde: 2 }, 'Faltas: 1 sin llegar · 2 cancelaciones tardías'],
+    ['es', { noLlego: 2, cancelTarde: 0 }, 'Faltas: 2 sin llegar · 0 cancelaciones tardías'],
+    ['en', { noLlego: 1, cancelTarde: 1 }, 'Missed: 1 no-show · 1 late cancellation'],
+    ['en', { noLlego: 2, cancelTarde: 0 }, 'Missed: 2 no-shows · 0 late cancellations'],
+  ] as const)('%s %o → «%s»', async (lng, faltas, esperado) => {
+    const i18n = i18next.createInstance()
+    await i18n.init({ lng, resources: { es: { creditPacks: es }, en: { creditPacks: en } }, interpolation: { escapeValue: false } })
+    expect(faltasText(i18n.getFixedT(lng, 'creditPacks'), faltas)).toBe(esperado)
   })
 })

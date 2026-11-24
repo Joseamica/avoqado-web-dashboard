@@ -55,7 +55,7 @@ import { getIntlLocale } from '@/utils/i18n-locale'
 import { useVenueDateTime } from '@/utils/datetime'
 import type { LoyaltyTransaction, CustomerGroup, LoyaltyTransactionType } from '@/types/customer'
 import type { CreditPackPurchase } from '@/types/creditPack'
-import { describeBalance } from '@/pages/CreditPacks/creditBalanceDisplay'
+import { describeBalance, faltasText } from '@/pages/CreditPacks/creditBalanceDisplay'
 
 import CustomerForm from './components/CustomerForm'
 import ReferralCard from './components/ReferralCard'
@@ -692,10 +692,7 @@ export default function CustomerDetail() {
 														</div>
 														{purchase.faltas && (
 															<div className="text-xs text-muted-foreground mt-2">
-																{tPacks('unlimited.faltas', {
-																	noLlego: purchase.faltas.noLlego,
-																	cancelTarde: purchase.faltas.cancelTarde,
-																})}
+																{faltasText(tPacks, purchase.faltas)}
 															</div>
 														)}
 													</div>
