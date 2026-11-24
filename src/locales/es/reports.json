@@ -469,11 +469,11 @@
     }
   },
   "salesSummary": {
-    "title": "Resumen de Ventas",
+    "title": "Resumen de ventas",
     "totalSales": "Neto cobrado",
-    "transactions": "transacciones",
-    "transactionsLabel": "transacciones",
-    "transactionsShort": "trans.",
+    "transactions": "cobros",
+    "transactionsLabel": "cobros",
+    "transactionsShort": "cobros",
     "basic": {
       "today": "Hoy",
       "todayBadge": "Solo hoy",
@@ -590,8 +590,8 @@
     },
     "sections": {
       "summary": "Resumen",
-      "summaryDesc": "Desglose de ventas del período",
-      "paymentMethods": "Métodos de Pago",
+      "summaryDesc": "Desglose de las ventas del periodo",
+      "paymentMethods": "Métodos de pago",
       "paymentMethodsDesc": "Distribución por forma de pago"
     },
     "columns": {
@@ -611,26 +611,26 @@
       "refunds": "Devoluciones",
       "netSales": "Ventas netas",
       "deferredSales": "Sin cobrar",
-      "taxes": "Impuestos",
+      "taxes": "Impuestos incluidos",
       "tips": "Propinas",
       "platformFees": "Comisiones de plataforma",
       "tenderCommissions": "Comisiones de terceros",
       "staffCommissions": "Comisiones a empleados",
-      "totalSales": "Total de las ventas",
       "totalCollected": "Neto cobrado",
       "netProfit": "Ganancia neta",
       "giftCardLoads": "Tarjetas de regalo cargadas",
       "paidWithGiftCardBalance": "Pagado con saldo",
       "packagesSoldOnline": "Paquetes vendidos en línea",
-      "reservationDeposits": "Depósitos de reservas"
+      "reservationDeposits": "Depósitos de reservas",
+      "chargedAmount": "Cobrado"
     },
     "tooltips": {
       "grossSales": "Lo vendido en cuentas ya cobradas (artículos y cargos por servicio), antes de descuentos y devoluciones. Las cuentas abiertas van en «Sin cobrar»",
       "items": "Ventas de artículos al precio cobrado (con el IVA incluido), antes de descuentos, cortesías y reembolsos",
       "serviceCosts": "Cargos que se suman a la cuenta, como servicio, descorche o entrega propia. Son venta y ya están dentro de las ventas brutas; la propina va aparte",
       "discounts": "Descuentos aplicados a los pedidos, incluyendo promociones y cupones",
-      "refunds": "Devoluciones procesadas durante el período seleccionado",
-      "netSales": "Ventas brutas menos descuentos y reembolsos (Ventas brutas - Descuentos - Reembolsos)",
+      "refunds": "Lo que devolviste a tus clientes en el periodo, también las devoluciones parciales",
+      "netSales": "Ventas brutas menos descuentos y devoluciones. Ya trae los impuestos adentro",
       "deferredSales": "Cuentas abiertas o pagadas a medias: lo que todavía deben, sin propina. No cuentan como venta hasta que se cobren",
       "deferredSalesOld": "Lo que todavía deben las cuentas abiertas o pagadas a medias, con propina",
       "grossSalesOld": "Importe total de ventas antes de aplicar descuentos y reembolsos",
@@ -638,12 +638,11 @@
       "totalCollectedMovements": "Los pagos de este filtro (menos sus devoluciones) + propinas - comisiones de plataforma y de terceros",
       "netProfitMovements": "Los pagos de este filtro (menos sus devoluciones) - comisiones de plataforma, de terceros y a empleados",
       "netProfitOld": "Ventas netas - comisiones de plataforma - comisiones a empleados. No resta lo que te costó lo que vendiste",
-      "taxes": "Impuestos recaudados en las ventas del período",
+      "taxes": "El IVA y los demás impuestos de las ventas del periodo. Ya vienen dentro de tus precios y de «Ventas netas»: es informativo, no se suma",
       "tips": "Propinas recibidas por el personal durante el período",
       "platformFees": "Comisiones cobradas por Avoqado por procesamiento de pagos y uso de la plataforma",
       "tenderCommissions": "Lo que se quedan Rappi, Uber Eats, DiDi o un tipo de pago con comisión (vales, por ejemplo) de cada cobro. No es de Avoqado",
-      "staffCommissions": "Comisiones pagadas a empleados según las configuraciones de comisiones del venue",
-      "totalSales": "Ventas netas (los impuestos ya están incluidos en los precios)",
+      "staffCommissions": "Comisiones de tus empleados según las reglas de comisiones del negocio. No las resta «Neto cobrado»; sí «Ganancia neta»",
       "totalCollected": "Dinero recibido: ventas netas + propinas - comisiones de plataforma y de terceros",
       "totalCollectedWithGiftCards": "Ventas netas + propinas − comisiones. No incluye lo cargado en tarjetas de regalo (va en su renglón) y sí incluye lo que se pagó con saldo de tarjeta.",
       "totalCollectedWithGiftCardsNoLoadsRow": "Ventas netas + propinas − comisiones. No incluye lo cargado en tarjetas de regalo y sí incluye lo que se pagó con saldo de tarjeta.",
@@ -652,7 +651,10 @@
       "giftCardLoads": "Saldo que vendiste en tarjetas de regalo, menos las cancelaciones. No es venta todavía: cuenta como venta cuando el cliente lo usa.",
       "paidWithGiftCardBalance": "Parte de las ventas y propinas que se pagó con saldo de tarjetas de regalo, menos lo devuelto al saldo. Ese dinero entró cuando se vendió la tarjeta.",
       "packagesSoldOnline": "Paquetes de clases que tus clientes compraron en línea en el periodo, por el día en que Avoqado confirmó el cobro. No es venta todavía ni entra a «Neto cobrado»: lo cobraste por adelantado y se usa en sus clases. Los paquetes vendidos en la caja ya están en las ventas.",
-      "reservationDeposits": "Depósitos que tus clientes pagaron en línea para apartar una reserva, por el día en que Avoqado confirmó el cobro, menos los que devolviste en el periodo. No es venta ni entra a «Neto cobrado»: es un anticipo."
+      "reservationDeposits": "Depósitos que tus clientes pagaron en línea para apartar una reserva, por el día en que Avoqado confirmó el cobro, menos los que devolviste en el periodo. No es venta ni entra a «Neto cobrado»: es un anticipo.",
+      "totalCollectedVsStatement": "Puede no dar lo mismo que «Te queda» del estado del periodo: aquí cuentan las ventas ya cobradas, en el día de la venta; allá, cada cobro y cada devolución en el día en que pasó (también los abonos de cuentas abiertas).",
+      "chargedAmount": "Los cobros de este filtro en el periodo, con propina, sin las devoluciones. Cobrado − devoluciones − comisiones = Neto cobrado",
+      "tipsMovements": "Las propinas de estos cobros, menos las devueltas. Ya vienen dentro de «Cobrado» y de «Devoluciones»: no se suman otra vez"
     },
     "giftBalanceLine_one": "Además, {{amount}} se pagó con saldo de tarjetas de regalo (1 cobro). Ese dinero entró cuando se vendieron.",
     "giftBalanceLine_other": "Además, {{amount}} se pagó con saldo de tarjetas de regalo ({{count}} cobros). Ese dinero entró cuando se vendieron.",
@@ -689,11 +691,11 @@
       "title": "Controles",
       "apply": "Aplicar",
       "reportType": {
-        "label": "Tipo de informe",
-        "description": "Consulta el informe en intervalos horarios, diarios, semanales o mensuales.",
-        "longDescription": "Si cambias el tipo de informe, cambiará la visualización de tus datos. Los informes resumidos mostrarán cifras totales únicas, mientras que en otros puede haber cambios por días, por ejemplo.",
-        "summariesSection": "Resúmenes",
-        "incrementsSection": "Incrementos individuales",
+        "label": "Tipo de reporte",
+        "description": "Ve un solo total del periodo, o una columna por hora, día, semana o mes.",
+        "longDescription": "«Resumen» da un solo total del periodo. «Por periodo» pone una columna por cada hora, día, semana o mes, con el total al final.",
+        "summariesSection": "Totales",
+        "incrementsSection": "Por periodo",
         "options": {
           "summary": "Resumen",
           "summaryDesc": "Agrupa las mismas métricas de días distintos como valores totales, sin segmentarlas cronológicamente",
@@ -716,13 +718,14 @@
         "description": "Cambia la forma en que se muestra tu información",
         "longDescription": "Selecciona cómo quieres visualizar los datos de tu informe.",
         "options": {
-          "gauge": "Gráfico de calibre",
+          "gauge": "Barra",
           "gaugeDesc": "Barra horizontal con desglose de porcentajes",
-          "pie": "Gráfico circular",
-          "pieDesc": "Gráfico de dona con distribución de valores",
+          "pie": "Gráfica circular",
+          "pieDesc": "Dona con el reparto por método de pago",
           "table": "Tabla",
           "tableDesc": "Vista detallada en formato tabla"
-        }
+        },
+        "filteredNote": "Con un filtro de pago no hay reparto que dibujar: la vista se ve cuando quitas el filtro."
       },
       "merchant": {
         "label": "Comercio",
@@ -741,12 +744,12 @@
       "filterBy": {
         "label": "Filtrar por",
         "description": "Restringe el reporte a un método o tipo de tarjeta",
-        "longDescription": "Aplica filtros para ver solo los pagos del método o tipo de tarjeta seleccionado. Al filtrar, se ocultan las métricas a nivel orden (ventas brutas, impuestos, descuentos) porque no se pueden atribuir a un método de pago específico.",
+        "longDescription": "Ve sólo los pagos de un método o de un tipo de tarjeta. Con un filtro no salen las ventas brutas, los impuestos ni los descuentos, porque una cuenta se puede pagar con varios métodos.",
         "active": "Filtrado",
         "clear": "Quitar filtro",
         "none": "Todos",
         "filteredMessage": "Quita el filtro para ver la distribución completa",
-        "hiddenMetricsMessage": "Métricas a nivel orden ocultas bajo filtro",
+        "hiddenMetricsMessage": "Con un filtro de pago no salen las ventas brutas, los descuentos ni los impuestos: una cuenta se puede pagar con varios métodos y no se pueden repartir.",
         "paymentMethod": {
           "label": "Método de pago",
           "options": {
@@ -756,7 +759,7 @@
             "cashDesc": "Solo pagos en efectivo",
             "card": "Tarjeta",
             "cardDesc": "Solo pagos con tarjeta de crédito o débito",
-            "qrLegacy": "QR Legacy",
+            "qrLegacy": "QR anterior",
             "qrLegacyDesc": "Solo pagos del sistema QR previo",
             "other": "Otro",
             "otherDesc": "Wallet digital, transferencia, cripto"
@@ -793,38 +796,42 @@
           "discounts": "Descuentos",
           "discountsDesc": "Deducciones aplicadas a tus ventas por promociones, cupones o cortesías",
           "refunds": "Devoluciones",
-          "refundsDesc": "Todos los reembolsos desglosados, excluidos los parciales",
+          "refundsDesc": "Lo que devolviste a tus clientes en el periodo, también las devoluciones parciales",
           "netSales": "Ventas netas",
           "netSalesDesc": "Ventas brutas menos devoluciones, descuentos y cortesías",
           "deferredSales": "Sin cobrar",
           "deferredSalesDesc": "Lo que todavía deben las cuentas abiertas o pagadas a medias. No cuenta como venta hasta que se cobre",
           "taxes": "Impuestos",
-          "taxesDesc": "El importe de los impuestos se aplica en el momento de la venta",
+          "taxesDesc": "Los impuestos que ya vienen dentro de tus precios. Es informativo: no se suma",
           "tips": "Propinas",
           "tipsDesc": "Propinas recibidas por el personal durante el período",
           "platformFees": "Comisiones de plataforma",
           "platformFeesDesc": "Comisiones cobradas por Avoqado por procesamiento de pagos",
           "staffCommissions": "Comisiones a empleados",
-          "staffCommissionsDesc": "Comisiones pagadas a empleados según las configuraciones del venue",
+          "staffCommissionsDesc": "Comisiones de tus empleados. Se restan en «Ganancia neta», no en «Neto cobrado»",
           "totalCollected": "Neto cobrado",
           "totalCollectedDesc": "Dinero recibido: ventas netas + propinas - comisiones de plataforma y de terceros",
           "netProfit": "Ganancia neta",
           "netProfitDesc": "Ventas netas menos comisiones de plataforma, de terceros y a empleados (sin el costo de lo vendido)"
         },
         "selected": "seleccionadas"
-      }
+      },
+      "back": "Regresar a Controles"
     },
     "periodTable": {
-      "hourly": "Resumen por horas",
-      "daily": "Resumen por días",
-      "weekly": "Resumen por semanas",
-      "monthly": "Resumen por meses",
+      "hourly": "Por horas",
+      "daily": "Por días",
+      "weekly": "Por semanas",
+      "monthly": "Por meses",
       "hourlySum": "Resumen por horas",
       "dailySum": "Resumen por días de la semana",
       "allDaySubtitle": "Todo el día (0:00-23:59 hora de {{timezone}})",
       "allWeekSubtitle": "Todos los días del período",
       "allWeeksSubtitle": "Todas las semanas del período",
-      "allMonthsSubtitle": "Todos los meses del período"
+      "allMonthsSubtitle": "Todos los meses del período",
+      "total": "Total",
+      "expand": "Mostrar detalle",
+      "collapse": "Ocultar detalle"
     },
     "statement": {
       "title": "Estado del periodo",
@@ -914,10 +921,10 @@
       "title": "Cuándo cae (semana)",
       "prev": "Semana anterior",
       "next": "Semana siguiente",
-      "weekTotal": "Total de la semana",
+      "weekTotal": "Cae esta semana",
       "merchantLine": "comisión {{commission}} · recibes {{net}}",
       "empty": "Nada cae esta semana.",
-      "note": "Cuánto cae en tu banco cada día, por fecha de liquidación. Estimado según las reglas de cada comercio (días hábiles + festivos). El efectivo no aparece aquí: ya está en tu mano."
+      "note": "Lo que cae en tu banco cada día de esta semana, por fecha de liquidación y de ventas de cualquier día: no es lo mismo que «Llega a tu banco», que es sólo lo del periodo de arriba. Estimado según las reglas de cada comercio (días hábiles + festivos). El efectivo no aparece aquí: ya está en tu mano."
     },
     "channels": {
       "title": "Ventas por canal",
@@ -972,6 +979,21 @@
       "outOfSync": "Entró una venta mientras se leía el reporte: esta tabla puede no cuadrar con el resumen. Vuelve a cargar la página.",
       "ordersWithoutLegacy_one": "{{count}} pedido (sin los del QR anterior)",
       "ordersWithoutLegacy_other": "{{count}} pedidos (sin los del QR anterior)"
+    },
+    "beta": "Beta",
+    "pageInfo": "Tus ventas del periodo: los totales, por canal y por método de pago, por hora o por día, y cuándo cae el dinero a tu banco.",
+    "empty": "No hubo ventas en este periodo.",
+    "apart": "Aparte: no entra en «Neto cobrado»",
+    "legend": {
+      "positive": "Suma",
+      "negative": "Resta",
+      "neutral": "Informativo, no se suma"
+    },
+    "movementsLabel": "movimientos",
+    "netProfitCaption": "Neto cobrado sin propinas (son del personal) y sin comisiones a empleados",
+    "paymentSplit": {
+      "title": "Por método de pago",
+      "tooltip": "Cómo se reparte por método de pago lo registrado en el periodo. Es otra cuenta: no es «Neto cobrado» ni «Cobraste», y no resta comisiones. Puede traer propinas, abonos de cuentas abiertas y pagos con saldo (de tarjetas de regalo o a favor), que no siempre son dinero nuevo del periodo."
     }
   },
   "salesByItem": {

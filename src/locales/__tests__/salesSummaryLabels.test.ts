@@ -23,8 +23,11 @@ describe.each([
     expect(s.controls.metrics.options.totalCollected).toBe(s.rows.totalCollected)
   })
 
-  it('la cabecera no se confunde con «Total de las ventas» (ventas netas, otra cifra)', () => {
-    expect(s.totalSales.toLowerCase()).not.toBe(s.rows.totalSales.toLowerCase())
+  // hz:fefa11b6:D7.1: «Total de las ventas» repetía el número de «Ventas netas» a cuatro renglones; se quitó (Toast tampoco lo
+  // tiene en su resumen de EE. UU.). Ya no hay un tercer «total» con el que confundir la cabecera.
+  it('ya no existe el renglón «Total de las ventas»', () => {
+    expect(s.rows).not.toHaveProperty('totalSales')
+    expect(s.tooltips).not.toHaveProperty('totalSales')
   })
 
   it('«Artículos» ya no dice que excluye impuestos: en México el precio trae el IVA', () => {
@@ -65,5 +68,44 @@ describe.each([
     expect(controls).not.toHaveProperty('terminal')
     expect(controls).not.toHaveProperty('groupBy')
     expect(controls.metrics).not.toHaveProperty('chartHint')
+  })
+})
+
+/** Carril F (hz:fefa11b6:D7.3, D7.4, D16.4, D16.6, D16.17): textos de México que dicen lo que el número es. */
+describe.each([
+  ['es', es],
+  ['en', en],
+])('Resumen de ventas · textos de la pantalla (%s)', (lang, loc) => {
+  const s = loc.salesSummary
+
+  it('el conteo junto a los totales son cobros (una cuenta dividida en 3 pagos cuenta 3), no «transacciones»', () => {
+    expect(s.transactionsLabel).toBe(lang === 'es' ? 'cobros' : 'payments')
+    expect(s.transactions).toBe(s.transactionsLabel)
+  })
+
+  it('sin traducciones de España ni literales: ni «calibre», ni «incrementos individuales», ni «Legacy»', () => {
+    const todo = JSON.stringify(s)
+    expect(todo).not.toMatch(/calibre|Incrementos individuales|Costes|QR Legacy|Gauge/)
+  })
+
+  it('«Devoluciones» ya no dice que excluye las parciales (sí las cuenta)', () => {
+    expect(s.controls.metrics.options.refundsDesc).not.toMatch(/excluid|excluding/i)
+  })
+
+  it('el título va en minúsculas, como la miga de pan', () => {
+    expect(s.title).toBe(lang === 'es' ? 'Resumen de ventas' : 'Sales summary')
+  })
+
+  it('los impuestos dicen que ya vienen dentro (México) y no se suman', () => {
+    expect(s.tooltips.taxes).toMatch(lang === 'es' ? /dentro de tus precios/ : /inside your prices/)
+  })
+
+  // Carril F, regla de parada (Codex r8-r11): el reparto trae datos de varias formas (saldo de regalo y a favor, abonos, cuentas con
+  // tarjeta de regalo fuera); su ayuda no afirma qué «entró» ni qué ya resta: sólo que es otra cuenta y qué PUEDE traer.
+  it('🔴 el reparto de arriba se titula por método y su ayuda no promete qué entró', () => {
+    expect(s.paymentSplit.title).toBe(lang === 'es' ? 'Por método de pago' : 'By payment method')
+    expect(s.paymentSplit.tooltip).toMatch(lang === 'es' ? /no es «Neto cobrado»/ : /not «Net collected»/)
+    expect(s.paymentSplit.tooltip).not.toMatch(/entró|ya menos|came in|already minus/i)
+    expect(s.paymentSplit).not.toHaveProperty('giftCardNote')
   })
 })

@@ -41,7 +41,8 @@ describe.each(['Europe/Madrid', 'Asia/Tokyo', 'America/Los_Angeles'])('con la co
   it('el botón dice los días del negocio', () => {
     enLaZona(zona)
     render(<DateRangePicker initialDateFrom={DESDE} initialDateTo={HASTA} showCompare={false} />)
-    expect(screen.getByRole('button', { name: /1 oct\.? 26 – 7 oct\.? 26/ })).toBeInTheDocument()
+    // hz:fefa11b6:D16.16: el año completo, una vez al final («1 oct 26» parecía un día).
+    expect(screen.getByRole('button', { name: /^1 oct\.? – 7 oct\.? 2026$/ })).toBeInTheDocument()
   })
 
   it('escribir otro día final y aplicar manda ese día entero, en la hora del negocio', () => {

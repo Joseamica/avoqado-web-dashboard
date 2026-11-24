@@ -97,21 +97,21 @@ export function StatementFlow({ model, formatCurrency }: Props) {
             <span className="text-sm text-muted-foreground">
               {t('salesSummary.statement.flow.refunds', { count: model.refunds.count })}
             </span>
-            <span className="text-sm font-medium tabular-nums text-muted-foreground" data-testid="statement-refunds">
+            <span className="shrink-0 whitespace-nowrap text-sm font-medium tabular-nums text-muted-foreground" data-testid="statement-refunds">
               {deduccion(model.refunds.amount, formatCurrency)}
             </span>
           </div>
         )}
         <div className="flex items-baseline justify-between gap-4">
           <span className="text-sm text-muted-foreground">{t('salesSummary.statement.flow.fees')}</span>
-          <span className="text-sm font-medium tabular-nums text-muted-foreground" data-testid="statement-fees">
+          <span className="shrink-0 whitespace-nowrap text-sm font-medium tabular-nums text-muted-foreground" data-testid="statement-fees">
             {deduccion(model.commissions, formatCurrency)}
           </span>
         </div>
         {hay(model.tenderCommissions) && (
           <div className="flex items-baseline justify-between gap-4">
             <span className="text-sm text-muted-foreground">{t('salesSummary.statement.flow.tenderCommissions')}</span>
-            <span className="text-sm font-medium tabular-nums text-muted-foreground" data-testid="statement-tender-commissions">
+            <span className="shrink-0 whitespace-nowrap text-sm font-medium tabular-nums text-muted-foreground" data-testid="statement-tender-commissions">
               {deduccion(model.tenderCommissions, formatCurrency)}
             </span>
           </div>
@@ -130,7 +130,7 @@ export function StatementFlow({ model, formatCurrency }: Props) {
           <div className="flex items-center justify-between gap-3 rounded-lg border border-input p-3" data-testid="statement-cash-row">
             <span className="flex min-w-0 items-center gap-2 text-sm">
               <Wallet className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" aria-hidden />
-              <span className="truncate">{t('salesSummary.statement.flow.cashRow')}</span>
+              <span className="break-words">{t('salesSummary.statement.flow.cashRow')}</span>
               <span className="hidden shrink-0 text-xs text-muted-foreground sm:inline">
                 · {t('salesSummary.statement.flow.cashTiming')}
               </span>
@@ -143,7 +143,7 @@ export function StatementFlow({ model, formatCurrency }: Props) {
           <div className="flex items-center justify-between gap-3 rounded-lg border border-input p-3" data-testid="statement-bank-row">
             <span className="flex min-w-0 items-center gap-2 text-sm">
               <Landmark className="h-4 w-4 shrink-0 text-blue-600 dark:text-blue-400" aria-hidden />
-              <span className="truncate">
+              <span className="break-words">
                 {t(cardNet < 0 ? 'salesSummary.statement.flow.bankRowNegative' : 'salesSummary.statement.flow.bankRow')}
               </span>
               {model.lastDepositDate && cardNet >= 0 && (
@@ -174,7 +174,7 @@ export function StatementFlow({ model, formatCurrency }: Props) {
             <div className="flex items-center justify-between gap-3">
               <span className="flex min-w-0 items-center gap-2 text-sm">
                 <Wallet className="h-4 w-4 shrink-0 text-orange-600 dark:text-orange-400" aria-hidden />
-                <span className="truncate">{t('salesSummary.statement.flow.otherRow')}</span>
+                <span className="break-words">{t('salesSummary.statement.flow.otherRow')}</span>
               </span>
               <span className="shrink-0 font-semibold tabular-nums">{formatCurrency(other.net)}</span>
             </div>
@@ -221,7 +221,7 @@ export function StatementFlow({ model, formatCurrency }: Props) {
           <div className="flex items-center justify-between gap-3 rounded-lg border border-dashed border-input p-3" data-testid="statement-tender-row">
             <span className="flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
               <ReceiptText className="h-4 w-4 shrink-0" aria-hidden />
-              <span className="truncate">{t('salesSummary.statement.flow.tenderRow')}</span>
+              <span className="break-words">{t('salesSummary.statement.flow.tenderRow')}</span>
             </span>
             <span className="shrink-0 font-semibold tabular-nums text-muted-foreground">
               {deduccion(model.tenderCommissions, formatCurrency)}

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -11,6 +11,10 @@ const h = vi.hoisted(() => ({
   access: true,
   merchants: [] as unknown[],
   statementProps: null as Record<string, unknown> | null,
+  timezone: 'America/Mexico_City',
+  settlement: [] as unknown[],
+  /** Lo que pidió la pantalla en cada lectura (fechas, filtro). */
+  pedidos: [] as Array<Record<string, unknown>>,
 }))
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -21,17 +25,20 @@ vi.mock('react-i18next', () => ({
   }),
 }))
 vi.mock('@/hooks/use-current-venue', () => ({ useCurrentVenue: () => ({ venueId: 'v1', fullBasePath: '/venues/x' }) }))
-vi.mock('@/context/AuthContext', () => ({ useAuth: () => ({ activeVenue: { timezone: 'America/Mexico_City' } }) }))
+vi.mock('@/context/AuthContext', () => ({ useAuth: () => ({ activeVenue: { timezone: h.timezone } }) }))
 vi.mock('@/hooks/use-tier-feature-access', () => ({
   useTierFeatureAccess: () => ({ hasAccess: h.access, isLoading: false, isResolved: true }),
 }))
 vi.mock('@/services/reports/salesSummary.service', async importOriginal => ({
   ...(await importOriginal<typeof import('@/services/reports/salesSummary.service')>()),
-  fetchSalesSummary: () => (h.response instanceof Error ? Promise.reject(h.response) : Promise.resolve(h.response)),
+  fetchSalesSummary: (f: Record<string, unknown>) => {
+    h.pedidos.push(f)
+    return h.response instanceof Error ? Promise.reject(h.response) : Promise.resolve(h.response)
+  },
 }))
 vi.mock('@/services/paymentProvider.service', () => ({
   getVenueMerchantAccountsByVenueId: () => Promise.resolve(h.merchants),
-  getVenueSettlementInfo: () => Promise.resolve([]),
+  getVenueSettlementInfo: () => Promise.resolve(h.settlement),
 }))
 vi.mock('@/pages/Reports/components/SalesSummaryExportDialog', () => ({ SalesSummaryExportDialog: () => null }))
 vi.mock('./components/PeriodBreakdownTable', () => ({ PeriodBreakdownTable: () => null }))
@@ -42,7 +49,10 @@ vi.mock('./statement/StatementSection', () => ({
   },
 }))
 vi.mock('@/components/settlement/SettlementWeekStrip', () => ({ SettlementWeekStrip: () => null }))
-vi.mock('@/components/billing/FeatureGate', () => ({ FeatureGate: ({ children }: { children: ReactNode }) => <>{children}</> }))
+// El FeatureGate real pinta sus hijos borrosos y con `aria-hidden`: aquí se marca dónde quedan, para ver qué se lee y qué no.
+vi.mock('@/components/billing/FeatureGate', () => ({
+  FeatureGate: ({ children }: { children: ReactNode }) => <div data-testid="feature-gate">{children}</div>,
+}))
 vi.mock('@/components/date-range-picker', () => ({ DateRangePicker: () => null }))
 // El tooltip se pinta en línea para poder leer qué texto le tocó a cada renglón.
 vi.mock('@/components/ui/tooltip', () => ({
@@ -85,9 +95,9 @@ const SOLO_SALDO = () =>
     giftCardBalanceBreakdown: { amount: 69, count: 1, tips: 0, refunds: 0 },
   })
 
-const pintar = () =>
+const pintar = (client = new QueryClient({ defaultOptions: { queries: { retry: false, retryDelay: 0 } } })) =>
   render(
-    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false, retryDelay: 0 } } })}>
+    <QueryClientProvider client={client}>
       <MemoryRouter>
         <SalesSummary />
       </MemoryRouter>
@@ -99,7 +109,8 @@ const tarjetaDelTotal = async () => (await screen.findByText('salesSummary.total
 const porcentajeEnLeyenda = (contenedor: HTMLElement, metodo: string) =>
   within(contenedor)
     .getAllByText(metodo)
-    .map(el => el.nextElementSibling?.textContent ?? '')
+    // Desde el carril F la leyenda trae también el importe entre el nombre y el «N%».
+    .flatMap(el => [...(el.parentElement?.children ?? [])].map(hermano => hermano.textContent ?? ''))
     .find(texto => /^\d+%$/.test(texto))
 /** `a` aparece antes que `b` en la página. */
 const antes = (a: HTMLElement, b: HTMLElement) => !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING)
@@ -108,6 +119,9 @@ beforeEach(() => {
   h.access = true
   h.merchants = []
   h.response = respuesta()
+  h.pedidos = []
+  h.timezone = 'America/Mexico_City'
+  h.settlement = []
 })
 
 describe('SalesSummary · cifras de tarjetas de regalo (D5 r1)', () => {
@@ -136,19 +150,27 @@ describe('SalesSummary · cifras de tarjetas de regalo (D5 r1)', () => {
     expect(screen.queryByText('salesSummary.rows.paidWithGiftCardBalance')).not.toBeInTheDocument()
   })
 
-  it('«Pagado con saldo» va justo debajo de «Total de las ventas», con sangría', async () => {
+  it('«Pagado con saldo» va justo después de «Neto cobrado», al ras: trae propina, no es una parte de «Ventas netas» (Codex r2 #3)', async () => {
     pintar()
     const pagado = await screen.findByText('salesSummary.rows.paidWithGiftCardBalance')
-    expect(antes(screen.getByText('salesSummary.rows.totalSales'), pagado)).toBe(true)
-    expect(antes(pagado, screen.getByText('salesSummary.rows.tips'))).toBe(true)
+    expect(antes(screen.getByText('salesSummary.rows.totalCollected'), pagado)).toBe(true)
+    expect(pagado.closest('.justify-between')).toHaveClass('px-4')
+    expect(antes(pagado, screen.getByText('salesSummary.rows.netProfit'))).toBe(true)
   })
 
-  it('🔴 M3 · con «Total cobrado» apagado en las métricas, «Pagado con saldo» no queda colgado bajo otro renglón', async () => {
+  it('🔴 M3 · sin «Neto cobrado» en las métricas, «Pagado con saldo» no queda colgado bajo otro renglón', async () => {
     // `localStorage` es un vi.fn() de setup.ts (mockReset lo vacía en cada prueba): las preferencias guardadas se fingen aquí.
     vi.mocked(localStorage.getItem).mockReturnValue(JSON.stringify({ selectedMetrics: ['grossSales', 'netSales', 'taxes', 'tips'] }))
     pintar()
     await screen.findByText('salesSummary.rows.taxes')
     expect(screen.queryByText('salesSummary.rows.paidWithGiftCardBalance')).not.toBeInTheDocument()
+  })
+
+  it('🔴 Codex r1 #2 del carril F · con «Neto cobrado» y sin «Ventas netas», «Pagado con saldo» sigue saliendo (sin sangría)', async () => {
+    vi.mocked(localStorage.getItem).mockReturnValue(JSON.stringify({ selectedMetrics: ['grossSales', 'tips', 'totalCollected'] }))
+    pintar()
+    const pagado = await screen.findByText('salesSummary.rows.paidWithGiftCardBalance')
+    expect(pagado.closest('.justify-between')).toHaveClass('px-4')
   })
 
   it('🔴 M1 · con estado de cuenta (Pro), la línea de lo pagado con saldo sale justo después de él', async () => {
@@ -251,7 +273,7 @@ describe('SalesSummary · cifras de tarjetas de regalo (D5 r1)', () => {
 
 /** El monto que pinta el renglón de `etiqueta` (la llave i18n), en la misma fila. */
 const montoDe = (etiqueta: string) =>
-  (screen.getByText(etiqueta).closest('.justify-between') as HTMLElement).querySelector('.font-mono')?.textContent
+  (screen.getByText(etiqueta).closest('.justify-between') as HTMLElement).querySelector('[data-monto]')?.textContent
 
 describe('SalesSummary · cabecera (carril B, 21-nov: D6, D2, D1, D9.1)', () => {
   it('🔴 D6 · «Sin cobrar» lee unpaidSales (no deferredSales) con cuántas cuentas, y sale solo si hay cuentas abiertas', async () => {
@@ -465,6 +487,73 @@ describe('Resumen de ventas · sólo controles que hacen algo (D3)', () => {
     expect(within(filtrarPor).getByRole('button', { name: 'salesSummary.controls.apply', hidden: true })).toBeDisabled()
   })
 
+  it('🔴 Codex r14 #2 · si la afiliación elegida sale de la lista, el filtro se quita solo (el SERVIDOR ya la rechaza con 400)', async () => {
+    h.merchants = [
+      { id: 'm1', displayName: 'Comercio Uno', provider: { name: 'Blumon' } },
+      { id: 'm2', displayName: 'Comercio Dos', provider: { name: 'AngelPay' } },
+    ]
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false, retryDelay: 0 } } })
+    pintar(qc)
+    const panel = await abrirPanelDeControles()
+    const comercio = panel.querySelector('[data-panel="merchant"]') as HTMLElement
+    fireEvent.click(within(comercio).getByText('Comercio Uno'))
+    fireEvent.click(within(comercio).getByRole('button', { name: 'salesSummary.controls.apply', hidden: true }))
+    await waitFor(() => expect(h.pedidos[h.pedidos.length - 1]).toMatchObject({ merchantAccountId: 'm1' }))
+    // Soporte retira «Comercio Uno»: la lista se actualiza y la lectura que usa la pantalla ya no lleva el filtro (la de sin filtro
+    // puede venir de la caché, por eso se mira la consulta activa y no la última petición).
+    h.merchants = [{ id: 'm2', displayName: 'Comercio Dos', provider: { name: 'AngelPay' } }]
+    await act(() => qc.invalidateQueries({ queryKey: ['venueMerchantAccounts'] }))
+    await waitFor(() => {
+      const activas = qc.getQueryCache().findAll({ type: 'active' }).map(q => JSON.stringify(q.queryKey))
+      expect(activas.some(k => k.includes('"merchantAccountId":"m1"'))).toBe(false)
+    })
+  })
+
+  describe('Codex r15 #2 · el borrador y lo aplicado se limpian cada uno por su cuenta cuando sale una afiliación de la lista', () => {
+    const alfa = { id: 'm1', displayName: 'Comercio Uno', provider: { name: 'Blumon' } }
+    const beta = { id: 'm2', displayName: 'Comercio Dos', provider: { name: 'AngelPay' } }
+    const gama = { id: 'm3', displayName: 'Comercio Tres', provider: { name: 'Blumon' } }
+    const preparar = async () => {
+      h.merchants = [alfa, beta, gama]
+      const qc = new QueryClient({ defaultOptions: { queries: { retry: false, retryDelay: 0 } } })
+      pintar(qc)
+      const comercio = (await abrirPanelDeControles()).querySelector('[data-panel="merchant"]') as HTMLElement
+      const aplicar = () => within(comercio).getByRole('button', { name: 'salesSummary.controls.apply', hidden: true })
+      const retirar = async (quedan: unknown[]) => {
+        h.merchants = quedan
+        await act(() => qc.invalidateQueries({ queryKey: ['venueMerchantAccounts'] }))
+      }
+      return { qc, comercio, aplicar, retirar }
+    }
+
+    it('🔴 retiran el aplicado (Alfa): Beta, elegido en el borrador, se queda y se puede aplicar', async () => {
+      const { qc, comercio, aplicar, retirar } = await preparar()
+      fireEvent.click(within(comercio).getByText('Comercio Uno'))
+      fireEvent.click(aplicar())
+      await waitFor(() => expect(h.pedidos[h.pedidos.length - 1]).toMatchObject({ merchantAccountId: 'm1' }))
+      // «Aplicar» cierra el panel: se vuelve a abrir y en el borrador se elige Beta, sin aplicar.
+      const otraVez = (await abrirPanelDeControles()).querySelector('[data-panel="merchant"]') as HTMLElement
+      const aplicarOtraVez = () => within(otraVez).getByRole('button', { name: 'salesSummary.controls.apply', hidden: true })
+      fireEvent.click(within(otraVez).getByText('Comercio Dos'))
+      expect(aplicarOtraVez()).toBeEnabled()
+      await retirar([beta, gama])
+      // Lo aplicado ya es «Todos» (la consulta activa no lleva Alfa) y el borrador sigue en Beta: hay un cambio por aplicar.
+      await waitFor(() => {
+        const activas = qc.getQueryCache().findAll({ type: 'active' }).map(q => JSON.stringify(q.queryKey))
+        expect(activas.some(k => k.includes('"merchantAccountId":"m1"'))).toBe(false)
+      })
+      expect(aplicarOtraVez()).toBeEnabled()
+    })
+
+    it('🔴 retiran el que sólo estaba en el borrador: el borrador vuelve a «Todos» y no queda nada por aplicar', async () => {
+      const { comercio, aplicar, retirar } = await preparar()
+      fireEvent.click(within(comercio).getByText('Comercio Dos'))
+      expect(aplicar()).toBeEnabled()
+      await retirar([alfa, gama])
+      await waitFor(() => expect(aplicar()).toBeDisabled())
+    })
+  })
+
   it('🔴 Codex r1 #2 · una preferencia con `selectedMetrics` que no es lista descarta TODO lo guardado (no deja un filtro corrupto vivo)', async () => {
     vi.mocked(localStorage.getItem).mockReturnValue(
       JSON.stringify({ selectedMetrics: 'grossSales', paymentMethodFilter: 'CARD', cardTypeFilter: 42 }),
@@ -576,5 +665,366 @@ describe('SalesSummary · canales y lo cobrado por adelantado (carril G: D4, D5)
     await tarjetaDelTotal()
     expect(screen.queryByTestId('ventas-por-canal-candado')).toBeNull()
     expect(screen.queryByText('salesSummary.channels.lockedByPlan')).toBeNull()
+  })
+})
+
+describe('SalesSummary · carril F, pantalla (hz:fefa11b6:D7, D14, D15, D16)', () => {
+  const CEROS = { ...SUMMARY, discounts: 0, refunds: 0, platformFees: 0, staffCommissions: 0, commissions: 0, tenderCommissions: 0 }
+
+  it('🔴 D7.1 · «Ventas netas» sale una vez: ya no hay «Total de las ventas» con el mismo número', async () => {
+    pintar()
+    await screen.findByText('salesSummary.rows.netSales')
+    expect(screen.queryByText('salesSummary.rows.totalSales')).not.toBeInTheDocument()
+  })
+
+  it('🔴 D7.2 · el orden es la cuenta: impuestos dentro de «Ventas netas», empleados entre «Neto cobrado» y «Ganancia neta», «Sin cobrar» aparte', async () => {
+    h.response = respuesta({ summary: { ...SUMMARY, unpaidSales: 695, unpaidOrders: 3, staffCommissions: 50 } })
+    pintar()
+    const fila = (k: string) => screen.getByText(`salesSummary.rows.${k}`)
+    await screen.findByText('salesSummary.rows.netSales')
+    expect(antes(fila('netSales'), fila('taxes'))).toBe(true)
+    expect(antes(fila('taxes'), fila('tips'))).toBe(true)
+    expect(antes(fila('totalCollected'), fila('staffCommissions'))).toBe(true)
+    expect(antes(fila('staffCommissions'), fila('netProfit'))).toBe(true)
+    expect(antes(fila('netProfit'), fila('deferredSales'))).toBe(true)
+    expect(screen.getByText('salesSummary.apart')).toBeInTheDocument()
+    // Leyenda de los puntos (D16.15).
+    for (const k of ['positive', 'negative', 'neutral']) expect(screen.getByText(`salesSummary.legend.${k}`)).toBeInTheDocument()
+  })
+
+  it('🔴 D16.1 · lo que resta y vale cero se pinta «$0.00», nunca «−$0.00»', async () => {
+    h.response = respuesta({ summary: CEROS })
+    pintar()
+    await screen.findByText('salesSummary.rows.discounts')
+    for (const k of ['refunds', 'discounts', 'platformFees', 'staffCommissions'])
+      expect(montoDe(`salesSummary.rows.${k}`)).toBe('$0.00')
+  })
+
+  it('🔴 nota de D14 · una comisión de plataforma revertida (negativa) suma: «$3.00», no «−$3.00»', async () => {
+    h.response = respuesta({ summary: { ...SUMMARY, platformFees: -3 } })
+    pintar()
+    await screen.findByText('salesSummary.rows.platformFees')
+    expect(montoDe('salesSummary.rows.platformFees')).toBe('$3.00')
+  })
+
+  it('🔴 D7.5 · un periodo sin ventas lo dice con palabras', async () => {
+    h.response = respuesta({
+      summary: { ...CEROS, grossSales: 0, items: 0, netSales: 0, taxes: 0, tips: 0, totalCollected: 0, netProfit: 0, transactionCount: 0,
+        giftCardLoads: 0, giftCardLoadsCount: 0, paidWithGiftCardBalance: 0 },
+      byPaymentMethodDetailed: [],
+    })
+    pintar()
+    expect(await screen.findByText('salesSummary.empty')).toBeInTheDocument()
+  })
+
+  it('control · con ventas no sale el aviso de periodo vacío', async () => {
+    pintar()
+    await tarjetaDelTotal()
+    expect(screen.queryByText('salesSummary.empty')).not.toBeInTheDocument()
+  })
+
+  it('🔴 D7.7 / D15.3 / D16.6 · un filtro de pago guardado en el navegador ya no se restaura ni se vuelve a guardar', async () => {
+    vi.mocked(localStorage.getItem).mockReturnValue(JSON.stringify({ selectedMetrics: ['grossSales'], paymentMethodFilter: 'QR_LEGACY', cardTypeFilter: null }))
+    pintar()
+    await tarjetaDelTotal()
+    expect(screen.queryByText(/salesSummary\.controls\.filterBy\.active/)).not.toBeInTheDocument()
+    expect(h.pedidos.every(p => p.paymentMethod === undefined)).toBe(true)
+    const guardados = vi.mocked(localStorage.setItem).mock.calls
+    expect(JSON.parse(guardados[guardados.length - 1]?.[1] as string)).not.toHaveProperty('paymentMethodFilter')
+  })
+
+  it('🔴 nota de D16 (e) · una vista o un tipo de reporte guardados que no existen caen a lo de siempre', async () => {
+    vi.mocked(localStorage.getItem).mockReturnValue(JSON.stringify({ viewType: 'radar', reportType: 'quincenas' }))
+    pintar()
+    await tarjetaDelTotal()
+    expect(screen.getByText('salesSummary.controls.viewType.options.gauge')).toBeInTheDocument()
+    expect(h.pedidos[0]?.reportType).toBe('summary')
+  })
+
+  it('🔴 D15.2 · plan Gratis: los beneficios de Pro se leen, fuera del borroso del candado', async () => {
+    h.access = false
+    pintar()
+    const beneficio = await screen.findByText(/salesSummary\.basic\.upsell\.history$/)
+    expect(beneficio.closest('[data-testid="feature-gate"]')).toBeNull()
+    expect(screen.getByTestId('feature-gate')).toBeInTheDocument()
+  })
+
+  it('🔴 D15 · plan Gratis: ve las métricas de siempre, no las que se guardaron en el navegador con otro negocio, y no las borra', async () => {
+    h.access = false
+    vi.mocked(localStorage.getItem).mockReturnValue(JSON.stringify({ selectedMetrics: ['grossSales', 'netSales'] }))
+    pintar()
+    expect(await screen.findByText('salesSummary.rows.tips')).toBeInTheDocument()
+    expect(screen.getByText('salesSummary.rows.platformFees')).toBeInTheDocument()
+    const guardados = vi.mocked(localStorage.setItem).mock.calls
+    expect(JSON.parse(guardados[guardados.length - 1]?.[1] as string).selectedMetrics).toEqual(['grossSales', 'netSales'])
+  })
+
+  it('🔴 D15.1 · plan Gratis: pasada la medianoche del negocio, «Hoy» pide el día nuevo sin recargar', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    try {
+      vi.setSystemTime(new Date('2026-11-23T05:59:00.000Z')) // 23:59 del 22-nov en la Ciudad de México
+      h.access = false
+      pintar()
+      await tarjetaDelTotal()
+      expect(h.pedidos[h.pedidos.length - 1]?.startDate).toBe('2026-11-22T06:00:00.000Z')
+      vi.setSystemTime(new Date('2026-11-23T06:01:00.000Z')) // 00:01 del 23-nov
+      fireEvent.focus(window)
+      await waitFor(() => expect(h.pedidos[h.pedidos.length - 1]?.startDate).toBe('2026-11-23T06:00:00.000Z'))
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('🔴 D15 (ajeno del carril E) · un negocio con la zona guardada como «GMT-6» abre en el día de la Ciudad de México, sin tronar', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    try {
+      vi.setSystemTime(new Date('2026-11-23T18:00:00.000Z'))
+      h.access = false
+      h.timezone = 'GMT-6'
+      pintar()
+      await tarjetaDelTotal()
+      expect(h.pedidos[h.pedidos.length - 1]?.startDate).toBe('2026-11-23T06:00:00.000Z')
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('🔴 D16.7 / nota (c) · el botón ⋮ tiene nombre y abre los controles con lo que está aplicado', async () => {
+    vi.mocked(localStorage.getItem).mockReturnValue(JSON.stringify({ selectedMetrics: ['grossSales', 'tips'] }))
+    pintar()
+    await tarjetaDelTotal()
+    fireEvent.click(screen.getByRole('button', { name: 'salesSummary.controls.title' }))
+    const panel = await screen.findByRole('dialog')
+    expect(within(panel).getByText('2 salesSummary.controls.metrics.selected')).toBeInTheDocument()
+  })
+
+  it('🔴 D16.5 · tocar la casilla de una métrica la cambia (antes sólo servía tocar el texto)', async () => {
+    pintar()
+    await tarjetaDelTotal()
+    fireEvent.click(screen.getByRole('button', { name: /salesSummary\.controls\.metrics\.label/ }))
+    const panel = await screen.findByRole('dialog')
+    const casilla = within(panel).getByRole('checkbox', { name: 'salesSummary.controls.metrics.options.items', hidden: true })
+    expect(casilla).toHaveAttribute('data-state', 'unchecked')
+    fireEvent.click(casilla)
+    expect(casilla).toHaveAttribute('data-state', 'checked')
+  })
+
+  it('🔴 D16.8 · los subpaneles que no se ven quedan fuera del tabulador (inert)', async () => {
+    pintar()
+    await tarjetaDelTotal()
+    fireEvent.click(screen.getByRole('button', { name: /salesSummary\.controls\.metrics\.label/ }))
+    const panel = await screen.findByRole('dialog')
+    const subpanel = (texto: string) => within(panel).getByText(texto).closest('.absolute') as HTMLElement
+    expect(subpanel('salesSummary.controls.metrics.longDescription')).not.toHaveAttribute('inert')
+    expect(subpanel('salesSummary.controls.filterBy.longDescription')).toHaveAttribute('inert')
+    expect(subpanel('salesSummary.controls.reportType.longDescription')).toHaveAttribute('inert')
+  })
+
+  it('🔴 nota de D16 (d) · con sólo «Artículos» elegido, su renglón sale (no depende de «Ventas brutas»)', async () => {
+    vi.mocked(localStorage.getItem).mockReturnValue(JSON.stringify({ selectedMetrics: ['items'] }))
+    pintar()
+    expect(await screen.findByText('salesSummary.rows.items')).toBeInTheDocument()
+  })
+
+  it('🔴 D7.9 / D16.7 · las secciones y las ayudas se abren con teclado: son botones', async () => {
+    pintar()
+    await tarjetaDelTotal()
+    const seccion = screen.getByRole('button', { name: /salesSummary\.sections\.summary/ })
+    expect(seccion).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByRole('button', { name: 'salesSummary.rows.tips' })).toBeInTheDocument()
+  })
+
+  it('🔴 D16.3 · con el estado de cuenta en pantalla, la ayuda de «Neto cobrado» dice por qué no da lo mismo que «Te queda»', async () => {
+    pintar()
+    expect(await screen.findByText('salesSummary.tooltips.totalCollectedVsStatement')).toBeInTheDocument()
+  })
+
+  it('🔴 Codex r1 #3 · medio centavo se pinta «$0.00» (una comisión de 4 decimales o un residuo de ventas netas)', async () => {
+    h.response = respuesta({ summary: { ...SUMMARY, platformFees: 0.004, netSales: -0.004 } })
+    pintar()
+    await screen.findByText('salesSummary.rows.platformFees')
+    expect(montoDe('salesSummary.rows.platformFees')).toBe('$0.00')
+    expect(montoDe('salesSummary.rows.netSales')).toBe('$0.00')
+  })
+
+  it('🔴 Codex r1 #4 · una comisión revertida lleva el punto de «suma», y «Ganancia neta» dice que también salen las propinas', async () => {
+    h.response = respuesta({ summary: { ...SUMMARY, platformFees: -3 } })
+    pintar()
+    const fila = (await screen.findByText('salesSummary.rows.platformFees')).closest('.justify-between') as HTMLElement
+    expect(fila.querySelector('.bg-green-500')).not.toBeNull()
+    expect(screen.getByText('salesSummary.netProfitCaption')).toBeInTheDocument()
+  })
+
+  it('🔴 Codex r2 #4 · la línea de «Ganancia neta» también sale en la vista de movimientos (allí también salen las propinas)', async () => {
+    h.response = respuesta({
+      filtered: true,
+      summary: { ...SUMMARY, grossSales: null, items: null, serviceCosts: null, discounts: null, netSales: null, deferredSales: null, taxes: null },
+    })
+    pintar()
+    expect(await screen.findByText('salesSummary.netProfitCaption')).toBeInTheDocument()
+  })
+
+  it('🔴 Codex r1 #5 · «Métodos de pago» cuenta movimientos (cobros y devoluciones), no «cobros»', async () => {
+    h.access = false
+    pintar()
+    expect(await screen.findByText('18 salesSummary.movementsLabel')).toBeInTheDocument()
+  })
+
+  it('🔴 Codex r3 C · «Impuestos incluidos» va al ras (no como parte de «Ventas netas», que puede quedar por debajo)', async () => {
+    h.response = respuesta({ summary: { ...SUMMARY, netSales: 0, taxes: 16 } })
+    pintar()
+    const fila = (await screen.findByText('salesSummary.rows.taxes')).closest('.justify-between') as HTMLElement
+    expect(fila).toHaveClass('px-4')
+  })
+
+  it('🔴 Codex r3 E · la leyenda de la barra dice el importe de cada método (el tooltip sólo abre con el mouse)', async () => {
+    h.response = respuesta({ salesByPaymentMethod: [{ method: 'CASH', amount: 600, count: 3, percentage: 60 }, { method: 'CREDIT_CARD', amount: 400, count: 2, percentage: 40 }] })
+    pintar()
+    const tarjeta = await tarjetaDelTotal()
+    expect(within(tarjeta).getAllByText('$600.00').length).toBeGreaterThan(0)
+  })
+
+  it('🔴 full-testing FAIL 1 · lo de la barra lleva su título (no es el desglose de «Neto cobrado») y su ayuda', async () => {
+    h.response = respuesta({ salesByPaymentMethod: [{ method: 'CASH', amount: 600, count: 3, percentage: 60 }, { method: 'CREDIT_CARD', amount: 400, count: 2, percentage: 40 }] })
+    pintar()
+    const tarjeta = await tarjetaDelTotal()
+    const titulo = within(tarjeta).getByRole('button', { name: 'salesSummary.paymentSplit.title' })
+    expect(within(tarjeta).getByText('salesSummary.paymentSplit.tooltip')).toBeInTheDocument()
+    // El título va antes de la leyenda con los importes.
+    expect(antes(titulo, within(tarjeta).getAllByText('$600.00')[0])).toBe(true)
+  })
+
+  it('🔴 W6 · el botón «‹» de cada subpanel de Controles tiene nombre', async () => {
+    pintar()
+    await tarjetaDelTotal()
+    fireEvent.click(screen.getByRole('button', { name: /salesSummary\.controls\.metrics\.label/ }))
+    const panel = await screen.findByRole('dialog')
+    expect(within(panel).getAllByRole('button', { name: 'salesSummary.controls.back', hidden: true })).toHaveLength(5)
+  })
+
+  it('🔴 nota del full-testing · «Liquidación» no se repite cuando débito y crédito tardan distinto', async () => {
+    h.access = false
+    h.settlement = [
+      { cardType: 'DEBIT', settlementDays: 1 },
+      { cardType: 'CREDIT', settlementDays: 2 },
+    ]
+    h.response = respuesta({ byPaymentMethodDetailed: [{ bucket: 'CARD', amount: 300, count: 3, percentage: 100, tips: 0, refunds: 0, platformFees: 9 }] })
+    pintar()
+    const etiqueta = await screen.findByText(/salesSummary\.settlement\.label: .*debit/i)
+    expect(etiqueta.textContent?.match(/salesSummary\.settlement\.label/g)).toHaveLength(1)
+  })
+
+  it('🔴 Codex r2 #1 · el número grande tampoco pinta «−$0.00» con medio centavo', async () => {
+    h.response = respuesta({ summary: { ...SUMMARY, totalCollected: -0.004 } })
+    pintar()
+    const tarjeta = await tarjetaDelTotal()
+    expect(within(tarjeta).getByText('$0.00')).toBeInTheDocument()
+  })
+
+  it('🔴 Codex r2 #6 · el detalle por tipo de tarjeta de «Métodos de pago» se abre con teclado (un botón con su estado)', async () => {
+    h.access = false
+    h.response = respuesta({
+      byPaymentMethodDetailed: [
+        { bucket: 'CARD', amount: 300, count: 3, percentage: 100, tips: 0, refunds: 0, platformFees: 9,
+          subBuckets: [{ type: 'CREDIT', amount: 200, count: 2, percentage: 66.7, platformFees: 6 }, { type: 'DEBIT', amount: 100, count: 1, percentage: 33.3, platformFees: 3 }] },
+      ],
+    })
+    pintar()
+    const boton = await screen.findByRole('button', { name: 'salesSummary.paymentTypes.card' })
+    expect(boton).toHaveAttribute('aria-expanded', 'false')
+    fireEvent.click(boton)
+    expect(boton).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByText('salesSummary.controls.filterBy.cardType.options.credit')).toBeInTheDocument()
+  })
+
+  it('🔴 Codex r1 #8 · con el QR anterior sin leer (cifras incompletas), no dice «No hubo ventas»', async () => {
+    h.response = respuesta({
+      summary: { ...CEROS, grossSales: 0, items: 0, netSales: 0, taxes: 0, tips: 0, totalCollected: 0, netProfit: 0, transactionCount: 0 },
+      byPaymentMethodDetailed: [],
+      legacyUnavailable: true,
+    })
+    pintar()
+    await tarjetaDelTotal()
+    expect(screen.queryByText('salesSummary.empty')).not.toBeInTheDocument()
+  })
+
+  it('🔴 Codex r1 #7 · al entrar a un subpanel el foco pasa a él, y al cerrar regresa a la píldora que lo abrió', async () => {
+    pintar()
+    await tarjetaDelTotal()
+    const pildora = screen.getByRole('button', { name: /salesSummary\.controls\.filterBy\.label/ })
+    pildora.focus()
+    fireEvent.click(pildora)
+    const panel = await screen.findByRole('dialog')
+    const principal = within(panel).getByText('salesSummary.controls.title').closest('.absolute') as HTMLElement
+    fireEvent.click(within(principal).getByText('salesSummary.controls.metrics.label'))
+    const metricas = within(panel).getByText('salesSummary.controls.metrics.longDescription').closest('.absolute') as HTMLElement
+    await waitFor(() => expect(metricas.contains(document.activeElement)).toBe(true))
+    fireEvent.keyDown(document.activeElement as Element, { key: 'Escape' })
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    expect(document.activeElement).toBe(pildora)
+  })
+
+  it('🔴 D16.2 · con un filtro de pago, «Cobrado» abre la cuenta y cierra con «Neto cobrado»; las propinas son informativas', async () => {
+    h.response = respuesta({
+      filtered: true,
+      summary: {
+        ...SUMMARY, grossSales: null, items: null, serviceCosts: null, discounts: null, netSales: null, deferredSales: null, taxes: null,
+        chargedAmount: 160, refunds: 33, tips: 7, platformFees: 0, tenderCommissions: 0, totalCollected: 127,
+      },
+    })
+    pintar()
+    const cobrado = await screen.findByText('salesSummary.rows.chargedAmount')
+    expect(montoDe('salesSummary.rows.chargedAmount')).toBe('$160.00')
+    expect(antes(cobrado, screen.getByText('salesSummary.rows.refunds'))).toBe(true)
+    expect(antes(cobrado, screen.getByText('salesSummary.rows.totalCollected'))).toBe(true)
+    const propinas = screen.getByText('salesSummary.rows.tips').closest('.justify-between') as HTMLElement
+    expect(propinas.querySelector('.bg-blue-500')).not.toBeNull()
+    expect(screen.getByText('salesSummary.tooltips.tipsMovements')).toBeInTheDocument()
+  })
+
+  it('🔴 D16.2 (Codex r5 #4) · con «Cobrado», lo que resta sale aunque no esté en «Métricas» (si no, la cuenta no cierra)', async () => {
+    vi.mocked(localStorage.getItem).mockReturnValue(JSON.stringify({ selectedMetrics: ['totalCollected'] }))
+    h.response = respuesta({
+      filtered: true,
+      summary: {
+        ...SUMMARY, grossSales: null, items: null, serviceCosts: null, discounts: null, netSales: null, deferredSales: null, taxes: null,
+        chargedAmount: 100, refunds: 20, tips: 0, platformFees: 3, tenderCommissions: 0, totalCollected: 77,
+      },
+    })
+    pintar()
+    await screen.findByText('salesSummary.rows.chargedAmount')
+    expect(montoDe('salesSummary.rows.refunds')).toBe('-$20.00')
+    expect(montoDe('salesSummary.rows.platformFees')).toBe('-$3.00')
+  })
+
+  it('control · un SERVIDOR sin `chargedAmount` no pinta «Cobrado» y las propinas siguen sumando', async () => {
+    h.response = respuesta({
+      filtered: true,
+      summary: { ...SUMMARY, grossSales: null, items: null, serviceCosts: null, discounts: null, netSales: null, deferredSales: null, taxes: null },
+    })
+    pintar()
+    await screen.findByText('salesSummary.rows.tips')
+    expect(screen.queryByText('salesSummary.rows.chargedAmount')).not.toBeInTheDocument()
+    const propinas = screen.getByText('salesSummary.rows.tips').closest('.justify-between') as HTMLElement
+    expect(propinas.querySelector('.bg-green-500')).not.toBeNull()
+  })
+
+  it('🔴 D16.2 · con un filtro de pago, «Métodos de pago» ya no repite «Quita el filtro…» en una tarjeta vacía', async () => {
+    h.response = respuesta({
+      filtered: true,
+      summary: { ...SUMMARY, grossSales: null, items: null, serviceCosts: null, discounts: null, netSales: null, deferredSales: null, taxes: null },
+    })
+    vi.mocked(localStorage.getItem).mockReturnValue(JSON.stringify({ selectedMetrics: ['tips', 'totalCollected'] }))
+    pintar()
+    await tarjetaDelTotal()
+    // Sin filtro aplicado en esta prueba (ya no se restaura): se aplica desde el panel.
+    fireEvent.click(screen.getByRole('button', { name: /salesSummary\.controls\.filterBy\.label/ }))
+    const panel = await screen.findByRole('dialog')
+    const filtrarPor = within(panel).getByText('salesSummary.controls.filterBy.longDescription').closest('.absolute') as HTMLElement
+    fireEvent.click(within(filtrarPor).getByText('salesSummary.controls.filterBy.paymentMethod.options.cash'))
+    fireEvent.click(within(filtrarPor).getByRole('button', { name: 'salesSummary.controls.apply', hidden: true }))
+    await waitFor(() => expect(h.pedidos[h.pedidos.length - 1]?.paymentMethod).toBe('CASH'))
+    expect(await screen.findAllByText('salesSummary.controls.filterBy.filteredMessage')).toHaveLength(1)
+    expect(screen.queryByText('salesSummary.sections.paymentMethods')).not.toBeInTheDocument()
   })
 })

@@ -110,6 +110,16 @@ describe('D13.1 · el diálogo de exportar trae lo que ves en la pantalla en CAD
     expect(h.gets[0].params.cardType).toBeUndefined()
   })
 
+  it('🔴 Codex r15 #1 · si la afiliación elegida sale de la lista con el diálogo abierto, se quita sola y no se manda', async () => {
+    const { rerender } = pintar(base())
+    rerender(base({ open: true, initialMerchantAccountId: 'ma-a' }))
+    // Soporte retira «Comercio A»: la lista que pasa la pantalla ya sólo trae «Comercio B».
+    rerender(base({ open: true, initialMerchantAccountId: 'ma-a', merchantAccounts: [MERCHANTS![1]] }))
+    exportar()
+    await waitFor(() => expect(h.gets).toHaveLength(1))
+    expect(h.gets[0].params.merchantAccountId).toBeUndefined()
+  })
+
   it('la tarjeta de fechas tiene título (D13.7)', () => {
     pintar(base({ open: true }))
     expect(screen.getByText('salesSummary.export.dateRange.label')).toBeInTheDocument()

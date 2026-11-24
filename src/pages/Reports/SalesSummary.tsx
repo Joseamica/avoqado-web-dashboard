@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useId } from 'react'
+import { useState, useMemo, useEffect, useId, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
@@ -12,7 +12,7 @@ import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Skeleton } from '@/components/ui/skeleton'
 import { DateRangePicker } from '@/components/date-range-picker'
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
@@ -21,7 +21,7 @@ import { cn } from '@/lib/utils'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { Currency } from '@/utils/currency'
 import { getIntlLocale } from '@/utils/i18n-locale'
-import { getLast7Days, getToday } from '@/utils/datetime'
+import { getLast7Days, getToday, zonaValida } from '@/utils/datetime'
 import { useAuth } from '@/context/AuthContext'
 import { useTierFeatureAccess } from '@/hooks/use-tier-feature-access'
 import {
@@ -120,14 +120,15 @@ const DEFAULT_SELECTED_METRICS: MetricKey[] = ['grossSales', 'discounts', 'refun
 // LocalStorage key for persisting user preferences
 const STORAGE_KEY = 'avoqado:salesSummary:preferences'
 
-// Preferences interface
+// Preferences interface. Sin el filtro de pago (carril F, hz:fefa11b6:D7.7): la llave es del navegador, no del negocio, y un
+// filtro guardado abría otro negocio (o el mismo días después) filtrado sin que nadie lo eligiera; «QR» fuera de Mindform daba 400.
 interface SalesSummaryPreferences {
   selectedMetrics: MetricKey[]
   viewType: string
   reportType: string
-  paymentMethodFilter?: PaymentMethodFilter | null
-  cardTypeFilter?: CardTypeFilter | null
 }
+
+const REPORT_TYPES: string[] = [...REPORT_TYPE_OPTIONS.summaries, ...REPORT_TYPE_OPTIONS.increments]
 
 // Load preferences from localStorage
 function loadPreferences(): Partial<SalesSummaryPreferences> | null {
@@ -147,6 +148,11 @@ function loadPreferences(): Partial<SalesSummaryPreferences> | null {
           parsed.selectedMetrics = DEFAULT_SELECTED_METRICS
         }
       }
+      // Lo que ya no se guarda, o un valor que no existe (nota de D16, e), no se lee.
+      delete parsed.paymentMethodFilter
+      delete parsed.cardTypeFilter
+      if (!CONTROL_OPTION_KEYS.viewType.includes(parsed.viewType)) delete parsed.viewType
+      if (!REPORT_TYPES.includes(parsed.reportType)) delete parsed.reportType
       return parsed
     }
   } catch (e) {
@@ -281,14 +287,71 @@ const GlassCard: React.FC<{
 // ============================================
 // StatusIndicator Component (Square-style)
 // ============================================
-const StatusIndicator: React.FC<{ type: 'positive' | 'negative' | 'neutral' }> = ({ type }) => {
-  const colors = {
-    positive: 'bg-green-500',
-    negative: 'bg-red-500',
-    neutral: 'bg-blue-500',
-  }
-  return <span className={cn('shrink-0 w-2 h-2 rounded-sm', colors[type])} />
+type RowType = 'positive' | 'negative' | 'neutral' | 'total'
+// Suma · resta · informativo (no se suma). Un total no lleva punto: su raya y su negrita dicen que es un resultado (D16.15).
+const STATUS_COLORS: Record<RowType, string> = {
+  positive: 'bg-green-500',
+  negative: 'bg-red-500',
+  neutral: 'bg-blue-500',
+  total: 'bg-transparent',
 }
+const StatusIndicator: React.FC<{ type: RowType }> = ({ type }) => (
+  <span aria-hidden className={cn('shrink-0 w-2 h-2 rounded-sm', STATUS_COLORS[type])} />
+)
+
+/** Menos de medio centavo es cero: una comisión de 4 decimales o un residuo no se pintan «−$0.00» (D16.1; Codex r1 #3 del carril F). */
+const sinMedioCentavo = (n: number) => (Math.abs(n) < 0.005 ? 0 : n)
+
+/**
+ * El formateador de dinero de TODA la pantalla (número grande, renglones, métodos, estado, canales): sin medio centavo, así que
+ * nunca «−$0.00» (familia de D16.1; Codex r1 #3 y r2 #1 del carril F).
+ */
+const pesos = (n: number) => Currency(sinMedioCentavo(n))
+
+/** Lo que resta se pinta en negativo; un reverso (comisión que regresó, valor negativo) suma. */
+const comoResta = (n: number | null | undefined) => sinMedioCentavo(-Number(n ?? 0))
+
+/** El punto de un renglón que normalmente resta: si el valor regresó (un reverso), suma (Codex r1 #4 del carril F). */
+const tipoDeResta = (n: number | null | undefined): RowType => (comoResta(n) > 0 ? 'positive' : 'negative')
+
+/**
+ * La ayuda de un renglón (subrayado punteado). Un botón: se alcanza con el tabulador y abre al enfocarlo, y en un celular abre
+ * al tocarlo (el tooltip de Radix sólo abre con el cursor; D16.7).
+ */
+const Ayuda: React.FC<{ label: string; tooltip: string; nota?: string; bold?: boolean }> = ({ label, tooltip, nota, bold }) => {
+  const [open, setOpen] = useState(false)
+  return (
+    <TooltipProvider>
+      <Tooltip open={open} onOpenChange={setOpen}>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            onClick={e => {
+              // Sin preventDefault Radix cierra al hacer clic; sin stopPropagation, tocar la ayuda de «Ventas brutas» la plegaba.
+              e.preventDefault()
+              e.stopPropagation()
+              setOpen(true)
+            }}
+            className={cn(
+              'text-sm text-left cursor-help border-b border-dashed border-muted-foreground/50 hover:border-foreground transition-colors',
+              'rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+              bold && 'font-semibold',
+            )}
+          >
+            {label}
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="top" className="max-w-[280px] text-xs">
+          <span className="block">{tooltip}</span>
+          {nota && <span className="mt-1.5 block">{nota}</span>}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  )
+}
+
+/** Atributo `inert` (React 18 no lo tipa): un subpanel que no se ve tampoco se alcanza con el tabulador (D16.8). */
+const fueraDeVista = (oculto: boolean) => (oculto ? ({ inert: '' } as Record<string, string>) : {})
 
 // ============================================
 // ControlPill Component (Opens Sheet panel directly)
@@ -303,7 +366,7 @@ const ControlPill: React.FC<{
       variant="outline"
       size="sm"
       onClick={onClick}
-      className="rounded-full h-8 px-3 text-xs font-medium border-border/60 hover:bg-muted/50 cursor-pointer"
+      className="shrink-0 rounded-full h-8 px-3 text-xs font-medium border-border/60 hover:bg-muted/50 cursor-pointer"
     >
       <span className="text-muted-foreground mr-1">{label}</span>
       <span className="font-semibold">{value}</span>
@@ -319,11 +382,15 @@ const SummaryRow: React.FC<{
   value: number
   count?: number
   countLabel?: string
-  type: 'positive' | 'negative' | 'neutral'
+  type: RowType
   indent?: number // 0 = no indent, 1 = first level, 2 = second level
   bold?: boolean
   tooltip?: string
-}> = ({ label, value, count, countLabel, type, indent = 0, bold = false, tooltip }) => (
+  /** Un segundo párrafo de la ayuda. */
+  nota?: string
+  /** Una línea debajo del nombre que dice de dónde sale la cifra. */
+  caption?: string
+}> = ({ label, value, count, countLabel, type, indent = 0, bold = false, tooltip, nota, caption }) => (
   <div
     className={cn(
       'flex items-start justify-between gap-4 py-2.5 hover:bg-muted/30 rounded-lg transition-colors',
@@ -336,21 +403,7 @@ const SummaryRow: React.FC<{
       <div className="flex items-center gap-2">
         <StatusIndicator type={type} />
         {tooltip ? (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span className={cn(
-                  'text-sm cursor-help border-b border-dashed border-muted-foreground/50 hover:border-foreground transition-colors',
-                  bold && 'font-semibold'
-                )}>
-                  {label}
-                </span>
-              </TooltipTrigger>
-              <TooltipContent side="top" className="max-w-[280px] text-xs">
-                {tooltip}
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <Ayuda label={label} tooltip={tooltip} nota={nota} bold={bold} />
         ) : (
           <span className={cn('text-sm', bold && 'font-semibold')}>{label}</span>
         )}
@@ -358,9 +411,10 @@ const SummaryRow: React.FC<{
       {count !== undefined && (
         <span className="text-xs text-muted-foreground ml-4">{count} {countLabel}</span>
       )}
+      {caption && <span className="text-xs text-muted-foreground ml-4">{caption}</span>}
     </div>
-    <span className={cn('text-sm text-right min-w-[100px] font-mono', bold && 'font-semibold')}>
-      {Currency(value)}
+    <span data-monto className={cn('text-sm text-right min-w-[100px] tabular-nums', bold && 'font-semibold')}>
+      {pesos(value)}
     </span>
   </div>
 )
@@ -373,13 +427,15 @@ const CollapsibleSummaryRow: React.FC<{
   value: number
   count?: number
   countLabel?: string
-  type: 'positive' | 'negative' | 'neutral'
+  type: RowType
   bold?: boolean
   tooltip?: string
   isOpen: boolean
   onToggle: () => void
+  /** Nombre del botón que pliega (para lector de pantalla). */
+  toggleLabel: string
   children: React.ReactNode
-}> = ({ label, value, count, countLabel, type, bold = false, tooltip, isOpen, onToggle, children }) => (
+}> = ({ label, value, count, countLabel, type, bold = false, tooltip, isOpen, onToggle, toggleLabel, children }) => (
   <div>
     <div
       className="flex items-start justify-between gap-4 px-4 py-2.5 hover:bg-muted/30 rounded-lg transition-colors cursor-pointer"
@@ -387,27 +443,25 @@ const CollapsibleSummaryRow: React.FC<{
     >
       <div className="flex flex-col">
         <div className="flex items-center gap-2">
-          <ChevronDown className={cn(
-            'w-4 h-4 text-muted-foreground transition-transform shrink-0',
-            !isOpen && '-rotate-90'
-          )} />
+          {/* El renglón entero pliega con el mouse; con teclado, este botón (D7.9). */}
+          <button
+            type="button"
+            aria-expanded={isOpen}
+            aria-label={toggleLabel}
+            onClick={e => {
+              e.stopPropagation()
+              onToggle()
+            }}
+            className="rounded-sm cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <ChevronDown className={cn(
+              'w-4 h-4 text-muted-foreground transition-transform shrink-0',
+              !isOpen && '-rotate-90'
+            )} />
+          </button>
           <StatusIndicator type={type} />
           {tooltip ? (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span className={cn(
-                    'text-sm cursor-help border-b border-dashed border-muted-foreground/50 hover:border-foreground transition-colors',
-                    bold && 'font-semibold'
-                  )}>
-                    {label}
-                  </span>
-                </TooltipTrigger>
-                <TooltipContent side="top" className="max-w-[280px] text-xs">
-                  {tooltip}
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <Ayuda label={label} tooltip={tooltip} bold={bold} />
           ) : (
             <span className={cn('text-sm', bold && 'font-semibold')}>{label}</span>
           )}
@@ -416,8 +470,8 @@ const CollapsibleSummaryRow: React.FC<{
           <span className="text-xs text-muted-foreground ml-8">{count} {countLabel}</span>
         )}
       </div>
-      <span className={cn('text-sm text-right min-w-[100px] font-mono', bold && 'font-semibold')}>
-        {Currency(value)}
+      <span data-monto className={cn('text-sm text-right min-w-[100px] tabular-nums', bold && 'font-semibold')}>
+        {pesos(value)}
       </span>
     </div>
     {isOpen && (
@@ -453,7 +507,7 @@ const SalesBreakdownBar: React.FC<{
             </TooltipTrigger>
             <TooltipContent side="top" className="text-xs">
               <p className="font-medium">{segment.label}</p>
-              <p className="text-muted-foreground">{Currency(segment.value)} ({segment.percentage.toFixed(1)}%)</p>
+              <p className="text-muted-foreground">{pesos(segment.value)} ({segment.percentage.toFixed(1)}%)</p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
@@ -465,6 +519,8 @@ const SalesBreakdownBar: React.FC<{
         <div key={index} className="flex items-center gap-1.5">
           <div className={cn('w-2.5 h-2.5 rounded-sm', segment.color)} />
           <span className="text-muted-foreground">{segment.label}</span>
+          {/* El importe también en la leyenda: el tooltip del segmento sólo abre con el mouse (Codex r3 E del carril F). */}
+          <span className="tabular-nums">{pesos(segment.value)}</span>
           <span className="font-medium">{segment.percentage.toFixed(0)}%</span>
         </div>
       ))}
@@ -542,7 +598,7 @@ const SalesPieChart: React.FC<{
                   </TooltipTrigger>
                   <TooltipContent side="right" className="text-xs">
                     <p className="font-medium">{segment.label}</p>
-                    <p className="text-muted-foreground">{Currency(segment.value)} ({segment.percentage.toFixed(1)}%)</p>
+                    <p className="text-muted-foreground">{pesos(segment.value)} ({segment.percentage.toFixed(1)}%)</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
@@ -556,6 +612,7 @@ const SalesPieChart: React.FC<{
           <div key={index} className="flex items-center gap-1.5">
             <div className={cn('w-2.5 h-2.5 rounded-sm', segment.color)} />
             <span className="text-muted-foreground">{segment.label}</span>
+            <span className="tabular-nums">{pesos(segment.value)}</span>
             <span className="font-medium">{segment.percentage.toFixed(0)}%</span>
           </div>
         ))}
@@ -597,7 +654,7 @@ const SalesTable: React.FC<{
           <div className={cn('w-2.5 h-2.5 rounded-sm', segment.color)} />
           <span className="text-sm">{segment.label}</span>
         </div>
-        <span className="text-sm font-mono text-right">{Currency(segment.value)}</span>
+        <span className="text-sm tabular-nums text-right">{pesos(segment.value)}</span>
         <span className="text-sm text-right text-muted-foreground">{segment.percentage.toFixed(1)}%</span>
       </div>
     ))}
@@ -613,8 +670,9 @@ const PaymentMethodRow: React.FC<{
   amount: number
   count: number
   percentage: number
+  countLabel: string
   settlementLabel?: string
-}> = ({ icon, label, amount, count, percentage, settlementLabel }) => (
+}> = ({ icon, label, amount, count, percentage, countLabel, settlementLabel }) => (
   <div className="grid grid-cols-[auto_1fr_auto_auto_auto] items-center gap-4 px-4 py-3 hover:bg-muted/30 rounded-lg transition-colors">
     <div className="p-2 rounded-lg bg-muted/50">{icon}</div>
     <div className="flex flex-col">
@@ -626,9 +684,9 @@ const PaymentMethodRow: React.FC<{
         </span>
       )}
     </div>
-    <span className="text-sm text-muted-foreground text-right">{count} trans.</span>
+    <span className="text-sm text-muted-foreground text-right">{count} {countLabel}</span>
     <span className="text-sm text-muted-foreground text-right min-w-[50px]">{percentage.toFixed(1)}%</span>
-    <span className="text-sm font-mono text-right min-w-[100px]">{Currency(amount)}</span>
+    <span className="text-sm tabular-nums text-right min-w-[100px]">{pesos(amount)}</span>
   </div>
 )
 
@@ -665,9 +723,21 @@ const DetailedBreakdownRow: React.FC<{
       >
         <div className="flex items-center gap-2">
           {hasSubBuckets ? (
-            <ChevronDown
-              className={cn('w-4 h-4 text-muted-foreground transition-transform shrink-0', !expanded && '-rotate-90')}
-            />
+            // El renglón entero despliega con el mouse; con teclado, este botón (Codex r2 #6 del carril F).
+            <button
+              type="button"
+              aria-expanded={expanded}
+              aria-label={label}
+              onClick={e => {
+                e.stopPropagation()
+                setExpanded(v => !v)
+              }}
+              className="rounded-sm cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <ChevronDown
+                className={cn('w-4 h-4 text-muted-foreground transition-transform shrink-0', !expanded && '-rotate-90')}
+              />
+            </button>
           ) : (
             <span className="w-4 shrink-0" />
           )}
@@ -683,13 +753,13 @@ const DetailedBreakdownRow: React.FC<{
           )}
           {platformFees > 0 && (
             <span className="text-[11px] text-muted-foreground mt-0.5">
-              {feesLabel}: {Currency(platformFees)}
+              {feesLabel}: {pesos(platformFees)}
             </span>
           )}
         </div>
         <span className="text-sm text-muted-foreground text-right">{count} {countLabel}</span>
         <span className="text-sm text-muted-foreground text-right min-w-[50px]">{percentage.toFixed(1)}%</span>
-        <span className="text-sm font-mono text-right min-w-[100px]">{Currency(amount)}</span>
+        <span className="text-sm tabular-nums text-right min-w-[100px]">{pesos(amount)}</span>
       </div>
 
       {hasSubBuckets && expanded && (
@@ -704,13 +774,13 @@ const DetailedBreakdownRow: React.FC<{
                 <span className="text-sm">{subLabels?.[sub.type] ?? sub.type}</span>
                 {sub.platformFees > 0 && (
                   <span className="text-[11px] text-muted-foreground mt-0.5">
-                    {feesLabel}: {Currency(sub.platformFees)}
+                    {feesLabel}: {pesos(sub.platformFees)}
                   </span>
                 )}
               </div>
               <span className="text-xs text-muted-foreground text-right">{sub.count} {countLabel}</span>
               <span className="text-xs text-muted-foreground text-right min-w-[50px]">{sub.percentage.toFixed(1)}%</span>
-              <span className="text-sm font-mono text-right min-w-[100px]">{Currency(sub.amount)}</span>
+              <span className="text-sm tabular-nums text-right min-w-[100px]">{pesos(sub.amount)}</span>
             </div>
           ))}
         </div>
@@ -737,7 +807,9 @@ export default function SalesSummary() {
   const { t, i18n } = useTranslation('reports')
   const { venueId, fullBasePath } = useCurrentVenue()
   const { activeVenue } = useAuth()
-  const venueTimezone = activeVenue?.timezone || 'America/Mexico_City'
+  // Una zona guardada como «GMT-6» (altas viejas) no es IANA: Luxon da una fecha inválida y la pantalla tronaba. La misma salida
+  // que el SERVIDOR (`zonaDelCalculo`): la Ciudad de México.
+  const venueTimezone = zonaValida(activeVenue?.timezone)
 
   // Tier gate: Free venues get a BASIC report (today's summary only). Pro+ unlocks
   // history (other date ranges / past periods) and the advanced breakdowns. The
@@ -745,8 +817,27 @@ export default function SalesSummary() {
   // Free venue's request still returns data — this is a pure FRONTEND gate.
   const { hasAccess } = useTierFeatureAccess('ADVANCED_REPORTS')
 
+  // «Hoy» sigue al reloj del negocio (D15.1): el plan Gratis con el panel abierto al pasar la medianoche seguía pidiendo el día
+  // anterior y el SERVIDOR lo rechazaba («El histórico requiere Pro») hasta recargar. Se revisa cada minuto y al volver a la pestaña.
+  const [todayRange, setTodayRange] = useState(() => getToday(venueTimezone))
+  useEffect(() => {
+    const revisar = () =>
+      setTodayRange(prev => {
+        const hoy = getToday(venueTimezone)
+        return hoy.from.getTime() === prev.from.getTime() && hoy.to.getTime() === prev.to.getTime() ? prev : hoy
+      })
+    revisar()
+    const id = window.setInterval(revisar, 60_000)
+    window.addEventListener('focus', revisar)
+    document.addEventListener('visibilitychange', revisar)
+    return () => {
+      window.clearInterval(id)
+      window.removeEventListener('focus', revisar)
+      document.removeEventListener('visibilitychange', revisar)
+    }
+  }, [venueTimezone])
+
   // Date range state - Pro defaults to last 7 days; Free is locked to today.
-  const todayRange = useMemo(() => getToday(venueTimezone), [venueTimezone])
   const defaultDateRange = useMemo(
     () => (hasAccess ? getLast7Days(venueTimezone) : todayRange),
     [hasAccess, venueTimezone, todayRange],
@@ -784,6 +875,18 @@ export default function SalesSummary() {
   // State for controls drawer
   const [controlsOpen, setControlsOpen] = useState(false)
   const [activePanel, setActivePanel] = useState<'main' | 'reportType' | 'viewType' | 'metrics' | 'merchant' | 'filterBy' | null>('main')
+  // Foco del panel (Codex r1 #7 del carril F): al cambiar de subpanel, el foco pasa al nuevo (el de antes queda `inert`); al cerrar,
+  // regresa al botón que lo abrió (⋮ o una píldora).
+  const sheetRef = useRef<HTMLDivElement>(null)
+  const abiertoDesde = useRef<HTMLElement | null>(null)
+  const enfocarPanel = (panel: string | null) =>
+    requestAnimationFrame(() =>
+      sheetRef.current?.querySelector<HTMLElement>(`[data-panel="${panel}"] button:not([disabled])`)?.focus(),
+    )
+  const irAPanel = (panel: 'main' | 'reportType' | 'viewType' | 'metrics' | 'merchant' | 'filterBy') => {
+    setActivePanel(panel)
+    enfocarPanel(panel)
+  }
 
   // Load saved preferences from localStorage
   const savedPrefs = useMemo(() => loadPreferences(), [])
@@ -794,33 +897,44 @@ export default function SalesSummary() {
   // increment preference must not leak the period-breakdown view. Force "summary".
   const effectiveReportType: ReportType = hasAccess ? reportType : 'summary'
   const [viewType, setViewType] = useState(() => savedPrefs?.viewType || 'gauge')
-  const [selectedMetrics, setSelectedMetrics] = useState<MetricKey[]>(
+  const [selectedMetricsGuardadas, setSelectedMetrics] = useState<MetricKey[]>(
     () => savedPrefs?.selectedMetrics || DEFAULT_SELECTED_METRICS
   )
+  // El plan Gratis no tiene «Métricas»: ve las de siempre, no las que se guardaron en este navegador con otro negocio Pro (como el
+  // filtro de D15.3, que ya no se guarda).
+  const selectedMetrics = hasAccess ? selectedMetricsGuardadas : DEFAULT_SELECTED_METRICS
 
   // Merchant filter state
   const [merchantAccountId, setMerchantAccountId] = useState<string | null>(null)
   const [pendingMerchantAccountId, setPendingMerchantAccountId] = useState<string | null>(null)
 
-  // Payment method / card type filter state
-  const [paymentMethodFilter, setPaymentMethodFilter] = useState<PaymentMethodFilter | null>(
-    () => savedPrefs?.paymentMethodFilter ?? null,
-  )
-  const [cardTypeFilter, setCardTypeFilter] = useState<CardTypeFilter | null>(
-    () => savedPrefs?.cardTypeFilter ?? null,
-  )
+  // Payment method / card type filter state (no se guardan en el navegador: carril F, D7.7)
+  const [paymentMethodFilter, setPaymentMethodFilter] = useState<PaymentMethodFilter | null>(null)
+  const [cardTypeFilter, setCardTypeFilter] = useState<CardTypeFilter | null>(null)
   const [pendingPaymentMethodFilter, setPendingPaymentMethodFilter] = useState<PaymentMethodFilter | null>(null)
   const [pendingCardTypeFilter, setPendingCardTypeFilter] = useState<CardTypeFilter | null>(null)
 
-  const isFiltered = paymentMethodFilter !== null
   const isMindform = venueId === MINDFORM_VENUE_ID
+  // El filtro que de verdad se aplica: sólo con el plan (el Gratis no tiene controles) y «QR» sólo en Mindform, que es donde
+  // existe (fuera de ahí el SERVIDOR responde 400). Insignia, petición y pantalla leen éste (D15.3).
+  const filtroDePago = hasAccess && (paymentMethodFilter !== 'QR_LEGACY' || isMindform) ? paymentMethodFilter : null
+  const isFiltered = filtroDePago !== null
 
   // Fetch venue merchant accounts
-  const { data: merchantAccounts = [] } = useQuery({
+  const { data: merchantAccounts = [], isSuccess: comerciosListos } = useQuery({
     queryKey: ['venueMerchantAccounts', venueId],
     queryFn: () => getVenueMerchantAccountsByVenueId(venueId),
     staleTime: 1000 * 60 * 30,
   })
+  // Codex r14 #2 y r15 #2 (carril F): si una afiliación elegida sale de la lista (soporte la retiró), se quita sola, en lo aplicado y en
+  // el borrador, cada uno por su cuenta. El SERVIDOR ya rechaza con 400 un comercio que no es del negocio, y sin él en la lista no
+  // queda selector para quitarlo.
+  useEffect(() => {
+    if (!comerciosListos) return
+    const fuera = (id: string | null) => id !== null && !merchantAccounts.some(m => m.id === id)
+    if (fuera(merchantAccountId)) setMerchantAccountId(null)
+    if (fuera(pendingMerchantAccountId)) setPendingMerchantAccountId(null)
+  }, [comerciosListos, merchantAccounts, merchantAccountId, pendingMerchantAccountId])
 
   const { data: settlementConfigs = [] } = useQuery({
     queryKey: ['venueSettlementInfo', venueId],
@@ -849,7 +963,10 @@ export default function SalesSummary() {
     if (debitDays === creditDays) {
       cardParts.push(formatDays(debitDays))
     } else {
-      cardParts.push(`${t('salesSummary.settlement.label')}: ${formatDays(debitDays)} (débito), ${formatDays(creditDays)} (crédito)`)
+      // Sin repetir «Liquidación:» (ya va al principio) y con los nombres de los locales, no «(débito)» fijo en español.
+      const debito = t('salesSummary.controls.filterBy.cardType.options.debit').toLowerCase()
+      const credito = t('salesSummary.controls.filterBy.cardType.options.credit').toLowerCase()
+      cardParts.push(`${formatDays(debitDays)} (${debito}), ${formatDays(creditDays)} (${credito})`)
     }
     if (amex && amexDays !== cardMax) {
       cardParts.push(`Amex ${formatDays(amexDays)}`)
@@ -872,13 +989,12 @@ export default function SalesSummary() {
   // Save preferences to localStorage when they change
   useEffect(() => {
     savePreferences({
-      selectedMetrics,
+      // Las guardadas, no las del plan Gratis: abrir un negocio Gratis no borra lo que eligió en otro Pro.
+      selectedMetrics: selectedMetricsGuardadas,
       viewType,
       reportType,
-      paymentMethodFilter,
-      cardTypeFilter,
     })
-  }, [selectedMetrics, viewType, reportType, paymentMethodFilter, cardTypeFilter])
+  }, [selectedMetricsGuardadas, viewType, reportType])
 
   // Get translated label for current selection
   const getSelectedLabel = (category: 'reportType' | 'viewType', value: string) => {
@@ -902,6 +1018,7 @@ export default function SalesSummary() {
     setPendingMerchantAccountId(merchantAccountId)
     setPendingPaymentMethodFilter(paymentMethodFilter)
     setPendingCardTypeFilter(cardTypeFilter)
+    abiertoDesde.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
     setActivePanel(panel)
     setControlsOpen(true)
   }
@@ -998,8 +1115,8 @@ export default function SalesSummary() {
       groupBy: 'paymentMethod' as ApiGroupBy,
       reportType: effectiveReportType,
       ...(hasAccess && merchantAccountId ? { merchantAccountId } : {}),
-      ...(hasAccess && paymentMethodFilter ? { paymentMethod: paymentMethodFilter } : {}),
-      ...(hasAccess && paymentMethodFilter === 'CARD' && cardTypeFilter ? { cardType: cardTypeFilter } : {}),
+      ...(filtroDePago ? { paymentMethod: filtroDePago } : {}),
+      ...(filtroDePago === 'CARD' && cardTypeFilter ? { cardType: cardTypeFilter } : {}),
       // Always request the per-merchant card breakdown + settlement projection for
       // the reconciliation view (both additive / opt-in on the backend).
       includeMerchantBreakdown: true,
@@ -1008,7 +1125,7 @@ export default function SalesSummary() {
       includeChannelBreakdown: true,
       includePrepaid: true,
     }
-  }, [venueId, hasAccess, dateRange.from, dateRange.to, todayRange.from, todayRange.to, effectiveReportType, merchantAccountId, paymentMethodFilter, cardTypeFilter])
+  }, [venueId, hasAccess, dateRange.from, dateRange.to, todayRange.from, todayRange.to, effectiveReportType, merchantAccountId, filtroDePago, cardTypeFilter])
 
   // Fetch sales summary data from API
   const salesQuery = useQuery({
@@ -1088,6 +1205,8 @@ export default function SalesSummary() {
         baseDeCaja: apiResponse.summary.unpaidSales !== undefined,
         // Comisiones de terceros (D1): Rappi, Uber Eats, tipos de pago con comisión. Ya restadas de «Neto cobrado».
         tenderCommissions: apiResponse.summary.tenderCommissions ?? 0,
+        // D16.2: lo cobrado con el filtro (vista de movimientos), con propina y sin devoluciones. Un servidor viejo no lo manda.
+        chargedAmount: typeof apiResponse.summary.chargedAmount === 'number' ? apiResponse.summary.chargedAmount : null,
         taxes: apiResponse.summary.taxes,
         tips: apiResponse.summary.tips,
         // Costs breakdown (NEW - for clarity)
@@ -1149,6 +1268,14 @@ export default function SalesSummary() {
     )
   }, [apiResponse?.byPeriod, effectiveReportType])
 
+  // D14.2: la columna «Total» de la tabla por periodo es la cabecera del SERVIDOR (la misma cifra que el Resumen), con el mismo
+  // cambio de «Sin cobrar» que los periodos.
+  const totalDelPeriodo = useMemo(() => {
+    const cabecera = apiResponse?.summary
+    if (!cabecera) return undefined
+    return cabecera.unpaidSales !== undefined ? { ...cabecera, deferredSales: cabecera.unpaidSales } : cabecera
+  }, [apiResponse?.summary])
+
   // Handle date range change
   const handleDateRangeUpdate = (values: { range: { from: Date; to: Date | undefined } }) => {
     if (values.range.from && values.range.to) {
@@ -1166,12 +1293,10 @@ export default function SalesSummary() {
           <PageTitleWithInfo
             title={t('salesSummary.title')}
             className="text-2xl font-bold"
-            tooltip={t('info.salesSummary', {
-              defaultValue: 'Resumen de ventas con totales y desglose por metodo, canal y periodo.',
-            })}
+            tooltip={t('salesSummary.pageInfo')}
           />
           <Badge variant="outline" className="text-xs font-normal">
-            Beta
+            {t('salesSummary.beta')}
           </Badge>
           {/* Free venues: make it obvious this is "today only" + where the rest lives. */}
           {!hasAccess && (
@@ -1210,23 +1335,42 @@ export default function SalesSummary() {
             <Download className="w-4 h-4" />
           </Button>
 
-          {/* Controls Sheet */}
+          {/* Controls Sheet. ⋮ abre con lo aplicado, como las píldoras (nota c de D16), y tiene nombre (D16.7). */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-9 w-9 cursor-pointer"
+            onClick={() => openControlPanel('main')}
+            aria-label={t('salesSummary.controls.title')}
+          >
+            <MoreVertical className="w-4 h-4" />
+          </Button>
           <Sheet open={controlsOpen} onOpenChange={(open) => {
             setControlsOpen(open)
             if (!open) setActivePanel('main')
           }}>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-9 w-9 cursor-pointer">
-                <MoreVertical className="w-4 h-4" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent className="w-[400px] sm:w-[450px] p-0 overflow-hidden">
+            {/* En un celular de 390 px, 400 fijos quedaban cortados (D16.9). */}
+            <SheetContent
+              ref={sheetRef}
+              className="w-full sm:w-[450px] sm:max-w-[450px] p-0 overflow-hidden"
+              onOpenAutoFocus={e => {
+                e.preventDefault()
+                enfocarPanel(activePanel)
+              }}
+              onCloseAutoFocus={e => {
+                e.preventDefault()
+                abiertoDesde.current?.focus()
+              }}
+            >
               {/* Main Controls Panel */}
               <div
                 className={cn(
                   'absolute inset-0 transition-transform duration-300 ease-in-out',
                   activePanel === 'main' ? 'translate-x-0' : '-translate-x-full'
                 )}
+              
+                data-panel="main"
+                {...fueraDeVista(activePanel !== 'main')}
               >
                 <SheetHeader className="p-4 border-b">
                   <SheetTitle className="flex items-center gap-2">
@@ -1239,14 +1383,14 @@ export default function SalesSummary() {
                     label={t('salesSummary.controls.metrics.label')}
                     description={t('salesSummary.controls.metrics.description')}
                     value={`${selectedMetrics.length} ${t('salesSummary.controls.metrics.selected')}`}
-                    onClick={() => setActivePanel('metrics')}
+                    onClick={() => irAPanel('metrics')}
                   />
                   <Separator />
                   <ControlRow
                     label={t('salesSummary.controls.reportType.label')}
                     description={t('salesSummary.controls.reportType.description')}
                     value={getSelectedLabel('reportType', reportType)}
-                    onClick={() => setActivePanel('reportType')}
+                    onClick={() => irAPanel('reportType')}
                   />
                   <Separator />
                   {merchantAccounts.length > 1 && (
@@ -1260,7 +1404,7 @@ export default function SalesSummary() {
                             || t('salesSummary.controls.merchant.options.all')
                           : t('salesSummary.controls.merchant.options.all')
                         }
-                        onClick={() => setActivePanel('merchant')}
+                        onClick={() => irAPanel('merchant')}
                       />
                       <Separator />
                     </>
@@ -1269,14 +1413,14 @@ export default function SalesSummary() {
                     label={t('salesSummary.controls.viewType.label')}
                     description={t('salesSummary.controls.viewType.description')}
                     value={getSelectedLabel('viewType', viewType)}
-                    onClick={() => setActivePanel('viewType')}
+                    onClick={() => irAPanel('viewType')}
                   />
                   <Separator />
                   <ControlRow
                     label={t('salesSummary.controls.filterBy.label')}
                     description={t('salesSummary.controls.filterBy.description')}
                     value={filterByValueLabel()}
-                    onClick={() => setActivePanel('filterBy')}
+                    onClick={() => irAPanel('filterBy')}
                   />
                 </div>
               </div>
@@ -1287,6 +1431,9 @@ export default function SalesSummary() {
                   'absolute inset-0 transition-transform duration-300 ease-in-out bg-background flex flex-col',
                   activePanel === 'reportType' ? 'translate-x-0' : 'translate-x-full'
                 )}
+              
+                data-panel="reportType"
+                {...fueraDeVista(activePanel !== 'reportType')}
               >
                 {/* Header with back and apply buttons */}
                 <div className="flex items-center justify-between p-4 border-b">
@@ -1294,7 +1441,8 @@ export default function SalesSummary() {
                     variant="ghost"
                     size="icon"
                     className="h-10 w-10 rounded-full cursor-pointer"
-                    onClick={() => setActivePanel('main')}
+                    onClick={() => irAPanel('main')}
+                    aria-label={t('salesSummary.controls.back')}
                   >
                     <ChevronLeft className="w-5 h-5" />
                   </Button>
@@ -1363,13 +1511,17 @@ export default function SalesSummary() {
                   'absolute inset-0 transition-transform duration-300 ease-in-out bg-background flex flex-col',
                   activePanel === 'merchant' ? 'translate-x-0' : 'translate-x-full'
                 )}
+              
+                data-panel="merchant"
+                {...fueraDeVista(activePanel !== 'merchant')}
               >
                 <div className="flex items-center justify-between p-4 border-b">
                   <Button
                     variant="ghost"
                     size="icon"
                     className="h-10 w-10 rounded-full cursor-pointer"
-                    onClick={() => setActivePanel('main')}
+                    onClick={() => irAPanel('main')}
+                    aria-label={t('salesSummary.controls.back')}
                   >
                     <ChevronLeft className="w-5 h-5" />
                   </Button>
@@ -1433,13 +1585,17 @@ export default function SalesSummary() {
                   'absolute inset-0 transition-transform duration-300 ease-in-out bg-background flex flex-col',
                   activePanel === 'viewType' ? 'translate-x-0' : 'translate-x-full'
                 )}
+              
+                data-panel="viewType"
+                {...fueraDeVista(activePanel !== 'viewType')}
               >
                 <div className="flex items-center justify-between p-4 border-b">
                   <Button
                     variant="ghost"
                     size="icon"
                     className="h-10 w-10 rounded-full cursor-pointer"
-                    onClick={() => setActivePanel('main')}
+                    onClick={() => irAPanel('main')}
+                    aria-label={t('salesSummary.controls.back')}
                   >
                     <ChevronLeft className="w-5 h-5" />
                   </Button>
@@ -1457,6 +1613,12 @@ export default function SalesSummary() {
                     <p className="text-sm text-muted-foreground leading-relaxed">
                       {t('salesSummary.controls.viewType.longDescription')}
                     </p>
+                    {/* Nota de D16 (b): con un filtro de pago la gráfica no se pinta; se dice antes de «Aplicar». */}
+                    {isFiltered && (
+                      <p className="text-xs text-muted-foreground" data-testid="view-type-filtered-note">
+                        {t('salesSummary.controls.viewType.filteredNote')}
+                      </p>
+                    )}
                   </div>
                   <RadioGroup value={pendingViewType} onValueChange={setPendingViewType} className="space-y-1">
                     {CONTROL_OPTION_KEYS.viewType.map((key) => (
@@ -1479,13 +1641,17 @@ export default function SalesSummary() {
                   'absolute inset-0 transition-transform duration-300 ease-in-out bg-background flex flex-col',
                   activePanel === 'metrics' ? 'translate-x-0' : 'translate-x-full'
                 )}
+              
+                data-panel="metrics"
+                {...fueraDeVista(activePanel !== 'metrics')}
               >
                 <div className="flex items-center justify-between p-4 border-b">
                   <Button
                     variant="ghost"
                     size="icon"
                     className="h-10 w-10 rounded-full cursor-pointer"
-                    onClick={() => setActivePanel('main')}
+                    onClick={() => irAPanel('main')}
+                    aria-label={t('salesSummary.controls.back')}
                   >
                     <ChevronLeft className="w-5 h-5" />
                   </Button>
@@ -1548,6 +1714,9 @@ export default function SalesSummary() {
                             <Checkbox
                               checked={isSelected}
                               onClick={(e) => e.stopPropagation()}
+                              // D16.5: la casilla también cambia la métrica (antes detenía el clic y no hacía nada).
+                              onCheckedChange={() => toggleMetric(metric.key)}
+                              aria-label={t(`salesSummary.controls.metrics.options.${metric.key}`)}
                               className="cursor-pointer"
                             />
                           </div>
@@ -1564,6 +1733,9 @@ export default function SalesSummary() {
                   'absolute inset-0 transition-transform duration-300 ease-in-out bg-background flex flex-col',
                   activePanel === 'filterBy' ? 'translate-x-0' : 'translate-x-full'
                 )}
+              
+                data-panel="filterBy"
+                {...fueraDeVista(activePanel !== 'filterBy')}
               >
                 {/* Header with back and apply buttons */}
                 <div className="flex items-center justify-between p-4 border-b">
@@ -1571,7 +1743,8 @@ export default function SalesSummary() {
                     variant="ghost"
                     size="icon"
                     className="h-10 w-10 rounded-full cursor-pointer"
-                    onClick={() => setActivePanel('main')}
+                    onClick={() => irAPanel('main')}
+                    aria-label={t('salesSummary.controls.back')}
                   >
                     <ChevronLeft className="w-5 h-5" />
                   </Button>
@@ -1761,12 +1934,13 @@ export default function SalesSummary() {
       {/* Control Pills (click to open control panel) - Square order. Pro-only:
           report type, group by, filters, metrics are all advanced. */}
       {hasAccess && (
-      <div className="flex flex-wrap gap-2">
+      // En un celular las píldoras van en una sola fila que se desliza (antes ocupaban 4 filas antes del primer número, D16.10).
+      <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">
         <Button
           variant="outline"
           size="sm"
           onClick={() => openControlPanel('metrics')}
-          className="rounded-full h-8 px-3 text-xs font-medium border-border/60 hover:bg-muted/50 cursor-pointer"
+          className="shrink-0 rounded-full h-8 px-3 text-xs font-medium border-border/60 hover:bg-muted/50 cursor-pointer"
         >
           <LayoutGrid className="w-3 h-3 mr-1.5" />
           <span className="text-muted-foreground mr-1">{t('salesSummary.controls.metrics.label')}</span>
@@ -1825,6 +1999,50 @@ export default function SalesSummary() {
   // Vista de movimientos (D9.1): con un método elegido, o con un comercio en un servidor que ya lo trata igual (`filtered`), las
   // métricas de orden vienen en null y sus renglones no se pintan. `isFiltered` sigue mandando en lo demás (repartos, estado de cuenta).
   const sinMetricasDeOrden = isFiltered || apiResponse?.filtered === true
+  const mostrarVentasNetas = !sinMetricasDeOrden && selectedMetrics.includes('netSales')
+  const cobradoConFiltro = sinMetricasDeOrden && data.summary.chargedAmount !== null
+  const mostrarSinCobrar =
+    !sinMetricasDeOrden &&
+    data.summary.unpaid !== null &&
+    (selectedMetrics.includes('deferredSales') || (data.summary.unpaidOrders ?? 0) > 0)
+  const hayPaquetes = (data.summary.packagesSoldOnline ?? 0) !== 0 || data.summary.packagesSoldOnlineOtherCurrencies.length > 0
+  const hayDepositos =
+    data.summary.reservationDeposits !== null &&
+    (data.summary.reservationDeposits !== 0 || data.summary.reservationDepositsCount > 0 || data.summary.reservationDepositsRefunded !== 0)
+  // El renglón «Tarjetas de regalo cargadas»: sin filtro de pago y si no es cero. Sin él, el tooltip no lo menciona (lote ⭐).
+  const hayRenglonDeCargas = !isFiltered && typeof data.summary.giftCardLoads === 'number' && data.summary.giftCardLoads !== 0
+  const hayAparte = mostrarSinCobrar || hayRenglonDeCargas || hayPaquetes || hayDepositos
+  /** Las partes de «Ventas brutas»: bajo su renglón (sangría 1) o solas si «Ventas brutas» no está elegida (sangría 0). */
+  const renglonesDeVentasBrutas = (indent: 0 | 1) => (
+    <>
+      {selectedMetrics.includes('items') && (
+        <SummaryRow
+          label={t('salesSummary.rows.items')}
+          value={data.summary.items ?? 0}
+          type={indent ? 'neutral' : 'positive'}
+          indent={indent}
+          tooltip={t('salesSummary.tooltips.items')}
+        />
+      )}
+      {/* D2: los cargos por servicio ya son venta; si hubo, se ven aunque no estén elegidos en Métricas. */}
+      {(selectedMetrics.includes('serviceCosts') || (data.summary.serviceCosts ?? 0) !== 0) && (
+        <SummaryRow
+          label={t('salesSummary.rows.serviceCosts')}
+          value={data.summary.serviceCosts ?? 0}
+          type={indent ? 'neutral' : 'positive'}
+          indent={indent}
+          tooltip={t('salesSummary.tooltips.serviceCosts')}
+        />
+      )}
+    </>
+  )
+  // Con el QR anterior sin leer las cifras pueden estar incompletas: no se afirma que no hubo ventas (Codex r1 #8).
+  const sinMovimientos =
+    !apiResponse?.legacyUnavailable &&
+    data.transactions.total === 0 &&
+    data.transactions.refunded === 0 &&
+    data.summary.totalCollected === 0 &&
+    (data.summary.unpaidOrders ?? 0) === 0
   const rv = data.repartoDeVentas
   const totalVendido = rv.card + rv.cash + rv.other + rv.giftCard
   const hayReparto = totalVendido > 0 && [rv.card, rv.cash, rv.other, rv.giftCard].every(v => v >= 0)
@@ -1836,8 +2054,6 @@ export default function SalesSummary() {
   ].map(seg => ({ ...seg, percentage: totalVendido > 0 ? (seg.value / totalVendido) * 100 : 0 }))
   const hayCifrasDeTarjetas =
     !isFiltered && ((data.summary.giftCardLoads ?? 0) !== 0 || (data.summary.paidWithGiftCardBalance ?? 0) !== 0)
-  // El renglón «Tarjetas de regalo cargadas»: sin filtro de pago y si no es cero. Sin él, el tooltip no lo menciona (lote ⭐).
-  const hayRenglonDeCargas = !isFiltered && typeof data.summary.giftCardLoads === 'number' && data.summary.giftCardLoads !== 0
   // En la vista de movimientos «Neto cobrado» sale de los pagos del filtro, no de las ventas netas (Codex r4 #4).
   const tooltipTotalCobrado = sinMetricasDeOrden
     ? t('salesSummary.tooltips.totalCollectedMovements')
@@ -1846,6 +2062,7 @@ export default function SalesSummary() {
     : hayRenglonDeCargas
       ? t('salesSummary.tooltips.totalCollectedWithGiftCards')
       : t('salesSummary.tooltips.totalCollectedWithGiftCardsNoLoadsRow')
+
   // Lo pagado con saldo NO es un bucket (B5): va aparte y sin porcentaje, porque no es dinero que entró en el periodo (entró
   // cuando se vendió la tarjeta). BRUTO como los buckets; lo que regresó al saldo se dice aparte, sin restar en el panel (M2).
   // Sale después del estado de cuenta (Pro, M1) o en «Métodos de pago» (Free, o sin buckets), FUERA de la rama de los buckets:
@@ -1857,11 +2074,11 @@ export default function SalesSummary() {
         <WalletCards className="w-4 h-4 shrink-0" />
         {saldoDeRegalo.refunds > 0
           ? t('salesSummary.giftBalanceLineWithRefunds', {
-              amount: Currency(saldoDeRegalo.amount),
+              amount: pesos(saldoDeRegalo.amount),
               count: saldoDeRegalo.count,
-              refunds: Currency(saldoDeRegalo.refunds),
+              refunds: pesos(saldoDeRegalo.refunds),
             })
-          : t('salesSummary.giftBalanceLine', { amount: Currency(saldoDeRegalo.amount), count: saldoDeRegalo.count })}
+          : t('salesSummary.giftBalanceLine', { amount: pesos(saldoDeRegalo.amount), count: saldoDeRegalo.count })}
       </p>
     ) : null
 
@@ -1879,12 +2096,27 @@ export default function SalesSummary() {
           </div>
           <div>
             <p className="text-sm text-muted-foreground mb-1">{t('salesSummary.totalSales')}</p>
-            <p className="text-4xl font-bold tracking-tight">{Currency(data.summary.totalCollected)}</p>
+            <p className="text-4xl font-bold tracking-tight">{pesos(data.summary.totalCollected)}</p>
             <p className="text-sm text-muted-foreground mt-1">
               {data.transactions.total} {t('salesSummary.transactions')}
             </p>
+            {/* D7.5: un periodo sin nada se dice con palabras, no sólo con renglones en $0.00. */}
+            {sinMovimientos && (
+              <p className="text-sm text-muted-foreground mt-2" data-testid="sales-summary-empty">
+                {t('salesSummary.empty')}
+              </p>
+            )}
           </div>
         </div>
+
+        {/* Lo que pintan la barra, la dona y la tabla NO es el desglose de «Neto cobrado»: es lo que entró por método (cobros menos
+            devoluciones, con propina, también abonos de cuentas abiertas) y antes de comisiones. Se titula y se explica, para que no
+            se lea como la suma del número grande (full-testing FAIL 1 del carril F; como «Cobraste» del estado del periodo). */}
+        {!isFiltered && hayReparto && (
+          <p className="flex items-center gap-2 text-sm text-muted-foreground" data-testid="sales-summary-payment-split-title">
+            <Ayuda label={t('salesSummary.paymentSplit.title')} tooltip={t('salesSummary.paymentSplit.tooltip')} />
+          </p>
+        )}
 
         {/* Dynamic visualization based on viewType — hidden under a payment
             filter (the distribution would be a tautological 100% of the
@@ -1922,27 +2154,42 @@ export default function SalesSummary() {
       </GlassCard>
 
       {/* Summary Section (Collapsible) - Only shown for summary report type.
-          FREE: this is the basic "today's totals" breakdown and stays visible. */}
+          FREE: this is the basic "today's totals" breakdown and stays visible.
+          Carril F (D7.2): se lee como una cuenta — lo que suma, lo que resta, cada total con su raya, y abajo lo que va aparte. */}
       {effectiveReportType === 'summary' && (
         <Collapsible open={summaryOpen} onOpenChange={setSummaryOpen}>
           <GlassCard>
-            <CollapsibleTrigger asChild>
-              <div className="p-4 flex items-center justify-between cursor-pointer hover:bg-muted/30 transition-colors rounded-2xl">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-500/5">
-                    <Receipt className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                  </div>
-                  <div>
-                    <h3 className="font-medium text-sm">{t('salesSummary.sections.summary')}</h3>
-                    <p className="text-xs text-muted-foreground">{t('salesSummary.sections.summaryDesc')}</p>
-                  </div>
-                </div>
-                <ChevronDown className={cn('w-4 h-4 text-muted-foreground transition-transform', summaryOpen && 'rotate-180')} />
-              </div>
-            </CollapsibleTrigger>
+            <h3>
+              <CollapsibleTrigger asChild>
+                <button
+                  type="button"
+                  className="w-full p-4 flex items-center justify-between text-left cursor-pointer hover:bg-muted/30 transition-colors rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <span className="flex items-center gap-3">
+                    <span className="p-2 rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-500/5">
+                      <Receipt className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                    </span>
+                    <span>
+                      <span className="block font-medium text-sm">{t('salesSummary.sections.summary')}</span>
+                      <span className="block text-xs text-muted-foreground font-normal">{t('salesSummary.sections.summaryDesc')}</span>
+                    </span>
+                  </span>
+                  <ChevronDown className={cn('w-4 h-4 text-muted-foreground transition-transform', summaryOpen && 'rotate-180')} />
+                </button>
+              </CollapsibleTrigger>
+            </h3>
           <CollapsibleContent>
-            <div className="px-4 pb-4 space-y-1">
+            <div className="px-4 pb-4 space-y-1 lg:max-w-3xl">
               <div className="h-px bg-border/50 mb-3" />
+              {/* Qué quiere decir cada punto (D16.15). */}
+              <p className="flex flex-wrap gap-x-4 gap-y-1 px-4 pb-2 text-xs text-muted-foreground" data-testid="sales-summary-legend">
+                {(['positive', 'negative', 'neutral'] as const).map(k => (
+                  <span key={k} className="flex items-center gap-1.5">
+                    <StatusIndicator type={k} />
+                    {t(`salesSummary.legend.${k}`)}
+                  </span>
+                ))}
+              </p>
 
               {/* Ventas brutas - Collapsible parent with children.
                   Order-derived → hidden under a payment filter (can't be split per method). */}
@@ -1956,34 +2203,31 @@ export default function SalesSummary() {
                   tooltip={t(data.summary.baseDeCaja ? 'salesSummary.tooltips.grossSales' : 'salesSummary.tooltips.grossSalesOld')}
                   isOpen={grossSalesOpen}
                   onToggle={() => setGrossSalesOpen(!grossSalesOpen)}
+                  toggleLabel={t(grossSalesOpen ? 'salesSummary.periodTable.collapse' : 'salesSummary.periodTable.expand')}
                 >
-                  {selectedMetrics.includes('items') && (
-                    <SummaryRow
-                      label={t('salesSummary.rows.items')}
-                      value={data.summary.items}
-                      type="positive"
-                      indent={1}
-                      tooltip={t('salesSummary.tooltips.items')}
-                    />
-                  )}
-                  {/* D2: los cargos por servicio ya son venta; si hubo, se ven aunque no estén elegidos en Métricas. */}
-                  {(selectedMetrics.includes('serviceCosts') || (data.summary.serviceCosts ?? 0) !== 0) && (
-                    <SummaryRow
-                      label={t('salesSummary.rows.serviceCosts')}
-                      value={data.summary.serviceCosts}
-                      type="positive"
-                      indent={1}
-                      tooltip={t('salesSummary.tooltips.serviceCosts')}
-                    />
-                  )}
+                  {renglonesDeVentasBrutas(1)}
                 </CollapsibleSummaryRow>
               )}
+              {/* Nota de D16 (d): con «Ventas brutas» apagada, sus partes elegidas salen solas (antes desaparecían). */}
+              {!sinMetricasDeOrden && !selectedMetrics.includes('grossSales') && renglonesDeVentasBrutas(0)}
 
-              {/* Devoluciones - Same level as Ventas brutas */}
-              {selectedMetrics.includes('refunds') && (
+              {/* D16.2: con un filtro de pago, la cuenta abre con lo cobrado con ese filtro (con propina): Cobrado − Devoluciones −
+                  comisiones = Neto cobrado, al centavo. */}
+              {cobradoConFiltro && (
+                <SummaryRow
+                  label={t('salesSummary.rows.chargedAmount')}
+                  value={data.summary.chargedAmount ?? 0}
+                  type="positive"
+                  tooltip={t('salesSummary.tooltips.chargedAmount')}
+                />
+              )}
+
+              {/* Devoluciones - Same level as Ventas brutas. Con «Cobrado» a la vista sale si hubo, aunque no esté elegida: sin ella
+                  la cuenta hasta «Neto cobrado» no cierra (Codex r5 #4 del carril F). */}
+              {(selectedMetrics.includes('refunds') || (cobradoConFiltro && data.summary.refunds !== 0)) && (
                 <SummaryRow
                   label={t('salesSummary.rows.refunds')}
-                  value={-data.summary.refunds || 0}
+                  value={comoResta(data.summary.refunds)}
                   count={data.transactions.refunded > 0 && data.summary.refunds !== 0 ? data.transactions.refunded : undefined}
                   countLabel={t('salesSummary.refundsCountLabel', { count: data.transactions.refunded })}
                   type="negative"
@@ -1995,42 +2239,28 @@ export default function SalesSummary() {
               {!sinMetricasDeOrden && selectedMetrics.includes('discounts') && (
                 <SummaryRow
                   label={t('salesSummary.rows.discounts')}
-                  value={-data.summary.discounts}
-                  type="negative"
+                  value={comoResta(data.summary.discounts)}
+                  type={tipoDeResta(data.summary.discounts)}
                   tooltip={t('salesSummary.tooltips.discounts')}
                 />
               )}
 
-              {/* Ventas netas - order-derived → hidden under filter */}
-              {!sinMetricasDeOrden && selectedMetrics.includes('netSales') && (
+              {/* Ventas netas - order-derived → hidden under filter. D7.1: ya no se repite abajo como «Total de las ventas». */}
+              {mostrarVentasNetas && (
                 <>
                   <div className="h-px bg-border/30 mx-4 my-2" />
                   <SummaryRow
                     label={t('salesSummary.rows.netSales')}
                     value={data.summary.netSales}
-                    type="neutral"
+                    type="total"
                     bold
                     tooltip={t('salesSummary.tooltips.netSales')}
                   />
                 </>
               )}
 
-              {/* «Sin cobrar» (D6, base de caja): cuentas abiertas o pagadas a medias, sin propina. NO es venta. Order-derived → hidden
-                  in the movement view. Con cuentas abiertas se ve aunque no esté elegido en Métricas (Toast enseña siempre lo no cobrado). */}
-              {!sinMetricasDeOrden &&
-                data.summary.unpaid !== null &&
-                (selectedMetrics.includes('deferredSales') || (data.summary.unpaidOrders ?? 0) > 0) && (
-                <SummaryRow
-                  label={t('salesSummary.rows.deferredSales')}
-                  value={data.summary.unpaid}
-                  count={data.summary.unpaidOrders ?? undefined}
-                  countLabel={t('salesSummary.unpaidOrdersLabel', { count: data.summary.unpaidOrders ?? 0 })}
-                  type="neutral"
-                  tooltip={t(data.summary.baseDeCaja ? 'salesSummary.tooltips.deferredSales' : 'salesSummary.tooltips.deferredSalesOld')}
-                />
-              )}
-
-              {/* Impuestos - order-derived → hidden under filter */}
+              {/* Impuestos: ya vienen DENTRO de las ventas netas (México); informativo, después de ellas y al ras: con una devolución de
+                  otro día las ventas netas pueden quedar por debajo de sus impuestos (Codex r3 C del carril F). */}
               {!sinMetricasDeOrden && selectedMetrics.includes('taxes') && (
                 <SummaryRow
                   label={t('salesSummary.rows.taxes')}
@@ -2040,50 +2270,23 @@ export default function SalesSummary() {
                 />
               )}
 
-              {/* Total de las ventas - Mexico model: taxes already included in prices.
-                  netSales-based → order-derived, hidden under filter. */}
-              {!sinMetricasDeOrden && selectedMetrics.includes('totalCollected') && (
-                <>
-                  <div className="h-px bg-border/30 mx-4 my-2" />
-                  <SummaryRow
-                    label={t('salesSummary.rows.totalSales')}
-                    value={data.summary.netSales}
-                    count={data.transactions.completed}
-                    countLabel={t('salesSummary.transactionsLabel')}
-                    type="positive"
-                    bold
-                    tooltip={t('salesSummary.tooltips.totalSales')}
-                  />
-                  {/* Tarjetas de regalo (spec §7, B5): PARTE de las ventas y propinas de arriba, con sangría bajo su padre y con su
-                      mismo gate (M3). El server la manda sólo sin filtro de pago; se pinta si no es cero. */}
-                  {typeof data.summary.paidWithGiftCardBalance === 'number' && data.summary.paidWithGiftCardBalance !== 0 && (
-                    <SummaryRow
-                      label={t('salesSummary.rows.paidWithGiftCardBalance')}
-                      value={data.summary.paidWithGiftCardBalance}
-                      type="neutral"
-                      indent={1}
-                      tooltip={t('salesSummary.tooltips.paidWithGiftCardBalance')}
-                    />
-                  )}
-                </>
-              )}
-
               {/* Propinas */}
               {selectedMetrics.includes('tips') && (
                 <SummaryRow
                   label={t('salesSummary.rows.tips')}
                   value={data.summary.tips}
-                  type="positive"
-                  tooltip={t('salesSummary.tooltips.tips')}
+                  // Con «Cobrado» a la vista las propinas ya vienen dentro (y las devueltas, en «Devoluciones»): informativas.
+                  type={cobradoConFiltro ? 'neutral' : 'positive'}
+                  tooltip={t(cobradoConFiltro ? 'salesSummary.tooltips.tipsMovements' : 'salesSummary.tooltips.tips')}
                 />
               )}
 
-              {/* Comisiones de plataforma (Avoqado) */}
-              {selectedMetrics.includes('platformFees') && (
+              {/* Comisiones de plataforma (Avoqado). Igual que las devoluciones con «Cobrado» a la vista. */}
+              {(selectedMetrics.includes('platformFees') || (cobradoConFiltro && data.summary.platformFees !== 0)) && (
                 <SummaryRow
                   label={t('salesSummary.rows.platformFees')}
-                  value={-data.summary.platformFees || 0}
-                  type="negative"
+                  value={comoResta(data.summary.platformFees)}
+                  type={tipoDeResta(data.summary.platformFees)}
                   tooltip={t('salesSummary.tooltips.platformFees')}
                 />
               )}
@@ -2093,49 +2296,68 @@ export default function SalesSummary() {
               {data.summary.tenderCommissions !== 0 && (
                 <SummaryRow
                   label={t('salesSummary.rows.tenderCommissions')}
-                  value={-data.summary.tenderCommissions}
-                  type="negative"
+                  value={comoResta(data.summary.tenderCommissions)}
+                  type={tipoDeResta(data.summary.tenderCommissions)}
                   tooltip={t('salesSummary.tooltips.tenderCommissions')}
                 />
               )}
 
-              {/* Comisiones a empleados */}
-              {selectedMetrics.includes('staffCommissions') && (
-                <SummaryRow
-                  label={t('salesSummary.rows.staffCommissions')}
-                  value={-data.summary.staffCommissions || 0}
-                  type="negative"
-                  tooltip={t('salesSummary.tooltips.staffCommissions')}
-                />
-              )}
-
-              {/* Total cobrado - Money received */}
+              {/* Neto cobrado - Money received */}
               {selectedMetrics.includes('totalCollected') && (
                 <>
                   <div className="h-px bg-border/30 mx-4 my-2" />
                   <SummaryRow
                     label={t('salesSummary.rows.totalCollected')}
                     value={data.summary.totalCollected}
-                    type="positive"
+                    count={data.transactions.completed}
+                    countLabel={t('salesSummary.transactionsLabel')}
+                    type="total"
                     bold
                     tooltip={
                       settlementConfigs.length > 0
                         ? `${tooltipTotalCobrado.replace(/\.$/, '')}. ${t('salesSummary.tooltips.totalCollectedSettlement', { debitDays: settlementLabels.debitDays, amexDays: settlementLabels.amexDays })}`
                         : tooltipTotalCobrado
                     }
+                    // D16.3: los dos «netos» de la página miden distinto; se dice aquí, donde se comparan. Con un filtro de pago o de
+                    // comercio, «Neto cobrado» ya sale de los pagos: la comparación no aplica (Codex r2 #2).
+                    nota={showStatement && !sinMetricasDeOrden ? t('salesSummary.tooltips.totalCollectedVsStatement') : undefined}
                   />
+                  {/* Tarjetas de regalo (spec §7, B5): de lo cobrado, lo que se pagó con saldo (venta y propina). Informativo y al ras: trae
+                      propina, así que no es una parte de «Ventas netas» (Codex r2 #3). El server la manda sólo sin filtro de pago. */}
+                  {!sinMetricasDeOrden &&
+                    typeof data.summary.paidWithGiftCardBalance === 'number' &&
+                    data.summary.paidWithGiftCardBalance !== 0 && (
+                      <SummaryRow
+                        label={t('salesSummary.rows.paidWithGiftCardBalance')}
+                        value={data.summary.paidWithGiftCardBalance}
+                        type="neutral"
+                        tooltip={t('salesSummary.tooltips.paidWithGiftCardBalance')}
+                      />
+                    )}
                 </>
               )}
 
-              {/* Ganancia neta - True profit after all costs */}
+              {/* Comisiones a empleados: no las resta «Neto cobrado», sólo «Ganancia neta» (D7.2): van entre los dos. */}
+              {selectedMetrics.includes('staffCommissions') && (
+                <SummaryRow
+                  label={t('salesSummary.rows.staffCommissions')}
+                  value={comoResta(data.summary.staffCommissions)}
+                  type={tipoDeResta(data.summary.staffCommissions)}
+                  tooltip={t('salesSummary.tooltips.staffCommissions')}
+                />
+              )}
+
+              {/* Ganancia neta */}
               {selectedMetrics.includes('netProfit') && (
                 <>
                   <div className="h-px bg-border/50 mx-4 my-3" />
                   <SummaryRow
                     label={t('salesSummary.rows.netProfit')}
                     value={data.summary.netProfit}
-                    type="positive"
+                    type="total"
                     bold
+                    // Codex r1 #4: debajo de «Neto cobrado − empleados» la cuenta no da sin decir que también salen las propinas.
+                    caption={t('salesSummary.netProfitCaption')}
                     tooltip={t(
                       sinMetricasDeOrden
                         ? 'salesSummary.tooltips.netProfitMovements'
@@ -2147,21 +2369,39 @@ export default function SalesSummary() {
                 </>
               )}
 
+              {/* Aparte: lo que NO entra en la cuenta de arriba. */}
+              {hayAparte && (
+                <>
+                  <div className="h-px bg-border/50 mx-4 mt-3" />
+                  <p className="px-4 pt-3 pb-1 text-xs font-medium text-muted-foreground">{t('salesSummary.apart')}</p>
+                </>
+              )}
+
+              {/* «Sin cobrar» (D6, base de caja): cuentas abiertas o pagadas a medias, sin propina. NO es venta. Order-derived → hidden
+                  in the movement view. Con cuentas abiertas se ve aunque no esté elegido en Métricas (Toast enseña siempre lo no cobrado). */}
+              {mostrarSinCobrar && (
+                <SummaryRow
+                  label={t('salesSummary.rows.deferredSales')}
+                  value={data.summary.unpaid ?? 0}
+                  count={data.summary.unpaidOrders ?? undefined}
+                  countLabel={t('salesSummary.unpaidOrdersLabel', { count: data.summary.unpaidOrders ?? 0 })}
+                  type="neutral"
+                  tooltip={t(data.summary.baseDeCaja ? 'salesSummary.tooltips.deferredSales' : 'salesSummary.tooltips.deferredSalesOld')}
+                />
+              )}
+
               {/* Tarjetas de regalo cargadas (spec §7, B5): NO es venta ni entra a «Total cobrado» (ruling del contador, D5 r1):
                   renglón aparte, debajo de todo, con su conteo. Sólo sin filtro de pago y si no es cero. */}
               {hayRenglonDeCargas && (
-                <>
-                  <div className="h-px bg-border/50 mx-4 my-3" />
-                  <SummaryRow
-                    label={t('salesSummary.rows.giftCardLoads')}
-                    value={data.summary.giftCardLoads ?? 0}
-                    // Sólo con tarjetas cargadas en el rango: un neto de puras cancelaciones no dice «0 tarjetas» (lote ⭐).
-                    count={data.summary.giftCardLoadsCount || undefined}
-                    countLabel={t('salesSummary.giftCardsCountLabel', { count: data.summary.giftCardLoadsCount ?? 0 })}
-                    type="neutral"
-                    tooltip={t('salesSummary.tooltips.giftCardLoads')}
-                  />
-                </>
+                <SummaryRow
+                  label={t('salesSummary.rows.giftCardLoads')}
+                  value={data.summary.giftCardLoads ?? 0}
+                  // Sólo con tarjetas cargadas en el rango: un neto de puras cancelaciones no dice «0 tarjetas» (lote ⭐).
+                  count={data.summary.giftCardLoadsCount || undefined}
+                  countLabel={t('salesSummary.giftCardsCountLabel', { count: data.summary.giftCardLoadsCount ?? 0 })}
+                  type="neutral"
+                  tooltip={t('salesSummary.tooltips.giftCardLoads')}
+                />
               )}
 
               {/* Carril G · D5: paquetes comprados en línea y depósitos de reservas. Tampoco son venta ni entran a «Neto cobrado»
@@ -2198,7 +2438,7 @@ export default function SalesSummary() {
                       data.summary.reservationDepositsRefunded !== 0
                         ? t('salesSummary.depositsCountLabelWithRefunds', {
                             count: data.summary.reservationDepositsCount,
-                            refunded: Currency(data.summary.reservationDepositsRefunded),
+                            refunded: pesos(data.summary.reservationDepositsRefunded),
                           })
                         : t('salesSummary.depositsCountLabel', { count: data.summary.reservationDepositsCount })
                     }
@@ -2220,6 +2460,19 @@ export default function SalesSummary() {
       </Collapsible>
       )}
 
+      {/* Period Breakdown Table - Only shown for time-based reports (Pro-only: effectiveReportType is forced to 'summary' for
+          Free). D14.3: justo donde estaría el Resumen (antes quedaba al fondo, después del estado de cuenta), con la columna
+          «Total» de la cabecera del SERVIDOR (D14.2). */}
+      {hasAccess && effectiveReportType !== 'summary' && periodData && periodData.length > 0 && (
+        <PeriodBreakdownTable
+          periods={periodData}
+          total={totalDelPeriodo}
+          selectedMetrics={selectedMetrics}
+          reportType={effectiveReportType}
+          venueTimezone={venueTimezone}
+        />
+      )}
+
       {/* Carril G · D4: «Ventas por canal» y «Por tipo de pedido», en todos los planes (decisión del founder del 22-nov). */}
       <SalesByChannelSection
         byChannel={apiResponse?.byChannel}
@@ -2227,7 +2480,7 @@ export default function SalesSummary() {
         // La vista que de verdad pidió la pantalla (Codex r3 #2): con el plan Gratis la petición no lleva el filtro guardado.
         conFiltro={apiResponse?.filtered === true}
         desfasado={apiResponse?.channelBreakdownOutOfSync === true}
-        formatCurrency={Currency}
+        formatCurrency={pesos}
       />
 
       {/* Period statement (Mercury-style): "cuánto gané, cuánto me pagan, cuándo
@@ -2241,7 +2494,7 @@ export default function SalesSummary() {
             destinations={statementDestinations}
             calendar={settlementCalendar}
             venueTimezone={venueTimezone}
-            formatCurrency={Currency}
+            formatCurrency={pesos}
           />
           {lineaDeSaldo('px-1')}
           {/* The week strip reads the whole venue: with one merchant chosen it would contradict the statement above (D9.2). */}
@@ -2254,48 +2507,37 @@ export default function SalesSummary() {
         </p>
       )}
 
-      {/* Period Breakdown Table - Only shown for time-based reports (Pro-only:
-          effectiveReportType is forced to 'summary' for Free). */}
-      {hasAccess && effectiveReportType !== 'summary' && periodData && periodData.length > 0 && (
-        <PeriodBreakdownTable
-          periods={periodData}
-          selectedMetrics={selectedMetrics}
-          reportType={effectiveReportType}
-          venueTimezone={venueTimezone}
-        />
-      )}
-
       {/* Payment Methods Section (Collapsible). For Pro + unfiltered the statement
           above already tells the by-method story, so this only shows for Free or
           when a payment filter is active. */}
-      {!showStatement && (
+      {/* D16.2: con un filtro de pago la tarjeta sólo repetía «Quita el filtro…» (ya lo dice el número grande): no sale. */}
+      {!showStatement && !isFiltered && (
       <Collapsible open={paymentsOpen} onOpenChange={setPaymentsOpen}>
         <GlassCard>
-          <CollapsibleTrigger asChild>
-            <div className="p-4 flex items-center justify-between cursor-pointer hover:bg-muted/30 transition-colors rounded-2xl">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-gradient-to-br from-purple-500/20 to-purple-500/5">
-                  <CreditCard className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                </div>
-                <div>
-                  <h3 className="font-medium text-sm">{t('salesSummary.sections.paymentMethods')}</h3>
-                  <p className="text-xs text-muted-foreground">{t('salesSummary.sections.paymentMethodsDesc')}</p>
-                </div>
-              </div>
-              <ChevronDown className={cn('w-4 h-4 text-muted-foreground transition-transform', paymentsOpen && 'rotate-180')} />
-            </div>
-          </CollapsibleTrigger>
+          <h3>
+            <CollapsibleTrigger asChild>
+              <button
+                type="button"
+                className="w-full p-4 flex items-center justify-between text-left cursor-pointer hover:bg-muted/30 transition-colors rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <span className="flex items-center gap-3">
+                  <span className="p-2 rounded-xl bg-gradient-to-br from-purple-500/20 to-purple-500/5">
+                    <CreditCard className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                  </span>
+                  <span>
+                    <span className="block font-medium text-sm">{t('salesSummary.sections.paymentMethods')}</span>
+                    <span className="block text-xs text-muted-foreground font-normal">{t('salesSummary.sections.paymentMethodsDesc')}</span>
+                  </span>
+                </span>
+                <ChevronDown className={cn('w-4 h-4 text-muted-foreground transition-transform', paymentsOpen && 'rotate-180')} />
+              </button>
+            </CollapsibleTrigger>
+          </h3>
           <CollapsibleContent>
             <div className="px-4 pb-4 space-y-1">
               <div className="h-px bg-border/50 mb-3" />
 
-              {isFiltered ? (
-                // Under a payment filter the distribution is a single-method 100% — show a hint.
-                <div className="flex items-center gap-2 px-4 py-3 text-sm text-muted-foreground">
-                  <Filter className="w-4 h-4 shrink-0" />
-                  <span>{t('salesSummary.controls.filterBy.filteredMessage')}</span>
-                </div>
-              ) : apiResponse?.byPaymentMethodDetailed && apiResponse.byPaymentMethodDetailed.length > 0 ? (
+              {apiResponse?.byPaymentMethodDetailed && apiResponse.byPaymentMethodDetailed.length > 0 ? (
                 <>
                 {/* Enriched breakdown: Card expands to Credit/Debit/AMEX/International with commission. */}
                 {apiResponse.byPaymentMethodDetailed.map(bucket => {
@@ -2332,7 +2574,9 @@ export default function SalesSummary() {
                       count={bucket.count}
                       percentage={bucket.percentage}
                       platformFees={bucket.platformFees}
-                      countLabel={t('salesSummary.transactionsShort')}
+                      // El importe es el movimiento (cobros menos devoluciones) y el conteo incluye las devoluciones: «movimientos»,
+                      // no «cobros» (Codex r1 #5).
+                      countLabel={t('salesSummary.movementsLabel')}
                       feesLabel={t('salesSummary.rows.platformFees')}
                       settlementLabel={cfg.settlementLabel}
                       subBuckets={bucket.subBuckets}
@@ -2360,6 +2604,7 @@ export default function SalesSummary() {
                     amount={data.paymentMethods.card.amount}
                     count={data.paymentMethods.card.count}
                     percentage={data.paymentMethods.card.percentage}
+                    countLabel={t('salesSummary.movementsLabel')}
                     settlementLabel={settlementLabels.card}
                   />
                   <PaymentMethodRow
@@ -2368,6 +2613,7 @@ export default function SalesSummary() {
                     amount={data.paymentMethods.cash.amount}
                     count={data.paymentMethods.cash.count}
                     percentage={data.paymentMethods.cash.percentage}
+                    countLabel={t('salesSummary.movementsLabel')}
                     settlementLabel={settlementLabels.cash}
                   />
                   <PaymentMethodRow
@@ -2376,10 +2622,11 @@ export default function SalesSummary() {
                     amount={data.paymentMethods.other.amount}
                     count={data.paymentMethods.other.count}
                     percentage={data.paymentMethods.other.percentage}
+                    countLabel={t('salesSummary.movementsLabel')}
                   />
                 </>
               )}
-              {!isFiltered && lineaDeSaldo('px-4 py-3')}
+              {lineaDeSaldo('px-4 py-3')}
             </div>
           </CollapsibleContent>
         </GlassCard>
@@ -2389,8 +2636,10 @@ export default function SalesSummary() {
       {/* FREE upsell: history + advanced reporting are Pro. Inline FeatureGate
           renders a blurred teaser of what Pro unlocks (it's already a paywall card
           for non-Pro venues, and a no-op pass-through for Pro). */}
+      {/* D15.2: la lista de beneficios se lee (antes iba DENTRO del candado, borrosa detrás de su tarjeta); el candado sólo
+          trae el botón y el precio. */}
       {!hasAccess && (
-        <FeatureGate feature="ADVANCED_REPORTS">
+        <div className="space-y-3" data-testid="sales-summary-upsell">
           <div className="rounded-2xl border border-input bg-card p-6 space-y-4">
             <h3 className="text-lg font-semibold">{t('salesSummary.basic.upsell.title')}</h3>
             <ul className="space-y-2 text-sm text-muted-foreground">
@@ -2400,7 +2649,10 @@ export default function SalesSummary() {
               <li>• {t('salesSummary.basic.upsell.export')}</li>
             </ul>
           </div>
-        </FeatureGate>
+          <FeatureGate feature="ADVANCED_REPORTS">
+            <div aria-hidden className="min-h-[12rem]" />
+          </FeatureGate>
+        </div>
       )}
     </div>
   )
