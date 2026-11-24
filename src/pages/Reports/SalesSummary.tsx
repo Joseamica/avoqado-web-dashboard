@@ -2105,12 +2105,7 @@ export default function SalesSummary() {
             se lea como la suma del número grande (full-testing FAIL 1 del carril F; como «Cobraste» del estado del periodo). */}
         {!isFiltered && hayReparto && (
           <p className="flex items-center gap-2 text-sm text-muted-foreground" data-testid="sales-summary-payment-split-title">
-            <Ayuda
-              label={t('salesSummary.paymentSplit.title')}
-              tooltip={t('salesSummary.paymentSplit.tooltip')}
-              // Lo pagado con saldo de regalo entró otro día (al vender la tarjeta): se dice sólo si sale en el reparto (Codex r8 #1).
-              nota={rv.giftCard !== 0 ? t('salesSummary.paymentSplit.giftCardNote') : undefined}
-            />
+            <Ayuda label={t('salesSummary.paymentSplit.title')} tooltip={t('salesSummary.paymentSplit.tooltip')} />
           </p>
         )}
 

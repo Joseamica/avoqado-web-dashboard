@@ -99,4 +99,13 @@ describe.each([
   it('los impuestos dicen que ya vienen dentro (México) y no se suman', () => {
     expect(s.tooltips.taxes).toMatch(lang === 'es' ? /dentro de tus precios/ : /inside your prices/)
   })
+
+  // Carril F, regla de parada (Codex r8-r11): el reparto trae datos de varias formas (saldo de regalo y a favor, abonos, cuentas con
+  // tarjeta de regalo fuera); su ayuda no afirma qué «entró» ni qué ya resta: sólo que es otra cuenta y qué PUEDE traer.
+  it('🔴 el reparto de arriba se titula por método y su ayuda no promete qué entró', () => {
+    expect(s.paymentSplit.title).toBe(lang === 'es' ? 'Por método de pago' : 'By payment method')
+    expect(s.paymentSplit.tooltip).toMatch(lang === 'es' ? /no es «Neto cobrado»/ : /not «Net collected»/)
+    expect(s.paymentSplit.tooltip).not.toMatch(/entró|ya menos|came in|already minus/i)
+    expect(s.paymentSplit).not.toHaveProperty('giftCardNote')
+  })
 })

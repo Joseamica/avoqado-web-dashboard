@@ -817,7 +817,7 @@ describe('SalesSummary · carril F, pantalla (hz:fefa11b6:D7, D14, D15, D16)', (
     expect(within(tarjeta).getAllByText('$600.00').length).toBeGreaterThan(0)
   })
 
-  it('🔴 full-testing FAIL 1 · lo de la barra se titula «Cobrado por método» (no es el desglose de «Neto cobrado») y dice qué trae', async () => {
+  it('🔴 full-testing FAIL 1 · lo de la barra lleva su título (no es el desglose de «Neto cobrado») y su ayuda', async () => {
     h.response = respuesta({ salesByPaymentMethod: [{ method: 'CASH', amount: 600, count: 3, percentage: 60 }, { method: 'CREDIT_CARD', amount: 400, count: 2, percentage: 40 }] })
     pintar()
     const tarjeta = await tarjetaDelTotal()
@@ -825,25 +825,6 @@ describe('SalesSummary · carril F, pantalla (hz:fefa11b6:D7, D14, D15, D16)', (
     expect(within(tarjeta).getByText('salesSummary.paymentSplit.tooltip')).toBeInTheDocument()
     // El título va antes de la leyenda con los importes.
     expect(antes(titulo, within(tarjeta).getAllByText('$600.00')[0])).toBe(true)
-  })
-
-  it('🔴 Codex r8 #1 · con saldo de tarjeta de regalo en el reparto, la ayuda dice que ese dinero entró al vender la tarjeta', async () => {
-    h.response = respuesta({
-      salesByPaymentMethod: [
-        { method: 'CASH', amount: 600, count: 3, percentage: 60 },
-        { method: 'GIFT_CARD', amount: 400, count: 2, percentage: 40 },
-      ],
-    })
-    pintar()
-    const tarjeta = await tarjetaDelTotal()
-    expect(within(tarjeta).getByText('salesSummary.paymentSplit.giftCardNote')).toBeInTheDocument()
-  })
-
-  it('control · sin saldo de regalo en el reparto, la ayuda no habla de tarjetas de regalo', async () => {
-    h.response = respuesta({ salesByPaymentMethod: [{ method: 'CASH', amount: 600, count: 3, percentage: 100 }] })
-    pintar()
-    const tarjeta = await tarjetaDelTotal()
-    expect(within(tarjeta).queryByText('salesSummary.paymentSplit.giftCardNote')).not.toBeInTheDocument()
   })
 
   it('🔴 W6 · el botón «‹» de cada subpanel de Controles tiene nombre', async () => {

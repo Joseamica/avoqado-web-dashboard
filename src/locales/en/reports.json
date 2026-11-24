@@ -992,9 +992,8 @@
     "movementsLabel": "movements",
     "netProfitCaption": "Net collected without tips (they belong to staff) and without employee commissions",
     "paymentSplit": {
-      "title": "Came in by method",
-      "tooltip": "What came in through each method in the period, minus refunds, tips included and before fees; open-tab deposits too. That is why it does not add up to «Net collected». It is not «You collected» in the period statement either, which does not subtract refunds.",
-      "giftCardNote": "«Gift card balance» is what was paid with balance: that money came in when the card was sold or loaded, which may be this same period or an earlier one, and a balance adjustment was not money."
+      "title": "By payment method",
+      "tooltip": "How what was recorded in the period splits by payment method. It is a different figure: it is not «Net collected» nor «You collected», and it does not subtract fees. It may include tips, open-tab deposits and payments with balance (gift card or store credit), which are not always new money for the period."
     }
   },
   "salesByItem": {
