@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter } from 'react-router-dom'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { SalesSummaryResponse } from '@/services/reports/salesSummary.service'
 
 // Funciones normales, no vi.fn: `mockReset: true` vaciaría un vi.fn() del factory antes de cada prueba.
@@ -1045,6 +1045,12 @@ describe('SalesSummary · carril F, pantalla (hz:fefa11b6:D7, D14, D15, D16)', (
 })
 
 describe('SalesSummary · comparar con otro periodo (carril F2, hz:fefa11b6:D7)', () => {
+  // Un reloj fijo: las fechas de 2026 se escriben sin año sólo mientras «hoy» es de 2026.
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-11-23T20:00:00.000Z'))
+  })
+  afterEach(() => vi.useRealTimers())
   const SEMANA = { startDate: '2026-11-16T06:00:00.000Z', endDate: '2026-11-23T05:59:59.999Z' }
   const ANTERIOR = { startDate: '2026-11-09T06:00:00.000Z', endDate: '2026-11-16T05:59:59.999Z' }
   const conComparacion = (comparison: Record<string, unknown>, summary: Partial<SalesSummaryResponse['summary']> = {}) => (f: Record<string, unknown>) =>
@@ -1092,12 +1098,13 @@ describe('SalesSummary · comparar con otro periodo (carril F2, hz:fefa11b6:D7)'
     await tarjetaDelTotal()
     await elegir('previous_period')
     await waitFor(() => expect(h.pedidos[h.pedidos.length - 1]?.compareTo).toBe('previous_period'))
-    const ventanas = await screen.findByTestId('sales-summary-compare-windows')
+    // Las fechas de cada lado van junto al número grande, fuera del Resumen que se pliega.
+    const grande = await screen.findByTestId('sales-summary-compare-headline')
+    const ventanas = within(grande).getByTestId('sales-summary-compare-windows')
     expect(ventanas.textContent).toContain('salesSummary.compare.thisPeriod: lun 16 nov – dom 22 nov')
     expect(ventanas.textContent).toContain('salesSummary.compare.compared: lun 9 nov – dom 15 nov')
     // El número grande dice siempre cuánto fue el otro periodo, y su cambio (verde: más neto cobrado).
-    const grande = screen.getByTestId('sales-summary-compare-headline')
-    expect(grande.textContent).toContain('salesSummary.compare.headline(window=lun 9 nov – dom 15 nov,amount=$10,000.00)')
+    expect(grande.textContent).toContain('salesSummary.compare.headline(amount=$10,000.00)')
     expect(within(grande).getByText(/\$500\.00 · 5 %/).closest('[data-tono]')?.getAttribute('data-tono')).toBe('mejora')
     // Más ventas = verde; más devoluciones = rojo (y el «antes» de lo que resta, en negativo como su renglón); impuestos = gris.
     const comparados = screen.getAllByTestId('comparado')
@@ -1107,6 +1114,8 @@ describe('SalesSummary · comparar con otro periodo (carril F2, hz:fefa11b6:D7)'
     expect(deDevoluciones.querySelector('[data-tono]')?.getAttribute('data-tono')).toBe('empeora')
     const deImpuestos = comparados.find(c => c.textContent?.includes('$1,000.00') && c.textContent?.includes('37.9 %'))!
     expect(deImpuestos.querySelector('[data-tono]')?.getAttribute('data-tono')).toBe('neutro')
+    // Una sola petición con la comparación (no una aparte para el otro periodo).
+    expect(h.pedidos.filter(p => p.compareTo)).toHaveLength(1)
   })
 
   it('🔴 antes en $0: «nuevo», sin un % infinito; los dos iguales: «sin cambio»', async () => {

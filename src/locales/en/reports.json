@@ -1005,7 +1005,7 @@
         "previous_year": "Same period last year"
       },
       "unavailable": "Could not compare. Reload the page.",
-      "headline": "Before ({{window}}): {{amount}}",
+      "headline": "Before: {{amount}}",
       "excludesLegacyQr": "Does not include payments from the previous QR system, so the change is not calculated.",
       "thisPeriod": "This period",
       "compared": "Compared",

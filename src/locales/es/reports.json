@@ -1005,7 +1005,7 @@
         "previous_year": "Mismo periodo del año pasado"
       },
       "unavailable": "No se pudo comparar. Vuelve a cargar la página.",
-      "headline": "Antes ({{window}}): {{amount}}",
+      "headline": "Antes: {{amount}}",
       "excludesLegacyQr": "No incluye los cobros del QR anterior; por eso no se calcula el cambio.",
       "thisPeriod": "Este periodo",
       "compared": "Comparado",

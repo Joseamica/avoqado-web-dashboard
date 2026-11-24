@@ -2211,12 +2211,12 @@ export default function SalesSummary() {
             <p className="text-sm text-muted-foreground mt-1">
               {data.transactions.total} {t('salesSummary.transactions')}
             </p>
-            {/* Carril F2: el número grande dice SIEMPRE cuánto fue el otro periodo y su ventana (así la caída se ve aunque la tabla por
-                días no tenga filas o el cambio no se calcule), y su cambio cuando lo hay. */}
+            {/* Carril F2: junto al número grande (siempre a la vista, aunque el Resumen se pliegue o se vea por horas) van cuánto fue el
+                otro periodo, su cambio y las fechas y horas exactas de cada lado. */}
             {comparado?.summary && (
               <div className="mt-2 space-y-0.5 text-sm text-muted-foreground" data-testid="sales-summary-compare-headline">
                 <p>
-                  {t('salesSummary.compare.headline', { window: ventanaComparada, amount: pesos(comparado.summary.totalCollected) })}
+                  {t('salesSummary.compare.headline', { amount: pesos(comparado.summary.totalCollected) })}
                   {comparado.changes?.totalCollected && (
                     <>
                       {' · '}
@@ -2224,6 +2224,15 @@ export default function SalesSummary() {
                     </>
                   )}
                 </p>
+                <div className="text-xs" data-testid="sales-summary-compare-windows">
+                  <p>
+                    {t('salesSummary.compare.thisPeriod')}: <span className="text-foreground">{ventanaActual}</span>
+                    {' · '}
+                    {t(comparado.matchedWeekday ? 'salesSummary.compare.comparedWeekday' : 'salesSummary.compare.compared')}:{' '}
+                    <span className="text-foreground">{ventanaComparada}</span>
+                  </p>
+                  {comparado.untilSameTime && <p>{t('salesSummary.compare.untilSameTimeNote')}</p>}
+                </div>
                 {comparado.excludesLegacyQr && <p data-testid="sales-summary-compare-legacy">{t('salesSummary.compare.excludesLegacyQr')}</p>}
               </div>
             )}
@@ -2318,20 +2327,6 @@ export default function SalesSummary() {
                   </span>
                 ))}
               </p>
-              {/* Carril F2: las fechas y horas exactas de cada lado, siempre a la vista. */}
-              {comparado && (
-                <div className="px-4 pb-2 text-xs text-muted-foreground" data-testid="sales-summary-compare-windows">
-                  <p>
-                    {t('salesSummary.compare.thisPeriod')}: <span className="text-foreground">{ventanaActual}</span>
-                    {' · '}
-                    {t(comparado.matchedWeekday ? 'salesSummary.compare.comparedWeekday' : 'salesSummary.compare.compared')}:{' '}
-                    <span className="text-foreground">{ventanaComparada}</span>
-                  </p>
-                  {comparado.untilSameTime && <p>{t('salesSummary.compare.untilSameTimeNote')}</p>}
-                  {comparado.excludesLegacyQr && <p>{t('salesSummary.compare.excludesLegacyQr')}</p>}
-                </div>
-              )}
-
               {/* Ventas brutas - Collapsible parent with children.
                   Order-derived → hidden under a payment filter (can't be split per method). */}
               {!sinMetricasDeOrden && selectedMetrics.includes('grossSales') && (
