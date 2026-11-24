@@ -992,8 +992,9 @@
     "movementsLabel": "movimientos",
     "netProfitCaption": "Neto cobrado sin propinas (son del personal) y sin comisiones a empleados",
     "paymentSplit": {
-      "title": "Cobrado por método",
-      "tooltip": "Lo que entró por cada método en el periodo: cobros menos devoluciones, con propina y también los abonos de cuentas abiertas, antes de comisiones. Por eso no suma «Neto cobrado»: es como «Cobraste» del estado del periodo."
+      "title": "Entró por método",
+      "tooltip": "Lo que entró por cada método en el periodo, ya menos las devoluciones, con propina y antes de comisiones; también los abonos de cuentas abiertas. Por eso no suma «Neto cobrado». Tampoco es «Cobraste» del estado del periodo, que no resta las devoluciones.",
+      "giftCardNote": "«Saldo de tarjeta de regalo» es lo que se pagó con saldo: ese dinero entró el día en que se vendió la tarjeta."
     }
   },
   "salesByItem": {
