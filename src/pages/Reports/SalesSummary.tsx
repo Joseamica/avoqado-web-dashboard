@@ -921,11 +921,19 @@ export default function SalesSummary() {
   const isFiltered = filtroDePago !== null
 
   // Fetch venue merchant accounts
-  const { data: merchantAccounts = [] } = useQuery({
+  const { data: merchantAccounts = [], isSuccess: comerciosListos } = useQuery({
     queryKey: ['venueMerchantAccounts', venueId],
     queryFn: () => getVenueMerchantAccountsByVenueId(venueId),
     staleTime: 1000 * 60 * 30,
   })
+  // Codex r14 #2 (carril F): si la afiliación elegida sale de la lista (soporte la retiró), el filtro se quita solo. El SERVIDOR ya
+  // rechaza con 400 un comercio que no es del negocio, y sin él en la lista no queda selector para quitarlo.
+  useEffect(() => {
+    if (comerciosListos && merchantAccountId && !merchantAccounts.some(m => m.id === merchantAccountId)) {
+      setMerchantAccountId(null)
+      setPendingMerchantAccountId(null)
+    }
+  }, [comerciosListos, merchantAccounts, merchantAccountId])
 
   const { data: settlementConfigs = [] } = useQuery({
     queryKey: ['venueSettlementInfo', venueId],

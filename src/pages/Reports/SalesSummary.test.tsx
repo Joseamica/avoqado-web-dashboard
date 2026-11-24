@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -95,9 +95,9 @@ const SOLO_SALDO = () =>
     giftCardBalanceBreakdown: { amount: 69, count: 1, tips: 0, refunds: 0 },
   })
 
-const pintar = () =>
+const pintar = (client = new QueryClient({ defaultOptions: { queries: { retry: false, retryDelay: 0 } } })) =>
   render(
-    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false, retryDelay: 0 } } })}>
+    <QueryClientProvider client={client}>
       <MemoryRouter>
         <SalesSummary />
       </MemoryRouter>
@@ -485,6 +485,28 @@ describe('Resumen de ventas · sólo controles que hacen algo (D3)', () => {
     expect(within(filtrarPor).getByRole('button', { name: 'salesSummary.controls.apply', hidden: true })).toBeEnabled()
     fireEvent.click(within(filtrarPor).getByText('salesSummary.controls.filterBy.paymentMethod.options.all'))
     expect(within(filtrarPor).getByRole('button', { name: 'salesSummary.controls.apply', hidden: true })).toBeDisabled()
+  })
+
+  it('🔴 Codex r14 #2 · si la afiliación elegida sale de la lista, el filtro se quita solo (el SERVIDOR ya la rechaza con 400)', async () => {
+    h.merchants = [
+      { id: 'm1', displayName: 'Comercio Uno', provider: { name: 'Blumon' } },
+      { id: 'm2', displayName: 'Comercio Dos', provider: { name: 'AngelPay' } },
+    ]
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false, retryDelay: 0 } } })
+    pintar(qc)
+    const panel = await abrirPanelDeControles()
+    const comercio = panel.querySelector('[data-panel="merchant"]') as HTMLElement
+    fireEvent.click(within(comercio).getByText('Comercio Uno'))
+    fireEvent.click(within(comercio).getByRole('button', { name: 'salesSummary.controls.apply', hidden: true }))
+    await waitFor(() => expect(h.pedidos[h.pedidos.length - 1]).toMatchObject({ merchantAccountId: 'm1' }))
+    // Soporte retira «Comercio Uno»: la lista se actualiza y la lectura que usa la pantalla ya no lleva el filtro (la de sin filtro
+    // puede venir de la caché, por eso se mira la consulta activa y no la última petición).
+    h.merchants = [{ id: 'm2', displayName: 'Comercio Dos', provider: { name: 'AngelPay' } }]
+    await act(() => qc.invalidateQueries({ queryKey: ['venueMerchantAccounts'] }))
+    await waitFor(() => {
+      const activas = qc.getQueryCache().findAll({ type: 'active' }).map(q => JSON.stringify(q.queryKey))
+      expect(activas.some(k => k.includes('"merchantAccountId":"m1"'))).toBe(false)
+    })
   })
 
   it('🔴 Codex r1 #2 · una preferencia con `selectedMetrics` que no es lista descarta TODO lo guardado (no deja un filtro corrupto vivo)', async () => {
