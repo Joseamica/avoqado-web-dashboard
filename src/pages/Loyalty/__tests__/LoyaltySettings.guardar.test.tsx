@@ -203,3 +203,25 @@ describe('LoyaltySettings · el texto dice lo que el servidor hará al guardar (
 		expect(regla()).not.toHaveTextContent('Al guardar')
 	})
 })
+
+describe('LoyaltySettings · una configuración migrada (vencimiento apagado, D27)', () => {
+	it('abre APAGADA y, al prenderla, avisa que los días cuentan desde hoy y manda sólo los días', async () => {
+		h.config = { ...CONFIG, pointsExpireDays: null, pointsExpireSince: null }
+		ponerAncho(1440)
+		const boton = await pintar()
+		expect(screen.getByText('Los puntos nunca expiran')).toBeInTheDocument()
+		const [, interruptorDeExpiracion] = screen.getAllByRole('switch')
+		expect(interruptorDeExpiracion).toHaveAttribute('aria-checked', 'false')
+
+		fireEvent.click(interruptorDeExpiracion)
+		const regla = await screen.findByTestId('loyalty-expiration-rule')
+		expect(regla).toHaveTextContent(/pasa 365 días sin movimientos en sus puntos/)
+		expect(regla).toHaveTextContent('Al guardar, los días sin movimientos empiezan a contar desde hoy')
+		expect(regla).not.toHaveTextContent(/a lo más, desde el/)
+
+		await waitFor(() => expect(boton).not.toBeDisabled())
+		fireEvent.click(boton)
+		await waitFor(() => expect(h.guardados).toHaveLength(1))
+		expect(h.guardados[0]).toEqual({ pointsExpireDays: 365 })
+	})
+})
