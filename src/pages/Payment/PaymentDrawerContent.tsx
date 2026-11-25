@@ -62,13 +62,14 @@ export function PaymentDrawerContent({ paymentId, onClose, venueTimezone }: Paym
   const [rechazoAlQuitar, setRechazoAlQuitar] = useState<string | null>(null)
   // Cada apertura de la ficha es una vuelta nueva: un rechazo que llega tarde de la ficha anterior no se le pega a ésta.
   const vueltaDeLaFicha = useRef(0)
-  // Al abrir la ficha se releen los permisos (un permiso devuelto o quitado se ve aquí, no 5 min después); mientras llegan, ni
-  // botón ni «te falta el permiso».
+  // Al abrir la ficha se releen el pago y los permisos (si otra caja ya cobró o le cambiaron el permiso, se ve aquí); mientras
+  // llegan, ni botón ni razón.
   const permisosReleyendo = useIsFetching({ queryKey: accessQueryKey(venueId) }) > 0
   const abrirFichaDelCliente = (cliente: Customer) => {
     vueltaDeLaFicha.current += 1
     setRechazoAlQuitar(null)
     queryClient.invalidateQueries({ queryKey: accessQueryKey(venueId) })
+    queryClient.invalidateQueries({ queryKey: ['payment', paymentId] })
     setCustomerFormInitial(cliente)
     setCustomerFormOpen(true)
   }
@@ -260,13 +261,13 @@ export function PaymentDrawerContent({ paymentId, onClose, venueTimezone }: Paym
   // editar órdenes. Sin el «sí» (venta cobrada o cancelada, o un SERVIDOR que no manda el campo) no se ofrece; va la razón si la hay.
   const customerUnlink: CustomerUnlink | undefined = payment.customerUnlink
   const rechazoVigente = rechazoAlQuitar
-  const permisosAlDia = !permisosCargando && !permisosReleyendo
-  const puedeQuitarCliente = customerUnlink?.allowed === true && permisosAlDia && can('orders:update') && !rechazoVigente
+  const datosAlDia = !permisosCargando && !permisosReleyendo && !paymentQuery.isFetching
+  const puedeQuitarCliente = customerUnlink?.allowed === true && datosAlDia && can('orders:update') && !rechazoVigente
   const motivoParaNoQuitar =
     rechazoVigente ??
     (customerUnlink?.allowed === false
       ? motivoDelServidor(customerUnlink, t)
-      : can('orders:update') || !permisosAlDia
+      : can('orders:update') || !datosAlDia
         ? null
         : t('customer.unlinkBlocked.permission'))
 

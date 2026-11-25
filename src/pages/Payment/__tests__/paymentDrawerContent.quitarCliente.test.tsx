@@ -241,6 +241,25 @@ describe('D34 · «Eliminar de la transacción» sólo cuando el SERVIDOR lo ace
     expect(screen.getByRole('button', { name: BOTON })).toBeInTheDocument()
   })
 
+  it('🔴 al abrir la ficha se relee el pago: si otra caja ya lo cobró, no se ofrece el botón', async () => {
+    m.pago = pago({ allowed: true })
+    render(
+      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+        <PaymentDrawerContent paymentId="p1" onClose={() => {}} venueTimezone="America/Mexico_City" />
+      </QueryClientProvider>,
+    )
+    const nombre = await screen.findByRole('button', { name: 'Ana Ruiz' })
+    // Entre que se abrió el detalle y se abre la ficha, otra caja cobró lo que faltaba.
+    m.pago = pago({ allowed: false, code: 'SALE_CUSTOMER_ALREADY_ASSIGNED', reason: 'razón del servidor' })
+    const lecturasAntes = m.lecturas
+    fireEvent.click(nombre)
+    await screen.findByRole('heading', { name: 'Editar cliente' })
+    expect(screen.queryByRole('button', { name: BOTON })).not.toBeInTheDocument()
+    await waitFor(() => expect(m.lecturas).toBeGreaterThan(lecturasAntes))
+    expect(await screen.findByText(es.customer.unlinkBlocked.paid)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: BOTON })).not.toBeInTheDocument()
+  })
+
   it('regresión: un 5xx o la red caída no retira el botón (se puede reintentar)', async () => {
     m.pago = pago({ allowed: true })
     m.rechazo = { status: 500, message: 'Error interno' }
