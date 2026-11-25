@@ -360,6 +360,8 @@
     "sent": "Campaña enviada a {{count}} clientes",
     "content": "Contenido del correo",
     "failedCount": "{{count}} con error",
+    "skippedCount_one": "{{count}} omitido",
+    "skippedCount_other": "{{count}} omitidos",
     "columns": {
       "name": "Campaña",
       "status": "Estado",

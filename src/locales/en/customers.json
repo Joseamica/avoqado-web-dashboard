@@ -360,6 +360,8 @@
     "sent": "Campaign sent to {{count}} customers",
     "content": "Email content",
     "failedCount": "{{count}} failed",
+    "skippedCount_one": "{{count}} skipped",
+    "skippedCount_other": "{{count}} skipped",
     "columns": {
       "name": "Campaign",
       "status": "Status",
