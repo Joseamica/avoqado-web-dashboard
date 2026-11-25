@@ -16,6 +16,7 @@ import { FeatureGate } from '@/components/billing/FeatureGate'
 import { PermissionGate } from '@/components/PermissionGate'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
+import { useVenueDateTime } from '@/utils/datetime'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import loyaltyService from '@/services/loyalty.service'
 import { getIntlLocale } from '@/utils/i18n-locale'
@@ -38,6 +39,16 @@ const schema = z.object({
 })
 
 type FormData = z.infer<typeof schema>
+
+/** «26 de noviembre de 2026» en la zona del negocio. Una zona vieja que el navegador no conoce («GMT-6») no tumba la pantalla (Codex r5 #5). */
+function fechaLarga(iso: string, locale: string, timeZone: string): string {
+	const opciones = { day: 'numeric', month: 'long', year: 'numeric' } as const
+	try {
+		return new Intl.DateTimeFormat(locale, { ...opciones, timeZone }).format(new Date(iso))
+	} catch {
+		return new Intl.DateTimeFormat(locale, { ...opciones, timeZone: 'America/Mexico_City' }).format(new Date(iso))
+	}
+}
 
 // ─── Section Header ─────────────────────────────────────────────────────────
 function SectionHeader({
@@ -115,6 +126,7 @@ export default function LoyaltySettings() {
 	const { t: tCommon } = useTranslation()
 
 	const [enableExpiration, setEnableExpiration] = useState(false)
+	const { venueTimezone } = useVenueDateTime()
 
 	// Fetch loyalty config
 	const configQuery = useQuery({
@@ -129,7 +141,7 @@ export default function LoyaltySettings() {
 		setValue,
 		watch,
 		reset,
-		formState: { errors, isDirty },
+		formState: { errors, isDirty, dirtyFields },
 	} = useForm<FormData>({
 		resolver: zodResolver(schema),
 		defaultValues: {
@@ -151,9 +163,10 @@ export default function LoyaltySettings() {
 				pointsPerVisit: config.pointsPerVisit,
 				redemptionRate: config.redemptionRate,
 				minPointsRedeem: config.minPointsRedeem,
-				pointsExpireDays: config.pointsExpireDays,
+				// 0 días es «sin vencimiento» para el SERVIDOR: se muestra apagado, así el campo (mínimo 1) no frena el guardado (Codex r6 #3).
+				pointsExpireDays: config.pointsExpireDays && config.pointsExpireDays > 0 ? config.pointsExpireDays : null,
 			})
-			setEnableExpiration(config.pointsExpireDays !== null)
+			setEnableExpiration(!!config.pointsExpireDays && config.pointsExpireDays > 0)
 		}
 	}, [config, reset])
 
@@ -166,14 +179,16 @@ export default function LoyaltySettings() {
 
 	// Update mutation
 	const updateMutation = useMutation({
+		// Sólo lo que se cambió (D27, Codex r2 #3): si otro administrador apagó la expiración mientras éste editaba los puntos por peso,
+		// guardar no la vuelve a prender con el valor viejo del formulario.
 		mutationFn: (data: FormData) =>
 			loyaltyService.updateConfig(venueId, {
-				active: data.active,
-				pointsPerDollar: data.pointsPerDollar,
-				pointsPerVisit: data.pointsPerVisit,
-				redemptionRate: data.redemptionRate,
-				minPointsRedeem: data.minPointsRedeem,
-				pointsExpireDays: enableExpiration ? data.pointsExpireDays : null,
+				...(dirtyFields.active ? { active: data.active } : {}),
+				...(dirtyFields.pointsPerDollar ? { pointsPerDollar: data.pointsPerDollar } : {}),
+				...(dirtyFields.pointsPerVisit ? { pointsPerVisit: data.pointsPerVisit } : {}),
+				...(dirtyFields.redemptionRate ? { redemptionRate: data.redemptionRate } : {}),
+				...(dirtyFields.minPointsRedeem ? { minPointsRedeem: data.minPointsRedeem } : {}),
+				...(dirtyFields.pointsExpireDays ? { pointsExpireDays: enableExpiration ? data.pointsExpireDays : null } : {}),
 			}),
 		onSuccess: () => {
 			toast({ title: t('settings.toasts.updateSuccess') })
@@ -208,6 +223,12 @@ export default function LoyaltySettings() {
 	// Como el SERVIDOR: lo gastado da puntos redondeados HACIA ABAJO (`puntosPorGasto`).
 	const earnedPoints = puntosPorGasto(exampleSpend, watchedPointsPerDollar || 0) + (watchedPointsPerVisit || 0)
 	const exampleDiscount = (watchedMinPoints || 100) * (watchedRedemptionRate || 0)
+
+	// D27: desde qué día cuentan sus días los puntos que los clientes ya tenían (el SERVIDOR la fija al prender, reactivar o acortar).
+	const expiraDesde = config?.pointsExpireSince ? fechaLarga(config.pointsExpireSince, getIntlLocale(i18n.language), venueTimezone) : null
+	const acortaLaExpiracion =
+		enableExpiration && !!config?.pointsExpireDays && !!watchedExpireDays && watchedExpireDays < config.pointsExpireDays
+
 
 	if (isLoading) {
 		return (
@@ -414,6 +435,13 @@ export default function LoyaltySettings() {
 										suffix={t('settings.expiration.days.suffix')}
 										inputProps={{ type: 'number', min: '1', ...register('pointsExpireDays', { valueAsNumber: true }) }}
 									/>
+									{watchedExpireDays ? (
+										<div className="mt-3 space-y-1 text-[11px] text-muted-foreground leading-relaxed" data-testid="loyalty-expiration-rule">
+											<p>{t('settings.expiration.rule', { days: watchedExpireDays })}</p>
+											{expiraDesde && <p>{t('settings.expiration.since', { date: expiraDesde })}</p>}
+											{acortaLaExpiracion && <p className="text-amber-600 dark:text-amber-400">{t('settings.expiration.shorterRestarts')}</p>}
+										</div>
+									) : null}
 								</div>
 							) : (
 								<p className="text-xs text-muted-foreground italic">{t('settings.expiration.days.neverExpire')}</p>
@@ -424,7 +452,7 @@ export default function LoyaltySettings() {
 					{/* ━━━━━━━━━━━━━━━ RIGHT COLUMN (4 cols) ━━━━━━━━━━━━━━━ */}
 					<div className="col-span-12 lg:col-span-4 space-y-4">
 						{/* ── Live Preview ── */}
-						<GlassCard className="p-5 sticky top-4">
+						<GlassCard className="p-5 lg:sticky lg:top-4" data-testid="loyalty-preview-card">
 							<div className="flex items-center gap-2 mb-4">
 								<Sparkles className="h-4 w-4 text-amber-500" />
 								<h3 className="font-semibold text-sm">{t('settings.earning.title', { defaultValue: 'Vista previa' })}</h3>
@@ -498,22 +526,29 @@ export default function LoyaltySettings() {
 								</div>
 							)}
 						</GlassCard>
-
-						{/* ── Save Button ── */}
-						<PermissionGate permission="loyalty:update">
-							<Button type="submit" className="w-full" disabled={!isDirty || updateMutation.isPending}>
-								{updateMutation.isPending ? (
-									<>
-										<div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent mr-2" />
-										{t('settings.saving')}
-									</>
-								) : (
-									t('settings.save')
-								)}
-							</Button>
-						</PermissionGate>
 					</div>
 				</div>
+
+				{/* ── Save Button ──
+				    D29 (25-nov): antes vivía bajo la vista previa pegajosa, que lo tapaba al bajar (y en una ventana baja lo dejaba fuera de
+				    la vista). Ahora es una barra pegada abajo del formulario, en todos los tamaños: siempre a la vista y nada la tapa. */}
+				<PermissionGate permission="loyalty:update">
+					<div
+						className="sticky bottom-0 z-10 -mx-6 mt-4 flex justify-end border-t border-border/50 bg-background/95 px-6 py-3 backdrop-blur"
+						data-testid="loyalty-save-bar"
+					>
+						<Button type="submit" className="w-full sm:w-auto" data-tour="loyalty-save" disabled={!isDirty || updateMutation.isPending}>
+							{updateMutation.isPending ? (
+								<>
+									<div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent mr-2" />
+									{t('settings.saving')}
+								</>
+							) : (
+								t('settings.save')
+							)}
+						</Button>
+					</div>
+				</PermissionGate>
 			</form>
 		</div>
 		</FeatureGate>
