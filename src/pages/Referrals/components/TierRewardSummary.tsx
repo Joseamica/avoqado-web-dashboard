@@ -11,8 +11,9 @@ import type { TierReward } from '@/types/referrals'
  * ONLY rendered by the caller when `config.tierRewards` is present/non-empty
  * (see ReferralsSettings.tsx) — legacy venues without the new backend field
  * keep the original 3-column table untouched. If this specific level has no
- * active `tierRewards` rows (partial/edge data), we still render one line,
- * falling back to the legacy flat percent as a PERCENT_COUPON-style phrase.
+ * active `tierRewards` rows, it says «sin premio»: the SERVER emits only those
+ * rows, so showing the legacy flat percent here promised a coupon nobody gets
+ * (D28 / Codex r1 #3).
  */
 
 type TFunction = (key: string, options?: Record<string, unknown>) => string
@@ -70,7 +71,7 @@ interface TierRewardSummaryProps {
   venueId: string
   tierLevel: 1 | 2 | 3
   referralsRequired?: number
-  /** Legacy flat percent for this level — used only as a per-level graceful fallback. */
+  /** Legacy flat percent for this level. Ignored: the SERVER never emits it (kept so callers don't break). */
   legacyRewardPercent?: number
   /** Full config.tierRewards array — filtered to this level + active rows inside. */
   tierRewards: TierReward[]
@@ -80,7 +81,6 @@ export default function TierRewardSummary({
   venueId,
   tierLevel,
   referralsRequired,
-  legacyRewardPercent,
   tierRewards,
 }: TierRewardSummaryProps) {
   const { t } = useTranslation('referrals')
@@ -97,9 +97,7 @@ export default function TierRewardSummary({
   const rewardsText =
     activeRewards.length > 0
       ? activeRewards.map(r => formatRewardPhrase(r, productNames, t)).join(' + ')
-      : legacyRewardPercent != null
-        ? t('activate.rewardPercentCoupon', { percent: formatPercent(legacyRewardPercent) })
-        : '—'
+      : t('activate.rewardNone')
 
   return (
     <div className="px-3 py-2.5 text-sm">

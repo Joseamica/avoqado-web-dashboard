@@ -191,6 +191,21 @@ async function setupCustomerMocks(
   )
 
   // Generate code endpoint (State C activation)
+  // D30: el mensaje lo arma el SERVIDOR con el premio guardado (15 % aquí, nunca el «10 %» fijo de antes).
+  await page.route('**/api/v1/dashboard/venues/*/referrals/customers/*/share-link', route =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        whatsappShareUrl: `https://wa.me/?text=${encodeURIComponent('¡Te recomiendo Restaurante Alpha! Usa mi código *ALPHA-MARI8K7* y te dan 15% en tu primera compra.')}`,
+        message: '¡Te recomiendo Restaurante Alpha! Usa mi código *ALPHA-MARI8K7* y te dan 15% en tu primera compra.',
+        code: 'ALPHA-MARI8K7',
+        venueName: 'Restaurante Alpha',
+        programActive: true,
+      }),
+    }),
+  )
+
   await page.route(
     '**/api/v1/dashboard/venues/*/referrals/customers/*/generate-code',
     route => {
@@ -242,12 +257,19 @@ test.describe('CustomerDetail ReferralCard — multi-state', () => {
     await expect(page.locator('[data-testid="referral-card-copy-btn"]')).toBeVisible()
     await expect(page.locator('[data-testid="referral-card-whatsapp-btn"]')).toBeVisible()
 
-    // WhatsApp link includes the code (the data-testid is on the <a> itself via asChild)
-    const whatsappHref = await page
-      .locator('[data-testid="referral-card-whatsapp-btn"]')
-      .getAttribute('href')
-    expect(whatsappHref).toContain('wa.me')
-    expect(whatsappHref).toContain('ALPHA-MARI8K7')
+    // WhatsApp: al tocarlo se abre una ventana con la liga que arma el SERVIDOR (código + el % real guardado).
+    // La ventana nueva no se deja cargar wa.me de verdad: sólo se lee a dónde la mandó el panel.
+    await page.context().route('https://wa.me/**', route => route.fulfill({ status: 200, contentType: 'text/html', body: '<p>wa</p>' }))
+    const [popup] = await Promise.all([
+      page.waitForEvent('popup'),
+      page.locator('[data-testid="referral-card-whatsapp-btn"]').click(),
+    ])
+    await popup.waitForURL(/wa\.me/, { timeout: 10_000 })
+    const waUrl = decodeURIComponent(popup.url())
+    expect(waUrl).toContain('ALPHA-MARI8K7')
+    expect(waUrl).toContain('15%')
+    expect(waUrl).not.toContain('10%')
+    await popup.close()
 
     // Progress bar visible (state A — 2 of 7)
     await expect(page.locator('[data-testid="referral-card-progress"]')).toBeVisible()

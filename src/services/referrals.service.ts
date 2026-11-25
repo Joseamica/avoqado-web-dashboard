@@ -9,6 +9,7 @@ import type {
   PaginatedReferrals,
   ReferralRecord,
   ReferralRewardGrant,
+  ReferralShareLink,
 } from '@/types/referrals'
 
 /**
@@ -44,6 +45,15 @@ export const referralsService = {
    */
   async updateConfig(venueId: string, patch: UpdateReferralConfigRequest): Promise<{ ok: true }> {
     const response = await api.patch(`/api/v1/dashboard/venues/${venueId}/referrals/config`, patch)
+    return response.data
+  },
+
+  /**
+   * POST /reactivate — turn a PAUSED program back on exactly as saved (D28): no settings or tier rewards are rewritten.
+   * `reactivated: false` means it was already active (another tab/session won).
+   */
+  async reactivate(venueId: string): Promise<{ ok: true; reactivated: boolean }> {
+    const response = await api.post(`/api/v1/dashboard/venues/${venueId}/referrals/reactivate`)
     return response.data
   },
 
@@ -95,6 +105,19 @@ export const referralsService = {
     const response = await api.get(
       `/api/v1/dashboard/venues/${venueId}/referrals/customers/${customerId}/referrals`,
     )
+    return response.data
+  },
+
+  /**
+   * GET /customers/:customerId/share-link — the WhatsApp link the SERVER builds with the saved new-customer discount (D30).
+   */
+  async getShareLink(venueId: string, customerId: string): Promise<ReferralShareLink> {
+    // Se pide con la ventana de WhatsApp ya abierta: sin plazo propio, un servidor que no contesta la dejaba en blanco.
+    // `repetible: false`: el reintento automático de `api.ts` (1 s + otros 10 s) alargaba la espera a ~21 s.
+    const response = await api.get(`/api/v1/dashboard/venues/${venueId}/referrals/customers/${customerId}/share-link`, {
+      timeout: 10_000,
+      repetible: false,
+    })
     return response.data
   },
 

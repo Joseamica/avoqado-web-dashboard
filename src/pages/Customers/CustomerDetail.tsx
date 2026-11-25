@@ -465,11 +465,7 @@ export default function CustomerDetail() {
 					</div>
 
 					{/* Referral program card */}
-					<ReferralCard
-						customer={customer}
-						venueId={venueId}
-						venueName={venue?.name || venue?.slug || ''}
-					/>
+					<ReferralCard customer={customer} venueId={venueId} />
 
 					{/* Tarjeta digital — la liga que el cliente abre para guardarla en su
 					    Wallet. Vive AQUI, en la ficha, porque es donde el negocio ya tiene

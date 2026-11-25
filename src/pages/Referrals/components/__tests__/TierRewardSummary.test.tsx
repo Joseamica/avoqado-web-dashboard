@@ -91,7 +91,9 @@ describe('TierRewardSummary', () => {
     ).toBeInTheDocument()
   })
 
-  it('ignores inactive reward rows for the level', () => {
+  // D28 / Codex r1 #3: el SERVIDOR emite sólo las filas activas de cada nivel (`emitTierRewards`). Un nivel sin filas no
+  // entrega nada, así que el resumen ya no inventa el % plano viejo: dice «sin premio».
+  it('ignores inactive reward rows for the level (and then says the level gives nothing)', () => {
     renderWithClient(
       <TierRewardSummary
         venueId="venue-1"
@@ -102,15 +104,12 @@ describe('TierRewardSummary', () => {
       />,
     )
 
-    // No active rows for level 2 → falls back to legacy percent as the phrase
     expect(
-      screen.getByText(
-        'activate.tierSummaryLine(level=2,referralsCount=12,rewards=activate.rewardPercentCoupon(percent=20))',
-      ),
+      screen.getByText('activate.tierSummaryLine(level=2,referralsCount=12,rewards=activate.rewardNone)'),
     ).toBeInTheDocument()
   })
 
-  it('falls back to legacy percent when tierRewards is empty (backward compat)', () => {
+  it('never shows the legacy flat percent as a reward: an empty level says «sin premio»', () => {
     renderWithClient(
       <TierRewardSummary
         venueId="venue-1"
@@ -122,19 +121,7 @@ describe('TierRewardSummary', () => {
     )
 
     expect(
-      screen.getByText(
-        'activate.tierSummaryLine(level=1,referralsCount=7,rewards=activate.rewardPercentCoupon(percent=15))',
-      ),
-    ).toBeInTheDocument()
-  })
-
-  it('renders "—" when there is neither tierRewards nor a legacy percent for the level', () => {
-    renderWithClient(
-      <TierRewardSummary venueId="venue-1" tierLevel={1} referralsRequired={7} tierRewards={[]} />,
-    )
-
-    expect(
-      screen.getByText('activate.tierSummaryLine(level=1,referralsCount=7,rewards=—)'),
+      screen.getByText('activate.tierSummaryLine(level=1,referralsCount=7,rewards=activate.rewardNone)'),
     ).toBeInTheDocument()
   })
 
