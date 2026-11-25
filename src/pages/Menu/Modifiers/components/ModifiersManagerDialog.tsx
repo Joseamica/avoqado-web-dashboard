@@ -182,9 +182,11 @@ export function ModifiersManagerDialog({ venueId, modifierGroupId, onClose }: Mo
         const desiredIds = values.products.map(p => p.value)
         const currentIds = (allProducts ?? []).filter(p => p.modifierGroups?.some(mg => mg.groupId === modifierGroupId)).map(p => p.id)
 
-        for (const [index, productId] of desiredIds.entries()) {
+        // hz:960ee149:D1: sin `displayOrder`. La posición del producto en esta lista no es la del grupo dentro del producto;
+        // el orden de los grupos de cada producto se acomoda en su editor.
+        for (const productId of desiredIds) {
           if (!currentIds.includes(productId)) {
-            tasks.push(assignModifierGroupToProduct(venueId, productId, { modifierGroupId, displayOrder: index }))
+            tasks.push(assignModifierGroupToProduct(venueId, productId, { modifierGroupId }))
           }
         }
         for (const productId of currentIds) {
