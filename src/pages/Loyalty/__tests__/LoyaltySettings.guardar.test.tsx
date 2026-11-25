@@ -149,3 +149,16 @@ describe('LoyaltySettings · 0 días guardados (D27)', () => {
 		expect(h.guardados[0]).toEqual({ pointsPerDollar: 3 })
 	})
 })
+
+describe('LoyaltySettings · tasa de canje con 4 decimales (Codex r7 #1)', () => {
+	it('una tasa válida del SERVIDOR (0.0125) no frena guardar otra cosa', async () => {
+		h.config = { ...CONFIG, redemptionRate: 0.0125 }
+		ponerAncho(1440)
+		const boton = await pintar()
+		fireEvent.change(screen.getByTestId('loyalty-points-per-dollar'), { target: { value: '2' } })
+		await waitFor(() => expect(boton).not.toBeDisabled())
+		fireEvent.click(boton)
+		await waitFor(() => expect(h.guardados).toHaveLength(1))
+		expect(h.guardados[0]).toEqual({ pointsPerDollar: 2 })
+	})
+})

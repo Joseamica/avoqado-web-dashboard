@@ -385,7 +385,7 @@ export default function LoyaltySettings() {
 											</p>
 										) : null
 									}
-									inputProps={{ type: 'number', step: '0.001', min: '0', ...register('redemptionRate', { valueAsNumber: true }) }}
+									inputProps={{ type: 'number', step: '0.0001', min: '0', ...register('redemptionRate', { valueAsNumber: true }) }}
 								/>
 
 								<div className="border-t border-border/50" />
