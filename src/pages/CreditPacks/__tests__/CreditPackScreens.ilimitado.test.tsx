@@ -4,6 +4,7 @@
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { fireEvent, render, screen, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import type { ReactNode } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { CreditPackPurchase, CreditTransaction } from '@/types/creditPack'
@@ -110,7 +111,8 @@ describe('Compras con un Ilimitado (N16, N17)', () => {
     const { container } = await abrirLasDos()
     expect(screen.getByText(`unlimited.active:F(${VENCE}):3`)).toBeInTheDocument()
     expect(screen.getByText('unlimited.refunded')).toBeInTheDocument()
-    expect(screen.getByText('unlimited.faltas:1:2')).toBeInTheDocument()
+    // D687: cada número va con su singular o plural (el texto real lo prueba creditBalanceDisplay.test.ts).
+    expect(screen.getByText('unlimited.faltas:unlimited.noLlego:1:unlimited.cancelTarde:2')).toBeInTheDocument()
     // El saldo normal del mismo paquete sigue como hoy.
     expect(screen.getByText('purchases.remaining:3:5')).toBeInTheDocument()
     expect(container.textContent).not.toMatch(NUMERO_POR_DENTRO)
@@ -130,6 +132,18 @@ describe('Compras con un Ilimitado (N16, N17)', () => {
     expect(within(dialogo).getByText(`unlimited.expiresOn:F(${VENCE})`)).toBeInTheDocument()
     expect(within(dialogo).queryByRole('spinbutton')).not.toBeInTheDocument()
     expect(dialogo.textContent).not.toMatch(NUMERO_POR_DENTRO)
+  })
+
+  it('D687: el diálogo de reembolso dice qué paquete, de quién y por cuánto', async () => {
+    const user = userEvent.setup()
+    await abrirLasDos()
+    const fila = screen.getAllByRole('row').find(r => within(r).queryByText('Ana López'))!
+    const botones = within(fila).getAllByRole('button')
+    await user.click(botones[botones.length - 1])
+    await user.click(await screen.findByRole('menuitem', { name: /actions\.refund/ }))
+    const dialogo = await screen.findByRole('alertdialog')
+    expect(within(dialogo).getByText('refund.description:Ilimitado mensual:Ana López:$2,500.00')).toBeInTheDocument()
+    expect(paquetes.refundPurchase).not.toHaveBeenCalled()
   })
 })
 

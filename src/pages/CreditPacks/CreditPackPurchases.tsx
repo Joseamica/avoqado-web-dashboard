@@ -45,7 +45,7 @@ import { getIntlLocale } from '@/utils/i18n-locale'
 import { useVenueDateTime } from '@/utils/datetime'
 import { includesNormalized } from '@/lib/utils'
 
-import { describeBalance } from './creditBalanceDisplay'
+import { describeBalance, faltasText } from './creditBalanceDisplay'
 
 export default function CreditPackPurchasesTab() {
   const { venueId } = useCurrentVenue()
@@ -241,7 +241,7 @@ export default function CreditPackPurchasesTab() {
           </div>
           {purchase.faltas && (
             <p className="text-sm text-muted-foreground mt-3">
-              {t('unlimited.faltas', { noLlego: purchase.faltas.noLlego, cancelTarde: purchase.faltas.cancelTarde })}
+              {faltasText(t, purchase.faltas)}
             </p>
           )}
         </div>
@@ -413,7 +413,17 @@ export default function CreditPackPurchasesTab() {
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>{t('refund.title')}</AlertDialogTitle>
-              <AlertDialogDescription>{t('refund.description')}</AlertDialogDescription>
+              <AlertDialogDescription>
+                {t('refund.description', {
+                  pack: refundingPurchase.creditPack.name,
+                  customer:
+                    [refundingPurchase.customer.firstName, refundingPurchase.customer.lastName].filter(Boolean).join(' ') ||
+                    refundingPurchase.customer.email ||
+                    refundingPurchase.customer.phone ||
+                    '—',
+                  amount: formatPrice(refundingPurchase.amountPaid),
+                })}
+              </AlertDialogDescription>
             </AlertDialogHeader>
             <div className="py-2">
               <Label>{t('refund.reasonLabel')}</Label>

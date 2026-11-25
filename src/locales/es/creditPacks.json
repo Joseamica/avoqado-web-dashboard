@@ -106,7 +106,7 @@
   },
   "refund": {
     "title": "Reembolsar Compra",
-    "description": "Esto reembolsará la compra y cancelará todos los créditos restantes.",
+    "description": "Vas a marcar como reembolsado «{{pack}}» de {{customer}} ({{amount}}). Se cancelan sus créditos restantes. El dinero no se devuelve desde aquí: regrésalo por donde se cobró.",
     "reasonLabel": "Razón del reembolso",
     "reasonPlaceholder": "¿Por qué se reembolsa?",
     "confirm": "Confirmar Reembolso",
@@ -168,7 +168,11 @@
     "active": "Ilimitado · vence el {{date}} · usó {{used}}",
     "refunded": "Ilimitado · reembolsado",
     "expiresOn": "Ilimitado · vence el {{date}}",
-    "faltas": "Faltas: {{noLlego}} sin llegar · {{cancelTarde}} cancelaciones tardías",
+    "faltas": "Faltas: {{noLlego}} · {{cancelTarde}}",
+    "noLlego_one": "{{count}} sin llegar",
+    "noLlego_other": "{{count}} sin llegar",
+    "cancelTarde_one": "{{count}} cancelación tardía",
+    "cancelTarde_other": "{{count}} cancelaciones tardías",
     "voided": "Ilimitado anulado"
   }
 }

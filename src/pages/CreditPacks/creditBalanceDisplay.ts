@@ -1,3 +1,4 @@
+import type { TFunction } from 'i18next'
 import type { CreditItemBalance, CreditPurchaseStatus, CreditTransaction } from '@/types/creditPack'
 
 /**
@@ -24,4 +25,12 @@ export function describeMovement(tx: CreditTransaction): 'label' | 'voided' | nu
   if (!tx.creditItemBalance?.unlimited || Math.abs(tx.quantity) <= 1) return null
   if (tx.type === 'PURCHASE') return 'label'
   return tx.quantity < 0 ? 'voided' : null
+}
+
+/** «Faltas: 0 sin llegar · 1 cancelación tardía»: cada número con su singular o plural (D687). `t` es el de `creditPacks`. */
+export function faltasText(t: TFunction, faltas: { noLlego: number; cancelTarde: number }): string {
+  return t('unlimited.faltas', {
+    noLlego: t('unlimited.noLlego', { count: faltas.noLlego }),
+    cancelTarde: t('unlimited.cancelTarde', { count: faltas.cancelTarde }),
+  })
 }

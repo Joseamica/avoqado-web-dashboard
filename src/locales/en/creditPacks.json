@@ -106,7 +106,7 @@
   },
   "refund": {
     "title": "Refund Purchase",
-    "description": "This will refund the purchase and cancel all remaining credits.",
+    "description": "You're about to mark “{{pack}}” for {{customer}} ({{amount}}) as refunded. Its remaining credits are cancelled. The money is not returned from here: return it the way it was collected.",
     "reasonLabel": "Refund reason",
     "reasonPlaceholder": "Why is this being refunded?",
     "confirm": "Confirm Refund",
@@ -168,7 +168,11 @@
     "active": "Unlimited · expires {{date}} · used {{used}}",
     "refunded": "Unlimited · refunded",
     "expiresOn": "Unlimited · expires {{date}}",
-    "faltas": "Missed: {{noLlego}} no-shows · {{cancelTarde}} late cancellations",
+    "faltas": "Missed: {{noLlego}} · {{cancelTarde}}",
+    "noLlego_one": "{{count}} no-show",
+    "noLlego_other": "{{count}} no-shows",
+    "cancelTarde_one": "{{count}} late cancellation",
+    "cancelTarde_other": "{{count}} late cancellations",
     "voided": "Unlimited voided"
   }
 }
