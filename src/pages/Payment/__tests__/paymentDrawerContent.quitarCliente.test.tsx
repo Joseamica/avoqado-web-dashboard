@@ -211,7 +211,10 @@ describe('D34 · «Eliminar de la transacción» sólo cuando el SERVIDOR lo ace
     expect(screen.queryByRole('button', { name: BOTON })).not.toBeInTheDocument()
     m.puede = true // le devolvieron el permiso
     m.rechazo = null
+    m.invalidadas = []
     await reabrirLaFicha()
+    // Cada apertura vuelve a pedir los permisos al SERVIDOR.
+    expect(m.invalidadas).toContainEqual(['user-access', 'v1'])
     expect(screen.getByRole('button', { name: BOTON })).toBeInTheDocument()
   })
 

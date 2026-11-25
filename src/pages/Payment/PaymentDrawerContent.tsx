@@ -22,7 +22,7 @@ import { useAccess } from '@/hooks/use-access'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
 import { Currency } from '@/utils/currency'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useIsFetching, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { MoreHorizontal, Send } from 'lucide-react'
 import { DateTime } from 'luxon'
 import { useRef, useState } from 'react'
@@ -62,9 +62,13 @@ export function PaymentDrawerContent({ paymentId, onClose, venueTimezone }: Paym
   const [rechazoAlQuitar, setRechazoAlQuitar] = useState<string | null>(null)
   // Cada apertura de la ficha es una vuelta nueva: un rechazo que llega tarde de la ficha anterior no se le pega a ésta.
   const vueltaDeLaFicha = useRef(0)
+  // Al abrir la ficha se releen los permisos (un permiso devuelto o quitado se ve aquí, no 5 min después); mientras llegan, ni
+  // botón ni «te falta el permiso».
+  const permisosReleyendo = useIsFetching({ queryKey: accessQueryKey(venueId) }) > 0
   const abrirFichaDelCliente = (cliente: Customer) => {
     vueltaDeLaFicha.current += 1
     setRechazoAlQuitar(null)
+    queryClient.invalidateQueries({ queryKey: accessQueryKey(venueId) })
     setCustomerFormInitial(cliente)
     setCustomerFormOpen(true)
   }
@@ -256,12 +260,13 @@ export function PaymentDrawerContent({ paymentId, onClose, venueTimezone }: Paym
   // editar órdenes. Sin el «sí» (venta cobrada o cancelada, o un SERVIDOR que no manda el campo) no se ofrece; va la razón si la hay.
   const customerUnlink: CustomerUnlink | undefined = payment.customerUnlink
   const rechazoVigente = rechazoAlQuitar
-  const puedeQuitarCliente = customerUnlink?.allowed === true && can('orders:update') && !rechazoVigente
+  const permisosAlDia = !permisosCargando && !permisosReleyendo
+  const puedeQuitarCliente = customerUnlink?.allowed === true && permisosAlDia && can('orders:update') && !rechazoVigente
   const motivoParaNoQuitar =
     rechazoVigente ??
     (customerUnlink?.allowed === false
       ? motivoDelServidor(customerUnlink, t)
-      : can('orders:update') || permisosCargando
+      : can('orders:update') || !permisosAlDia
         ? null
         : t('customer.unlinkBlocked.permission'))
 
