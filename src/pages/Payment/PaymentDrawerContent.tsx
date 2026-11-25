@@ -25,7 +25,7 @@ import { Currency } from '@/utils/currency'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { MoreHorizontal, Send } from 'lucide-react'
 import { DateTime } from 'luxon'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { AddCustomerSheet, Customer, CustomerFormSheet } from './CustomerSheets'
 import { IssueRefundSheet } from './IssueRefundSheet'
@@ -46,7 +46,7 @@ export function PaymentDrawerContent({ paymentId, onClose, venueTimezone }: Paym
   const { t: tCommon } = useTranslation('common')
   const { toast } = useToast()
   const { venueId, venue, fullBasePath } = useCurrentVenue()
-  const { can } = useAccess()
+  const { can, isLoading: permisosCargando } = useAccess()
   const queryClient = useQueryClient()
 
   const [email, setEmail] = useState('')
@@ -60,7 +60,10 @@ export function PaymentDrawerContent({ paymentId, onClose, venueTimezone }: Paym
   // último que leyó el panel (el pago y los permisos se releen al fallar).
   // ponytail: si esa relectura tampoco llegó, al reabrir se ofrece otra vez y el SERVIDOR lo vuelve a rechazar con su mensaje.
   const [rechazoAlQuitar, setRechazoAlQuitar] = useState<string | null>(null)
+  // Cada apertura de la ficha es una vuelta nueva: un rechazo que llega tarde de la ficha anterior no se le pega a ésta.
+  const vueltaDeLaFicha = useRef(0)
   const abrirFichaDelCliente = (cliente: Customer) => {
+    vueltaDeLaFicha.current += 1
     setRechazoAlQuitar(null)
     setCustomerFormInitial(cliente)
     setCustomerFormOpen(true)
@@ -258,7 +261,7 @@ export function PaymentDrawerContent({ paymentId, onClose, venueTimezone }: Paym
     rechazoVigente ??
     (customerUnlink?.allowed === false
       ? motivoDelServidor(customerUnlink, t)
-      : can('orders:update')
+      : can('orders:update') || permisosCargando
         ? null
         : t('customer.unlinkBlocked.permission'))
 
@@ -572,17 +575,18 @@ export function PaymentDrawerContent({ paymentId, onClose, venueTimezone }: Paym
         onRemoveFromTransaction={
           puedeQuitarCliente
             ? async () => {
+                const vuelta = vueltaDeLaFicha.current
                 try {
                   await linkCustomerMutation.mutateAsync(null)
                 } catch (err: any) {
                   // Lo rechazó el SERVIDOR (se cobró en otra caja, cambió el permiso): el botón se retira con su mensaje mientras
                   // la ficha siga abierta. Con un 403 también se releen los permisos. Un fallo de red o un 5xx no lo retira.
                   const status = err?.response?.status
-                  if (status >= 400 && status < 500) {
+                  if (status === 403) queryClient.invalidateQueries({ queryKey: accessQueryKey(venueId) })
+                  if (status >= 400 && status < 500 && vuelta === vueltaDeLaFicha.current) {
                     setRechazoAlQuitar(
                       err.response.data?.message || t('customer.linkError', { defaultValue: 'No se pudo asociar al cliente' }),
                     )
-                    if (status === 403) queryClient.invalidateQueries({ queryKey: accessQueryKey(venueId) })
                   }
                   return
                 }

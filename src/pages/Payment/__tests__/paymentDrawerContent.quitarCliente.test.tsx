@@ -25,12 +25,21 @@ const m = vi.hoisted(() => ({
   rechazado: false,
   lecturas: 0,
   invalidadas: [] as unknown[],
+  cargandoPermisos: false,
+  /** Si está, el PUT espera a que la prueba lo suelte (respuesta lenta). */
+  soltarPut: null as null | (() => void),
+  putLento: false,
 }))
 vi.mock('@/hooks/use-current-venue', () => ({
   useCurrentVenue: () => ({ venueId: 'v1', venue: { name: 'Café' }, fullBasePath: '/venues/cafe' }),
 }))
 vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: () => {} }) }))
-vi.mock('@/hooks/use-access', () => ({ useAccess: () => ({ can: (p: string) => (p === 'orders:update' ? m.puede : true) }) }))
+vi.mock('@/hooks/use-access', () => ({
+  useAccess: () => ({
+    can: (p: string) => !m.cargandoPermisos && (p === 'orders:update' ? m.puede : true),
+    isLoading: m.cargandoPermisos,
+  }),
+}))
 vi.mock('../IssueRefundSheet', () => ({ IssueRefundSheet: () => null }))
 vi.mock('../RefundCreditNotePanel', () => ({ RefundCreditNotePanel: () => null }))
 vi.mock('@/api', () => ({
@@ -48,6 +57,7 @@ vi.mock('@/api', () => ({
     post: async () => ({ data: {} }),
     put: async (url: string, body: unknown) => {
       m.puts.push({ url, body })
+      if (m.putLento) await new Promise<void>(resolve => (m.soltarPut = resolve))
       if (m.rechazo) {
         m.rechazado = true
         // Con un 403, los permisos que el panel relee ya no traen `orders:update`.
@@ -109,6 +119,9 @@ beforeEach(() => {
   m.rechazado = false
   m.lecturas = 0
   m.invalidadas = []
+  m.cargandoPermisos = false
+  m.soltarPut = null
+  m.putLento = false
 })
 
 describe('D34 · «Eliminar de la transacción» sólo cuando el SERVIDOR lo acepta', () => {
@@ -199,6 +212,29 @@ describe('D34 · «Eliminar de la transacción» sólo cuando el SERVIDOR lo ace
     m.puede = true // le devolvieron el permiso
     m.rechazo = null
     await reabrirLaFicha()
+    expect(screen.getByRole('button', { name: BOTON })).toBeInTheDocument()
+  })
+
+  it('mientras los permisos se leen: ni botón ni «te falta el permiso» (no es una negativa)', async () => {
+    m.cargandoPermisos = true
+    m.pago = pago({ allowed: true })
+    await abrirFichaDelCliente()
+    expect(screen.queryByRole('button', { name: BOTON })).not.toBeInTheDocument()
+    expect(screen.queryByText(es.customer.unlinkBlocked.permission)).not.toBeInTheDocument()
+  })
+
+  it('🔴 un rechazo que llega tarde de la ficha anterior no se le pega a la ficha nueva', async () => {
+    m.pago = pago({ allowed: true })
+    m.rechazo = { status: 409, message: 'Esta venta ya tiene un cliente asignado y no se puede reemplazar.' }
+    m.putLento = true
+    await abrirFichaDelCliente()
+    fireEvent.click(screen.getByRole('button', { name: BOTON }))
+    await waitFor(() => expect(m.soltarPut).not.toBeNull())
+    await reabrirLaFicha()
+    m.soltarPut!()
+    await waitFor(() => expect(m.rechazado).toBe(true))
+    await waitFor(() => expect(m.lecturas).toBeGreaterThan(0))
+    expect(screen.queryByText(m.rechazo.message)).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: BOTON })).toBeInTheDocument()
   })
 
