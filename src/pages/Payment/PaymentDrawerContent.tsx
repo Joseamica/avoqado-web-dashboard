@@ -56,9 +56,15 @@ export function PaymentDrawerContent({ paymentId, onClose, venueTimezone }: Paym
   const [addCustomerOpen, setAddCustomerOpen] = useState(false)
   const [customerFormOpen, setCustomerFormOpen] = useState(false)
   const [customerFormInitial, setCustomerFormInitial] = useState<Customer | null>(null)
-  // D34: el SERVIDOR rechazó quitar el cliente. Vale mientras no llegue una lectura NUEVA del pago (la de `leidoEn`): si la
-  // relectura falla, el botón no vuelve con el «sí» viejo; cuando llega, manda lo que diga el SERVIDOR.
-  const [rechazoAlQuitar, setRechazoAlQuitar] = useState<{ leidoEn: number; reason: string } | null>(null)
+  // D34: el SERVIDOR rechazó quitar el cliente en ESTA ficha abierta: el botón no vuelve hasta cerrarla. Al reabrirla manda lo
+  // último que leyó el panel (el pago y los permisos se releen al fallar).
+  // ponytail: si esa relectura tampoco llegó, al reabrir se ofrece otra vez y el SERVIDOR lo vuelve a rechazar con su mensaje.
+  const [rechazoAlQuitar, setRechazoAlQuitar] = useState<string | null>(null)
+  const abrirFichaDelCliente = (cliente: Customer) => {
+    setRechazoAlQuitar(null)
+    setCustomerFormInitial(cliente)
+    setCustomerFormOpen(true)
+  }
 
   // Refund flow state
   const [refundOpen, setRefundOpen] = useState(false)
@@ -246,7 +252,7 @@ export function PaymentDrawerContent({ paymentId, onClose, venueTimezone }: Paym
   // D34: «Eliminar de la transacción» sólo con el «sí» del SERVIDOR (`customerUnlink`, la misma regla que su PUT) y el permiso de
   // editar órdenes. Sin el «sí» (venta cobrada o cancelada, o un SERVIDOR que no manda el campo) no se ofrece; va la razón si la hay.
   const customerUnlink: CustomerUnlink | undefined = payment.customerUnlink
-  const rechazoVigente = rechazoAlQuitar?.leidoEn === paymentQuery.dataUpdatedAt ? rechazoAlQuitar.reason : null
+  const rechazoVigente = rechazoAlQuitar
   const puedeQuitarCliente = customerUnlink?.allowed === true && can('orders:update') && !rechazoVigente
   const motivoParaNoQuitar =
     rechazoVigente ??
@@ -316,10 +322,7 @@ export function PaymentDrawerContent({ paymentId, onClose, venueTimezone }: Paym
             </DropdownMenuItem>
             {linkedCustomer ? (
               <DropdownMenuItem
-                onClick={() => {
-                  setCustomerFormInitial(linkedCustomer)
-                  setCustomerFormOpen(true)
-                }}
+                onClick={() => abrirFichaDelCliente(linkedCustomer)}
               >
                 {t('detail.actions.editCustomer', { defaultValue: 'Editar cliente' })}
               </DropdownMenuItem>
@@ -395,10 +398,7 @@ export function PaymentDrawerContent({ paymentId, onClose, venueTimezone }: Paym
                 <span>{t('detail.fields.paidBy', { defaultValue: 'Pagado por' })}: </span>
                 <button
                   type="button"
-                  onClick={() => {
-                    setCustomerFormInitial(linkedCustomer)
-                    setCustomerFormOpen(true)
-                  }}
+                  onClick={() => linkedCustomer && abrirFichaDelCliente(linkedCustomer)}
                   className="text-foreground underline underline-offset-2 hover:text-primary"
                 >
                   {linkedCustomerName}
@@ -572,18 +572,16 @@ export function PaymentDrawerContent({ paymentId, onClose, venueTimezone }: Paym
         onRemoveFromTransaction={
           puedeQuitarCliente
             ? async () => {
-                const leidoEn = paymentQuery.dataUpdatedAt
                 try {
                   await linkCustomerMutation.mutateAsync(null)
                 } catch (err: any) {
-                  // Lo rechazó el SERVIDOR (se cobró en otra caja, cambió el permiso): el botón se retira con su mensaje hasta que
-                  // llegue el pago releído. Con un 403 también se releen los permisos. Un fallo de red o un 5xx no lo retira.
+                  // Lo rechazó el SERVIDOR (se cobró en otra caja, cambió el permiso): el botón se retira con su mensaje mientras
+                  // la ficha siga abierta. Con un 403 también se releen los permisos. Un fallo de red o un 5xx no lo retira.
                   const status = err?.response?.status
                   if (status >= 400 && status < 500) {
-                    setRechazoAlQuitar({
-                      leidoEn,
-                      reason: err.response.data?.message || t('customer.linkError', { defaultValue: 'No se pudo asociar al cliente' }),
-                    })
+                    setRechazoAlQuitar(
+                      err.response.data?.message || t('customer.linkError', { defaultValue: 'No se pudo asociar al cliente' }),
+                    )
                     if (status === 403) queryClient.invalidateQueries({ queryKey: accessQueryKey(venueId) })
                   }
                   return

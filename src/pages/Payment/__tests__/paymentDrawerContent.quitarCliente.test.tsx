@@ -93,6 +93,14 @@ async function abrirFichaDelCliente() {
   await screen.findByRole('heading', { name: 'Editar cliente' })
 }
 
+/** Cierra la ficha con «Cancelar» y la vuelve a abrir desde «Pagado por». */
+async function reabrirLaFicha() {
+  fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }))
+  await waitFor(() => expect(screen.queryByRole('heading', { name: 'Editar cliente' })).not.toBeInTheDocument())
+  fireEvent.click(screen.getByRole('button', { name: 'Ana Ruiz' }))
+  await screen.findByRole('heading', { name: 'Editar cliente' })
+}
+
 beforeEach(() => {
   m.puede = true
   m.puts = []
@@ -149,17 +157,24 @@ describe('D34 · «Eliminar de la transacción» sólo cuando el SERVIDOR lo ace
     expect(screen.queryByRole('button', { name: BOTON })).not.toBeInTheDocument()
   })
 
-  it('🔴 si el PUT lo rechaza (la cuenta se cobró en otra caja): se relee el pago y manda lo que diga el SERVIDOR', async () => {
+  it('🔴 si el PUT lo rechaza (la cuenta se cobró en otra caja): el botón se retira con el mensaje del SERVIDOR; al reabrir, manda el pago releído', async () => {
     m.pago = pago({ allowed: true })
     m.rechazo = { status: 409, message: 'Esta venta ya tiene un cliente asignado y no se puede reemplazar.' }
     m.trasRechazo = pago({ allowed: false, code: 'SALE_CUSTOMER_ALREADY_ASSIGNED', reason: 'razón del servidor' })
     await abrirFichaDelCliente()
+    const lecturasAntes = m.lecturas
     fireEvent.click(screen.getByRole('button', { name: BOTON }))
-    expect(await screen.findByText(es.customer.unlinkBlocked.paid)).toBeInTheDocument()
+    expect(await screen.findByText(m.rechazo.message)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: BOTON })).not.toBeInTheDocument()
+    await waitFor(() => expect(m.lecturas).toBeGreaterThan(lecturasAntes))
+    // Aunque el pago se relea mientras la ficha sigue abierta, el botón no vuelve.
+    expect(screen.queryByRole('button', { name: BOTON })).not.toBeInTheDocument()
+    await reabrirLaFicha()
+    expect(screen.getByText(es.customer.unlinkBlocked.paid)).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: BOTON })).not.toBeInTheDocument()
   })
 
-  it('🔴 rechazo y la relectura del pago no llega: el botón no vuelve con el «sí» viejo; queda el mensaje del SERVIDOR', async () => {
+  it('🔴 rechazo y la relectura del pago no llega: con la ficha abierta, el botón no vuelve; queda el mensaje del SERVIDOR', async () => {
     m.pago = pago({ allowed: true })
     m.rechazo = { status: 409, message: 'Esta venta ya tiene un cliente asignado y no se puede reemplazar.' }
     m.trasRechazo = 'falla'
@@ -171,14 +186,20 @@ describe('D34 · «Eliminar de la transacción» sólo cuando el SERVIDOR lo ace
     expect(screen.queryByRole('button', { name: BOTON })).not.toBeInTheDocument()
   })
 
-  it('403 (le quitaron el permiso con la pantalla abierta): se releen los permisos; sin él, dice qué permiso falta', async () => {
+  it('403 (le quitaron el permiso con la pantalla abierta): se releen los permisos; al reabrir dice qué permiso falta, y con el permiso de vuelta sale el botón', async () => {
     m.pago = pago({ allowed: true })
     m.rechazo = { status: 403, message: 'No tienes permiso.' }
     await abrirFichaDelCliente()
     fireEvent.click(screen.getByRole('button', { name: BOTON }))
+    expect(await screen.findByText('No tienes permiso.')).toBeInTheDocument()
     await waitFor(() => expect(m.invalidadas).toContainEqual(['user-access', 'v1']))
-    await waitFor(() => expect(screen.getByText(es.customer.unlinkBlocked.permission)).toBeInTheDocument())
+    await reabrirLaFicha()
+    expect(screen.getByText(es.customer.unlinkBlocked.permission)).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: BOTON })).not.toBeInTheDocument()
+    m.puede = true // le devolvieron el permiso
+    m.rechazo = null
+    await reabrirLaFicha()
+    expect(screen.getByRole('button', { name: BOTON })).toBeInTheDocument()
   })
 
   it('regresión: un 5xx o la red caída no retira el botón (se puede reintentar)', async () => {
