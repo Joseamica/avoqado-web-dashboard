@@ -843,5 +843,12 @@
     "goToOrder": "Ver la cuenta",
     "alreadyIssuedTitle": "Ya se había emitido un reembolso",
     "alreadyIssued": "Desde esta ventana ya se emitió un reembolso con otros datos (el que no se pudo confirmar sí entró). Revisa los reembolsos de este pago; si necesitas otro, cierra y vuelve a abrir esta ventana."
+  },
+  "customer": {
+    "unlinkBlocked": {
+      "paid": "Esta venta ya se cobró: su cliente se queda y no se puede quitar.",
+      "cancelled": "Esta venta está cancelada: ya no se le cambia el cliente.",
+      "permission": "Para quitar el cliente de la venta necesitas el permiso de editar órdenes."
+    }
   }
 }

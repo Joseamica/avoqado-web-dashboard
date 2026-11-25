@@ -843,5 +843,12 @@
     "goToOrder": "Open the order",
     "alreadyIssuedTitle": "A refund was already issued",
     "alreadyIssued": "This window already issued a refund with different details (the one we couldn't confirm did go through). Check this payment's refunds; if you need another one, close and reopen this window."
+  },
+  "customer": {
+    "unlinkBlocked": {
+      "paid": "This sale is already paid: its customer stays and can’t be removed.",
+      "cancelled": "This sale is cancelled: its customer can no longer be changed.",
+      "permission": "You need the edit orders permission to remove the customer from the sale."
+    }
   }
 }

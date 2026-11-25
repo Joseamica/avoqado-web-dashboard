@@ -17,6 +17,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { RECEIPT_PATHS } from '@/constants/receipt'
+import { accessQueryKey } from '@/hooks/access-query-key'
+import { useAccess } from '@/hooks/use-access'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
 import { Currency } from '@/utils/currency'
@@ -44,6 +46,7 @@ export function PaymentDrawerContent({ paymentId, onClose, venueTimezone }: Paym
   const { t: tCommon } = useTranslation('common')
   const { toast } = useToast()
   const { venueId, venue, fullBasePath } = useCurrentVenue()
+  const { can } = useAccess()
   const queryClient = useQueryClient()
 
   const [email, setEmail] = useState('')
@@ -53,6 +56,9 @@ export function PaymentDrawerContent({ paymentId, onClose, venueTimezone }: Paym
   const [addCustomerOpen, setAddCustomerOpen] = useState(false)
   const [customerFormOpen, setCustomerFormOpen] = useState(false)
   const [customerFormInitial, setCustomerFormInitial] = useState<Customer | null>(null)
+  // D34: el SERVIDOR rechazó quitar el cliente. Vale mientras no llegue una lectura NUEVA del pago (la de `leidoEn`): si la
+  // relectura falla, el botón no vuelve con el «sí» viejo; cuando llega, manda lo que diga el SERVIDOR.
+  const [rechazoAlQuitar, setRechazoAlQuitar] = useState<{ leidoEn: number; reason: string } | null>(null)
 
   // Refund flow state
   const [refundOpen, setRefundOpen] = useState(false)
@@ -102,6 +108,8 @@ export function PaymentDrawerContent({ paymentId, onClose, venueTimezone }: Paym
       queryClient.invalidateQueries({ queryKey: ['payment', paymentId] })
     },
     onError: (err: any) => {
+      // Lo que el pago dice (cliente y `customerUnlink`) pudo cambiar: se relee.
+      queryClient.invalidateQueries({ queryKey: ['payment', paymentId] })
       toast({
         title: t('customer.linkError', { defaultValue: 'No se pudo asociar al cliente' }),
         description: err?.response?.data?.message || err?.message,
@@ -235,6 +243,18 @@ export function PaymentDrawerContent({ paymentId, onClose, venueTimezone }: Paym
     ? `${linkedCustomer.firstName ?? ''} ${linkedCustomer.lastName ?? ''}`.trim() || linkedCustomer.email || linkedCustomer.phone || '—'
     : null
   const canAttachCustomer = !!orderIdForCustomer
+  // D34: «Eliminar de la transacción» sólo con el «sí» del SERVIDOR (`customerUnlink`, la misma regla que su PUT) y el permiso de
+  // editar órdenes. Sin el «sí» (venta cobrada o cancelada, o un SERVIDOR que no manda el campo) no se ofrece; va la razón si la hay.
+  const customerUnlink: CustomerUnlink | undefined = payment.customerUnlink
+  const rechazoVigente = rechazoAlQuitar?.leidoEn === paymentQuery.dataUpdatedAt ? rechazoAlQuitar.reason : null
+  const puedeQuitarCliente = customerUnlink?.allowed === true && can('orders:update') && !rechazoVigente
+  const motivoParaNoQuitar =
+    rechazoVigente ??
+    (customerUnlink?.allowed === false
+      ? motivoDelServidor(customerUnlink, t)
+      : can('orders:update')
+        ? null
+        : t('customer.unlinkBlocked.permission'))
 
   return (
     <div className="flex flex-col h-full">
@@ -549,14 +569,43 @@ export function PaymentDrawerContent({ paymentId, onClose, venueTimezone }: Paym
           setCustomerFormOpen(false)
           setCustomerFormInitial(null)
         }}
-        onRemoveFromTransaction={async () => {
-          await linkCustomerMutation.mutateAsync(null)
-          setCustomerFormOpen(false)
-          setCustomerFormInitial(null)
-        }}
+        onRemoveFromTransaction={
+          puedeQuitarCliente
+            ? async () => {
+                const leidoEn = paymentQuery.dataUpdatedAt
+                try {
+                  await linkCustomerMutation.mutateAsync(null)
+                } catch (err: any) {
+                  // Lo rechazó el SERVIDOR (se cobró en otra caja, cambió el permiso): el botón se retira con su mensaje hasta que
+                  // llegue el pago releído. Con un 403 también se releen los permisos. Un fallo de red o un 5xx no lo retira.
+                  const status = err?.response?.status
+                  if (status >= 400 && status < 500) {
+                    setRechazoAlQuitar({
+                      leidoEn,
+                      reason: err.response.data?.message || t('customer.linkError', { defaultValue: 'No se pudo asociar al cliente' }),
+                    })
+                    if (status === 403) queryClient.invalidateQueries({ queryKey: accessQueryKey(venueId) })
+                  }
+                  return
+                }
+                setCustomerFormOpen(false)
+                setCustomerFormInitial(null)
+              }
+            : undefined
+        }
+        removeFromTransactionBlockedReason={motivoParaNoQuitar}
       />
     </div>
   )
+}
+
+type CustomerUnlink = { allowed: boolean; code?: string; reason?: string }
+
+/** La razón del SERVIDOR, traducida si el panel conoce su código; si no, tal como la manda. */
+function motivoDelServidor(u: CustomerUnlink, t: (key: string, opts?: Record<string, unknown>) => string): string | null {
+  if (u.code === 'SALE_CUSTOMER_ALREADY_ASSIGNED') return t('customer.unlinkBlocked.paid', { defaultValue: u.reason })
+  if (u.code === 'ORDER_CANCELLED_NO_EDIT') return t('customer.unlinkBlocked.cancelled', { defaultValue: u.reason })
+  return u.reason ?? null
 }
 
 function RefundCard({

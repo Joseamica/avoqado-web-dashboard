@@ -166,6 +166,8 @@ interface CustomerFormSheetProps {
   customer?: Customer | null // null/undefined = create mode
   onSaved: (customer: Customer) => void
   onRemoveFromTransaction?: () => void // only shown in edit mode
+  /** D34: por qué no se puede quitar el cliente de la venta; va en lugar del botón (sólo en modo edición). */
+  removeFromTransactionBlockedReason?: string | null
 }
 
 export function CustomerFormSheet({
@@ -175,6 +177,7 @@ export function CustomerFormSheet({
   customer,
   onSaved,
   onRemoveFromTransaction,
+  removeFromTransactionBlockedReason,
 }: CustomerFormSheetProps) {
   const { t } = useTranslation('payment')
   const { t: tCommon } = useTranslation('common')
@@ -283,6 +286,9 @@ export function CustomerFormSheet({
             <Button variant="secondary" className="rounded-full" onClick={onRemoveFromTransaction}>
               {t('customer.form.removeFromTransaction', { defaultValue: 'Eliminar de la transacción' })}
             </Button>
+          )}
+          {isEdit && !onRemoveFromTransaction && removeFromTransactionBlockedReason && (
+            <p className="text-xs text-muted-foreground max-w-xs">{removeFromTransactionBlockedReason}</p>
           )}
           <div className="flex-1" />
           <Button
