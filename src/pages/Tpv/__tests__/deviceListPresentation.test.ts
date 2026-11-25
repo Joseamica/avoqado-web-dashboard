@@ -9,6 +9,7 @@ import {
   getDeviceIdentifier,
   getDeviceKind,
   getDeviceListStatus,
+  getDevicePerformance,
   getDeviceRole,
   getDeviceSystem,
   getLastSeen,
@@ -219,5 +220,88 @@ describe('cuentas de una terminal: el SERVIDOR reemplaza la lista completa', () 
     expect(cuentasAlVincular(['a', 'b'], 'c')).toEqual(['a', 'b', 'c'])
     expect(cuentasAlVincular([], 'c')).toEqual(['c'])
     expect(cuentasAlQuitar(['a', 'b'], 'a')).toEqual(['b'])
+  })
+})
+
+describe('getDevicePerformance — cómo dibuja el POS de Windows (hz:a5fa2439:D2)', () => {
+  const windows = { type: 'POS_ANDROID', osVersion: 'Android 14', modelIdentifier: 'Windows 11', version: '2.30.0-escritorio' }
+  const medicion = {
+    proc: 'abc',
+    rev: 3,
+    api: 'OPENGL',
+    paintMs: 700,
+    performance: 'LIGHT',
+    drawingMode: 'FAST',
+    forced: true,
+    failed: false,
+    manual: false,
+    light: true,
+    cpu: 'Intel Celeron N4020',
+    cores: 2,
+    ramGb: 4,
+    screen: '1366x768',
+    receivedAt: '2026-11-24T18:00:00.000Z',
+  }
+  const sinMedir = {
+    level: 'UNMEASURED',
+    api: null,
+    paintMs: null,
+    cpu: null,
+    ramGb: null,
+    receivedAt: null,
+    drawingMode: null,
+    drawingModeStatus: 'NONE',
+  }
+
+  it('con la medición completa devuelve cada dato', () => {
+    expect(getDevicePerformance({ ...windows, deviceDiagnostics: medicion })).toEqual({
+      level: 'LIGHT',
+      api: 'OPENGL',
+      paintMs: 700,
+      cpu: 'Intel Celeron N4020',
+      ramGb: 4,
+      receivedAt: '2026-11-24T18:00:00.000Z',
+      drawingMode: 'FAST',
+      drawingModeStatus: 'ACTIVE',
+    })
+  })
+
+  it.each([
+    ['sin deviceDiagnostics', undefined],
+    ['con null', null],
+    ['con un texto', 'texto'],
+    ['con un nivel que no existe', { ...medicion, performance: 'OTRO' }],
+  ])('una PC de Windows %s sale «sin medir»', (_caso, deviceDiagnostics) => {
+    expect(getDevicePerformance({ ...windows, deviceDiagnostics })).toEqual(sinMedir)
+  })
+
+  it('una terminal o una tablet no dicen nada aunque traigan datos', () => {
+    expect(getDevicePerformance({ type: 'TPV_ANDROID', osVersion: 'Android 10', deviceDiagnostics: medicion })).toBeNull()
+    expect(
+      getDevicePerformance({ type: 'POS_ANDROID', osVersion: 'Android 14', version: '2.30.0', deviceDiagnostics: medicion }),
+    ).toBeNull()
+  })
+
+  it('un dato con tipo incorrecto sale null sin tumbar los demás', () => {
+    const resultado = getDevicePerformance({ ...windows, deviceDiagnostics: { ...medicion, ramGb: 'ocho' } })
+    expect(resultado).toEqual({ ...getDevicePerformance({ ...windows, deviceDiagnostics: medicion }), ramGb: null })
+    expect(getDevicePerformance({ ...windows, deviceDiagnostics: { ...medicion, paintMs: 'rápido', cpu: 7, api: false } })).toMatchObject({
+      level: 'LIGHT',
+      paintMs: null,
+      cpu: null,
+      api: null,
+      ramGb: 4,
+    })
+  })
+
+  it.each([
+    ['MANUAL', { manual: true, failed: true, drawingMode: 'FAST', forced: false }],
+    ['FAILED', { manual: false, failed: true, drawingMode: 'FAST', forced: false }],
+    ['PENDING_RESTART', { manual: false, failed: false, drawingMode: 'FAST', forced: false }],
+    ['PENDING_RESTART', { manual: false, failed: false, drawingMode: 'AUTO', forced: true }],
+    ['ACTIVE', { manual: false, failed: false, drawingMode: 'FAST', forced: true }],
+    ['NONE', { manual: false, failed: false, drawingMode: 'AUTO', forced: false }],
+  ])('estado del modo de dibujo: %s', (estado, campos) => {
+    expect(getDevicePerformance({ ...windows, deviceDiagnostics: { ...medicion, ...campos } })?.drawingModeStatus).toBe(estado)
   })
 })

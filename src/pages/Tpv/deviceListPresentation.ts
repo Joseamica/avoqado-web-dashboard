@@ -23,6 +23,8 @@ export interface DeviceListInput {
   serialNumber?: string | null
   deviceUid?: string | null
   systemInfo?: unknown
+  /** Cómo dibuja el POS de Windows su computadora; sólo lo manda la ficha de UN aparato (hz:a5fa2439:D2). */
+  deviceDiagnostics?: unknown
 }
 
 // ── Rol ────────────────────────────────────────────────────────────────────────
@@ -153,6 +155,71 @@ export function getDeviceKind(device: DeviceListInput): DeviceFormFactorKey {
   const kind = normalizeFormFactor(device.formFactor)
   if (kind === 'UNKNOWN' && isPaymentTerminal(device)) return 'HANDHELD_POS'
   return kind
+}
+
+// ── Rendimiento (POS de Windows) ──────────────────────────────────────────────
+
+export type DrawingModeStatus = 'PENDING_RESTART' | 'ACTIVE' | 'FAILED' | 'MANUAL' | 'NONE'
+export type DevicePerformance = {
+  level: 'FLUID' | 'LIGHT' | 'INSUFFICIENT' | 'UNMEASURED'
+  api: string | null
+  paintMs: number | null
+  cpu: string | null
+  ramGb: number | null
+  receivedAt: string | null
+  drawingMode: 'AUTO' | 'FAST' | null
+  drawingModeStatus: DrawingModeStatus
+}
+
+const PERFORMANCE_LEVELS = ['FLUID', 'LIGHT', 'INSUFFICIENT'] as const
+
+const text = (value: unknown) => (typeof value === 'string' && value.trim() ? value.trim() : null)
+const nonNegative = (value: unknown) => (typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : null)
+
+/**
+ * Lo que la computadora del POS de Windows reportó de cómo dibuja (`Terminal.deviceDiagnostics`, hz:a5fa2439:D2).
+ * `null` sólo si el aparato no es de Windows. El JSON llega como lo mandó la app: cada campo se valida solo, y uno con
+ * tipo incorrecto sale `null` sin tumbar los demás.
+ */
+export function getDevicePerformance(device: DeviceListInput): DevicePerformance | null {
+  if (!looksLikeWindows(device)) return null
+  const raw = device.deviceDiagnostics
+  const d = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {}
+  const level = PERFORMANCE_LEVELS.find(l => l === d.performance)
+  if (!level) {
+    return {
+      level: 'UNMEASURED',
+      api: null,
+      paintMs: null,
+      cpu: null,
+      ramGb: null,
+      receivedAt: null,
+      drawingMode: null,
+      drawingModeStatus: 'NONE',
+    }
+  }
+  const drawingMode = d.drawingMode === 'AUTO' || d.drawingMode === 'FAST' ? d.drawingMode : null
+  const receivedAt = text(d.receivedAt)
+  const drawingModeStatus: DrawingModeStatus =
+    d.manual === true
+      ? 'MANUAL'
+      : d.failed === true
+        ? 'FAILED'
+        : (drawingMode === 'FAST') !== (d.forced === true)
+          ? 'PENDING_RESTART'
+          : drawingMode === 'FAST'
+            ? 'ACTIVE'
+            : 'NONE'
+  return {
+    level,
+    api: text(d.api),
+    paintMs: nonNegative(d.paintMs),
+    cpu: text(d.cpu),
+    ramGb: nonNegative(d.ramGb),
+    receivedAt: receivedAt && Number.isFinite(Date.parse(receivedAt)) ? receivedAt : null,
+    drawingMode,
+    drawingModeStatus,
+  }
 }
 
 // ── Batería ────────────────────────────────────────────────────────────────────

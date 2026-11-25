@@ -1,0 +1,239 @@
+/**
+ * La ficha de un POS de Windows enseña, sólo de lectura, cómo dibuja su computadora (hz:a5fa2439:D2): rendimiento,
+ * gráficos, procesador, memoria y el modo de dibujo con su estado. Se prueba con i18next REAL para ver los textos que
+ * lee el dueño en cada idioma; una terminal o una tablet se siguen viendo exactamente igual.
+ */
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { render, screen, within } from '@testing-library/react'
+import i18next from 'i18next'
+import { I18nextProvider, initReactI18next } from 'react-i18next'
+import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+import commonEn from '@/locales/en/common.json'
+import commonEs from '@/locales/es/common.json'
+import tpvEn from '@/locales/en/tpv.json'
+import tpvEs from '@/locales/es/tpv.json'
+import TpvId from '../TpvId'
+
+const { apiGet, aparato } = vi.hoisted(() => ({
+  apiGet: vi.fn(),
+  aparato: { datos: {} as Record<string, unknown> },
+}))
+
+vi.mock('@/api', () => ({
+  default: { get: apiGet, post: vi.fn(), put: vi.fn(), patch: vi.fn(), delete: vi.fn() },
+}))
+vi.mock('@/context/AuthContext', () => ({ useAuth: () => ({ user: { role: 'OWNER' } }) }))
+vi.mock('@/context/BreadcrumbContext', () => ({
+  useBreadcrumb: () => ({ setCustomSegment: () => {}, clearCustomSegment: () => {} }),
+}))
+vi.mock('@/context/SocketContext', () => ({
+  useSocket: () => ({ socket: null, joinVenueRoom: () => {}, leaveVenueRoom: () => {} }),
+}))
+vi.mock('@/hooks/use-access', () => ({
+  useAccess: () => ({ can: () => true, canAny: () => true, canAll: () => true }),
+}))
+vi.mock('@/hooks/use-current-venue', () => ({
+  useCurrentVenue: () => ({
+    venueId: 'venue-1',
+    venueSlug: 'test-venue',
+    venue: { timezone: 'America/Mexico_City' },
+    fullBasePath: '/venues/test-venue',
+  }),
+}))
+vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: () => {} }) }))
+vi.mock('../components/CommandHistoryTable', () => ({ CommandHistoryTable: () => <div /> }))
+vi.mock('../components/DisplayModeRequestControl', () => ({
+  DisplayModeRequestControl: () => <div />,
+  getDisplayModeRefetchInterval: () => false,
+}))
+vi.mock('../components/MessagesTab', () => ({ MessagesTab: () => <div /> }))
+vi.mock('../components/RemoteCommandPanel', () => ({ RemoteCommandPanel: () => <div /> }))
+vi.mock('@/pages/Settings/components/TpvSettingsForm', () => ({ TpvSettingsForm: () => <div /> }))
+vi.mock('../customer-display/CustomerDisplaySection', () => ({ CustomerDisplaySection: () => <div /> }))
+// El bloque «Configuración» pide la pantalla del cliente y los pasos del cobro: no es parte de esta sección.
+vi.mock('../components/DeviceSetupBlock', () => ({ DeviceSetupBlock: () => <div /> }))
+
+const PC_WINDOWS = {
+  id: 'device-1',
+  name: 'PC de caja',
+  serialNumber: null,
+  type: 'POS_ANDROID',
+  status: 'ACTIVE',
+  venueId: 'venue-1',
+  osVersion: 'Android 14',
+  modelIdentifier: 'Windows 11',
+  model: 'Avoqado Windows 11',
+  version: '2.30.0-escritorio',
+  customerDisplayInverted: false,
+  systemInfo: { memory: { total: 2048, used: 512 } },
+}
+
+const MEDICION_RAPIDA = {
+  proc: 'abc',
+  rev: 3,
+  api: 'OPENGL',
+  paintMs: 700,
+  performance: 'LIGHT',
+  drawingMode: 'FAST',
+  forced: true,
+  failed: false,
+  manual: false,
+  light: true,
+  cpu: 'Intel Celeron N4020',
+  cores: 2,
+  ramGb: 4,
+  screen: '1366x768',
+  receivedAt: '2026-11-24T18:00:00.000Z',
+}
+
+async function pintar(datos: Record<string, unknown>, lng: 'es' | 'en' = 'es') {
+  aparato.datos = datos
+  const i18n = i18next.createInstance()
+  await i18n.use(initReactI18next).init({
+    lng,
+    ns: ['tpv', 'common'],
+    defaultNS: 'tpv',
+    resources: { es: { tpv: tpvEs, common: commonEs }, en: { tpv: tpvEn, common: commonEn } },
+    interpolation: { escapeValue: false },
+  })
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, retryDelay: 0 } } })
+  render(
+    <I18nextProvider i18n={i18n}>
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={['/venues/test-venue/devices/device-1']}>
+          <Routes>
+            <Route path="/venues/:slug/devices/:tpvId" element={<TpvId />} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>
+    </I18nextProvider>,
+  )
+  const titulo = lng === 'es' ? 'Este dispositivo' : 'This device'
+  return (await screen.findByRole('heading', { name: titulo })).closest('section') as HTMLElement
+}
+
+/** El valor (`dd`) del renglón cuya etiqueta es exactamente `etiqueta`. */
+function renglon(seccion: HTMLElement, etiqueta: string): HTMLElement {
+  const dt = within(seccion).getByText(etiqueta, { selector: 'dt' })
+  return dt.parentElement?.querySelector('dd') as HTMLElement
+}
+
+function etiquetas(seccion: HTMLElement): string[] {
+  return within(seccion)
+    .getAllByRole('term')
+    .map(dt => dt.textContent ?? '')
+}
+
+describe('ficha del aparato — rendimiento y modo de dibujo del POS de Windows', () => {
+  beforeEach(() => {
+    apiGet.mockImplementation(async (path: string) =>
+      path === '/api/v1/dashboard/venues/venue-1/tpv/device-1' ? { data: aparato.datos } : { data: { data: [] } },
+    )
+  })
+
+  it('con la medición completa enseña cada dato, el modo activo y dónde se cambia', async () => {
+    const seccion = await pintar({ ...PC_WINDOWS, deviceDiagnostics: MEDICION_RAPIDA })
+
+    const rendimiento = renglon(seccion, 'Rendimiento')
+    expect(within(rendimiento).getByText('Modo rápido')).toBeInTheDocument()
+    expect(within(rendimiento).getByText('Esta computadora dibuja sin la tarjeta de video y sin animaciones.')).toBeInTheDocument()
+    expect(within(rendimiento).getByText('Tarda 0.7 s en dibujar al abrir')).toBeInTheDocument()
+    expect(within(rendimiento).getByText(/^Actualizado el .*2026/)).toBeInTheDocument()
+    expect(renglon(seccion, 'Gráficos')).toHaveTextContent('OPENGL')
+    expect(renglon(seccion, 'Procesador')).toHaveTextContent('Intel Celeron N4020')
+    expect(renglon(seccion, 'Memoria de la computadora')).toHaveTextContent('4 GB')
+
+    const modo = renglon(seccion, 'Modo de dibujo')
+    expect(within(modo).getByText('Modo rápido')).toBeInTheDocument()
+    expect(within(modo).getByText('Activo.')).toBeInTheDocument()
+    expect(
+      within(modo).getByText('Se cambia en la computadora: en el aviso «Activar modo rápido» o en Más › Modo de dibujo.'),
+    ).toBeInTheDocument()
+
+    // La memoria de la app sigue en su renglón, aparte de la de la computadora.
+    expect(renglon(seccion, 'Memoria de la app')).toHaveTextContent('512 MB de 2048 MB')
+    // Sólo de lectura: ningún botón ni interruptor en la sección.
+    expect(within(seccion).queryAllByRole('button')).toHaveLength(0)
+    expect(within(seccion).queryAllByRole('switch')).toHaveLength(0)
+  })
+
+  it('en inglés dice lo mismo', async () => {
+    const seccion = await pintar({ ...PC_WINDOWS, deviceDiagnostics: MEDICION_RAPIDA }, 'en')
+
+    const rendimiento = renglon(seccion, 'Performance')
+    expect(within(rendimiento).getByText('Fast mode')).toBeInTheDocument()
+    expect(within(rendimiento).getByText('This computer draws without the graphics card and without animations.')).toBeInTheDocument()
+    expect(within(rendimiento).getByText('Takes 0.7 s to draw on open')).toBeInTheDocument()
+    expect(within(rendimiento).getByText(/^Updated on .*2026/)).toBeInTheDocument()
+    expect(renglon(seccion, 'Graphics')).toHaveTextContent('OPENGL')
+    expect(renglon(seccion, 'Processor')).toHaveTextContent('Intel Celeron N4020')
+    expect(renglon(seccion, 'Computer memory')).toHaveTextContent('4 GB')
+    const modo = renglon(seccion, 'Drawing mode')
+    expect(within(modo).getByText('Fast mode')).toBeInTheDocument()
+    expect(within(modo).getByText('Active.')).toBeInTheDocument()
+    expect(
+      within(modo).getByText('It is changed on the computer: in the "Turn on fast mode" notice or in More › Drawing mode.'),
+    ).toBeInTheDocument()
+  })
+
+  it('una PC lenta en automático dice «No alcanza» y el modo automático, con la pista', async () => {
+    const seccion = await pintar({
+      ...PC_WINDOWS,
+      deviceDiagnostics: { ...MEDICION_RAPIDA, performance: 'INSUFFICIENT', drawingMode: 'AUTO', forced: false, paintMs: 4200 },
+    })
+
+    const rendimiento = renglon(seccion, 'Rendimiento')
+    expect(within(rendimiento).getByText('No alcanza')).toBeInTheDocument()
+    expect(
+      within(rendimiento).getByText('Esta computadora tarda demasiado en dibujar la pantalla. La app va a responder lento.'),
+    ).toBeInTheDocument()
+    expect(within(rendimiento).getByText('Tarda 4.2 s en dibujar al abrir')).toBeInTheDocument()
+    const modo = renglon(seccion, 'Modo de dibujo')
+    expect(within(modo).getByText('Automático')).toBeInTheDocument()
+    expect(within(modo).getByText(/^Se cambia en la computadora/)).toBeInTheDocument()
+    expect(within(modo).queryByText('Activo.')).not.toBeInTheDocument()
+  })
+
+  it.each([
+    ['FAILED', { failed: true }, 'El modo rápido no funcionó en esta computadora: regresó sola al modo automático.'],
+    ['MANUAL', { manual: true }, 'Fijado a mano en la computadora.'],
+    ['PENDING_RESTART', { forced: false }, 'Se aplica la próxima vez que abran el POS.'],
+  ])('el estado %s se lee junto al modo', async (_estado, campos, texto) => {
+    const seccion = await pintar({ ...PC_WINDOWS, deviceDiagnostics: { ...MEDICION_RAPIDA, ...campos } })
+    expect(within(renglon(seccion, 'Modo de dibujo')).getByText(texto)).toBeInTheDocument()
+  })
+
+  it('una PC de Windows sin medición dice «Sin medir todavía» y no enseña el modo', async () => {
+    const seccion = await pintar(PC_WINDOWS)
+
+    const rendimiento = renglon(seccion, 'Rendimiento')
+    expect(within(rendimiento).getByText('Sin medir todavía')).toBeInTheDocument()
+    expect(
+      within(rendimiento).getByText('Se mide sola la próxima vez que se abra el POS en esta computadora, con la versión más reciente.'),
+    ).toBeInTheDocument()
+    for (const etiqueta of ['Modo de dibujo', 'Gráficos', 'Procesador', 'Memoria de la computadora']) {
+      expect(etiquetas(seccion)).not.toContain(etiqueta)
+    }
+  })
+
+  it.each([
+    ['una terminal', { type: 'TPV_ANDROID', osVersion: 'Android 10', modelIdentifier: 'A910S', model: 'A910S', version: '2.22.2' }],
+    ['una tablet', { type: 'POS_ANDROID', osVersion: 'Android 14', modelIdentifier: 'SM-X200', model: 'Galaxy Tab', version: '2.30.0' }],
+  ])('%s se ve igual que hoy, aunque traiga una medición', async (_caso, cambios) => {
+    const seccion = await pintar({ ...PC_WINDOWS, ...cambios, deviceDiagnostics: MEDICION_RAPIDA })
+
+    expect(etiquetas(seccion)).toEqual(['Batería', 'Sistema', 'App', 'Memoria de la app', 'Activación', 'Última conexión'])
+    expect(renglon(seccion, 'Memoria de la app')).toHaveTextContent('512 MB de 2048 MB')
+    expect(within(seccion).queryAllByRole('button')).toHaveLength(0)
+  })
+
+  it('las llaves nuevas existen en los dos idiomas', () => {
+    const llaves = (o: object): string[] =>
+      Object.entries(o).flatMap(([k, v]) => (typeof v === 'object' ? llaves(v).map(s => `${k}.${s}`) : [k]))
+    expect(llaves(tpvEn.device.performance).sort()).toEqual(llaves(tpvEs.device.performance).sort())
+    expect(llaves(tpvEn.device.drawingMode).sort()).toEqual(llaves(tpvEs.device.drawingMode).sort())
+    expect(Object.keys(tpvEn.device.fields).sort()).toEqual(Object.keys(tpvEs.device.fields).sort())
+  })
+})

@@ -58,6 +58,7 @@ import {
   Clock,
   Cpu,
   CreditCard,
+  Gauge,
   Home,
   Info,
   Key,
@@ -66,6 +67,9 @@ import {
   Lock,
   LockOpen,
   MemoryStick,
+  Microchip,
+  MonitorCog,
+  Paintbrush,
   PencilIcon,
   RotateCcw,
   SaveIcon,
@@ -96,7 +100,15 @@ import { canActivate, canConfigurePayments, canSendCommand, getDeviceActionPolic
 import { DeviceBatteryCell, DeviceIcon, DeviceIdCell, DeviceStatusPill, DeviceSystemCell } from './components/DeviceListCells'
 import { RenameDeviceDialog } from './components/RenameDeviceDialog'
 import { useDeviceSubtitle } from './components/useDeviceListLabels'
-import { cuentasAlQuitar, cuentasAlVincular, getAppVersion, getDeviceIdentifier, getDeviceRole, type DeviceListInput } from './deviceListPresentation'
+import {
+  cuentasAlQuitar,
+  cuentasAlVincular,
+  getAppVersion,
+  getDeviceIdentifier,
+  getDevicePerformance,
+  getDeviceRole,
+  type DeviceListInput,
+} from './deviceListPresentation'
 
 // Valid tab values for URL hash
 const VALID_TABS = ['info', 'commands', 'messages', 'settings'] as const
@@ -151,6 +163,8 @@ interface TpvData {
   fulfillmentArea?: AreaDeLaFicha | null
   areaTicketsEnabled?: boolean
   deviceMenus?: DeviceMenusDeLaFicha
+  // Sólo el POS de Windows lo manda (hz:a5fa2439:D2); se valida campo por campo en `getDevicePerformance`.
+  deviceDiagnostics?: unknown
   systemInfo?: {
     platform?: string
     memory?: {
@@ -812,6 +826,8 @@ function TpvIdContent() {
   // un formateador de bytes y salía «18 B / 128 B».
   const memoryPercent = memory?.total ? Math.min(100, Math.round(((memory.used ?? 0) / memory.total) * 100)) : null
   const networkType = typeof tpv.systemInfo?.networkType === 'string' ? tpv.systemInfo.networkType : null
+  const performance = getDevicePerformance(deviceForCells)
+  const formatDecimal = (value: number) => new Intl.NumberFormat(getIntlLocale(i18n.language), { maximumFractionDigits: 1 }).format(value)
 
   const formatVenueDate = (iso?: string | null) =>
     iso
@@ -1097,6 +1113,68 @@ function TpvIdContent() {
                           </span>
                         </DetailRow>
                       ) : null}
+                      {/* Cómo dibuja el POS de Windows su computadora: sólo se lee aquí; se cambia en la PC (hz:a5fa2439:D2). */}
+                      {performance && (
+                        <>
+                          <DetailRow icon={<Gauge className="h-4 w-4" />} label={t('device.fields.performance')}>
+                            <span className="flex flex-col gap-0.5">
+                              <span className={cn(performance.level === 'INSUFFICIENT' && 'text-warning')}>
+                                {t(`device.performance.${performance.level}`)}
+                              </span>
+                              {performance.level !== 'FLUID' && (
+                                <span className="text-xs text-muted-foreground">{t(`device.performance.hint.${performance.level}`)}</span>
+                              )}
+                              {performance.paintMs !== null && (
+                                <span className="text-xs text-muted-foreground">
+                                  {t('device.performance.paint', { s: formatDecimal(performance.paintMs / 1000) })}
+                                </span>
+                              )}
+                              {performance.receivedAt && (
+                                <span className="text-xs text-muted-foreground">
+                                  {t('device.performance.receivedAt', { date: formatVenueDate(performance.receivedAt) })}
+                                </span>
+                              )}
+                            </span>
+                          </DetailRow>
+                          {performance.api && (
+                            <DetailRow icon={<MonitorCog className="h-4 w-4" />} label={t('device.fields.graphics')}>
+                              <span>{performance.api}</span>
+                            </DetailRow>
+                          )}
+                          {performance.cpu && (
+                            <DetailRow icon={<Microchip className="h-4 w-4" />} label={t('device.fields.processor')}>
+                              <span>{performance.cpu}</span>
+                            </DetailRow>
+                          )}
+                          {performance.ramGb ? (
+                            <DetailRow icon={<MemoryStick className="h-4 w-4" />} label={t('device.fields.ram')}>
+                              <span className="tabular-nums">{t('device.fields.ramValue', { gb: formatDecimal(performance.ramGb) })}</span>
+                            </DetailRow>
+                          ) : null}
+                          {performance.level !== 'UNMEASURED' && performance.drawingMode && (
+                            <DetailRow icon={<Paintbrush className="h-4 w-4" />} label={t('device.drawingMode.label')}>
+                              <span className="flex flex-col gap-0.5">
+                                <span className="flex flex-wrap items-baseline gap-x-1.5">
+                                  <span>{t(`device.drawingMode.${performance.drawingMode}`)}</span>
+                                  {performance.drawingModeStatus !== 'NONE' && (
+                                    <>
+                                      <span className="text-muted-foreground" aria-hidden="true">
+                                        ·
+                                      </span>
+                                      <span
+                                        className={performance.drawingModeStatus === 'FAILED' ? 'text-warning' : 'text-muted-foreground'}
+                                      >
+                                        {t(`device.drawingMode.${performance.drawingModeStatus}`)}
+                                      </span>
+                                    </>
+                                  )}
+                                </span>
+                                <span className="text-xs text-muted-foreground">{t('device.drawingMode.where')}</span>
+                              </span>
+                            </DetailRow>
+                          )}
+                        </>
+                      )}
                       {tpv.systemInfo?.uptime ? (
                         <DetailRow icon={<Clock className="h-4 w-4" />} label={t('device.fields.uptime')}>
                           <span>{formatUptime(tpv.systemInfo.uptime)}</span>

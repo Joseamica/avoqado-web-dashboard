@@ -1053,12 +1053,40 @@
       "model": "Model",
       "brand": "Brand",
       "type": "Type",
-      "created": "Added on"
+      "created": "Added on",
+      "performance": "Performance",
+      "graphics": "Graphics",
+      "processor": "Processor",
+      "ram": "Computer memory",
+      "ramValue": "{{gb}} GB"
     },
     "network": {
       "WIFI": "Wi-Fi",
       "CELLULAR": "Mobile data",
       "ETHERNET": "Ethernet"
+    },
+    "performance": {
+      "FLUID": "Smooth",
+      "LIGHT": "Fast mode",
+      "INSUFFICIENT": "Not enough",
+      "UNMEASURED": "Not measured yet",
+      "hint": {
+        "LIGHT": "This computer draws without the graphics card and without animations.",
+        "INSUFFICIENT": "This computer takes too long to draw the screen. The app will respond slowly.",
+        "UNMEASURED": "It is measured automatically the next time the POS opens on this computer, on the latest version."
+      },
+      "paint": "Takes {{s}} s to draw on open",
+      "receivedAt": "Updated on {{date}}"
+    },
+    "drawingMode": {
+      "label": "Drawing mode",
+      "AUTO": "Automatic",
+      "FAST": "Fast mode",
+      "where": "It is changed on the computer: in the \"Turn on fast mode\" notice or in More › Drawing mode.",
+      "PENDING_RESTART": "It applies the next time the POS is opened.",
+      "ACTIVE": "Active.",
+      "FAILED": "Fast mode did not work on this computer: it went back to automatic on its own.",
+      "MANUAL": "Set by hand on the computer."
     },
     "activation": {
       "activatedOn": "Activated on {{date}}",
