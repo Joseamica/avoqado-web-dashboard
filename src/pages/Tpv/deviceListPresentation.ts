@@ -110,7 +110,7 @@ function rawOsVersion(device: DeviceListInput): string | null {
  * `POS_ANDROID` con `osVersion: "Android 14"`. Lo que la delata es el modelo («Windows 11»)
  * y el sabor de la versión («2.20.1-escritorio»). Sin esto la columna diría «Android».
  */
-function looksLikeWindows(device: DeviceListInput): boolean {
+export function looksLikeWindows(device: DeviceListInput): boolean {
   if (device.type === 'POS_DESKTOP') return true
   if (/windows/i.test(device.modelIdentifier ?? '') || /windows/i.test(device.model ?? '')) return true
   return /-escritorio$/i.test(device.version ?? '')

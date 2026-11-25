@@ -1092,7 +1092,7 @@
       "INSUFFICIENT": "No alcanza",
       "UNMEASURED": "Sin medir todavía",
       "hint": {
-        "LIGHT": "Esta computadora dibuja sin la tarjeta de video y sin animaciones.",
+        "LIGHT": "Esta computadora dibuja sin la tarjeta de video y con menos animaciones.",
         "INSUFFICIENT": "Esta computadora tarda demasiado en dibujar la pantalla. La app va a responder lento.",
         "UNMEASURED": "Se mide sola la próxima vez que se abra el POS en esta computadora, con la versión más reciente."
       },

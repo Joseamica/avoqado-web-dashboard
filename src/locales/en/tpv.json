@@ -1071,7 +1071,7 @@
       "INSUFFICIENT": "Not enough",
       "UNMEASURED": "Not measured yet",
       "hint": {
-        "LIGHT": "This computer draws without the graphics card and without animations.",
+        "LIGHT": "This computer draws without the graphics card and with fewer animations.",
         "INSUFFICIENT": "This computer takes too long to draw the screen. The app will respond slowly.",
         "UNMEASURED": "It is measured automatically the next time the POS opens on this computer, on the latest version."
       },

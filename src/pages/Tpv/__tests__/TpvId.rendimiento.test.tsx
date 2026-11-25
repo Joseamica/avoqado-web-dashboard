@@ -44,9 +44,10 @@ vi.mock('@/hooks/use-current-venue', () => ({
 }))
 vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: () => {} }) }))
 vi.mock('../components/CommandHistoryTable', () => ({ CommandHistoryTable: () => <div /> }))
-vi.mock('../components/DisplayModeRequestControl', () => ({
+// La regla real de la inversión de pantalla (5 s mientras está pendiente): la ficha de Windows debe conservarla.
+vi.mock('../components/DisplayModeRequestControl', async importOriginal => ({
+  ...(await importOriginal<typeof import('../components/DisplayModeRequestControl')>()),
   DisplayModeRequestControl: () => <div />,
-  getDisplayModeRefetchInterval: () => false,
 }))
 vi.mock('../components/MessagesTab', () => ({ MessagesTab: () => <div /> }))
 vi.mock('../components/RemoteCommandPanel', () => ({ RemoteCommandPanel: () => <div /> }))
@@ -88,6 +89,8 @@ const MEDICION_RAPIDA = {
   receivedAt: '2026-11-24T18:00:00.000Z',
 }
 
+let clienteActual: QueryClient
+
 async function pintar(datos: Record<string, unknown>, lng: 'es' | 'en' = 'es') {
   aparato.datos = datos
   const i18n = i18next.createInstance()
@@ -99,6 +102,7 @@ async function pintar(datos: Record<string, unknown>, lng: 'es' | 'en' = 'es') {
     interpolation: { escapeValue: false },
   })
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, retryDelay: 0 } } })
+  clienteActual = queryClient
   render(
     <I18nextProvider i18n={i18n}>
       <QueryClientProvider client={queryClient}>
@@ -120,6 +124,22 @@ function renglon(seccion: HTMLElement, etiqueta: string): HTMLElement {
   return dt.parentElement?.querySelector('dd') as HTMLElement
 }
 
+/** Cada cuánto se refresca sola la consulta de la ficha, tal como la decide la página con lo que ya leyó. */
+function intervaloDeLaFicha(): unknown {
+  const consulta = clienteActual.getQueryCache().find({ queryKey: ['tpv', 'venue-1', 'device-1'] })
+  const opcion = consulta?.observers[0]?.options.refetchInterval
+  return typeof opcion === 'function' ? (opcion as (q: unknown) => unknown)(consulta) : opcion
+}
+
+const INVERSION_PENDIENTE = {
+  requestId: 'req-1',
+  desiredInverted: true,
+  status: 'PENDING',
+  requestedAt: '2026-11-25T12:00:00.000Z',
+  requestedBy: 'staff-1',
+  expiresAt: '2026-11-25T12:05:00.000Z',
+}
+
 function etiquetas(seccion: HTMLElement): string[] {
   return within(seccion)
     .getAllByRole('term')
@@ -138,7 +158,7 @@ describe('ficha del aparato — rendimiento y modo de dibujo del POS de Windows'
 
     const rendimiento = renglon(seccion, 'Rendimiento')
     expect(within(rendimiento).getByText('Modo rápido')).toBeInTheDocument()
-    expect(within(rendimiento).getByText('Esta computadora dibuja sin la tarjeta de video y sin animaciones.')).toBeInTheDocument()
+    expect(within(rendimiento).getByText('Esta computadora dibuja sin la tarjeta de video y con menos animaciones.')).toBeInTheDocument()
     expect(within(rendimiento).getByText('Tarda 0.7 s en dibujar al abrir')).toBeInTheDocument()
     expect(within(rendimiento).getByText(/^Actualizado el .*2026/)).toBeInTheDocument()
     expect(renglon(seccion, 'Gráficos')).toHaveTextContent('OPENGL')
@@ -164,7 +184,7 @@ describe('ficha del aparato — rendimiento y modo de dibujo del POS de Windows'
 
     const rendimiento = renglon(seccion, 'Performance')
     expect(within(rendimiento).getByText('Fast mode')).toBeInTheDocument()
-    expect(within(rendimiento).getByText('This computer draws without the graphics card and without animations.')).toBeInTheDocument()
+    expect(within(rendimiento).getByText('This computer draws without the graphics card and with fewer animations.')).toBeInTheDocument()
     expect(within(rendimiento).getByText('Takes 0.7 s to draw on open')).toBeInTheDocument()
     expect(within(rendimiento).getByText(/^Updated on .*2026/)).toBeInTheDocument()
     expect(renglon(seccion, 'Graphics')).toHaveTextContent('OPENGL')
@@ -227,6 +247,27 @@ describe('ficha del aparato — rendimiento y modo de dibujo del POS de Windows'
     expect(etiquetas(seccion)).toEqual(['Batería', 'Sistema', 'App', 'Memoria de la app', 'Activación', 'Última conexión'])
     expect(renglon(seccion, 'Memoria de la app')).toHaveTextContent('512 MB de 2048 MB')
     expect(within(seccion).queryAllByRole('button')).toHaveLength(0)
+  })
+
+  it('la ficha de una computadora se refresca sola cada 15 s para ver su modo de dibujo sin recargar', async () => {
+    await pintar({ ...PC_WINDOWS, deviceDiagnostics: MEDICION_RAPIDA })
+    expect(intervaloDeLaFicha()).toBe(15_000)
+  })
+
+  it.each([
+    ['una terminal', { type: 'TPV_ANDROID', osVersion: 'Android 10', modelIdentifier: 'A910S', model: 'A910S', version: '2.22.2' }],
+    ['una tablet', { type: 'POS_ANDROID', osVersion: 'Android 14', modelIdentifier: 'SM-X200', model: 'Galaxy Tab', version: '2.30.0' }],
+  ])('la ficha de %s no gana refresco', async (_caso, cambios) => {
+    await pintar({ ...PC_WINDOWS, ...cambios, deviceDiagnostics: MEDICION_RAPIDA })
+    expect(intervaloDeLaFicha()).toBe(false)
+  })
+
+  it.each([
+    ['una computadora', {}],
+    ['una terminal', { type: 'TPV_ANDROID', osVersion: 'Android 10', modelIdentifier: 'A910S', model: 'A910S', version: '2.22.2' }],
+  ])('con una inversión de pantalla pendiente, %s conserva los 5 s', async (_caso, cambios) => {
+    await pintar({ ...PC_WINDOWS, ...cambios, customerDisplayRequest: INVERSION_PENDIENTE })
+    expect(intervaloDeLaFicha()).toBe(5000)
   })
 
   it('las llaves nuevas existen en los dos idiomas', () => {

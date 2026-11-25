@@ -107,8 +107,12 @@ import {
   getDeviceIdentifier,
   getDevicePerformance,
   getDeviceRole,
+  looksLikeWindows,
   type DeviceListInput,
 } from './deviceListPresentation'
+
+/** Cada cuánto se refresca sola la ficha de una computadora con el POS de Windows (hz:a5fa2439:D2). */
+const WINDOWS_DETAIL_REFETCH_MS = 15_000
 
 // Valid tab values for URL hash
 const VALID_TABS = ['info', 'commands', 'messages', 'settings'] as const
@@ -330,7 +334,11 @@ function TpvIdContent() {
     // La misma lectura que usa el editor de menús para recuperarse tras un error (`DeviceMenusEditor`).
     queryFn: () => getTpvById(venueId!, tpvId!),
     enabled: Boolean(venueId && tpvId),
-    refetchInterval: query => getDisplayModeRefetchInterval(query.state.data?.customerDisplayRequest),
+    // Una inversión de pantalla pendiente manda (5 s). La ficha de una computadora con el POS de Windows se refresca sola
+    // para que un cambio del modo de dibujo hecho en la PC se vea sin recargar (hz:a5fa2439:D2).
+    refetchInterval: query =>
+      getDisplayModeRefetchInterval(query.state.data?.customerDisplayRequest) ||
+      (query.state.data && looksLikeWindows(query.state.data as unknown as DeviceListInput) ? WINDOWS_DETAIL_REFETCH_MS : false),
     retry: (failureCount, error: any) => {
       // Don't retry if it's a 404 error
       if (error?.response?.status === 404) {
