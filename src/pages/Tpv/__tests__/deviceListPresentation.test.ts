@@ -294,6 +294,24 @@ describe('getDevicePerformance — cómo dibuja el POS de Windows (hz:a5fa2439:D
     })
   })
 
+  it.each(['2026-11-24 18:00:00', 'Tue, 24 Nov 2026 18:00:00 GMT', 'ayer'])(
+    'una fecha que no es ISO («%s») sale null: la ficha no pintaría «Invalid DateTime»',
+    receivedAt => {
+      expect(getDevicePerformance({ ...windows, deviceDiagnostics: { ...medicion, receivedAt } })).toMatchObject({
+        level: 'LIGHT',
+        receivedAt: null,
+      })
+    },
+  )
+
+  it.each(['DIRECT3D', 'OPENGL', 'SOFTWARE_FAST', 'SOFTWARE_COMPAT'])('los gráficos «%s» se conservan', api => {
+    expect(getDevicePerformance({ ...windows, deviceDiagnostics: { ...medicion, api } })?.api).toBe(api)
+  })
+
+  it.each(['VULKAN', 'opengl', ''])('unos gráficos que no son de los cuatro («%s») salen null', api => {
+    expect(getDevicePerformance({ ...windows, deviceDiagnostics: { ...medicion, api } })?.api).toBeNull()
+  })
+
   it.each([
     ['MANUAL', { manual: true, failed: true, drawingMode: 'FAST', forced: false }],
     ['FAILED', { manual: false, failed: true, drawingMode: 'FAST', forced: false }],

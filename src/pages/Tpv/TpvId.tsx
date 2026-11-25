@@ -1126,7 +1126,7 @@ function TpvIdContent() {
                         <>
                           <DetailRow icon={<Gauge className="h-4 w-4" />} label={t('device.fields.performance')}>
                             <span className="flex flex-col gap-0.5">
-                              <span className={cn(performance.level === 'INSUFFICIENT' && 'text-warning')}>
+                              <span className={cn(performance.level === 'INSUFFICIENT' && 'text-warning-foreground dark:text-warning')}>
                                 {t(`device.performance.${performance.level}`)}
                               </span>
                               {performance.level !== 'FLUID' && (
@@ -1146,12 +1146,12 @@ function TpvIdContent() {
                           </DetailRow>
                           {performance.api && (
                             <DetailRow icon={<MonitorCog className="h-4 w-4" />} label={t('device.fields.graphics')}>
-                              <span>{performance.api}</span>
+                              <span>{t(`device.graphics.${performance.api}`)}</span>
                             </DetailRow>
                           )}
                           {performance.cpu && (
                             <DetailRow icon={<Microchip className="h-4 w-4" />} label={t('device.fields.processor')}>
-                              <span>{performance.cpu}</span>
+                              <span className="min-w-0 break-words">{performance.cpu}</span>
                             </DetailRow>
                           )}
                           {performance.ramGb ? (
@@ -1170,7 +1170,11 @@ function TpvIdContent() {
                                         ·
                                       </span>
                                       <span
-                                        className={performance.drawingModeStatus === 'FAILED' ? 'text-warning' : 'text-muted-foreground'}
+                                        className={
+                                          performance.drawingModeStatus === 'FAILED'
+                                            ? 'text-warning-foreground dark:text-warning'
+                                            : 'text-muted-foreground'
+                                        }
                                       >
                                         {t(`device.drawingMode.${performance.drawingModeStatus}`)}
                                       </span>

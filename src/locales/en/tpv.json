@@ -1088,6 +1088,12 @@
       "FAILED": "Fast mode did not work on this computer: it went back to automatic on its own.",
       "MANUAL": "Set by hand on the computer."
     },
+    "graphics": {
+      "DIRECT3D": "Graphics card (Direct3D)",
+      "OPENGL": "Graphics card (OpenGL)",
+      "SOFTWARE_FAST": "No graphics card (processor)",
+      "SOFTWARE_COMPAT": "No graphics card (processor, compatible)"
+    },
     "activation": {
       "activatedOn": "Activated on {{date}}",
       "pending": "Needs activation",

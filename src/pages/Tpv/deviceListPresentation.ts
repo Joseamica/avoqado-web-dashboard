@@ -1,3 +1,5 @@
+import { DateTime } from 'luxon'
+
 import { normalizeFormFactor, type DeviceFormFactorKey } from '@/lib/device-kind'
 import { TERMINAL_ONLINE_THRESHOLD_MS } from '@/lib/terminal-status'
 
@@ -172,6 +174,8 @@ export type DevicePerformance = {
 }
 
 const PERFORMANCE_LEVELS = ['FLUID', 'LIGHT', 'INSUFFICIENT'] as const
+/** Cómo dibuja la app: cada uno tiene su texto en llano (`device.graphics.*`). Otro valor no se enseña. */
+const GRAPHICS_APIS = ['DIRECT3D', 'OPENGL', 'SOFTWARE_FAST', 'SOFTWARE_COMPAT'] as const
 
 const text = (value: unknown) => (typeof value === 'string' && value.trim() ? value.trim() : null)
 const nonNegative = (value: unknown) => (typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : null)
@@ -212,11 +216,12 @@ export function getDevicePerformance(device: DeviceListInput): DevicePerformance
             : 'NONE'
   return {
     level,
-    api: text(d.api),
+    api: GRAPHICS_APIS.find(api => api === d.api) ?? null,
     paintMs: nonNegative(d.paintMs),
     cpu: text(d.cpu),
     ramGb: nonNegative(d.ramGb),
-    receivedAt: receivedAt && Number.isFinite(Date.parse(receivedAt)) ? receivedAt : null,
+    // Sólo ISO: la ficha la pinta con `DateTime.fromISO`, y lo que `Date.parse` acepta de más saldría «Invalid DateTime».
+    receivedAt: receivedAt && DateTime.fromISO(receivedAt).isValid ? receivedAt : null,
     drawingMode,
     drawingModeStatus,
   }

@@ -1109,6 +1109,12 @@
       "FAILED": "El modo rápido no funcionó en esta computadora: regresó sola al modo automático.",
       "MANUAL": "Fijado a mano en la computadora."
     },
+    "graphics": {
+      "DIRECT3D": "Tarjeta de video (Direct3D)",
+      "OPENGL": "Tarjeta de video (OpenGL)",
+      "SOFTWARE_FAST": "Sin tarjeta de video (procesador)",
+      "SOFTWARE_COMPAT": "Sin tarjeta de video (procesador, compatible)"
+    },
     "activation": {
       "activatedOn": "Activada el {{date}}",
       "pending": "Falta activar",

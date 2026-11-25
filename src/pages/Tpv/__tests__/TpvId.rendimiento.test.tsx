@@ -161,7 +161,7 @@ describe('ficha del aparato — rendimiento y modo de dibujo del POS de Windows'
     expect(within(rendimiento).getByText('Esta computadora dibuja sin la tarjeta de video y con menos animaciones.')).toBeInTheDocument()
     expect(within(rendimiento).getByText('Tarda 0.7 s en dibujar al abrir')).toBeInTheDocument()
     expect(within(rendimiento).getByText(/^Actualizado el .*2026/)).toBeInTheDocument()
-    expect(renglon(seccion, 'Gráficos')).toHaveTextContent('OPENGL')
+    expect(renglon(seccion, 'Gráficos')).toHaveTextContent('Tarjeta de video (OpenGL)')
     expect(renglon(seccion, 'Procesador')).toHaveTextContent('Intel Celeron N4020')
     expect(renglon(seccion, 'Memoria de la computadora')).toHaveTextContent('4 GB')
 
@@ -187,7 +187,7 @@ describe('ficha del aparato — rendimiento y modo de dibujo del POS de Windows'
     expect(within(rendimiento).getByText('This computer draws without the graphics card and with fewer animations.')).toBeInTheDocument()
     expect(within(rendimiento).getByText('Takes 0.7 s to draw on open')).toBeInTheDocument()
     expect(within(rendimiento).getByText(/^Updated on .*2026/)).toBeInTheDocument()
-    expect(renglon(seccion, 'Graphics')).toHaveTextContent('OPENGL')
+    expect(renglon(seccion, 'Graphics')).toHaveTextContent('Graphics card (OpenGL)')
     expect(renglon(seccion, 'Processor')).toHaveTextContent('Intel Celeron N4020')
     expect(renglon(seccion, 'Computer memory')).toHaveTextContent('4 GB')
     const modo = renglon(seccion, 'Drawing mode')
@@ -205,7 +205,8 @@ describe('ficha del aparato — rendimiento y modo de dibujo del POS de Windows'
     })
 
     const rendimiento = renglon(seccion, 'Rendimiento')
-    expect(within(rendimiento).getByText('No alcanza')).toBeInTheDocument()
+    // Texto de aviso legible en claro y en oscuro: `text-warning` a secas da ~2:1 sobre la tarjeta.
+    expect(within(rendimiento).getByText('No alcanza')).toHaveClass('text-warning-foreground', 'dark:text-warning')
     expect(
       within(rendimiento).getByText('Esta computadora tarda demasiado en dibujar la pantalla. La app va a responder lento.'),
     ).toBeInTheDocument()
@@ -223,6 +224,45 @@ describe('ficha del aparato — rendimiento y modo de dibujo del POS de Windows'
   ])('el estado %s se lee junto al modo', async (_estado, campos, texto) => {
     const seccion = await pintar({ ...PC_WINDOWS, deviceDiagnostics: { ...MEDICION_RAPIDA, ...campos } })
     expect(within(renglon(seccion, 'Modo de dibujo')).getByText(texto)).toBeInTheDocument()
+  })
+
+  it('el aviso de que el modo rápido no funcionó se lee en claro y en oscuro', async () => {
+    const seccion = await pintar({ ...PC_WINDOWS, deviceDiagnostics: { ...MEDICION_RAPIDA, failed: true } })
+    const aviso = within(renglon(seccion, 'Modo de dibujo')).getByText(
+      'El modo rápido no funcionó en esta computadora: regresó sola al modo automático.',
+    )
+    expect(aviso).toHaveClass('text-warning-foreground', 'dark:text-warning')
+  })
+
+  it.each([
+    ['DIRECT3D', 'Tarjeta de video (Direct3D)'],
+    ['OPENGL', 'Tarjeta de video (OpenGL)'],
+    ['SOFTWARE_FAST', 'Sin tarjeta de video (procesador)'],
+    ['SOFTWARE_COMPAT', 'Sin tarjeta de video (procesador, compatible)'],
+  ])('«Gráficos» dice %s en llano', async (api, texto) => {
+    const seccion = await pintar({ ...PC_WINDOWS, deviceDiagnostics: { ...MEDICION_RAPIDA, api } })
+    expect(renglon(seccion, 'Gráficos')).toHaveTextContent(texto)
+  })
+
+  it('unos gráficos desconocidos no pintan el renglón', async () => {
+    const seccion = await pintar({ ...PC_WINDOWS, deviceDiagnostics: { ...MEDICION_RAPIDA, api: 'VULKAN' } })
+    expect(etiquetas(seccion)).not.toContain('Gráficos')
+    expect(within(seccion).queryByText('VULKAN')).not.toBeInTheDocument()
+  })
+
+  it.each(['2026-11-24 18:00:00', 'Tue, 24 Nov 2026 18:00:00 GMT'])(
+    'una fecha que no es ISO («%s») no pinta «Actualizado el…» (ni «Invalid DateTime»)',
+    async receivedAt => {
+      const seccion = await pintar({ ...PC_WINDOWS, deviceDiagnostics: { ...MEDICION_RAPIDA, receivedAt } })
+      expect(within(seccion).queryByText(/^Actualizado el/)).not.toBeInTheDocument()
+      expect(within(seccion).queryByText(/Invalid DateTime/)).not.toBeInTheDocument()
+    },
+  )
+
+  it('un procesador con nombre largo envuelve dentro de su renglón', async () => {
+    const cpu = 'Intel(R) Celeron(R) N4020 CPU @ 1.10GHz con un nombre de fabricante larguísimo-sin-espacios-que-no-cabe'
+    const seccion = await pintar({ ...PC_WINDOWS, deviceDiagnostics: { ...MEDICION_RAPIDA, cpu } })
+    expect(within(renglon(seccion, 'Procesador')).getByText(cpu)).toHaveClass('min-w-0', 'break-words')
   })
 
   it('una PC de Windows sin medición dice «Sin medir todavía» y no enseña el modo', async () => {
@@ -276,5 +316,6 @@ describe('ficha del aparato — rendimiento y modo de dibujo del POS de Windows'
     expect(llaves(tpvEn.device.performance).sort()).toEqual(llaves(tpvEs.device.performance).sort())
     expect(llaves(tpvEn.device.drawingMode).sort()).toEqual(llaves(tpvEs.device.drawingMode).sort())
     expect(Object.keys(tpvEn.device.fields).sort()).toEqual(Object.keys(tpvEs.device.fields).sort())
+    expect(Object.keys(tpvEn.device.graphics).sort()).toEqual(Object.keys(tpvEs.device.graphics).sort())
   })
 })
