@@ -162,3 +162,44 @@ describe('LoyaltySettings · tasa de canje con 4 decimales (Codex r7 #1)', () =>
 		expect(h.guardados[0]).toEqual({ pointsPerDollar: 2 })
 	})
 })
+
+describe('LoyaltySettings · el texto dice lo que el servidor hará al guardar (Codex r8 #2)', () => {
+	const regla = () => screen.getByTestId('loyalty-expiration-rule')
+
+	it('programa apagado con días guardados: «no vence nada» y sin fecha', async () => {
+		h.config = { ...CONFIG, active: false, pointsExpireDays: 30 }
+		ponerAncho(1440)
+		await pintar()
+		expect(regla()).toHaveTextContent('Con el programa apagado, no vence nada.')
+		expect(regla()).not.toHaveTextContent(/vencen todos/)
+		expect(regla()).not.toHaveTextContent(/a lo más, desde el/)
+	})
+
+	it('prender el programa con días guardados: los días empiezan a contar al guardar, sin la fecha vieja', async () => {
+		h.config = { ...CONFIG, active: false, pointsExpireDays: 30 }
+		ponerAncho(1440)
+		await pintar()
+		fireEvent.click(screen.getAllByRole('switch')[0])
+		await waitFor(() => expect(regla()).toHaveTextContent(/vencen todos sus puntos/))
+		expect(regla()).toHaveTextContent('Al guardar, los días sin movimientos empiezan a contar desde hoy')
+		expect(regla()).not.toHaveTextContent(/a lo más, desde el/)
+	})
+
+	it('acortar los días: avisa que empiezan a contar al guardar y quita la fecha vieja', async () => {
+		ponerAncho(1440)
+		await pintar()
+		expect(regla()).toHaveTextContent(/a lo más, desde el 26 de noviembre de 2026/)
+		fireEvent.change(screen.getByDisplayValue('365'), { target: { value: '30' } })
+		await waitFor(() => expect(regla()).toHaveTextContent('Al guardar, los días sin movimientos empiezan a contar desde hoy'))
+		expect(regla()).not.toHaveTextContent(/a lo más, desde el/)
+	})
+
+	it('alargar los días: sigue contando desde la fecha guardada', async () => {
+		ponerAncho(1440)
+		await pintar()
+		fireEvent.change(screen.getByDisplayValue('365'), { target: { value: '400' } })
+		await waitFor(() => expect(regla()).toHaveTextContent(/pasa 400 días/))
+		expect(regla()).toHaveTextContent(/a lo más, desde el 26 de noviembre de 2026/)
+		expect(regla()).not.toHaveTextContent('Al guardar')
+	})
+})

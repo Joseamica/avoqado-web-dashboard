@@ -225,9 +225,16 @@ export default function LoyaltySettings() {
 	const exampleDiscount = (watchedMinPoints || 100) * (watchedRedemptionRate || 0)
 
 	// D27: desde qué día cuentan sus días los puntos que los clientes ya tenían (el SERVIDOR la fija al prender, reactivar o acortar).
-	const expiraDesde = config?.pointsExpireSince ? fechaLarga(config.pointsExpireSince, getIntlLocale(i18n.language), venueTimezone) : null
-	const acortaLaExpiracion =
-		enableExpiration && !!config?.pointsExpireDays && !!watchedExpireDays && watchedExpireDays < config.pointsExpireDays
+	// Lo que el SERVIDOR hará al guardar (updateLoyaltyConfig): el reloj arranca HOY si el vencimiento queda prendido (programa activo y días)
+	// y antes no lo estaba, o si se acortan los días. Si no, sigue contando desde la fecha guardada. El texto dice exactamente eso (Codex r8 #2).
+	const vencimientoGuardado = !!config?.active && (config?.pointsExpireDays ?? 0) > 0
+	const vencimientoAlGuardar = !!watchedActive && enableExpiration && (watchedExpireDays ?? 0) > 0
+	const arrancaAlGuardar =
+		vencimientoAlGuardar && (!vencimientoGuardado || (watchedExpireDays ?? 0) < (config?.pointsExpireDays ?? 0))
+	const expiraDesde =
+		vencimientoAlGuardar && !arrancaAlGuardar && config?.pointsExpireSince
+			? fechaLarga(config.pointsExpireSince, getIntlLocale(i18n.language), venueTimezone)
+			: null
 
 
 	if (isLoading) {
@@ -437,9 +444,13 @@ export default function LoyaltySettings() {
 									/>
 									{watchedExpireDays ? (
 										<div className="mt-3 space-y-1 text-[11px] text-muted-foreground leading-relaxed" data-testid="loyalty-expiration-rule">
-											<p>{t('settings.expiration.rule', { days: watchedExpireDays })}</p>
+											{watchedActive ? (
+												<p>{t('settings.expiration.rule', { days: watchedExpireDays })}</p>
+											) : (
+												<p>{t('settings.expiration.programOff')}</p>
+											)}
 											{expiraDesde && <p>{t('settings.expiration.since', { date: expiraDesde })}</p>}
-											{acortaLaExpiracion && <p className="text-amber-600 dark:text-amber-400">{t('settings.expiration.shorterRestarts')}</p>}
+											{arrancaAlGuardar && <p className="text-amber-600 dark:text-amber-400">{t('settings.expiration.shorterRestarts')}</p>}
 										</div>
 									) : null}
 								</div>

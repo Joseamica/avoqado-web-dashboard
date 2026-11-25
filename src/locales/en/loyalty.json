@@ -56,7 +56,8 @@
       },
       "rule": "If a customer goes {{days}} days without any points activity (earning, redeeming or an adjustment), all of their points expire.",
       "since": "Days without activity count, at most, from {{date}}, the day expiration started to apply.",
-      "shorterRestarts": "If you save fewer days, days without activity start counting from today."
+      "shorterRestarts": "When you save, days without activity start counting from today: nobody loses points because of this change.",
+      "programOff": "With the program off, nothing expires."
     },
     "save": "Save Changes",
     "saving": "Saving...",

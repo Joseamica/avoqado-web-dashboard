@@ -56,7 +56,8 @@
       },
       "rule": "Si un cliente pasa {{days}} días sin movimientos en sus puntos (ganar, canjear o un ajuste), vencen todos sus puntos.",
       "since": "Los días sin movimientos cuentan, a lo más, desde el {{date}}, el día en que empezó a aplicarse la expiración.",
-      "shorterRestarts": "Si guardas menos días, los días sin movimientos empiezan a contar desde hoy."
+      "shorterRestarts": "Al guardar, los días sin movimientos empiezan a contar desde hoy: nadie pierde sus puntos por este cambio.",
+      "programOff": "Con el programa apagado, no vence nada."
     },
     "save": "Guardar Cambios",
     "saving": "Guardando...",
