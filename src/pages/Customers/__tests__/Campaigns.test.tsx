@@ -129,4 +129,20 @@ describe('Campaigns — la lista', () => {
       vi.useRealTimers()
     }
   })
+
+  it('si una relectura falla, deja de consultar (no insiste contra un servidor caído)', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    try {
+      mockList.mockResolvedValueOnce({ items: [campana({ status: 'SENDING', sentCount: 3 })], total: 1, page: 1, pageSize: 20 })
+      mockList.mockRejectedValue(new Error('servidor caído'))
+      pintar()
+      await waitFor(() => expect(mockList).toHaveBeenCalledTimes(1))
+      await vi.advanceTimersByTimeAsync(30_000)
+      await waitFor(() => expect(mockList).toHaveBeenCalledTimes(2))
+      await vi.advanceTimersByTimeAsync(120_000)
+      expect(mockList).toHaveBeenCalledTimes(2)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
 })

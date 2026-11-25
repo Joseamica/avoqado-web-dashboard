@@ -59,9 +59,13 @@ export default function Campaigns() {
 		enabled: Boolean(venueId),
 		// Excepción de tiempo real documentada (`bounded-data-and-query-load.md`): los correos salen
 		// en los minutos siguientes, así que mientras una campaña de ESTA página va «En cola» o
-		// «Enviando» la lista se relee cada 30 s; con todo terminado no consulta nada.
+		// «Enviando» la lista se relee cada 30 s; con todo terminado no consulta nada. Si una relectura
+		// falla, se detiene (no insiste contra un servidor que falla); vuelve al regresar a la pestaña.
 		refetchInterval: query =>
-			query.state.data?.items.some(c => c.status === 'ENQUEUED' || c.status === 'SENDING') ? 30_000 : false,
+			query.state.status === 'success' &&
+			query.state.data?.items.some(c => c.status === 'ENQUEUED' || c.status === 'SENDING')
+				? 30_000
+				: false,
 	})
 	const { data, isLoading } = listQuery
 

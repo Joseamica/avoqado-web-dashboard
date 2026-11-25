@@ -366,7 +366,7 @@
       "name": "Campaign",
       "status": "Status",
       "audience": "Audience",
-      "delivery": "Delivered",
+      "delivery": "Sent",
       "createdAt": "Created"
     },
     "status": {

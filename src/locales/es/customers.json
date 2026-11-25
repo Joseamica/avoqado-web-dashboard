@@ -366,7 +366,7 @@
       "name": "Campaña",
       "status": "Estado",
       "audience": "A quién",
-      "delivery": "Entregados",
+      "delivery": "Enviados",
       "createdAt": "Creada"
     },
     "status": {
