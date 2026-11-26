@@ -115,6 +115,15 @@ export function opcionCotizada(
 const origenQueCompra = (input: Pick<SelectionInput, 'origin' | 'cotizacion'>): PlanOrigin =>
   input.cotizacion?.estadoDeLaPrueba?.estado === 'TERMINADA' ? NO_ORIGIN : input.origin
 
+/**
+ * B2 (revisión 3): una prueba que Stripe todavía corre (`SIN_TARJETA` o `CON_TARJETA`). Durante ella otro plan sí puede estar a la
+ * venta, pero no se compra encima de la prueba (la regla común lo niega): no se enseña su precio ni se sugiere.
+ */
+const pruebaViva = (cotizacion: CotizacionDeTuPlan | undefined) => {
+  const estado = cotizacion?.estadoDeLaPrueba?.estado
+  return estado === 'SIN_TARJETA' || estado === 'CON_TARJETA'
+}
+
 /** La compra clásica con el comprobante de su opción; con una prueba regalada que difiere el cobro, también su fecha (D3). */
 const compraConComprobante = (tier: 'PRO' | 'PREMIUM', opcion: OpcionCotizada): PlanOperation => ({
   kind: 'CLASSIC_CHECKOUT',
@@ -349,7 +358,7 @@ export function isMarkable(entry: FeatureGridEntry, mode: GridMode): boolean {
 export function planPillPrice(
   tier: PlanTarget,
   input: Omit<SelectionInput, 'target' | 'marked'> & { interval: 'monthly' | 'annual' },
-): { amount: number; per: 'month' | 'year'; ivaAparte: boolean; fueraDeVenta?: true } {
+): { amount: number; per: 'month' | 'year'; ivaAparte: boolean; fueraDeVenta?: true; duranteLaPrueba?: true } {
   if (tier === 'FREE') return { amount: 0, per: 'month', ivaAparte: false }
   const origin = input.cotizacion ? origenQueCompra(input) : input.origin
   if (tier === currentTarget(origin) && origin.price)
@@ -359,10 +368,14 @@ export function planPillPrice(
       per: origin.interval === 'year' ? 'year' : 'month',
       ivaAparte: false,
     }
-  // B2 (revisión 2): con la versión del editor, un plan que hoy no se vende (sin opción en esa periodicidad) no enseña precio;
-  // `fueraDeVenta` lo dice y `amount` no se lee. Sin cotización, los precios de hoy.
-  if (input.cotizacion && !opcionCotizada(input.cotizacion, tier, input.interval))
-    return { amount: 0, per: input.interval === 'annual' ? 'year' : 'month', ivaAparte: false, fueraDeVenta: true }
+  // B2 (revisiones 2 y 3): con la versión del editor no se enseña precio (`fueraDeVenta`, y `amount` no se lee) de otro plan durante
+  // una prueba viva (`duranteLaPrueba`: puede estar a la venta, pero no se compra encima de la prueba) ni de un plan que hoy no se
+  // vende (sin opción en esa periodicidad). Sin cotización, los precios de hoy.
+  const per = input.interval === 'annual' ? 'year' : 'month'
+  if (pruebaViva(input.cotizacion) && tier !== currentTarget(origin))
+    return { amount: 0, per, ivaAparte: false, fueraDeVenta: true, duranteLaPrueba: true }
+  if (input.cotizacion && !pruebaViva(input.cotizacion) && !opcionCotizada(input.cotizacion, tier, input.interval))
+    return { amount: 0, per, ivaAparte: false, fueraDeVenta: true }
   const op = planOperation({ ...input, target: tier, marked: [] })
   if (op.kind === 'CLASSIC_CHECKOUT') {
     // B2: con la cotización, el precio de la versión que firmó el SERVIDOR (con IVA), nunca el del catálogo.
@@ -384,8 +397,10 @@ export interface SummaryLine {
   entry?: FeatureGridEntry
   offer?: FeatureGridOffer
   price: number | null
-  /** B2: el plan no se vende hoy en la versión del editor; la línea lo dice en vez de un precio. */
+  /** B2: el plan no se puede comprar hoy (ver `planPillPrice`); la línea lo dice en vez de un precio. */
   fueraDeVenta?: true
+  /** B2 (revisión 3): la razón es una prueba viva: el plan no se compra encima de ella. */
+  duranteLaPrueba?: true
 }
 
 export interface SelectionSummaryModel {
@@ -420,9 +435,9 @@ function includedHint(
       return !!found?.minimumTier && TIER_RANK[found.minimumTier] <= TIER_RANK[tier]
     }).length
     // B2: con la cotización, el precio mensual de la versión (con IVA) si el plan se vende hoy; si no, el del catálogo, como hoy.
-    // Un plan que la versión no vende no se sugiere (revisión 2).
+    // Un plan que la versión no vende no se sugiere (revisión 2), ni otro plan durante una prueba viva (revisión 3).
     const referencia = opcionCotizada(cotizacion, tier, 'monthly')
-    if (cotizacion && !referencia) continue
+    if (cotizacion && (!referencia || pruebaViva(cotizacion))) continue
     const price = referencia ? referencia.precioCents / 100 : classicPrice(tier, 'monthly')
     if (covered === marked.length) return { tier, covered, more: Math.max(0, tierFeatureCount(entries, tier) - covered), price }
   }
@@ -449,6 +464,7 @@ export function summarizeSelection(input: SelectionInput & { interval: 'monthly'
     offer: operation.kind === 'HYBRID_REPLACE' ? (chosenPlanOffer(input.grid, operation.tier, input.preferList) ?? undefined) : undefined,
     price: pildora.fueraDeVenta ? null : pildora.amount,
     ...(pildora.fueraDeVenta ? { fueraDeVenta: true as const } : {}),
+    ...(pildora.duranteLaPrueba ? { duranteLaPrueba: true as const } : {}),
   }
   const quedarse = operation.kind === 'CLASSIC_CHECKOUT' && !!operation.firstChargeAt
   // Quedarse con el plan de la prueba SÍ compra el plan: su línea va aunque el destino sea el plan actual.

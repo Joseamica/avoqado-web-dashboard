@@ -255,6 +255,42 @@ describe('PlanRow', () => {
     expect(within(pro).queryByText('plan.notOnSale')).toBeNull()
   })
 
+  it('fix round 3: durante una prueba viva sin tarjeta, la píldora de Premium dice «No se puede cambiar de plan durante tu prueba», sin precio; la del plan de la prueba, su precio', () => {
+    const planes = {
+      PRO: { displayName: 'Pro', vendible: false, monthly: null, annual: null },
+      PREMIUM: { displayName: 'Premium', vendible: false, monthly: null, annual: null },
+    }
+    const estadoDeLaPrueba = {
+      estado: 'SIN_TARJETA',
+      tier: 'PRO',
+      interval: 'monthly',
+      trialEndsAt: '2026-12-10T17:00:00.000Z',
+      tarjeta: null,
+      montoAlTerminarCents: 81084,
+    }
+    const enPrueba = origin({ ...CLASSIC, faltaTarjeta: true })
+    render(
+      <PlanRow
+        {...props({
+          origin: enPrueba,
+          planState: {
+            state: 'trial',
+            trialEndsAt: '2026-12-10T17:00:00.000Z',
+            cotizacion: { versionNumber: 2, planes, estadoDeLaPrueba },
+          } as never,
+          current: 'PRO',
+          selected: 'PRO',
+        })}
+      />,
+    )
+    const [, pro, premium] = screen.getAllByRole('radio')
+    expect(within(premium).getByText('plan.notDuringTrial')).toBeInTheDocument()
+    expect(within(premium).queryByText('plan.notOnSale')).toBeNull()
+    expect(premium).not.toHaveTextContent('$')
+    expect(within(pro).getByText(/1,158\.84/)).toBeInTheDocument()
+    expect(within(pro).queryByText('plan.notDuringTrial')).toBeNull()
+  })
+
   // D5 (5-nov-2026): con un cupón vigente, «Tu plan» dice lo que paga, hasta cuándo y el precio después.
   it('cupón de 3 meses: lo que paga, hasta cuándo y después el precio de lista', () => {
     const conCupon = {

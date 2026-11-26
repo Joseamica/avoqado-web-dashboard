@@ -456,6 +456,22 @@ describe('SelectionSummary · la prueba de la versión del editor', () => {
     expect(review()).toHaveTextContent('plan.selection.assisted')
   })
 
+  it('fix round 3: durante una prueba viva, la línea de otro plan dice «No se puede cambiar de plan durante tu prueba», sin precio', () => {
+    renderSummary({
+      model: model({
+        operation: { kind: 'ASSISTED', tier: 'PREMIUM' },
+        current: 'PRO',
+        target: 'PREMIUM',
+        lines: [{ key: 'plan-PREMIUM', plan: 'PREMIUM', price: null, fueraDeVenta: true, duranteLaPrueba: true }],
+        monthlyTotal: null,
+        hint: null,
+      }),
+    })
+    expect(screen.getByText('plan.notDuringTrial')).toBeInTheDocument()
+    expect(screen.queryByText('plan.notOnSale')).toBeNull()
+    expect(screen.queryByText(/\$/)).toBeNull()
+  })
+
   it('TERMINAR_ACEPTACION dice «Terminar la compra que empezaste: Premium» y su botón revisa', async () => {
     const props = renderSummary({
       model: model({

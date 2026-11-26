@@ -348,7 +348,8 @@
     "checkoutCardSaved": "Done: your card is saved. The first charge will be on {{date}}.",
     "checkoutCardPending": "We got your card. Confirming it can take a few minutes; you were not charged today.",
     "checkoutCardSavedNoDate": "Done: your card is saved. The first charge will be on the day your trial ends.",
-    "notOnSale": "Not available right now"
+    "notOnSale": "Not available right now",
+    "notDuringTrial": "You can't change plans during your trial"
   },
   "featureGate": {
     "tierTag": "Included in {{tier}}",

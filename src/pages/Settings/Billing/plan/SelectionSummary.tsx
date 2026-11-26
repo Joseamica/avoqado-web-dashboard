@@ -158,7 +158,7 @@ export function SelectionSummary({
                   <div className="flex justify-between gap-3">
                     <span>{line.plan ? t('plan.selection.plan', { tier: tierName(line.plan) }) : name(line.entry!)}</span>
                     {line.fueraDeVenta ? (
-                      <span className="text-muted-foreground">{t('plan.notOnSale')}</span>
+                      <span className="text-muted-foreground">{t(line.duranteLaPrueba ? 'plan.notDuringTrial' : 'plan.notOnSale')}</span>
                     ) : (
                       <span className="tabular-nums">{line.price == null ? '—' : money(line.price)}</span>
                     )}

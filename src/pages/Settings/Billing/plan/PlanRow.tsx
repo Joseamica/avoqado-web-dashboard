@@ -157,8 +157,11 @@ export function PlanRow(props: PlanRowProps) {
                   <>
                     <span className="font-semibold">{tierName(tier)}</span>
                     {price.fueraDeVenta ? (
-                      // B2 (revisión 2): la versión del editor no vende este plan hoy: ni su precio ni el del catálogo.
-                      <span className="whitespace-nowrap text-xs text-muted-foreground">{t('plan.notOnSale')}</span>
+                      // B2 (revisiones 2 y 3): no se puede comprar hoy (fuera de venta, u otro plan durante la prueba): ni su precio
+                      // ni el del catálogo.
+                      <span className="whitespace-nowrap text-xs text-muted-foreground">
+                        {t(price.duranteLaPrueba ? 'plan.notDuringTrial' : 'plan.notOnSale')}
+                      </span>
                     ) : (
                       <>
                         <span className="whitespace-nowrap tabular-nums">

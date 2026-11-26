@@ -1014,6 +1014,39 @@ describe('«Tu plan» con la cotización de la versión (B2, Task 12)', () => {
     expect(summarizeSelection({ ...marcas, cotizacion: { ...V2, planes: SIN_PLANES } }).hint).toBeNull()
   })
 
+  it('🔴 fix round 3: durante una prueba viva (SIN_TARJETA o CON_TARJETA) otro plan dice «No se puede cambiar de plan durante tu prueba», sin precio; «No disponible por ahora» sólo fuera de una prueba viva', () => {
+    const conPrecio = origin({ ...PRUEBA_PRO, price: { base: 799, gross: 926.84, currency: 'MXN' } })
+    const pill = (tier: 'PRO' | 'PREMIUM', over: Record<string, unknown>) =>
+      planPillPrice(tier, { ...base, origin: conPrecio, interval: 'monthly', ...over } as Parameters<typeof planPillPrice>[1])
+    const sinTarjeta = { versionNumber: 2, planes: SIN_PLANES, estadoDeLaPrueba: prueba('SIN_TARJETA') }
+    // CON_TARJETA: el SERVIDOR sí cotiza Premium (está a la venta), pero no se compra encima de la prueba.
+    const conTarjeta = { ...V2, estadoDeLaPrueba: prueba('CON_TARJETA') }
+    for (const cotizacion of [sinTarjeta, conTarjeta]) {
+      expect(pill('PREMIUM', { cotizacion })).toMatchObject({ fueraDeVenta: true, duranteLaPrueba: true })
+      // El plan de la prueba sigue diciendo lo que pagará.
+      expect(pill('PRO', { cotizacion })).toEqual({ amount: 926.84, per: 'month', ivaAparte: false })
+      const resumen = summarizeSelection({ ...base, origin: conPrecio, target: 'PREMIUM', interval: 'monthly', cotizacion })
+      expect(resumen.operation).toEqual({ kind: 'ASSISTED', tier: 'PREMIUM' })
+      expect(resumen.lines).toEqual([expect.objectContaining({ plan: 'PREMIUM', price: null, fueraDeVenta: true, duranteLaPrueba: true })])
+      expect(resumen.monthlyTotal).toBeNull()
+      // Ni la comparación «Premium incluye estas…» sugiere cambiar durante la prueba.
+      const marcas = { ...base, origin: conPrecio, target: 'PRO' as const, marked: ['CFDI'], interval: 'monthly' as const, cotizacion }
+      expect(summarizeSelection(marcas).hint).toBeNull()
+    }
+    // Fuera de una prueba viva: el plan que el SERVIDOR no vende es «No disponible por ahora», sin la marca de la prueba.
+    const premiumFuera = { ...V2, planes: { ...V2.planes, PREMIUM: fueraDeVenta('Premium') } }
+    const fuera = pill('PREMIUM', { origin: NO_ORIGIN, cotizacion: premiumFuera })
+    expect(fuera).toMatchObject({ fueraDeVenta: true })
+    expect(fuera).not.toHaveProperty('duranteLaPrueba')
+    // TERMINADA no es una prueba viva: compra como Gratis, con su precio si se vende, o «No disponible por ahora» si no.
+    const terminada = { ...premiumFuera, estadoDeLaPrueba: prueba('TERMINADA') }
+    expect(pill('PRO', { cotizacion: terminada })).toEqual({ amount: 926.84, per: 'month', ivaAparte: false })
+    expect(pill('PREMIUM', { cotizacion: terminada })).not.toHaveProperty('duranteLaPrueba')
+    expect(pill('PREMIUM', { cotizacion: terminada })).toMatchObject({ fueraDeVenta: true })
+    // Sin cotización, el catálogo de hoy.
+    expect(pill('PREMIUM', {})).toEqual({ amount: 1970.84, per: 'month', ivaAparte: true })
+  })
+
   it('con cotizacion y origin NONE: CLASSIC_CHECKOUT con el quoteToken de la periodicidad elegida y precio 926.84 del SERVIDOR', () => {
     expect(planOperation({ ...base, origin: NO_ORIGIN, target: 'PRO', interval: 'monthly', cotizacion: V2 })).toEqual({
       kind: 'CLASSIC_CHECKOUT',

@@ -348,7 +348,8 @@
     "checkoutCardSaved": "Listo: tu tarjeta quedó guardada. El primer cobro será el {{date}}.",
     "checkoutCardPending": "Recibimos tu tarjeta. Confirmarla puede tardar unos minutos; hoy no se te cobró nada.",
     "checkoutCardSavedNoDate": "Listo: tu tarjeta quedó guardada. El primer cobro será el día que termina tu prueba.",
-    "notOnSale": "No disponible por ahora"
+    "notOnSale": "No disponible por ahora",
+    "notDuringTrial": "No se puede cambiar de plan durante tu prueba"
   },
   "featureGate": {
     "tierTag": "Incluido en {{tier}}",
