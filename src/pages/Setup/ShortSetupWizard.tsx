@@ -31,11 +31,27 @@ import { BusinessTypeStep } from './steps/BusinessTypeStep'
 import { ConsentStep } from './steps/ConsentStep'
 import { OfferStep } from './steps/OfferStep'
 import { SetupDoneStep } from './steps/SetupDoneStep'
-import type { LaunchOfferState, PlanQuote } from './launchOffer.types'
+import type { LaunchOfferState, PlanActivationState, PlanQuote, TarjetaVisible } from './launchOffer.types'
 import type { SetupData } from './types'
 
 /** Pantallas visibles del contador «Paso X de N» (la cuenta ya ocurrió: cuenta como una más). */
 const PANTALLAS_VISIBLES: ShortSetupStepId[] = ['businessBasics', 'businessType', 'offer']
+
+// Nombres de marca, iguales en español e inglés; con la versión del editor manda su `displayName`.
+const NOMBRE_DEL_PLAN = { PRO: 'Pro', PREMIUM: 'Premium' } as const
+
+/**
+ * Lo que dice la pantalla final de la prueba, de la respuesta del cobro. `tarjetaQueCobrara` sólo cuenta si VIAJÓ: si Stripe no
+ * dejó leerla, el SERVIDOR la omite («no se sabe»), y entonces se usa la de `progress`.
+ */
+interface CierreDelCobro {
+  trialModality?: 'RENEWS_AS_PRO' | 'ENDS_FREE'
+  trialEndsAt?: string
+  sinTarjeta?: boolean
+  noHabraCobro?: boolean
+  tarjeta?: { valor: TarjetaVisible | null }
+  tier?: 'PRO' | 'PREMIUM'
+}
 
 interface ShortSetupWizardProps {
   organizationId: string
@@ -60,9 +76,9 @@ export default function ShortSetupWizard({ organizationId }: ShortSetupWizardPro
   const [errorFinal, setErrorFinal] = useState<string | null>(null)
   const reclamoIntentado = useRef(false)
   // Modalidad REAL de la prueba: de la respuesta directa del cobro, o (al reanudar) de `GET progress`.
-  const [modalidadDirecta, setModalidadDirecta] = useState<{ trialModality?: 'RENEWS_AS_PRO' | 'ENDS_FREE'; trialEndsAt?: string } | null>(
-    null,
-  )
+  const [modalidadDirecta, setModalidadDirecta] = useState<CierreDelCobro | null>(null)
+  // Planes editables (b2-r3 #3): la prueba sin tarjeta terminó antes de cerrar el alta; el cierre lo dice.
+  const [pruebaTerminada, setPruebaTerminada] = useState<string | null>(null)
 
   const {
     data: progressData,
@@ -90,6 +106,12 @@ export default function ShortSetupWizard({ organizationId }: ShortSetupWizardPro
   const launchOffer = (progress?.launchOffer ?? null) as LaunchOfferState | null
   const planQuote = (progress?.planQuote ?? null) as PlanQuote | null
   const venueId: string | undefined = progress?.venueId ?? undefined
+  const planActivation = (progress?.planActivation ?? undefined) as Partial<PlanActivationState> | undefined
+  // El plan que el SERVIDOR (o el respaldo del paso 10) dejó en la raíz de `v2SetupData`.
+  const planGuardado = (progress?.v2SetupData as { plan?: { tier?: string; pruebaSinTarjetaTerminada?: boolean } } | undefined)?.plan
+  // 🔴 T6-C1: con la versión del editor, `completedAt` manda: el alta está terminada aunque el cobro diga `IN_PROGRESS` (la
+  // prueba sin tarjeta terminó y «Terminar» corrió antes del cierre en Gratis). Sin versión del editor, como hoy.
+  const altaTerminada = !!progress?.completedAt && !!planQuote?.oferta
 
   // Alguien que YA tenía cuenta y llega por un anuncio: el código viene en la URL (§3.5). Se
   // reclama una sola vez y solo si el progreso todavía no tiene campaña.
@@ -113,15 +135,15 @@ export default function ShortSetupWizard({ organizationId }: ShortSetupWizardPro
   useEffect(() => {
     if (pantalla !== null) return
     if (isLoading || !progress) return
-    setPantalla(resolveShortResumeStep(progress as never))
-  }, [isLoading, progress, pantalla])
+    setPantalla(altaTerminada ? 'done' : resolveShortResumeStep(progress as never))
+  }, [isLoading, progress, pantalla, altaTerminada])
 
   // Un cobro que quedó sin cerrar (recarga a media confirmación) mantiene el plan bloqueado en la
   // oferta; cuando el servidor lo da por ACTIVO al volver a preguntar, el alta avanza sola.
   const estadoDelCobro = estadoDeActivacion(progress as never)
   useEffect(() => {
-    if (pantalla === 'offer' && estadoDelCobro === 'ACTIVE') setPantalla('done')
-  }, [pantalla, estadoDelCobro])
+    if (pantalla === 'offer' && (estadoDelCobro === 'ACTIVE' || altaTerminada)) setPantalla('done')
+  }, [pantalla, estadoDelCobro, altaTerminada])
 
   useEffect(() => {
     if (!pantalla) return
@@ -190,6 +212,10 @@ export default function ShortSetupWizard({ organizationId }: ShortSetupWizardPro
     )
   }
 
+  /** El nombre del plan de la prueba: el de la versión del editor si la hay; si no, el de siempre. */
+  const nombreDelPlan = (tier: string | undefined) =>
+    tier === 'PRO' || tier === 'PREMIUM' ? (planQuote?.oferta?.planes?.[tier]?.displayName ?? NOMBRE_DEL_PLAN[tier]) : undefined
+
   const indiceVisible = PANTALLAS_VISIBLES.indexOf(pantalla)
   const contador = indiceVisible >= 0 ? t('wizard.step', { current: indiceVisible + 2, total: PANTALLAS_VISIBLES.length + 1 }) : null
 
@@ -251,15 +277,23 @@ export default function ShortSetupWizard({ organizationId }: ShortSetupWizardPro
             planQuote={planQuote}
             data={datos}
             onActivated={result => {
-              setModalidadDirecta({ trialModality: result?.trialModality, trialEndsAt: result?.trialEndsAt })
+              setModalidadDirecta({
+                trialModality: result?.trialModality,
+                trialEndsAt: result?.trialEndsAt,
+                sinTarjeta: result?.sinTarjeta,
+                noHabraCobro: result?.noHabraCobro,
+                ...(result && 'tarjetaQueCobrara' in result ? { tarjeta: { valor: result.tarjetaQueCobrara ?? null } } : {}),
+                tier: result?.tier,
+              })
               setPantalla('done')
             }}
+            onPruebaTerminada={setPruebaTerminada}
             onFinish={() => void terminar()}
             // Devuelve la PROMESA: «Volver a comprobar» se queda apagado hasta que el progreso llega (Codex R12).
             onRefreshProgress={async () => {
               await refetch()
             }}
-            activacionEnCurso={estadoDelCobro === 'IN_PROGRESS'}
+            activacionEnCurso={estadoDelCobro === 'IN_PROGRESS' && !altaTerminada}
             onFreePlan={plan => guardarYAvanzar(() => setupService.saveStep(organizationId, BACKEND_STEP_BY_ID.offer, { plan }), 'done')}
           />
         )}
@@ -272,6 +306,19 @@ export default function ShortSetupWizard({ organizationId }: ShortSetupWizardPro
             businessName={datos.businessName}
             trialModality={modalidadDirecta?.trialModality ?? progress?.planActivation?.trialModality ?? undefined}
             trialEndsAt={modalidadDirecta?.trialEndsAt ?? progress?.planActivation?.trialEndsAt ?? undefined}
+            // Planes editables (b2-r8 #9, b2-r9 #7): de la respuesta del cobro o, tras recargar o perder el 200, de `progress`.
+            sinTarjeta={modalidadDirecta?.sinTarjeta ?? planActivation?.sinTarjeta ?? undefined}
+            tarjetaQueCobrara={modalidadDirecta?.tarjeta ? modalidadDirecta.tarjeta.valor : planActivation?.tarjetaQueCobrara}
+            noHabraCobro={modalidadDirecta?.noHabraCobro ?? planActivation?.noHabraCobro ?? undefined}
+            planName={nombreDelPlan(modalidadDirecta?.tier ?? planGuardado?.tier)}
+            pruebaTerminada={
+              pruebaTerminada ??
+              (planGuardado?.pruebaSinTarjetaTerminada === true
+                ? t('offer.trialEnded', {
+                    defaultValue: 'Tu prueba terminó sin tarjeta y tu negocio quedó en Gratis. No se te cobró nada.',
+                  })
+                : null)
+            }
           />
         )}
       </div>

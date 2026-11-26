@@ -335,7 +335,9 @@
     "pendingNoChange": "You can't change plans in the meantime: the charge may already have gone through.",
     "recheck": "Check my payment again",
     "pendingAfterReload": "Your last payment wasn't confirmed. Confirm again with your card: if it was already charged, we recover it and you won't be charged twice.",
-    "noQuote": "We couldn't load the prices. Reload the page and try again."
+    "noQuote": "We couldn't load the prices. Reload the page and try again.",
+    "trialEndedTitle": "Your trial ended",
+    "trialEnded": "Your trial ended without a card and your business stayed on Free. You weren't charged anything."
   },
   "plans": {
     "title": "Choose your plan",
@@ -444,7 +446,28 @@
     "compareTitle": "What each plan includes",
     "setupIntentError": "We couldn't set up card payment. Try again.",
     "problems": "Having trouble? Message us",
-    "problemsWhatsApp": "Hi, I couldn't add my card while signing up my business on Avoqado"
+    "problemsWhatsApp": "Hi, I couldn't add my card while signing up my business on Avoqado",
+    "trialSubtitleDays": "{{count}} days free. Cancel before and you won't be charged.",
+    "trialSubtitleDays_one": "{{count}} day free. Cancel before and you won't be charged.",
+    "trialPriceDays": "{{count}} days free",
+    "trialPriceDays_one": "{{count}} day free",
+    "trialNoCardPrice": "{{count}} days free, no card",
+    "trialNoCardPrice_one": "{{count}} day free, no card",
+    "noCardTitle": "Start your {{plan}} trial",
+    "noCardSubtitle": "{{count}} days free, no card needed.",
+    "noCardSubtitle_one": "{{count}} day free, no card needed.",
+    "noCardLegal": "Your trial ends on {{fecha}}. To keep {{plan}}, add your card before then in «Your plan»; otherwise your business stays on Free that day. We don't ask for a card now.",
+    "noCardWithCardLegal": "When your trial ends on {{fecha}}, {{monto}} will be charged to your {{brand}} card ••••{{last4}}; you can remove or change it beforehand on Stripe's page from «Your plan».",
+    "balanceNote": "If your account has a credit or an outstanding balance in Stripe, it's applied on your receipt.",
+    "cardUnknown": "We couldn't check your Stripe account. Try again in a few minutes.",
+    "startNoCard": "Start my {{count}} free days",
+    "startNoCard_one": "Start my {{count}} free day",
+    "startTrialDays": "Start my {{count}} free days",
+    "startTrialDays_one": "Start my {{count}} free day",
+    "payTodayTitle": "Get {{plan}}",
+    "payTodayLegal": "By paying you authorize Avoqado to charge {{monto}} per {{periodo}} to this card until you cancel. Cancel anytime from Billing.",
+    "payToday": "Pay {{price}} and enter",
+    "periodMonthly": "month"
   },
   "done": {
     "title": "All set",
@@ -454,6 +477,9 @@
     "trialEndsFree": "Your Pro trial ends on {{date}} with no charge. That day you can get Basic.",
     "trialRenews": "Your Pro trial renews as Pro on {{date}}.",
     "trialChange": "Change it in \"Your plan\"",
-    "completeError": "We could not finish your setup. Try again in a moment."
+    "completeError": "We could not finish your setup. Try again in a moment.",
+    "trialWithCard": "Your {{plan}} trial ends on {{date}}; your card ••••{{last4}} will be charged that day. You can remove it in «Your plan».",
+    "trialNoCharge": "Your {{plan}} trial ends on {{date}}; nothing will be charged.",
+    "trialNoCard": "Your {{plan}} trial ends on {{date}}. To keep {{plan}}, add your card in «Your plan»; otherwise you stay on Free."
   }
 }

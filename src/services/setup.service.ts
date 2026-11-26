@@ -5,7 +5,7 @@
  */
 
 import api from '@/api'
-import type { ActivatePlanBody } from '@/pages/Setup/launchOffer.types'
+import type { ActivatePlanBody, ActivatePlanSinTarjetaBody, RetomaDelPago, TarjetaDeLaPrueba } from '@/pages/Setup/launchOffer.types'
 
 export interface TermsAcceptance {
   termsAccepted: boolean
@@ -52,8 +52,27 @@ export const setupService = {
    * VIO y consintió; el servidor lo compara con su propia cotización y rechaza si no coincide.
    * Nunca se calcula en el navegador.
    */
-  activatePlan: (orgId: string, body: ActivatePlanBody) =>
+  activatePlan: (orgId: string, body: ActivatePlanBody | ActivatePlanSinTarjetaBody) =>
     api.post(`/api/v1/onboarding/organizations/${orgId}/v2/activate-plan`, body),
+
+  /**
+   * Planes editables (B2, §18): qué tarjeta cobraría Stripe al terminar la prueba SIN tarjeta, leída en ESE momento (la
+   * ventana la pide al abrirse, nunca de un `progress` anterior). Sólo informa: nada se compara al cobrar. Si Stripe no
+   * contesta, el SERVIDOR responde `{ tarjeta: null }`; una petición que falla rechaza (y la ventana dice «no se sabe»).
+   */
+  tarjetaDeLaPrueba: (orgId: string): Promise<TarjetaDeLaPrueba> =>
+    api
+      .get(`/api/v1/onboarding/organizations/${orgId}/v2/tarjeta-de-la-prueba`)
+      .then(res => (res.data?.data ?? res.data) as TarjetaDeLaPrueba),
+
+  /**
+   * Planes editables (B2 Task 5): «Confirmar mi pago» retoma el reto del banco del intento a medio pago aunque la oferta
+   * vigente ya no tenga opciones. Sólo lee la suscripción del intento: nunca cobra ni crea nada, así que repetirla es seguro.
+   */
+  retomarPago: (orgId: string): Promise<RetomaDelPago> =>
+    api
+      .post(`/api/v1/onboarding/organizations/${orgId}/v2/retomar-pago`, undefined, { repetible: true })
+      .then(res => (res.data?.data ?? res.data) as RetomaDelPago),
 
   /**
    * Asocia una campaña al alta en curso (§3.5). Cubre a quien ya tenía cuenta y llega por un

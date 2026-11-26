@@ -16,6 +16,13 @@
  *    el progreso y las tarjetas pasan a la prueba: el precio normal exige un consentimiento NUEVO.
  *  - **Con un cobro sin respuesta definitiva el plan no se cambia:** las tarjetas se apagan y la
  *    ventana no se cierra (ni Esc ni la X).
+ *
+ * Planes editables (B2, Task 11) — **sólo con `planQuote.oferta`** (una versión del editor); sin ella todo es como hoy:
+ *  - cada compra manda el comprobante (`quoteToken`) de la opción que el SERVIDOR cotizó, y la ventana enseña SU precio y
+ *    SU fecha de fin de prueba;
+ *  - el SetupIntent se pide sólo al abrir una ventana que pide tarjeta, nunca al montar;
+ *  - la prueba sin tarjeta no monta el formulario de Stripe y, al abrirse, pregunta qué tarjeta cobraría Stripe;
+ *  - el Básico no se ofrece (§11.2).
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -36,15 +43,18 @@ import { trackPurchase } from '@/lib/gtag'
 import { focoPerdido } from '../offer/focoPerdido'
 import { formatMXN } from '../offer/formatMXN'
 import { textoDeRechazo } from '../offer/mensajeDeRechazo'
-import { expectedStandardFirstChargeCents } from '../offer/standardQuote'
+import { expectedStandardFirstChargeCents, opcionDelAlta } from '../offer/standardQuote'
+import { marcaLegible } from '../offer/marcaLegible'
 import { textoDePrecio } from '../offer/textoDePrecio'
 import { BACKEND_STEP_BY_ID } from '../stepRegistry'
 import {
   isOfferAvailable,
   type ActivatePlanBody,
   type ActivatePlanResult,
+  type ActivatePlanSinTarjetaBody,
   type LaunchOfferState,
   type PlanQuote,
+  type TarjetaDeLaPrueba,
 } from '../launchOffer.types'
 import { PlanCardForm } from './PlanCardForm'
 import { FUENTES_DE_TARJETA, localeDeTarjeta, useAparienciaDeTarjeta } from '../offer/stripeAppearance'
@@ -106,6 +116,11 @@ export interface OfferStepProps {
    * Llega así tras una recarga: el plan arranca bloqueado y se ofrece volver a comprobar.
    */
   activacionEnCurso?: boolean
+  /**
+   * Planes editables (B2, b2-r3 #3): la prueba sin tarjeta terminó antes de cerrar el alta y el negocio quedó en Gratis. Se
+   * avisa ANTES de pedir el progreso, para que el cierre del asistente diga lo mismo.
+   */
+  onPruebaTerminada?: (mensaje: string) => void
 }
 
 type Desenlace =
@@ -118,6 +133,14 @@ type Desenlace =
   // servidor sigue esperando tras el reto de ESTE clic y la salida es «Autorizar el pago».
   | { tipo: 'autorizando' }
   | { tipo: 'autorizar' }
+  // Planes editables (B2, b2-r3 #3): la prueba sin tarjeta terminó; el alta quedó en Gratis. No se cobró nada.
+  | { tipo: 'prueba-terminada'; mensaje: string }
+
+/**
+ * Lo que la ventana sin tarjeta sabe de la tarjeta que cobraría Stripe (§18), leído al abrirse. 🔴 `desconocida` (la lectura
+ * falló) NUNCA se dice «sin tarjeta»: si la tiene, se le cobraría al terminar la prueba.
+ */
+type LecturaDeTarjeta = { estado: 'cargando' } | { estado: 'lista'; tarjeta: TarjetaDeLaPrueba['tarjeta'] } | { estado: 'desconocida' }
 
 /**
  * Lo que `cobrar` le contesta a quien lo llamó. 🔴 Solo un 200 CONFIRMADO es `ok`: cualquier otra
@@ -154,12 +177,15 @@ export function OfferStep({
   onRefreshProgress,
   onFreePlan,
   activacionEnCurso = false,
+  onPruebaTerminada,
 }: OfferStepProps) {
   const { t, i18n } = useTranslation('setup')
   const idioma = i18n?.language?.startsWith('en') ? 'en' : 'es'
 
   const oferta = isOfferAvailable(launchOffer) ? launchOffer : null
   const noDisponible = launchOffer && !launchOffer.available ? launchOffer : null
+  // Planes editables (B2): la versión del editor que publica el SERVIDOR. Sin ella, el alta de hoy.
+  const ofertaDelAlta = planQuote?.oferta ?? null
 
   // «Ignorar la oferta»: lo pone la caída tras un 409 (`caerAEstandar`). Las tarjetas pasan a la prueba
   // de 30 días y el precio normal hay que volver a tocarlo.
@@ -168,8 +194,11 @@ export function OfferStep({
   // El plan cuya ventana para pagar está abierta (null = viendo las 3 tarjetas).
   const [planElegido, setPlanElegido] = useState<PlanDePago | null>(null)
   // Plan Básico: se elige como una tarjeta más (a la izquierda de Pro), pero por dentro es Pro mensual, sin pagar hoy.
-  const { plan: planBasico } = usePublicBasicPlan()
-  const [esBasico, setEsBasico] = useState(data?.plan?.basicPlan === true)
+  // 🔴 Con una versión del editor el Básico no se vende (§11.2): ni su tarjeta ni su cuerpo, aunque esté publicado.
+  const { plan: basicoPublicado } = usePublicBasicPlan(!ofertaDelAlta)
+  const planBasico = ofertaDelAlta ? null : basicoPublicado
+  const [basicoElegido, setEsBasico] = useState(data?.plan?.basicPlan === true)
+  const esBasico = !ofertaDelAlta && basicoElegido
   const slugRecomendado = data?.hybridOfferSlug ?? readHybridOffer()
   const basicoRecomendado = !!planBasico && !!slugRecomendado && slugRecomendado === planBasico.slug
   const [comparando, setComparando] = useState(false)
@@ -195,13 +224,17 @@ export function OfferStep({
     setCobroEnCurso(enCurso)
   }, [])
   const ultimoCobro = useRef<{
-    cuerpo: ActivatePlanBody
+    cuerpo: ActivatePlanBody | ActivatePlanSinTarjetaBody
     plan: NonNullable<SetupData['plan']>
     opciones?: OpcionesDeCobro
   } | null>(null)
   // Tras una RECARGA con un cobro sin cerrar en el servidor (`activacionEnCurso`), el candado arranca
   // puesto: la pantalla se pintó de cero y no sabe del cobro que ya salió (Codex ronda 10).
-  const pagoEnVuelo = cobroEnCurso || tarjetaTrabajando || !!activacionEnCurso
+  // 🔴 Planes editables (b2-r2 #2): con una versión del editor la recarga NO apaga las tarjetas: cualquier plan cotizado se
+  // puede elegir y su cuerpo va a `activate-plan`, donde el SERVIDOR primero recupera el intento anterior (si cobró, cierra
+  // con lo que cobró; si no, lo descarta). Un cobro de ESTA pantalla en vuelo sigue apagando todo. Sin versión, como hoy.
+  const recargaApagaLosPlanes = !!activacionEnCurso && !ofertaDelAlta
+  const pagoEnVuelo = cobroEnCurso || tarjetaTrabajando || recargaApagaLosPlanes
   // El formulario de tarjeta NO se bloquea por `activacionEnCurso`: tras una recarga no hay cuerpo que
   // reenviar, y la única forma de cerrar el cobro colgado es confirmar otra vez. El servidor recupera la
   // suscripción del intento anterior por su id y entrega el plan, sin cobrar dos veces (revisión
@@ -228,10 +261,28 @@ export function OfferStep({
   }, [])
 
   const mostrarOferta = !!oferta && !verEstandar
+  // La ventana abierta es la de la campaña (cuerpo LAUNCH), no la de un plan de la lista.
+  const ventanaDeOferta = !!planElegido && !esBasico && mostrarOferta && planElegido === oferta!.planTier
+  // Planes editables: la opción cotizada (y firmada) de la ventana abierta. Sin versión del editor, `null`.
+  const opcionElegida = planElegido && ofertaDelAlta && !ventanaDeOferta ? opcionDelAlta(planQuote, planElegido, 'monthly') : null
+  const planCotizado = planElegido && ofertaDelAlta ? ofertaDelAlta.planes[planElegido] : null
+  // La prueba SIN tarjeta: su ventana no monta el formulario de Stripe ni pide un SetupIntent.
+  const ventanaSinTarjeta = !!opcionElegida && planCotizado?.requiresCard === false
+
+  /** ¿La ventana de este plan pide una tarjeta? Sin versión del editor, siempre (como hoy). */
+  const ventanaPideTarjeta = (tier: PlanDePago) =>
+    !ofertaDelAlta ||
+    (mostrarOferta && tier === oferta!.planTier) ||
+    (ofertaDelAlta.planes[tier]?.requiresCard === true && !!opcionDelAlta(planQuote, tier, 'monthly'))
+  // 🔴 b2-r1 #4: con una versión del editor el SetupIntent se pide la PRIMERA vez que se abre una ventana que pide tarjeta (y
+  // después se reusa, como hoy), nunca al montar: elegir un plan sin tarjeta no le pide nada a Stripe. Sin versión, al montar.
+  const [tarjetaPedida, setTarjetaPedida] = useState(false)
+  const pideSetupIntent = !ofertaDelAlta || tarjetaPedida
 
   // SetupIntent para la tarjeta, para cualquier plan (oferta o prueba): se pide al montar, no al abrir
-  // la ventana, para que el formulario aparezca ya listo.
+  // la ventana, para que el formulario aparezca ya listo. (Con la versión del editor, ver `pideSetupIntent`.)
   useEffect(() => {
+    if (!pideSetupIntent) return
     if (!venueId) {
       setIntentStatus('error')
       return
@@ -254,7 +305,34 @@ export function OfferStep({
     return () => {
       vivo = false
     }
-  }, [venueId, retryToken])
+  }, [venueId, retryToken, pideSetupIntent])
+
+  // 🔴 §18 (b2-r8): al abrir la ventana sin tarjeta se pregunta EN ESE MOMENTO qué tarjeta cobraría Stripe al terminar la
+  // prueba (nunca de un `progress` leído antes: la persona pudo guardar una tarjeta en otra pestaña). Sólo informa: el cuerpo
+  // no lleva nada de ella y nada se compara al cobrar. Mientras carga, el botón está apagado.
+  const [lecturaDeTarjeta, setLecturaDeTarjeta] = useState<LecturaDeTarjeta>({ estado: 'cargando' })
+  const [releerTarjeta, setReleerTarjeta] = useState(0)
+  useEffect(() => {
+    if (!ventanaSinTarjeta) return
+    let vivo = true
+    setLecturaDeTarjeta({ estado: 'cargando' })
+    setupService
+      .tarjetaDeLaPrueba(organizationId)
+      .then(respuesta => {
+        if (!vivo) return
+        // `{ tarjeta: null }` es «sin tarjeta guardada»; una respuesta sin la llave no dice nada (= no se sabe).
+        const tarjeta = respuesta?.tarjeta
+        setLecturaDeTarjeta(tarjeta !== undefined && typeof tarjeta === 'object' ? { estado: 'lista', tarjeta } : { estado: 'desconocida' })
+      })
+      .catch(() => {
+        if (vivo) setLecturaDeTarjeta({ estado: 'desconocida' })
+      })
+    return () => {
+      vivo = false
+      // Al cerrar (o al releer) se olvida: la ventana que se abra después nunca enseña una lectura vieja, ni por un instante.
+      setLecturaDeTarjeta({ estado: 'cargando' })
+    }
+  }, [ventanaSinTarjeta, planElegido, organizationId, releerTarjeta])
 
   // El iframe de Stripe no hereda nuestro CSS: el tema y la tipografía se le pasan aquí, y se
   // actualizan solos si la persona cambia de tema con la pantalla abierta.
@@ -286,6 +364,22 @@ export function OfferStep({
   )
 
   /**
+   * 🔴 b2-r3 #3: la prueba sin tarjeta terminó antes de cerrar el alta y el SERVIDOR la cerró en Gratis. No se cobró nada: el
+   * plan se suelta, la ventana se cierra, se dice por qué y se vuelve a pedir el progreso (con el alta terminada, el asistente
+   * sale como con cualquier alta terminada).
+   */
+  const terminarPorPrueba = useCallback(
+    async (mensaje: string) => {
+      marcarCobroEnCurso(false)
+      setPlanElegido(null)
+      setDesenlace({ tipo: 'prueba-terminada', mensaje })
+      onPruebaTerminada?.(mensaje)
+      await onRefreshProgress()
+    },
+    [marcarCobroEnCurso, onPruebaTerminada, onRefreshProgress],
+  )
+
+  /**
    * Cobra. `cuerpo` viaja idéntico en cada reintento: es el MISMO cobro, no uno nuevo.
    *
    * 🔴 NO lanza: **devuelve** el desenlace (la ventana pinta el suyo desde `desenlace`). Lanzar desde
@@ -293,7 +387,11 @@ export function OfferStep({
    * capturaría nadie.
    */
   const cobrar = useCallback(
-    async (cuerpo: ActivatePlanBody, plan: NonNullable<SetupData['plan']>, opciones?: OpcionesDeCobro): Promise<ResultadoDeCobro> => {
+    async (
+      cuerpo: ActivatePlanBody | ActivatePlanSinTarjetaBody,
+      plan: NonNullable<SetupData['plan']>,
+      opciones?: OpcionesDeCobro,
+    ): Promise<ResultadoDeCobro> => {
       marcarCobroEnCurso(true)
       ultimoCobro.current = { cuerpo, plan, opciones }
       try {
@@ -345,8 +443,14 @@ export function OfferStep({
             return { ok: false, mensaje: t('offer.authorizePending') }
           }
           setDesenlace({ tipo: 'autorizando' })
+          // La prueba sin tarjeta no tiene método de pago (y no debería pedir reto): sin él, el reto es de la tarjeta del cobro.
+          const metodoDelCobro = 'paymentMethodId' in cuerpo ? cuerpo.paymentMethodId : undefined
           await stripePromise
-            .then(stripe => stripe?.confirmCardPayment(secretoDelCobro, { payment_method: cuerpo.paymentMethodId }))
+            .then(stripe =>
+              metodoDelCobro
+                ? stripe?.confirmCardPayment(secretoDelCobro, { payment_method: metodoDelCobro })
+                : stripe?.confirmCardPayment(secretoDelCobro),
+            )
             .catch(() => undefined)
           if (!montado.current) return { ok: false, mensaje: '' }
           return cobrar(cuerpo, plan, { yaAutorizo: true })
@@ -365,6 +469,18 @@ export function OfferStep({
           // 🔴 I1: si la pantalla se ocultó durante el reto (la app del banco, otra pestaña), react-query releyó el progreso
           // con el cobro todavía IN_PROGRESS y nadie más lo pregunta: los planes quedaban apagados con «sin confirmar».
           void onRefreshProgress()
+          return { ok: false, mensaje }
+        }
+
+        // 🔴 b2-r3 #3 y T6: la prueba sin tarjeta terminó y el alta quedó en Gratis. Llega como `PLAN_TRIAL_ENDED` o, si el
+        // alta ya se había cerrado en Gratis, como `PLAN_ALREADY_ACTIVATED` con `currentTier: 'FREE'` (sin versión del editor
+        // ese caso no existe: sólo el cierre de esta prueba deja el alta activa en Gratis). Las dos salen igual.
+        const planActual = (details as { currentTier?: string } | undefined)?.currentTier
+        if (code === 'PLAN_TRIAL_ENDED' || (code === 'PLAN_ALREADY_ACTIVATED' && planActual === 'FREE')) {
+          const mensaje =
+            (code === 'PLAN_TRIAL_ENDED' && message) ||
+            t('offer.trialEnded', { defaultValue: 'Tu prueba terminó sin tarjeta y tu negocio quedó en Gratis. No se te cobró nada.' })
+          await terminarPorPrueba(mensaje)
           return { ok: false, mensaje }
         }
 
@@ -397,9 +513,17 @@ export function OfferStep({
           return { ok: false, mensaje }
         }
 
-        if (code === 'LAUNCH_OFFER_UNAVAILABLE' || code === 'OFFER_CHANGED' || code === 'LAUNCH_OFFER_NOT_APPLICABLE') {
+        // Planes editables: un plan que salió de venta o un comprobante que ya no sirve (vencido, de otra versión, roto) es
+        // la misma situación que una oferta cambiada: no se cobró nada y el precio nuevo exige un consentimiento NUEVO.
+        const ofertaDeLaVersionCambio = code === 'PLAN_NOT_ON_SALE' || code === 'QUOTE_EXPIRED' || code === 'QUOTE_INVALID'
+        if (
+          code === 'LAUNCH_OFFER_UNAVAILABLE' ||
+          code === 'OFFER_CHANGED' ||
+          code === 'LAUNCH_OFFER_NOT_APPLICABLE' ||
+          ofertaDeLaVersionCambio
+        ) {
           const mensaje =
-            code === 'OFFER_CHANGED'
+            code === 'OFFER_CHANGED' || ofertaDeLaVersionCambio
               ? t('offer.changed', { defaultValue: 'La oferta cambió. Revisa el precio nuevo antes de continuar.' })
               : t('offer.unavailable', { defaultValue: 'La oferta ya no está disponible.' })
           await caerAEstandar(mensaje)
@@ -443,7 +567,7 @@ export function OfferStep({
         return { ok: false, mensaje }
       }
     },
-    [caerAEstandar, marcarCobroEnCurso, onActivated, onRefreshProgress, organizationId, t],
+    [caerAEstandar, marcarCobroEnCurso, onActivated, onRefreshProgress, organizationId, t, terminarPorPrueba],
   )
 
   const pagarLaOferta = useCallback(
@@ -479,6 +603,37 @@ export function OfferStep({
   const pagarPlan = useCallback(
     async (tier: PlanDePago, paymentMethodId: string) => {
       if (!esBasico && oferta && !verEstandar && tier === oferta.planTier) return pagarLaOferta(paymentMethodId)
+      // Planes editables (B2): la opción que el SERVIDOR cotizó, con su comprobante. Con prueba hoy se paga $0; con 0 días se
+      // paga hoy su `firstChargeCents` (y el 3D Secure va por el mismo `cobrar`). Nunca un monto calculado aquí, ni el Básico.
+      if (ofertaDelAlta) {
+        const opcion = opcionDelAlta(planQuote, tier, 'monthly')
+        if (!opcion) {
+          setDesenlace({
+            tipo: 'rechazo',
+            mensaje: t('offer.noQuote', { defaultValue: 'No pudimos cargar los precios. Recarga la página e intenta de nuevo.' }),
+          })
+          setRetryToken(n => n + 1)
+          return
+        }
+        const pagaHoy = opcion.trialEndsAt === null
+        const cuerpo: ActivatePlanBody = {
+          tier,
+          interval: 'monthly',
+          payNow: pagaHoy,
+          paymentMethodId,
+          offer: { kind: 'STANDARD', expectedFirstChargeCents: opcion.firstChargeCents, quoteToken: opcion.quoteToken },
+          language: idioma,
+        }
+        const plan: NonNullable<SetupData['plan']> = {
+          tier,
+          paymentMethodId,
+          interval: 'monthly',
+          payNow: pagaHoy,
+          acceptedAt: new Date().toISOString(),
+        }
+        await cobrar(cuerpo, plan)
+        return
+      }
       const esperado = expectedStandardFirstChargeCents(planQuote, tier, 'monthly', false)
       if (esperado === null) {
         // 🔴 Sin la cotización del servidor no hay monto que consentir, así que NO se cobra ni se avanza.
@@ -512,7 +667,42 @@ export function OfferStep({
       }
       await cobrar(cuerpo, plan)
     },
-    [cobrar, esBasico, idioma, oferta, pagarLaOferta, planQuote, t, verEstandar],
+    [cobrar, esBasico, idioma, oferta, ofertaDelAlta, pagarLaOferta, planQuote, t, verEstandar],
+  )
+
+  /**
+   * 🔴 La prueba SIN tarjeta (§16, §18): su propio cuerpo, por el MISMO `cobrar` (el mismo candado, los mismos reintentos del
+   * 503 o la red con el MISMO cuerpo, y el respaldo `PUT step/10` sólo tras el 200, con `sinTarjeta` en el plan). No lleva
+   * nada de la tarjeta que enseñó la ventana: esa sólo informa.
+   */
+  const empezarSinTarjeta = useCallback(
+    async (tier: PlanDePago) => {
+      if (cobroEnCursoRef.current) return
+      const opcion = opcionDelAlta(planQuote, tier, 'monthly')
+      if (!opcion) {
+        setDesenlace({
+          tipo: 'rechazo',
+          mensaje: t('offer.noQuote', { defaultValue: 'No pudimos cargar los precios. Recarga la página e intenta de nuevo.' }),
+        })
+        return
+      }
+      const cuerpo: ActivatePlanSinTarjetaBody = {
+        tier,
+        interval: 'monthly',
+        payNow: false,
+        offer: { kind: 'STANDARD_SIN_TARJETA', expectedFirstChargeCents: 0, quoteToken: opcion.quoteToken },
+        language: idioma,
+      }
+      const plan: NonNullable<SetupData['plan']> = {
+        tier,
+        interval: 'monthly',
+        payNow: false,
+        sinTarjeta: true,
+        acceptedAt: new Date().toISOString(),
+      }
+      await cobrar(cuerpo, plan)
+    },
+    [cobrar, idioma, planQuote, t],
   )
 
   // Abrir la ventana de un plan. Con un cobro sin cerrar no se elige otro (las tarjetas ya están apagadas).
@@ -521,6 +711,7 @@ export function OfferStep({
     // Con la tarjeta Básico a la vista, cada clic es una elección explícita; sin ella manda el plan guardado.
     if (planBasico) setEsBasico(basico && tier === 'PRO')
     setDesenlace({ tipo: 'nada' })
+    if (ofertaDelAlta && ventanaPideTarjeta(tier)) setTarjetaPedida(true)
     setPlanElegido(tier)
     // La pantalla de la tarjeta es donde se cae casi todo el alta (7 de 8 el 26-oct): abrirla y cerrarla sin pagar son
     // los pasos del embudo, y el cierre dispara la encuesta «¿qué te detuvo?» de PostHog.
@@ -531,14 +722,54 @@ export function OfferStep({
   // Tras una recarga con un cobro sin cerrar: la ventana del plan de la campaña (o Pro sin campaña) con el
   // formulario HABILITADO. El servidor recupera el cobro del intento anterior y entrega lo cobrado, sin cobrar
   // de nuevo. Sólo se bloquea con un cobro de ESTA pantalla en vuelo.
-  const confirmarMiPago = () => {
-    if (cobroEnCursoRef.current) return
+  const abrirVentanaDeRecuperacion = () => {
     setDesenlace({ tipo: 'nada' })
-    const tier = mostrarOferta ? oferta!.planTier : 'PRO'
+    // Con la versión del editor, el primer plan que siga en venta (Pro sale de venta ⇒ Premium); sin ella, Pro como hoy.
+    const sinPro = !!ofertaDelAlta && !opcionDelAlta(planQuote, 'PRO', 'monthly') && !!opcionDelAlta(planQuote, 'PREMIUM', 'monthly')
+    const tier: PlanDePago = mostrarOferta ? oferta!.planTier : sinPro ? 'PREMIUM' : 'PRO'
+    if (ofertaDelAlta && ventanaPideTarjeta(tier)) setTarjetaPedida(true)
     setPlanElegido(tier)
     // También es abrir la tarjeta: sin esto, cerrarla contaba un «cerró» sin «abrió» y medía el tiempo desde 1970 (Codex r1).
     abiertaDesde.current = Date.now()
     track('plan_card_opened', { tier, launch_offer_code: mostrarOferta ? oferta?.code : undefined, flow: 'short', recovery: true })
+  }
+  // 🔴 b2-r9 #2: con la versión del editor, «Confirmar mi pago» primero pregunta por el intento a medio pago, sin depender de
+  // ninguna opción cotizada (una versión nueva pudo dejar los planes fuera de venta). `RETO` ⇒ el MISMO reto del banco, sobre la
+  // tarjeta que ya tiene el cobro (sin `payment_method`), y después otra vez `retomarPago` y el progreso (si Stripe todavía no
+  // activa la suscripción, queda el aviso «sin confirmar» y lo cierra el aviso de Stripe o el barrido). `CERRADA` ⇒ el progreso
+  // (el asistente avanza solo). `NADA` o un error ⇒ la ventana de hoy.
+  const [retomando, setRetomando] = useState(false)
+  const retomandoRef = useRef(false)
+  const confirmarMiPago = () => {
+    if (cobroEnCursoRef.current) return
+    if (!ofertaDelAlta) return abrirVentanaDeRecuperacion()
+    if (retomandoRef.current) return
+    retomandoRef.current = true
+    setRetomando(true)
+    void (async () => {
+      let abrirLaVentana = false
+      try {
+        const retoma = await setupService.retomarPago(organizationId)
+        if (!montado.current) return
+        if (retoma?.estado === 'RETO' && retoma.clientSecret) {
+          await stripePromise.then(stripe => stripe?.confirmCardPayment(retoma.clientSecret)).catch(() => undefined)
+          if (!montado.current) return
+          await setupService.retomarPago(organizationId).catch(() => undefined)
+          if (!montado.current) return
+          await onRefreshProgress()
+        } else if (retoma?.estado === 'CERRADA') {
+          await onRefreshProgress()
+        } else {
+          abrirLaVentana = true
+        }
+      } catch {
+        abrirLaVentana = true
+      } finally {
+        retomandoRef.current = false
+        if (montado.current) setRetomando(false)
+      }
+      if (abrirLaVentana && montado.current && !cobroEnCursoRef.current) abrirVentanaDeRecuperacion()
+    })()
   }
 
   // Sin respuesta definitiva tras los reintentos: el plan sigue bloqueado (pudo cobrarse). La única
@@ -621,7 +852,7 @@ export function OfferStep({
       </span>
       <span className="flex shrink-0 flex-wrap gap-2">
         {desenlace.tipo !== 'sin-confirmar' && !planElegido && (
-          <Button className="rounded-full" data-tour="offer-confirm-payment" onClick={confirmarMiPago}>
+          <Button className="rounded-full" data-tour="offer-confirm-payment" onClick={confirmarMiPago} disabled={retomando}>
             {t('plans.confirmPayment')}
           </Button>
         )}
@@ -641,10 +872,15 @@ export function OfferStep({
   ) : null
 
   // ── Callejón sin salida: NUNCA. Un plan ya activo se cierra con un botón que termina el alta ──
-  if (desenlace.tipo === 'ya-activo') {
+  // La prueba sin tarjeta que terminó (b2-r3 #3) sale por la misma puerta: el alta ya quedó en Gratis y se entra.
+  if (desenlace.tipo === 'ya-activo' || desenlace.tipo === 'prueba-terminada') {
     return (
       <div className="mx-auto flex w-full max-w-[640px] flex-col gap-4">
-        <h1 className="text-2xl font-semibold sm:text-3xl">{t('offer.alreadyActiveTitle', { defaultValue: 'Tu plan ya está activo' })}</h1>
+        <h1 className="text-2xl font-semibold sm:text-3xl">
+          {desenlace.tipo === 'prueba-terminada'
+            ? t('offer.trialEndedTitle', { defaultValue: 'Tu prueba terminó' })
+            : t('offer.alreadyActiveTitle', { defaultValue: 'Tu plan ya está activo' })}
+        </h1>
         <p className="text-sm text-muted-foreground">{desenlace.mensaje}</p>
         {/* M6: la ventana se desmonta con el foco adentro; sin esto se perdía en el <body>. */}
         <Button className="rounded-full" onClick={onFinish} data-tour="offer-enter" autoFocus>
@@ -669,7 +905,6 @@ export function OfferStep({
   }
 
   // ── Lo que dice la ventana del plan elegido. Sólo formatea montos del servidor; no calcula ninguno ──
-  const ventanaDeOferta = !!planElegido && !esBasico && mostrarOferta && planElegido === oferta!.planTier
   const cotizado = planElegido ? planQuote?.tiers?.[planElegido] : undefined
   // Informativa: la fecha real del primer cobro la fija Stripe al terminar la prueba.
   const fechaDelCobro = cotizado ? new Date(Date.now() + planQuote!.trialDays * DIA_MS) : null
@@ -678,6 +913,68 @@ export function OfferStep({
     new Intl.DateTimeFormat(getIntlLocale(i18n?.language), { day: 'numeric', month: 'long', timeZone: 'America/Mexico_City' }).format(
       fechaDelCobro,
     )
+  const formatearFecha = (fecha: Date) =>
+    new Intl.DateTimeFormat(getIntlLocale(i18n?.language), { day: 'numeric', month: 'long', timeZone: 'America/Mexico_City' }).format(fecha)
+  /**
+   * Planes editables (B2): la ventana de un plan de la versión del editor. El monto es SIEMPRE el precio de la versión
+   * (`precioCents`), con tarjeta o sin ella, de prueba o de 0 días (b2-r8 #1-#2, #4); la fecha, la `trialEndsAt` del SERVIDOR.
+   * Sin opción cotizada (el plan salió de venta) no hay monto ni legal que consentir.
+   */
+  const ventanaDeLaVersion = () => {
+    const nombre = planCotizado?.displayName ?? (planElegido ? NOMBRE_DEL_PLAN[planElegido] : '')
+    if (!opcionElegida || !planCotizado) {
+      return {
+        titulo: t('plans.trialTitle', { plan: nombre }),
+        subtitulo: '',
+        hoyPagasCents: 0,
+        primerCobro: undefined,
+        legal: '',
+        boton: '',
+      }
+    }
+    const precio = formatMXN(opcionElegida.precioCents)
+    const fin = opcionElegida.trialEndsAt ? new Date(opcionElegida.trialEndsAt) : null
+    const finTexto = fin && !Number.isNaN(fin.getTime()) ? formatearFecha(fin) : ''
+    if (!planCotizado.requiresCard) {
+      const tarjeta = lecturaDeTarjeta.estado === 'lista' ? lecturaDeTarjeta.tarjeta : undefined
+      return {
+        titulo: t('plans.noCardTitle', { plan: nombre }),
+        subtitulo: t('plans.noCardSubtitle', { count: planCotizado.trialDays }),
+        hoyPagasCents: 0,
+        primerCobro: undefined,
+        // §18: se avisa ANTES de confirmar qué tarjeta se cobraría; sin saberlo (cargando o fallida), no se dice nada.
+        legal: tarjeta
+          ? t('plans.noCardWithCardLegal', {
+              fecha: finTexto,
+              monto: precio,
+              brand: marcaLegible(tarjeta.brand) ?? '',
+              last4: tarjeta.last4 ?? '',
+            }).replace(/\s{2,}/g, ' ')
+          : tarjeta === null
+            ? t('plans.noCardLegal', { fecha: finTexto, plan: nombre })
+            : '',
+        boton: t('plans.startNoCard', { count: planCotizado.trialDays }),
+      }
+    }
+    if (fin) {
+      return {
+        titulo: t('plans.trialTitle', { plan: nombre }),
+        subtitulo: t('plans.trialSubtitleDays', { count: planCotizado.trialDays }),
+        hoyPagasCents: 0,
+        primerCobro: { fecha: fin, texto: textoDePrecio(t, opcionElegida.precioCents, opcionElegida.netCents) },
+        legal: t('plans.trialLegal', { fecha: finTexto, monto: precio }),
+        boton: t('plans.startTrialDays', { count: planCotizado.trialDays }),
+      }
+    }
+    return {
+      titulo: t('plans.payTodayTitle', { plan: nombre }),
+      subtitulo: t('offer.planLine', { defaultValue: 'Plan {{plan}} · IVA incluido', plan: nombre }),
+      hoyPagasCents: opcionElegida.firstChargeCents,
+      primerCobro: undefined,
+      legal: t('plans.payTodayLegal', { monto: precio, periodo: t('plans.periodMonthly') }),
+      boton: t('plans.payToday', { price: precio }),
+    }
+  }
   const ventana = ventanaDeOferta
     ? {
         titulo: t('plans.offerTitle', { price: formatMXN(oferta!.promo.monthlyCents), count: oferta!.promo.months }),
@@ -694,27 +991,30 @@ export function OfferStep({
         }),
         boton: t('offer.payAndEnter', { defaultValue: 'Pagar {{price}} y entrar', price: formatMXN(oferta!.firstChargeCents) }),
       }
-    : {
-        titulo: esBasico && planBasico ? planBasico.name : t('plans.trialTitle', { plan: planElegido ? NOMBRE_DEL_PLAN[planElegido] : '' }),
-        // El Básico no tiene cobro que cancelar: su texto aprobado, no «Cancela antes y no se te cobra».
-        subtitulo:
-          esBasico && planBasico
-            ? t('billing:plan.basic.trialCopy', { price: fmtPesos(planBasico.priceWithoutTax) })
-            : t('plans.trialSubtitle'),
-        // Prueba de 30 días: hoy no se cobra nada.
-        hoyPagasCents: 0,
-        primerCobro:
-          cotizado && !esBasico
-            ? { fecha: fechaDelCobro!, texto: textoDePrecio(t, cotizado.monthlyCents, cotizado.monthlyNetCents) }
-            : undefined,
-        // Sin cotización no hay monto que consentir (y el cobro tampoco sale): no se inventa un legal.
-        legal: !cotizado
-          ? ''
-          : esBasico && planBasico
-            ? t('plans.basicLegal', { fecha: fechaDelCobroTexto, precio: fmtPesos(planBasico.priceWithoutTax) })
-            : t('plans.trialLegal', { fecha: fechaDelCobroTexto, monto: formatMXN(cotizado.monthlyCents) }),
-        boton: t('plans.startTrial'),
-      }
+    : ofertaDelAlta
+      ? ventanaDeLaVersion()
+      : {
+          titulo:
+            esBasico && planBasico ? planBasico.name : t('plans.trialTitle', { plan: planElegido ? NOMBRE_DEL_PLAN[planElegido] : '' }),
+          // El Básico no tiene cobro que cancelar: su texto aprobado, no «Cancela antes y no se te cobra».
+          subtitulo:
+            esBasico && planBasico
+              ? t('billing:plan.basic.trialCopy', { price: fmtPesos(planBasico.priceWithoutTax) })
+              : t('plans.trialSubtitle'),
+          // Prueba de 30 días: hoy no se cobra nada.
+          hoyPagasCents: 0,
+          primerCobro:
+            cotizado && !esBasico
+              ? { fecha: fechaDelCobro!, texto: textoDePrecio(t, cotizado.monthlyCents, cotizado.monthlyNetCents) }
+              : undefined,
+          // Sin cotización no hay monto que consentir (y el cobro tampoco sale): no se inventa un legal.
+          legal: !cotizado
+            ? ''
+            : esBasico && planBasico
+              ? t('plans.basicLegal', { fecha: fechaDelCobroTexto, precio: fmtPesos(planBasico.priceWithoutTax) })
+              : t('plans.trialLegal', { fecha: fechaDelCobroTexto, monto: formatMXN(cotizado.monthlyCents) }),
+          boton: t('plans.startTrial'),
+        }
 
   return (
     <>
@@ -791,7 +1091,8 @@ export function OfferStep({
           <HybridOnboardingButton
             initialSlug={data?.hybridOfferSlug}
             venueId={venueId ?? ''}
-            disabled={pagoEnVuelo}
+            // La compra híbrida cierra el paso sin cobrar: con un intento sin cerrar tras recargar sigue apagada, como hoy.
+            disabled={pagoEnVuelo || !!activacionEnCurso}
             onNext={step => onFreePlan?.(step.plan!)}
           />
         </div>
@@ -839,12 +1140,54 @@ export function OfferStep({
         )}
         {avisoPendiente}
 
-        {!ventanaDeOferta && !cotizado ? (
+        {/* b2-r8 #4: el precio de la versión no incluye el saldo de la cuenta en Stripe; se dice, nunca se compara. */}
+        {!!opcionElegida && (
+          <p data-testid="nota-del-saldo" className="text-xs text-muted-foreground">
+            {t('plans.balanceNote')}
+          </p>
+        )}
+
+        {!ventanaDeOferta && !(ofertaDelAlta ? opcionElegida : cotizado) ? (
           // M2: sin la cotización del servidor no hay monto ni legal que consentir, así que no se pide la tarjeta
           // (guardarla sin ese texto era recabar un método de pago sin consentimiento). `pagarPlan` sigue negándose solo.
           <div className="flex items-start gap-2 text-sm text-destructive">
             <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
             <span>{t('offer.noQuote', { defaultValue: 'No pudimos cargar los precios. Recarga la página e intenta de nuevo.' })}</span>
+          </div>
+        ) : ventanaSinTarjeta ? (
+          // 🔴 La prueba sin tarjeta: sin <Elements> ni SetupIntent. El botón espera a saber qué tarjeta cobraría Stripe.
+          <div className="flex flex-col gap-3">
+            {lecturaDeTarjeta.estado === 'cargando' && (
+              <p className="text-sm text-muted-foreground">{t('plan.loading', { defaultValue: 'Cargando…' })}</p>
+            )}
+            {lecturaDeTarjeta.estado === 'desconocida' && (
+              <div className="flex flex-col gap-3">
+                <div role="alert" className="flex items-start gap-2 text-sm text-destructive">
+                  <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                  <span>{t('plans.cardUnknown')}</span>
+                </div>
+                <Button variant="outline" className="w-fit gap-2 rounded-full" onClick={() => setReleerTarjeta(n => n + 1)}>
+                  <RotateCw className="h-4 w-4" aria-hidden="true" />
+                  {t('plan.retry', { defaultValue: 'Reintentar' })}
+                </Button>
+              </div>
+            )}
+            {desenlace.tipo === 'rechazo' && (
+              <p role="alert" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                {desenlace.mensaje}
+              </p>
+            )}
+            <Button
+              data-tour="setup-plan-start-no-card"
+              disabled={pagoBloqueado || lecturaDeTarjeta.estado !== 'lista'}
+              aria-busy={cobroEnCurso}
+              onClick={() => {
+                if (lecturaDeTarjeta.estado === 'lista' && planElegido) void empezarSinTarjeta(planElegido)
+              }}
+              className="h-12 rounded-full text-base transition-transform duration-150 ease-out active:scale-[0.98]"
+            >
+              {ventana.boton}
+            </Button>
           </div>
         ) : intentStatus === 'error' ? (
           <div className="flex flex-col gap-3">

@@ -96,6 +96,7 @@ interface TarjetasDePlanesProps {
  *
  * 🔴 Sólo formatea centavos que ya vienen del servidor (`formatMXN` / `textoDePrecio`): no suma ni
  * deriva ningún monto. Si falta la cotización, la línea «Luego …» no se pinta en vez de inventarse.
+ * Con la versión del editor (`planQuote.oferta`) los días, la tarjeta y el precio son los de esa versión.
  */
 export function TarjetasDePlanes({
   oferta,
@@ -111,12 +112,18 @@ export function TarjetasDePlanes({
   const esCelular = useIsMobile()
   const prefijoDeBeneficios = beneficios === 'restaurante' ? 'plans.benefits' : `plans.benefits.${beneficios}`
 
+  // Planes editables (B2): con una versión del editor, cada plan dice SU prueba y SU precio, y uno fuera de venta no tiene
+  // tarjeta. Sin ella (`planQuote.oferta` ausente), las tarjetas de hoy.
+  const ofertaDelAlta = planQuote?.oferta ?? null
   // La tarjeta de la campaña (Pro o Premium) lleva la oferta y el botón fuerte; sin campaña es Pro.
   const planDestacado: Plan = oferta?.planTier ?? 'PRO'
   // Con el Básico, Enterprise deja su lugar y baja a un enlace: siempre 3 tarjetas (founder, 18-nov, «A»).
-  const planes = planBasico ? ORDEN.filter(p => p !== 'ENTERPRISE') : ORDEN
+  const planes = (planBasico ? ORDEN.filter(p => p !== 'ENTERPRISE') : ORDEN).filter(
+    p => p === 'ENTERPRISE' || !ofertaDelAlta || ofertaDelAlta.planes[p]?.onSale === true,
+  )
   // En celular van apiladas: la de la campaña primero. En computadora el orden no cambia.
-  const orden = esCelular && oferta ? [oferta.planTier, ...planes.filter(p => p !== oferta.planTier)] : planes
+  const orden =
+    esCelular && oferta && planes.includes(oferta.planTier) ? [oferta.planTier, ...planes.filter(p => p !== oferta.planTier)] : planes
   const abrirVentas = () => window.open(salesWhatsAppLink(TEXTO_ENTERPRISE), '_blank', 'noopener,noreferrer')
 
   return (
@@ -160,6 +167,8 @@ export function TarjetasDePlanes({
           const clave = plan.toLowerCase()
           const esLaOferta = oferta?.planTier === plan
           const tier = planQuote?.tiers?.[plan]
+          const cotizado = ofertaDelAlta?.planes[plan]
+          const mensual = cotizado?.monthly
 
           const tarjetaDelPlan = (
             <Tarjeta
@@ -178,6 +187,25 @@ export function TarjetasDePlanes({
                     <p className="text-sm text-muted-foreground">
                       {t('plans.offerRenewal', { price: textoDePrecio(t, oferta.renewal.monthlyCents, oferta.renewal.subtotalCents) })}
                     </p>
+                  </>
+                ) : cotizado ? (
+                  // La versión del editor: sin tarjeta, con tarjeta y días, o se paga hoy (0 días). Todo sale de su opción mensual.
+                  <>
+                    <p className="text-2xl font-semibold">
+                      {!cotizado.requiresCard
+                        ? t('plans.trialNoCardPrice', { count: cotizado.trialDays })
+                        : cotizado.trialDays > 0
+                          ? t('plans.trialPriceDays', { count: cotizado.trialDays })
+                          : mensual
+                            ? t('offer.pricePerMonth', { price: textoDePrecio(t, mensual.precioCents, mensual.netCents) })
+                            : null}
+                      {oferta && <span className="text-sm font-normal text-muted-foreground"> · {t('plans.withoutOffer')}</span>}
+                    </p>
+                    {mensual && (!cotizado.requiresCard || cotizado.trialDays > 0) && (
+                      <p className="text-sm text-muted-foreground">
+                        {t('plans.thenPerMonth', { price: textoDePrecio(t, mensual.precioCents, mensual.netCents) })}
+                      </p>
+                    )}
                   </>
                 ) : (
                   <>

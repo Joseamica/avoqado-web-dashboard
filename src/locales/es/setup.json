@@ -335,7 +335,9 @@
     "pendingNoChange": "Mientras tanto no puedes cambiar de plan: el cobro puede haberse hecho.",
     "recheck": "Volver a comprobar mi pago",
     "pendingAfterReload": "Tu último pago quedó sin confirmar. Vuelve a confirmar con tu tarjeta: si ya se había cobrado, lo recuperamos y no se cobra dos veces.",
-    "noQuote": "No pudimos cargar los precios. Recarga la página e intenta de nuevo."
+    "noQuote": "No pudimos cargar los precios. Recarga la página e intenta de nuevo.",
+    "trialEndedTitle": "Tu prueba terminó",
+    "trialEnded": "Tu prueba terminó sin tarjeta y tu negocio quedó en Gratis. No se te cobró nada."
   },
   "plans": {
     "title": "Elige tu plan",
@@ -444,7 +446,28 @@
     "compareTitle": "Qué incluye cada plan",
     "setupIntentError": "No pudimos preparar el pago con tarjeta. Vuelve a intentarlo.",
     "problems": "¿Problemas? Escríbenos",
-    "problemsWhatsApp": "Hola, no pude agregar mi tarjeta al dar de alta mi negocio en Avoqado"
+    "problemsWhatsApp": "Hola, no pude agregar mi tarjeta al dar de alta mi negocio en Avoqado",
+    "trialSubtitleDays": "{{count}} días gratis. Cancela antes y no se te cobra.",
+    "trialSubtitleDays_one": "{{count}} día gratis. Cancela antes y no se te cobra.",
+    "trialPriceDays": "{{count}} días gratis",
+    "trialPriceDays_one": "{{count}} día gratis",
+    "trialNoCardPrice": "{{count}} días gratis, sin tarjeta",
+    "trialNoCardPrice_one": "{{count}} día gratis, sin tarjeta",
+    "noCardTitle": "Empieza tu prueba de {{plan}}",
+    "noCardSubtitle": "{{count}} días gratis, sin tarjeta.",
+    "noCardSubtitle_one": "{{count}} día gratis, sin tarjeta.",
+    "noCardLegal": "Tu prueba termina el {{fecha}}. Para seguir con {{plan}}, pon tu tarjeta antes en «Tu plan»; si no, ese día tu negocio sigue en Gratis. No te pedimos tarjeta ahora.",
+    "noCardWithCardLegal": "Al terminar tu prueba el {{fecha}} se cobrarán {{monto}} en tu tarjeta {{brand}} ••••{{last4}}; puedes quitarla o cambiarla antes en la página de Stripe desde «Tu plan».",
+    "balanceNote": "Si tu cuenta tiene saldo a favor o pendiente en Stripe, se aplica en tu recibo.",
+    "cardUnknown": "No pudimos revisar tu cuenta de Stripe. Intenta en unos minutos.",
+    "startNoCard": "Empezar mis {{count}} días gratis",
+    "startNoCard_one": "Empezar mi {{count}} día gratis",
+    "startTrialDays": "Empezar mis {{count}} días gratis",
+    "startTrialDays_one": "Empezar mi {{count}} día gratis",
+    "payTodayTitle": "Contrata {{plan}}",
+    "payTodayLegal": "Al pagar autorizas a Avoqado a cobrar {{monto}} al {{periodo}} a esta tarjeta hasta que canceles. Cancela cuando quieras desde Facturación.",
+    "payToday": "Pagar {{price}} y entrar",
+    "periodMonthly": "mes"
   },
   "done": {
     "title": "Todo listo",
@@ -454,6 +477,9 @@
     "trialEndsFree": "Tu prueba de Pro termina el {{date}} sin cobro. Ese día podrás contratar el Básico.",
     "trialRenews": "Tu prueba de Pro se renueva como Pro el {{date}}.",
     "trialChange": "Cámbialo en «Tu plan»",
-    "completeError": "No pudimos terminar tu alta. Intenta de nuevo en un momento."
+    "completeError": "No pudimos terminar tu alta. Intenta de nuevo en un momento.",
+    "trialWithCard": "Tu prueba de {{plan}} termina el {{date}}; ese día se cobrará tu tarjeta ••••{{last4}}. Puedes quitarla en «Tu plan».",
+    "trialNoCharge": "Tu prueba de {{plan}} termina el {{date}}; no se cobrará nada.",
+    "trialNoCard": "Tu prueba de {{plan}} termina el {{date}}. Para seguir con {{plan}}, pon tu tarjeta en «Tu plan»; si no, sigues en Gratis."
   }
 }
