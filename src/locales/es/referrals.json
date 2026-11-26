@@ -21,7 +21,8 @@
     "rewardFreeProduct": "{{quantity}}× {{product}} gratis",
     "rewardMonthlySuffix": " cada mes",
     "rewardProductFallback": "producto",
-    "editTier": "Editar nivel"
+    "editTier": "Editar nivel",
+    "rewardNone": "sin premio (este nivel no entrega nada)"
   },
   "editor": {
     "title": "Editar Nivel {{level}}",
@@ -54,6 +55,21 @@
       "quantityInvalid": "La cantidad debe ser al menos 1"
     }
   },
+  "basicsEditor": {
+    "edit": "Editar",
+    "title": "Premio al referido y vigencia",
+    "description": "Los cambios aplican a los códigos que se usen y a los cupones que se emitan desde ahora; lo ya emitido no cambia.",
+    "discountHint": "Número entero de 0 a 100.",
+    "expiryHint": "Días que dura el cupón de cada nivel, de 1 a 3650.",
+    "save": "Guardar cambios",
+    "saving": "Guardando...",
+    "success": "Cambios guardados",
+    "error": "No se pudieron guardar los cambios",
+    "errors": {
+      "discount": "El premio al referido debe ser un número entero entre 0 y 100",
+      "expiry": "La vigencia debe ser un número entero de días entre 1 y 3650"
+    }
+  },
   "active": {
     "banner": "✓ Activo desde {{date}}",
     "summaryHeading": "Resumen del mes",
@@ -70,6 +86,13 @@
     "pauseSubmit": "Pausar",
     "paused": "Programa pausado"
   },
+  "paused": {
+    "banner": "Programa en pausa",
+    "description": "Tus códigos, premios e historial se conservan. En la caja no se pueden usar códigos hasta que lo reactives.",
+    "reactivate": "Reactivar programa",
+    "reactivating": "Reactivando...",
+    "reactivated": "Programa reactivado, tal como lo tenías"
+  },
   "permissions": {
     "noConfigureAccess": "No tienes permisos para configurar el programa de referidos. Pídelo a un administrador."
   },
@@ -83,7 +106,6 @@
     "copyButton": "Copiar",
     "copied": "Código copiado al portapapeles",
     "whatsappButton": "WhatsApp",
-    "whatsappMessage": "¡Te recomiendo {{venue}}! Usa mi código *{{code}}* y te dan 10% en tu primera compra.",
     "referredBy": "Referida por {{name}}",
     "referredCount": "Ha referido a {{count}} personas",
     "viewReferralsList": "Ver lista",
@@ -103,7 +125,10 @@
     "fulfillConfirmDescription": "Confirma que ya le entregaste este producto al cliente. Esta acción no se puede deshacer.",
     "fulfillSuccess": "Cortesía marcada como entregada",
     "fulfillError": "No se pudo marcar la cortesía",
-    "fulfillErrorAlreadyHandled": "Esta cortesía ya fue procesada. Actualiza la página para ver el estado actual."
+    "fulfillErrorAlreadyHandled": "Esta cortesía ya fue procesada. Actualiza la página para ver el estado actual.",
+    "whatsappPaused": "El programa está en pausa: en la caja no se puede usar este código hasta que lo reactives.",
+    "whatsappError": "No se pudo armar el mensaje de WhatsApp. Revisa tu conexión e inténtalo otra vez.",
+    "whatsappBlocked": "Tu navegador bloqueó la ventana de WhatsApp. Permite las ventanas emergentes de este sitio y vuelve a tocar el botón."
   },
   "hallOfFame": {
     "title": "Hall of Fame",

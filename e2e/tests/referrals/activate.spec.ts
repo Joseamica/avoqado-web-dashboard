@@ -268,4 +268,93 @@ test.describe('Referrals MVP — multi-persona', () => {
     await expect(page.getByText(/Top referidor|Top referrer/i).first()).toBeVisible()
     await expect(page.getByText(/Sofía Hernández/).first()).toBeVisible()
   })
+
+  // ─── D28 (hz:be99f328:D28): pausa, reactivar y editar premio y vigencia, viendo el resultado SIN recargar ───────────
+  test('4 — en pausa enseña lo guardado y «Reactivar» lo prende sin recargar, por /reactivate', async ({ page }) => {
+    await hideDevtools(page)
+    await setupApiMocks(page, { userRole: StaffRole.ADMIN, venues: [makeVenue(ADMIN_PERMISSIONS)] })
+    const llamadas = await setupStatefulReferralsMocks(page, { ...SAVED_CONFIG, active: false })
+
+    await page.goto('/venues/venue-alpha/referrals')
+    await expect(page.getByText(/Programa en pausa|Program paused/i).first()).toBeVisible({ timeout: 15_000 })
+    // Lo guardado, no los números de fábrica: 12 %, nivel 2 con producto gratis, 30 días.
+    await expect(page.getByText('12%').first()).toBeVisible()
+    await expect(page.getByText(/Nivel 2 · 9 referidos → 1× Smoothie verde gratis|Level 2 · 9 referrals → 1× Smoothie verde free/).first()).toBeVisible()
+    await expect(page.locator('[data-tour="referrals-activate-btn"]')).toHaveCount(0)
+
+    await page.locator('[data-tour="referrals-reactivate-btn"]').click()
+
+    await expect(page.getByText(/Activo desde|Active since/i).first()).toBeVisible({ timeout: 10_000 })
+    await expect(page.locator('[data-tour="referrals-pause-btn"]')).toBeVisible()
+    await expect(page.getByText(/Nivel 2 · 9 referidos → 1× Smoothie verde gratis|Level 2 · 9 referrals → 1× Smoothie verde free/).first()).toBeVisible()
+    expect(llamadas.reactivate).toBe(1)
+    expect(llamadas.activate).toBe(0)
+  })
+
+  test('5 — activo: «Editar» cambia el premio al referido y se ve sin recargar', async ({ page }) => {
+    await hideDevtools(page)
+    await setupApiMocks(page, { userRole: StaffRole.ADMIN, venues: [makeVenue(ADMIN_PERMISSIONS)] })
+    const llamadas = await setupStatefulReferralsMocks(page, { ...SAVED_CONFIG, active: true })
+
+    await page.goto('/venues/venue-alpha/referrals')
+    await expect(page.getByText('12%').first()).toBeVisible({ timeout: 15_000 })
+
+    await page.locator('[data-tour="referrals-new-customer-discount-edit-btn"]').click()
+    const dialog = page.getByRole('dialog')
+    await dialog.locator('#basicsDiscount').fill('18')
+    await dialog.getByRole('button', { name: /Guardar cambios|Save changes/i }).click()
+
+    await expect(page.getByText('18%').first()).toBeVisible({ timeout: 10_000 })
+    expect(llamadas.patches).toEqual([{ newCustomerDiscountPercent: 18 }])
+  })
 })
+
+// Config guardada de un negocio que ya armó su programa (con un producto gratis en el nivel 2).
+const SAVED_CONFIG = {
+  ...ACTIVE_CONFIG,
+  newCustomerDiscountPercent: '12',
+  tier1ReferralsRequired: 5,
+  tier2ReferralsRequired: 9,
+  tier3ReferralsRequired: 15,
+  rewardCouponExpiryDays: 30,
+  tierRewards: [
+    { id: 'tr-1', configId: 'rpc-001', tierLevel: 1, rewardType: 'PERCENT_COUPON', recurrence: 'ONE_TIME', rewardPercent: '15', rewardProductId: null, rewardQuantity: 1, active: true, createdAt: '2026-05-01T10:00:00.000Z' },
+    { id: 'tr-2', configId: 'rpc-001', tierLevel: 2, rewardType: 'FREE_PRODUCT', recurrence: 'ONE_TIME', rewardPercent: null, rewardProductId: 'prod-smoothie', rewardQuantity: 1, active: true, createdAt: '2026-05-01T10:00:00.000Z' },
+    { id: 'tr-3', configId: 'rpc-001', tierLevel: 3, rewardType: 'PERCENT_COUPON', recurrence: 'ONE_TIME', rewardPercent: '25', rewardProductId: null, rewardQuantity: 1, active: true, createdAt: '2026-05-01T10:00:00.000Z' },
+  ],
+}
+
+/** Un «servidor» con memoria: lo que se reactiva o se guarda es lo que la página vuelve a leer. */
+async function setupStatefulReferralsMocks(page: Page, inicial: Record<string, unknown>) {
+  let config = { ...inicial }
+  const llamadas = { reactivate: 0, activate: 0, patches: [] as unknown[] }
+  await page.route('**/api/v1/dashboard/venues/*/referrals/summary', route =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(SUMMARY_MOCK) }),
+  )
+  await page.route('**/api/v1/dashboard/venues/*/referrals/hall-of-fame*', route =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }),
+  )
+  await page.route('**/api/v1/dashboard/venues/*/products/prod-smoothie*', route =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ id: 'prod-smoothie', name: 'Smoothie verde' }) }),
+  )
+  await page.route('**/api/v1/dashboard/venues/*/referrals/activate', route => {
+    llamadas.activate++
+    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true }) })
+  })
+  await page.route('**/api/v1/dashboard/venues/*/referrals/reactivate', route => {
+    llamadas.reactivate++
+    config = { ...config, active: true }
+    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, reactivated: true }) })
+  })
+  await page.route('**/api/v1/dashboard/venues/*/referrals/config', route => {
+    if (route.request().method() === 'PATCH') {
+      const patch = route.request().postDataJSON()
+      llamadas.patches.push(patch)
+      config = { ...config, ...patch }
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true }) })
+    }
+    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(config) })
+  })
+  return llamadas
+}
+
