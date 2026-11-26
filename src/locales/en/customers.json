@@ -413,7 +413,7 @@
     },
     "sendDialog": {
       "title": "Send the campaign",
-      "description": "This can't be undone. The campaign joins the queue and the emails go out in batches, every 5 minutes; the list shows how many have gone out.",
+      "description": "This can't be undone. The campaign joins the queue and the emails go out in batches over the next minutes; the list shows how many have gone out.",
       "counting": "Counting how many customers will receive it…",
       "countError": "Couldn't count the recipients",
       "recipients": "customers will receive this email",
