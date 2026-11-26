@@ -6,7 +6,7 @@
  * servidor lo compara con su propia cotización y responde `OFFER_CHANGED` si no coinciden — por
  * eso aquí nunca se inventa un monto: sin cotización se devuelve `null` y no se intenta cobrar.
  */
-import type { PlanQuote } from '../launchOffer.types'
+import type { OpcionCotizada, PlanQuote } from '../launchOffer.types'
 
 export function expectedStandardFirstChargeCents(
   quote: PlanQuote | null | undefined,
@@ -25,4 +25,20 @@ export function expectedStandardFirstChargeCents(
   if (intro && interval === intro.interval) return intro.monthlyCents
 
   return interval === 'annual' ? t.annualCents : t.monthlyCents
+}
+
+/**
+ * Planes editables (B2): la opción que el SERVIDOR cotizó y firmó para ese plan y periodicidad, con su comprobante
+ * (`quoteToken`). Esto **elige**, nunca calcula: cada monto (`precioCents`, `firstChargeCents`) y el fin de la prueba vienen
+ * hechos en `planQuote.oferta`. Sin versión del editor, con el plan fuera de venta o sin esa ranura, `null`: no hay nada que
+ * cobrar ni que enseñar.
+ */
+export function opcionDelAlta(
+  quote: PlanQuote | null | undefined,
+  tier: 'PRO' | 'PREMIUM',
+  interval: 'monthly' | 'annual',
+): OpcionCotizada | null {
+  const plan = quote?.oferta?.planes?.[tier]
+  if (!plan || !plan.onSale) return null
+  return plan[interval] ?? null
 }

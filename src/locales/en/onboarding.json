@@ -428,7 +428,8 @@
     "summaryAnnual": "Annual plan · ${{price}} MXN/yr + VAT",
     "summaryCheckoutNote": "When you confirm, we'll take you to secure checkout to activate your plan.",
     "checkoutRedirectNotice": "We first activate your account, then take you to secure checkout for your plan.",
-    "checkoutFailedFreeFallback": "Your account is active on the Free plan, but we couldn't open checkout. You can upgrade later from Settings → Billing."
+    "checkoutFailedFreeFallback": "Your account is active on the Free plan, but we couldn't open checkout. You can upgrade later from Settings → Billing.",
+    "loadingPrices": "Loading prices..."
   },
   "shared": {
     "loadingProgress": "Loading your progress...",

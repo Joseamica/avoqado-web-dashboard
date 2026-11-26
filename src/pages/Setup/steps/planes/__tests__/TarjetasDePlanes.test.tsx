@@ -356,3 +356,79 @@ describe('TarjetasDePlanes con el Plan Básico', () => {
     expect(screen.queryByRole('button', { name: /Cadena o varias sucursales/ })).not.toBeInTheDocument()
   })
 })
+
+describe('TarjetasDePlanes con la versión del editor (planes editables, B2)', () => {
+  const orden = () => Array.from(document.querySelectorAll('[data-plan]')).map(n => n.getAttribute('data-plan'))
+  const opcion = (precioCents: number, netCents: number, trialEndsAt: string | null) => ({
+    quoteToken: `tok-${precioCents}`,
+    precioCents,
+    netCents,
+    firstChargeCents: trialEndsAt ? 0 : precioCents,
+    trialEndsAt,
+  })
+  const conOferta = (planes: Partial<NonNullable<PlanQuote['oferta']>['planes']>): PlanQuote => ({
+    ...cotizacion,
+    oferta: {
+      versionNumber: 2,
+      free: { displayName: 'Gratis' },
+      planes: {
+        PRO: {
+          displayName: 'Pro',
+          onSale: true,
+          requiresCard: false,
+          trialDays: 14,
+          monthly: opcion(92684, 79900, '2026-12-15T18:00:00.000Z'),
+          annual: null,
+        },
+        PREMIUM: { displayName: 'Premium', onSale: false, requiresCard: true, trialDays: 0, monthly: null, annual: null },
+        ...planes,
+      },
+    },
+  })
+
+  it('con oferta: un plan fuera de venta no tiene tarjeta; Pro sin tarjeta dice «14 días gratis, sin tarjeta» y «Luego $926.84 al mes»', () => {
+    pinta({ planQuote: conOferta({}) })
+    expect(orden()).toEqual(['PRO', 'ENTERPRISE'])
+    expect(screen.queryByRole('button', { name: 'Elegir Premium' })).not.toBeInTheDocument()
+    expect(within(tarjeta('PRO')).getByText('14 días gratis, sin tarjeta')).toBeInTheDocument()
+    // «Luego …» sale de la opción mensual de la versión (no de `tiers`, que dice $1,158.84).
+    expect(within(tarjeta('PRO')).getByText(/Luego \$799\.00 \+ IVA = \$926\.84 al mes/)).toBeInTheDocument()
+    expect(within(tarjeta('PRO')).queryByText(/1,158\.84/)).not.toBeInTheDocument()
+    expect(within(tarjeta('PRO')).queryByText('30 días gratis')).not.toBeInTheDocument()
+
+    // Con tarjeta y días: «30 días gratis»; con 0 días, el precio de la versión, sin «Luego».
+    pinta({
+      planQuote: conOferta({
+        PRO: {
+          displayName: 'Pro',
+          onSale: true,
+          requiresCard: true,
+          trialDays: 30,
+          monthly: opcion(92684, 79900, '2026-12-26T18:00:00.000Z'),
+          annual: null,
+        },
+        PREMIUM: {
+          displayName: 'Premium',
+          onSale: true,
+          requiresCard: true,
+          trialDays: 0,
+          monthly: opcion(197084, 169900, null),
+          annual: null,
+        },
+      }),
+    })
+    const pro = document.querySelectorAll<HTMLElement>('[data-plan="PRO"]')[1]
+    const premium = document.querySelector<HTMLElement>('[data-plan="PREMIUM"]')!
+    expect(within(pro).getByText('30 días gratis')).toBeInTheDocument()
+    expect(within(premium).getByText('$1,699.00 + IVA = $1,970.84 al mes')).toBeInTheDocument()
+    expect(within(premium).queryByText(/Luego/)).not.toBeInTheDocument()
+  })
+
+  it('sin oferta: las tarjetas de hoy', () => {
+    pinta()
+    expect(orden()).toEqual(['PRO', 'PREMIUM', 'ENTERPRISE'])
+    expect(screen.getAllByText('30 días gratis')).toHaveLength(2)
+    expect(screen.queryByText(/sin tarjeta/)).not.toBeInTheDocument()
+    expect(screen.getByText(/Luego \$999\.00 \+ IVA = \$1,158\.84 al mes/)).toBeInTheDocument()
+  })
+})

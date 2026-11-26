@@ -56,7 +56,11 @@ export function PlanRow(props: PlanRowProps) {
   const graciaHasta = pagoPendiente && planState?.gracePeriodEndsAt ? formatDate(planState.gracePeriodEndsAt) : null
   // Mensual/Anual only matters to the classic checkout: a paid plan picked while on Gratis.
   const quedarseConLaPrueba = origin.kind === 'COMP' && !!origin.firstChargeAt && selected === current
-  const showInterval = (origin.kind === 'NONE' || quedarseConLaPrueba) && !grandfathered && !props.classicRejected && selected !== 'FREE'
+  // B2: con la prueba ya terminada en Stripe (la baja no llegó), «Tu plan» compra como desde Gratis: también elige mensual o anual.
+  const cotizacion = planState?.cotizacion
+  const pruebaTerminada = cotizacion?.estadoDeLaPrueba?.estado === 'TERMINADA'
+  const showInterval =
+    (origin.kind === 'NONE' || quedarseConLaPrueba || pruebaTerminada) && !grandfathered && !props.classicRejected && selected !== 'FREE'
   const priceInput = {
     origin,
     grandfathered,
@@ -65,6 +69,7 @@ export function PlanRow(props: PlanRowProps) {
     classicRejected: props.classicRejected,
     interval: props.interval,
     preferList: props.preferList,
+    cotizacion,
   }
   // D5: con un cupón vigente, lo que paga, hasta cuándo y el precio después — nunca sólo el precio de lista.
   const descuento = origin.kind === 'CLASSIC' ? origin.discount : null
@@ -92,12 +97,18 @@ export function PlanRow(props: PlanRowProps) {
           : t('plan.row.compNoDate', { tier: originTier })
         : origin.cancelAt
           ? t(origin.kind === 'CONTRACT' ? 'plan.row.endsContract' : 'plan.row.endsClassic', { tier: originTier, date: untilText })
-          : untilText
-            ? // D3 full-testing WARN 3: en prueba con tarjeta, esa fecha es el PRIMER cobro, no una renovación.
-              planState?.state === 'trial'
-              ? t('plan.row.firstChargeOn', { date: untilText })
-              : t('currentPlan.renewsOn', { date: untilText })
-            : null
+          : origin.faltaTarjeta && (planState?.trialEndsAt ?? until)
+            ? // B2: una prueba SIN tarjeta no «se renueva»: Stripe la cancela si nadie pone la tarjeta.
+              t('plan.row.trialNoCard', { date: formatDate(planState?.trialEndsAt ?? until), tier: originTier })
+            : pruebaTerminada
+              ? // B2 (b2-r6 #4): Stripe ya terminó la prueba (la baja no llegó): ni «se renueva» ni «primer cobro».
+                null
+              : untilText
+                ? // D3 full-testing WARN 3: en prueba con tarjeta, esa fecha es el PRIMER cobro, no una renovación.
+                  planState?.state === 'trial'
+                  ? t('plan.row.firstChargeOn', { date: untilText })
+                  : t('currentPlan.renewsOn', { date: untilText })
+                : null
 
   return (
     <section className="space-y-3" data-tour="plan-row">
@@ -145,14 +156,24 @@ export function PlanRow(props: PlanRowProps) {
                 ) : (
                   <>
                     <span className="font-semibold">{tierName(tier)}</span>
-                    <span className="whitespace-nowrap tabular-nums">
-                      {money(price.ivaAparte ? sinIva(price.amount) : price.amount)}
-                      {tier !== 'FREE' && (price.per === 'year' ? t('plan.perYear') : t('plan.perMonth'))}
-                    </span>
-                    {tier !== 'FREE' && (
+                    {price.fueraDeVenta ? (
+                      // B2 (revisiones 2 y 3): no se puede comprar hoy (fuera de venta, u otro plan durante la prueba): ni su precio
+                      // ni el del catálogo.
                       <span className="whitespace-nowrap text-xs text-muted-foreground">
-                        {t(price.ivaAparte ? 'plan.plusIva' : 'plan.ivaIncluded')}
+                        {t(price.duranteLaPrueba ? 'plan.notDuringTrial' : 'plan.notOnSale')}
                       </span>
+                    ) : (
+                      <>
+                        <span className="whitespace-nowrap tabular-nums">
+                          {money(price.ivaAparte ? sinIva(price.amount) : price.amount)}
+                          {tier !== 'FREE' && (price.per === 'year' ? t('plan.perYear') : t('plan.perMonth'))}
+                        </span>
+                        {tier !== 'FREE' && (
+                          <span className="whitespace-nowrap text-xs text-muted-foreground">
+                            {t(price.ivaAparte ? 'plan.plusIva' : 'plan.ivaIncluded')}
+                          </span>
+                        )}
+                      </>
                     )}
                   </>
                 )}

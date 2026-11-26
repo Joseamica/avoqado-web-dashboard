@@ -69,6 +69,51 @@ describe('usePlanOperations', () => {
     expect(failure).toBeInstanceOf(Error)
   })
 
+  it('classicCheckout manda quoteToken y acceptanceId cuando vienen; sin ellos, createPlanCheckoutSession(venueId, tier, interval) como hoy', async () => {
+    vi.mocked(createPlanCheckoutSession).mockResolvedValue('#stripe')
+    const { result } = renderHook(() => usePlanOperations('venue', vi.fn()), { wrapper })
+    await act(() => result.current.classicCheckout.mutateAsync({ tier: 'PRO', interval: 'annual' }))
+    expect(createPlanCheckoutSession).toHaveBeenLastCalledWith('venue', 'PRO', 'annual')
+    await act(() => result.current.classicCheckout.mutateAsync({ tier: 'PRO', interval: 'monthly', quoteToken: 'tok_v2' }))
+    expect(createPlanCheckoutSession).toHaveBeenLastCalledWith('venue', 'PRO', 'monthly', { quoteToken: 'tok_v2' })
+    await act(() => result.current.classicCheckout.mutateAsync({ tier: 'PREMIUM', interval: 'annual', acceptanceId: 'cacc1' }))
+    expect(createPlanCheckoutSession).toHaveBeenLastCalledWith('venue', 'PREMIUM', 'annual', { acceptanceId: 'cacc1' })
+    const FIN = '2026-12-10T17:00:00.000Z'
+    await act(() =>
+      result.current.classicCheckout.mutateAsync({ tier: 'PRO', interval: 'monthly', primerCobroAnunciado: FIN, quoteToken: 'tok_d' }),
+    )
+    expect(createPlanCheckoutSession).toHaveBeenLastCalledWith('venue', 'PRO', 'monthly', {
+      primerCobroAnunciado: FIN,
+      quoteToken: 'tok_d',
+    })
+  })
+
+  it('«Poner mi tarjeta» abre el portal en el flujo de la tarjeta y vuelve a esta página con ?portal=tarjeta; «Actualizar método de pago» sigue con la llamada de hoy', async () => {
+    const assign = vi.fn()
+    vi.stubGlobal('location', {
+      ...window.location,
+      origin: 'https://dashboard.example.com',
+      pathname: '/venues/v/settings/billing/subscriptions',
+      search: '?x=1',
+      href: 'https://dashboard.example.com/venues/v/settings/billing/subscriptions?x=1',
+      assign,
+    })
+    try {
+      vi.mocked(getBillingPortalUrl).mockResolvedValue({ url: 'https://billing.stripe.example/p/1' } as never)
+      const { result } = renderHook(() => usePlanOperations('venue', vi.fn()), { wrapper })
+      await act(() => result.current.cardPortal.mutateAsync())
+      expect(getBillingPortalUrl).toHaveBeenLastCalledWith('venue', {
+        flujo: 'PONER_TARJETA',
+        returnUrl: 'https://dashboard.example.com/venues/v/settings/billing/subscriptions?portal=tarjeta',
+      })
+      expect(assign).toHaveBeenCalledWith('https://billing.stripe.example/p/1')
+      await act(() => result.current.portal.mutateAsync())
+      expect(getBillingPortalUrl).toHaveBeenLastCalledWith('venue')
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
   it('reads the code and the message of a server refusal', () => {
     expect(serverCode({ response: { data: { code: 'PLAN_ABSORBE_SUELTA' } } })).toBe('PLAN_ABSORBE_SUELTA')
     expect(serverMessage({}, 'respaldo')).toBe('respaldo')
@@ -78,6 +123,15 @@ describe('usePlanOperations', () => {
     const failure = (status: number, message: string) => ({ response: { status, data: { message } } })
     expect(serverMessage(failure(500, 'Feature PLAN_PRO not found or inactive'), 'respaldo')).toBe('respaldo')
     expect(serverMessage(failure(409, 'La oferta cambió o terminó.'), 'respaldo')).toBe('La oferta cambió o terminó.')
+  })
+
+  it('B2: los 503 que el SERVIDOR escribe para el dueño (PORTAL_NOT_CONFIGURED, PLAN_NOT_CONFIGURED) se enseñan tal cual; los demás 5xx no', () => {
+    const failure = (code: string, message: string) => ({ response: { status: 503, data: { code, message } } })
+    const portal = 'No pudimos abrir la página para poner tu tarjeta. Intenta en unos minutos.'
+    expect(serverMessage(failure('PORTAL_NOT_CONFIGURED', portal), 'respaldo')).toBe(portal)
+    const oferta = 'No pudimos activar tu plan por un problema nuestro de configuración. No se te cobró nada. Escríbenos y lo resolvemos.'
+    expect(serverMessage(failure('PLAN_NOT_CONFIGURED', oferta), 'respaldo')).toBe(oferta)
+    expect(serverMessage(failure('INTERNAL', 'Stripe exploded'), 'respaldo')).toBe('respaldo')
   })
 
   it('a billing portal that answers without a link says so instead of doing nothing', async () => {

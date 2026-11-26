@@ -23,6 +23,11 @@ describe('hybrid billing parsers', () => {
   it('accept the Plan Básico: a list offer with no seat cap and no end date', () => {
     expect(parseHybridOffer(offer)).toMatchObject({ slug: 'plan-basico', placesRemaining: null, endsAt: null })
   })
+  it('keep the Plan Básico marker (definition.basicPlan): «Ver ofertas» recognises the Básico by it, not by its slug or name', () => {
+    expect(parseHybridOffer(offer).definition).toMatchObject({ kind: 'FEATURES', basicPlan: true })
+    const { basicPlan: _quitado, ...sinMarca } = offer.definition
+    expect(parseHybridOffer({ ...offer, definition: sinMarca }).definition).not.toHaveProperty('basicPlan')
+  })
   it('still validate a promotion’s places and end date', () => {
     expect(() => parseHybridOffer({ ...offer, placesRemaining: -1 })).toThrow()
     expect(() => parseHybridOffer({ ...offer, endsAt: 'mañana' })).toThrow()

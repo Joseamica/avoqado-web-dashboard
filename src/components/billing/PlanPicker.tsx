@@ -71,6 +71,11 @@ interface PlanPickerProps {
   intervalLocked?: boolean
   /** La tarjeta de `leadingCard` es la elegida: ninguna de las demás se pinta como elegida. */
   leadingSelected?: boolean
+  /**
+   * Planes editables (B2, Task 12): los planes que la versión del editor no vende hoy. Su tarjeta se pinta apagada, dice
+   * «No disponible por ahora» en vez de un precio y no llama a `onSelectTier`. Sin la prop, como hoy.
+   */
+  fueraDeVenta?: Partial<Record<TierId, true>>
 }
 
 export function PlanPicker({
@@ -84,6 +89,7 @@ export function PlanPicker({
   leadingSelected = false,
   preciosSinIva,
   intervalLocked = false,
+  fueraDeVenta,
 }: PlanPickerProps) {
   const { t } = useTranslation('billing')
   const [internalInterval, setInternalInterval] = useState<'monthly' | 'annual'>('monthly')
@@ -154,7 +160,10 @@ export function PlanPicker({
               isDowngrade={TIER_ORDER.indexOf(tier.id) < TIER_ORDER.indexOf(currentTier)}
               promoNote={promoNotes?.[tier.id]}
               precioSinIva={preciosSinIva?.[tier.id]}
-              onSelect={() => onSelectTier(tier.id, interval)}
+              noDisponible={!!fueraDeVenta?.[tier.id]}
+              onSelect={() => {
+                if (!fueraDeVenta?.[tier.id]) onSelectTier(tier.id, interval)
+              }}
             />
           </Fragment>
         ))}
@@ -171,6 +180,7 @@ function PlanCard({
   isDowngrade,
   promoNote,
   precioSinIva,
+  noDisponible = false,
   onSelect,
 }: {
   tier: PlanTierDef
@@ -180,6 +190,8 @@ function PlanCard({
   isDowngrade: boolean
   promoNote?: string
   precioSinIva?: { monthlyNetCents: number; annualNetCents: number }
+  /** B2: la versión del editor no vende este plan hoy (ver `fueraDeVenta`). */
+  noDisponible?: boolean
   onSelect: () => void
 }) {
   const { t } = useTranslation('billing')
@@ -207,23 +219,27 @@ function PlanCard({
   // Choice mode: the whole card is the hit target (the founder's ask — "si picas el card se
   // selecciona, no necesariamente un botón"). Owned mode keeps the card inert so a stray
   // click in the billing portal can never kick off an upgrade or a downgrade.
-  const cardInteraction = isChoice
-    ? {
-        role: 'radio' as const,
-        'aria-checked': isPicked,
-        tabIndex: 0,
-        onClick: onSelect,
-        onKeyDown: (e: React.KeyboardEvent<HTMLDivElement>) => {
-          // Only when the card itself has focus — otherwise Enter on the inner CTA would
-          // fire the action twice.
-          if (e.target !== e.currentTarget) return
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault()
-            onSelect()
-          }
-        },
-      }
-    : {}
+  const cardInteraction = noDisponible
+    ? isChoice
+      ? { role: 'radio' as const, 'aria-checked': isPicked, 'aria-disabled': true, tabIndex: -1 }
+      : { 'aria-disabled': true }
+    : isChoice
+      ? {
+          role: 'radio' as const,
+          'aria-checked': isPicked,
+          tabIndex: 0,
+          onClick: onSelect,
+          onKeyDown: (e: React.KeyboardEvent<HTMLDivElement>) => {
+            // Only when the card itself has focus — otherwise Enter on the inner CTA would
+            // fire the action twice.
+            if (e.target !== e.currentTarget) return
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault()
+              onSelect()
+            }
+          },
+        }
+      : {}
 
   // The inner CTA repeats the card's action, so stop the bubble to avoid a double fire
   // (for ENTERPRISE that would open two WhatsApp tabs).
@@ -236,8 +252,9 @@ function PlanCard({
 
   // Lo que ofrece el pie de «Ver todos»: elegir el plan desde ahí (asistentes) o escribir a ventas.
   // En Facturación no se cambia de plan desde la ventana: sólo se cierra.
-  const accionDeLaVentana =
-    tier.checkout === 'contact'
+  const accionDeLaVentana = noDisponible
+    ? undefined
+    : tier.checkout === 'contact'
       ? { label: t('plan.cta.contact'), onClick: onSelect }
       : isChoice && !isPicked && tier.checkout !== 'coming_soon'
         ? { label: t('plan.cta.choose', { tier: tierName }), onClick: onSelect }
@@ -251,8 +268,9 @@ function PlanCard({
         className={cn(
           'relative flex flex-col gap-4 rounded-2xl border border-input bg-card p-5 transition hover:-translate-y-0.5',
           tier.popular && 'border-emerald-400/55 ring-1 ring-emerald-400/25',
-          isChoice && 'cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-          isChoice && !isPicked && 'hover:border-foreground/30',
+          isChoice && !noDisponible && 'cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+          isChoice && !isPicked && !noDisponible && 'hover:border-foreground/30',
+          noDisponible && 'cursor-not-allowed opacity-60 hover:translate-y-0',
           // Selection ring uses the neutral `primary` token, not emerald — emerald is already
           // spoken for by the "Más popular" ring on PRO, so a green ring wouldn't read as
           // "selected" on the one card that is selected by default.
@@ -283,7 +301,9 @@ function PlanCard({
         {/* El precio y «/mes · IVA incluido» pueden partirse en dos renglones: en tarjetas angostas no
           caben juntos y el sufijo se salía del cuadro. El sufijo es UNA pieza (no se corta a la mitad). */}
         <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
-          {monthlyEquiv === null ? (
+          {noDisponible ? (
+            <span className="text-xl font-extrabold text-muted-foreground">{t('plan.notOnSale')}</span>
+          ) : monthlyEquiv === null ? (
             <span className="text-xl font-extrabold">{t('plan.cta.contact')}</span>
           ) : (
             <>
@@ -296,13 +316,15 @@ function PlanCard({
           )}
         </div>
         <div className="min-h-[16px] text-xs text-muted-foreground">
-          {tier.id === 'FREE'
-            ? t('plan.forever')
-            : tier.priceMonthly === null
-              ? ''
-              : interval === 'annual' && precioAnual != null
-                ? t('plan.annualEquiv', { price: fmt(precioAnual) })
-                : t('plan.billedMonthly')}
+          {noDisponible
+            ? ''
+            : tier.id === 'FREE'
+              ? t('plan.forever')
+              : tier.priceMonthly === null
+                ? ''
+                : interval === 'annual' && precioAnual != null
+                  ? t('plan.annualEquiv', { price: fmt(precioAnual) })
+                  : t('plan.billedMonthly')}
         </div>
         {promoNote && <div className="rounded-lg bg-emerald-400/10 px-2.5 py-1.5 text-xs font-medium text-emerald-500">{promoNote}</div>}
 
@@ -345,7 +367,11 @@ function PlanCard({
           el de Enterprise, que es una ACCIÓN (escribir a ventas), no una selección. */}
           {isChoice && tier.checkout !== 'contact' ? null : (
             <div>
-              {isOwned ? (
+              {noDisponible ? (
+                <Button disabled variant="outline" className="w-full">
+                  {t('plan.notOnSale')}
+                </Button>
+              ) : isOwned ? (
                 <Button disabled variant="ghost" className="w-full cursor-default text-muted-foreground">
                   {t('plan.cta.current')}
                 </Button>

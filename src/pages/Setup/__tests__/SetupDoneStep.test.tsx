@@ -24,11 +24,148 @@ describe('SetupDoneStep — modalidad REAL de la prueba', () => {
     expect(screen.getByText('Tu prueba de Pro se renueva como Pro el 15 de diciembre.')).toBeInTheDocument()
   })
 
+  it('RENEWS_AS_PRO con un plan Premium: dice Premium, no Pro (la prueba se renueva como el plan que se pidió)', () => {
+    render(<SetupDoneStep onFinish={() => {}} planName="Premium" trialModality="RENEWS_AS_PRO" trialEndsAt="2026-12-15T18:00:00.000Z" />)
+    expect(screen.getByText('Tu prueba de Premium se renueva como Premium el 15 de diciembre.')).toBeInTheDocument()
+  })
+
   it('sin modalidad o sin fecha: la pantalla de siempre, sin renglón de prueba', () => {
     const { rerender } = render(<SetupDoneStep onFinish={() => {}} />)
     expect(screen.queryByTestId('done-trial')).not.toBeInTheDocument()
     rerender(<SetupDoneStep onFinish={() => {}} trialModality="ENDS_FREE" />)
     expect(screen.queryByTestId('done-trial')).not.toBeInTheDocument()
     expect(screen.getByText('Todo listo')).toBeInTheDocument()
+  })
+
+  it('con sinTarjeta: «Tu prueba de Pro termina el 15 de diciembre. Para seguir con Pro, pon tu tarjeta…»; sin él, los textos de hoy', () => {
+    const { rerender } = render(
+      <SetupDoneStep
+        onFinish={() => {}}
+        sinTarjeta
+        planName="Pro"
+        trialModality="RENEWS_AS_PRO"
+        trialEndsAt="2026-12-15T18:00:00.000Z"
+        tarjetaQueCobrara={null}
+      />,
+    )
+    expect(
+      screen.getByText(
+        'Tu prueba de Pro termina el 15 de diciembre. Para seguir con Pro, pon tu tarjeta en «Tu plan»; si no, sigues en Gratis.',
+      ),
+    ).toBeInTheDocument()
+    // La prueba sin tarjeta no «se renueva como Pro» sola: ese texto es de la prueba con tarjeta.
+    expect(screen.queryByText(/se renueva como Pro/)).not.toBeInTheDocument()
+
+    // Con una tarjeta que Stripe cobraría: ese día se cobra ESA tarjeta.
+    rerender(
+      <SetupDoneStep
+        onFinish={() => {}}
+        sinTarjeta
+        planName="Premium"
+        trialModality="RENEWS_AS_PRO"
+        trialEndsAt="2026-12-15T18:00:00.000Z"
+        tarjetaQueCobrara={{ brand: 'visa', last4: '4242' }}
+      />,
+    )
+    expect(
+      screen.getByText(
+        'Tu prueba de Premium termina el 15 de diciembre; ese día se cobrará tu tarjeta ••••4242. Puedes quitarla en «Tu plan».',
+      ),
+    ).toBeInTheDocument()
+
+    // Sin `sinTarjeta`: lo de hoy, aunque lleguen los campos nuevos.
+    rerender(
+      <SetupDoneStep
+        onFinish={() => {}}
+        trialModality="RENEWS_AS_PRO"
+        trialEndsAt="2026-12-15T18:00:00.000Z"
+        tarjetaQueCobrara={{ brand: 'visa', last4: '4242' }}
+      />,
+    )
+    expect(screen.getByText('Tu prueba de Pro se renueva como Pro el 15 de diciembre.')).toBeInTheDocument()
+    expect(screen.queryByText(/4242/)).not.toBeInTheDocument()
+  })
+
+  it('🔴 b2-r9 #7 (el caso de Codex): sinTarjeta con tarjetaQueCobrara ••••4242 y noHabraCobro true (cancelación programada, también tras recargar) → «… termina el 15 de diciembre; no se cobrará nada.», nunca «se cobrará tu tarjeta»', () => {
+    const { rerender } = render(
+      <SetupDoneStep
+        onFinish={() => {}}
+        sinTarjeta
+        planName="Pro"
+        trialModality="RENEWS_AS_PRO"
+        trialEndsAt="2026-12-15T18:00:00.000Z"
+        tarjetaQueCobrara={{ brand: 'visa', last4: '4242' }}
+        noHabraCobro
+      />,
+    )
+    expect(screen.getByText('Tu prueba de Pro termina el 15 de diciembre; no se cobrará nada.')).toBeInTheDocument()
+    expect(screen.queryByText(/se cobrará tu tarjeta/)).not.toBeInTheDocument()
+
+    // La misma regla con la modalidad ENDS_FREE (la cancelación que Stripe ya tiene programada), sin `noHabraCobro`.
+    rerender(
+      <SetupDoneStep
+        onFinish={() => {}}
+        sinTarjeta
+        planName="Pro"
+        trialModality="ENDS_FREE"
+        trialEndsAt="2026-12-15T18:00:00.000Z"
+        tarjetaQueCobrara={{ brand: 'visa', last4: '4242' }}
+      />,
+    )
+    expect(screen.getByText('Tu prueba de Pro termina el 15 de diciembre; no se cobrará nada.')).toBeInTheDocument()
+    expect(screen.queryByText(/se cobrará tu tarjeta/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/contratar el Básico/)).not.toBeInTheDocument()
+  })
+
+  it('🔴 I1: sinTarjeta sin saber qué tarjeta (tarjetaQueCobrara ausente: Stripe no dejó leerla) → el texto neutro, nunca «pon tu tarjeta» ni «se cobrará tu tarjeta»; con null, «pon tu tarjeta»', () => {
+    const { rerender } = render(
+      <SetupDoneStep onFinish={() => {}} sinTarjeta planName="Pro" trialModality="RENEWS_AS_PRO" trialEndsAt="2026-12-15T18:00:00.000Z" />,
+    )
+    expect(
+      screen.getByText(
+        'Tu prueba de Pro termina el 15 de diciembre. Revisa en «Tu plan» qué tarjeta se cobrará ese día; si no hay ninguna, tu negocio sigue en Gratis.',
+      ),
+    ).toBeInTheDocument()
+    expect(screen.queryByText(/pon tu tarjeta/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/se cobrará tu tarjeta/)).not.toBeInTheDocument()
+
+    // `null` (Stripe dijo que no hay tarjeta): «pon tu tarjeta», como antes.
+    rerender(
+      <SetupDoneStep
+        onFinish={() => {}}
+        sinTarjeta
+        planName="Pro"
+        trialModality="RENEWS_AS_PRO"
+        trialEndsAt="2026-12-15T18:00:00.000Z"
+        tarjetaQueCobrara={null}
+      />,
+    )
+    expect(screen.getByText(/pon tu tarjeta en «Tu plan»/)).toBeInTheDocument()
+
+    // «No habrá cobro» sigue ganando aunque no se sepa la tarjeta.
+    rerender(
+      <SetupDoneStep
+        onFinish={() => {}}
+        sinTarjeta
+        planName="Pro"
+        trialModality="RENEWS_AS_PRO"
+        trialEndsAt="2026-12-15T18:00:00.000Z"
+        noHabraCobro
+      />,
+    )
+    expect(screen.getByText('Tu prueba de Pro termina el 15 de diciembre; no se cobrará nada.')).toBeInTheDocument()
+  })
+
+  it('la prueba sin tarjeta que terminó antes de cerrar el alta: dice que el negocio quedó en Gratis y deja entrar', () => {
+    const entrar = vi.fn()
+    render(
+      <SetupDoneStep
+        onFinish={entrar}
+        pruebaTerminada="Tu prueba terminó sin tarjeta y tu negocio quedó en Gratis. No se te cobró nada."
+      />,
+    )
+    expect(screen.getByText('Tu prueba terminó sin tarjeta y tu negocio quedó en Gratis. No se te cobró nada.')).toBeInTheDocument()
+    screen.getByRole('button', { name: 'Entrar a Avoqado' }).click()
+    expect(entrar).toHaveBeenCalledTimes(1)
   })
 })

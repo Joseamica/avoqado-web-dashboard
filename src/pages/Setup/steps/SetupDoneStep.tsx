@@ -18,9 +18,34 @@ interface SetupDoneStepProps {
   /** Cómo termina la prueba de Pro, leído del servidor. Sin estos dos datos la pantalla queda como siempre. */
   trialModality?: 'RENEWS_AS_PRO' | 'ENDS_FREE'
   trialEndsAt?: string
+  /**
+   * Planes editables (B2): la prueba empezó SIN tarjeta. Con ella, lo que se dice sale de lo que Stripe contestó (la respuesta
+   * del cobro o, tras recargar, `planActivation` de `progress`), con la misma regla que «Tu plan» y los recordatorios.
+   */
+  sinTarjeta?: boolean
+  /** La tarjeta que Stripe cobraría al terminar la prueba sin tarjeta (`null` = ninguna; ausente = no se sabe). */
+  tarjetaQueCobrara?: { brand: string | null; last4: string | null } | null
+  /** Al terminar la prueba no habrá cobro (cancelación programada o cobranza en pausa). */
+  noHabraCobro?: boolean
+  /** El nombre del plan de la prueba (el de la versión del editor). */
+  planName?: string
+  /** La prueba sin tarjeta terminó antes de cerrar el alta: el negocio quedó en Gratis. Es el texto que se dice. */
+  pruebaTerminada?: string | null
 }
 
-export function SetupDoneStep({ onFinish, saving, error, businessName, trialModality, trialEndsAt }: SetupDoneStepProps) {
+export function SetupDoneStep({
+  onFinish,
+  saving,
+  error,
+  businessName,
+  trialModality,
+  trialEndsAt,
+  sinTarjeta,
+  tarjetaQueCobrara,
+  noHabraCobro,
+  planName,
+  pruebaTerminada,
+}: SetupDoneStepProps) {
   const { t, i18n } = useTranslation('setup')
   const fin = trialEndsAt ? new Date(trialEndsAt) : null
   // El alta aún no tiene sucursal activa: la fecha va en la zona de México, como el resto del alta.
@@ -46,7 +71,45 @@ export function SetupDoneStep({ onFinish, saving, error, businessName, trialModa
         </p>
       </div>
 
-      {fecha && trialModality && (
+      {pruebaTerminada ? (
+        <p className="text-sm" data-testid="done-trial-ended">
+          {pruebaTerminada}
+        </p>
+      ) : sinTarjeta && fecha ? (
+        // 🔴 b2-r9 #7: el orden es el de «Tu plan» y los recordatorios. Primero «no habrá cobro» (una cancelación programada
+        // gana a una tarjeta guardada), luego la tarjeta que Stripe cobraría; `null` (Stripe dijo «ninguna») es «pon tu tarjeta».
+        // 🔴 I1: AUSENTE no es `null`. El SERVIDOR omite la tarjeta cuando no pudo leerla (`avisoDeLaPruebaSinTarjeta`): decir
+        // «pon tu tarjeta… si no, sigues en Gratis» sería falso si tiene una guardada, que Stripe cobraría. Va el texto neutro.
+        <p className="text-sm" data-testid="done-trial">
+          {noHabraCobro || trialModality === 'ENDS_FREE'
+            ? t('done.trialNoCharge', {
+                defaultValue: 'Tu prueba de {{plan}} termina el {{date}}; no se cobrará nada.',
+                plan: planName ?? 'Pro',
+                date: fecha,
+              })
+            : tarjetaQueCobrara
+              ? t('done.trialWithCard', {
+                  defaultValue:
+                    'Tu prueba de {{plan}} termina el {{date}}; ese día se cobrará tu tarjeta ••••{{last4}}. Puedes quitarla en «Tu plan».',
+                  plan: planName ?? 'Pro',
+                  date: fecha,
+                  last4: tarjetaQueCobrara.last4 ?? '',
+                })
+              : tarjetaQueCobrara === null
+                ? t('done.trialNoCard', {
+                    defaultValue:
+                      'Tu prueba de {{plan}} termina el {{date}}. Para seguir con {{plan}}, pon tu tarjeta en «Tu plan»; si no, sigues en Gratis.',
+                    plan: planName ?? 'Pro',
+                    date: fecha,
+                  })
+                : t('done.trialCardUnknown', {
+                    defaultValue:
+                      'Tu prueba de {{plan}} termina el {{date}}. Revisa en «Tu plan» qué tarjeta se cobrará ese día; si no hay ninguna, tu negocio sigue en Gratis.',
+                    plan: planName ?? 'Pro',
+                    date: fecha,
+                  })}
+        </p>
+      ) : fecha && trialModality ? (
         <div className="flex flex-col gap-1 text-sm" data-testid="done-trial">
           <p>
             {trialModality === 'ENDS_FREE'
@@ -54,11 +117,15 @@ export function SetupDoneStep({ onFinish, saving, error, businessName, trialModa
                   defaultValue: 'Tu prueba de Pro termina el {{date}} sin cobro. Ese día podrás contratar el Básico.',
                   date: fecha,
                 })
-              : t('done.trialRenews', { defaultValue: 'Tu prueba de Pro se renueva como Pro el {{date}}.', date: fecha })}
+              : t('done.trialRenews', {
+                  defaultValue: 'Tu prueba de {{plan}} se renueva como {{plan}} el {{date}}.',
+                  plan: planName ?? 'Pro',
+                  date: fecha,
+                })}
           </p>
           <p className="text-muted-foreground">{t('done.trialChange', { defaultValue: 'Cámbialo en «Tu plan»' })}</p>
         </div>
-      )}
+      ) : null}
 
       {error && <p className="text-sm text-destructive">{error}</p>}
 

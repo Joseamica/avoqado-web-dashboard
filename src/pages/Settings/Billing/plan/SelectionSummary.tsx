@@ -37,8 +37,16 @@ function ctaKey(op: PlanOperation): string {
   if (op.kind === 'DOWNGRADE_CLASSIC') return 'plan.selection.drop'
   if (op.kind === 'CANCEL_CONTRACT') return 'hybrid.cancelContract'
   if (op.kind === 'ASSISTED') return 'plan.selection.assisted'
+  if (op.kind === 'PORTAL_TARJETA') return 'plan.selection.addCard'
   return 'plan.selection.review'
 }
+
+/**
+ * B2: sin botón. La prueba con tarjeta sólo informa, y sin el monto de Stripe no se manda al portal (b2-r6 #4: nunca sin enseñar
+ * cuánto se cobrará).
+ */
+const sinBoton = (op: PlanOperation) =>
+  op.kind === 'PRUEBA_CON_TARJETA' || (op.kind === 'PORTAL_TARJETA' && op.montoAlTerminarCents == null)
 
 /** "Tu selección": what changes and what it costs — "Pagas hoy" only when a server number backs it (spec §4.2). */
 export function SelectionSummary({
@@ -97,6 +105,26 @@ export function SelectionSummary({
         : 'plan.selection.monthlyTotal',
   )
   const primerCobro = model.firstChargeAt ? formatDate(model.firstChargeAt) : null
+  // B2: la prueba de la versión del editor y la compra aceptada en la demo dicen su propio texto, con el monto de Stripe (centavos).
+  const centavos = (cents: number) => money(cents / 100)
+  const textoDeLaPrueba =
+    op.kind === 'PORTAL_TARJETA'
+      ? op.montoAlTerminarCents == null
+        ? t('plan.selection.amountUnavailable')
+        : t('plan.selection.trialCardSummary', { date: formatDate(op.trialEndsAt), price: centavos(op.montoAlTerminarCents) })
+      : op.kind === 'PRUEBA_CON_TARJETA'
+        ? op.montoAlTerminarCents == null
+          ? // Sin el monto de Stripe, la tarjeta sin la frase del monto (revisión #3): nunca un monto inventado.
+            t('plan.selection.trialWithCardNoAmount', { date: formatDate(op.trialEndsAt), last4: op.tarjeta.last4 ?? '' })
+          : t('plan.selection.trialWithCard', {
+              date: formatDate(op.trialEndsAt),
+              price: centavos(op.montoAlTerminarCents),
+              last4: op.tarjeta.last4 ?? '',
+            })
+        : op.kind === 'TERMINAR_ACEPTACION'
+          ? t('plan.selection.finishAcceptance', { tier: tierName(op.tier) })
+          : null
+  const conBoton = !sinBoton(op)
 
   const idleText =
     op.kind === 'FOUNDER'
@@ -113,6 +141,15 @@ export function SelectionSummary({
         <h2 className="text-lg font-semibold">{title}</h2>
         {idleText ? (
           <p className="text-sm text-muted-foreground">{idleText}</p>
+        ) : textoDeLaPrueba ? (
+          <div className="space-y-2 text-sm" data-tour="plan-trial-status">
+            <p>{textoDeLaPrueba}</p>
+            {op.kind === 'PORTAL_TARJETA' && conBoton && (
+              <p className="text-xs text-muted-foreground" data-tour="plan-portal-note">
+                {t('plan.selection.portalNote')}
+              </p>
+            )}
+          </div>
         ) : (
           <>
             <ul className="space-y-2 text-sm">
@@ -120,7 +157,11 @@ export function SelectionSummary({
                 <li key={line.key} className="space-y-0.5">
                   <div className="flex justify-between gap-3">
                     <span>{line.plan ? t('plan.selection.plan', { tier: tierName(line.plan) }) : name(line.entry!)}</span>
-                    <span className="tabular-nums">{line.price == null ? '—' : money(line.price)}</span>
+                    {line.fueraDeVenta ? (
+                      <span className="text-muted-foreground">{t(line.duranteLaPrueba ? 'plan.notDuringTrial' : 'plan.notOnSale')}</span>
+                    ) : (
+                      <span className="tabular-nums">{line.price == null ? '—' : money(line.price)}</span>
+                    )}
                   </div>
                   {line.offer && promo(line.offer) && <p className="text-xs text-muted-foreground">{promo(line.offer)}</p>}
                 </li>
@@ -263,9 +304,11 @@ export function SelectionSummary({
           </div>
         )}
         {!canManage && <p className="text-xs text-muted-foreground">{t('hybrid.permission')}</p>}
-        <Button className="w-full" disabled={disabled} onClick={onReview} data-tour="plan-review">
-          {cta}
-        </Button>
+        {conBoton && (
+          <Button className="w-full" disabled={disabled} onClick={onReview} data-tour="plan-review">
+            {cta}
+          </Button>
+        )}
       </aside>
       {/* Phone: a full-width bar (the app sidebar is off-canvas). From lg the sidebar is a visible column, so the bar
           becomes a floating card centered in the content area — clear of the sidebar and its user menu, even resized
@@ -275,12 +318,20 @@ export function SelectionSummary({
         data-tour="plan-selection-bar"
       >
         <div className="min-w-0 flex-1">
-          <p className="truncate text-xs text-muted-foreground">{totalLabel}</p>
-          <p className="font-semibold tabular-nums">{model.monthlyTotal != null ? money(model.monthlyTotal) : '—'}</p>
+          {textoDeLaPrueba ? (
+            <p className="line-clamp-2 text-xs text-muted-foreground">{textoDeLaPrueba}</p>
+          ) : (
+            <>
+              <p className="truncate text-xs text-muted-foreground">{totalLabel}</p>
+              <p className="font-semibold tabular-nums">{model.monthlyTotal != null ? money(model.monthlyTotal) : '—'}</p>
+            </>
+          )}
         </div>
-        <Button disabled={disabled} onClick={onReview} data-tour="plan-review-bar">
-          {cta}
-        </Button>
+        {conBoton && (
+          <Button disabled={disabled} onClick={onReview} data-tour="plan-review-bar">
+            {cta}
+          </Button>
+        )}
       </div>
     </>
   )

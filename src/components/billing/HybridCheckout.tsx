@@ -100,6 +100,10 @@ export function HybridCheckout({
     const timer = window.setInterval(() => setNow(Date.now()), 30000)
     return () => clearInterval(timer)
   }, [])
+  // 🔴 B2 (b2-r9 #6): the list, the linked offer and the saved cart are read again EVERY time the checkout opens (`staleTime: 0`,
+  // `refetchOnMount: 'always'`). A read from under a minute ago in the cache no longer counts: a new version of the plan offers
+  // can take the Básico off sale in between, and buying from the old read would only meet the server's 409. Fresher on purpose
+  // (bounded-data rule exception): three small public reads per opening.
   const restore = useQuery({
     queryKey: ['hybrid-draft', venueId, draft],
     queryFn: ({ signal }) =>
@@ -112,17 +116,19 @@ export function HybridCheckout({
       ),
     enabled: !restored,
     retry: false,
-    staleTime: Infinity,
+    staleTime: 0,
+    refetchOnMount: 'always',
     refetchOnWindowFocus: false,
   })
   useEffect(() => {
-    if (!restored && restore.data) {
+    // Only the FRESH read restores the cart: an old cached success would put back an offer that is no longer for sale.
+    if (!restored && restore.data && restore.isSuccess && restore.isFetchedAfterMount) {
       setCart(restore.data)
       setReplace(draft?.replace ?? [])
       setDrop(draft?.drop ?? [])
       setRestored(true)
     }
-  }, [restore.data, restored, draft])
+  }, [restore.data, restore.isSuccess, restore.isFetchedAfterMount, restored, draft])
   useEffect(() => {
     if (!restored || purchase) return
     try {
@@ -167,7 +173,8 @@ export function HybridCheckout({
     queryKey: ['hybrid-offers', q, page],
     queryFn: ({ signal }) => hybridBilling.offers({ page, pageSize: 6, q: q || undefined }, signal),
     enabled: !purchase,
-    staleTime: 60000,
+    staleTime: 0,
+    refetchOnMount: 'always',
     placeholderData: keepPreviousData,
     retry: false,
   })
@@ -176,8 +183,24 @@ export function HybridCheckout({
     queryFn: ({ signal }) => hybridBilling.offer(slug!, signal),
     enabled: !!slug && !purchase,
     retry: false,
-    staleTime: 60000,
+    staleTime: 0,
+    refetchOnMount: 'always',
   })
+  // Until the list (and the linked offer, if any) have been read since this opening, what shows may be the old cached read:
+  // nothing is picked or reviewed from it. Only the FIRST read counts (M3): after it, a page change or a search keeps showing
+  // the previous fresh page (`keepPreviousData`) with its buttons on, instead of flickering them off on every key.
+  const freshSinceOpening = offers.isFetchedAfterMount && (!slug || linked.isFetchedAfterMount)
+  const [readSinceOpening, setReadSinceOpening] = useState(false)
+  useEffect(() => {
+    if (freshSinceOpening) setReadSinceOpening(true)
+  }, [freshSinceOpening])
+  const reading = !readSinceOpening && !freshSinceOpening
+  // 🔴 b2-r8 #8: the Básico an editor version took off sale (its `basicPlan` marker, the SERVIDOR's `isBasicPlanDefinition`) is
+  // not put first and cannot be picked; the link says it is no longer available. ANY other offer with `purchaseAvailable: false`
+  // (a promotion whose parent list was paused) is still put first with its button off, as today (b2-r9 #9).
+  const retiredBasic =
+    !!linked.data && (linked.data.definition as { basicPlan?: unknown }).basicPlan === true && !linked.data.purchaseAvailable
+  const shownLinked = retiredBasic ? null : (linked.data ?? null)
   const linkedStatus = (linked.error as { response?: { status?: number } } | null)?.response?.status
   const replacements = useQuery({
     queryKey: ['hybrid-replacements', venueId],
@@ -187,8 +210,8 @@ export function HybridCheckout({
     retry: false,
   })
   const visible = useMemo(
-    () => [...(linked.data ? [linked.data] : []), ...(offers.data?.items.filter(offer => offer.id !== linked.data?.id) ?? [])],
-    [linked.data, offers.data],
+    () => [...(shownLinked ? [shownLinked] : []), ...(offers.data?.items.filter(offer => offer.id !== linked.data?.id) ?? [])],
+    [shownLinked, linked.data, offers.data],
   )
   const included = [
     ...new Set([
@@ -481,6 +504,7 @@ export function HybridCheckout({
             ) : (
               <AvisoDeCarga query={linked} hayDatos={false} />
             ))}
+          {retiredBasic && <p role="status">{t('hybrid.unavailable')}</p>}
           <Input
             aria-label={t('hybrid.search')}
             placeholder={t('hybrid.search')}
@@ -535,7 +559,7 @@ export function HybridCheckout({
                       <Button
                         variant={selected ? 'outline' : 'default'}
                         className="mt-auto"
-                        disabled={busy || !offer.purchaseAvailable || !!blocked || (!selected && cart.length >= 8)}
+                        disabled={busy || reading || !offer.purchaseAvailable || !!blocked || (!selected && cart.length >= 8)}
                         data-tour="hybrid-offer-select"
                         onClick={() =>
                           setCart(rows => (selected ? rows.filter(row => row.offer.id !== offer.id) : [...rows, { offer, codes: [] }]))
@@ -644,7 +668,7 @@ export function HybridCheckout({
                   : null
               }
               price={money(String(cart.reduce((sum, row) => sum + row.offer.definition.terms.price, 0)))}
-              reviewDisabled={busy || !valid || current.isPending || !!recoveryError || !replacements.data}
+              reviewDisabled={busy || reading || !valid || current.isPending || !!recoveryError || !replacements.data}
               onReview={review}
             />
           )}

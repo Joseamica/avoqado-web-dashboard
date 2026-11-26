@@ -1,7 +1,7 @@
 // src/pages/Settings/Billing/plan/planActions.ts
 import { esPrecioDeLista } from '@/lib/sinIva'
 import { getTierDef } from '@/config/plan-catalog'
-import type { PlanOrigin, PlanState } from '@/services/features.service'
+import type { CotizacionDeTuPlan, OpcionCotizada, PlanOrigin, PlanState } from '@/services/features.service'
 import type {
   FeatureGrid,
   FeatureGridEntry,
@@ -89,7 +89,48 @@ export interface SelectionInput {
   classicRejected: boolean
   /** Function codes (and `'PLAN'` for the plan) quoted at their list offer instead of the best one (spec §5). */
   preferList?: string[]
+  /**
+   * Planes editables (B2, Task 12): lo que «Tu plan» cotizó con una versión del editor (`PlanState.cotizacion`). Sin ella, todo es
+   * lo de hoy, literal.
+   */
+  cotizacion?: CotizacionDeTuPlan
+  /** Mensual o anual de la compra clásica: con `cotizacion`, decide qué comprobante viaja. Sin cotización no cambia nada. */
+  interval?: 'monthly' | 'annual'
 }
+
+/** La opción cotizada de un plan en esa periodicidad: sólo si el plan es vendible hoy (nunca un checkout sin su comprobante). */
+export function opcionCotizada(
+  cotizacion: CotizacionDeTuPlan | undefined,
+  tier: 'PRO' | 'PREMIUM',
+  interval: 'monthly' | 'annual',
+): OpcionCotizada | null {
+  const plan = cotizacion?.planes?.[tier]
+  return plan?.vendible ? (plan[interval] ?? null) : null
+}
+
+/**
+ * Con una prueba que Stripe ya terminó (`TERMINADA`) la fila puede seguir diciendo `CLASSIC` porque la baja todavía no llega
+ * (b2-r6 #4): «Tu plan» compra como Gratis, igual que el SERVIDOR cotiza. Sin cotización (o sin esa prueba), el origen de siempre.
+ */
+const origenQueCompra = (input: Pick<SelectionInput, 'origin' | 'cotizacion'>): PlanOrigin =>
+  input.cotizacion?.estadoDeLaPrueba?.estado === 'TERMINADA' ? NO_ORIGIN : input.origin
+
+/**
+ * B2 (revisión 3): una prueba que Stripe todavía corre (`SIN_TARJETA` o `CON_TARJETA`). Durante ella otro plan sí puede estar a la
+ * venta, pero no se compra encima de la prueba (la regla común lo niega): no se enseña su precio ni se sugiere.
+ */
+const pruebaViva = (cotizacion: CotizacionDeTuPlan | undefined) => {
+  const estado = cotizacion?.estadoDeLaPrueba?.estado
+  return estado === 'SIN_TARJETA' || estado === 'CON_TARJETA'
+}
+
+/** La compra clásica con el comprobante de su opción; con una prueba regalada que difiere el cobro, también su fecha (D3). */
+const compraConComprobante = (tier: 'PRO' | 'PREMIUM', opcion: OpcionCotizada): PlanOperation => ({
+  kind: 'CLASSIC_CHECKOUT',
+  tier,
+  ...(opcion.trialEndsAt ? { firstChargeAt: opcion.trialEndsAt } : {}),
+  quoteToken: opcion.quoteToken,
+})
 
 /** The offer a function is quoted with: its list when the owner asked for it and it has one, else the best offer. */
 export const chosenOffer = (entry: FeatureGridEntry, preferList?: string[]) =>
@@ -127,8 +168,28 @@ export type PlanOperation =
   | { kind: 'COMP' }
   | { kind: 'ASSISTED'; tier: PlanTarget }
   | { kind: 'FEATURES'; lines: HybridLineInput[] }
-  /** `firstChargeAt` (D3): quedarse con el plan de una prueba regalada; hoy no se cobra y el primer cobro es esa fecha. */
-  | { kind: 'CLASSIC_CHECKOUT'; tier: 'PRO' | 'PREMIUM'; firstChargeAt?: string }
+  /**
+   * `firstChargeAt` (D3): quedarse con el plan de una prueba regalada; hoy no se cobra y el primer cobro es esa fecha.
+   * `quoteToken` (B2): el comprobante de la opción cotizada; sólo con una versión del editor.
+   */
+  | { kind: 'CLASSIC_CHECKOUT'; tier: 'PRO' | 'PREMIUM'; firstChargeAt?: string; quoteToken?: string }
+  /** B2 (§17): la prueba SIN tarjeta se completa en el portal de Stripe; el monto es la vista previa de Stripe (`null` = no se sabe). */
+  | {
+      kind: 'PORTAL_TARJETA'
+      tier: 'PRO' | 'PREMIUM'
+      interval: 'monthly' | 'annual'
+      trialEndsAt: string
+      montoAlTerminarCents: number | null
+    }
+  /** B2 (§18): la prueba ya tiene la tarjeta que Stripe cobrará al terminar; sólo informa. */
+  | {
+      kind: 'PRUEBA_CON_TARJETA'
+      trialEndsAt: string
+      tarjeta: { brand: string | null; last4: string | null }
+      montoAlTerminarCents: number | null
+    }
+  /** B2 (b2-r8 #7): la compra que se aceptó al convertir la demo y cuya respuesta se perdió; su checkout cita la aceptación. */
+  | { kind: 'TERMINAR_ACEPTACION'; acceptanceId: string; tier: 'PRO' | 'PREMIUM'; interval: 'monthly' | 'annual' }
   | {
       kind: 'HYBRID_REPLACE'
       tier: 'PRO' | 'PREMIUM'
@@ -185,9 +246,35 @@ export function mixedChange(input: SelectionInput): boolean {
 }
 
 /** Which server operation a choice maps to (spec §4.1). Without one, it is "Cambio asistido", never an invented path. */
-export function planOperation(input: SelectionInput): PlanOperation {
-  if (input.grandfathered) return { kind: 'FOUNDER' }
+export function planOperation(entrada: SelectionInput): PlanOperation {
+  if (entrada.grandfathered) return { kind: 'FOUNDER' }
+  const { cotizacion } = entrada
+  // B2 (b2-r8 #7): la compra aceptada al convertir la demo va primero, aunque la vigente ya no venda ningún plan.
+  const aceptada = cotizacion?.aceptacionPendiente
+  if (aceptada)
+    return { kind: 'TERMINAR_ACEPTACION', acceptanceId: aceptada.acceptanceId, tier: aceptada.tier, interval: aceptada.interval }
+  const input = cotizacion ? { ...entrada, origin: origenQueCompra(entrada) } : entrada
   const current = currentTarget(input.origin)
+  const prueba = cotizacion?.estadoDeLaPrueba
+  // B2 (b2-r6 #4): la prueba sin tarjeta se decide por lo que dice Stripe, antes que por la fila: nunca una compra clásica encima.
+  if (prueba && input.target === current && !input.marked.length) {
+    if (prueba.estado === 'SIN_TARJETA')
+      return {
+        kind: 'PORTAL_TARJETA',
+        tier: prueba.tier,
+        interval: prueba.interval,
+        trialEndsAt: prueba.trialEndsAt,
+        montoAlTerminarCents: prueba.montoAlTerminarCents,
+      }
+    if (prueba.estado === 'CON_TARJETA')
+      return {
+        kind: 'PRUEBA_CON_TARJETA',
+        trialEndsAt: prueba.trialEndsAt,
+        tarjeta: prueba.tarjeta ?? { brand: null, last4: null },
+        montoAlTerminarCents: prueba.montoAlTerminarCents,
+      }
+  }
+  const interval = input.interval ?? 'monthly'
   const offers = input.marked.flatMap(code => {
     const found = input.grid?.entries.find(entry => entry.featureCode === code)
     const offer = found && chosenOffer(found, input.preferList)
@@ -197,15 +284,12 @@ export function planOperation(input: SelectionInput): PlanOperation {
   // D3: en una prueba regalada que el SERVIDOR todavía puede diferir, quedarse con SU plan es la compra clásica sin cobro hoy.
   // Otro plan sigue en «escríbenos»: Premium→Pro le quitaría Premium ese mismo día.
   const { firstChargeAt, tier: tierDeLaPrueba } = input.origin
-  if (
-    input.origin.kind === 'COMP' &&
-    firstChargeAt &&
-    tierDeLaPrueba &&
-    input.target === current &&
-    !lines.length &&
-    !input.classicRejected
-  )
-    return { kind: 'CLASSIC_CHECKOUT', tier: tierDeLaPrueba, firstChargeAt }
+  const quedarse = input.origin.kind === 'COMP' && tierDeLaPrueba && input.target === current && !lines.length && !input.classicRejected
+  if (quedarse && cotizacion) {
+    // Con la versión del editor, lo que el SERVIDOR firmó: la opción que difiere el cobro (su `trialEndsAt`) es la fecha del primero.
+    const opcion = opcionCotizada(cotizacion, tierDeLaPrueba, interval)
+    if (opcion?.trialEndsAt) return compraConComprobante(tierDeLaPrueba, opcion)
+  } else if (quedarse && firstChargeAt) return { kind: 'CLASSIC_CHECKOUT', tier: tierDeLaPrueba, firstChargeAt }
   if (input.target === current) return lines.length ? { kind: 'FEATURES', lines } : { kind: 'NONE' }
   if (input.origin.kind === 'COMP') return { kind: 'COMP' }
   const own = ownSource(input.origin, input.replacements)
@@ -225,7 +309,15 @@ export function planOperation(input: SelectionInput): PlanOperation {
       return { kind: 'CANCEL_CONTRACT', contractId: input.origin.contractId, revision: input.origin.contractRevision }
     return { kind: 'ASSISTED', tier: 'FREE' }
   }
-  if (input.origin.kind === 'NONE' && !input.classicRejected) return { kind: 'CLASSIC_CHECKOUT', tier: input.target }
+  if (input.origin.kind === 'NONE' && !input.classicRejected) {
+    if (!cotizacion) return { kind: 'CLASSIC_CHECKOUT', tier: input.target }
+    // Con la versión del editor: el comprobante de la opción elegida, o «Cambio asistido» si el plan no es vendible hoy.
+    const opcion = opcionCotizada(cotizacion, input.target, interval)
+    return opcion ? compraConComprobante(input.target, opcion) : { kind: 'ASSISTED', tier: input.target }
+  }
+  // B2 (revisión #1): la rejilla híbrida no lee la versión del editor. Con ella, un plan de destino que hoy no se vende (sin opción en
+  // esa periodicidad) es «Cambio asistido», nunca un reemplazo con precio y «Revisar y pagar».
+  if (cotizacion && !opcionCotizada(cotizacion, input.target, interval)) return { kind: 'ASSISTED', tier: input.target }
   const offer = input.grid?.purchasesEnabled ? chosenPlanOffer(input.grid, input.target, input.preferList) : null
   if (!offer) return { kind: 'ASSISTED', tier: input.target }
   // The plan's own subscription must be replaceable; standalone functions the new plan absorbs go with it (spec §4.1).
@@ -266,20 +358,36 @@ export function isMarkable(entry: FeatureGridEntry, mode: GridMode): boolean {
 export function planPillPrice(
   tier: PlanTarget,
   input: Omit<SelectionInput, 'target' | 'marked'> & { interval: 'monthly' | 'annual' },
-): { amount: number; per: 'month' | 'year'; ivaAparte: boolean } {
+): { amount: number; per: 'month' | 'year'; ivaAparte: boolean; fueraDeVenta?: true; duranteLaPrueba?: true } {
   if (tier === 'FREE') return { amount: 0, per: 'month', ivaAparte: false }
-  if (tier === currentTarget(input.origin) && input.origin.price)
+  const origin = input.cotizacion ? origenQueCompra(input) : input.origin
+  if (tier === currentTarget(origin) && origin.price)
     // D5: con un cupón vigente, lo que de verdad paga hoy (la línea de «Tu plan» dice hasta cuándo y el precio después).
     return {
-      amount: input.origin.discount?.gross ?? input.origin.price.gross,
-      per: input.origin.interval === 'year' ? 'year' : 'month',
+      amount: origin.discount?.gross ?? origin.price.gross,
+      per: origin.interval === 'year' ? 'year' : 'month',
       ivaAparte: false,
     }
+  // B2 (revisiones 2 y 3): con la versión del editor no se enseña precio (`fueraDeVenta`, y `amount` no se lee) de otro plan durante
+  // una prueba viva (`duranteLaPrueba`: puede estar a la venta, pero no se compra encima de la prueba) ni de un plan que hoy no se
+  // vende (sin opción en esa periodicidad). Sin cotización, los precios de hoy.
+  const per = input.interval === 'annual' ? 'year' : 'month'
+  if (pruebaViva(input.cotizacion) && tier !== currentTarget(origin))
+    return { amount: 0, per, ivaAparte: false, fueraDeVenta: true, duranteLaPrueba: true }
+  if (input.cotizacion && !pruebaViva(input.cotizacion) && !opcionCotizada(input.cotizacion, tier, input.interval))
+    return { amount: 0, per, ivaAparte: false, fueraDeVenta: true }
   const op = planOperation({ ...input, target: tier, marked: [] })
-  if (op.kind === 'CLASSIC_CHECKOUT')
+  if (op.kind === 'CLASSIC_CHECKOUT') {
+    // B2: con la cotización, el precio de la versión que firmó el SERVIDOR (con IVA), nunca el del catálogo.
+    const opcion = op.quoteToken ? opcionCotizada(input.cotizacion, tier, input.interval) : null
+    if (opcion) return { amount: opcion.precioCents / 100, per: input.interval === 'annual' ? 'year' : 'month', ivaAparte: false }
     return { amount: classicPrice(tier, input.interval), per: input.interval === 'annual' ? 'year' : 'month', ivaAparte: true }
+  }
   const offer = op.kind === 'HYBRID_REPLACE' ? chosenPlanOffer(input.grid, tier, input.preferList) : null
   if (offer) return { amount: offer.price, per: 'month', ivaAparte: esPrecioDeLista(offer) }
+  // B2: de referencia, el precio mensual de la versión si el plan se vende hoy; si no, el del catálogo, como hoy.
+  const referencia = opcionCotizada(input.cotizacion, tier, 'monthly')
+  if (referencia) return { amount: referencia.precioCents / 100, per: 'month', ivaAparte: false }
   return { amount: classicPrice(tier, 'monthly'), per: 'month', ivaAparte: true }
 }
 
@@ -289,6 +397,10 @@ export interface SummaryLine {
   entry?: FeatureGridEntry
   offer?: FeatureGridOffer
   price: number | null
+  /** B2: el plan no se puede comprar hoy (ver `planPillPrice`); la línea lo dice en vez de un precio. */
+  fueraDeVenta?: true
+  /** B2 (revisión 3): la razón es una prueba viva: el plan no se compra encima de ella. */
+  duranteLaPrueba?: true
 }
 
 export interface SelectionSummaryModel {
@@ -309,7 +421,12 @@ export interface SelectionSummaryModel {
 }
 
 /** "Pro includes these N and M more": a comparison, never a price guarantee (spec §4.2). */
-function includedHint(entries: FeatureGridEntry[], marked: string[], current: PlanTarget): SelectionSummaryModel['hint'] {
+function includedHint(
+  entries: FeatureGridEntry[],
+  marked: string[],
+  current: PlanTarget,
+  cotizacion?: CotizacionDeTuPlan,
+): SelectionSummaryModel['hint'] {
   if (!marked.length) return null
   for (const tier of ['PRO', 'PREMIUM'] as const) {
     if (TIER_RANK[tier] <= TIER_RANK[current]) continue
@@ -317,31 +434,46 @@ function includedHint(entries: FeatureGridEntry[], marked: string[], current: Pl
       const found = entries.find(item => item.featureCode === code)
       return !!found?.minimumTier && TIER_RANK[found.minimumTier] <= TIER_RANK[tier]
     }).length
-    if (covered === marked.length)
-      return { tier, covered, more: Math.max(0, tierFeatureCount(entries, tier) - covered), price: classicPrice(tier, 'monthly') }
+    // B2: con la cotización, el precio mensual de la versión (con IVA) si el plan se vende hoy; si no, el del catálogo, como hoy.
+    // Un plan que la versión no vende no se sugiere (revisión 2), ni otro plan durante una prueba viva (revisión 3).
+    const referencia = opcionCotizada(cotizacion, tier, 'monthly')
+    if (cotizacion && (!referencia || pruebaViva(cotizacion))) continue
+    const price = referencia ? referencia.precioCents / 100 : classicPrice(tier, 'monthly')
+    if (covered === marked.length) return { tier, covered, more: Math.max(0, tierFeatureCount(entries, tier) - covered), price }
   }
   return null
 }
 
+/** Lo que no compra nada en «Tu selección»: sin líneas ni total (el resumen dice su propio texto). */
+const SIN_PRECIO: PlanOperation['kind'][] = ['NONE', 'FOUNDER', 'COMP', 'PORTAL_TARJETA', 'PRUEBA_CON_TARJETA', 'TERMINAR_ACEPTACION']
+const SIN_LINEAS: PlanOperation['kind'][] = ['PORTAL_TARJETA', 'PRUEBA_CON_TARJETA', 'TERMINAR_ACEPTACION']
+
 export function summarizeSelection(input: SelectionInput & { interval: 'monthly' | 'annual' }): SelectionSummaryModel {
   const operation = planOperation(input)
-  const current = currentTarget(input.origin)
+  const current = currentTarget(input.cotizacion ? origenQueCompra(input) : input.origin)
   const entries = input.grid?.entries ?? []
   const features: SummaryLine[] = input.marked.flatMap(code => {
     const found = entries.find(item => item.featureCode === code)
     const offer = found && chosenOffer(found, input.preferList)
     return found && offer ? [{ key: found.id, entry: found, offer, price: offer.price }] : []
   })
+  const pildora = planPillPrice(input.target, input)
   const planLine: SummaryLine = {
     key: `plan-${input.target}`,
     plan: input.target,
     offer: operation.kind === 'HYBRID_REPLACE' ? (chosenPlanOffer(input.grid, operation.tier, input.preferList) ?? undefined) : undefined,
-    price: planPillPrice(input.target, input).amount,
+    price: pildora.fueraDeVenta ? null : pildora.amount,
+    ...(pildora.fueraDeVenta ? { fueraDeVenta: true as const } : {}),
+    ...(pildora.duranteLaPrueba ? { duranteLaPrueba: true as const } : {}),
   }
   const quedarse = operation.kind === 'CLASSIC_CHECKOUT' && !!operation.firstChargeAt
   // Quedarse con el plan de la prueba SÍ compra el plan: su línea va aunque el destino sea el plan actual.
-  const lines = input.target === current && current !== 'FREE' && !quedarse ? features : [planLine, ...features]
-  const priced = !['NONE', 'FOUNDER', 'COMP'].includes(operation.kind)
+  const lines = SIN_LINEAS.includes(operation.kind)
+    ? []
+    : input.target === current && current !== 'FREE' && !quedarse
+      ? features
+      : [planLine, ...features]
+  const priced = !SIN_PRECIO.includes(operation.kind)
   // A replacement drops exactly what its quote lists; ending the plan stops what the plan gives. Only held functions
   // show: a server older than 2026-09-29 listed a classic plan's quote-only functions (white label, master catalog) too.
   const lose =
@@ -355,11 +487,12 @@ export function summarizeSelection(input: SelectionInput & { interval: 'monthly'
     current,
     target: input.target,
     lines,
-    monthlyTotal: priced ? lines.reduce((sum, line) => sum + (line.price ?? 0), 0) : null,
+    // Un plan fuera de venta no tiene total: «$0.00» sería un precio inventado (revisión 2).
+    monthlyTotal: priced && !lines.some(line => line.fueraDeVenta) ? lines.reduce((sum, line) => sum + (line.price ?? 0), 0) : null,
     payToday: operation.kind === 'CLASSIC_CHECKOUT' ? (quedarse ? 0 : planLine.price) : null,
     firstChargeAt: quedarse && operation.kind === 'CLASSIC_CHECKOUT' ? (operation.firstChargeAt ?? null) : null,
     lose,
-    hint: operation.kind === 'FEATURES' ? includedHint(entries, input.marked, current) : null,
+    hint: operation.kind === 'FEATURES' ? includedHint(entries, input.marked, current, input.cotizacion) : null,
     seatNotice: input.target === 'FREE' && current !== 'FREE',
     tooMany: input.marked.length > MAX_OFFERS,
   }
@@ -437,6 +570,8 @@ export function basicNotice(plan: PlanState | undefined, origin: PlanOrigin): Ba
   // «Ese día podrás contratar el Básico» sólo si hay un Básico publicado; si no, la fila dice lo de siempre.
   if (plan.trialModality === 'ENDS_FREE')
     return plan.basicOffer ? { kind: 'TRIAL_ENDS_FREE', date: plan.trialEndsAt ?? origin.cancelAt ?? origin.currentPeriodEnd } : null
+  // B2 (§11.2): con una versión del editor el Básico no se vende a nadie nuevo; sólo se dice el que ya existe.
+  if (plan.cotizacion) return null
   const offer = plan.basicOffer
   if (!offer) return null
   const price = offer.price.base

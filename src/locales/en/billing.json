@@ -254,7 +254,8 @@
       "firstChargeOn": "Your first charge will be on {{date}}.",
       "discountUntil": "With your discount you pay {{price}} until {{date}}; then {{list}}.",
       "discountOnce": "With your discount you pay {{price}} on your next charge; then {{list}}.",
-      "discountForever": "With your discount you pay {{price}}."
+      "discountForever": "With your discount you pay {{price}}.",
+      "trialNoCard": "Your trial ends on {{date}}; add your card to keep {{tier}}."
     },
     "grid": {
       "title": "Features · all {{count}}",
@@ -312,7 +313,19 @@
       "annualTotal": "Total per year",
       "payTodayDeferred": "You pay {{price}} today · first charge on {{date}}",
       "deferredNote": "Your free trial continues until {{date}}, and the first charge happens that day. You can cancel before then and pay nothing.",
-      "keepPlan": "Keep {{tier}}"
+      "keepPlan": "Keep {{tier}}",
+      "trialCardSummary": "Your trial ends on {{date}}. With your card, {{price}} is charged that day and nothing before.",
+      "amountUnavailable": "We couldn't work out what will be charged when your trial ends. Try again in a few minutes.",
+      "trialWithCard": "Your trial ends on {{date}}; {{price}} will be charged to your card ••••{{last4}} that day. You can change it or cancel.",
+      "portalNote": "You'll add your card on Stripe's secure page and come back here.",
+      "addCard": "Add my card",
+      "cardAdded": "Done: when your trial ends, {{price}} will be charged to your card ••••{{last4}}.",
+      "trialEnded": "Your trial ended; check your plan here.",
+      "cardNotYet": "We don't see your card yet. If you just added it, reload in a few seconds.",
+      "finishAcceptance": "Finish the purchase you started: {{tier}}",
+      "portalBack": "We're back from Stripe. Check your trial's status on this page; if it doesn't update, reload in a minute.",
+      "cardAddedNoAmount": "Done: your card ••••{{last4}} is set; your plan is charged when your trial ends.",
+      "trialWithCardNoAmount": "Your trial ends on {{date}}; your plan will be charged to your card ••••{{last4}} that day. You can change it or cancel."
     },
     "page": {
       "contractCancelled": "Done: your plan stops renewing at the end of the paid period.",
@@ -334,7 +347,9 @@
     "checkoutCardReceived": "We got your card. Saving your plan…",
     "checkoutCardSaved": "Done: your card is saved. The first charge will be on {{date}}.",
     "checkoutCardPending": "We got your card. Confirming it can take a few minutes; you were not charged today.",
-    "checkoutCardSavedNoDate": "Done: your card is saved. The first charge will be on the day your trial ends."
+    "checkoutCardSavedNoDate": "Done: your card is saved. The first charge will be on the day your trial ends.",
+    "notOnSale": "Not available right now",
+    "notDuringTrial": "You can't change plans during your trial"
   },
   "featureGate": {
     "tierTag": "Included in {{tier}}",

@@ -11,7 +11,8 @@ export type HybridTerms = {
 }
 export type HybridDefinition = { schemaVersion: 1; terms: HybridTerms } & (
   | { kind: 'PLAN'; planTier: 'PRO' | 'PREMIUM' }
-  | { kind: 'FEATURES'; featureCodes: string[] }
+  /** `basicPlan`: the Plan Básico marker (the SERVIDOR's `isBasicPlanDefinition`); the Básico is recognised by it, never by slug or name. */
+  | { kind: 'FEATURES'; featureCodes: string[]; basicPlan?: true }
   | { kind: 'CHOICE_BUNDLE'; choiceCount: number; eligibleFeatureCodes: string[] }
 )
 export type HybridOffer = {
@@ -147,7 +148,14 @@ const terms = z
 const definition = z
   .discriminatedUnion('kind', [
     z.object({ schemaVersion: z.literal(1), kind: z.literal('PLAN'), planTier: z.enum(['PRO', 'PREMIUM']), terms }),
-    z.object({ schemaVersion: z.literal(1), kind: z.literal('FEATURES'), featureCodes: codes.refine(values => values.length > 0), terms }),
+    z.object({
+      schemaVersion: z.literal(1),
+      kind: z.literal('FEATURES'),
+      featureCodes: codes.refine(values => values.length > 0),
+      // Kept (zod drops unknown keys): «Ver ofertas» hides a Básico the editor's version took off sale by this marker (B2).
+      basicPlan: z.literal(true).optional(),
+      terms,
+    }),
     z.object({
       schemaVersion: z.literal(1),
       kind: z.literal('CHOICE_BUNDLE'),

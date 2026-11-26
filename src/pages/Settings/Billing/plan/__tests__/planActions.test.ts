@@ -1,9 +1,10 @@
 // src/pages/Settings/Billing/plan/__tests__/planActions.test.ts
 import { describe, expect, it } from 'vitest'
-import type { PlanOrigin, PlanState } from '@/services/features.service'
+import type { CotizacionDeTuPlan, EstadoDeLaPrueba, OpcionCotizada, PlanOrigin, PlanState } from '@/services/features.service'
 import type { FeatureAccessSource, FeatureGrid, FeatureGridEntry, FeatureGridOffer } from '@/services/hybridBilling.service'
 import {
   NO_ORIGIN,
+  basicNotice,
   chosenOffer,
   chosenPlanOffer,
   classicPrice,
@@ -802,5 +803,331 @@ describe('planPillPrice con cupón (D5)', () => {
   })
   it('REGRESIÓN: sin cupón, el precio de su plan', () => {
     expect(planPillPrice('PRO', { ...base, origin: conPrecio, interval: 'monthly' }).amount).toBe(1158.84)
+  })
+})
+
+// Planes editables (B2, Task 12): con `cotizacion` (una versión del editor) «Tu plan» compra con el comprobante del SERVIDOR, lleva la
+// prueba sin tarjeta al portal de Stripe y retoma la aceptación de la demo. Sin ella, todo es lo de hoy.
+describe('«Tu plan» con la cotización de la versión (B2, Task 12)', () => {
+  const FIN = '2026-12-10T17:00:00.000Z'
+  const opcion = (precioCents: number, netCents: number, extra: Partial<OpcionCotizada> = {}): OpcionCotizada => ({
+    quoteToken: `tok_${precioCents}`,
+    precioCents,
+    netCents,
+    firstChargeCents: precioCents,
+    trialEndsAt: null,
+    ...extra,
+  })
+  const enVenta = (displayName: string, mensual: OpcionCotizada, anual: OpcionCotizada) => ({
+    displayName,
+    vendible: true,
+    monthly: mensual,
+    annual: anual,
+  })
+  const fueraDeVenta = (displayName: string) => ({ displayName, vendible: false, monthly: null, annual: null })
+  const V2: CotizacionDeTuPlan = {
+    versionNumber: 2,
+    planes: {
+      PRO: enVenta('Pro', opcion(92684, 79900), opcion(926840, 799000)),
+      PREMIUM: enVenta('Premium', opcion(197084, 169900), opcion(1970840, 1699000)),
+    },
+  }
+  const SIN_PLANES: CotizacionDeTuPlan['planes'] = { PRO: fueraDeVenta('Pro'), PREMIUM: fueraDeVenta('Premium') }
+  const PRUEBA_PRO = origin({ kind: 'CLASSIC', tier: 'PRO', subscriptionId: 'sub_trial', currentPeriodEnd: FIN, interval: 'month' })
+  const prueba = (estado: EstadoDeLaPrueba['estado'], extra: Partial<EstadoDeLaPrueba> = {}): EstadoDeLaPrueba => ({
+    estado,
+    tier: 'PRO',
+    interval: 'monthly',
+    trialEndsAt: FIN,
+    tarjeta: estado === 'CON_TARJETA' ? { brand: 'visa', last4: '4242' } : null,
+    montoAlTerminarCents: estado === 'TERMINADA' ? null : 81084,
+    ...extra,
+  })
+  const TARGETS = ['FREE', 'PRO', 'PREMIUM'] as const
+
+  it('🔴 sin cotizacion: planOperation, planPillPrice y summarizeSelection idénticos a hoy', () => {
+    const casos = [
+      { origin: NO_ORIGIN, target: 'PRO' as const },
+      { origin: NO_ORIGIN, target: 'PREMIUM' as const },
+      { origin: NO_ORIGIN, target: 'FREE' as const },
+      { origin: CLASSIC_PRO, target: 'PREMIUM' as const },
+      { origin: CLASSIC_PRO, target: 'FREE' as const },
+      { origin: origin({ kind: 'COMP', tier: 'PRO', currentPeriodEnd: FIN, firstChargeAt: FIN }), target: 'PRO' as const },
+    ]
+    for (const caso of casos) {
+      for (const interval of ['monthly', 'annual'] as const) {
+        const hoy = { ...base, ...caso }
+        const conCampos = { ...hoy, interval, cotizacion: undefined }
+        expect(planOperation(conCampos)).toEqual(planOperation(hoy))
+        expect(planPillPrice(caso.target, { ...conCampos })).toEqual(planPillPrice(caso.target, { ...hoy, interval }))
+        expect(summarizeSelection(conCampos)).toEqual(summarizeSelection({ ...hoy, interval }))
+      }
+    }
+    // Lo de hoy, literal: ni comprobante ni otra forma de la operación.
+    expect(planOperation({ ...base, origin: NO_ORIGIN, target: 'PRO', interval: 'monthly' })).toEqual({
+      kind: 'CLASSIC_CHECKOUT',
+      tier: 'PRO',
+    })
+    expect(planPillPrice('PRO', { ...base, origin: NO_ORIGIN, interval: 'monthly' })).toEqual({
+      amount: 1158.84,
+      per: 'month',
+      ivaAparte: true,
+    })
+    expect(summarizeSelection({ ...base, origin: NO_ORIGIN, target: 'PRO', interval: 'monthly' }).payToday).toBe(1158.84)
+  })
+
+  it('🔴 estadoDeLaPrueba SIN_TARJETA → PORTAL_TARJETA con su fin y montoAlTerminarCents del SERVIDOR; CON_TARJETA → PRUEBA_CON_TARJETA; nunca CLASSIC_CHECKOUT', () => {
+    const sinTarjeta = { versionNumber: 2, planes: SIN_PLANES, estadoDeLaPrueba: prueba('SIN_TARJETA') }
+    expect(planOperation({ ...base, origin: PRUEBA_PRO, target: 'PRO', interval: 'monthly', cotizacion: sinTarjeta })).toEqual({
+      kind: 'PORTAL_TARJETA',
+      tier: 'PRO',
+      interval: 'monthly',
+      trialEndsAt: FIN,
+      montoAlTerminarCents: 81084,
+    })
+    const conTarjeta = { versionNumber: 2, planes: V2.planes, estadoDeLaPrueba: prueba('CON_TARJETA', { montoAlTerminarCents: 92684 }) }
+    expect(planOperation({ ...base, origin: PRUEBA_PRO, target: 'PRO', interval: 'monthly', cotizacion: conTarjeta })).toEqual({
+      kind: 'PRUEBA_CON_TARJETA',
+      trialEndsAt: FIN,
+      tarjeta: { brand: 'visa', last4: '4242' },
+      montoAlTerminarCents: 92684,
+    })
+    for (const cotizacion of [sinTarjeta, conTarjeta])
+      for (const target of TARGETS)
+        for (const interval of ['monthly', 'annual'] as const)
+          expect(planOperation({ ...base, origin: PRUEBA_PRO, target, interval, cotizacion }).kind).not.toBe('CLASSIC_CHECKOUT')
+    // El resumen no inventa un precio ni un «hoy pagas» para lo que sólo lleva al portal o informa.
+    const resumen = summarizeSelection({ ...base, origin: PRUEBA_PRO, target: 'PRO', interval: 'monthly', cotizacion: sinTarjeta })
+    expect(resumen).toMatchObject({ lines: [], monthlyTotal: null, payToday: null })
+  })
+
+  it('🔴 b2-r6 #4: TERMINADA con origin CLASSIC (la baja no llegó) → CLASSIC_CHECKOUT con su quoteToken', () => {
+    const terminada = { ...V2, estadoDeLaPrueba: prueba('TERMINADA') }
+    expect(planOperation({ ...base, origin: PRUEBA_PRO, target: 'PRO', interval: 'monthly', cotizacion: terminada })).toEqual({
+      kind: 'CLASSIC_CHECKOUT',
+      tier: 'PRO',
+      quoteToken: 'tok_92684',
+    })
+    expect(planOperation({ ...base, origin: PRUEBA_PRO, target: 'PREMIUM', interval: 'annual', cotizacion: terminada })).toEqual({
+      kind: 'CLASSIC_CHECKOUT',
+      tier: 'PREMIUM',
+      quoteToken: 'tok_1970840',
+    })
+    // Como Gratis: el resumen compra el plan entero, por el precio de la versión.
+    const resumen = summarizeSelection({ ...base, origin: PRUEBA_PRO, target: 'PRO', interval: 'monthly', cotizacion: terminada })
+    expect(resumen.lines).toEqual([expect.objectContaining({ plan: 'PRO', price: 926.84 })])
+    expect(resumen.payToday).toBe(926.84)
+  })
+
+  it('🔴 b2-r8 #7 (el caso de Codex): la respuesta de la conversión se perdió y la v3 saca los dos planes de venta; con aceptacionPendiente → TERMINAR_ACEPTACION (no ASSISTED) y su botón abre el checkout con el acceptanceId', () => {
+    const v3 = {
+      versionNumber: 3,
+      planes: SIN_PLANES,
+      aceptacionPendiente: { acceptanceId: 'cacc1', tier: 'PREMIUM' as const, interval: 'annual' as const, expiresAt: FIN },
+    }
+    const esperada = { kind: 'TERMINAR_ACEPTACION', acceptanceId: 'cacc1', tier: 'PREMIUM', interval: 'annual' }
+    for (const target of TARGETS)
+      expect(planOperation({ ...base, origin: NO_ORIGIN, target, interval: 'monthly', cotizacion: v3 })).toEqual(esperada)
+    // Sin la aceptación, la v3 sin planes es el «Cambio asistido» de un plan no vendible.
+    expect(
+      planOperation({
+        ...base,
+        origin: NO_ORIGIN,
+        target: 'PREMIUM',
+        interval: 'annual',
+        cotizacion: { ...v3, aceptacionPendiente: undefined },
+      }),
+    ).toEqual({
+      kind: 'ASSISTED',
+      tier: 'PREMIUM',
+    })
+    const resumen = summarizeSelection({ ...base, origin: NO_ORIGIN, target: 'FREE', interval: 'monthly', cotizacion: v3 })
+    expect(resumen).toMatchObject({ operation: esperada, lines: [], monthlyTotal: null, payToday: null })
+  })
+
+  it('🔴 fix 1 (revisión #1): con cotizacion, un plan de destino fuera de venta (o sin opción en esa periodicidad) es ASSISTED, nunca HYBRID_REPLACE ni CLASSIC_CHECKOUT; sin cotizacion, el reemplazo de hoy', () => {
+    const premiumFuera = { ...V2, planes: { ...V2.planes, PREMIUM: fueraDeVenta('Premium') } }
+    const sinAnual = { ...V2, planes: { ...V2.planes, PREMIUM: { ...V2.planes.PREMIUM, annual: null } } }
+    const contrato = {
+      ...base,
+      origin: CONTRACT_PRO,
+      target: 'PREMIUM' as const,
+      replacements: classicSource,
+      interval: 'monthly' as const,
+    }
+    // Hoy (y con la versión que sí vende Premium) el contrato pasa a Premium por el reemplazo híbrido.
+    expect(planOperation(contrato).kind).toBe('HYBRID_REPLACE')
+    expect(planOperation({ ...contrato, cotizacion: V2 }).kind).toBe('HYBRID_REPLACE')
+    // La rejilla híbrida no lee la versión: con Premium fuera de venta, «Cambio asistido».
+    expect(planOperation({ ...contrato, cotizacion: premiumFuera })).toEqual({ kind: 'ASSISTED', tier: 'PREMIUM' })
+    expect(planOperation({ ...contrato, interval: 'annual', cotizacion: sinAnual })).toEqual({ kind: 'ASSISTED', tier: 'PREMIUM' })
+    // Lo mismo desde un Pro clásico y desde Gratis con la compra clásica rechazada (PLAN_ABSORBE_SUELTA).
+    const clasico = { ...base, origin: CLASSIC_PRO, target: 'PREMIUM' as const, replacements: classicSource, interval: 'monthly' as const }
+    expect(planOperation({ ...clasico, cotizacion: premiumFuera })).toEqual({ kind: 'ASSISTED', tier: 'PREMIUM' })
+    const rechazada = {
+      ...base,
+      origin: NO_ORIGIN,
+      target: 'PRO' as const,
+      classicRejected: true,
+      replacements: replacements([{ subscriptionId: 'sub_loyalty', featureCodes: ['LOYALTY_PROGRAM'], replaceable: true }]),
+      interval: 'monthly' as const,
+    }
+    expect(planOperation(rechazada).kind).toBe('HYBRID_REPLACE')
+    expect(planOperation({ ...rechazada, cotizacion: { ...V2, planes: { ...V2.planes, PRO: fueraDeVenta('Pro') } } })).toEqual({
+      kind: 'ASSISTED',
+      tier: 'PRO',
+    })
+    // Y el resumen no ofrece «Revisar y pagar» de un plan que no se vende: es el cambio asistido.
+    expect(summarizeSelection({ ...contrato, cotizacion: premiumFuera }).operation).toEqual({ kind: 'ASSISTED', tier: 'PREMIUM' })
+  })
+
+  it('🔴 fix round 2: con cotizacion, un plan fuera de venta (o sin opción en esa periodicidad) no enseña precio: ni su píldora ni la línea del cambio asistido; sin cotizacion, los precios de hoy', () => {
+    const premiumFuera = { ...V2, planes: { ...V2.planes, PREMIUM: fueraDeVenta('Premium') } }
+    const sinAnual = { ...V2, planes: { ...V2.planes, PREMIUM: { ...V2.planes.PREMIUM, annual: null } } }
+    const pill = (tier: 'PRO' | 'PREMIUM', over: Record<string, unknown>) =>
+      planPillPrice(tier, { ...base, origin: NO_ORIGIN, interval: 'monthly', ...over } as Parameters<typeof planPillPrice>[1])
+    expect(pill('PREMIUM', { cotizacion: premiumFuera })).toMatchObject({ fueraDeVenta: true })
+    expect(pill('PREMIUM', { cotizacion: sinAnual, interval: 'annual' })).toMatchObject({ fueraDeVenta: true })
+    // Vendible: su precio de la versión, sin la marca.
+    expect(pill('PREMIUM', { cotizacion: V2 })).toEqual({ amount: 1970.84, per: 'month', ivaAparte: false })
+    expect(pill('PREMIUM', { cotizacion: sinAnual })).toEqual({ amount: 1970.84, per: 'month', ivaAparte: false })
+    // El plan de hoy sigue diciendo lo que paga, aunque la versión ya no lo venda.
+    const proConPrecio = origin({ ...CLASSIC_PRO, interval: 'month', price: { base: 999, gross: 1158.84, currency: 'MXN' } })
+    const proFuera = { ...V2, planes: { ...V2.planes, PRO: fueraDeVenta('Pro') } }
+    expect(pill('PRO', { origin: proConPrecio, cotizacion: proFuera })).toEqual({ amount: 1158.84, per: 'month', ivaAparte: false })
+    // Sin cotización, el catálogo de hoy (y nunca la marca).
+    expect(pill('PREMIUM', {})).toEqual({ amount: 1970.84, per: 'month', ivaAparte: true })
+
+    const asistido = summarizeSelection({ ...base, origin: NO_ORIGIN, target: 'PREMIUM', interval: 'monthly', cotizacion: premiumFuera })
+    expect(asistido.operation).toEqual({ kind: 'ASSISTED', tier: 'PREMIUM' })
+    expect(asistido.lines).toEqual([expect.objectContaining({ plan: 'PREMIUM', price: null, fueraDeVenta: true })])
+    expect(asistido.monthlyTotal).toBeNull()
+    expect(asistido.payToday).toBeNull()
+    // Sin cotización, el cambio asistido sigue con su precio de referencia, como hoy.
+    const hoy = summarizeSelection({ ...base, origin: CLASSIC_PRO, target: 'PREMIUM', interval: 'monthly' })
+    expect(hoy.operation).toEqual({ kind: 'ASSISTED', tier: 'PREMIUM' })
+    expect(hoy.lines[0]).toEqual({ key: 'plan-PREMIUM', plan: 'PREMIUM', offer: undefined, price: 1970.84 })
+    expect(hoy.monthlyTotal).toBe(1970.84)
+    // La comparación «X incluye estas…» tampoco sugiere un plan fuera de venta.
+    const marcas = { ...base, origin: NO_ORIGIN, target: 'FREE' as const, marked: ['LOYALTY_PROGRAM'], interval: 'monthly' as const }
+    expect(summarizeSelection({ ...marcas, cotizacion: proFuera }).hint).toMatchObject({ tier: 'PREMIUM', price: 1970.84 })
+    expect(summarizeSelection({ ...marcas, cotizacion: { ...V2, planes: SIN_PLANES } }).hint).toBeNull()
+  })
+
+  it('🔴 fix round 3: durante una prueba viva (SIN_TARJETA o CON_TARJETA) otro plan dice «No se puede cambiar de plan durante tu prueba», sin precio; «No disponible por ahora» sólo fuera de una prueba viva', () => {
+    const conPrecio = origin({ ...PRUEBA_PRO, price: { base: 799, gross: 926.84, currency: 'MXN' } })
+    const pill = (tier: 'PRO' | 'PREMIUM', over: Record<string, unknown>) =>
+      planPillPrice(tier, { ...base, origin: conPrecio, interval: 'monthly', ...over } as Parameters<typeof planPillPrice>[1])
+    const sinTarjeta = { versionNumber: 2, planes: SIN_PLANES, estadoDeLaPrueba: prueba('SIN_TARJETA') }
+    // CON_TARJETA: el SERVIDOR sí cotiza Premium (está a la venta), pero no se compra encima de la prueba.
+    const conTarjeta = { ...V2, estadoDeLaPrueba: prueba('CON_TARJETA') }
+    for (const cotizacion of [sinTarjeta, conTarjeta]) {
+      expect(pill('PREMIUM', { cotizacion })).toMatchObject({ fueraDeVenta: true, duranteLaPrueba: true })
+      // El plan de la prueba sigue diciendo lo que pagará.
+      expect(pill('PRO', { cotizacion })).toEqual({ amount: 926.84, per: 'month', ivaAparte: false })
+      const resumen = summarizeSelection({ ...base, origin: conPrecio, target: 'PREMIUM', interval: 'monthly', cotizacion })
+      expect(resumen.operation).toEqual({ kind: 'ASSISTED', tier: 'PREMIUM' })
+      expect(resumen.lines).toEqual([expect.objectContaining({ plan: 'PREMIUM', price: null, fueraDeVenta: true, duranteLaPrueba: true })])
+      expect(resumen.monthlyTotal).toBeNull()
+      // Ni la comparación «Premium incluye estas…» sugiere cambiar durante la prueba.
+      const marcas = { ...base, origin: conPrecio, target: 'PRO' as const, marked: ['CFDI'], interval: 'monthly' as const, cotizacion }
+      expect(summarizeSelection(marcas).hint).toBeNull()
+    }
+    // Fuera de una prueba viva: el plan que el SERVIDOR no vende es «No disponible por ahora», sin la marca de la prueba.
+    const premiumFuera = { ...V2, planes: { ...V2.planes, PREMIUM: fueraDeVenta('Premium') } }
+    const fuera = pill('PREMIUM', { origin: NO_ORIGIN, cotizacion: premiumFuera })
+    expect(fuera).toMatchObject({ fueraDeVenta: true })
+    expect(fuera).not.toHaveProperty('duranteLaPrueba')
+    // TERMINADA no es una prueba viva: compra como Gratis, con su precio si se vende, o «No disponible por ahora» si no.
+    const terminada = { ...premiumFuera, estadoDeLaPrueba: prueba('TERMINADA') }
+    expect(pill('PRO', { cotizacion: terminada })).toEqual({ amount: 926.84, per: 'month', ivaAparte: false })
+    expect(pill('PREMIUM', { cotizacion: terminada })).not.toHaveProperty('duranteLaPrueba')
+    expect(pill('PREMIUM', { cotizacion: terminada })).toMatchObject({ fueraDeVenta: true })
+    // Sin cotización, el catálogo de hoy.
+    expect(pill('PREMIUM', {})).toEqual({ amount: 1970.84, per: 'month', ivaAparte: true })
+  })
+
+  it('con cotizacion y origin NONE: CLASSIC_CHECKOUT con el quoteToken de la periodicidad elegida y precio 926.84 del SERVIDOR', () => {
+    expect(planOperation({ ...base, origin: NO_ORIGIN, target: 'PRO', interval: 'monthly', cotizacion: V2 })).toEqual({
+      kind: 'CLASSIC_CHECKOUT',
+      tier: 'PRO',
+      quoteToken: 'tok_92684',
+    })
+    expect(planOperation({ ...base, origin: NO_ORIGIN, target: 'PRO', interval: 'annual', cotizacion: V2 })).toEqual({
+      kind: 'CLASSIC_CHECKOUT',
+      tier: 'PRO',
+      quoteToken: 'tok_926840',
+    })
+    expect(planPillPrice('PRO', { ...base, origin: NO_ORIGIN, interval: 'monthly', cotizacion: V2 })).toEqual({
+      amount: 926.84,
+      per: 'month',
+      ivaAparte: false,
+    })
+    expect(planPillPrice('PRO', { ...base, origin: NO_ORIGIN, interval: 'annual', cotizacion: V2 })).toEqual({
+      amount: 9268.4,
+      per: 'year',
+      ivaAparte: false,
+    })
+    const resumen = summarizeSelection({ ...base, origin: NO_ORIGIN, target: 'PRO', interval: 'monthly', cotizacion: V2 })
+    expect(resumen.payToday).toBe(926.84)
+    expect(resumen.monthlyTotal).toBe(926.84)
+  })
+
+  it('la comparación «Pro incluye estas…» dice el precio mensual de la versión; sin cotización, el del catálogo', () => {
+    const marcas = { ...base, origin: NO_ORIGIN, target: 'FREE' as const, marked: ['LOYALTY_PROGRAM'], interval: 'monthly' as const }
+    expect(summarizeSelection({ ...marcas, cotizacion: V2 }).hint).toMatchObject({ tier: 'PRO', price: 926.84 })
+    expect(summarizeSelection(marcas).hint).toMatchObject({ tier: 'PRO', price: 1158.84 })
+  })
+
+  it('prueba regalada con opción diferida: CLASSIC_CHECKOUT { firstChargeAt, quoteToken } y payToday 0; plan no vendible → ASSISTED', () => {
+    const regalada = origin({ kind: 'COMP', tier: 'PRO', currentPeriodEnd: FIN, firstChargeAt: FIN })
+    const diferida = opcion(92684, 79900, { quoteToken: 'tok_diferido', firstChargeCents: 0, trialEndsAt: FIN })
+    const conDiferida = {
+      ...V2,
+      planes: { ...V2.planes, PRO: enVenta('Pro', diferida, opcion(926840, 799000, { firstChargeCents: 0, trialEndsAt: FIN })) },
+    }
+    expect(planOperation({ ...base, origin: regalada, target: 'PRO', interval: 'monthly', cotizacion: conDiferida })).toEqual({
+      kind: 'CLASSIC_CHECKOUT',
+      tier: 'PRO',
+      firstChargeAt: FIN,
+      quoteToken: 'tok_diferido',
+    })
+    const resumen = summarizeSelection({ ...base, origin: regalada, target: 'PRO', interval: 'monthly', cotizacion: conDiferida })
+    expect(resumen.payToday).toBe(0)
+    expect(resumen.firstChargeAt).toBe(FIN)
+    expect(resumen.lines).toEqual([expect.objectContaining({ plan: 'PRO', price: 926.84 })])
+    // El plan no vendible en la versión: se pide con ayuda, nunca un checkout sin comprobante.
+    const proFuera = { ...V2, planes: { ...V2.planes, PRO: fueraDeVenta('Pro') } }
+    expect(planOperation({ ...base, origin: NO_ORIGIN, target: 'PRO', interval: 'monthly', cotizacion: proFuera })).toEqual({
+      kind: 'ASSISTED',
+      tier: 'PRO',
+    })
+  })
+
+  it('basicNotice con cotizacion: ni BUY, ni AFTER_PRO, ni CAN_END_PRO, ni DISCOUNT_CONTINUES; CURRENT y TRIAL_ENDS_FREE siguen', () => {
+    const oferta = {
+      availableAt: null,
+      price: { base: 499, gross: 578.84, currency: 'MXN' as const },
+      canEndProNow: false,
+      discountEndsAt: null,
+    }
+    const estado = (extra: Partial<PlanState>) => ({ grandfathered: false, basicOffer: oferta, ...extra }) as PlanState
+    const casos: [PlanState, PlanOrigin, string][] = [
+      [estado({}), NO_ORIGIN, 'BUY'],
+      [estado({}), origin({ ...CLASSIC_PRO, cancelAt: FIN }), 'AFTER_PRO'],
+      [estado({ basicOffer: { ...oferta, canEndProNow: true } }), CLASSIC_PRO, 'CAN_END_PRO'],
+      [estado({}), CLASSIC_PRO, 'DISCOUNT_CONTINUES'],
+    ]
+    for (const [plan, de, hoy] of casos) {
+      expect(basicNotice(plan, de)?.kind).toBe(hoy)
+      expect(basicNotice({ ...plan, cotizacion: V2 }, de)).toBeNull()
+    }
+    const contrato = estado({
+      basicPlan: { active: true, name: 'Básico', price: { base: 499, gross: 578.84, currency: 'MXN' } },
+      cotizacion: V2,
+    })
+    expect(basicNotice(contrato, NO_ORIGIN)?.kind).toBe('CURRENT')
+    const terminaGratis = estado({ trialModality: 'ENDS_FREE', trialEndsAt: FIN, cotizacion: V2 })
+    expect(basicNotice(terminaGratis, CLASSIC_PRO)).toEqual({ kind: 'TRIAL_ENDS_FREE', date: FIN })
   })
 })
