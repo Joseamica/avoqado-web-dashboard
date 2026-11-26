@@ -754,8 +754,10 @@ describe('la pantalla final y la salida del asistente', () => {
     await within(ventana()).findByText(/pon tu tarjeta antes/)
     await user.click(within(ventana()).getByRole('button', { name: 'Empezar mis 14 días gratis' }))
 
-    expect(await screen.findByText(MENSAJE)).toBeInTheDocument()
+    // El aviso sale primero en la pantalla de planes y, al llegar el progreso con completedAt, el asistente la cambia por la
+    // final con el MISMO aviso. Se espera la final: el elemento de la primera puede quedar desmontado (CI intermitente, 26-nov).
     await waitFor(() => expect(getProgress).toHaveBeenCalledTimes(2))
+    expect(await screen.findByTestId('done-trial-ended')).toHaveTextContent(MENSAJE)
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(saveStep).not.toHaveBeenCalled()
     // El alta ya quedó terminada en Gratis: la salida es «Entrar a Avoqado», que termina el alta como hoy y sale.
@@ -783,9 +785,12 @@ describe('la pantalla final y la salida del asistente', () => {
     const user = await abrir('Premium', undefined, true)
     await user.click(within(ventana()).getByRole('button', { name: 'Pagar $1,970.84 y entrar' }))
 
-    expect(await screen.findByText('Tu prueba terminó sin tarjeta y tu negocio quedó en Gratis. No se te cobró nada.')).toBeInTheDocument()
-    expect(screen.queryByText(/Ya tienes el plan FREE/)).not.toBeInTheDocument()
+    // Igual que el caso de arriba: se espera la pantalla final, no el aviso de la pantalla de planes que el asistente reemplaza.
     await waitFor(() => expect(getProgress).toHaveBeenCalledTimes(2))
+    expect(await screen.findByTestId('done-trial-ended')).toHaveTextContent(
+      'Tu prueba terminó sin tarjeta y tu negocio quedó en Gratis. No se te cobró nada.',
+    )
+    expect(screen.queryByText(/Ya tienes el plan FREE/)).not.toBeInTheDocument()
     await user.click(await screen.findByRole('button', { name: 'Entrar a Avoqado' }))
     await waitFor(() => expect(navigate).toHaveBeenCalledWith('/', { replace: true }))
   })
