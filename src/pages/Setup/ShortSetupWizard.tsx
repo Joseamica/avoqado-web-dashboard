@@ -109,9 +109,11 @@ export default function ShortSetupWizard({ organizationId }: ShortSetupWizardPro
   const planActivation = (progress?.planActivation ?? undefined) as Partial<PlanActivationState> | undefined
   // El plan que el SERVIDOR (o el respaldo del paso 10) dejó en la raíz de `v2SetupData`.
   const planGuardado = (progress?.v2SetupData as { plan?: { tier?: string; pruebaSinTarjetaTerminada?: boolean } } | undefined)?.plan
-  // 🔴 T6-C1: con la versión del editor, `completedAt` manda: el alta está terminada aunque el cobro diga `IN_PROGRESS` (la
-  // prueba sin tarjeta terminó y «Terminar» corrió antes del cierre en Gratis). Sin versión del editor, como hoy.
-  const altaTerminada = !!progress?.completedAt && !!planQuote?.oferta
+  // 🔴 T6-C1: `completedAt` manda: el alta está terminada aunque el cobro diga `IN_PROGRESS` (la prueba sin tarjeta terminó y
+  // «Terminar» corrió antes del cierre en Gratis). Manda también si el SERVIDOR no pudo leer la oferta y `planQuote` llegó sin
+  // ella (M1): un alta terminada nunca vuelve a la oferta con su pago «sin confirmar». La pantalla final sale con «Entrar», que
+  // termina el alta como hoy (renueva la sesión con la sucursal).
+  const altaTerminada = !!progress?.completedAt
 
   // Alguien que YA tenía cuenta y llega por un anuncio: el código viene en la URL (§3.5). Se
   // reclama una sola vez y solo si el progreso todavía no tiene campaña.
@@ -286,6 +288,10 @@ export default function ShortSetupWizard({ organizationId }: ShortSetupWizardPro
                 tier: result?.tier,
               })
               setPantalla('done')
+              // I1: la respuesta de la prueba sin tarjeta no trajo la tarjeta (Stripe no dejó leerla a tiempo). Se pide el progreso
+              // UNA vez, que la vuelve a leer en Stripe; mientras, y si tampoco la trae, la pantalla final dice el texto neutro.
+              // Sólo lee: no toca el alta ni el cobro.
+              if (result?.sinTarjeta && !('tarjetaQueCobrara' in result)) void refetch()
             }}
             onPruebaTerminada={setPruebaTerminada}
             onFinish={() => void terminar()}

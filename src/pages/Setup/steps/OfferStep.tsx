@@ -738,14 +738,19 @@ export function OfferStep({
   // tarjeta que ya tiene el cobro (sin `payment_method`), y después otra vez `retomarPago` y el progreso (si Stripe todavía no
   // activa la suscripción, queda el aviso «sin confirmar» y lo cierra el aviso de Stripe o el barrido). `CERRADA` ⇒ el progreso
   // (el asistente avanza solo). `NADA` o un error ⇒ la ventana de hoy.
+  // M2: con NINGÚN plan a la venta (y sin campaña) esa ventana sólo podría decir «recarga la página», que no ayuda: en su lugar
+  // se dice que se vuelva a comprobar en unos minutos (el aviso conserva «Volver a comprobar mi pago») y se pide el progreso
+  // una vez, por si el barrido ya cerró el intento.
   const [retomando, setRetomando] = useState(false)
   const retomandoRef = useRef(false)
+  const [avisoDeRecuperacion, setAvisoDeRecuperacion] = useState<string | null>(null)
   const confirmarMiPago = () => {
     if (cobroEnCursoRef.current) return
     if (!ofertaDelAlta) return abrirVentanaDeRecuperacion()
     if (retomandoRef.current) return
     retomandoRef.current = true
     setRetomando(true)
+    setAvisoDeRecuperacion(null)
     void (async () => {
       let abrirLaVentana = false
       try {
@@ -768,7 +773,18 @@ export function OfferStep({
         retomandoRef.current = false
         if (montado.current) setRetomando(false)
       }
-      if (abrirLaVentana && montado.current && !cobroEnCursoRef.current) abrirVentanaDeRecuperacion()
+      if (!abrirLaVentana || !montado.current || cobroEnCursoRef.current) return
+      const hayQueCobrar = mostrarOferta || !!opcionDelAlta(planQuote, 'PRO', 'monthly') || !!opcionDelAlta(planQuote, 'PREMIUM', 'monthly')
+      if (hayQueCobrar) {
+        abrirVentanaDeRecuperacion()
+        return
+      }
+      setAvisoDeRecuperacion(
+        t('offer.confirmLater', {
+          defaultValue: 'Todavía no podemos confirmar tu pago. Vuelve a comprobarlo en unos minutos; no se te cobrará dos veces.',
+        }),
+      )
+      await Promise.resolve(onRefreshProgress()).catch(() => undefined)
     })()
   }
 
@@ -846,6 +862,7 @@ export function OfferStep({
                 defaultValue:
                   'Tu último pago quedó sin confirmar. Vuelve a confirmar con tu tarjeta: si ya se había cobrado, lo recuperamos y no se cobra dos veces.',
               })}
+              {avisoDeRecuperacion && <span className="mt-2 block">{avisoDeRecuperacion}</span>}
             </>
           )}
         </span>

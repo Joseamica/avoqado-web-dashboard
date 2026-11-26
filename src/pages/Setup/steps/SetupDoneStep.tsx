@@ -23,7 +23,7 @@ interface SetupDoneStepProps {
    * del cobro o, tras recargar, `planActivation` de `progress`), con la misma regla que «Tu plan» y los recordatorios.
    */
   sinTarjeta?: boolean
-  /** La tarjeta que Stripe cobraría al terminar la prueba sin tarjeta (`null` = ninguna). */
+  /** La tarjeta que Stripe cobraría al terminar la prueba sin tarjeta (`null` = ninguna; ausente = no se sabe). */
   tarjetaQueCobrara?: { brand: string | null; last4: string | null } | null
   /** Al terminar la prueba no habrá cobro (cancelación programada o cobranza en pausa). */
   noHabraCobro?: boolean
@@ -77,7 +77,9 @@ export function SetupDoneStep({
         </p>
       ) : sinTarjeta && fecha ? (
         // 🔴 b2-r9 #7: el orden es el de «Tu plan» y los recordatorios. Primero «no habrá cobro» (una cancelación programada
-        // gana a una tarjeta guardada), luego la tarjeta que Stripe cobraría y, si no hay, «pon tu tarjeta».
+        // gana a una tarjeta guardada), luego la tarjeta que Stripe cobraría; `null` (Stripe dijo «ninguna») es «pon tu tarjeta».
+        // 🔴 I1: AUSENTE no es `null`. El SERVIDOR omite la tarjeta cuando no pudo leerla (`avisoDeLaPruebaSinTarjeta`): decir
+        // «pon tu tarjeta… si no, sigues en Gratis» sería falso si tiene una guardada, que Stripe cobraría. Va el texto neutro.
         <p className="text-sm" data-testid="done-trial">
           {noHabraCobro || trialModality === 'ENDS_FREE'
             ? t('done.trialNoCharge', {
@@ -93,12 +95,19 @@ export function SetupDoneStep({
                   date: fecha,
                   last4: tarjetaQueCobrara.last4 ?? '',
                 })
-              : t('done.trialNoCard', {
-                  defaultValue:
-                    'Tu prueba de {{plan}} termina el {{date}}. Para seguir con {{plan}}, pon tu tarjeta en «Tu plan»; si no, sigues en Gratis.',
-                  plan: planName ?? 'Pro',
-                  date: fecha,
-                })}
+              : tarjetaQueCobrara === null
+                ? t('done.trialNoCard', {
+                    defaultValue:
+                      'Tu prueba de {{plan}} termina el {{date}}. Para seguir con {{plan}}, pon tu tarjeta en «Tu plan»; si no, sigues en Gratis.',
+                    plan: planName ?? 'Pro',
+                    date: fecha,
+                  })
+                : t('done.trialCardUnknown', {
+                    defaultValue:
+                      'Tu prueba de {{plan}} termina el {{date}}. Revisa en «Tu plan» qué tarjeta se cobrará ese día; si no hay ninguna, tu negocio sigue en Gratis.',
+                    plan: planName ?? 'Pro',
+                    date: fecha,
+                  })}
         </p>
       ) : fecha && trialModality ? (
         <div className="flex flex-col gap-1 text-sm" data-testid="done-trial">

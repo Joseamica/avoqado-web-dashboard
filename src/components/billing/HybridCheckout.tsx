@@ -187,8 +187,14 @@ export function HybridCheckout({
     refetchOnMount: 'always',
   })
   // Until the list (and the linked offer, if any) have been read since this opening, what shows may be the old cached read:
-  // nothing is picked or reviewed from it.
-  const reading = !offers.isFetchedAfterMount || (!!slug && !linked.isFetchedAfterMount)
+  // nothing is picked or reviewed from it. Only the FIRST read counts (M3): after it, a page change or a search keeps showing
+  // the previous fresh page (`keepPreviousData`) with its buttons on, instead of flickering them off on every key.
+  const freshSinceOpening = offers.isFetchedAfterMount && (!slug || linked.isFetchedAfterMount)
+  const [readSinceOpening, setReadSinceOpening] = useState(false)
+  useEffect(() => {
+    if (freshSinceOpening) setReadSinceOpening(true)
+  }, [freshSinceOpening])
+  const reading = !readSinceOpening && !freshSinceOpening
   // 🔴 b2-r8 #8: the Básico an editor version took off sale (its `basicPlan` marker, the SERVIDOR's `isBasicPlanDefinition`) is
   // not put first and cannot be picked; the link says it is no longer available. ANY other offer with `purchaseAvailable: false`
   // (a promotion whose parent list was paused) is still put first with its button off, as today (b2-r9 #9).

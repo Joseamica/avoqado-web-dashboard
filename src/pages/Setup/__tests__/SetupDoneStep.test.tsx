@@ -112,6 +112,45 @@ describe('SetupDoneStep — modalidad REAL de la prueba', () => {
     expect(screen.queryByText(/contratar el Básico/)).not.toBeInTheDocument()
   })
 
+  it('🔴 I1: sinTarjeta sin saber qué tarjeta (tarjetaQueCobrara ausente: Stripe no dejó leerla) → el texto neutro, nunca «pon tu tarjeta» ni «se cobrará tu tarjeta»; con null, «pon tu tarjeta»', () => {
+    const { rerender } = render(
+      <SetupDoneStep onFinish={() => {}} sinTarjeta planName="Pro" trialModality="RENEWS_AS_PRO" trialEndsAt="2026-12-15T18:00:00.000Z" />,
+    )
+    expect(
+      screen.getByText(
+        'Tu prueba de Pro termina el 15 de diciembre. Revisa en «Tu plan» qué tarjeta se cobrará ese día; si no hay ninguna, tu negocio sigue en Gratis.',
+      ),
+    ).toBeInTheDocument()
+    expect(screen.queryByText(/pon tu tarjeta/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/se cobrará tu tarjeta/)).not.toBeInTheDocument()
+
+    // `null` (Stripe dijo que no hay tarjeta): «pon tu tarjeta», como antes.
+    rerender(
+      <SetupDoneStep
+        onFinish={() => {}}
+        sinTarjeta
+        planName="Pro"
+        trialModality="RENEWS_AS_PRO"
+        trialEndsAt="2026-12-15T18:00:00.000Z"
+        tarjetaQueCobrara={null}
+      />,
+    )
+    expect(screen.getByText(/pon tu tarjeta en «Tu plan»/)).toBeInTheDocument()
+
+    // «No habrá cobro» sigue ganando aunque no se sepa la tarjeta.
+    rerender(
+      <SetupDoneStep
+        onFinish={() => {}}
+        sinTarjeta
+        planName="Pro"
+        trialModality="RENEWS_AS_PRO"
+        trialEndsAt="2026-12-15T18:00:00.000Z"
+        noHabraCobro
+      />,
+    )
+    expect(screen.getByText('Tu prueba de Pro termina el 15 de diciembre; no se cobrará nada.')).toBeInTheDocument()
+  })
+
   it('la prueba sin tarjeta que terminó antes de cerrar el alta: dice que el negocio quedó en Gratis y deja entrar', () => {
     const entrar = vi.fn()
     render(

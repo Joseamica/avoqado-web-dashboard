@@ -337,7 +337,8 @@
     "pendingAfterReload": "Your last payment wasn't confirmed. Confirm again with your card: if it was already charged, we recover it and you won't be charged twice.",
     "noQuote": "We couldn't load the prices. Reload the page and try again.",
     "trialEndedTitle": "Your trial ended",
-    "trialEnded": "Your trial ended without a card and your business stayed on Free. You weren't charged anything."
+    "trialEnded": "Your trial ended without a card and your business stayed on Free. You weren't charged anything.",
+    "confirmLater": "We can't confirm your payment yet. Check again in a few minutes; you won't be charged twice."
   },
   "plans": {
     "title": "Choose your plan",
@@ -480,6 +481,7 @@
     "completeError": "We could not finish your setup. Try again in a moment.",
     "trialWithCard": "Your {{plan}} trial ends on {{date}}; your card ••••{{last4}} will be charged that day. You can remove it in «Your plan».",
     "trialNoCharge": "Your {{plan}} trial ends on {{date}}; nothing will be charged.",
-    "trialNoCard": "Your {{plan}} trial ends on {{date}}. To keep {{plan}}, add your card in «Your plan»; otherwise you stay on Free."
+    "trialNoCard": "Your {{plan}} trial ends on {{date}}. To keep {{plan}}, add your card in «Your plan»; otherwise you stay on Free.",
+    "trialCardUnknown": "Your {{plan}} trial ends on {{date}}. Check in «Your plan» which card will be charged that day; if there is none, your business stays on Free."
   }
 }

@@ -202,6 +202,7 @@ const CUERPO_PRO_SIN_TARJETA = {
 }
 
 beforeEach(() => {
+  toastEstable.mockReset()
   getPublicBasicPlan.mockReset().mockResolvedValue(null)
   activatePlan.mockReset()
   saveStep.mockReset().mockResolvedValue({})
@@ -391,20 +392,34 @@ describe('con la versión del editor: sin tarjeta', () => {
   })
 
   it('🔴 una lectura de la tarjeta que falla NUNCA se dice «sin tarjeta»: el botón queda apagado con el aviso; con { tarjeta: null } sí', async () => {
-    tarjetaDeLaPrueba.mockRejectedValue({ response: { status: 503, data: { code: 'PLAN_NOT_CONFIGURED' } } })
+    // Codex fix 5 del SERVIDOR: si Stripe falla, la ruta responde 503 `TARJETA_NO_LEIDA` (ya no `{ tarjeta: null }`).
+    tarjetaDeLaPrueba.mockRejectedValue({
+      response: { status: 503, data: { code: 'TARJETA_NO_LEIDA', message: 'No pudimos revisar tu cuenta de Stripe.' } },
+    })
     pintar(quoteCon(ofertaCon()))
     const user = await abrir('Pro')
     const v = ventana()
     expect(await within(v).findByText('No pudimos revisar tu cuenta de Stripe. Intenta en unos minutos.')).toBeInTheDocument()
     expect(within(v).getByRole('button', { name: 'Empezar mis 14 días gratis' })).toBeDisabled()
     expect(within(v).queryByText(/pon tu tarjeta antes/)).not.toBeInTheDocument()
+    expect(within(v).queryByText(/se cobrarán/)).not.toBeInTheDocument()
+    // El aviso es el de la ventana: ningún toast de error encima.
+    expect(toastEstable).not.toHaveBeenCalled()
+
+    // Sin respuesta (la red): lo mismo.
+    tarjetaDeLaPrueba.mockRejectedValue({ message: 'Network Error', code: 'ERR_NETWORK' })
+    await user.click(within(v).getByRole('button', { name: 'Reintentar' }))
+    expect(await within(v).findByText('No pudimos revisar tu cuenta de Stripe. Intenta en unos minutos.')).toBeInTheDocument()
+    expect(within(v).getByRole('button', { name: 'Empezar mis 14 días gratis' })).toBeDisabled()
+    expect(within(v).queryByText(/pon tu tarjeta antes/)).not.toBeInTheDocument()
+    expect(toastEstable).not.toHaveBeenCalled()
 
     // Reintentar vuelve a leer en ese momento.
     tarjetaDeLaPrueba.mockResolvedValue({ tarjeta: null })
     await user.click(within(v).getByRole('button', { name: 'Reintentar' }))
     expect(await within(v).findByText(/pon tu tarjeta antes en «Tu plan»/)).toBeInTheDocument()
     expect(within(v).getByRole('button', { name: 'Empezar mis 14 días gratis' })).toBeEnabled()
-    expect(tarjetaDeLaPrueba).toHaveBeenCalledTimes(2)
+    expect(tarjetaDeLaPrueba).toHaveBeenCalledTimes(3)
   })
 
   it('🔴 b2-r1 #4: con oferta, montar la pantalla y elegir Pro sin tarjeta hasta «Empezar» → setupService.planSetupIntent nunca se llama; elegir Premium lo llama una vez', async () => {
@@ -542,6 +557,32 @@ describe('tras recargar con un intento sin cerrar (activacionEnCurso)', () => {
     await waitFor(() => expect(onRefreshProgress).toHaveBeenCalled())
     expect(activatePlan).not.toHaveBeenCalled()
     expect(planSetupIntent).not.toHaveBeenCalled()
+  })
+
+  it('M2: «Confirmar mi pago» sin ningún plan a la venta y retomarPago en NADA (o con error) → no abre una ventana que pida recargar: dice que se vuelva a comprobar y pide el progreso', async () => {
+    const v3 = ofertaCon({ PRO: FUERA_DE_VENTA('Pro'), PREMIUM: FUERA_DE_VENTA('Premium') })
+    const user = userEvent.setup()
+    for (const respuesta of ['NADA', 'error'] as const) {
+      retomarPago.mockReset()
+      if (respuesta === 'NADA') retomarPago.mockResolvedValue({ estado: 'NADA' })
+      else retomarPago.mockRejectedValue({ response: { status: 503, data: { code: 'PLAN_ACTIVATION_PENDING' } } })
+      onRefreshProgress.mockClear()
+      const vista = pintar(quoteCon(v3), { activacionEnCurso: true })
+      await user.click(await screen.findByRole('button', { name: 'Confirmar mi pago' }))
+      await waitFor(() => expect(retomarPago).toHaveBeenCalledTimes(1))
+      expect(
+        await screen.findByText('Todavía no podemos confirmar tu pago. Vuelve a comprobarlo en unos minutos; no se te cobrará dos veces.'),
+      ).toBeInTheDocument()
+      await waitFor(() => expect(onRefreshProgress).toHaveBeenCalledTimes(1))
+      // Ninguna ventana con «Recarga la página»: no hay plan que cobrar y recargar no ayuda.
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+      expect(screen.queryByText(/Recarga la página/)).not.toBeInTheDocument()
+      // La salida sigue ahí: volver a comprobar.
+      expect(screen.getByRole('button', { name: 'Volver a comprobar mi pago' })).toBeEnabled()
+      expect(activatePlan).not.toHaveBeenCalled()
+      expect(planSetupIntent).not.toHaveBeenCalled()
+      vista.unmount()
+    }
   })
 
   it('b2-r9 #2: retomarPago CERRADA → onRefreshProgress sin abrir la ventana', async () => {
@@ -723,6 +764,106 @@ describe('la pantalla final y la salida del asistente', () => {
     await waitFor(() => expect(getProgress).toHaveBeenCalledTimes(2))
     await user.click(await screen.findByRole('button', { name: 'Entrar a Avoqado' }))
     await waitFor(() => expect(navigate).toHaveBeenCalledWith('/', { replace: true }))
+  })
+
+  const NEUTRO =
+    'Tu prueba de Pro termina el 15 de diciembre. Revisa en «Tu plan» qué tarjeta se cobrará ese día; si no hay ninguna, tu negocio sigue en Gratis.'
+
+  it('🔴 I1: la respuesta del cobro no trae la tarjeta (Stripe no dejó leerla) → la pantalla final dice el texto neutro, nunca «pon tu tarjeta»; el progreso se vuelve a pedir una vez', async () => {
+    const ACTIVA_SIN_SABER = {
+      status: 'ACTIVE',
+      attempt: 1,
+      activatedAt: '2026-12-01T18:00:00.000Z',
+      trialModality: 'RENEWS_AS_PRO',
+      trialEndsAt: FIN_PRO,
+      sinTarjeta: true,
+      noHabraCobro: false,
+    }
+    getProgress.mockResolvedValueOnce(progresoDe()).mockResolvedValue(progresoDe({ planActivation: ACTIVA_SIN_SABER, completedAt: null }))
+    tarjetaDeLaPrueba.mockResolvedValue({ tarjeta: { id: 'pm_a', brand: 'visa', last4: '4242' } })
+    // La ventana dijo Visa ••••4242; la lectura de la respuesta no alcanzó: `tarjetaQueCobrara` no viaja.
+    activatePlan.mockResolvedValue(exito({ trialModality: 'RENEWS_AS_PRO', trialEndsAt: FIN_PRO, sinTarjeta: true, noHabraCobro: false }))
+    pintarAsistente()
+    const user = await abrir('Pro')
+    await within(ventana()).findByText(/tu tarjeta Visa ••••4242/)
+    await user.click(within(ventana()).getByRole('button', { name: 'Empezar mis 14 días gratis' }))
+
+    expect(await screen.findByText(NEUTRO)).toBeInTheDocument()
+    await waitFor(() => expect(getProgress).toHaveBeenCalledTimes(2))
+    expect(screen.getByText(NEUTRO)).toBeInTheDocument()
+    expect(screen.queryByText(/pon tu tarjeta/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/se cobrará tu tarjeta/)).not.toBeInTheDocument()
+  })
+
+  it('I1: la respuesta no trae la tarjeta y el progreso vuelto a pedir sí → la pantalla final dice esa tarjeta', async () => {
+    getProgress.mockResolvedValueOnce(progresoDe()).mockResolvedValue(
+      progresoDe({
+        planActivation: {
+          status: 'ACTIVE',
+          attempt: 1,
+          activatedAt: '2026-12-01T18:00:00.000Z',
+          trialModality: 'RENEWS_AS_PRO',
+          trialEndsAt: FIN_PRO,
+          sinTarjeta: true,
+          tarjetaQueCobrara: { brand: 'visa', last4: '4242' },
+          noHabraCobro: false,
+        },
+      }),
+    )
+    activatePlan.mockResolvedValue(exito({ trialModality: 'RENEWS_AS_PRO', trialEndsAt: FIN_PRO, sinTarjeta: true }))
+    pintarAsistente()
+    const user = await abrir('Pro')
+    await within(ventana()).findByText(/pon tu tarjeta antes/)
+    await user.click(within(ventana()).getByRole('button', { name: 'Empezar mis 14 días gratis' }))
+    expect(
+      await screen.findByText(
+        'Tu prueba de Pro termina el 15 de diciembre; ese día se cobrará tu tarjeta ••••4242. Puedes quitarla en «Tu plan».',
+      ),
+    ).toBeInTheDocument()
+  })
+
+  it('🔴 I1: tras recargar, el progreso no trae la tarjeta (Stripe no dejó leerla) → el texto neutro, nunca «pon tu tarjeta»', async () => {
+    getProgress.mockResolvedValue(
+      progresoDe({
+        planActivation: {
+          status: 'ACTIVE',
+          attempt: 1,
+          activatedAt: '2026-12-01T18:00:00.000Z',
+          trialModality: 'RENEWS_AS_PRO',
+          trialEndsAt: FIN_PRO,
+          sinTarjeta: true,
+          noHabraCobro: false,
+        },
+        v2SetupData: {
+          step2: { businessName: 'Mi negocio' },
+          step3: { businessType: 'CAFE' },
+          plan: { tier: 'PRO', interval: 'monthly', payNow: false, sinTarjeta: true },
+        },
+      }),
+    )
+    pintarAsistente()
+    expect(await screen.findByText(NEUTRO)).toBeInTheDocument()
+    expect(screen.queryByText(/pon tu tarjeta/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/se cobrará tu tarjeta/)).not.toBeInTheDocument()
+  })
+
+  it('🔴 M1: completedAt manda aunque el SERVIDOR no haya podido leer la oferta (planQuote sin oferta): pantalla final, sin el aviso de pago sin confirmar', async () => {
+    getProgress.mockResolvedValue(
+      progresoDe({
+        planQuote: QUOTE_DE_HOY,
+        planActivation: { status: 'IN_PROGRESS', attempt: 1, activatedAt: null },
+        completedAt: '2026-12-16T00:00:00.000Z',
+        v2SetupData: {
+          step2: { businessName: 'Mi negocio' },
+          step3: { businessType: 'CAFE' },
+          plan: { tier: 'PRO', interval: 'monthly', payNow: false, sinTarjeta: true },
+        },
+      }),
+    )
+    pintarAsistente()
+    expect(await screen.findByRole('button', { name: 'Entrar a Avoqado' })).toBeInTheDocument()
+    expect(screen.queryByText(/Tu último pago quedó sin confirmar/)).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Confirmar mi pago' })).not.toBeInTheDocument()
   })
 
   it('🔴 T6-C1: completedAt manda — con el cobro todavía IN_PROGRESS el alta está terminada: pantalla final, sin el aviso de pago sin confirmar', async () => {

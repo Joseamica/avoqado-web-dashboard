@@ -172,6 +172,24 @@ describe('HybridCheckout — el Básico retirado por la versión del editor', ()
     await waitFor(() => expect(within(tarjetaDe('Invoicing')!).getByRole('button', { name: 'Add offer' })).toBeEnabled())
   })
 
+  it('M3: cambiar de página no apaga los botones de la página que se ve mientras llega la siguiente (la lectura al abrir ya ocurrió)', async () => {
+    const otras = Array.from({ length: 6 }, (_, i) => ({ ...OTRA, id: `pub_${i}`, name: `Oferta ${i}`, slug: `oferta-${i}` }))
+    vi.mocked(hybridBilling.offers).mockResolvedValueOnce({ items: otras, total: 12, page: 1, pageSize: 6 } as any)
+    const user = userEvent.setup()
+    montar(nuevoCliente())
+    await waitFor(() => expect(within(tarjetaDe('Oferta 0')!).getByRole('button', { name: 'Add offer' })).toBeEnabled())
+
+    // La segunda página tarda: mientras tanto se ve la primera (la de siempre), con sus botones prendidos.
+    let soltar: (p: unknown) => void = () => {}
+    vi.mocked(hybridBilling.offers).mockImplementationOnce(() => new Promise(r => (soltar = r)) as any)
+    await user.click(screen.getByRole('button', { name: 'Next' }))
+    await waitFor(() => expect(hybridBilling.offers).toHaveBeenCalledTimes(2))
+    expect(within(tarjetaDe('Oferta 0')!).getByRole('button', { name: 'Add offer' })).toBeEnabled()
+
+    soltar({ items: [{ ...OTRA, id: 'pub_7', name: 'Oferta 7', slug: 'oferta-7' }], total: 12, page: 2, pageSize: 6 })
+    await waitFor(() => expect(within(tarjetaDe('Oferta 7')!).getByRole('button', { name: 'Add offer' })).toBeEnabled())
+  })
+
   it('🔴 b2-r9 #6: un carrito guardado con el Básico y su lectura vieja en la caché; al abrir, la restauración vuelve a leer el detalle (purchaseAvailable false) y el Básico no vuelve al carrito', async () => {
     const client = nuevoCliente()
     saveHybridDraft('venue', { lines: [{ id: 'pub_basico', slug: 'plan-basico', codes: [] }], replace: [], drop: [] })

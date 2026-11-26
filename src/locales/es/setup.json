@@ -337,7 +337,8 @@
     "pendingAfterReload": "Tu último pago quedó sin confirmar. Vuelve a confirmar con tu tarjeta: si ya se había cobrado, lo recuperamos y no se cobra dos veces.",
     "noQuote": "No pudimos cargar los precios. Recarga la página e intenta de nuevo.",
     "trialEndedTitle": "Tu prueba terminó",
-    "trialEnded": "Tu prueba terminó sin tarjeta y tu negocio quedó en Gratis. No se te cobró nada."
+    "trialEnded": "Tu prueba terminó sin tarjeta y tu negocio quedó en Gratis. No se te cobró nada.",
+    "confirmLater": "Todavía no podemos confirmar tu pago. Vuelve a comprobarlo en unos minutos; no se te cobrará dos veces."
   },
   "plans": {
     "title": "Elige tu plan",
@@ -480,6 +481,7 @@
     "completeError": "No pudimos terminar tu alta. Intenta de nuevo en un momento.",
     "trialWithCard": "Tu prueba de {{plan}} termina el {{date}}; ese día se cobrará tu tarjeta ••••{{last4}}. Puedes quitarla en «Tu plan».",
     "trialNoCharge": "Tu prueba de {{plan}} termina el {{date}}; no se cobrará nada.",
-    "trialNoCard": "Tu prueba de {{plan}} termina el {{date}}. Para seguir con {{plan}}, pon tu tarjeta en «Tu plan»; si no, sigues en Gratis."
+    "trialNoCard": "Tu prueba de {{plan}} termina el {{date}}. Para seguir con {{plan}}, pon tu tarjeta en «Tu plan»; si no, sigues en Gratis.",
+    "trialCardUnknown": "Tu prueba de {{plan}} termina el {{date}}. Revisa en «Tu plan» qué tarjeta se cobrará ese día; si no hay ninguna, tu negocio sigue en Gratis."
   }
 }
