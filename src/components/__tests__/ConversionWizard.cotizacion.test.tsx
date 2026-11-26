@@ -2,7 +2,7 @@
 // Planes editables (B2, Task 12, b2-r1 #9): la conversión de una demo enseña y firma los precios de la versión del editor
 // (`GET /plan` → `cotizacion`), apaga un plan fuera de venta y nunca convierte a Gratis lo que no se pudo pedir. Sin cotización,
 // el asistente de hoy, literal.
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -215,5 +215,70 @@ describe('ConversionWizard con la cotización de la versión', () => {
     await waitFor(() => expect(toastSpy).toHaveBeenCalledWith(expect.objectContaining({ description: mensaje })))
     await waitFor(() => expect(vi.mocked(getVenuePlan).mock.calls.length).toBeGreaterThan(lecturas))
     expect(createPlanCheckoutSession).not.toHaveBeenCalled()
+  })
+})
+
+describe('ConversionWizard · fix round 1 (revisión #6 y #7)', () => {
+  it('fix 4 (revisión #6): si el plan elegido sale de venta, el resumen dice «No disponible por ahora» y ningún precio (ni el del catálogo)', async () => {
+    vi.mocked(getVenuePlan).mockResolvedValue(planDeLaDemo(V2) as never)
+    abrir()
+    await alPasoDePlanes()
+    await waitFor(() => expect(within(tarjeta('pro')).getByText('$799')).toBeInTheDocument())
+    await userEvent.click(tarjeta('pro'))
+    await userEvent.click(siguiente())
+    await screen.findByText('Plan mensual · $799.00 MXN/mes + IVA')
+    act(() => cliente.setQueryData(['venuePlan', 'venue'], planDeLaDemo(PRO_FUERA)))
+    expect(await screen.findByText('No disponible por ahora')).toBeInTheDocument()
+    expect(screen.queryByText(/MXN\/mes \+ IVA/)).toBeNull()
+    expect(screen.queryByText(/\$999/)).toBeNull()
+    expect(screen.queryByText(/\$799/)).toBeNull()
+  })
+
+  it('REGRESIÓN fix 4: sin cotización, el resumen de un plan de pago sigue con el precio del catálogo', async () => {
+    vi.mocked(getVenuePlan).mockResolvedValue(planDeLaDemo() as never)
+    abrir()
+    await alPasoDePlanes()
+    await waitFor(() => expect(getVenuePlan).toHaveBeenCalled())
+    await userEvent.click(tarjeta('premium'))
+    await userEvent.click(siguiente())
+    expect(await screen.findByText(/^Plan mensual · \$/)).toBeInTheDocument()
+    expect(screen.queryByText('No disponible por ahora')).toBeNull()
+  })
+
+  it('fix 5 (revisión #7): 409 VENUE_ALREADY_CONVERTED, 400 PLAN_INVALID y 409 PLAN_NOT_ON_SALE al convertir → el mensaje del SERVIDOR y ningún checkout', async () => {
+    const rechazos = [
+      {
+        status: 409,
+        code: 'VENUE_ALREADY_CONVERTED',
+        message: 'Este negocio ya se convirtió en otra pestaña. Recarga la página.',
+        relee: false,
+      },
+      { status: 400, code: 'PLAN_INVALID', message: 'El plan elegido no es válido. Recarga la página.', relee: false },
+      {
+        status: 409,
+        code: 'PLAN_NOT_ON_SALE',
+        message: 'El plan Pro ya no está a la venta. Elige otro plan. No se te cobró nada.',
+        relee: true,
+      },
+    ]
+    for (const { status, code, message, relee } of rechazos) {
+      toastSpy.mockReset()
+      vi.mocked(getVenuePlan).mockReset()
+      vi.mocked(getVenuePlan).mockResolvedValue(planDeLaDemo(V2) as never)
+      vi.mocked(api.post).mockReset()
+      vi.mocked(api.post).mockRejectedValue({ response: { status, data: { code, message } } })
+      const vista = abrir()
+      await alPasoDePlanes()
+      await waitFor(() => expect(within(tarjeta('pro')).getByText('$799')).toBeInTheDocument())
+      await userEvent.click(tarjeta('pro'))
+      await userEvent.click(siguiente())
+      const lecturas = vi.mocked(getVenuePlan).mock.calls.length
+      await userEvent.click(confirmar())
+      await waitFor(() => expect(toastSpy).toHaveBeenCalledWith(expect.objectContaining({ description: message, variant: 'destructive' })))
+      expect(convertir()).toHaveLength(1)
+      expect(createPlanCheckoutSession).not.toHaveBeenCalled()
+      if (relee) await waitFor(() => expect(vi.mocked(getVenuePlan).mock.calls.length).toBeGreaterThan(lecturas))
+      vista.unmount()
+    }
   })
 })

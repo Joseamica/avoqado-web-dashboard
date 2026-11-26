@@ -425,6 +425,20 @@ describe('SelectionSummary · la prueba de la versión del editor', () => {
     expect(screen.queryByText('plan.selection.addCard')).toBeNull()
   })
 
+  it('fix 3 (revisión #3): PRUEBA_CON_TARJETA sin monto dice la tarjeta sin la frase del monto, nunca sólo «No pudimos calcular…»', () => {
+    renderSummary({
+      model: deLaPrueba({
+        kind: 'PRUEBA_CON_TARJETA',
+        trialEndsAt: FIN,
+        tarjeta: { brand: 'visa', last4: '4242' },
+        montoAlTerminarCents: null,
+      }),
+    })
+    expect(screen.getAllByText(/^plan\.selection\.trialWithCardNoAmount\|date=2026-12-10\|last4=4242$/).length).toBeGreaterThan(0)
+    expect(screen.queryByText('plan.selection.amountUnavailable')).toBeNull()
+    expect(review()).toBeNull()
+  })
+
   it('TERMINAR_ACEPTACION dice «Terminar la compra que empezaste: Premium» y su botón revisa', async () => {
     const props = renderSummary({
       model: model({

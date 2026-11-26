@@ -322,7 +322,10 @@
       "cardAdded": "Done: when your trial ends, {{price}} will be charged to your card ••••{{last4}}.",
       "trialEnded": "Your trial ended; check your plan here.",
       "cardNotYet": "We don't see your card yet. If you just added it, reload in a few seconds.",
-      "finishAcceptance": "Finish the purchase you started: {{tier}}"
+      "finishAcceptance": "Finish the purchase you started: {{tier}}",
+      "portalBack": "We're back from Stripe. Check your trial's status on this page; if it doesn't update, reload in a minute.",
+      "cardAddedNoAmount": "Done: your card ••••{{last4}} is set; your plan is charged when your trial ends.",
+      "trialWithCardNoAmount": "Your trial ends on {{date}}; your plan will be charged to your card ••••{{last4}} that day. You can change it or cancel."
     },
     "page": {
       "contractCancelled": "Done: your plan stops renewing at the end of the paid period.",

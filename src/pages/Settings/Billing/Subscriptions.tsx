@@ -229,13 +229,16 @@ export default function Subscriptions() {
     if (prueba?.estado === 'CON_TARJETA')
       toast({
         title:
+          // Sin el monto de Stripe se confirma la tarjeta sin la frase del monto (revisión #3).
           prueba.montoAlTerminarCents == null
-            ? t('plan.selection.amountUnavailable')
+            ? t('plan.selection.cardAddedNoAmount', { last4: prueba.tarjeta?.last4 ?? '' })
             : t('plan.selection.cardAdded', { price: precio(prueba.montoAlTerminarCents), last4: prueba.tarjeta?.last4 ?? '' }),
       })
     else if (prueba?.estado === 'SIN_TARJETA') toast({ title: t('plan.selection.cardNotYet') })
-    // TERMINADA, o sin la prueba (Stripe ya dice `past_due`, `active` o la baja llegó): nunca «Listo».
-    else toast({ title: t('plan.selection.trialEnded') })
+    // «Terminó» sólo si el SERVIDOR lo dice. Sin la prueba, el SERVIDOR también calla cuando no pudo leer Stripe o la tarjeta
+    // (revisión #2): una lectura fallida no concluye nada, así que el aviso es neutral y la página enseña lo que haya. Nunca «Listo».
+    else if (prueba?.estado === 'TERMINADA') toast({ title: t('plan.selection.trialEnded') })
+    else toast({ title: t('plan.selection.portalBack') })
   }, [vueltaDelPortal, plan.isFetching, plan.isError, plan.data, plan.dataUpdatedAt]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Real-time subscription changes refresh the plan and the grid.

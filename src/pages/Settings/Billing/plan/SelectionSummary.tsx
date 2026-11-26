@@ -114,7 +114,8 @@ export function SelectionSummary({
         : t('plan.selection.trialCardSummary', { date: formatDate(op.trialEndsAt), price: centavos(op.montoAlTerminarCents) })
       : op.kind === 'PRUEBA_CON_TARJETA'
         ? op.montoAlTerminarCents == null
-          ? t('plan.selection.amountUnavailable')
+          ? // Sin el monto de Stripe, la tarjeta sin la frase del monto (revisión #3): nunca un monto inventado.
+            t('plan.selection.trialWithCardNoAmount', { date: formatDate(op.trialEndsAt), last4: op.tarjeta.last4 ?? '' })
           : t('plan.selection.trialWithCard', {
               date: formatDate(op.trialEndsAt),
               price: centavos(op.montoAlTerminarCents),

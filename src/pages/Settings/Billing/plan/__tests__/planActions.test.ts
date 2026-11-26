@@ -945,6 +945,42 @@ describe('«Tu plan» con la cotización de la versión (B2, Task 12)', () => {
     expect(resumen).toMatchObject({ operation: esperada, lines: [], monthlyTotal: null, payToday: null })
   })
 
+  it('🔴 fix 1 (revisión #1): con cotizacion, un plan de destino fuera de venta (o sin opción en esa periodicidad) es ASSISTED, nunca HYBRID_REPLACE ni CLASSIC_CHECKOUT; sin cotizacion, el reemplazo de hoy', () => {
+    const premiumFuera = { ...V2, planes: { ...V2.planes, PREMIUM: fueraDeVenta('Premium') } }
+    const sinAnual = { ...V2, planes: { ...V2.planes, PREMIUM: { ...V2.planes.PREMIUM, annual: null } } }
+    const contrato = {
+      ...base,
+      origin: CONTRACT_PRO,
+      target: 'PREMIUM' as const,
+      replacements: classicSource,
+      interval: 'monthly' as const,
+    }
+    // Hoy (y con la versión que sí vende Premium) el contrato pasa a Premium por el reemplazo híbrido.
+    expect(planOperation(contrato).kind).toBe('HYBRID_REPLACE')
+    expect(planOperation({ ...contrato, cotizacion: V2 }).kind).toBe('HYBRID_REPLACE')
+    // La rejilla híbrida no lee la versión: con Premium fuera de venta, «Cambio asistido».
+    expect(planOperation({ ...contrato, cotizacion: premiumFuera })).toEqual({ kind: 'ASSISTED', tier: 'PREMIUM' })
+    expect(planOperation({ ...contrato, interval: 'annual', cotizacion: sinAnual })).toEqual({ kind: 'ASSISTED', tier: 'PREMIUM' })
+    // Lo mismo desde un Pro clásico y desde Gratis con la compra clásica rechazada (PLAN_ABSORBE_SUELTA).
+    const clasico = { ...base, origin: CLASSIC_PRO, target: 'PREMIUM' as const, replacements: classicSource, interval: 'monthly' as const }
+    expect(planOperation({ ...clasico, cotizacion: premiumFuera })).toEqual({ kind: 'ASSISTED', tier: 'PREMIUM' })
+    const rechazada = {
+      ...base,
+      origin: NO_ORIGIN,
+      target: 'PRO' as const,
+      classicRejected: true,
+      replacements: replacements([{ subscriptionId: 'sub_loyalty', featureCodes: ['LOYALTY_PROGRAM'], replaceable: true }]),
+      interval: 'monthly' as const,
+    }
+    expect(planOperation(rechazada).kind).toBe('HYBRID_REPLACE')
+    expect(planOperation({ ...rechazada, cotizacion: { ...V2, planes: { ...V2.planes, PRO: fueraDeVenta('Pro') } } })).toEqual({
+      kind: 'ASSISTED',
+      tier: 'PRO',
+    })
+    // Y el resumen no ofrece «Revisar y pagar» de un plan que no se vende: es el cambio asistido.
+    expect(summarizeSelection({ ...contrato, cotizacion: premiumFuera }).operation).toEqual({ kind: 'ASSISTED', tier: 'PREMIUM' })
+  })
+
   it('con cotizacion y origin NONE: CLASSIC_CHECKOUT con el quoteToken de la periodicidad elegida y precio 926.84 del SERVIDOR', () => {
     expect(planOperation({ ...base, origin: NO_ORIGIN, target: 'PRO', interval: 'monthly', cotizacion: V2 })).toEqual({
       kind: 'CLASSIC_CHECKOUT',

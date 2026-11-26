@@ -306,6 +306,9 @@ export function planOperation(entrada: SelectionInput): PlanOperation {
     const opcion = opcionCotizada(cotizacion, input.target, interval)
     return opcion ? compraConComprobante(input.target, opcion) : { kind: 'ASSISTED', tier: input.target }
   }
+  // B2 (revisión #1): la rejilla híbrida no lee la versión del editor. Con ella, un plan de destino que hoy no se vende (sin opción en
+  // esa periodicidad) es «Cambio asistido», nunca un reemplazo con precio y «Revisar y pagar».
+  if (cotizacion && !opcionCotizada(cotizacion, input.target, interval)) return { kind: 'ASSISTED', tier: input.target }
   const offer = input.grid?.purchasesEnabled ? chosenPlanOffer(input.grid, input.target, input.preferList) : null
   if (!offer) return { kind: 'ASSISTED', tier: input.target }
   // The plan's own subscription must be replaceable; standalone functions the new plan absorbs go with it (spec §4.1).

@@ -269,6 +269,8 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
     const opcion = plan?.vendible ? plan[selectedInterval] : null
     return opcion ? (opcion.netCents / 100).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : null
   }, [cotizacion, isPaidTier, selectedTier, selectedInterval])
+  // B2 (revisión #6): con la cotización, un plan elegido que ya no tiene opción no enseña precio (ni el del catálogo).
+  const elegidoFueraDeVenta = isPaidTier && !!cotizacion && netoCotizado === null
 
   const handleNext = async () => {
     let isValid = false
@@ -926,15 +928,21 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
                       <selectedPlan.icon className="h-4 w-4 text-primary" />
                       <span className="font-medium text-primary">{tOnboarding(`plan.tierNames.${selectedTier}`)}</span>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      {selectedInterval === 'annual'
-                        ? tOnboarding('plan.summaryAnnual', {
-                            price: netoCotizado ?? (selectedPlan.priceAnnual ?? 0).toLocaleString('es-MX'),
-                          })
-                        : tOnboarding('plan.summaryMonthly', {
-                            price: netoCotizado ?? (selectedPlan.priceMonthly ?? 0).toLocaleString('es-MX'),
-                          })}
-                    </p>
+                    {elegidoFueraDeVenta ? (
+                      <p className="text-xs font-medium text-destructive" data-tour="conversion-plan-not-on-sale">
+                        {tBilling('plan.notOnSale')}
+                      </p>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">
+                        {selectedInterval === 'annual'
+                          ? tOnboarding('plan.summaryAnnual', {
+                              price: netoCotizado ?? (selectedPlan.priceAnnual ?? 0).toLocaleString('es-MX'),
+                            })
+                          : tOnboarding('plan.summaryMonthly', {
+                              price: netoCotizado ?? (selectedPlan.priceMonthly ?? 0).toLocaleString('es-MX'),
+                            })}
+                      </p>
+                    )}
                     <p className="text-xs text-muted-foreground">{tOnboarding('plan.summaryCheckoutNote')}</p>
                   </div>
                 ) : (

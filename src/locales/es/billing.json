@@ -322,7 +322,10 @@
       "cardAdded": "Listo: al terminar tu prueba se cobrarán {{price}} en tu tarjeta ••••{{last4}}.",
       "trialEnded": "Tu prueba terminó; revisa tu plan aquí.",
       "cardNotYet": "Todavía no vemos tu tarjeta. Si la acabas de poner, recarga en unos segundos.",
-      "finishAcceptance": "Terminar la compra que empezaste: {{tier}}"
+      "finishAcceptance": "Terminar la compra que empezaste: {{tier}}",
+      "portalBack": "Volvimos de Stripe. Revisa en esta página el estado de tu prueba; si no se actualiza, recarga en un minuto.",
+      "cardAddedNoAmount": "Listo: tu tarjeta ••••{{last4}} quedó lista; al terminar tu prueba se cobra tu plan.",
+      "trialWithCardNoAmount": "Tu prueba termina el {{date}}; ese día se cobra tu plan en tu tarjeta ••••{{last4}}. Puedes cambiarla o cancelar."
     },
     "page": {
       "contractCancelled": "Listo: tu plan deja de renovarse al final del periodo pagado.",

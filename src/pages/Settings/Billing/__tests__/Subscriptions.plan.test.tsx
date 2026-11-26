@@ -840,9 +840,29 @@ describe('«Tu plan» con la versión del editor (B2, Task 12)', () => {
     expect(toastSpy.mock.calls.map(tituloDe)).not.toContain(listo('$810.84'))
   })
 
-  it('🔴 b2-r5 #1 y b2-r6 #4: al volver con ?portal=tarjeta y la prueba ya TERMINADA (también con origin CLASSIC), o past_due, o sin estadoDeLaPrueba → «Tu prueba terminó…» y lo que enseñe «Tu plan»; nunca «Listo»', async () => {
+  // Fix 1 (revisión #2, decisión del coordinador): «Tu prueba terminó» SÓLO cuando el SERVIDOR dice TERMINADA. Sin
+  // `estadoDeLaPrueba` el SERVIDOR también calla cuando no pudo leer Stripe o la tarjeta: una lectura fallida no concluye nada.
+  it('🔴 b2-r5 #1 y b2-r6 #4: al volver con ?portal=tarjeta y la prueba ya TERMINADA (también con origin CLASSIC) → «Tu prueba terminó…» y lo que enseñe «Tu plan»; nunca «Listo»', async () => {
+    vi.mocked(getVenuePlan).mockResolvedValue(enPrueba(prueba('TERMINADA')) as never)
+    conDireccion('/?portal=tarjeta')
+    await waitFor(() => expect(toastSpy).toHaveBeenCalledWith({ title: S.trialEnded }))
+    const titulos = toastSpy.mock.calls.map(tituloDe)
+    expect(titulos.some(titulo => String(titulo).startsWith('Listo'))).toBe(false)
+    expect(titulos).not.toContain(S.cardNotYet)
+    expect(titulos).not.toContain(S.portalBack)
+  })
+
+  it('🔴 fix 2 (revisión #2): sin estadoDeLaPrueba (Stripe no se pudo leer) con la fila en prueba CLASSIC → el aviso neutral; nunca «Tu prueba terminó» ni «Listo»', async () => {
+    vi.mocked(getVenuePlan).mockResolvedValue(enPrueba(undefined) as never)
+    conDireccion('/?portal=tarjeta')
+    await waitFor(() => expect(toastSpy).toHaveBeenCalledWith({ title: S.portalBack }))
+    const titulos = toastSpy.mock.calls.map(tituloDe)
+    expect(titulos).not.toContain(S.trialEnded)
+    expect(titulos.some(titulo => String(titulo).startsWith('Listo'))).toBe(false)
+  })
+
+  it('fix 2: past_due o active sin estadoDeLaPrueba → el aviso neutral (lo demás lo enseña «Tu plan»), nunca «Tu prueba terminó»', async () => {
     const casos = [
-      enPrueba(prueba('TERMINADA')),
       enPrueba(undefined, { state: 'past_due' }),
       plan(CLASSIC_PRO, { hasPlan: true, state: 'active', planTier: 'PRO', cotizacion: V2 }),
     ]
@@ -850,12 +870,23 @@ describe('«Tu plan» con la versión del editor (B2, Task 12)', () => {
       toastSpy.mockReset()
       vi.mocked(getVenuePlan).mockResolvedValue(caso as never)
       const view = conDireccion('/?portal=tarjeta')
-      await waitFor(() => expect(toastSpy).toHaveBeenCalledWith({ title: S.trialEnded }))
+      await waitFor(() => expect(toastSpy).toHaveBeenCalledWith({ title: S.portalBack }))
       const titulos = toastSpy.mock.calls.map(tituloDe)
+      expect(titulos).not.toContain(S.trialEnded)
       expect(titulos.some(titulo => String(titulo).startsWith('Listo'))).toBe(false)
-      expect(titulos).not.toContain(S.cardNotYet)
       view.unmount()
     }
+  })
+
+  it('fix 3 (revisión #3): CON_TARJETA sin el monto de Stripe confirma la tarjeta sin la frase del monto', async () => {
+    vi.mocked(getVenuePlan).mockResolvedValue(enPrueba({ ...prueba('CON_TARJETA'), montoAlTerminarCents: null }) as never)
+    conDireccion('/?portal=tarjeta')
+    await waitFor(() => expect(toastSpy).toHaveBeenCalledWith({ title: S.cardAddedNoAmount.replace('{{last4}}', '4242') }))
+    expect(toastSpy.mock.calls.map(tituloDe)).not.toContain(S.amountUnavailable)
+    // «Tu selección» también dice la tarjeta, sin monto.
+    expect(
+      (await screen.findAllByText(S.trialWithCardNoAmount.replace('{{date}}', '2026-12-10').replace('{{last4}}', '4242'))).length,
+    ).toBeGreaterThan(0)
   })
 
   it('503 PORTAL_NOT_CONFIGURED → enseña el mensaje del SERVIDOR y no navega', async () => {
@@ -885,6 +916,77 @@ describe('«Tu plan» con la versión del editor (B2, Task 12)', () => {
     expect(createPlanCheckoutSession).toHaveBeenCalledWith('venue', 'PRO', 'monthly', { quoteToken: 'tok_92684' })
     await waitFor(() => expect(vi.mocked(getVenuePlan).mock.calls.length).toBeGreaterThan(1))
     expect(window.location.href).toBe(`${SITIO}${PAGINA}`)
+  })
+
+  it('fix 5 (revisión #7): QUOTE_EXPIRED, QUOTE_INVALID y PLAN_NOT_ON_SALE, uno por uno → vuelve a pedir el plan, enseña el mensaje del SERVIDOR y no navega', async () => {
+    const rechazos = [
+      {
+        status: 409,
+        code: 'QUOTE_EXPIRED',
+        message: 'El precio que viste venció. Recarga la página para ver el vigente. No se te cobró nada.',
+      },
+      { status: 400, code: 'QUOTE_INVALID', message: 'No pudimos validar el precio que viste. Recarga la página. No se te cobró nada.' },
+      { status: 409, code: 'PLAN_NOT_ON_SALE', message: 'El plan Pro ya no está a la venta. Elige otro plan. No se te cobró nada.' },
+    ]
+    for (const { status, code, message } of rechazos) {
+      vi.mocked(getVenuePlan).mockReset()
+      vi.mocked(getVenuePlan).mockResolvedValue(plan({}, { cotizacion: V2 }) as never)
+      vi.mocked(createPlanCheckoutSession).mockReset()
+      vi.mocked(createPlanCheckoutSession).mockRejectedValue({ response: { status, data: { code, message } } })
+      const view = renderPage()
+      await userEvent.click(await screen.findByRole('radio', { name: /Pro/ }))
+      await userEvent.click(review())
+      expect(await screen.findByText(message)).toBeInTheDocument()
+      expect(createPlanCheckoutSession).toHaveBeenCalledTimes(1)
+      await waitFor(() => expect(vi.mocked(getVenuePlan).mock.calls.length).toBeGreaterThan(1))
+      expect(window.location.href).toBe(`${SITIO}${PAGINA}`)
+      view.unmount()
+    }
+  })
+
+  it('fix 5 (revisión #7): si el reintento con el acceptanceId también falla, enseña el mensaje del SERVIDOR y no reintenta otra vez', async () => {
+    const mensaje = 'Este negocio ya tiene un plan contratado. No se te cobró nada.'
+    vi.mocked(getVenuePlan).mockResolvedValue(plan({}, { cotizacion: V2 }) as never)
+    vi.mocked(createPlanCheckoutSession)
+      .mockRejectedValueOnce({
+        response: {
+          status: 409,
+          data: {
+            code: 'PLAN_ACCEPTANCE_REQUIRED',
+            message: 'Termina la contratación que empezaste al convertir tu negocio, o espera 30 minutos.',
+            details: { acceptanceId: 'cacc1', tier: 'PREMIUM', interval: 'annual' },
+          },
+        },
+      })
+      .mockRejectedValueOnce({ response: { status: 409, data: { code: 'PLAN_YA_CONTRATADO', message: mensaje } } })
+      .mockResolvedValue('https://checkout.stripe.example/nunca')
+    renderPage()
+    await userEvent.click(await screen.findByRole('radio', { name: /Pro/ }))
+    await userEvent.click(review())
+    expect(await screen.findByText(mensaje)).toBeInTheDocument()
+    expect(createPlanCheckoutSession).toHaveBeenCalledTimes(2)
+    expect(createPlanCheckoutSession).toHaveBeenNthCalledWith(2, 'venue', 'PREMIUM', 'annual', { acceptanceId: 'cacc1' })
+    expect(window.location.href).toBe(`${SITIO}${PAGINA}`)
+  })
+
+  it('fix 5 (revisión #7): con el acceptanceId ya enviado, otro 409 PLAN_ACCEPTANCE_REQUIRED no se reintenta: el mensaje del SERVIDOR', async () => {
+    const mensaje = 'Termina la contratación que empezaste al convertir tu negocio, o espera 30 minutos.'
+    const aceptacionPendiente = { acceptanceId: 'cacc1', tier: 'PREMIUM', interval: 'annual', expiresAt: FIN }
+    vi.mocked(getVenuePlan).mockResolvedValue(
+      plan({}, { cotizacion: { versionNumber: 3, planes: SIN_PLANES, aceptacionPendiente } }) as never,
+    )
+    vi.mocked(createPlanCheckoutSession).mockRejectedValue({
+      response: {
+        status: 409,
+        data: { code: 'PLAN_ACCEPTANCE_REQUIRED', message: mensaje, details: { acceptanceId: 'cacc2', tier: 'PRO', interval: 'monthly' } },
+      },
+    })
+    renderPage()
+    expect((await screen.findAllByText(S.finishAcceptance.replace('{{tier}}', 'Premium'))).length).toBeGreaterThan(0)
+    await userEvent.click(review())
+    expect(await screen.findByText(mensaje)).toBeInTheDocument()
+    expect(createPlanCheckoutSession).toHaveBeenCalledTimes(1)
+    expect(createPlanCheckoutSession).toHaveBeenCalledWith('venue', 'PREMIUM', 'annual', { acceptanceId: 'cacc1' })
   })
 
   it('🔴 b2-r7 #4 (el caso de Codex): la respuesta de convert-from-demo se perdió; en «Tu plan» el checkout responde 409 PLAN_ACCEPTANCE_REQUIRED con { acceptanceId, tier: PREMIUM, interval: annual } → reintenta con ese acceptanceId, ese plan y esa periodicidad, y navega a la url del checkout', async () => {
