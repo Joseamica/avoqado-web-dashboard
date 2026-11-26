@@ -219,11 +219,11 @@
       "saveError": "Ocurrió un error al guardar la configuración."
     },
     "managerPinOverride": {
-      "title": "Autorización con código de encargado",
-      "description": "Cuando alguien intente una acción para la que no tiene permiso, el punto de venta pedirá el código de un encargado para autorizarla esa vez. No deja la terminal con permisos abiertos.",
-      "switchLabel": "Activar autorización con código",
-      "enabledTitle": "Autorización con código activada",
-      "disabledTitle": "Autorización con código desactivada",
+      "title": "PIN de gerente",
+      "description": "Cuando alguien intente una acción para la que no tiene permiso (por ejemplo, un retiro de efectivo), el punto de venta pedirá el PIN de un gerente para autorizarla esa vez. No deja la terminal con permisos abiertos.",
+      "switchLabel": "Activar el PIN de gerente",
+      "enabledTitle": "PIN de gerente activado",
+      "disabledTitle": "PIN de gerente desactivado",
       "saved": "La configuración se guardó correctamente.",
       "readOnly": "Necesitas permiso para actualizar la configuración del local.",
       "errorTitle": "No se guardó el cambio",
