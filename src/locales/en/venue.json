@@ -219,11 +219,11 @@
       "saveError": "An error occurred while saving the setting."
     },
     "managerPinOverride": {
-      "title": "Manager passcode approval",
-      "description": "When someone tries an action they don't have permission for, the point of sale asks a manager for their code to approve it that one time. The terminal is never left elevated.",
-      "switchLabel": "Enable passcode approval",
-      "enabledTitle": "Passcode approval enabled",
-      "disabledTitle": "Passcode approval disabled",
+      "title": "Manager PIN",
+      "description": "When someone tries an action they don't have permission for (for example, a cash withdrawal), the point of sale asks for a manager's PIN to approve it that one time. The terminal is never left elevated.",
+      "switchLabel": "Enable manager PIN",
+      "enabledTitle": "Manager PIN enabled",
+      "disabledTitle": "Manager PIN disabled",
       "saved": "The setting was saved successfully.",
       "readOnly": "You need permission to update venue settings.",
       "errorTitle": "The change was not saved",
