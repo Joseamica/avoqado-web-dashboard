@@ -58,6 +58,7 @@ import {
   Clock,
   Cpu,
   CreditCard,
+  Gauge,
   Home,
   Info,
   Key,
@@ -66,6 +67,9 @@ import {
   Lock,
   LockOpen,
   MemoryStick,
+  Microchip,
+  MonitorCog,
+  Paintbrush,
   PencilIcon,
   RotateCcw,
   SaveIcon,
@@ -96,7 +100,19 @@ import { canActivate, canConfigurePayments, canSendCommand, getDeviceActionPolic
 import { DeviceBatteryCell, DeviceIcon, DeviceIdCell, DeviceStatusPill, DeviceSystemCell } from './components/DeviceListCells'
 import { RenameDeviceDialog } from './components/RenameDeviceDialog'
 import { useDeviceSubtitle } from './components/useDeviceListLabels'
-import { cuentasAlQuitar, cuentasAlVincular, getAppVersion, getDeviceIdentifier, getDeviceRole, type DeviceListInput } from './deviceListPresentation'
+import {
+  cuentasAlQuitar,
+  cuentasAlVincular,
+  getAppVersion,
+  getDeviceIdentifier,
+  getDevicePerformance,
+  getDeviceRole,
+  looksLikeWindows,
+  type DeviceListInput,
+} from './deviceListPresentation'
+
+/** Cada cuánto se refresca sola la ficha de una computadora con el POS de Windows (hz:a5fa2439:D2). */
+const WINDOWS_DETAIL_REFETCH_MS = 15_000
 
 // Valid tab values for URL hash
 const VALID_TABS = ['info', 'commands', 'messages', 'settings'] as const
@@ -151,6 +167,8 @@ interface TpvData {
   fulfillmentArea?: AreaDeLaFicha | null
   areaTicketsEnabled?: boolean
   deviceMenus?: DeviceMenusDeLaFicha
+  // Sólo el POS de Windows lo manda (hz:a5fa2439:D2); se valida campo por campo en `getDevicePerformance`.
+  deviceDiagnostics?: unknown
   systemInfo?: {
     platform?: string
     memory?: {
@@ -316,7 +334,11 @@ function TpvIdContent() {
     // La misma lectura que usa el editor de menús para recuperarse tras un error (`DeviceMenusEditor`).
     queryFn: () => getTpvById(venueId!, tpvId!),
     enabled: Boolean(venueId && tpvId),
-    refetchInterval: query => getDisplayModeRefetchInterval(query.state.data?.customerDisplayRequest),
+    // Una inversión de pantalla pendiente manda (5 s). La ficha de una computadora con el POS de Windows se refresca sola
+    // para que un cambio del modo de dibujo hecho en la PC se vea sin recargar (hz:a5fa2439:D2).
+    refetchInterval: query =>
+      getDisplayModeRefetchInterval(query.state.data?.customerDisplayRequest) ||
+      (query.state.data && looksLikeWindows(query.state.data as unknown as DeviceListInput) ? WINDOWS_DETAIL_REFETCH_MS : false),
     retry: (failureCount, error: any) => {
       // Don't retry if it's a 404 error
       if (error?.response?.status === 404) {
@@ -509,8 +531,15 @@ function TpvIdContent() {
     }
   }
 
+  // El formulario sigue a la ficha sólo mientras NO se edita: el latido y el refresco de 15 s de una computadora traen
+  // la misma ficha con datos nuevos y borraban lo tecleado (hz:a5fa2439:D4). Corre SÓLO cuando cambia la ficha y lee
+  // la edición por una ref: si `isEditing` fuera dependencia, al guardar reiniciaría con la ficha VIEJA antes del
+  // refetch, y volver a «Editar» enseñaría (y un segundo «Guardar» mandaría) los valores de antes. Al guardar se
+  // queda lo guardado hasta que llega el refetch; `handleCancel` reinicia solo; otro aparato remonta la página.
+  const isEditingRef = useRef(isEditing)
+  isEditingRef.current = isEditing
   useEffect(() => {
-    if (tpv) {
+    if (tpv && !isEditingRef.current) {
       form.reset({
         name: tpv.name || '',
         serialNumber: tpv.serialNumber || '',
@@ -812,6 +841,8 @@ function TpvIdContent() {
   // un formateador de bytes y salía «18 B / 128 B».
   const memoryPercent = memory?.total ? Math.min(100, Math.round(((memory.used ?? 0) / memory.total) * 100)) : null
   const networkType = typeof tpv.systemInfo?.networkType === 'string' ? tpv.systemInfo.networkType : null
+  const performance = getDevicePerformance(deviceForCells)
+  const formatDecimal = (value: number) => new Intl.NumberFormat(getIntlLocale(i18n.language), { maximumFractionDigits: 1 }).format(value)
 
   const formatVenueDate = (iso?: string | null) =>
     iso
@@ -1097,6 +1128,72 @@ function TpvIdContent() {
                           </span>
                         </DetailRow>
                       ) : null}
+                      {/* Cómo dibuja el POS de Windows su computadora: sólo se lee aquí; se cambia en la PC (hz:a5fa2439:D2). */}
+                      {performance && (
+                        <>
+                          <DetailRow icon={<Gauge className="h-4 w-4" />} label={t('device.fields.performance')}>
+                            <span className="flex flex-col gap-0.5">
+                              <span className={cn(performance.level === 'INSUFFICIENT' && 'text-warning-foreground dark:text-warning')}>
+                                {t(`device.performance.${performance.level}`)}
+                              </span>
+                              {performance.level !== 'FLUID' && (
+                                <span className="text-xs text-muted-foreground">{t(`device.performance.hint.${performance.level}`)}</span>
+                              )}
+                              {performance.paintMs !== null && (
+                                <span className="text-xs text-muted-foreground">
+                                  {t('device.performance.paint', { s: formatDecimal(performance.paintMs / 1000) })}
+                                </span>
+                              )}
+                              {performance.receivedAt && (
+                                <span className="text-xs text-muted-foreground">
+                                  {t('device.performance.receivedAt', { date: formatVenueDate(performance.receivedAt) })}
+                                </span>
+                              )}
+                            </span>
+                          </DetailRow>
+                          {performance.api && (
+                            <DetailRow icon={<MonitorCog className="h-4 w-4" />} label={t('device.fields.graphics')}>
+                              <span>{t(`device.graphics.${performance.api}`)}</span>
+                            </DetailRow>
+                          )}
+                          {performance.cpu && (
+                            <DetailRow icon={<Microchip className="h-4 w-4" />} label={t('device.fields.processor')}>
+                              <span className="min-w-0 break-words">{performance.cpu}</span>
+                            </DetailRow>
+                          )}
+                          {performance.ramGb ? (
+                            <DetailRow icon={<MemoryStick className="h-4 w-4" />} label={t('device.fields.ram')}>
+                              <span className="tabular-nums">{t('device.fields.ramValue', { gb: formatDecimal(performance.ramGb) })}</span>
+                            </DetailRow>
+                          ) : null}
+                          {performance.level !== 'UNMEASURED' && performance.drawingMode && (
+                            <DetailRow icon={<Paintbrush className="h-4 w-4" />} label={t('device.drawingMode.label')}>
+                              <span className="flex flex-col gap-0.5">
+                                <span className="flex flex-wrap items-baseline gap-x-1.5">
+                                  <span>{t(`device.drawingMode.${performance.drawingMode}`)}</span>
+                                  {performance.drawingModeStatus !== 'NONE' && (
+                                    <>
+                                      <span className="text-muted-foreground" aria-hidden="true">
+                                        ·
+                                      </span>
+                                      <span
+                                        className={
+                                          performance.drawingModeStatus === 'FAILED'
+                                            ? 'text-warning-foreground dark:text-warning'
+                                            : 'text-muted-foreground'
+                                        }
+                                      >
+                                        {t(`device.drawingMode.${performance.drawingModeStatus}`)}
+                                      </span>
+                                    </>
+                                  )}
+                                </span>
+                                <span className="text-xs text-muted-foreground">{t('device.drawingMode.where')}</span>
+                              </span>
+                            </DetailRow>
+                          )}
+                        </>
+                      )}
                       {tpv.systemInfo?.uptime ? (
                         <DetailRow icon={<Clock className="h-4 w-4" />} label={t('device.fields.uptime')}>
                           <span>{formatUptime(tpv.systemInfo.uptime)}</span>

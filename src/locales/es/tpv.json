@@ -1074,12 +1074,46 @@
       "model": "Modelo",
       "brand": "Marca",
       "type": "Tipo",
-      "created": "Dada de alta"
+      "created": "Dada de alta",
+      "performance": "Rendimiento",
+      "graphics": "Gráficos",
+      "processor": "Procesador",
+      "ram": "Memoria de la computadora",
+      "ramValue": "{{gb}} GB"
     },
     "network": {
       "WIFI": "WiFi",
       "CELLULAR": "Datos móviles",
       "ETHERNET": "Cable de red"
+    },
+    "performance": {
+      "FLUID": "Fluida",
+      "LIGHT": "Modo rápido",
+      "INSUFFICIENT": "No alcanza",
+      "UNMEASURED": "Sin medir todavía",
+      "hint": {
+        "LIGHT": "Esta computadora dibuja sin la tarjeta de video y con menos animaciones.",
+        "INSUFFICIENT": "Esta computadora tarda demasiado en dibujar la pantalla. La app va a responder lento.",
+        "UNMEASURED": "Se mide sola la próxima vez que se abra el POS en esta computadora, con la versión más reciente."
+      },
+      "paint": "Tarda {{s}} s en dibujar al abrir",
+      "receivedAt": "Actualizado el {{date}}"
+    },
+    "drawingMode": {
+      "label": "Modo de dibujo",
+      "AUTO": "Automático",
+      "FAST": "Modo rápido",
+      "where": "Se cambia en la computadora: en el aviso «Activar modo rápido» o en Más › Modo de dibujo.",
+      "PENDING_RESTART": "Se aplica la próxima vez que abran el POS.",
+      "ACTIVE": "Activo.",
+      "FAILED": "El modo rápido no funcionó en esta computadora: regresó sola al modo automático.",
+      "MANUAL": "Fijado a mano en la computadora."
+    },
+    "graphics": {
+      "DIRECT3D": "Tarjeta de video (Direct3D)",
+      "OPENGL": "Tarjeta de video (OpenGL)",
+      "SOFTWARE_FAST": "Sin tarjeta de video (procesador)",
+      "SOFTWARE_COMPAT": "Sin tarjeta de video (procesador, compatible)"
     },
     "activation": {
       "activatedOn": "Activada el {{date}}",

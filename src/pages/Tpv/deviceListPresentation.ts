@@ -1,3 +1,5 @@
+import { DateTime } from 'luxon'
+
 import { normalizeFormFactor, type DeviceFormFactorKey } from '@/lib/device-kind'
 import { TERMINAL_ONLINE_THRESHOLD_MS } from '@/lib/terminal-status'
 
@@ -23,6 +25,8 @@ export interface DeviceListInput {
   serialNumber?: string | null
   deviceUid?: string | null
   systemInfo?: unknown
+  /** Cómo dibuja el POS de Windows su computadora; sólo lo manda la ficha de UN aparato (hz:a5fa2439:D2). */
+  deviceDiagnostics?: unknown
 }
 
 // ── Rol ────────────────────────────────────────────────────────────────────────
@@ -108,7 +112,7 @@ function rawOsVersion(device: DeviceListInput): string | null {
  * `POS_ANDROID` con `osVersion: "Android 14"`. Lo que la delata es el modelo («Windows 11»)
  * y el sabor de la versión («2.20.1-escritorio»). Sin esto la columna diría «Android».
  */
-function looksLikeWindows(device: DeviceListInput): boolean {
+export function looksLikeWindows(device: DeviceListInput): boolean {
   if (device.type === 'POS_DESKTOP') return true
   if (/windows/i.test(device.modelIdentifier ?? '') || /windows/i.test(device.model ?? '')) return true
   return /-escritorio$/i.test(device.version ?? '')
@@ -153,6 +157,74 @@ export function getDeviceKind(device: DeviceListInput): DeviceFormFactorKey {
   const kind = normalizeFormFactor(device.formFactor)
   if (kind === 'UNKNOWN' && isPaymentTerminal(device)) return 'HANDHELD_POS'
   return kind
+}
+
+// ── Rendimiento (POS de Windows) ──────────────────────────────────────────────
+
+export type DrawingModeStatus = 'PENDING_RESTART' | 'ACTIVE' | 'FAILED' | 'MANUAL' | 'NONE'
+export type DevicePerformance = {
+  level: 'FLUID' | 'LIGHT' | 'INSUFFICIENT' | 'UNMEASURED'
+  api: string | null
+  paintMs: number | null
+  cpu: string | null
+  ramGb: number | null
+  receivedAt: string | null
+  drawingMode: 'AUTO' | 'FAST' | null
+  drawingModeStatus: DrawingModeStatus
+}
+
+const PERFORMANCE_LEVELS = ['FLUID', 'LIGHT', 'INSUFFICIENT'] as const
+/** Cómo dibuja la app: cada uno tiene su texto en llano (`device.graphics.*`). Otro valor no se enseña. */
+const GRAPHICS_APIS = ['DIRECT3D', 'OPENGL', 'SOFTWARE_FAST', 'SOFTWARE_COMPAT'] as const
+
+const text = (value: unknown) => (typeof value === 'string' && value.trim() ? value.trim() : null)
+const nonNegative = (value: unknown) => (typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : null)
+
+/**
+ * Lo que la computadora del POS de Windows reportó de cómo dibuja (`Terminal.deviceDiagnostics`, hz:a5fa2439:D2).
+ * `null` sólo si el aparato no es de Windows. El JSON llega como lo mandó la app: cada campo se valida solo, y uno con
+ * tipo incorrecto sale `null` sin tumbar los demás.
+ */
+export function getDevicePerformance(device: DeviceListInput): DevicePerformance | null {
+  if (!looksLikeWindows(device)) return null
+  const raw = device.deviceDiagnostics
+  const d = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {}
+  const level = PERFORMANCE_LEVELS.find(l => l === d.performance)
+  if (!level) {
+    return {
+      level: 'UNMEASURED',
+      api: null,
+      paintMs: null,
+      cpu: null,
+      ramGb: null,
+      receivedAt: null,
+      drawingMode: null,
+      drawingModeStatus: 'NONE',
+    }
+  }
+  const drawingMode = d.drawingMode === 'AUTO' || d.drawingMode === 'FAST' ? d.drawingMode : null
+  const receivedAt = text(d.receivedAt)
+  const drawingModeStatus: DrawingModeStatus =
+    d.manual === true
+      ? 'MANUAL'
+      : d.failed === true
+        ? 'FAILED'
+        : (drawingMode === 'FAST') !== (d.forced === true)
+          ? 'PENDING_RESTART'
+          : drawingMode === 'FAST'
+            ? 'ACTIVE'
+            : 'NONE'
+  return {
+    level,
+    api: GRAPHICS_APIS.find(api => api === d.api) ?? null,
+    paintMs: nonNegative(d.paintMs),
+    cpu: text(d.cpu),
+    ramGb: nonNegative(d.ramGb),
+    // Sólo ISO: la ficha la pinta con `DateTime.fromISO`, y lo que `Date.parse` acepta de más saldría «Invalid DateTime».
+    receivedAt: receivedAt && DateTime.fromISO(receivedAt).isValid ? receivedAt : null,
+    drawingMode,
+    drawingModeStatus,
+  }
 }
 
 // ── Batería ────────────────────────────────────────────────────────────────────

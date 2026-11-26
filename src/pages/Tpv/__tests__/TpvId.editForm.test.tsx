@@ -1,9 +1,7 @@
-import { onlineManager, QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
-import { AxiosError, type AxiosAdapter } from 'axios'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes, useNavigate, type NavigateFunction } from 'react-router-dom'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import TpvId from '../TpvId'
 
@@ -163,5 +161,154 @@ describe('formulario Editar de un aparato', () => {
   it('Editar no manda config', async () => {
     const [, body] = await guardarConNombre()
     expect(body).not.toHaveProperty('config')
+  })
+})
+
+describe('el refresco de la ficha no borra lo que se está editando (hz:a5fa2439:D4)', () => {
+  const FICHA = {
+    id: 'device-1',
+    name: 'PC de caja',
+    serialNumber: null,
+    type: 'POS_ANDROID',
+    status: 'ACTIVE',
+    venueId: 'venue-1',
+    modelIdentifier: 'Windows 11',
+    version: '2.30.0-escritorio',
+    lastHeartbeat: '2026-11-25T12:00:00.000Z',
+    customerDisplayInverted: false,
+    deviceDiagnostics: { performance: 'LIGHT', drawingMode: 'FAST', forced: true, receivedAt: '2026-11-25T12:00:00.000Z' },
+  }
+  let servidor: Record<string, unknown>
+  /** Mientras exista, la lectura de la ficha espera: así se ve la página ANTES de que llegue el refetch. */
+  let retenida: Promise<void> | null
+
+  /** Retiene las lecturas de la ficha hasta llamar lo que devuelve; entonces contestan con lo último del SERVIDOR. */
+  function retenerLaFicha(): () => void {
+    let soltar = () => {}
+    retenida = new Promise(resolve => {
+      soltar = () => {
+        retenida = null
+        resolve()
+      }
+    })
+    return soltar
+  }
+
+  beforeEach(() => {
+    sesion.role = 'OWNER'
+    contexto.venueId = 'venue-1'
+    servidor = { ...FICHA }
+    retenida = null
+    apiGet.mockImplementation(async (path: string) => {
+      if (path === '/api/v1/dashboard/venues/venue-1/tpv/device-1') {
+        if (retenida) await retenida
+        return { data: servidor }
+      }
+      // La ficha de una computadora pide su pantalla del cliente: aquí no tiene ninguna.
+      if (path.endsWith('/customer-display')) return { data: { data: null } }
+      return { data: { data: [] } }
+    })
+    apiPut.mockImplementation(async (_path: string, body: { name: string }) => {
+      servidor = { ...servidor, name: body.name }
+      return { data: servidor }
+    })
+  })
+
+  const campoNombre = () => screen.getByLabelText('detail.terminalName') as HTMLInputElement
+
+  async function abrirEdicionYTeclear(vista: ReturnType<typeof renderDetail>, nombre: string) {
+    fireEvent.click(await screen.findByRole('button', { name: 'common:edit' }))
+    fireEvent.change(campoNombre(), { target: { value: nombre } })
+    expect(campoNombre().value).toBe(nombre)
+    return vista
+  }
+
+  /**
+   * El latido o el refresco de 15 s: la misma ficha vuelve del SERVIDOR con otro latido y otra medición. Espera a que la
+   * página la PINTE (el nivel nuevo de «Rendimiento»): TanStack avisa a la página en un turno posterior al refetch.
+   */
+  async function refresco(vista: ReturnType<typeof renderDetail>, nivel: 'INSUFFICIENT' | 'FLUID', cambios: Record<string, unknown> = {}) {
+    servidor = {
+      ...servidor,
+      ...cambios,
+      lastHeartbeat: new Date(Date.parse(String(servidor.lastHeartbeat)) + 30_000).toISOString(),
+      deviceDiagnostics: { ...FICHA.deviceDiagnostics, performance: nivel },
+    }
+    await act(() => vista.queryClient.refetchQueries({ queryKey: ['tpv', 'venue-1', 'device-1'] }))
+    expect(await screen.findByText(`device.performance.${nivel}`)).toBeInTheDocument()
+  }
+
+  it('lo tecleado se conserva aunque llegue la misma ficha con otro latido y otra medición', async () => {
+    const vista = await abrirEdicionYTeclear(renderDetail(), 'Caja 2')
+    await refresco(vista, 'INSUFFICIENT')
+    expect(campoNombre().value).toBe('Caja 2')
+  })
+
+  it('al cancelar, el campo vuelve al valor más reciente del SERVIDOR', async () => {
+    const vista = await abrirEdicionYTeclear(renderDetail(), 'Caja 2')
+    await refresco(vista, 'FLUID', { name: 'Caja renombrada en otro lado' })
+    expect(campoNombre().value).toBe('Caja 2')
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'common:cancel' })[0])
+    fireEvent.click(await screen.findByRole('button', { name: 'common:edit' }))
+    expect(campoNombre().value).toBe('Caja renombrada en otro lado')
+  })
+
+  it('al guardar queda el valor guardado', async () => {
+    await abrirEdicionYTeclear(renderDetail(), 'Caja 2')
+    fireEvent.click(screen.getByRole('button', { name: 'detail.saveChanges' }))
+    await waitFor(() => expect(apiPut).toHaveBeenCalledTimes(1))
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'detail.saveChanges' })).not.toBeInTheDocument())
+    await waitFor(() => expect(screen.getAllByText('Caja 2').length).toBeGreaterThan(0))
+
+    fireEvent.click(await screen.findByRole('button', { name: 'common:edit' }))
+    expect(campoNombre().value).toBe('Caja 2')
+  })
+
+  /** Guarda «Caja 2» con el refetch retenido y vuelve a abrir «Editar» antes de que llegue. */
+  async function guardarYReabrirAntesDelRefetch() {
+    await abrirEdicionYTeclear(renderDetail(), 'Caja 2')
+    const soltar = retenerLaFicha()
+    fireEvent.click(screen.getByRole('button', { name: 'detail.saveChanges' }))
+    await waitFor(() => expect(apiPut).toHaveBeenCalledTimes(1))
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'detail.saveChanges' })).not.toBeInTheDocument())
+    fireEvent.click(screen.getByRole('button', { name: 'common:edit' }))
+    return soltar
+  }
+
+  /** Suelta el refetch retenido (con otra medición, para saber cuándo ya se pintó) y espera a que la página lo pinte. */
+  async function llegaElRefetch(soltar: () => void) {
+    servidor = { ...servidor, deviceDiagnostics: { ...FICHA.deviceDiagnostics, performance: 'FLUID' } }
+    await act(async () => soltar())
+    expect(await screen.findByText('device.performance.FLUID')).toBeInTheDocument()
+  }
+
+  it('volver a «Editar» justo después de guardar trae lo recién guardado, no lo de antes', async () => {
+    const soltar = await guardarYReabrirAntesDelRefetch()
+    expect(campoNombre().value).toBe('Caja 2')
+
+    // Con la edición abierta, el refetch que llega no pisa lo que se vuelve a teclear.
+    fireEvent.change(campoNombre(), { target: { value: 'Caja 3' } })
+    await llegaElRefetch(soltar)
+    expect(campoNombre().value).toBe('Caja 3')
+  })
+
+  it('un segundo «Guardar» sin tocar nada manda el nombre nuevo, no revierte al anterior', async () => {
+    const soltar = await guardarYReabrirAntesDelRefetch()
+    await llegaElRefetch(soltar)
+    fireEvent.click(screen.getByRole('button', { name: 'detail.saveChanges' }))
+    await waitFor(() => expect(apiPut).toHaveBeenCalledTimes(2))
+    expect(apiPut.mock.calls[1][1].name).toBe('Caja 2')
+  })
+
+  it('sin edición abierta, un refresco con otro nombre se ve en la ficha, como hoy', async () => {
+    const vista = renderDetail()
+    expect((await screen.findAllByText('PC de caja')).length).toBeGreaterThan(0)
+    await refresco(vista, 'FLUID', { name: 'Caja de la barra' })
+    await waitFor(() => expect(screen.getAllByText('Caja de la barra').length).toBeGreaterThan(0))
+    expect(screen.queryByText('PC de caja')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'common:edit' }))
+    expect(campoNombre().value).toBe('Caja de la barra')
   })
 })
