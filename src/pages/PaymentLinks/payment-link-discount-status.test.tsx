@@ -40,6 +40,13 @@ describe('PaymentLinkDiscountStatus', () => {
     expect(f.onArchive).toHaveBeenCalledTimes(1)
   })
 
+  it('liga archivada con descuento vencido no enseña aviso ni acciones (D43)', () => {
+    const { container } = render(
+      <PaymentLinkDiscountStatus link={{ discount: pct, discountStatus: 'VENCIDO', status: 'ARCHIVED' }} canUpdate {...fns()} />,
+    )
+    expect(container.innerHTML).toBe('')
+  })
+
   it('sin permiso de editar sólo se ve el aviso', () => {
     render(<PaymentLinkDiscountStatus link={{ discount: pct, discountStatus: 'VENCIDO' }} canUpdate={false} {...fns()} />)
     expect(screen.getByText('⚠ Descuento vencido')).toBeTruthy()

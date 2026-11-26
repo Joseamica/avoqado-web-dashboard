@@ -5,7 +5,7 @@ import type { PaymentLink } from '@/services/paymentLink.service'
 import { Currency } from '@/utils/currency'
 
 interface Props {
-  link: Pick<PaymentLink, 'discount' | 'discountStatus'>
+  link: Pick<PaymentLink, 'discount' | 'discountStatus'> & Partial<Pick<PaymentLink, 'status'>>
   /** Quien puede editar ligas (`payment-link:update`) ve las acciones. */
   canUpdate: boolean
   onRemove: () => void
@@ -27,6 +27,9 @@ export function PaymentLinkDiscountStatus({ link, canUpdate, onRemove, onReplace
       </Badge>
     )
   }
+
+  // hz:be99f328:D43: una liga archivada ya no vende; el aviso y sus acciones sólo estorban (no existe «Desarchivar»).
+  if (link.status === 'ARCHIVED') return null
 
   return (
     <div className="mt-1 space-y-1">
