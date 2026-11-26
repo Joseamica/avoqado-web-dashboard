@@ -85,4 +85,64 @@ describe('Campaigns — la lista', () => {
     await waitFor(() => expect(screen.getByText('Promo de fin de semana')).toBeInTheDocument())
     expect(screen.queryByText(/0\s*\/\s*0/)).not.toBeInTheDocument()
   })
+
+  // ---- D37: «Entregados» ya cuenta de verdad; lo omitido y el avance se ven ----
+
+  it('dice cuántos se omitieron (antes «Enviada · 0 / 10» sin explicar por qué)', async () => {
+    mockList.mockResolvedValue({
+      items: [campana({ status: 'SENT', sentCount: 0, failedCount: 0, skippedCount: 10, totalRecipients: 10 })],
+      total: 1, page: 1, pageSize: 20,
+    })
+    pintar()
+    await waitFor(() => expect(screen.getByText('campaigns.skippedCount')).toBeInTheDocument())
+  })
+
+  it('sin omitidos no pinta el aviso', async () => {
+    mockList.mockResolvedValue({ items: [campana()], total: 1, page: 1, pageSize: 20 })
+    pintar()
+    await waitFor(() => expect(screen.getByText('Promo de fin de semana')).toBeInTheDocument())
+    expect(screen.queryByText('campaigns.skippedCount')).not.toBeInTheDocument()
+  })
+
+  it('mientras una campaña se envía, la lista se refresca sola cada 30 s', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    try {
+      mockList.mockResolvedValue({ items: [campana({ status: 'SENDING', sentCount: 3 })], total: 1, page: 1, pageSize: 20 })
+      pintar()
+      await waitFor(() => expect(mockList).toHaveBeenCalledTimes(1))
+      await vi.advanceTimersByTimeAsync(30_000)
+      await waitFor(() => expect(mockList).toHaveBeenCalledTimes(2))
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('con todo enviado NO se queda consultando', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    try {
+      mockList.mockResolvedValue({ items: [campana()], total: 1, page: 1, pageSize: 20 })
+      pintar()
+      await waitFor(() => expect(mockList).toHaveBeenCalledTimes(1))
+      await vi.advanceTimersByTimeAsync(60_000)
+      expect(mockList).toHaveBeenCalledTimes(1)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('si una relectura falla, deja de consultar (no insiste contra un servidor caído)', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    try {
+      mockList.mockResolvedValueOnce({ items: [campana({ status: 'SENDING', sentCount: 3 })], total: 1, page: 1, pageSize: 20 })
+      mockList.mockRejectedValue(new Error('servidor caído'))
+      pintar()
+      await waitFor(() => expect(mockList).toHaveBeenCalledTimes(1))
+      await vi.advanceTimersByTimeAsync(30_000)
+      await waitFor(() => expect(mockList).toHaveBeenCalledTimes(2))
+      await vi.advanceTimersByTimeAsync(120_000)
+      expect(mockList).toHaveBeenCalledTimes(2)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
 })
