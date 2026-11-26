@@ -532,10 +532,14 @@ function TpvIdContent() {
   }
 
   // El formulario sigue a la ficha sólo mientras NO se edita: el latido y el refresco de 15 s de una computadora traen
-  // la misma ficha con datos nuevos y borraban lo tecleado (hz:a5fa2439:D4). Al cancelar o guardar, `isEditing` vuelve
-  // a false y se toma lo más reciente; otro aparato remonta la página (`key` en `TpvId`).
+  // la misma ficha con datos nuevos y borraban lo tecleado (hz:a5fa2439:D4). Corre SÓLO cuando cambia la ficha y lee
+  // la edición por una ref: si `isEditing` fuera dependencia, al guardar reiniciaría con la ficha VIEJA antes del
+  // refetch, y volver a «Editar» enseñaría (y un segundo «Guardar» mandaría) los valores de antes. Al guardar se
+  // queda lo guardado hasta que llega el refetch; `handleCancel` reinicia solo; otro aparato remonta la página.
+  const isEditingRef = useRef(isEditing)
+  isEditingRef.current = isEditing
   useEffect(() => {
-    if (tpv && !isEditing) {
+    if (tpv && !isEditingRef.current) {
       form.reset({
         name: tpv.name || '',
         serialNumber: tpv.serialNumber || '',
@@ -545,7 +549,7 @@ function TpvIdContent() {
         status: tpv.status || '',
       })
     }
-  }, [tpv, form, isEditing])
+  }, [tpv, form])
 
   // Mutation for updating the TPV
   const updateTpvMutation = useMutation({

@@ -181,13 +181,31 @@ describe('el refresco de la ficha no borra lo que se está editando (hz:a5fa2439
     deviceDiagnostics: { performance: 'LIGHT', drawingMode: 'FAST', forced: true, receivedAt: '2026-11-25T12:00:00.000Z' },
   }
   let servidor: Record<string, unknown>
+  /** Mientras exista, la lectura de la ficha espera: así se ve la página ANTES de que llegue el refetch. */
+  let retenida: Promise<void> | null
+
+  /** Retiene las lecturas de la ficha hasta llamar lo que devuelve; entonces contestan con lo último del SERVIDOR. */
+  function retenerLaFicha(): () => void {
+    let soltar = () => {}
+    retenida = new Promise(resolve => {
+      soltar = () => {
+        retenida = null
+        resolve()
+      }
+    })
+    return soltar
+  }
 
   beforeEach(() => {
     sesion.role = 'OWNER'
     contexto.venueId = 'venue-1'
     servidor = { ...FICHA }
+    retenida = null
     apiGet.mockImplementation(async (path: string) => {
-      if (path === '/api/v1/dashboard/venues/venue-1/tpv/device-1') return { data: servidor }
+      if (path === '/api/v1/dashboard/venues/venue-1/tpv/device-1') {
+        if (retenida) await retenida
+        return { data: servidor }
+      }
       // La ficha de una computadora pide su pantalla del cliente: aquí no tiene ninguna.
       if (path.endsWith('/customer-display')) return { data: { data: null } }
       return { data: { data: [] } }
@@ -247,6 +265,42 @@ describe('el refresco de la ficha no borra lo que se está editando (hz:a5fa2439
 
     fireEvent.click(await screen.findByRole('button', { name: 'common:edit' }))
     expect(campoNombre().value).toBe('Caja 2')
+  })
+
+  /** Guarda «Caja 2» con el refetch retenido y vuelve a abrir «Editar» antes de que llegue. */
+  async function guardarYReabrirAntesDelRefetch() {
+    await abrirEdicionYTeclear(renderDetail(), 'Caja 2')
+    const soltar = retenerLaFicha()
+    fireEvent.click(screen.getByRole('button', { name: 'detail.saveChanges' }))
+    await waitFor(() => expect(apiPut).toHaveBeenCalledTimes(1))
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'detail.saveChanges' })).not.toBeInTheDocument())
+    fireEvent.click(screen.getByRole('button', { name: 'common:edit' }))
+    return soltar
+  }
+
+  /** Suelta el refetch retenido (con otra medición, para saber cuándo ya se pintó) y espera a que la página lo pinte. */
+  async function llegaElRefetch(soltar: () => void) {
+    servidor = { ...servidor, deviceDiagnostics: { ...FICHA.deviceDiagnostics, performance: 'FLUID' } }
+    await act(async () => soltar())
+    expect(await screen.findByText('device.performance.FLUID')).toBeInTheDocument()
+  }
+
+  it('volver a «Editar» justo después de guardar trae lo recién guardado, no lo de antes', async () => {
+    const soltar = await guardarYReabrirAntesDelRefetch()
+    expect(campoNombre().value).toBe('Caja 2')
+
+    // Con la edición abierta, el refetch que llega no pisa lo que se vuelve a teclear.
+    fireEvent.change(campoNombre(), { target: { value: 'Caja 3' } })
+    await llegaElRefetch(soltar)
+    expect(campoNombre().value).toBe('Caja 3')
+  })
+
+  it('un segundo «Guardar» sin tocar nada manda el nombre nuevo, no revierte al anterior', async () => {
+    const soltar = await guardarYReabrirAntesDelRefetch()
+    await llegaElRefetch(soltar)
+    fireEvent.click(screen.getByRole('button', { name: 'detail.saveChanges' }))
+    await waitFor(() => expect(apiPut).toHaveBeenCalledTimes(2))
+    expect(apiPut.mock.calls[1][1].name).toBe('Caja 2')
   })
 
   it('sin edición abierta, un refresco con otro nombre se ve en la ficha, como hoy', async () => {
