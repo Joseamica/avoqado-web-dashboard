@@ -357,7 +357,7 @@
     "saveError": "Couldn't save the campaign",
     "send": "Send",
     "sendError": "Couldn't send the campaign",
-    "sent": "Campaign queued for {{count}} customers: the emails go out in batches.",
+    "sent": "Campaign queued for {{count}} customers: the list shows how many emails have gone out.",
     "content": "Email content",
     "failedCount": "{{count}} failed",
     "skippedCount_one": "{{count}} skipped",
@@ -413,7 +413,7 @@
     },
     "sendDialog": {
       "title": "Send the campaign",
-      "description": "This can't be undone. The campaign joins the queue and the emails go out in batches over the next minutes; the list shows how many have gone out.",
+      "description": "This can't be undone. The campaign joins the sending queue and the emails go out in batches; the list shows how many have gone out.",
       "counting": "Counting how many customers will receive it…",
       "countError": "Couldn't count the recipients",
       "recipients": "customers will receive this email",
