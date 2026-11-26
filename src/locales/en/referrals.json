@@ -21,7 +21,8 @@
     "rewardFreeProduct": "{{quantity}}× {{product}} free",
     "rewardMonthlySuffix": " every month",
     "rewardProductFallback": "product",
-    "editTier": "Edit level"
+    "editTier": "Edit level",
+    "rewardNone": "no reward (this level gives nothing)"
   },
   "editor": {
     "title": "Edit Level {{level}}",
@@ -54,6 +55,21 @@
       "quantityInvalid": "Quantity must be at least 1"
     }
   },
+  "basicsEditor": {
+    "edit": "Edit",
+    "title": "Referred reward and validity",
+    "description": "Changes apply to codes used and coupons issued from now on; what was already issued does not change.",
+    "discountHint": "Whole number from 0 to 100.",
+    "expiryHint": "Days each level coupon lasts, from 1 to 3650.",
+    "save": "Save changes",
+    "saving": "Saving...",
+    "success": "Changes saved",
+    "error": "Could not save the changes",
+    "errors": {
+      "discount": "The referred reward must be a whole number between 0 and 100",
+      "expiry": "Validity must be a whole number of days between 1 and 3650"
+    }
+  },
   "active": {
     "banner": "✓ Active since {{date}}",
     "summaryHeading": "This month's summary",
@@ -70,6 +86,13 @@
     "pauseSubmit": "Pause",
     "paused": "Program paused"
   },
+  "paused": {
+    "banner": "Program paused",
+    "description": "Your codes, rewards and history are kept. Codes cannot be used at checkout until you reactivate it.",
+    "reactivate": "Reactivate program",
+    "reactivating": "Reactivating...",
+    "reactivated": "Program reactivated, exactly as you had it"
+  },
   "permissions": {
     "noConfigureAccess": "You don't have permission to configure the referral program. Ask an administrator."
   },
@@ -83,7 +106,6 @@
     "copyButton": "Copy",
     "copied": "Code copied to clipboard",
     "whatsappButton": "WhatsApp",
-    "whatsappMessage": "I recommend {{venue}}! Use my code *{{code}}* and get 10% off your first purchase.",
     "referredBy": "Referred by {{name}}",
     "referredCount": "Has referred {{count}} people",
     "viewReferralsList": "View list",
@@ -103,7 +125,10 @@
     "fulfillConfirmDescription": "Confirm you already handed this product to the customer. This action cannot be undone.",
     "fulfillSuccess": "Courtesy marked as delivered",
     "fulfillError": "Could not mark the courtesy",
-    "fulfillErrorAlreadyHandled": "This courtesy was already processed. Refresh the page to see its current status."
+    "fulfillErrorAlreadyHandled": "This courtesy was already processed. Refresh the page to see its current status.",
+    "whatsappPaused": "The program is paused: this code cannot be used at checkout until you reactivate it.",
+    "whatsappError": "Could not build the WhatsApp message. Check your connection and try again.",
+    "whatsappBlocked": "Your browser blocked the WhatsApp window. Allow pop-ups for this site and tap the button again."
   },
   "hallOfFame": {
     "title": "Hall of Fame",

@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Users, Trophy, Gift, Sparkles, TrendingUp, PauseCircle, Pencil } from 'lucide-react'
+import { Users, Trophy, Gift, Sparkles, TrendingUp, PauseCircle, PlayCircle, Pencil } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -36,9 +36,11 @@ import HallOfFame from './components/HallOfFame'
 import RecentReferralsTable from './components/RecentReferralsTable'
 import TierRewardSummary from './components/TierRewardSummary'
 import TierRewardEditor from './components/TierRewardEditor'
+import ProgramBasicsEditor from './components/ProgramBasicsEditor'
 import type { TierRewardInput } from '@/types/referrals'
 
-// ─── Defaults (Mindform PDF reference values) ────────────────────────────────
+// ─── Defaults de la PRIMERA activación (Mindform PDF reference values) ───────
+// Nunca para reactivar: un programa en pausa se reactiva con lo que tiene guardado (D28, hz:be99f328:D28).
 const DEFAULT_ACTIVATION = {
   newCustomerDiscountPercent: 10,
   tier1ReferralsRequired: 7,
@@ -59,7 +61,8 @@ const schema = z.object({
   tier2RewardPercent: z.number().min(0).max(100),
   tier3ReferralsRequired: z.number().int().min(1),
   tier3RewardPercent: z.number().min(0).max(100),
-  rewardCouponExpiryDays: z.number().int().min(1),
+  // Tope de 10 años: con millones de días la fecha de vencimiento sale inválida y el cupón no se puede emitir.
+  rewardCouponExpiryDays: z.number().int().min(1).max(3650),
 })
 
 type FormData = z.infer<typeof schema>
@@ -169,6 +172,7 @@ export default function ReferralsSettings() {
   const [pauseOpen, setPauseOpen] = useState(false)
   const [pauseReason, setPauseReason] = useState('')
   const [editingTier, setEditingTier] = useState<1 | 2 | 3 | null>(null)
+  const [editingBasics, setEditingBasics] = useState(false)
 
   // ── Queries ──────────────────────────────────────────────────────────────
   const configQuery = useQuery({
@@ -179,11 +183,14 @@ export default function ReferralsSettings() {
   const { data: config, isLoading: configLoading } = configQuery
 
   const isActive = config?.active === true
+  // El GET responde `{ active: false }` sin `id` cuando el negocio nunca lo activó. Con `id`, ya tiene configuración
+  // guardada (activa o en pausa) y se enseña esa, no el formulario de fábrica.
+  const isConfigured = isActive || !!config?.id
 
   const summaryQuery = useQuery({
     queryKey: ['referrals-summary', venueId],
     queryFn: () => referralsService.getSummary(venueId!),
-    enabled: !!venueId && isActive,
+    enabled: !!venueId && isConfigured,
   })
   const { data: summary } = summaryQuery
 
@@ -248,6 +255,24 @@ export default function ReferralsSettings() {
     },
   })
 
+  // Reactivar = prender lo guardado tal cual. Nunca por `/activate`: reescribe premio, niveles y vigencia, y con `tiers`
+  // reemplaza los premios de cada nivel (un producto gratis se volvía cupón). `/reactivate` sólo prende la fila en pausa.
+  const reactivateMutation = useMutation({
+    mutationFn: () => referralsService.reactivate(venueId!),
+    onSuccess: () => {
+      toast({ title: t('paused.reactivated') })
+      queryClient.invalidateQueries({ queryKey: ['referrals-config', venueId] })
+      queryClient.invalidateQueries({ queryKey: ['referrals-summary', venueId] })
+    },
+    onError: (error: any) => {
+      toast({
+        title: tCommon('common.error'),
+        description: error.response?.data?.message || error.response?.data?.error || t('activate.error'),
+        variant: 'destructive',
+      })
+    },
+  })
+
   const onSubmit = (data: FormData) => activateMutation.mutate(data)
 
   // Reset pause reason on close
@@ -301,10 +326,12 @@ export default function ReferralsSettings() {
     )
   }
 
-  // ── ACTIVE STATE ─────────────────────────────────────────────────────────
-  if (isActive) {
+  // ── CONFIGURED STATE (activo o en pausa) ────────────────────────────────
+  if (isConfigured) {
     const conversionPct = summary ? Math.round((summary.conversionRate ?? 0) * 100) : 0
-    const hasTierRewards = (config?.tierRewards?.length ?? 0) > 0
+    // Con `tierRewards` (cualquier SERVIDOR desde jul-2026), cada nivel dice lo que de verdad entrega, también «sin premio».
+    // La tabla de % planos sólo queda para un servidor que ni manda el campo: esos % ya no los lee nadie al emitir.
+    const hasTierRewards = Array.isArray(config?.tierRewards)
     const topReferrerName = summary?.topReferrer
       ? [summary.topReferrer.firstName, summary.topReferrer.lastName].filter(Boolean).join(' ').trim() || '—'
       : '—'
@@ -335,33 +362,58 @@ export default function ReferralsSettings() {
           <div className="col-span-12 lg:col-span-8 space-y-4">
             {/* Status banner */}
             <GlassCard className="p-5">
-              <div className="flex items-center justify-between gap-4 flex-wrap">
-                <div className="flex items-center gap-3">
-                  <div className="p-2.5 rounded-xl bg-linear-to-br from-green-500/20 to-green-500/5">
-                    <Sparkles className="h-5 w-5 text-green-600 dark:text-green-400" />
+              {isActive ? (
+                <div className="flex items-center justify-between gap-4 flex-wrap">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 rounded-xl bg-linear-to-br from-green-500/20 to-green-500/5">
+                      <Sparkles className="h-5 w-5 text-green-600 dark:text-green-400" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-sm">
+                        {t('active.banner', { date: formattedActivatedAt })}
+                      </h3>
+                      <p className="text-xs text-muted-foreground">{t('subtitle')}</p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-semibold text-sm">
-                      {t('active.banner', { date: formattedActivatedAt })}
-                    </h3>
-                    <p className="text-xs text-muted-foreground">{t('subtitle')}</p>
-                  </div>
+                  <PermissionGate permission="referral:configure">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setPauseOpen(true)}
+                      data-tour="referrals-pause-btn"
+                    >
+                      <PauseCircle className="h-4 w-4 mr-2" />
+                      {t('active.pauseButton')}
+                    </Button>
+                  </PermissionGate>
                 </div>
-                <PermissionGate permission="referral:configure">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPauseOpen(true)}
-                    data-tour="referrals-pause-btn"
-                  >
-                    <PauseCircle className="h-4 w-4 mr-2" />
-                    {t('active.pauseButton')}
-                  </Button>
-                </PermissionGate>
-              </div>
+              ) : (
+                <div className="flex items-center justify-between gap-4 flex-wrap">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 rounded-xl bg-muted">
+                      <PauseCircle className="h-5 w-5 text-muted-foreground" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-sm">{t('paused.banner')}</h3>
+                      <p className="text-xs text-muted-foreground">{t('paused.description')}</p>
+                    </div>
+                  </div>
+                  <PermissionGate permission="referral:configure">
+                    <Button
+                      size="sm"
+                      onClick={() => reactivateMutation.mutate()}
+                      disabled={reactivateMutation.isPending}
+                      data-tour="referrals-reactivate-btn"
+                    >
+                      <PlayCircle className="h-4 w-4 mr-2" />
+                      {reactivateMutation.isPending ? t('paused.reactivating') : t('paused.reactivate')}
+                    </Button>
+                  </PermissionGate>
+                </div>
+              )}
             </GlassCard>
 
-            {/* Current tier config (read-only for MVP) */}
+            {/* Current config: premio, niveles y vigencia, cada uno con su «Editar» */}
             <GlassCard className="p-5">
               <div className="flex items-start gap-3 mb-5">
                 <div className="p-2 rounded-xl bg-linear-to-br from-purple-500/20 to-purple-500/5 text-purple-600 dark:text-purple-400">
@@ -375,9 +427,23 @@ export default function ReferralsSettings() {
 
               <div className="space-y-3">
                 {/* New customer discount */}
-                <div className="rounded-xl border border-input bg-muted/30 p-3 flex items-center justify-between">
+                <div className="rounded-xl border border-input bg-muted/30 p-3 flex items-center justify-between gap-2">
                   <p className="text-sm">{t('activate.newCustomerDiscount')}</p>
-                  <span className="text-sm font-semibold">{config?.newCustomerDiscountPercent ?? 0}%</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold">{Number(config?.newCustomerDiscountPercent ?? 0)}%</span>
+                    <PermissionGate permission="referral:configure">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setEditingBasics(true)}
+                        data-testid="referrals-new-customer-discount-edit-btn"
+                        data-tour="referrals-new-customer-discount-edit-btn"
+                      >
+                        <Pencil className="h-3.5 w-3.5 mr-1.5" />
+                        {t('basicsEditor.edit')}
+                      </Button>
+                    </PermissionGate>
+                  </div>
                 </div>
 
                 {/* Tier rows */}
@@ -441,9 +507,23 @@ export default function ReferralsSettings() {
                 </div>
 
                 {/* Coupon expiry */}
-                <div className="rounded-xl border border-input bg-muted/30 p-3 flex items-center justify-between">
+                <div className="rounded-xl border border-input bg-muted/30 p-3 flex items-center justify-between gap-2">
                   <p className="text-sm">{t('activate.tierExpiry')}</p>
-                  <span className="text-sm font-semibold">{config?.rewardCouponExpiryDays ?? 0}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold">{config?.rewardCouponExpiryDays ?? 0}</span>
+                    <PermissionGate permission="referral:configure">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setEditingBasics(true)}
+                        data-testid="referrals-expiry-edit-btn"
+                        data-tour="referrals-expiry-edit-btn"
+                      >
+                        <Pencil className="h-3.5 w-3.5 mr-1.5" />
+                        {t('basicsEditor.edit')}
+                      </Button>
+                    </PermissionGate>
+                  </div>
                 </div>
               </div>
             </GlassCard>
@@ -456,7 +536,7 @@ export default function ReferralsSettings() {
                 <TrendingUp className="h-4 w-4 text-amber-500" />
                 <h3 className="font-semibold text-sm">{t('active.summaryHeading')}</h3>
               </div>
-              {/* Sólo se llega con el programa activo, que es lo que enciende esta lectura: sin leerla no hay «0 referidos». */}
+              {/* Sólo se llega con el programa configurado (activo o en pausa), que es lo que enciende esta lectura: sin leerla no hay «0 referidos». */}
               <PorFuente query={summaryQuery}>
               <div className="space-y-3">
                 <MetricCell
@@ -538,12 +618,22 @@ export default function ReferralsSettings() {
             onClose={() => setEditingTier(null)}
           />
         )}
+
+        {/* Premio al referido + vigencia del cupón (D28) */}
+        {editingBasics && (
+          <ProgramBasicsEditor
+            venueId={venueId!}
+            initialDiscountPercent={config?.newCustomerDiscountPercent}
+            initialExpiryDays={config?.rewardCouponExpiryDays}
+            onClose={() => setEditingBasics(false)}
+          />
+        )}
       </div>
       </FeatureGate>
     )
   }
 
-  // ── ACTIVATION STATE (active = false) ────────────────────────────────────
+  // ── FIRST ACTIVATION (nunca configurado) ─────────────────────────────────
   const canConfigure = can('referral:configure')
 
   return (
@@ -656,6 +746,7 @@ export default function ReferralsSettings() {
                   id="rewardCouponExpiryDays"
                   type="number"
                   min={1}
+                  max={3650}
                   step={1}
                   className="h-9"
                   data-tour="referrals-expiry-days"

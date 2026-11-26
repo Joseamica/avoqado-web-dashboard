@@ -82,6 +82,8 @@ export interface LoyaltyConfig {
 	redemptionRate: number
 	minPointsRedeem: number
 	pointsExpireDays: number | null
+	/** Los puntos ganados antes de esta fecha cuentan sus días desde aquí (D27). Null = desde que se ganaron. */
+	pointsExpireSince?: string | null
 	active: boolean
 
 	// ── Mecánica de SELLOS ──────────────────────────────────────────────────

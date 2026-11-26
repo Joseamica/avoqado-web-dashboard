@@ -44,9 +44,11 @@ vi.mock('@/services/menu.service', () => ({
 const mockGetCustomerReferrals = vi.fn()
 const mockFulfillGrant = vi.fn()
 const mockGenerateCustomerCode = vi.fn()
+const mockGetShareLink = vi.fn()
 vi.mock('@/services/referrals.service', () => ({
   default: {
     getCustomerReferrals: (...args: unknown[]) => mockGetCustomerReferrals(...args),
+    getShareLink: (...args: unknown[]) => mockGetShareLink(...args),
     fulfillGrant: (...args: unknown[]) => mockFulfillGrant(...args),
     generateCustomerCode: (...args: unknown[]) => mockGenerateCustomerCode(...args),
   },
@@ -88,6 +90,89 @@ describe('ReferralCard', () => {
     vi.clearAllMocks()
     canMock.mockReturnValue(true)
     mockGetCustomerReferrals.mockResolvedValue([])
+    mockGetShareLink.mockResolvedValue({ whatsappShareUrl: 'https://wa.me/?text=x', message: 'x', code: 'ANA123', venueName: 'Mi Negocio' })
+  })
+
+  // D30 (hz:be99f328:D30): el mensaje decía «10%» fijo. Lo arma el SERVIDOR con el premio al referido guardado, y se lee
+  // al tocar el botón (nunca de una lectura guardada: Codex r1 #7, r2 #2 y r3 #6 encontraron ligas viejas tras pausar o
+  // cambiar el %). La ventana se abre en el mismo toque, para que el navegador no la bloquee, y luego se llena o se cierra.
+  function fakeWindow() {
+    return { location: { href: '' }, close: vi.fn(), opener: {} as unknown }
+  }
+
+  it('WhatsApp abre el mensaje que arma el servidor con el premio real', async () => {
+    const url = 'https://wa.me/?text=%C2%A1Te%20recomiendo%20Mi%20Negocio!%20Usa%20mi%20c%C3%B3digo%20*ANA123*%20y%20te%20dan%2015%25'
+    mockGetShareLink.mockResolvedValue({ whatsappShareUrl: url, message: '…15%…', code: 'ANA123', venueName: 'Mi Negocio', programActive: true })
+    const win = fakeWindow()
+    const openSpy = vi.spyOn(window, 'open').mockReturnValue(win as unknown as Window)
+
+    renderWithClient(<ReferralCard customer={baseCustomer} venueId="venue-1" />)
+    fireEvent.click(screen.getByTestId('referral-card-whatsapp-btn'))
+
+    expect(openSpy).toHaveBeenCalledWith('', '_blank')
+    expect(win.opener).toBeNull()
+    await waitFor(() => expect(win.location.href).toBe(url))
+    expect(mockGetShareLink).toHaveBeenCalledWith('venue-1', 'cust-1')
+    expect(win.close).not.toHaveBeenCalled()
+  })
+
+  it('cada toque vuelve a preguntar al servidor (nada de ligas guardadas)', async () => {
+    const ventanas = [fakeWindow(), fakeWindow()]
+    vi.spyOn(window, 'open')
+      .mockReturnValueOnce(ventanas[0] as unknown as Window)
+      .mockReturnValueOnce(ventanas[1] as unknown as Window)
+    mockGetShareLink
+      .mockResolvedValueOnce({ whatsappShareUrl: 'https://wa.me/?text=15', message: 'x', code: 'ANA123', venueName: 'Mi Negocio', programActive: true })
+      .mockResolvedValueOnce({ whatsappShareUrl: 'https://wa.me/?text=20', message: 'x', code: 'ANA123', venueName: 'Mi Negocio', programActive: true })
+
+    renderWithClient(<ReferralCard customer={baseCustomer} venueId="venue-1" />)
+    fireEvent.click(screen.getByTestId('referral-card-whatsapp-btn'))
+    await waitFor(() => expect(ventanas[0].location.href).toBe('https://wa.me/?text=15'))
+    await waitFor(() => expect(screen.getByTestId('referral-card-whatsapp-btn')).not.toBeDisabled())
+    fireEvent.click(screen.getByTestId('referral-card-whatsapp-btn'))
+
+    // El segundo toque abre lo que el servidor dice AHORA (el % cambió a 20), no la liga del primero.
+    await waitFor(() => expect(ventanas[1].location.href).toBe('https://wa.me/?text=20'))
+    expect(mockGetShareLink).toHaveBeenCalledTimes(2)
+  })
+
+  // Codex r4 #1: con las ventanas emergentes bloqueadas no puede fallar en silencio.
+  it('si el navegador bloquea la ventana, lo dice', async () => {
+    vi.spyOn(window, 'open').mockReturnValue(null)
+    mockGetShareLink.mockResolvedValue({ whatsappShareUrl: 'https://wa.me/?text=x', message: 'x', code: 'ANA123', venueName: 'Mi Negocio', programActive: true })
+
+    renderWithClient(<ReferralCard customer={baseCustomer} venueId="venue-1" />)
+    fireEvent.click(screen.getByTestId('referral-card-whatsapp-btn'))
+
+    await waitFor(() =>
+      expect(toastMock).toHaveBeenCalledWith(expect.objectContaining({ title: 'card.whatsappBlocked', variant: 'destructive' })),
+    )
+  })
+
+  it('con el programa en pausa no comparte el código (la caja lo rechazaría) y lo dice', async () => {
+    mockGetShareLink.mockResolvedValue({ whatsappShareUrl: 'https://wa.me/?text=x', message: 'x', code: 'ANA123', venueName: 'Mi Negocio', programActive: false })
+    const win = fakeWindow()
+    vi.spyOn(window, 'open').mockReturnValue(win as unknown as Window)
+
+    renderWithClient(<ReferralCard customer={baseCustomer} venueId="venue-1" />)
+    fireEvent.click(screen.getByTestId('referral-card-whatsapp-btn'))
+
+    await waitFor(() => expect(win.close).toHaveBeenCalled())
+    expect(win.location.href).toBe('')
+    expect(toastMock).toHaveBeenCalledWith(expect.objectContaining({ title: 'card.whatsappPaused' }))
+  })
+
+  it('si el servidor no da la liga (sin plan, sin red), cierra la ventana y avisa', async () => {
+    mockGetShareLink.mockRejectedValue(Object.assign(new Error('403'), { response: { status: 403 } }))
+    const win = fakeWindow()
+    vi.spyOn(window, 'open').mockReturnValue(win as unknown as Window)
+
+    renderWithClient(<ReferralCard customer={baseCustomer} venueId="venue-1" />)
+    fireEvent.click(screen.getByTestId('referral-card-whatsapp-btn'))
+
+    await waitFor(() => expect(win.close).toHaveBeenCalled())
+    expect(win.location.href).toBe('')
+    expect(toastMock).toHaveBeenCalledWith(expect.objectContaining({ title: 'card.whatsappError', variant: 'destructive' }))
   })
 
   it('renders reward badges per referral with status-based styling', async () => {
@@ -99,7 +184,7 @@ describe('ReferralCard', () => {
       }),
     ])
 
-    renderWithClient(<ReferralCard customer={baseCustomer} venueId="venue-1" venueName="Mi Negocio" />)
+    renderWithClient(<ReferralCard customer={baseCustomer} venueId="venue-1" />)
 
     fireEvent.click(screen.getByTestId('referral-card-toggle-list'))
 
@@ -128,7 +213,7 @@ describe('ReferralCard', () => {
       }),
     ])
 
-    renderWithClient(<ReferralCard customer={baseCustomer} venueId="venue-1" venueName="Mi Negocio" />)
+    renderWithClient(<ReferralCard customer={baseCustomer} venueId="venue-1" />)
     fireEvent.click(screen.getByTestId('referral-card-toggle-list'))
 
     await waitFor(() => expect(screen.getByTestId('referral-card-reward-badge-g-redeemed')).toBeInTheDocument())
@@ -149,7 +234,7 @@ describe('ReferralCard', () => {
       }),
     ])
 
-    renderWithClient(<ReferralCard customer={baseCustomer} venueId="venue-1" venueName="Mi Negocio" />)
+    renderWithClient(<ReferralCard customer={baseCustomer} venueId="venue-1" />)
 
     await waitFor(() => expect(screen.getByTestId('referral-card-pending-courtesies')).toBeInTheDocument())
     await waitFor(() =>
@@ -170,7 +255,7 @@ describe('ReferralCard', () => {
       }),
     ])
 
-    renderWithClient(<ReferralCard customer={baseCustomer} venueId="venue-1" venueName="Mi Negocio" />)
+    renderWithClient(<ReferralCard customer={baseCustomer} venueId="venue-1" />)
 
     await waitFor(() => expect(screen.getByTestId('referral-card-pending-courtesies')).toBeInTheDocument())
     expect(screen.queryByTestId('referral-card-fulfill-btn-grant-pending')).not.toBeInTheDocument()
@@ -191,7 +276,7 @@ describe('ReferralCard', () => {
       fulfilledAt: '2026-07-02T10:00:00.000Z',
     })
 
-    renderWithClient(<ReferralCard customer={baseCustomer} venueId="venue-1" venueName="Mi Negocio" />)
+    renderWithClient(<ReferralCard customer={baseCustomer} venueId="venue-1" />)
 
     await waitFor(() => expect(screen.getByTestId('referral-card-fulfill-btn-grant-pending')).toBeInTheDocument())
     fireEvent.click(screen.getByTestId('referral-card-fulfill-btn-grant-pending'))
@@ -219,7 +304,7 @@ describe('ReferralCard', () => {
     ])
     mockFulfillGrant.mockRejectedValue({ response: { status: 409, data: { error: 'GRANT_NO_PENDIENTE' } } })
 
-    renderWithClient(<ReferralCard customer={baseCustomer} venueId="venue-1" venueName="Mi Negocio" />)
+    renderWithClient(<ReferralCard customer={baseCustomer} venueId="venue-1" />)
 
     await waitFor(() => expect(screen.getByTestId('referral-card-fulfill-btn-grant-pending')).toBeInTheDocument())
     fireEvent.click(screen.getByTestId('referral-card-fulfill-btn-grant-pending'))
@@ -240,7 +325,7 @@ describe('ReferralCard', () => {
       makeReferral({ rewardDiscount: { id: 'd1', value: 10, active: true } }),
     ])
 
-    renderWithClient(<ReferralCard customer={baseCustomer} venueId="venue-1" venueName="Mi Negocio" />)
+    renderWithClient(<ReferralCard customer={baseCustomer} venueId="venue-1" />)
 
     fireEvent.click(screen.getByTestId('referral-card-toggle-list'))
 
@@ -251,7 +336,7 @@ describe('ReferralCard', () => {
 
   it('State C (no code): activate button still works and no pending-courtesy fetch happens', () => {
     const customerNoCode = { ...baseCustomer, referralCode: null, referralCount: 0 }
-    renderWithClient(<ReferralCard customer={customerNoCode} venueId="venue-1" venueName="Mi Negocio" />)
+    renderWithClient(<ReferralCard customer={customerNoCode} venueId="venue-1" />)
 
     expect(screen.getByTestId('referral-card-activate-btn')).toBeInTheDocument()
     expect(mockGetCustomerReferrals).not.toHaveBeenCalled()

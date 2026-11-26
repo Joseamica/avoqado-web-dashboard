@@ -172,13 +172,9 @@ export function CreateModifierGroupWizard({ onCancel, onSuccess }: CreateModifie
       const createdGroup = await createModifierGroupService(venueId!, groupData)
 
       if (productIds && productIds.length > 0) {
+        // hz:960ee149:D1: sin `displayOrder`; el índice era la posición del PRODUCTO elegido, no la del grupo dentro del producto.
         await Promise.all(
-          productIds.map((productId, index) =>
-            assignModifierGroupToProduct(venueId!, productId, {
-              modifierGroupId: createdGroup.id,
-              displayOrder: index,
-            }),
-          ),
+          productIds.map(productId => assignModifierGroupToProduct(venueId!, productId, { modifierGroupId: createdGroup.id })),
         )
       }
 

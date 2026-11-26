@@ -153,6 +153,16 @@ export interface ActivateReferralProgramRequest {
  */
 export type UpdateReferralConfigRequest = Partial<ActivateReferralProgramRequest>
 
+/** GET /referrals/customers/:customerId/share-link (D30). */
+export interface ReferralShareLink {
+  whatsappShareUrl: string
+  message: string
+  code: string
+  venueName: string
+  /** Absent on servers older than D30: treat as active (same as before). */
+  programActive?: boolean
+}
+
 export interface ReferralSummary {
   referralsThisMonth: number
   referralsPrevMonth: number
