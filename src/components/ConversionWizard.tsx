@@ -7,17 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent } from '@/components/ui/card'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import {
-  CheckCircle2,
-  Upload,
-  FileText,
-  Sparkles,
-  ArrowRight,
-  ArrowLeft,
-  Building2,
-  User,
-  AlertCircle,
-} from 'lucide-react'
+import { CheckCircle2, Upload, FileText, Sparkles, ArrowRight, ArrowLeft, Building2, User, AlertCircle } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { Progress } from '@/components/ui/progress'
 import { PlanPicker } from '@/components/billing/PlanPicker'
@@ -40,12 +30,14 @@ interface ConversionWizardProps {
 
 type EntityType = 'PERSONA_FISICA' | 'PERSONA_MORAL'
 
-
 // Document types for upload
 type DocumentType = 'ID' | 'CSF' | 'DOMICILIO' | 'CARATULA' | 'ACTA' | 'PODER'
 
 // Plan billing interval selected in the plan-selection step
 type PlanInterval = 'monthly' | 'annual'
+
+/** B2: la oferta de la versión cambió, el comprobante ya no sirve o falta: se relee el plan y se regresa al paso de planes (como «Tu plan» y el alta). */
+const OFERTA_CAMBIADA = ['OFFER_CHANGED', 'QUOTE_EXPIRED', 'QUOTE_INVALID', 'PLAN_NOT_ON_SALE', 'QUOTE_REQUIRED']
 
 export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venueName, venue: _venue }: ConversionWizardProps) {
   const { t } = useTranslation()
@@ -73,6 +65,9 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
     enabled: open && !!venueId,
   })
   const cotizacion = planDelNegocio.data?.cotizacion
+  // Minor 5: sin la lectura del plan (primera carga) no se sabe si hay versión del editor: no se enseña el catálogo. Con error
+  // se queda el asistente de hoy (paridad con B1, que nunca leyó el plan).
+  const leyendoElPlan = planDelNegocio.isLoading
   const precios = useMemo(() => preciosDeLaCotizacion(cotizacion), [cotizacion])
 
   // Entity type state
@@ -473,7 +468,7 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
       console.error('Error converting venue:', error)
       // B2: la oferta cambió o el plan salió de venta mientras se elegía: el mensaje del SERVIDOR y los precios de nuevo, sin checkout.
       const code = error?.response?.data?.code
-      if (code === 'OFFER_CHANGED' || code === 'PLAN_NOT_ON_SALE') {
+      if (OFERTA_CAMBIADA.includes(code)) {
         void queryClient.invalidateQueries({ queryKey: ['venuePlan', venueId] })
         setCurrentStep(getStepForPlan())
       }
@@ -569,7 +564,9 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
         {!file && !uploading && url && (
           <div className="flex items-center gap-2 text-sm">
             <CheckCircle2 className="h-4 w-4 text-green-600" />
-            <span className="text-green-600">{t('conversionWizard.documents.alreadyUploaded', { defaultValue: 'Documento ya cargado' })}</span>
+            <span className="text-green-600">
+              {t('conversionWizard.documents.alreadyUploaded', { defaultValue: 'Documento ya cargado' })}
+            </span>
           </div>
         )}
       </div>
@@ -602,9 +599,7 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
               >
                 <User className="h-10 w-10 mb-3 text-primary" />
                 <span className="font-semibold">{t('conversionWizard.entityType.fisica')}</span>
-                <span className="text-xs text-muted-foreground text-center mt-2">
-                  {t('conversionWizard.entityType.fisicaDescription')}
-                </span>
+                <span className="text-xs text-muted-foreground text-center mt-2">{t('conversionWizard.entityType.fisicaDescription')}</span>
               </Label>
             </div>
             <div>
@@ -615,9 +610,7 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
               >
                 <Building2 className="h-10 w-10 mb-3 text-primary" />
                 <span className="font-semibold">{t('conversionWizard.entityType.moral')}</span>
-                <span className="text-xs text-muted-foreground text-center mt-2">
-                  {t('conversionWizard.entityType.moralDescription')}
-                </span>
+                <span className="text-xs text-muted-foreground text-center mt-2">{t('conversionWizard.entityType.moralDescription')}</span>
               </Label>
             </div>
           </RadioGroup>
@@ -627,9 +620,7 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
               <div className="flex items-start gap-2">
                 <AlertCircle className="h-4 w-4 text-blue-600 mt-0.5" />
                 <div>
-                  <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
-                    {t('conversionWizard.entityType.documentsNeeded')}
-                  </p>
+                  <p className="text-sm font-medium text-blue-900 dark:text-blue-100">{t('conversionWizard.entityType.documentsNeeded')}</p>
                   <ul className="mt-2 space-y-1 text-xs text-blue-800 dark:text-blue-200">
                     <li>• {t('conversionWizard.documents.ine')}</li>
                     <li>• {t('conversionWizard.documents.csf')}</li>
@@ -638,7 +629,9 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
                     {entityType === 'PERSONA_MORAL' && (
                       <>
                         <li>• {t('conversionWizard.documents.actaConstitutiva')}</li>
-                        <li>• {t('conversionWizard.documents.poderLegal')} ({t('conversionWizard.documents.optional')})</li>
+                        <li>
+                          • {t('conversionWizard.documents.poderLegal')} ({t('conversionWizard.documents.optional')})
+                        </li>
                       </>
                     )}
                   </ul>
@@ -799,23 +792,33 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
               reads as "selected"; `selectionMode="choice"` is what makes that selection
               stay live (whole card clickable, no disabled "Tu plan actual" CTA).
               Enterprise routes to "contact" (no self-serve). */}
-          <div data-tour="conversion-plan-picker">
-            <PlanPicker
-              currentTier={selectedTier}
-              selectionMode="choice"
-              preciosSinIva={precios?.preciosSinIva}
-              fueraDeVenta={precios?.fueraDeVenta}
-              onSelectTier={(tier, interval) => {
-                if (tier === 'ENTERPRISE') {
-                  // Enterprise is contact-sales only — no self-serve conversion path.
-                  window.open(salesWhatsAppLink('Hola, me interesa el plan Enterprise de Avoqado para mi negocio.'), '_blank', 'noopener,noreferrer')
-                  return
-                }
-                setSelectedTier(tier)
-                setSelectedInterval(interval)
-              }}
-            />
-          </div>
+          {leyendoElPlan ? (
+            <p className="text-sm text-muted-foreground" data-testid="conversion-plan-loading">
+              {tOnboarding('plan.loadingPrices')}
+            </p>
+          ) : (
+            <div data-tour="conversion-plan-picker">
+              <PlanPicker
+                currentTier={selectedTier}
+                selectionMode="choice"
+                preciosSinIva={precios?.preciosSinIva}
+                fueraDeVenta={precios?.fueraDeVenta}
+                onSelectTier={(tier, interval) => {
+                  if (tier === 'ENTERPRISE') {
+                    // Enterprise is contact-sales only — no self-serve conversion path.
+                    window.open(
+                      salesWhatsAppLink('Hola, me interesa el plan Enterprise de Avoqado para mi negocio.'),
+                      '_blank',
+                      'noopener,noreferrer',
+                    )
+                    return
+                  }
+                  setSelectedTier(tier)
+                  setSelectedInterval(interval)
+                }}
+              />
+            </div>
+          )}
 
           {isPaidTier ? (
             <Card className="border-primary/30 bg-primary/5">
@@ -837,9 +840,7 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
                       <CheckCircle2 className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
-                        {tOnboarding('shared.freeAccountIncludes')}
-                      </p>
+                      <p className="text-sm font-medium text-blue-900 dark:text-blue-100">{tOnboarding('shared.freeAccountIncludes')}</p>
                       <ul className="mt-2 space-y-1.5 text-sm text-blue-800 dark:text-blue-200">
                         <li className="flex items-center gap-2">
                           <CheckCircle2 className="h-3.5 w-3.5" />
@@ -912,9 +913,7 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
                     <Building2 className="h-4 w-4 text-primary" />
                   )}
                   <span className="font-medium">
-                    {entityType === 'PERSONA_FISICA'
-                      ? t('conversionWizard.entityType.fisica')
-                      : t('conversionWizard.entityType.moral')}
+                    {entityType === 'PERSONA_FISICA' ? t('conversionWizard.entityType.fisica') : t('conversionWizard.entityType.moral')}
                   </span>
                 </div>
               </div>
@@ -968,7 +967,8 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
                   </div>
                   <p className="text-xs text-muted-foreground mt-2">
                     {t('conversionWizard.summary.businessInfoNote', {
-                      defaultValue: 'La información fiscal (RFC, razón social) se extraerá de tu Constancia de Situación Fiscal durante el proceso de verificación.'
+                      defaultValue:
+                        'La información fiscal (RFC, razón social) se extraerá de tu Constancia de Situación Fiscal durante el proceso de verificación.',
                     })}
                   </p>
                 </div>
@@ -1006,8 +1006,7 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
           {/* KYC Notice */}
           <div className="p-4 bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 rounded-lg">
             <p className="text-sm text-amber-800 dark:text-amber-200">
-              <strong>{t('conversionWizard.summary.kycNotice.title')}</strong>{' '}
-              {t('conversionWizard.summary.kycNotice.description')}
+              <strong>{t('conversionWizard.summary.kycNotice.title')}</strong> {t('conversionWizard.summary.kycNotice.description')}
             </p>
           </div>
 
@@ -1070,16 +1069,12 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
           </Button>
 
           {currentStep < totalSteps ? (
-            <Button onClick={handleNext} data-tour="conversion-next-btn">
+            <Button onClick={handleNext} disabled={currentStep === getStepForPlan() && leyendoElPlan} data-tour="conversion-next-btn">
               {getNextButtonText()}
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           ) : (
-            <Button
-              onClick={handleSubmit}
-              disabled={isSubmitting || !areAllDocumentsComplete}
-              data-tour="conversion-submit-btn"
-            >
+            <Button onClick={handleSubmit} disabled={isSubmitting || !areAllDocumentsComplete} data-tour="conversion-submit-btn">
               {isSubmitting ? (
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2"></div>
               ) : (

@@ -289,3 +289,73 @@ describe('ConversionWizard · fix round 1 (revisión #6 y #7)', () => {
     }
   })
 })
+
+describe('ConversionWizard · ronda final (Minors 4 y 5 de la revisión)', () => {
+  it('Minor 4: OFFER_CHANGED, QUOTE_EXPIRED, QUOTE_INVALID, PLAN_NOT_ON_SALE y QUOTE_REQUIRED releen el plan y regresan al paso de planes; otro error (500) ni relee ni regresa', async () => {
+    const codigos = [
+      { status: 409, code: 'OFFER_CHANGED', relee: true },
+      { status: 409, code: 'QUOTE_EXPIRED', relee: true },
+      { status: 409, code: 'QUOTE_INVALID', relee: true },
+      { status: 409, code: 'PLAN_NOT_ON_SALE', relee: true },
+      { status: 409, code: 'QUOTE_REQUIRED', relee: true },
+      { status: 500, code: 'INTERNAL_ERROR', relee: false },
+    ]
+    for (const { status, code, relee } of codigos) {
+      toastSpy.mockReset()
+      vi.mocked(getVenuePlan).mockReset()
+      vi.mocked(getVenuePlan).mockResolvedValue(planDeLaDemo(V2) as never)
+      vi.mocked(api.post).mockReset()
+      vi.mocked(api.post).mockRejectedValue({ response: { status, data: { code, message: `msg ${code}` } } })
+      const vista = abrir()
+      await alPasoDePlanes()
+      await waitFor(() => expect(within(tarjeta('pro')).getByText('$799')).toBeInTheDocument())
+      await userEvent.click(tarjeta('pro'))
+      await userEvent.click(siguiente())
+      await screen.findByText('Plan mensual · $799.00 MXN/mes + IVA')
+      const lecturas = vi.mocked(getVenuePlan).mock.calls.length
+      await userEvent.click(confirmar())
+      await waitFor(() => expect(toastSpy).toHaveBeenCalledWith(expect.objectContaining({ description: `msg ${code}` })))
+      if (relee) {
+        await waitFor(() => expect(vi.mocked(getVenuePlan).mock.calls.length).toBeGreaterThan(lecturas), { timeout: 2000 })
+        await waitFor(() => expect(tarjeta('pro')).not.toBeNull())
+        expect(confirmar()).toBeNull()
+      } else {
+        expect(vi.mocked(getVenuePlan).mock.calls.length).toBe(lecturas)
+        expect(tarjeta('pro')).toBeNull()
+        expect(confirmar()).not.toBeNull()
+      }
+      vista.unmount()
+    }
+  })
+
+  it('Minor 5: con la lectura del plan en vuelo no hay precios del catálogo y «Continuar» está apagado; con error, el catálogo de hoy; sin cotización, igual que antes', async () => {
+    // En vuelo: nunca contesta.
+    vi.mocked(getVenuePlan).mockReturnValue(new Promise(() => {}) as never)
+    const vista = abrir()
+    await waitFor(() => expect(screen.getByText(/Paso 2/)).toBeInTheDocument())
+    await userEvent.click(siguiente())
+    await userEvent.click(siguiente())
+    await waitFor(() => expect(screen.getByText('Cargando precios...')).toBeInTheDocument())
+    expect(tarjeta('pro')).toBeNull()
+    expect(screen.queryByText('$999')).toBeNull()
+    expect(siguiente()).toBeDisabled()
+    vista.unmount()
+
+    // Con error: el catálogo y el POST de hoy, sin plan.
+    vi.mocked(getVenuePlan).mockReset()
+    vi.mocked(getVenuePlan).mockRejectedValue(new Error('red'))
+    const conError = abrir()
+    await alPasoDePlanes()
+    expect(within(tarjeta('pro')).getByText('$999')).toBeInTheDocument()
+    expect(siguiente()).not.toBeDisabled()
+    conError.unmount()
+
+    // Cargado sin cotización (producción): el catálogo.
+    vi.mocked(getVenuePlan).mockReset()
+    vi.mocked(getVenuePlan).mockResolvedValue(planDeLaDemo() as never)
+    abrir()
+    await alPasoDePlanes()
+    await waitFor(() => expect(within(tarjeta('pro')).getByText('$999')).toBeInTheDocument())
+    expect(siguiente()).not.toBeDisabled()
+  })
+})
