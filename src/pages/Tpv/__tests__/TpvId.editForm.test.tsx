@@ -165,3 +165,98 @@ describe('formulario Editar de un aparato', () => {
     expect(body).not.toHaveProperty('config')
   })
 })
+
+describe('el refresco de la ficha no borra lo que se está editando (hz:a5fa2439:D4)', () => {
+  const FICHA = {
+    id: 'device-1',
+    name: 'PC de caja',
+    serialNumber: null,
+    type: 'POS_ANDROID',
+    status: 'ACTIVE',
+    venueId: 'venue-1',
+    modelIdentifier: 'Windows 11',
+    version: '2.30.0-escritorio',
+    lastHeartbeat: '2026-11-25T12:00:00.000Z',
+    customerDisplayInverted: false,
+    deviceDiagnostics: { performance: 'LIGHT', drawingMode: 'FAST', forced: true, receivedAt: '2026-11-25T12:00:00.000Z' },
+  }
+  let servidor: Record<string, unknown>
+
+  beforeEach(() => {
+    sesion.role = 'OWNER'
+    contexto.venueId = 'venue-1'
+    servidor = { ...FICHA }
+    apiGet.mockImplementation(async (path: string) => {
+      if (path === '/api/v1/dashboard/venues/venue-1/tpv/device-1') return { data: servidor }
+      // La ficha de una computadora pide su pantalla del cliente: aquí no tiene ninguna.
+      if (path.endsWith('/customer-display')) return { data: { data: null } }
+      return { data: { data: [] } }
+    })
+    apiPut.mockImplementation(async (_path: string, body: { name: string }) => {
+      servidor = { ...servidor, name: body.name }
+      return { data: servidor }
+    })
+  })
+
+  const campoNombre = () => screen.getByLabelText('detail.terminalName') as HTMLInputElement
+
+  async function abrirEdicionYTeclear(vista: ReturnType<typeof renderDetail>, nombre: string) {
+    fireEvent.click(await screen.findByRole('button', { name: 'common:edit' }))
+    fireEvent.change(campoNombre(), { target: { value: nombre } })
+    expect(campoNombre().value).toBe(nombre)
+    return vista
+  }
+
+  /**
+   * El latido o el refresco de 15 s: la misma ficha vuelve del SERVIDOR con otro latido y otra medición. Espera a que la
+   * página la PINTE (el nivel nuevo de «Rendimiento»): TanStack avisa a la página en un turno posterior al refetch.
+   */
+  async function refresco(vista: ReturnType<typeof renderDetail>, nivel: 'INSUFFICIENT' | 'FLUID', cambios: Record<string, unknown> = {}) {
+    servidor = {
+      ...servidor,
+      ...cambios,
+      lastHeartbeat: new Date(Date.parse(String(servidor.lastHeartbeat)) + 30_000).toISOString(),
+      deviceDiagnostics: { ...FICHA.deviceDiagnostics, performance: nivel },
+    }
+    await act(() => vista.queryClient.refetchQueries({ queryKey: ['tpv', 'venue-1', 'device-1'] }))
+    expect(await screen.findByText(`device.performance.${nivel}`)).toBeInTheDocument()
+  }
+
+  it('lo tecleado se conserva aunque llegue la misma ficha con otro latido y otra medición', async () => {
+    const vista = await abrirEdicionYTeclear(renderDetail(), 'Caja 2')
+    await refresco(vista, 'INSUFFICIENT')
+    expect(campoNombre().value).toBe('Caja 2')
+  })
+
+  it('al cancelar, el campo vuelve al valor más reciente del SERVIDOR', async () => {
+    const vista = await abrirEdicionYTeclear(renderDetail(), 'Caja 2')
+    await refresco(vista, 'FLUID', { name: 'Caja renombrada en otro lado' })
+    expect(campoNombre().value).toBe('Caja 2')
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'common:cancel' })[0])
+    fireEvent.click(await screen.findByRole('button', { name: 'common:edit' }))
+    expect(campoNombre().value).toBe('Caja renombrada en otro lado')
+  })
+
+  it('al guardar queda el valor guardado', async () => {
+    await abrirEdicionYTeclear(renderDetail(), 'Caja 2')
+    fireEvent.click(screen.getByRole('button', { name: 'detail.saveChanges' }))
+    await waitFor(() => expect(apiPut).toHaveBeenCalledTimes(1))
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'detail.saveChanges' })).not.toBeInTheDocument())
+    await waitFor(() => expect(screen.getAllByText('Caja 2').length).toBeGreaterThan(0))
+
+    fireEvent.click(await screen.findByRole('button', { name: 'common:edit' }))
+    expect(campoNombre().value).toBe('Caja 2')
+  })
+
+  it('sin edición abierta, un refresco con otro nombre se ve en la ficha, como hoy', async () => {
+    const vista = renderDetail()
+    expect((await screen.findAllByText('PC de caja')).length).toBeGreaterThan(0)
+    await refresco(vista, 'FLUID', { name: 'Caja de la barra' })
+    await waitFor(() => expect(screen.getAllByText('Caja de la barra').length).toBeGreaterThan(0))
+    expect(screen.queryByText('PC de caja')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'common:edit' }))
+    expect(campoNombre().value).toBe('Caja de la barra')
+  })
+})
