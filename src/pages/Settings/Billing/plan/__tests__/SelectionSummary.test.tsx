@@ -439,6 +439,23 @@ describe('SelectionSummary · la prueba de la versión del editor', () => {
     expect(review()).toBeNull()
   })
 
+  it('fix round 2: la línea de un plan fuera de venta dice «No disponible por ahora», sin precio ni total', () => {
+    renderSummary({
+      model: model({
+        operation: { kind: 'ASSISTED', tier: 'PREMIUM' },
+        current: 'FREE',
+        target: 'PREMIUM',
+        lines: [{ key: 'plan-PREMIUM', plan: 'PREMIUM', price: null, fueraDeVenta: true }],
+        monthlyTotal: null,
+        hint: null,
+      }),
+    })
+    expect(screen.getByText('plan.notOnSale')).toBeInTheDocument()
+    expect(screen.queryByText('—', { selector: 'span' })).toBeNull()
+    expect(screen.queryByText(/\$/)).toBeNull()
+    expect(review()).toHaveTextContent('plan.selection.assisted')
+  })
+
   it('TERMINAR_ACEPTACION dice «Terminar la compra que empezaste: Premium» y su botón revisa', async () => {
     const props = renderSummary({
       model: model({

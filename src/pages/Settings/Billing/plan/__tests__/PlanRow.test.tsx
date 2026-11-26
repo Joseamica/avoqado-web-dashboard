@@ -230,6 +230,31 @@ describe('PlanRow', () => {
     expect(document.querySelector('[data-tour="plan-interval"]')).not.toBeNull()
   })
 
+  it('fix round 2: con la cotización, la píldora de un plan fuera de venta dice «No disponible por ahora» y ningún precio; la de un plan vendible, su precio', () => {
+    const opcion = (precioCents: number) => ({
+      quoteToken: `tok_${precioCents}`,
+      precioCents,
+      netCents: precioCents,
+      firstChargeCents: precioCents,
+      trialEndsAt: null,
+    })
+    const cotizacion = {
+      versionNumber: 2,
+      planes: {
+        PRO: { displayName: 'Pro', vendible: true, monthly: opcion(92684), annual: opcion(926840) },
+        PREMIUM: { displayName: 'Premium', vendible: false, monthly: null, annual: null },
+      },
+    }
+    render(<PlanRow {...props({ planState: { state: 'none', cotizacion } as never })} />)
+    const [, pro, premium] = screen.getAllByRole('radio')
+    expect(within(premium).getByText('plan.notOnSale')).toBeInTheDocument()
+    expect(premium).not.toHaveTextContent('$')
+    expect(within(premium).queryByText('plan.plusIva')).toBeNull()
+    expect(within(premium).queryByText('plan.ivaIncluded')).toBeNull()
+    expect(within(pro).getByText(/926\.84/)).toBeInTheDocument()
+    expect(within(pro).queryByText('plan.notOnSale')).toBeNull()
+  })
+
   // D5 (5-nov-2026): con un cupón vigente, «Tu plan» dice lo que paga, hasta cuándo y el precio después.
   it('cupón de 3 meses: lo que paga, hasta cuándo y después el precio de lista', () => {
     const conCupon = {

@@ -90,6 +90,10 @@ const alPasoDePlanes = async () => {
 const convertir = () => vi.mocked(api.post).mock.calls.filter(([url]) => String(url).endsWith('/convert-from-demo'))
 
 beforeEach(() => {
+  // El asistente recarga la página con un `setTimeout` (1.5 s tras convertir a Gratis, 2.5 s si el checkout falla). Con relojes
+  // falsos que avanzan con el tiempo real, cada prueba se porta igual y `afterEach` tira lo que quedó pendiente: el temporizador de
+  // una prueba nunca dispara dentro de la siguiente (revisión 2).
+  vi.useFakeTimers({ shouldAdvanceTime: true })
   toastSpy.mockReset()
   assign.mockReset()
   reload.mockReset()
@@ -105,6 +109,8 @@ beforeEach(() => {
   vi.mocked(getVenuePlan).mockReset()
 })
 afterEach(() => {
+  vi.clearAllTimers()
+  vi.useRealTimers()
   vi.unstubAllGlobals()
 })
 
@@ -277,6 +283,7 @@ describe('ConversionWizard · fix round 1 (revisión #6 y #7)', () => {
       await waitFor(() => expect(toastSpy).toHaveBeenCalledWith(expect.objectContaining({ description: message, variant: 'destructive' })))
       expect(convertir()).toHaveLength(1)
       expect(createPlanCheckoutSession).not.toHaveBeenCalled()
+      expect(reload).not.toHaveBeenCalled()
       if (relee) await waitFor(() => expect(vi.mocked(getVenuePlan).mock.calls.length).toBeGreaterThan(lecturas))
       vista.unmount()
     }

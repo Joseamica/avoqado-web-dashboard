@@ -156,14 +156,21 @@ export function PlanRow(props: PlanRowProps) {
                 ) : (
                   <>
                     <span className="font-semibold">{tierName(tier)}</span>
-                    <span className="whitespace-nowrap tabular-nums">
-                      {money(price.ivaAparte ? sinIva(price.amount) : price.amount)}
-                      {tier !== 'FREE' && (price.per === 'year' ? t('plan.perYear') : t('plan.perMonth'))}
-                    </span>
-                    {tier !== 'FREE' && (
-                      <span className="whitespace-nowrap text-xs text-muted-foreground">
-                        {t(price.ivaAparte ? 'plan.plusIva' : 'plan.ivaIncluded')}
-                      </span>
+                    {price.fueraDeVenta ? (
+                      // B2 (revisión 2): la versión del editor no vende este plan hoy: ni su precio ni el del catálogo.
+                      <span className="whitespace-nowrap text-xs text-muted-foreground">{t('plan.notOnSale')}</span>
+                    ) : (
+                      <>
+                        <span className="whitespace-nowrap tabular-nums">
+                          {money(price.ivaAparte ? sinIva(price.amount) : price.amount)}
+                          {tier !== 'FREE' && (price.per === 'year' ? t('plan.perYear') : t('plan.perMonth'))}
+                        </span>
+                        {tier !== 'FREE' && (
+                          <span className="whitespace-nowrap text-xs text-muted-foreground">
+                            {t(price.ivaAparte ? 'plan.plusIva' : 'plan.ivaIncluded')}
+                          </span>
+                        )}
+                      </>
                     )}
                   </>
                 )}

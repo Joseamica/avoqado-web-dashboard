@@ -349,7 +349,7 @@ export function isMarkable(entry: FeatureGridEntry, mode: GridMode): boolean {
 export function planPillPrice(
   tier: PlanTarget,
   input: Omit<SelectionInput, 'target' | 'marked'> & { interval: 'monthly' | 'annual' },
-): { amount: number; per: 'month' | 'year'; ivaAparte: boolean } {
+): { amount: number; per: 'month' | 'year'; ivaAparte: boolean; fueraDeVenta?: true } {
   if (tier === 'FREE') return { amount: 0, per: 'month', ivaAparte: false }
   const origin = input.cotizacion ? origenQueCompra(input) : input.origin
   if (tier === currentTarget(origin) && origin.price)
@@ -359,6 +359,10 @@ export function planPillPrice(
       per: origin.interval === 'year' ? 'year' : 'month',
       ivaAparte: false,
     }
+  // B2 (revisión 2): con la versión del editor, un plan que hoy no se vende (sin opción en esa periodicidad) no enseña precio;
+  // `fueraDeVenta` lo dice y `amount` no se lee. Sin cotización, los precios de hoy.
+  if (input.cotizacion && !opcionCotizada(input.cotizacion, tier, input.interval))
+    return { amount: 0, per: input.interval === 'annual' ? 'year' : 'month', ivaAparte: false, fueraDeVenta: true }
   const op = planOperation({ ...input, target: tier, marked: [] })
   if (op.kind === 'CLASSIC_CHECKOUT') {
     // B2: con la cotización, el precio de la versión que firmó el SERVIDOR (con IVA), nunca el del catálogo.
@@ -380,6 +384,8 @@ export interface SummaryLine {
   entry?: FeatureGridEntry
   offer?: FeatureGridOffer
   price: number | null
+  /** B2: el plan no se vende hoy en la versión del editor; la línea lo dice en vez de un precio. */
+  fueraDeVenta?: true
 }
 
 export interface SelectionSummaryModel {
@@ -414,7 +420,9 @@ function includedHint(
       return !!found?.minimumTier && TIER_RANK[found.minimumTier] <= TIER_RANK[tier]
     }).length
     // B2: con la cotización, el precio mensual de la versión (con IVA) si el plan se vende hoy; si no, el del catálogo, como hoy.
+    // Un plan que la versión no vende no se sugiere (revisión 2).
     const referencia = opcionCotizada(cotizacion, tier, 'monthly')
+    if (cotizacion && !referencia) continue
     const price = referencia ? referencia.precioCents / 100 : classicPrice(tier, 'monthly')
     if (covered === marked.length) return { tier, covered, more: Math.max(0, tierFeatureCount(entries, tier) - covered), price }
   }
@@ -434,11 +442,13 @@ export function summarizeSelection(input: SelectionInput & { interval: 'monthly'
     const offer = found && chosenOffer(found, input.preferList)
     return found && offer ? [{ key: found.id, entry: found, offer, price: offer.price }] : []
   })
+  const pildora = planPillPrice(input.target, input)
   const planLine: SummaryLine = {
     key: `plan-${input.target}`,
     plan: input.target,
     offer: operation.kind === 'HYBRID_REPLACE' ? (chosenPlanOffer(input.grid, operation.tier, input.preferList) ?? undefined) : undefined,
-    price: planPillPrice(input.target, input).amount,
+    price: pildora.fueraDeVenta ? null : pildora.amount,
+    ...(pildora.fueraDeVenta ? { fueraDeVenta: true as const } : {}),
   }
   const quedarse = operation.kind === 'CLASSIC_CHECKOUT' && !!operation.firstChargeAt
   // Quedarse con el plan de la prueba SÍ compra el plan: su línea va aunque el destino sea el plan actual.
@@ -461,7 +471,8 @@ export function summarizeSelection(input: SelectionInput & { interval: 'monthly'
     current,
     target: input.target,
     lines,
-    monthlyTotal: priced ? lines.reduce((sum, line) => sum + (line.price ?? 0), 0) : null,
+    // Un plan fuera de venta no tiene total: «$0.00» sería un precio inventado (revisión 2).
+    monthlyTotal: priced && !lines.some(line => line.fueraDeVenta) ? lines.reduce((sum, line) => sum + (line.price ?? 0), 0) : null,
     payToday: operation.kind === 'CLASSIC_CHECKOUT' ? (quedarse ? 0 : planLine.price) : null,
     firstChargeAt: quedarse && operation.kind === 'CLASSIC_CHECKOUT' ? (operation.firstChargeAt ?? null) : null,
     lose,

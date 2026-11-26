@@ -157,7 +157,11 @@ export function SelectionSummary({
                 <li key={line.key} className="space-y-0.5">
                   <div className="flex justify-between gap-3">
                     <span>{line.plan ? t('plan.selection.plan', { tier: tierName(line.plan) }) : name(line.entry!)}</span>
-                    <span className="tabular-nums">{line.price == null ? '—' : money(line.price)}</span>
+                    {line.fueraDeVenta ? (
+                      <span className="text-muted-foreground">{t('plan.notOnSale')}</span>
+                    ) : (
+                      <span className="tabular-nums">{line.price == null ? '—' : money(line.price)}</span>
+                    )}
                   </div>
                   {line.offer && promo(line.offer) && <p className="text-xs text-muted-foreground">{promo(line.offer)}</p>}
                 </li>

@@ -981,6 +981,39 @@ describe('«Tu plan» con la cotización de la versión (B2, Task 12)', () => {
     expect(summarizeSelection({ ...contrato, cotizacion: premiumFuera }).operation).toEqual({ kind: 'ASSISTED', tier: 'PREMIUM' })
   })
 
+  it('🔴 fix round 2: con cotizacion, un plan fuera de venta (o sin opción en esa periodicidad) no enseña precio: ni su píldora ni la línea del cambio asistido; sin cotizacion, los precios de hoy', () => {
+    const premiumFuera = { ...V2, planes: { ...V2.planes, PREMIUM: fueraDeVenta('Premium') } }
+    const sinAnual = { ...V2, planes: { ...V2.planes, PREMIUM: { ...V2.planes.PREMIUM, annual: null } } }
+    const pill = (tier: 'PRO' | 'PREMIUM', over: Record<string, unknown>) =>
+      planPillPrice(tier, { ...base, origin: NO_ORIGIN, interval: 'monthly', ...over } as Parameters<typeof planPillPrice>[1])
+    expect(pill('PREMIUM', { cotizacion: premiumFuera })).toMatchObject({ fueraDeVenta: true })
+    expect(pill('PREMIUM', { cotizacion: sinAnual, interval: 'annual' })).toMatchObject({ fueraDeVenta: true })
+    // Vendible: su precio de la versión, sin la marca.
+    expect(pill('PREMIUM', { cotizacion: V2 })).toEqual({ amount: 1970.84, per: 'month', ivaAparte: false })
+    expect(pill('PREMIUM', { cotizacion: sinAnual })).toEqual({ amount: 1970.84, per: 'month', ivaAparte: false })
+    // El plan de hoy sigue diciendo lo que paga, aunque la versión ya no lo venda.
+    const proConPrecio = origin({ ...CLASSIC_PRO, interval: 'month', price: { base: 999, gross: 1158.84, currency: 'MXN' } })
+    const proFuera = { ...V2, planes: { ...V2.planes, PRO: fueraDeVenta('Pro') } }
+    expect(pill('PRO', { origin: proConPrecio, cotizacion: proFuera })).toEqual({ amount: 1158.84, per: 'month', ivaAparte: false })
+    // Sin cotización, el catálogo de hoy (y nunca la marca).
+    expect(pill('PREMIUM', {})).toEqual({ amount: 1970.84, per: 'month', ivaAparte: true })
+
+    const asistido = summarizeSelection({ ...base, origin: NO_ORIGIN, target: 'PREMIUM', interval: 'monthly', cotizacion: premiumFuera })
+    expect(asistido.operation).toEqual({ kind: 'ASSISTED', tier: 'PREMIUM' })
+    expect(asistido.lines).toEqual([expect.objectContaining({ plan: 'PREMIUM', price: null, fueraDeVenta: true })])
+    expect(asistido.monthlyTotal).toBeNull()
+    expect(asistido.payToday).toBeNull()
+    // Sin cotización, el cambio asistido sigue con su precio de referencia, como hoy.
+    const hoy = summarizeSelection({ ...base, origin: CLASSIC_PRO, target: 'PREMIUM', interval: 'monthly' })
+    expect(hoy.operation).toEqual({ kind: 'ASSISTED', tier: 'PREMIUM' })
+    expect(hoy.lines[0]).toEqual({ key: 'plan-PREMIUM', plan: 'PREMIUM', offer: undefined, price: 1970.84 })
+    expect(hoy.monthlyTotal).toBe(1970.84)
+    // La comparación «X incluye estas…» tampoco sugiere un plan fuera de venta.
+    const marcas = { ...base, origin: NO_ORIGIN, target: 'FREE' as const, marked: ['LOYALTY_PROGRAM'], interval: 'monthly' as const }
+    expect(summarizeSelection({ ...marcas, cotizacion: proFuera }).hint).toMatchObject({ tier: 'PREMIUM', price: 1970.84 })
+    expect(summarizeSelection({ ...marcas, cotizacion: { ...V2, planes: SIN_PLANES } }).hint).toBeNull()
+  })
+
   it('con cotizacion y origin NONE: CLASSIC_CHECKOUT con el quoteToken de la periodicidad elegida y precio 926.84 del SERVIDOR', () => {
     expect(planOperation({ ...base, origin: NO_ORIGIN, target: 'PRO', interval: 'monthly', cotizacion: V2 })).toEqual({
       kind: 'CLASSIC_CHECKOUT',
