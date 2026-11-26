@@ -46,14 +46,18 @@
       "description": "Configura cuándo expiran los puntos no utilizados",
       "enabled": {
         "label": "Habilitar Expiración",
-        "description": "Los puntos expirarán después de un número determinado de días"
+        "description": "Vencen los puntos de quien pasa ese número de días sin movimientos de puntos"
       },
       "days": {
         "label": "Días Hasta Expiración",
-        "description": "Número de días antes de que los puntos no utilizados expiren",
+        "description": "Días sin movimientos de puntos (ganar, canjear o un ajuste) antes de que venzan todos",
         "suffix": "días",
         "neverExpire": "Los puntos nunca expiran"
-      }
+      },
+      "rule": "Si un cliente pasa {{days}} días sin movimientos en sus puntos (ganar, canjear o un ajuste), vencen todos sus puntos.",
+      "since": "Los días sin movimientos cuentan, a lo más, desde el {{date}}, el día en que empezó a aplicarse la expiración.",
+      "shorterRestarts": "Al guardar, los días sin movimientos empiezan a contar desde hoy: nadie pierde sus puntos por este cambio.",
+      "programOff": "Con el programa apagado, no vence nada."
     },
     "save": "Guardar Cambios",
     "saving": "Guardando...",
