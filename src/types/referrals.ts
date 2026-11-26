@@ -170,6 +170,8 @@ export interface ReferralSummary {
   qualifiedThisMonth: number
   pendingThisMonth: number
   couponsEmittedThisMonth: number
+  /** D32: todos los premios de nivel emitidos este mes (cupón, descuento permanente y producto gratis). Opcional: servidor viejo. */
+  rewardsIssuedThisMonth?: number
   topReferrer: {
     id: string
     firstName: string | null

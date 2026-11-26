@@ -323,4 +323,29 @@ describe('ReferralsSettings', () => {
     expect(await screen.findByText('activate.submit')).toBeInTheDocument()
     expect(screen.queryByText('paused.reactivate')).not.toBeInTheDocument()
   })
+
+  // D32: «Premios emitidos» contaba sólo cupones; un producto gratis de nivel también es un premio emitido.
+  it('«Premios emitidos» enseña todos los premios del mes, no sólo los cupones', async () => {
+    mockGetConfig.mockResolvedValue({ ...pausedConfig, active: true })
+    mockGetSummary.mockResolvedValue({
+      referralsThisMonth: 3,
+      conversionRate: 0,
+      couponsEmittedThisMonth: 1,
+      rewardsIssuedThisMonth: 4,
+      topReferrer: null,
+    })
+    renderPage()
+
+    const celda = (await screen.findByText('active.metrics.couponsEmitted')).parentElement!
+    await waitFor(() => expect(celda).toHaveTextContent('4'))
+  })
+
+  it('con un servidor que todavía no manda el total, enseña lo de antes en vez de 0', async () => {
+    mockGetConfig.mockResolvedValue({ ...pausedConfig, active: true })
+    mockGetSummary.mockResolvedValue({ referralsThisMonth: 3, conversionRate: 0, couponsEmittedThisMonth: 2, topReferrer: null })
+    renderPage()
+
+    const celda = (await screen.findByText('active.metrics.couponsEmitted')).parentElement!
+    await waitFor(() => expect(celda).toHaveTextContent('2'))
+  })
 })

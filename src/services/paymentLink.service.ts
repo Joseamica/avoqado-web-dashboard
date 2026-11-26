@@ -38,7 +38,7 @@ export type PaymentLinkDiscountInput =
   | { mode: 'MANUAL'; type: 'PERCENTAGE' | 'FIXED_AMOUNT'; value: number; name?: string }
   | { mode: 'CATALOG'; discountId: string }
 
-export type PaymentLinkDiscountStatus = 'OK' | 'VENCIDO' | 'NO_INICIA' | 'FUERA_DE_HORARIO' | 'MINIMO' | 'INACTIVO' | 'AGOTADO'
+export type PaymentLinkDiscountStatus = 'OK' | 'VENCIDO' | 'NO_INICIA' | 'FUERA_DE_HORARIO' | 'MINIMO' | 'INACTIVO'
 
 export interface PaymentLinkDiscountView {
   name: string

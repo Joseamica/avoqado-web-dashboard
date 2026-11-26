@@ -64,7 +64,8 @@
     "toasts": {
       "updateSuccess": "Loyalty settings updated successfully",
       "updateError": "Failed to update loyalty settings"
-    }
+    },
+    "previewTitle": "Preview"
   },
   "dashboard": {
     "title": "Loyalty Overview",
@@ -159,7 +160,7 @@
     "stamps": {
       "title": "The stamps",
       "description": "Pick the one that fits your business: a cup for coffee, scissors for a salon, a dumbbell for a gym.",
-      "countHint": "Your card currently asks for {{count}} stamps. Change that on the Loyalty screen.",
+      "countHint": "Your card currently asks for {{count}} stamps. Change that above, in «Your stamp program».",
       "ownTitle": "Or upload your own stamp",
       "ownHint": "A square PNG with a transparent background. Upload just one: the ones still missing are generated for you, fainter.",
       "upload": "Upload stamp",
@@ -419,5 +420,8 @@
       "fromNowToday": "Today, starting now",
       "fromNowUntil": "Starting now through {{date}}"
     }
+  },
+  "info": {
+    "loyalty": "Set up the loyalty program: how points are earned, how they are redeemed and whether they expire."
   }
 }

@@ -277,9 +277,7 @@ export default function LoyaltySettings() {
 				<PageTitleWithInfo
 					title={t('title')}
 					className="text-2xl font-bold"
-					tooltip={t('info.loyalty', {
-						defaultValue: 'Configura el programa de lealtad, reglas de acumulacion y canje.',
-					})}
+					tooltip={t('info.loyalty')}
 				/>
 				<p className="text-muted-foreground text-sm">{t('subtitle')}</p>
 			</div>
@@ -466,7 +464,7 @@ export default function LoyaltySettings() {
 						<GlassCard className="p-5 lg:sticky lg:top-4" data-testid="loyalty-preview-card">
 							<div className="flex items-center gap-2 mb-4">
 								<Sparkles className="h-4 w-4 text-amber-500" />
-								<h3 className="font-semibold text-sm">{t('settings.earning.title', { defaultValue: 'Vista previa' })}</h3>
+								<h3 className="font-semibold text-sm">{t('settings.previewTitle')}</h3>
 							</div>
 
 							{/* Earn flow */}
