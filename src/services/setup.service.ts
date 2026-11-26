@@ -57,8 +57,9 @@ export const setupService = {
 
   /**
    * Planes editables (B2, §18): qué tarjeta cobraría Stripe al terminar la prueba SIN tarjeta, leída en ESE momento (la
-   * ventana la pide al abrirse, nunca de un `progress` anterior). Sólo informa: nada se compara al cobrar. Si Stripe no
-   * contesta, el SERVIDOR responde `{ tarjeta: null }`; una petición que falla rechaza (y la ventana dice «no se sabe»).
+   * ventana la pide al abrirse, nunca de un `progress` anterior). Sólo informa: nada se compara al cobrar. `{ tarjeta: null }`
+   * sólo es «no hay tarjeta»; si Stripe no contesta, el SERVIDOR responde 503 `TARJETA_NO_LEIDA`, y esa petición (como una de
+   * red que falla) rechaza: la ventana dice «no se sabe», nunca «sin tarjeta».
    */
   tarjetaDeLaPrueba: (orgId: string): Promise<TarjetaDeLaPrueba> =>
     api
