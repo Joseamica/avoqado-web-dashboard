@@ -476,7 +476,7 @@
     "subtitleNamed": "{{business}} is on Avoqado. Go in and start selling.",
     "enter": "Go to Avoqado",
     "trialEndsFree": "Your Pro trial ends on {{date}} with no charge. That day you can get Basic.",
-    "trialRenews": "Your Pro trial renews as Pro on {{date}}.",
+    "trialRenews": "Your {{plan}} trial renews as {{plan}} on {{date}}.",
     "trialChange": "Change it in \"Your plan\"",
     "completeError": "We could not finish your setup. Try again in a moment.",
     "trialWithCard": "Your {{plan}} trial ends on {{date}}; your card ••••{{last4}} will be charged that day. You can remove it in «Your plan».",

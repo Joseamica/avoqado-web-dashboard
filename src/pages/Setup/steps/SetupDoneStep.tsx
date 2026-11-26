@@ -117,7 +117,11 @@ export function SetupDoneStep({
                   defaultValue: 'Tu prueba de Pro termina el {{date}} sin cobro. Ese día podrás contratar el Básico.',
                   date: fecha,
                 })
-              : t('done.trialRenews', { defaultValue: 'Tu prueba de Pro se renueva como Pro el {{date}}.', date: fecha })}
+              : t('done.trialRenews', {
+                  defaultValue: 'Tu prueba de {{plan}} se renueva como {{plan}} el {{date}}.',
+                  plan: planName ?? 'Pro',
+                  date: fecha,
+                })}
           </p>
           <p className="text-muted-foreground">{t('done.trialChange', { defaultValue: 'Cámbialo en «Tu plan»' })}</p>
         </div>

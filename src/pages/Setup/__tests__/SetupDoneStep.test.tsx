@@ -24,6 +24,11 @@ describe('SetupDoneStep — modalidad REAL de la prueba', () => {
     expect(screen.getByText('Tu prueba de Pro se renueva como Pro el 15 de diciembre.')).toBeInTheDocument()
   })
 
+  it('RENEWS_AS_PRO con un plan Premium: dice Premium, no Pro (la prueba se renueva como el plan que se pidió)', () => {
+    render(<SetupDoneStep onFinish={() => {}} planName="Premium" trialModality="RENEWS_AS_PRO" trialEndsAt="2026-12-15T18:00:00.000Z" />)
+    expect(screen.getByText('Tu prueba de Premium se renueva como Premium el 15 de diciembre.')).toBeInTheDocument()
+  })
+
   it('sin modalidad o sin fecha: la pantalla de siempre, sin renglón de prueba', () => {
     const { rerender } = render(<SetupDoneStep onFinish={() => {}} />)
     expect(screen.queryByTestId('done-trial')).not.toBeInTheDocument()
