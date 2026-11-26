@@ -56,10 +56,11 @@ export default function LoyaltyPromotions() {
     enabled: !!venueId,
   })
   const config = configQuery.data
-  // Lo mismo que mira el servidor para dar sellos (programa activo + sellos) y puntos (programa activo con algo que dar).
+  // Lo mismo que mira el servidor para dar sellos (la tarjeta de sellos prendida; D42: no depende de los puntos) y puntos (el
+  // programa de puntos prendido con algo que dar).
   const programa = useMemo<ProgramaPrendido>(
     () => ({
-      sellos: !!config?.active && !!config.stampsEnabled,
+      sellos: !!config?.stampsEnabled,
       puntos: !!config?.active && (config.pointsPerDollar > 0 || config.pointsPerVisit > 0),
     }),
     [config],
@@ -127,8 +128,8 @@ export default function LoyaltyPromotions() {
         terminando.current = false
       })
   }
-  // Con el programa entero apagado, los dos botones van a Lealtad, donde está su interruptor; los sellos se prenden en la tarjeta.
-  const rutaSellos = config?.active ? `${fullBasePath}/loyalty/card` : `${fullBasePath}/loyalty`
+  // Cada botón va a su interruptor: los sellos en la tarjeta digital, los puntos en Lealtad (D42: uno no depende del otro).
+  const rutaSellos = `${fullBasePath}/loyalty/card`
 
   return (
     <FeatureGate feature="LOYALTY_PROGRAM">
