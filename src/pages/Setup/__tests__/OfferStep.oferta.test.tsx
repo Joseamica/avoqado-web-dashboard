@@ -327,6 +327,30 @@ describe('con la versión del editor: con tarjeta', () => {
   })
 })
 
+describe('con la versión del editor: la ventana abierta pasa de sin tarjeta a con tarjeta (Minor 6)', () => {
+  it('🔴 una relectura del progreso trae el MISMO plan abierto ahora con tarjeta: se pide el SetupIntent una sola vez y sale el formulario, no «Cargando…» para siempre', async () => {
+    const { rerender } = pintar(quoteCon(ofertaCon()))
+    await abrir('Pro')
+    expect(planSetupIntent).not.toHaveBeenCalled()
+    expect(screen.queryByTestId('payment-element')).not.toBeInTheDocument()
+
+    rerender(
+      <OfferStep
+        organizationId="org_1"
+        venueId="venue_1"
+        launchOffer={null}
+        planQuote={quoteCon(ofertaCon({ PRO: { ...PRO_SIN_TARJETA, requiresCard: true } }))}
+        onActivated={onActivated}
+        onFinish={onFinish}
+        onRefreshProgress={onRefreshProgress}
+        onFreePlan={onFreePlan}
+      />,
+    )
+    await waitFor(() => expect(screen.getByTestId('payment-element')).toBeInTheDocument())
+    expect(planSetupIntent).toHaveBeenCalledTimes(1)
+  })
+})
+
 describe('con la versión del editor: sin tarjeta', () => {
   it('🔴 Pro sin tarjeta: la ventana no monta el formulario de tarjeta; «Empezar mis 14 días gratis» manda offer.kind STANDARD_SIN_TARJETA, sin paymentMethodId, con su quoteToken; con el 200, guarda el respaldo con sinTarjeta y avanza', async () => {
     activatePlan.mockResolvedValue(

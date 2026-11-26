@@ -278,6 +278,13 @@ export function OfferStep({
   // después se reusa, como hoy), nunca al montar: elegir un plan sin tarjeta no le pide nada a Stripe. Sin versión, al montar.
   const [tarjetaPedida, setTarjetaPedida] = useState(false)
   const pideSetupIntent = !ofertaDelAlta || tarjetaPedida
+  // Minor 6: si una relectura del progreso (volver a la pestaña) trae una versión donde el plan YA abierto ahora pide tarjeta, se pide
+  // el SetupIntent también (sólo `elegir` y la recuperación lo pedían): si no, el formulario se queda en «Cargando…» hasta cerrar y
+  // reabrir. Nunca se desactiva: el SetupIntent se reusa, como hoy.
+  const abiertaPideTarjeta = !!planElegido && !!ofertaDelAlta && ventanaPideTarjeta(planElegido)
+  useEffect(() => {
+    if (abiertaPideTarjeta) setTarjetaPedida(true)
+  }, [abiertaPideTarjeta])
 
   // SetupIntent para la tarjeta, para cualquier plan (oferta o prueba): se pide al montar, no al abrir
   // la ventana, para que el formulario aparezca ya listo. (Con la versión del editor, ver `pideSetupIntent`.)
