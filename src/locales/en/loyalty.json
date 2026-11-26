@@ -46,14 +46,18 @@
       "description": "Configure when unused points expire",
       "enabled": {
         "label": "Enable Expiration",
-        "description": "Points will expire after a set number of days"
+        "description": "Points expire for customers who go that many days without any points activity"
       },
       "days": {
         "label": "Days Until Expiration",
-        "description": "Number of days before unused points expire",
+        "description": "Days without points activity (earning, redeeming or an adjustment) before all points expire",
         "suffix": "days",
         "neverExpire": "Points never expire"
-      }
+      },
+      "rule": "If a customer goes {{days}} days without any points activity (earning, redeeming or an adjustment), all of their points expire.",
+      "since": "Days without activity count, at most, from {{date}}, the day expiration started to apply.",
+      "shorterRestarts": "When you save, days without activity start counting from today: nobody loses points because of this change.",
+      "programOff": "With the program off, nothing expires."
     },
     "save": "Save Changes",
     "saving": "Saving...",

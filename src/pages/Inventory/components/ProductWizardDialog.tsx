@@ -51,6 +51,8 @@ import {
   Beef,
   Plus,
   Trash2,
+  ArrowUp,
+  ArrowDown,
   Info,
   UtensilsCrossed,
   Calendar,
@@ -905,10 +907,13 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
       // Load modifier groups if available
       // modifierGroups is the junction table (ProductModifierGroup[]), each with a .group relation
       if (existingProduct.modifierGroups && existingProduct.modifierGroups.length > 0) {
-        const modifierGroupsForForm = existingProduct.modifierGroups.map((mg: any) => ({
-          label: mg.group?.name ?? mg.name,
-          value: mg.group?.id ?? mg.groupId ?? mg.id,
-        }))
+        // hz:960ee149:D1: el orden de la caja es el `displayOrder`; no se confía en cómo llegue la lista.
+        const modifierGroupsForForm = [...existingProduct.modifierGroups]
+          .sort((a: any, b: any) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0))
+          .map((mg: any) => ({
+            label: mg.group?.name ?? mg.name,
+            value: mg.group?.id ?? mg.groupId ?? mg.id,
+          }))
         step1Form.setValue('modifierGroups', modifierGroupsForForm)
       }
 
@@ -2718,7 +2723,13 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                       {/* Selected Modifier Groups List */}
                       {(step1Form.watch('modifierGroups') || []).length > 0 && (
                         <div className="mt-4 space-y-2">
-                          {(step1Form.watch('modifierGroups') || []).map(selectedGroup => {
+                          {(step1Form.watch('modifierGroups') || []).map((selectedGroup, index, selectedList) => {
+                            // hz:960ee149:D1: el orden de esta lista es el que viaja en `modifierGroupIds` (y el de la caja).
+                            const moveGroup = (to: number) => {
+                              const next = [...selectedList]
+                              ;[next[index], next[to]] = [next[to], next[index]]
+                              step1Form.setValue('modifierGroups', next, { shouldDirty: true })
+                            }
                             // Find full modifier group data to show details
                             const fullGroupData = modifierGroups?.find(mg => mg.id === selectedGroup.value)
                             const modifiersList = fullGroupData?.modifiers?.map(m => m.name).join(', ') || ''
@@ -2746,6 +2757,28 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                                   type="button"
                                   variant="ghost"
                                   size="icon"
+                                  className="h-11 w-11 cursor-pointer text-muted-foreground shrink-0"
+                                  disabled={esVariante || index === 0}
+                                  aria-label={t('wizard.step1.moveGroupUp', { name: selectedGroup.label })}
+                                  onClick={() => moveGroup(index - 1)}
+                                >
+                                  <ArrowUp className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-11 w-11 cursor-pointer text-muted-foreground shrink-0"
+                                  disabled={esVariante || index === selectedList.length - 1}
+                                  aria-label={t('wizard.step1.moveGroupDown', { name: selectedGroup.label })}
+                                  onClick={() => moveGroup(index + 1)}
+                                >
+                                  <ArrowDown className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
                                   className="h-11 w-11 cursor-pointer text-muted-foreground hover:text-destructive shrink-0"
                                   disabled={esVariante}
                                   onClick={() => {
@@ -2762,6 +2795,9 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                               </div>
                             )
                           })}
+                          {(step1Form.watch('modifierGroups') || []).length > 1 && (
+                            <p className="text-xs text-muted-foreground">{t('wizard.step1.modifierGroupsOrderHint')}</p>
+                          )}
                         </div>
                       )}
                     </section>

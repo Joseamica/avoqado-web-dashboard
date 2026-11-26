@@ -57,6 +57,15 @@ export default function Campaigns() {
 				pageSize: pagination.pageSize,
 			}),
 		enabled: Boolean(venueId),
+		// Excepción de tiempo real documentada (`bounded-data-and-query-load.md`): los correos salen
+		// en los minutos siguientes, así que mientras una campaña de ESTA página va «En cola» o
+		// «Enviando» la lista se relee cada 30 s; con todo terminado no consulta nada. Si una relectura
+		// falla, se detiene (no insiste contra un servidor que falla); vuelve al regresar a la pestaña.
+		refetchInterval: query =>
+			query.state.status === 'success' &&
+			query.state.data?.items.some(c => c.status === 'ENQUEUED' || c.status === 'SENDING')
+				? 30_000
+				: false,
 	})
 	const { data, isLoading } = listQuery
 
@@ -105,6 +114,10 @@ export default function Campaigns() {
 							<span className="text-muted-foreground"> / {c.totalRecipients}</span>
 							{c.failedCount > 0 && (
 								<span className="text-destructive ml-2">{t('campaigns.failedCount', { count: c.failedCount })}</span>
+							)}
+							{/* Sin esto, «Enviada · 0 / 10» no dice por qué no salió ninguno. */}
+							{c.skippedCount > 0 && (
+								<span className="text-muted-foreground ml-2">{t('campaigns.skippedCount', { count: c.skippedCount })}</span>
 							)}
 						</div>
 					)

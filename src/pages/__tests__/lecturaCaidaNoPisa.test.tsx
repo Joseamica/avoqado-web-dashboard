@@ -24,6 +24,11 @@ const m = vi.hoisted(() => ({
 }))
 vi.mock('@/api', () => ({ default: { get: m.get, put: m.put, post: m.post, patch: m.patch, delete: vi.fn() } }))
 vi.mock('@/hooks/use-current-venue', () => ({ useCurrentVenue: () => ({ venueId: 'v1' }) }))
+// LoyaltySettings lee la zona horaria del negocio (D27); sin AuthProvider, useVenueDateTime truena.
+vi.mock('@/utils/datetime', async importOriginal => ({
+  ...(await importOriginal<typeof import('@/utils/datetime')>()),
+  useVenueDateTime: () => ({ venueTimezone: 'America/Mexico_City', formatDate: (d: string) => d }),
+}))
 vi.mock('@/hooks/use-current-organization', () => ({ useCurrentOrganization: () => ({ organization: { name: 'Org' } }) }))
 vi.mock('@/hooks/use-access', () => ({ useAccess: () => ({ can: () => true }) }))
 vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: vi.fn() }) }))

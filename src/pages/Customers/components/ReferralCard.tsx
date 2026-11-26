@@ -57,8 +57,6 @@ interface ReferralCardProps {
     } | null
   }
   venueId: string
-  /** The venue's user-friendly name (or slug) used in the WhatsApp share message. */
-  venueName: string
 }
 
 interface NextTierInfo {
@@ -178,7 +176,7 @@ interface PendingCourtesy {
   rewardQuantity: number
 }
 
-export function ReferralCard({ customer, venueId, venueName }: ReferralCardProps) {
+export function ReferralCard({ customer, venueId }: ReferralCardProps) {
   const { t, i18n } = useTranslation('referrals')
   const { t: tCommon } = useTranslation()
   const { toast } = useToast()
@@ -297,14 +295,38 @@ export function ReferralCard({ customer, venueId, venueName }: ReferralCardProps
   }
 
   // ─── WhatsApp share ───────────────────────────────────────────────
-  const whatsappHref = (() => {
-    if (!customer.referralCode) return '#'
-    const message = t('card.whatsappMessage', {
-      venue: venueName,
-      code: customer.referralCode,
-    })
-    return `https://wa.me/?text=${encodeURIComponent(message)}`
-  })()
+  // D30 (hz:be99f328:D30): el mensaje lo arma el SERVIDOR con el premio al referido guardado (antes decía «10%» fijo), y
+  // se le pregunta en CADA toque: una liga guardada se quedaba con el % viejo o seguía ofreciéndose en pausa (Codex r1 #7,
+  // r2 #2, r3 #6). La ventana se abre en el mismo toque (abierta después de esperar, el navegador la bloquea) y luego se
+  // llena con la liga o se cierra con el motivo. En pausa no se comparte: la caja rechazaría el código.
+  const [sharing, setSharing] = useState(false)
+  const handleWhatsApp = async () => {
+    if (!customer.referralCode || sharing) return
+    const win = window.open('', '_blank')
+    if (win) win.opener = null
+    setSharing(true)
+    try {
+      const link = await referralsService.getShareLink(venueId, customer.id)
+      if (link.programActive === false) {
+        win?.close()
+        toast({ title: t('card.whatsappPaused') })
+        return
+      }
+      if (win) {
+        win.location.href = link.whatsappShareUrl
+        return
+      }
+      // El navegador bloqueó la ventana del toque: un intento más y, si tampoco, se dice (nunca en silencio).
+      const retry = window.open(link.whatsappShareUrl, '_blank')
+      if (retry) retry.opener = null
+      else toast({ title: t('card.whatsappBlocked'), variant: 'destructive' })
+    } catch {
+      win?.close()
+      toast({ title: t('card.whatsappError'), variant: 'destructive' })
+    } finally {
+      setSharing(false)
+    }
+  }
 
   // ─── Tier B header date ───────────────────────────────────────────
   const tierUnlockedLabel = (() => {
@@ -400,14 +422,13 @@ export function ReferralCard({ customer, venueId, venueName }: ReferralCardProps
           <Button
             variant="outline"
             size="sm"
-            asChild
+            onClick={handleWhatsApp}
+            disabled={sharing}
             data-testid="referral-card-whatsapp-btn"
             className="cursor-pointer"
           >
-            <a href={whatsappHref} target="_blank" rel="noopener noreferrer">
-              <MessageCircle className="h-3.5 w-3.5 mr-1.5" />
-              {t('card.whatsappButton')}
-            </a>
+            <MessageCircle className="h-3.5 w-3.5 mr-1.5" />
+            {t('card.whatsappButton')}
           </Button>
         </PermissionGate>
       </div>
