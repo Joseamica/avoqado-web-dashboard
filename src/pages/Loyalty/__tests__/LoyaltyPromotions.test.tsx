@@ -125,11 +125,19 @@ beforeEach(() => {
 })
 
 describe('LoyaltyPromotions', () => {
-  it('con el programa apagado, los dos botones llevan a Lealtad, donde está el interruptor', async () => {
-    h.config = { ...CONFIG, active: false }
+  // hz:be99f328:D42: el interruptor de PUNTOS (`active`) ya no apaga los sellos; cada uno se prende en su página.
+  it('D42: con los puntos apagados y los sellos prendidos hay programa: sin aviso y se puede crear una promo', async () => {
+    h.config = { ...CONFIG, active: false, stampsEnabled: true }
+    await pintar()
+    expect(await screen.findByRole('button', { name: /Nueva promoción/ })).toBeInTheDocument()
+    expect(screen.queryByTestId('loyalty-promo-program-off')).not.toBeInTheDocument()
+  })
+
+  it('con puntos y sellos apagados, «Prender sellos» lleva a la tarjeta digital y «Prender puntos» a Lealtad', async () => {
+    h.config = { ...CONFIG, active: false, stampsEnabled: false }
     await pintar()
     const aviso = await screen.findByTestId('loyalty-promo-program-off')
-    expect(within(aviso).getByRole('link', { name: 'Prender sellos' })).toHaveAttribute('href', '/venues/cafe/loyalty')
+    expect(within(aviso).getByRole('link', { name: 'Prender sellos' })).toHaveAttribute('href', '/venues/cafe/loyalty/card')
     expect(within(aviso).getByRole('link', { name: 'Prender puntos' })).toHaveAttribute('href', '/venues/cafe/loyalty')
   })
 

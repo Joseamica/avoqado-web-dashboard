@@ -102,6 +102,17 @@ describe('LoyaltySettings · «Guardar Cambios» siempre a la vista (D29)', () =
 	})
 })
 
+// hz:be99f328:D42: este interruptor apaga sólo los PUNTOS; los sellos tienen el suyo en la tarjeta digital.
+describe('LoyaltySettings · el interruptor es de los puntos (D42)', () => {
+	it('dice «Programa de Puntos» y que la tarjeta de sellos se prende aparte', async () => {
+		ponerAncho(1440)
+		await pintar()
+		expect(screen.getByText('Programa de Puntos')).toBeInTheDocument()
+		expect(screen.getByText(/La tarjeta de sellos tiene su propio interruptor en Tarjeta digital/)).toBeInTheDocument()
+		expect(screen.queryByText('Estado del Programa')).not.toBeInTheDocument()
+	})
+})
+
 describe('LoyaltySettings · cómo vencen los puntos (D27)', () => {
 	it('con la expiración prendida, explica la regla (por inactividad) y desde cuándo cuentan los días', async () => {
 		ponerAncho(1440)

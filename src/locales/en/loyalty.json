@@ -4,10 +4,10 @@
   "settings": {
     "title": "Loyalty Settings",
     "status": {
-      "label": "Program Status",
+      "label": "Points Program",
       "active": "Active",
       "inactive": "Inactive",
-      "description": "Enable or disable the loyalty program for your venue"
+      "description": "Turn your customers' points on or off. The stamp card has its own switch in Digital card."
     },
     "earning": {
       "title": "Earning Rules",

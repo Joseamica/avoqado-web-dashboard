@@ -4,10 +4,10 @@
   "settings": {
     "title": "Configuración de Lealtad",
     "status": {
-      "label": "Estado del Programa",
+      "label": "Programa de Puntos",
       "active": "Activo",
       "inactive": "Inactivo",
-      "description": "Habilita o deshabilita el programa de lealtad para tu establecimiento"
+      "description": "Prende o apaga los puntos de tus clientes. La tarjeta de sellos tiene su propio interruptor en Tarjeta digital."
     },
     "earning": {
       "title": "Reglas de Acumulación",
