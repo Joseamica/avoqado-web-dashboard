@@ -8,6 +8,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { AvisoDeCarga, BotonReintentar } from '@/components/AvisoDeCarga'
 import { falloDeCarga } from '@/lib/falloDeCarga'
 import { useTranslation } from 'react-i18next'
+import { getIntlLocale } from '@/utils/i18n-locale'
 import { useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
 import { useSocket } from '@/context/SocketContext'
@@ -49,9 +50,30 @@ import {
 type HybridDropOperation = Extract<PlanOperation, { kind: 'HYBRID_DROP' }>
 /** Re-reads of the plan after Stripe's return (waits before each, ~10 s in all) before the toast says "pending". */
 const CHECKOUT_REREADS_MS = [0, 1500, 3000, 5000]
+/** B2: el checkout de «Tu plan» citó una versión que ya cambió (o su comprobante venció): se vuelve a leer el plan. */
+const OFERTA_CAMBIADA = ['OFFER_CHANGED', 'QUOTE_EXPIRED', 'QUOTE_INVALID', 'PLAN_NOT_ON_SALE']
+type CheckoutVars = {
+  tier: 'PRO' | 'PREMIUM'
+  interval: 'monthly' | 'annual'
+  primerCobroAnunciado?: string
+  quoteToken?: string
+  acceptanceId?: string
+}
+/**
+ * B2 (b2-r7 #4): el 409 `PLAN_ACCEPTANCE_REQUIRED` trae la compra que se aceptó al convertir la demo (su respuesta se perdió). Sólo
+ * se usa si es de un plan y una periodicidad conocidos.
+ */
+function aceptacionDelRechazo(value: unknown): Pick<CheckoutVars, 'tier' | 'interval' | 'acceptanceId'> | null {
+  const details = (value as { response?: { data?: { details?: unknown } } })?.response?.data?.details as
+    { acceptanceId?: unknown; tier?: unknown; interval?: unknown } | undefined
+  if (!details || typeof details.acceptanceId !== 'string' || !details.acceptanceId) return null
+  if (details.tier !== 'PRO' && details.tier !== 'PREMIUM') return null
+  if (details.interval !== 'monthly' && details.interval !== 'annual') return null
+  return { tier: details.tier, interval: details.interval, acceptanceId: details.acceptanceId }
+}
 
 export default function Subscriptions() {
-  const { t } = useTranslation('billing')
+  const { t, i18n } = useTranslation('billing')
   const { venueId, venue } = useCurrentVenue()
   const { can } = useAccess()
   const { staffInfo } = useAuth()
@@ -111,6 +133,9 @@ export default function Subscriptions() {
     replacements: replacements.data,
     classicRejected,
     preferList,
+    // B2: sin versión del editor no viaja, y todo es lo de hoy.
+    cotizacion: plan.data?.cotizacion,
+    interval: billingInterval,
   }
   const model = summarizeSelection({ ...selection, interval: billingInterval })
   const mode = gridMode(target, current, canDropWithFeatures(origin, replacements.data))
@@ -174,6 +199,45 @@ export default function Subscriptions() {
     )
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // B2 (§17): de vuelta del portal de Stripe (?portal=tarjeta). Lo que quedó lo dice el plan VUELTO A LEER (la prueba según Stripe),
+  // nunca la sola ausencia de `faltaTarjeta`; y un plan que no se pudo leer no dice nada (la página ya enseña su aviso).
+  const [vueltaDelPortal, setVueltaDelPortal] = useState<number | null>(null)
+  useEffect(() => {
+    if (searchParams.get('portal') !== 'tarjeta') return
+    setVueltaDelPortal(Date.now())
+    void queryClient.invalidateQueries({ queryKey: ['venuePlan', venueId] })
+    setSearchParams(
+      prev => {
+        const next = new URLSearchParams(prev)
+        next.delete('portal')
+        return next
+      },
+      { replace: true },
+    )
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (vueltaDelPortal === null || plan.isFetching) return
+    if (plan.isError) {
+      setVueltaDelPortal(null)
+      return
+    }
+    if (!plan.data || plan.dataUpdatedAt < vueltaDelPortal) return
+    setVueltaDelPortal(null)
+    const prueba = plan.data.cotizacion?.estadoDeLaPrueba
+    const precio = (cents: number) =>
+      new Intl.NumberFormat(getIntlLocale(i18n.language), { style: 'currency', currency: 'MXN' }).format(cents / 100)
+    if (prueba?.estado === 'CON_TARJETA')
+      toast({
+        title:
+          prueba.montoAlTerminarCents == null
+            ? t('plan.selection.amountUnavailable')
+            : t('plan.selection.cardAdded', { price: precio(prueba.montoAlTerminarCents), last4: prueba.tarjeta?.last4 ?? '' }),
+      })
+    else if (prueba?.estado === 'SIN_TARJETA') toast({ title: t('plan.selection.cardNotYet') })
+    // TERMINADA, o sin la prueba (Stripe ya dice `past_due`, `active` o la baja llegó): nunca «Listo».
+    else toast({ title: t('plan.selection.trialEnded') })
+  }, [vueltaDelPortal, plan.isFetching, plan.isError, plan.data, plan.dataUpdatedAt]) // eslint-disable-line react-hooks/exhaustive-deps
+
   // Real-time subscription changes refresh the plan and the grid.
   useEffect(() => {
     if (!socket || !venueId) return
@@ -224,6 +288,30 @@ export default function Subscriptions() {
     setError(null)
     setCancelOpen(true)
   }
+  // The classic checkout, and what each refusal does. Its promise settles when everything did (`review` holds its lock until then).
+  const checkoutFailed = (value: unknown) => {
+    const code = serverCode(value)
+    if (code === 'PLAN_ABSORBE_SUELTA') return setClassicRejected(true)
+    // D3: la oferta «hoy $0» caducó (quedan menos de 2 días); B2: la oferta cambió o el comprobante ya no sirve. Se dice por qué
+    // (el mensaje del SERVIDOR) y se vuelve a leer el plan, sin abrir ningún pago.
+    if (code === 'COBRO_DIFERIDO_CADUCO' || OFERTA_CAMBIADA.includes(code ?? ''))
+      void queryClient.invalidateQueries({ queryKey: ['venuePlan', venueId] })
+    fail(value)
+  }
+  const checkout = async (vars: CheckoutVars) => {
+    try {
+      await ops.classicCheckout.mutateAsync(vars)
+    } catch (value) {
+      // B2 (b2-r7 #4): la conversión de la demo confirmó y su respuesta se perdió: se retoma UNA vez esa compra aceptada.
+      const aceptada = !vars.acceptanceId && serverCode(value) === 'PLAN_ACCEPTANCE_REQUIRED' ? aceptacionDelRechazo(value) : null
+      if (!aceptada) return checkoutFailed(value)
+      try {
+        await ops.classicCheckout.mutateAsync(aceptada)
+      } catch (otra) {
+        checkoutFailed(otra)
+      }
+    }
+  }
   // onError shows the failure; the promise only tells `review` when the operation settled.
   const quote = (body: HybridQuoteBody) => ops.hybridQuote.mutateAsync(body, { onSuccess: reset, onError: fail }).catch(() => undefined)
 
@@ -246,19 +334,12 @@ export default function Subscriptions() {
       return
     }
     if (op.kind === 'CLASSIC_CHECKOUT')
-      return ops.classicCheckout
-        .mutateAsync(
-          { tier: op.tier, interval: billingInterval, primerCobroAnunciado: op.firstChargeAt },
-          {
-            onError: value => {
-              if (serverCode(value) === 'PLAN_ABSORBE_SUELTA') return setClassicRejected(true)
-              // D3: la oferta «hoy $0» caducó (quedan menos de 2 días): se dice por qué y se vuelve a leer el plan.
-              if (serverCode(value) === 'COBRO_DIFERIDO_CADUCO') void queryClient.invalidateQueries({ queryKey: ['venuePlan', venueId] })
-              fail(value)
-            },
-          },
-        )
-        .catch(() => undefined)
+      return checkout({ tier: op.tier, interval: billingInterval, primerCobroAnunciado: op.firstChargeAt, quoteToken: op.quoteToken })
+    // B2 (b2-r8 #7): la compra que se aceptó al convertir la demo, con SU plan y SU periodicidad.
+    if (op.kind === 'TERMINAR_ACEPTACION') return checkout({ tier: op.tier, interval: op.interval, acceptanceId: op.acceptanceId })
+    // B2 (§17): la tarjeta de la prueba se pone en el portal de Stripe. Si no abre, el mensaje del SERVIDOR y no se navega.
+    if (op.kind === 'PORTAL_TARJETA') return ops.cardPortal.mutateAsync().catch(value => void fail(value))
+    if (op.kind === 'PRUEBA_CON_TARJETA') return
     if (op.kind === 'FEATURES') return quote({ lines: op.lines, replaceSubscriptionIds: [], dropFeatureCodes: [] })
     if (op.kind === 'HYBRID_REPLACE')
       return quote({ lines: op.lines, replaceSubscriptionIds: op.replaceSubscriptionIds, dropFeatureCodes: op.dropFeatureCodes })

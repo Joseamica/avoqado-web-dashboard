@@ -196,6 +196,40 @@ describe('PlanRow', () => {
     expect(screen.queryByText(/currentPlan\.renewsOn/)).toBeNull()
   })
 
+  // Planes editables (B2, Task 12): una prueba SIN tarjeta no «se renueva»: Stripe la cancela si nadie pone la tarjeta.
+  it('PlanRow con origin.faltaTarjeta: «Tu prueba termina el …; pon tu tarjeta para seguir con Pro», no «se renueva»', () => {
+    const sinTarjeta = origin({ ...CLASSIC, currentPeriodEnd: '2026-12-10T17:00:00.000Z', faltaTarjeta: true })
+    render(
+      <PlanRow
+        {...props({
+          origin: sinTarjeta,
+          planState: { state: 'trial', trialEndsAt: '2026-12-10T17:00:00.000Z' } as never,
+          current: 'PRO',
+          selected: 'PRO',
+        })}
+      />,
+    )
+    expect(screen.getByText('plan.row.trialNoCard|date=2026-12-10|tier=plan.tiers.pro.name')).toBeInTheDocument()
+    expect(screen.queryByText(/currentPlan\.renewsOn/)).toBeNull()
+    expect(screen.queryByText(/plan\.row\.firstChargeOn/)).toBeNull()
+  })
+
+  it('B2: con la prueba ya TERMINADA en Stripe (la baja no llegó) no promete «primer cobro» ni «se renueva», y deja elegir mensual o anual', () => {
+    const terminada = {
+      state: 'trial',
+      trialEndsAt: '2026-12-10T17:00:00.000Z',
+      cotizacion: {
+        versionNumber: 2,
+        planes: {},
+        estadoDeLaPrueba: { estado: 'TERMINADA', tier: 'PRO', interval: 'monthly', trialEndsAt: '2026-12-10T17:00:00.000Z' },
+      },
+    }
+    render(<PlanRow {...props({ origin: CLASSIC, planState: terminada as never, current: 'PRO', selected: 'PRO' })} />)
+    expect(screen.queryByText(/plan\.row\.firstChargeOn/)).toBeNull()
+    expect(screen.queryByText(/currentPlan\.renewsOn/)).toBeNull()
+    expect(document.querySelector('[data-tour="plan-interval"]')).not.toBeNull()
+  })
+
   // D5 (5-nov-2026): con un cupón vigente, «Tu plan» dice lo que paga, hasta cuándo y el precio después.
   it('cupón de 3 meses: lo que paga, hasta cuándo y después el precio de lista', () => {
     const conCupon = {

@@ -379,3 +379,63 @@ describe('a refusal comes into view', () => {
     expect(refuse({ top: 300, bottom: 400 })).not.toHaveBeenCalled()
   })
 })
+
+// Planes editables (B2, Task 12): la prueba sin tarjeta se completa en el portal de Stripe; el monto es el de Stripe (`montoAlTerminarCents`).
+describe('SelectionSummary · la prueba de la versión del editor', () => {
+  const FIN = '2026-12-10T17:00:00.000Z'
+  const deLaPrueba = (operation: SelectionSummaryModel['operation']) =>
+    model({ operation, current: 'PRO', target: 'PRO', lines: [], monthlyTotal: null, payToday: null, hint: null })
+
+  it('🔴 PORTAL_TARJETA dice «… ese día se cobran $810.84 y nada antes.» con montoAlTerminarCents del SERVIDOR, la nota del portal y el botón «Poner mi tarjeta»', async () => {
+    const props = renderSummary({
+      model: deLaPrueba({ kind: 'PORTAL_TARJETA', tier: 'PRO', interval: 'monthly', trialEndsAt: FIN, montoAlTerminarCents: 81084 }),
+    })
+    expect(screen.getAllByText(/^plan\.selection\.trialCardSummary\|date=2026-12-10\|price=\$810\.84$/).length).toBeGreaterThan(0)
+    expect(screen.getByText('plan.selection.portalNote')).toBeInTheDocument()
+    expect(review()).toHaveTextContent('plan.selection.addCard')
+    expect(review()).toBeEnabled()
+    await userEvent.click(review())
+    expect(props.onReview).toHaveBeenCalledTimes(1)
+    // Ni un precio unitario ni un «hoy pagas»: lo único que se cobra es lo que dice Stripe, el día que termina.
+    expect(screen.queryByText(/plan\.selection\.payToday/)).toBeNull()
+  })
+
+  it('🔴 b2-r6 #4: con montoAlTerminarCents null no hay botón «Poner mi tarjeta» y dice «No pudimos calcular cuánto…»', () => {
+    renderSummary({
+      model: deLaPrueba({ kind: 'PORTAL_TARJETA', tier: 'PRO', interval: 'monthly', trialEndsAt: FIN, montoAlTerminarCents: null }),
+    })
+    expect(screen.getAllByText('plan.selection.amountUnavailable').length).toBeGreaterThan(0)
+    expect(screen.queryByText('plan.selection.addCard')).toBeNull()
+    expect(review()).toBeNull()
+    expect(document.querySelector('[data-tour="plan-review-bar"]')).toBeNull()
+  })
+
+  it('PRUEBA_CON_TARJETA dice «… se cobrarán $926.84 en tu tarjeta ••••4242. Puedes cambiarla o cancelar.»', () => {
+    renderSummary({
+      model: deLaPrueba({
+        kind: 'PRUEBA_CON_TARJETA',
+        trialEndsAt: FIN,
+        tarjeta: { brand: 'visa', last4: '4242' },
+        montoAlTerminarCents: 92684,
+      }),
+    })
+    expect(screen.getAllByText(/^plan\.selection\.trialWithCard\|date=2026-12-10\|price=\$926\.84\|last4=4242$/).length).toBeGreaterThan(0)
+    // Sólo informa: no hay nada que comprar ni que poner.
+    expect(review()).toBeNull()
+    expect(screen.queryByText('plan.selection.addCard')).toBeNull()
+  })
+
+  it('TERMINAR_ACEPTACION dice «Terminar la compra que empezaste: Premium» y su botón revisa', async () => {
+    const props = renderSummary({
+      model: model({
+        operation: { kind: 'TERMINAR_ACEPTACION', acceptanceId: 'cacc1', tier: 'PREMIUM', interval: 'annual' },
+        lines: [],
+        monthlyTotal: null,
+        hint: null,
+      }),
+    })
+    expect(screen.getAllByText('plan.selection.finishAcceptance|tier=plan.tiers.premium.name').length).toBeGreaterThan(0)
+    await userEvent.click(review())
+    expect(props.onReview).toHaveBeenCalledTimes(1)
+  })
+})

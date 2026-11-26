@@ -22,10 +22,16 @@ export const dependencyIssue = (value: unknown): DependencyIssue | undefined => 
   const details = (value as ServerFailure)?.response?.data?.details
   return serverCode(value) === 'HYBRID_DEPENDENCY_TERM' && Array.isArray(details) ? details[0] : undefined
 }
+/**
+ * B2: los 503 que el SERVIDOR escribe para el dueño, en español (la página de la tarjeta no abrió, la oferta no se pudo leer). Los
+ * demás 5xx son internos.
+ */
+const MENSAJES_PARA_EL_DUENO = ['PORTAL_NOT_CONFIGURED', 'PLAN_NOT_CONFIGURED']
 /** A refusal (4xx) is written for the owner; a server failure (5xx) is internal and often English, so ours is shown. */
 export const serverMessage = (value: unknown, fallback: string) => {
   const response = (value as ServerFailure)?.response
-  return (response?.status ?? 0) >= 500 ? fallback : (response?.data?.message ?? fallback)
+  if ((response?.status ?? 0) >= 500 && !MENSAJES_PARA_EL_DUENO.includes(response?.data?.code ?? '')) return fallback
+  return response?.data?.message ?? fallback
 }
 
 const REFRESH = [
@@ -52,15 +58,26 @@ export function usePlanOperations(venueId: string, openCheckout: () => void) {
       tier,
       interval,
       primerCobroAnunciado,
+      quoteToken,
+      acceptanceId,
     }: {
       tier: 'PRO' | 'PREMIUM'
       interval: 'monthly' | 'annual'
       /** D3: quedarse con el plan de una prueba regalada (hoy $0): la fecha del primer cobro que se mostró. */
       primerCobroAnunciado?: string
+      /** B2: el comprobante de la opción que «Tu plan» cotizó con una versión del editor. */
+      quoteToken?: string
+      /** B2 (b2-r7 #4): la compra que se aceptó al convertir la demo. */
+      acceptanceId?: string
     }) => {
-      // Sin la marca, la llamada de siempre: sólo «quedarse» con la prueba la manda.
-      const url = primerCobroAnunciado
-        ? await createPlanCheckoutSession(venueId, tier, interval, { primerCobroAnunciado })
+      const opciones = {
+        ...(primerCobroAnunciado ? { primerCobroAnunciado } : {}),
+        ...(quoteToken ? { quoteToken } : {}),
+        ...(acceptanceId ? { acceptanceId } : {}),
+      }
+      // Sin nada de eso, la llamada de siempre: sólo «quedarse», el comprobante o la aceptación agregan algo.
+      const url = Object.keys(opciones).length
+        ? await createPlanCheckoutSession(venueId, tier, interval, opciones)
         : await createPlanCheckoutSession(venueId, tier, interval)
       // No url means no checkout: fail loudly (the page shows it) instead of navigating to "undefined".
       if (!url) throw new Error('Plan checkout returned no url')
@@ -117,6 +134,19 @@ export function usePlanOperations(venueId: string, openCheckout: () => void) {
     },
     onError: failToast('currentPlan.toast.error'),
   })
+  // B2 (§17): «Poner mi tarjeta» de la prueba sin tarjeta es el portal de Stripe en el flujo de la tarjeta, nunca un formulario propio
+  // ni un SetupIntent. Vuelve a esta misma página con `?portal=tarjeta`, que dice qué quedó. Quien llama muestra su error.
+  const cardPortal = useMutation({
+    mutationFn: async () => {
+      const returnUrl = `${window.location.origin}${window.location.pathname}?portal=tarjeta`
+      const { url } = await getBillingPortalUrl(venueId, { flujo: 'PONER_TARJETA', returnUrl })
+      if (!url) throw new Error('Billing portal returned no url')
+      return url
+    },
+    onSuccess: (url: string) => {
+      window.location.assign(url)
+    },
+  })
   const offer = useMutation({
     mutationFn: (kind: 'discount' | 'pause') => applyRetentionOffer(venueId, kind),
     onSuccess: async (_, kind) => {
@@ -125,5 +155,5 @@ export function usePlanOperations(venueId: string, openCheckout: () => void) {
     },
     onError: failToast('plan.cancel.offer.error'),
   })
-  return { classicCheckout, hybridQuote, preview, downgrade, cancelContract, reactivate, portal, offer }
+  return { classicCheckout, hybridQuote, preview, downgrade, cancelContract, reactivate, portal, cardPortal, offer }
 }

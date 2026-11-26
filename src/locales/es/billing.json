@@ -254,7 +254,8 @@
       "firstChargeOn": "Tu primer cobro será el {{date}}.",
       "discountUntil": "Con tu descuento pagas {{price}} hasta el {{date}}; después {{list}}.",
       "discountOnce": "Con tu descuento pagas {{price}} en tu siguiente cobro; después {{list}}.",
-      "discountForever": "Con tu descuento pagas {{price}}."
+      "discountForever": "Con tu descuento pagas {{price}}.",
+      "trialNoCard": "Tu prueba termina el {{date}}; pon tu tarjeta para seguir con {{tier}}."
     },
     "grid": {
       "title": "Funciones · las {{count}}",
@@ -312,7 +313,16 @@
       "annualTotal": "Total al año",
       "payTodayDeferred": "Hoy pagas {{price}} · primer cobro el {{date}}",
       "deferredNote": "Tu prueba gratis sigue hasta el {{date}} y ese día se hace el primer cobro. Puedes cancelar antes sin pagar nada.",
-      "keepPlan": "Quedarme con {{tier}}"
+      "keepPlan": "Quedarme con {{tier}}",
+      "trialCardSummary": "Tu prueba termina el {{date}}. Con tu tarjeta, ese día se cobran {{price}} y nada antes.",
+      "amountUnavailable": "No pudimos calcular cuánto se cobrará al terminar tu prueba. Intenta en unos minutos.",
+      "trialWithCard": "Tu prueba termina el {{date}}; ese día se cobrarán {{price}} en tu tarjeta ••••{{last4}}. Puedes cambiarla o cancelar.",
+      "portalNote": "Pondrás tu tarjeta en la página segura de Stripe y volverás aquí.",
+      "addCard": "Poner mi tarjeta",
+      "cardAdded": "Listo: al terminar tu prueba se cobrarán {{price}} en tu tarjeta ••••{{last4}}.",
+      "trialEnded": "Tu prueba terminó; revisa tu plan aquí.",
+      "cardNotYet": "Todavía no vemos tu tarjeta. Si la acabas de poner, recarga en unos segundos.",
+      "finishAcceptance": "Terminar la compra que empezaste: {{tier}}"
     },
     "page": {
       "contractCancelled": "Listo: tu plan deja de renovarse al final del periodo pagado.",
@@ -334,7 +344,8 @@
     "checkoutCardReceived": "Recibimos tu tarjeta. Estamos guardando tu plan…",
     "checkoutCardSaved": "Listo: tu tarjeta quedó guardada. El primer cobro será el {{date}}.",
     "checkoutCardPending": "Recibimos tu tarjeta. Confirmarla puede tardar unos minutos; hoy no se te cobró nada.",
-    "checkoutCardSavedNoDate": "Listo: tu tarjeta quedó guardada. El primer cobro será el día que termina tu prueba."
+    "checkoutCardSavedNoDate": "Listo: tu tarjeta quedó guardada. El primer cobro será el día que termina tu prueba.",
+    "notOnSale": "No disponible por ahora"
   },
   "featureGate": {
     "tierTag": "Incluido en {{tier}}",

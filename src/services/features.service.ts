@@ -80,10 +80,17 @@ export const getVenueFeatures = async (venueId: string): Promise<VenueFeatureSta
 
 /**
  * Get billing portal URL for a venue
+ *
+ * Planes editables (B2, Task 12, §17): `flujo: 'PONER_TARJETA'` abre el portal de Stripe directo en el flujo de la tarjeta de la
+ * prueba, y `returnUrl` dice a qué página vuelve. Sin opciones, el cuerpo de siempre (regresa a esta misma página).
  */
-export const getBillingPortalUrl = async (venueId: string): Promise<{ url: string }> => {
+export const getBillingPortalUrl = async (
+  venueId: string,
+  opciones: { flujo?: 'PONER_TARJETA'; returnUrl?: string } = {},
+): Promise<{ url: string }> => {
   const response = await api.post(`/api/v1/dashboard/venues/${venueId}/billing-portal`, {
-    returnUrl: window.location.href, // Return to current page after managing billing
+    returnUrl: opciones.returnUrl ?? window.location.href, // Return to current page after managing billing
+    ...(opciones.flujo ? { flujo: opciones.flujo } : {}),
   })
   return response.data
 }
@@ -161,6 +168,62 @@ export interface PlanOrigin {
    * lista. Un servidor anterior no lo manda.
    */
   discount?: { gross: number; percentOff: number | null; duration: 'once' | 'repeating' | 'forever'; endsAt: string | null } | null
+  /**
+   * Planes editables (B2, Task 7): un `CLASSIC` cuya prueba SIN tarjeta todavía no tiene con qué cobrarse (Stripe la cancelará al
+   * terminar). Sólo viaja entonces; un servidor anterior no lo manda.
+   */
+  faltaTarjeta?: true
+}
+
+/**
+ * Planes editables (B2): una opción de compra que el SERVIDOR cotizó y firmó (`OpcionCotizada` de `opcionesDeCompra.ts`). Centavos
+ * enteros: `precioCents` con IVA (lo que se cobrará, también si hoy se paga $0), `netCents` sin IVA y `firstChargeCents` lo de hoy.
+ */
+export interface OpcionCotizada {
+  quoteToken: string
+  precioCents: number
+  netCents: number
+  firstChargeCents: number
+  /** Fin de la prueba regalada que difiere el primer cobro (ISO); `null` = se paga hoy. */
+  trialEndsAt: string | null
+}
+
+/** Un plan de la versión vigente como lo cotiza «Tu plan» (`PlanDeTuPlan`). `vendible` = hoy tiene al menos una opción. */
+export interface PlanDeTuPlan {
+  displayName: string
+  vendible: boolean
+  monthly: OpcionCotizada | null
+  annual: OpcionCotizada | null
+}
+
+/**
+ * La prueba SIN tarjeta según Stripe en ese momento (`EstadoDeLaPrueba` del SERVIDOR). Sólo viaja si el SERVIDOR pudo clasificarla:
+ * una tarjeta que no se pudo leer nunca llega como `SIN_TARJETA`. `tarjeta: null` = sin tarjeta. `montoAlTerminarCents` es la vista
+ * previa de Stripe (con saldo y cupones); `null` = no se sabe.
+ */
+export interface EstadoDeLaPrueba {
+  estado: 'SIN_TARJETA' | 'CON_TARJETA' | 'TERMINADA'
+  tier: 'PRO' | 'PREMIUM'
+  interval: 'monthly' | 'annual'
+  trialEndsAt: string
+  tarjeta: { brand: string | null; last4: string | null } | null
+  montoAlTerminarCents: number | null
+}
+
+/** La compra que el negocio aceptó al convertir su demo y todavía no usó (B2, Task 8). */
+export interface AceptacionPendiente {
+  acceptanceId: string
+  tier: 'PRO' | 'PREMIUM'
+  interval: 'monthly' | 'annual'
+  expiresAt: string
+}
+
+/** Lo que «Tu plan» cotiza con una versión del editor (`GET /plan` → `cotizacion`). Sin versión del editor no viaja. */
+export interface CotizacionDeTuPlan {
+  versionNumber: number
+  planes: Record<'PRO' | 'PREMIUM', PlanDeTuPlan>
+  estadoDeLaPrueba?: EstadoDeLaPrueba
+  aceptacionPendiente?: AceptacionPendiente
 }
 
 /**
@@ -211,6 +274,8 @@ export interface PlanState {
     canEndProNow: boolean
     discountEndsAt: string | null
   } | null
+  /** Planes editables (B2, Task 7): sólo con una versión del editor. Sin ella, «Tu plan» es el de hoy. */
+  cotizacion?: CotizacionDeTuPlan
 }
 
 /** Get the venue's base-plan state. */
@@ -296,13 +361,18 @@ export const createPlanCheckoutSession = async (
   /**
    * D3: sólo desde «Quedarme con mi plan» de una prueba regalada: la fecha del primer cobro que se mostró. Si el SERVIDOR
    * ya no puede diferir o la prueba cambió de fecha, contesta 409 en vez de abrir otro pago.
+   *
+   * Planes editables (B2, Task 12): `quoteToken` es el comprobante de la opción que «Tu plan» cotizó y `acceptanceId` la compra que
+   * se aceptó al convertir la demo. Cada uno viaja sólo si viene: sin ellos, el cuerpo de hoy.
    */
-  opciones: { primerCobroAnunciado?: string } = {},
+  opciones: { primerCobroAnunciado?: string; quoteToken?: string; acceptanceId?: string } = {},
 ): Promise<string> => {
   const res = await api.post(`/api/v1/dashboard/venues/${venueId}/plan/checkout`, {
     tier,
     interval,
     ...(opciones.primerCobroAnunciado ? { primerCobroAnunciado: opciones.primerCobroAnunciado } : {}),
+    ...(opciones.quoteToken ? { quoteToken: opciones.quoteToken } : {}),
+    ...(opciones.acceptanceId ? { acceptanceId: opciones.acceptanceId } : {}),
   })
   return res.data.url as string
 }

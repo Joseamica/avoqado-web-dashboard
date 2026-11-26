@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -23,7 +23,8 @@ import { Progress } from '@/components/ui/progress'
 import { PlanPicker } from '@/components/billing/PlanPicker'
 import { getTierDef, salesWhatsAppLink, type TierId } from '@/config/plan-catalog'
 import api from '@/api'
-import { createPlanCheckoutSession } from '@/services/features.service'
+import { createPlanCheckoutSession, getVenuePlan } from '@/services/features.service'
+import { opcionesDelCheckout, pedidoDelPlan, preciosDeLaCotizacion } from '@/components/conversion/planDeLaConversion'
 import { storage } from '@/firebase'
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage'
 import { Venue } from '@/types'
@@ -49,7 +50,9 @@ type PlanInterval = 'monthly' | 'annual'
 export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venueName, venue: _venue }: ConversionWizardProps) {
   const { t } = useTranslation()
   const { t: tOnboarding } = useTranslation('onboarding')
+  const { t: tBilling } = useTranslation('billing')
   const { toast } = useToast()
+  const queryClient = useQueryClient()
 
   // Fetch full venue data when dialog opens (auth context venue doesn't include document URLs)
   const { data: fullVenue } = useQuery({
@@ -61,6 +64,16 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
     enabled: open && !!venueId,
     staleTime: 30_000,
   })
+
+  // Planes editables (B2, Task 12, b2-r1 #9): con una versión del editor, «Tu plan» del negocio demo trae su cotización. La
+  // conversión pinta ESOS precios, apaga lo que no está a la venta y firma el plan elegido. Sin ella, el asistente de hoy.
+  const planDelNegocio = useQuery({
+    queryKey: ['venuePlan', venueId],
+    queryFn: () => getVenuePlan(venueId),
+    enabled: open && !!venueId,
+  })
+  const cotizacion = planDelNegocio.data?.cotizacion
+  const precios = useMemo(() => preciosDeLaCotizacion(cotizacion), [cotizacion])
 
   // Entity type state
   const [entityType, setEntityType] = useState<EntityType | null>(null)
@@ -249,6 +262,13 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
   // Resolve the selected plan tier definition (icon, price, name key) once.
   const selectedPlan = useMemo(() => getTierDef(selectedTier), [selectedTier])
   const isPaidTier = selectedTier === 'PRO' || selectedTier === 'PREMIUM'
+  // B2: el neto (sin IVA) de la opción elegida en la versión del editor, en pesos con centavos; `null` = el del catálogo, como hoy.
+  const netoCotizado = useMemo(() => {
+    if (!cotizacion || !isPaidTier) return null
+    const plan = cotizacion.planes?.[selectedTier as 'PRO' | 'PREMIUM']
+    const opcion = plan?.vendible ? plan[selectedInterval] : null
+    return opcion ? (opcion.netCents / 100).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : null
+  }, [cotizacion, isPaidTier, selectedTier, selectedInterval])
 
   const handleNext = async () => {
     let isValid = false
@@ -355,6 +375,19 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
       return
     }
 
+    // B2 (b2-r1 #9): con la cotización, el plan elegido viaja con el comprobante de su opción. Si ya no está a la venta, no se
+    // convierte (ni a Gratis): se dice y se vuelve a elegir.
+    const pedido = pedidoDelPlan(cotizacion, selectedTier === 'PRO' || selectedTier === 'PREMIUM' ? selectedTier : 'FREE', selectedInterval)
+    if (pedido.kind === 'FUERA_DE_VENTA') {
+      toast({
+        title: t('conversionWizard.error.title'),
+        description: tBilling('plan.notOnSale'),
+        variant: 'destructive',
+      })
+      setCurrentStep(getStepForPlan())
+      return
+    }
+
     setIsSubmitting(true)
 
     try {
@@ -378,6 +411,9 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
         }
       }
 
+      // B2: sólo con la cotización; sin ella, el cuerpo de hoy.
+      if (pedido.kind === 'PEDIDO') payload.plan = pedido.plan
+
       // Step 1 — always convert the demo into a real (Free-tier) venue.
       const response = await api.post(`/api/v1/dashboard/venues/${venueId}/convert-from-demo`, payload)
 
@@ -389,11 +425,16 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
       // Free venue; the Stripe webhook upgrades it to the paid plan after payment.
       if (isPaidTier) {
         try {
-          const checkoutUrl = await createPlanCheckoutSession(
-            venueId,
-            selectedTier as 'PRO' | 'PREMIUM',
-            selectedInterval,
-          )
+          // B2: con la cotización, el checkout de la aceptación que la conversión guardó; sin ella, la llamada de hoy.
+          const checkoutUrl =
+            pedido.kind === 'PEDIDO'
+              ? await createPlanCheckoutSession(
+                  venueId,
+                  selectedTier as 'PRO' | 'PREMIUM',
+                  selectedInterval,
+                  opcionesDelCheckout(response.data.data ?? {}),
+                )
+              : await createPlanCheckoutSession(venueId, selectedTier as 'PRO' | 'PREMIUM', selectedInterval)
           onOpenChange(false)
           window.location.href = checkoutUrl
           return
@@ -428,6 +469,12 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
       }, 1500)
     } catch (error: any) {
       console.error('Error converting venue:', error)
+      // B2: la oferta cambió o el plan salió de venta mientras se elegía: el mensaje del SERVIDOR y los precios de nuevo, sin checkout.
+      const code = error?.response?.data?.code
+      if (code === 'OFFER_CHANGED' || code === 'PLAN_NOT_ON_SALE') {
+        void queryClient.invalidateQueries({ queryKey: ['venuePlan', venueId] })
+        setCurrentStep(getStepForPlan())
+      }
       toast({
         title: t('conversionWizard.error.title'),
         description: error?.response?.data?.message || t('conversionWizard.error.description'),
@@ -754,6 +801,8 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
             <PlanPicker
               currentTier={selectedTier}
               selectionMode="choice"
+              preciosSinIva={precios?.preciosSinIva}
+              fueraDeVenta={precios?.fueraDeVenta}
               onSelectTier={(tier, interval) => {
                 if (tier === 'ENTERPRISE') {
                   // Enterprise is contact-sales only — no self-serve conversion path.
@@ -879,8 +928,12 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
                     </div>
                     <p className="text-xs text-muted-foreground">
                       {selectedInterval === 'annual'
-                        ? tOnboarding('plan.summaryAnnual', { price: (selectedPlan.priceAnnual ?? 0).toLocaleString('es-MX') })
-                        : tOnboarding('plan.summaryMonthly', { price: (selectedPlan.priceMonthly ?? 0).toLocaleString('es-MX') })}
+                        ? tOnboarding('plan.summaryAnnual', {
+                            price: netoCotizado ?? (selectedPlan.priceAnnual ?? 0).toLocaleString('es-MX'),
+                          })
+                        : tOnboarding('plan.summaryMonthly', {
+                            price: netoCotizado ?? (selectedPlan.priceMonthly ?? 0).toLocaleString('es-MX'),
+                          })}
                     </p>
                     <p className="text-xs text-muted-foreground">{tOnboarding('plan.summaryCheckoutNote')}</p>
                   </div>
