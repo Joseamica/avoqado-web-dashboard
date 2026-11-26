@@ -21,7 +21,9 @@ vi.mock('@/hooks/use-current-venue', () => ({ useCurrentVenue: () => ({ venueId:
 vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: () => {} }) }))
 vi.mock('@/components/billing/FeatureGate', () => ({ FeatureGate: ({ children }: { children: ReactNode }) => <>{children}</> }))
 vi.mock('@/components/PermissionGate', () => ({ PermissionGate: ({ children }: { children: ReactNode }) => <>{children}</> }))
-vi.mock('@/components/PageTitleWithInfo', () => ({ PageTitleWithInfo: ({ title }: { title: string }) => <h1>{title}</h1> }))
+vi.mock('@/components/PageTitleWithInfo', () => ({
+	PageTitleWithInfo: ({ title, tooltip }: { title: string; tooltip?: string }) => <h1 title={tooltip}>{title}</h1>,
+}))
 const zona = vi.hoisted(() => ({ actual: 'America/Mexico_City' }))
 vi.mock('@/utils/datetime', () => ({ useVenueDateTime: () => ({ venueTimezone: zona.actual }) }))
 vi.mock('@/services/loyalty.service', () => ({
@@ -223,5 +225,15 @@ describe('LoyaltySettings · una configuración migrada (vencimiento apagado, D2
 		fireEvent.click(boton)
 		await waitFor(() => expect(h.guardados).toHaveLength(1))
 		expect(h.guardados[0]).toEqual({ pointsExpireDays: 365 })
+	})
+})
+
+describe('LoyaltySettings · textos (D32)', () => {
+	it('la tarjeta de la derecha se llama «Vista previa» y la ayuda del título sale de su llave (no del texto sin acentos)', async () => {
+		ponerAncho(1440)
+		await pintar()
+		expect(screen.getByTestId('loyalty-preview-card').querySelector('h3')).toHaveTextContent('Vista previa')
+		expect(screen.getByRole('heading', { level: 1 })).toHaveAttribute('title', loyaltyEs.info.loyalty)
+		expect(loyaltyEs.info.loyalty).toMatch(/cómo se ganan/)
 	})
 })

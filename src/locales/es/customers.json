@@ -357,7 +357,7 @@
     "saveError": "No se pudo guardar la campaña",
     "send": "Enviar",
     "sendError": "No se pudo enviar la campaña",
-    "sent": "Campaña enviada a {{count}} clientes",
+    "sent": "Campaña en la fila para {{count}} clientes: en la lista ves cuántos correos van saliendo.",
     "content": "Contenido del correo",
     "failedCount": "{{count}} con error",
     "skippedCount_one": "{{count}} omitido",
@@ -413,7 +413,7 @@
     },
     "sendDialog": {
       "title": "Enviar la campaña",
-      "description": "Esto no se puede deshacer: el correo sale de inmediato.",
+      "description": "Esto no se puede deshacer. La campaña queda en la fila de envío y los correos salen por tandas; en la lista ves cuántos van saliendo.",
       "counting": "Contando a cuántos clientes le va a llegar…",
       "countError": "No se pudo contar a los destinatarios",
       "recipients": "clientes recibirán este correo",

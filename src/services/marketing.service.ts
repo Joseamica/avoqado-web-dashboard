@@ -204,7 +204,9 @@ export const marketingService = {
 	// 🔴 Permiso: marketing:send, y NO se hereda de `:manage`. Es irreversible y le llega
 	// a los clientes del negocio. El token viene de `previewCampaign`; si el contenido o la
 	// audiencia cambiaron desde entonces, el servidor lo rechaza.
-	async publishCampaign(venueId: string, id: string, token: string): Promise<unknown> {
+	// Responde cuántos correos quedaron EN LA FILA (`encoladas`): pueden ser menos que la vista previa si alguien quitó su
+	// permiso entre tanto.
+	async publishCampaign(venueId: string, id: string, token: string): Promise<{ encoladas?: number }> {
 		const response = await api.post(`/api/v1/dashboard/venues/${venueId}/campaigns/${id}/publish`, { token })
 		return response.data
 	},

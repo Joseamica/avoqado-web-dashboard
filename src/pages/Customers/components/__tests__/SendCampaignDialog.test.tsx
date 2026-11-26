@@ -105,4 +105,16 @@ describe('SendCampaignDialog', () => {
     expect(screen.getByTestId('send-confirm')).toBeDisabled()
     expect(mockPublish).not.toHaveBeenCalled()
   })
+
+  // D35: el aviso dice cuántos quedaron en la fila según el SERVIDOR, no el número de la vista previa.
+  it('el aviso usa los correos que el servidor dejó en la fila', async () => {
+    mockPreview.mockResolvedValue({ totalDestinatarios: 10, token: 'tk', expiraEn: 'x' })
+    mockPublish.mockResolvedValue({ encoladas: 9, omitidas: 1 })
+    abrir()
+
+    await waitFor(() => expect(screen.getByTestId('send-confirm')).toBeEnabled())
+    await userEvent.click(screen.getByTestId('send-confirm'))
+
+    await waitFor(() => expect(mockToast).toHaveBeenCalledWith({ title: 'campaigns.sent:9' }))
+  })
 })

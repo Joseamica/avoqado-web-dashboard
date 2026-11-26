@@ -64,7 +64,8 @@
     "toasts": {
       "updateSuccess": "Configuración de lealtad actualizada exitosamente",
       "updateError": "Error al actualizar la configuración de lealtad"
-    }
+    },
+    "previewTitle": "Vista previa"
   },
   "dashboard": {
     "title": "Resumen de Lealtad",
@@ -159,7 +160,7 @@
     "stamps": {
       "title": "Los sellos",
       "description": "Elige la que va con tu negocio: una taza para café, tijeras para estética, pesa para gym.",
-      "countHint": "Hoy tu tarjeta pide {{count}} sellos. Eso se cambia en la pantalla de Lealtad.",
+      "countHint": "Hoy tu tarjeta pide {{count}} sellos. Eso se cambia arriba, en «Tu programa de sellos».",
       "ownTitle": "O sube tu propio sello",
       "ownHint": "Un PNG cuadrado con fondo transparente. Sube uno solo: los que faltan se generan solos, más tenues.",
       "upload": "Subir sello",
@@ -419,5 +420,8 @@
       "fromNowToday": "Hoy, desde ahora",
       "fromNowUntil": "Desde ahora y hasta el {{date}}"
     }
+  },
+  "info": {
+    "loyalty": "Configura el programa de lealtad: cómo se ganan los puntos, cómo se canjean y si vencen."
   }
 }

@@ -47,8 +47,9 @@ export function SendCampaignDialog({ venueId, campaignId, onClose, onSent }: Pro
 
 	const enviar = useMutation({
 		mutationFn: () => marketingService.publishCampaign(venueId, campaignId, preview.data!.token),
-		onSuccess: () => {
-			toast({ title: t('campaigns.sent', { count: preview.data?.totalDestinatarios ?? 0 }) })
+		onSuccess: res => {
+			// D35: el número es el que el SERVIDOR dejó en la fila, no el de la vista previa.
+			toast({ title: t('campaigns.sent', { count: res?.encoladas ?? preview.data?.totalDestinatarios ?? 0 }) })
 			queryClient.invalidateQueries({ queryKey: ['campaigns', venueId] })
 			queryClient.invalidateQueries({ queryKey: ['campaign', venueId, campaignId] })
 			onClose()

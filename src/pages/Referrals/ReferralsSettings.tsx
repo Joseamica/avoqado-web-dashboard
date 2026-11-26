@@ -554,7 +554,8 @@ export default function ReferralsSettings() {
                 <MetricCell
                   icon={Gift}
                   label={t('active.metrics.couponsEmitted')}
-                  value={summary?.couponsEmittedThisMonth ?? 0}
+                  // D32: todos los premios de nivel del mes (también el producto gratis); un servidor viejo sólo manda los cupones.
+                  value={summary?.rewardsIssuedThisMonth ?? summary?.couponsEmittedThisMonth ?? 0}
                   accent="from-purple-500/20 to-purple-500/5 text-purple-600 dark:text-purple-400"
                 />
                 <MetricCell
@@ -596,6 +597,8 @@ export default function ReferralsSettings() {
             <AlertDialogFooter>
               <AlertDialogCancel>{tCommon('common.cancel', { defaultValue: 'Cancelar' })}</AlertDialogCancel>
               <AlertDialogAction
+                // El SERVIDOR pide una razón. Sin ella va este valor FIJO, que la bitácora traduce al idioma de quien la lee
+                // (`activityLog.detailValues.reason`, D32); así también se leen los asientos viejos.
                 onClick={() => deactivateMutation.mutate(pauseReason.trim() || 'No reason provided')}
                 disabled={deactivateMutation.isPending}
               >

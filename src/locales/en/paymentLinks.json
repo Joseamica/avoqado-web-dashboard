@@ -324,7 +324,6 @@
     "NO_INICIA": "Discount hasn't started yet",
     "FUERA_DE_HORARIO": "Discount outside its hours",
     "MINIMO": "Discount doesn't fit the amount",
-    "AGOTADO": "Discount used up",
     "remove": "Remove discount",
     "replace": "Choose another",
     "archive": "Archive",
