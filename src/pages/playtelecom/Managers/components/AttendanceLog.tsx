@@ -15,7 +15,6 @@ import { FilterPill, CheckboxFilterContent } from '@/components/filters'
 import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { falloDeCarga, type EstadoDeCarga } from '@/lib/falloDeCarga'
 import { CorregirSalidaOlvidada, SalidaOlvidadaBadge } from '@/pages/Attendance/SalidaOlvidada'
-import { notaDeLaSalidaOlvidada } from '@/pages/Attendance/salidaOlvidadaNota'
 
 export interface AttendanceEntry {
   id: string
@@ -47,10 +46,11 @@ export interface AttendanceEntry {
   depositPhotoUrl?: string | null
   // La cerró el sistema como «Salida olvidada» (hz:0433f0cb:D3): se marca y el gerente la corrige con la hora real.
   salidaOlvidada?: boolean
-  // Para corregirla: la entrada en ISO, su sucursal y sus notas (la hora real de una salida tardía del celular sale de ahí).
+  // Para corregirla: la entrada en ISO, su sucursal con su zona y la hora real de una salida tardía del celular, si llegó.
   clockInIso?: string | null
   venueId?: string
-  notes?: string | null
+  venueTimezone?: string
+  notaSalidaOlvidada?: string | null
 }
 
 interface AttendanceLogProps {
@@ -63,6 +63,8 @@ interface AttendanceLogProps {
   currentStaffId?: string | null
   // La zona del negocio: la hora que se teclea al corregir una «Salida olvidada» es la suya, no la del navegador.
   venueTimezone: string
+  // La sucursal del panel: `canManage` es el permiso en ELLA, así que sólo ahí se ofrece corregir (Codex D3 r1 #2).
+  panelVenueId?: string | null
   onApprove: (entry: AttendanceEntry) => void
   onReject: (id: string) => void
   onResetValidation: (id: string) => void
@@ -76,6 +78,7 @@ export function AttendanceLog({
   canManage,
   currentStaffId,
   venueTimezone,
+  panelVenueId,
   onApprove,
   onReject,
   onResetValidation,
@@ -89,16 +92,16 @@ export function AttendanceLog({
   // «Salida olvidada · revisar», la hora real que mandó el celular y, a quien puede, «Corregir salida» (hz:0433f0cb:D3).
   const salidaOlvidada = (e: AttendanceEntry) => {
     if (!e.salidaOlvidada) return null
-    const nota = notaDeLaSalidaOlvidada({ notes: e.notes ?? null })
+    const nota = e.notaSalidaOlvidada
     return (
       <div className="mt-1 flex flex-col items-start gap-1">
         <SalidaOlvidadaBadge />
         {nota && <span className="max-w-[260px] text-[11px] leading-tight text-muted-foreground">{nota}</span>}
-        {puedeValidar(e) && e.timeEntryId && e.clockInIso && e.venueId && (
+        {puedeValidar(e) && e.timeEntryId && e.clockInIso && e.venueId && e.venueId === panelVenueId && (
           <CorregirSalidaOlvidada
             entry={{ id: e.timeEntryId, clockInTime: e.clockInIso }}
             venueId={e.venueId}
-            venueTimezone={venueTimezone}
+            venueTimezone={e.venueTimezone ?? venueTimezone}
             staffName={e.promoterName}
           />
         )}

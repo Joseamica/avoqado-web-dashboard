@@ -63,6 +63,15 @@ export function CorregirSalidaOlvidada({ entry, venueId, venueTimezone, staffNam
       queryClient.invalidateQueries({ queryKey: ['stores-analysis'] })
     },
     onError: (error: any) => {
+      // Ya no está como «Salida olvidada»: otro guardado ganó, o se perdió la respuesta del nuestro y el reintento automático
+      // llegó después (Codex D3 r1 #5). No es un error: se dice, se cierra y se relee para ver la hora que quedó.
+      if (error?.response?.data?.code === 'NO_ES_SALIDA_OLVIDADA') {
+        toast({ title: t('forgotten.alreadyFixed') })
+        setAbierto(false)
+        queryClient.invalidateQueries({ queryKey: ['attendance'] })
+        queryClient.invalidateQueries({ queryKey: ['stores-analysis'] })
+        return
+      }
       toast({ title: error?.response?.data?.message ?? error?.message ?? t('forgotten.error'), variant: 'destructive' })
     },
     onSettled: () => {

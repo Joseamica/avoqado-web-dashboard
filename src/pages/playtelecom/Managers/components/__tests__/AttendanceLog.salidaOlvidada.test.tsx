@@ -5,7 +5,7 @@
  * tu gerente».
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 
 import { AttendanceLog, type AttendanceEntry } from '../AttendanceLog'
@@ -45,18 +45,19 @@ function checada(over: Partial<AttendanceEntry> = {}): AttendanceEntry {
     salidaOlvidada: true,
     clockInIso: '2026-11-27T20:00:00.000Z',
     venueId: 'venue-1',
-    notes: `Salida olvidada: no marcó salida.\n${NOTA}`,
+    notaSalidaOlvidada: NOTA,
     ...over,
   }
 }
 
-function pintar(entries: AttendanceEntry[], props: { canManage: boolean; currentStaffId?: string | null }) {
+function pintar(entries: AttendanceEntry[], props: { canManage: boolean; currentStaffId?: string | null; panelVenueId?: string }) {
   render(
     <QueryClientProvider client={new QueryClient()}>
       <AttendanceLog
         entries={entries}
         query={{ data: entries, isError: false, isFetching: false, isPaused: false, error: null, refetch: () => undefined }}
         venueTimezone="America/Mexico_City"
+        panelVenueId="venue-1"
         onApprove={() => undefined}
         onReject={() => undefined}
         onResetValidation={() => undefined}
@@ -90,8 +91,24 @@ describe('AttendanceLog · «Salida olvidada» (hz:0433f0cb:D3)', () => {
     expect(screen.queryByText('forgotten.fix')).toBeNull()
   })
 
+  // Codex D3 r1 #2: el permiso que se conoce es el de la sucursal del panel; la de otra sucursal se corrige desde la suya.
+  it('una checada de otra sucursal se marca, pero no se ofrece corregirla desde este panel', () => {
+    pintar([checada({ venueId: 'venue-2' })], { canManage: true, currentStaffId: YO })
+
+    expect(screen.getAllByText('forgotten.badge').length).toBeGreaterThan(0)
+    expect(screen.queryByText('forgotten.fix')).toBeNull()
+  })
+
+  // Codex D3 r1 #1: la hora que se teclea es la de la sucursal de la checada, no la del panel.
+  it('la corrección abre con la hora de la entrada en la zona de la sucursal de la checada', () => {
+    pintar([checada({ venueTimezone: 'America/Tijuana' })], { canManage: true, currentStaffId: YO })
+
+    fireEvent.click(screen.getAllByText('forgotten.fix')[0])
+    expect((screen.getByLabelText('forgotten.label') as HTMLInputElement).value).toBe('2026-11-27T12:00')
+  })
+
   it('una checada normal no lleva marca ni botón', () => {
-    pintar([checada({ salidaOlvidada: false, notes: null })], { canManage: true, currentStaffId: YO })
+    pintar([checada({ salidaOlvidada: false, notaSalidaOlvidada: null })], { canManage: true, currentStaffId: YO })
 
     expect(screen.queryByText('forgotten.badge')).toBeNull()
     expect(screen.queryByText('forgotten.fix')).toBeNull()
