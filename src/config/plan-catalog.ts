@@ -24,6 +24,7 @@ export interface PlanTierDef {
   /** CSS var name for the accent color (defined in component). */
   accent: 'free' | 'pro' | 'premium' | 'enterprise'
   popular?: boolean
+  /** 🔴 B4: ya NO se pintan en pantalla (los montos salen de `usePlanOffer()`, sin respaldo numérico). Se conservan sólo para código no visual (p. ej. `planActions`). */
   priceMonthly: number | null // MXN, ex-IVA. null = "a la medida"
   priceAnnual: number | null // MXN/yr, ex-IVA
   checkout: CheckoutMode
