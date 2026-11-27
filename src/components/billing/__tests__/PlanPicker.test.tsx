@@ -322,6 +322,40 @@ describe('PlanPicker — «Ver todos» de cada plan (founder, 25-sep)', () => {
     expect(screen.getByText('plan.billing.annual').closest('button')).toHaveTextContent('plan.billing.save')
   })
 
+  it('D6: el equivalente mensual del anual lleva centavos con la v2 (hook y cotización) y pesos enteros con la v1', () => {
+    ofertaActual.valor = OFERTA_V2_PLUS
+    const a = render(<PlanPicker currentTier="FREE" onSelectTier={() => {}} interval="annual" />)
+    expect(screen.getByText('$708.33')).toBeInTheDocument()
+    a.unmount()
+    ofertaActual.valor = OFERTA_CARGANDO
+    const b = render(
+      <PlanPicker
+        currentTier="FREE"
+        onSelectTier={() => {}}
+        interval="annual"
+        preciosSinIva={{ PRO: { monthlyNetCents: 79900, annualNetCents: 850000 } }}
+      />,
+    )
+    expect(screen.getByText('$708.33')).toBeInTheDocument()
+    b.unmount()
+    ofertaActual.valor = OFERTA_V1
+    render(<PlanPicker currentTier="FREE" onSelectTier={() => {}} interval="annual" />)
+    expect(screen.getByText('$833')).toBeInTheDocument()
+  })
+
+  it('D7: «Ver todos» usa el nombre que ya resolvió la tarjeta (la cotización) aunque la oferta siga cargando', () => {
+    ofertaActual.valor = OFERTA_CARGANDO
+    render(
+      <PlanPicker
+        currentTier="FREE"
+        onSelectTier={() => {}}
+        preciosSinIva={{ PRO: { monthlyNetCents: 79900, annualNetCents: 850000, displayName: 'Plus' } }}
+      />,
+    )
+    fireEvent.click(document.querySelector('[data-tour="plan-see-all-pro"]')!)
+    expect(within(screen.getByTestId('plan-benefits-PRO')).getByText('plan.benefits.title:Plus')).toBeInTheDocument()
+  })
+
   it('M6: un precio con centavos enseña dos decimales; uno redondo se queda como hoy', () => {
     ofertaActual.valor = OFERTA_V2_CON_CENTAVOS
     const { unmount } = render(<PlanPicker currentTier="FREE" onSelectTier={() => {}} />)

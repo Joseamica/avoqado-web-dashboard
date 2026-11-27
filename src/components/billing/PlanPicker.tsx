@@ -266,7 +266,10 @@ function PlanCard({
         : Math.round(fuente.annualNet / 12) / 100
       : interval === 'monthly'
         ? fuente.monthlyNet / 100
-        : Math.round(fuente.annualNet / 100 / 12)
+        : // Con la versión del editor (≥ 2) el equivalente mensual lleva centavos, como el de la cotización; la v1, en pesos enteros de hoy.
+          oferta.estado === 'servidor' && oferta.offerVersion !== null && oferta.offerVersion >= 2
+          ? Math.round(fuente.annualNet / 12) / 100
+          : Math.round(fuente.annualNet / 100 / 12)
     : tier.id === 'FREE'
       ? 0
       : tier.priceMonthly === null
@@ -491,6 +494,7 @@ function PlanCard({
         onOpenChange={setVerTodos}
         accentClassName={ACCENT[tier.accent]}
         action={accionDeLaVentana}
+        tierName={tierName}
       />
     </Fragment>
   )
