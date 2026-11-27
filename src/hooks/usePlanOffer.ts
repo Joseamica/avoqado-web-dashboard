@@ -9,13 +9,16 @@ export type OfertaDePlanes =
   /** Cargando, o cualquier respuesta que no es 200 (404 incluido): no hay montos que enseñar, nunca los de hoy en su lugar (r3 #1). */
   | { estado: 'cargando' | 'sinDato' }
 
-export function usePlanOffer(): OfertaDePlanes {
-  const { data, isPending } = useQuery({
+export function usePlanOffer(opciones?: { enabled?: boolean }): OfertaDePlanes {
+  const { data, isPending, isError } = useQuery({
     queryKey: ['plan-offer'],
     queryFn: () => planOfferService.get(),
     staleTime: 60_000,
     retry: 1,
+    enabled: opciones?.enabled ?? true,
   })
+  // Una lectura que falla (también un refetch con `data` viejo) es «sin dato»: nunca montos de una lectura anterior.
+  if (isError) return { estado: 'sinDato' }
   if (data) return { estado: 'servidor', ...data }
   return { estado: isPending ? 'cargando' : 'sinDato' }
 }
@@ -35,9 +38,9 @@ export function nombreDelPlanDe(oferta: OfertaDePlanes, tier: TierDeNombre, t: (
   return t(`plan.tiers.${tier.toLowerCase()}.name`)
 }
 
-export function useNombreDelPlan(tier: TierDeNombre): string {
+export function useNombreDelPlan(tier: TierDeNombre, opciones?: { enabled?: boolean }): string {
   const { t } = useTranslation('billing')
-  return nombreDelPlanDe(usePlanOffer(), tier, t)
+  return nombreDelPlanDe(usePlanOffer(opciones), tier, t)
 }
 
 /** Para listas y mapas: UNA lectura de la oferta y una función que da el nombre de cualquier plan (un hook no va dentro de un `map`). */

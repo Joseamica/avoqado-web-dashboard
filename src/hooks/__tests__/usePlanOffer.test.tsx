@@ -42,6 +42,23 @@ describe('usePlanOffer', () => {
     expect(result.current).toMatchObject({ offerVersion: null })
   })
 
+  it('D1: un 200 seguido de un refetch que falla queda en sinDato (sin montos viejos)', async () => {
+    get.mockResolvedValueOnce({ data: oferta(2, 'Plus') })
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    const w = ({ children }: { children: ReactNode }) => <QueryClientProvider client={qc}>{children}</QueryClientProvider>
+    const { result } = renderHook(() => usePlanOffer(), { wrapper: w })
+    await waitFor(() => expect(result.current.estado).toBe('servidor'))
+    get.mockRejectedValue(new Error('Network Error'))
+    await qc.refetchQueries({ queryKey: ['plan-offer'] })
+    await waitFor(() => expect(result.current.estado).toBe('sinDato'), { timeout: 4000 })
+  })
+
+  it('D1: con enabled false no hay petición pública', async () => {
+    renderHook(() => usePlanOffer({ enabled: false }), { wrapper })
+    await new Promise(r => setTimeout(r, 30))
+    expect(get).not.toHaveBeenCalled()
+  })
+
   it.each([404, 503, 'red'])('error %s: sinDato', async codigo => {
     get.mockRejectedValue(codigo === 'red' ? new Error('Network Error') : { response: { status: codigo } })
     const { result } = renderHook(() => usePlanOffer(), { wrapper })

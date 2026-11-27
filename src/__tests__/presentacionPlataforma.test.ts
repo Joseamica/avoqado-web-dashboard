@@ -48,6 +48,15 @@ describe('presentación de la plataforma: lee la oferta vigente', () => {
     expect(norm(d.querySelector(SECCION)!.textContent)).toContain('Gratis')
   })
 
+  it('D8: «Todo lo de PRO» usa el nombre del editor con la v2 y «PRO» con la v1', async () => {
+    const a = cargar(ok(v2))
+    await espera()
+    expect(norm(tarjeta(a.document, 'PREMIUM')!.textContent)).toContain('Todo lo de Plus + facturación')
+    const b = cargar(ok(v1))
+    await espera()
+    expect(norm(tarjeta(b.document, 'PREMIUM')!.textContent)).toContain('Todo lo de PRO + facturación')
+  })
+
   it('con la v3 la tarjeta de Premium y su anual no se ven', async () => {
     const { document: d } = cargar(ok(v3))
     await espera()
@@ -96,6 +105,8 @@ describe('presentación de la plataforma: lee la oferta vigente', () => {
     ['montos como texto', { success: true, data: { ...v1, PRO: { ...v1.PRO, monthly: { netCents: '99900', grossCents: '115884' } } } }],
     ['onSale que no es booleano', { success: true, data: { ...v1, PRO: { ...v1.PRO, onSale: 'si' } } }],
     ['v2 sin displayName', { success: true, data: { ...v2, PRO: { ...v2.PRO, displayName: '' } } }],
+    ['monto negativo', { success: true, data: { ...v1, PRO: { ...v1.PRO, annual: { netCents: -1, grossCents: 5 } } } }],
+    ['monto en cero', { success: true, data: { ...v1, PREMIUM: { ...v1.PREMIUM, monthly: { netCents: 0, grossCents: 0 } } } }],
     ['v2 sin FREE.displayName', { success: true, data: { ...v2, FREE: {} } }],
   ]
   for (const [nombre, body] of dañadas) {

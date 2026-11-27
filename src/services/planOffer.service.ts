@@ -23,12 +23,39 @@ export interface PlanesPublicos {
   PREMIUM: PlanDeLaOferta
 }
 
+const esEntero = (n: unknown, minimo: number): n is number => typeof n === 'number' && Number.isInteger(n) && n >= minimo
+const precioValido = (p: any) => !!p && esEntero(p.netCents, 1) && esEntero(p.grossCents, 1)
+const planValido = (p: any, exigeNombre: boolean) =>
+  !!p &&
+  typeof p.displayName === 'string' &&
+  (!exigeNombre || p.displayName.trim().length > 0) &&
+  typeof p.onSale === 'boolean' &&
+  typeof p.requiresCard === 'boolean' &&
+  esEntero(p.trialDays, 0) &&
+  precioValido(p.monthly) &&
+  precioValido(p.annual)
+
+/** El 200 también se valida: lo que no cuadra con el contrato es «sin dato», nunca «$0» ni un nombre vacío. */
+function validar(body: any): PlanesPublicos {
+  const data = body?.data
+  const v = data?.offerVersion
+  const exigeNombre = typeof v === 'number' && v >= 2
+  const ok =
+    body?.success === true &&
+    !!data &&
+    (v === null || typeof v === 'number') &&
+    typeof data.FREE?.displayName === 'string' &&
+    (!exigeNombre || data.FREE.displayName.trim().length > 0) &&
+    planValido(data.PRO, exigeNombre) &&
+    planValido(data.PREMIUM, exigeNombre)
+  if (!ok) throw new Error('plan-offer inválida')
+  return data as PlanesPublicos
+}
+
 export const planOfferService = {
-  /** Lanza ante cualquier respuesta que no sea 200 (503 = oferta dañada, 404 incluido): quien lo usa decide «sin dato». */
+  /** Lanza ante cualquier respuesta que no sea 200 válido (503 = oferta dañada, 404 incluido): quien lo usa decide «sin dato». */
   async get(): Promise<PlanesPublicos> {
     const response = await publicApi.get('/api/v1/public/plan-offer')
-    const data = response.data?.data as PlanesPublicos | undefined
-    if (!data) throw new Error('plan-offer sin datos')
-    return data
+    return validar(response.data)
   },
 }

@@ -44,8 +44,8 @@ export function FeatureGate({ feature, requiredTier, children }: FeatureGateProp
   // Sólo se pide el precio cuando el cartel se va a dibujar (`!hasAccess`).
   const { price: precioSuelto, ivaAparte, canSeePrices, canPurchase } = useFeaturePrice(feature, { enabled: !hasAccess })
   // B4: el nombre y el precio del plan salen de la oferta vigente del SERVIDOR; sin ella (cargando / sin dato) no hay línea de precio.
-  const oferta = usePlanOffer()
-  const tierName = useNombreDelPlan(tierId)
+  const oferta = usePlanOffer({ enabled: !hasAccess })
+  const tierName = useNombreDelPlan(tierId, { enabled: !hasAccess })
 
   if (hasAccess) return <>{children}</>
 
