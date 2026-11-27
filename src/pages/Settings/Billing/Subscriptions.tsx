@@ -174,6 +174,7 @@ export default function Subscriptions() {
               trialEndsAt?: string | null
               planTier?: string | null
               tier?: string | null
+              cotizacion?: CotizacionDeTuPlan | null
             }
           | undefined
         for (const wait of CHECKOUT_REREADS_MS) {
