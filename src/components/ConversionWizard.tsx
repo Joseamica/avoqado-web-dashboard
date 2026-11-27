@@ -270,12 +270,15 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
   }, [cotizacion, isPaidTier, selectedTier, selectedInterval])
   // B2 (revisión #6): con la cotización, un plan elegido que ya no tiene opción no enseña precio (ni el del catálogo).
   const elegidoFueraDeVenta = isPaidTier && !!cotizacion && netoCotizado === null
+  // D5: sin cotización, sólo un 200 de la oferta vigente puede decir que el plan elegido hoy no se vende (como lo marca el selector).
+  const elegidoFueraDeVentaEnOferta =
+    isPaidTier && !cotizacion && ofertaVigente.estado === 'servidor' && !ofertaVigente[selectedTier as 'PRO' | 'PREMIUM'].onSale
   // Sin cotización: el neto de la oferta vigente en pesos; sin ella (cargando o sin dato), ningún monto, nunca el del catálogo.
   const netoVigente = useMemo(() => {
-    if (cotizacion || !isPaidTier || ofertaVigente.estado !== 'servidor') return null
+    if (cotizacion || !isPaidTier || ofertaVigente.estado !== 'servidor' || elegidoFueraDeVentaEnOferta) return null
     const cents = ofertaVigente[selectedTier as 'PRO' | 'PREMIUM'][selectedInterval === 'annual' ? 'annual' : 'monthly'].netCents
     return (cents / 100).toLocaleString('es-MX', cents % 100 === 0 ? undefined : { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-  }, [cotizacion, isPaidTier, ofertaVigente, selectedTier, selectedInterval])
+  }, [cotizacion, isPaidTier, ofertaVigente, selectedTier, selectedInterval, elegidoFueraDeVentaEnOferta])
   const nombreElegido = isPaidTier ? nombreDelPlan(selectedTier) : tOnboarding(`plan.tierNames.${selectedTier}`)
 
   const handleNext = async () => {
@@ -386,7 +389,7 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
     // B2 (b2-r1 #9): con la cotización, el plan elegido viaja con el comprobante de su opción. Si ya no está a la venta, no se
     // convierte (ni a Gratis): se dice y se vuelve a elegir.
     const pedido = pedidoDelPlan(cotizacion, selectedTier === 'PRO' || selectedTier === 'PREMIUM' ? selectedTier : 'FREE', selectedInterval)
-    if (pedido.kind === 'FUERA_DE_VENTA') {
+    if (pedido.kind === 'FUERA_DE_VENTA' || elegidoFueraDeVentaEnOferta) {
       toast({
         title: t('conversionWizard.error.title'),
         description: tBilling('plan.notOnSale'),
@@ -936,7 +939,7 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
                       <selectedPlan.icon className="h-4 w-4 text-primary" />
                       <span className="font-medium text-primary">{nombreElegido}</span>
                     </div>
-                    {elegidoFueraDeVenta ? (
+                    {elegidoFueraDeVenta || elegidoFueraDeVentaEnOferta ? (
                       <p className="text-xs font-medium text-destructive" data-tour="conversion-plan-not-on-sale">
                         {tBilling('plan.notOnSale')}
                       </p>
@@ -953,7 +956,12 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <CheckCircle2 className="h-4 w-4 text-green-600" />
-                      <span className="font-medium text-foreground">{tOnboarding('shared.freePlan')}</span>
+                      <span className="font-medium text-foreground">
+                        {/* D8: con la versión del editor, el nombre de FREE es el de la oferta; sin ella, el texto fijo de hoy. */}
+                        {cotizacion || (ofertaVigente.estado === 'servidor' && ofertaVigente.offerVersion !== null && ofertaVigente.offerVersion >= 2)
+                          ? tOnboarding('shared.freePlanNamed', { name: nombreDelPlan('FREE') })
+                          : tOnboarding('shared.freePlan')}
+                      </span>
                     </div>
                     <p className="text-xs text-muted-foreground">
                       {tOnboarding('shared.noMonthlyCharge')} • {tOnboarding('shared.addPremiumAnytime')}

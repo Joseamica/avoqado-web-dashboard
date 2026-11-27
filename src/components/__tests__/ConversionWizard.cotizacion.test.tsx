@@ -9,7 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import api from '@/api'
 import { createPlanCheckoutSession, getVenuePlan } from '@/services/features.service'
 import { ConversionWizard } from '../ConversionWizard'
-import { OFERTA_CARGANDO, OFERTA_SIN_DATO, OFERTA_V1, OFERTA_V2_PLUS, ofertaActual } from '@/hooks/__tests__/planOfferFixtures'
+import { OFERTA_CARGANDO, OFERTA_SIN_DATO, OFERTA_V1, OFERTA_V2_PLUS, OFERTA_V3_PREMIUM_FUERA, ofertaActual } from '@/hooks/__tests__/planOfferFixtures'
 
 vi.mock('@/hooks/usePlanOffer', async () => {
   const f = await import('@/hooks/__tests__/planOfferFixtures')
@@ -424,4 +424,45 @@ describe('ConversionWizard · B4 (A21): nombre, montos y texto del anual salen d
       expect(screen.queryByText(/\$999|\$0\b/)).toBeNull()
     },
   )
+
+  it('D5: sin cotización y con el plan elegido fuera de venta en la oferta: sin precio, «No disponible por ahora» y confirmar no convierte', async () => {
+    ofertaActual.valor = OFERTA_V2_PLUS
+    vi.mocked(getVenuePlan).mockResolvedValue(planDeLaDemo() as never)
+    abrir()
+    await alPasoDePlanes()
+    await waitFor(() => expect(getVenuePlan).toHaveBeenCalled())
+    await userEvent.click(tarjeta('premium'))
+    await userEvent.click(siguiente())
+    await screen.findByText(/^Plan mensual · \$1,699/)
+    // La oferta vigente retira Premium mientras se elegía; cualquier relectura repinta.
+    ofertaActual.valor = OFERTA_V3_PREMIUM_FUERA
+    act(() => cliente.setQueryData(['venuePlan', 'venue'], { ...planDeLaDemo(), releida: true }))
+    expect(await screen.findByText('No disponible por ahora')).toBeInTheDocument()
+    expect(screen.queryByText(/MXN\/mes \+ IVA/)).toBeNull()
+    await userEvent.click(confirmar())
+    await waitFor(() => expect(toastSpy).toHaveBeenCalledWith(expect.objectContaining({ variant: 'destructive' })))
+    expect(convertir()).toHaveLength(0)
+    expect(createPlanCheckoutSession).not.toHaveBeenCalled()
+  })
+
+  it('D8: «Plan Gratuito» sigue con la v1; con la v2 dice «Plan <nombre de FREE>»', async () => {
+    vi.mocked(getVenuePlan).mockResolvedValue(planDeLaDemo() as never)
+    abrir()
+    await alPasoDePlanes()
+    await userEvent.click(tarjeta('free'))
+    await userEvent.click(siguiente())
+    expect(await screen.findByText('Plan Gratuito')).toBeInTheDocument()
+  })
+
+  it('D8: con la v2 y FREE llamado «Inicio»: «Plan Inicio»', async () => {
+    ofertaActual.valor = { ...OFERTA_V2_PLUS, FREE: { displayName: 'Inicio' } } as never
+    vi.mocked(getVenuePlan).mockResolvedValue(planDeLaDemo() as never)
+    abrir()
+    await alPasoDePlanes()
+    await waitFor(() => expect(getVenuePlan).toHaveBeenCalled())
+    await userEvent.click(tarjeta('free'))
+    await userEvent.click(siguiente())
+    expect(await screen.findByText('Plan Inicio')).toBeInTheDocument()
+    expect(screen.queryByText('Plan Gratuito')).toBeNull()
+  })
 })
