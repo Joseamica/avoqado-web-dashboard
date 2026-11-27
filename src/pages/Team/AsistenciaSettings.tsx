@@ -32,6 +32,8 @@ interface AjustesDeAsistencia {
   requireClockInPhoto?: boolean
   /** «Salida olvidada»: un turno sin salida se cierra solo al terminar su día. Prendida de fábrica (sin dato = prendida). */
   salidaOlvidadaEnabled?: boolean
+  /** Hora de corte de la salida olvidada («HH:mm»); null = la de fábrica (4:00 a. m.). Founder 26-nov: «A», por sucursal. */
+  salidaOlvidadaCorte?: string | null
 }
 
 interface Props {
@@ -51,6 +53,14 @@ export default function AsistenciaSettings({ venueId, settings, canEdit }: Props
   const [turnosRotativos, setTurnosRotativos] = useState(settings?.rotatingShiftsEnabled ?? false)
   const [foto, setFoto] = useState(settings?.requireClockInPhoto ?? false)
   const [salidaOlvidada, setSalidaOlvidada] = useState(settings?.salidaOlvidadaEnabled ?? true)
+  const [corte, setCorte] = useState(settings?.salidaOlvidadaCorte ?? '')
+  /**
+   * Lo último que el SERVIDOR guardó de la hora de corte. Se compara contra esto, no contra [settings], que llega tarde tras
+   * guardar: un segundo cambio rápido (22:00 → 23:00 → 22:00) se perdía al compararse contra el valor viejo (Codex r1 #4).
+   */
+  const corteGuardado = useRef<string | null>(settings?.salidaOlvidadaCorte ?? null)
+  /** Mientras la persona escribe la hora, ni la recarga ni la respuesta de un guardado le pisan el texto (Codex r2 #5). */
+  const editandoCorte = useRef(false)
 
   /**
    * 🔴 El estado local es una CAPA OPTIMISTA sobre los ajustes, no una copia que se saca una vez.
@@ -74,6 +84,8 @@ export default function AsistenciaSettings({ venueId, settings, canEdit }: Props
     setTurnosRotativos(settings?.rotatingShiftsEnabled ?? false)
     setFoto(settings?.requireClockInPhoto ?? false)
     setSalidaOlvidada(settings?.salidaOlvidadaEnabled ?? true)
+    corteGuardado.current = settings?.salidaOlvidadaCorte ?? null
+    if (!editandoCorte.current) setCorte(settings?.salidaOlvidadaCorte ?? '')
   }, [venueId, settings])
 
   const guardar = useMutation({
@@ -98,30 +110,38 @@ export default function AsistenciaSettings({ venueId, settings, canEdit }: Props
       if (requested.rotatingShiftsEnabled !== undefined) setTurnosRotativos(saved.rotatingShiftsEnabled ?? requested.rotatingShiftsEnabled)
       if (requested.requireClockInPhoto !== undefined) setFoto(saved.requireClockInPhoto ?? requested.requireClockInPhoto)
       if (requested.salidaOlvidadaEnabled !== undefined) setSalidaOlvidada(saved.salidaOlvidadaEnabled ?? requested.salidaOlvidadaEnabled)
+      if (requested.salidaOlvidadaCorte !== undefined) {
+        corteGuardado.current = saved.salidaOlvidadaCorte ?? null
+        if (!editandoCorte.current) setCorte(saved.salidaOlvidadaCorte ?? '')
+      }
 
       toast({
         title:
-          requested.salidaOlvidadaEnabled !== undefined
-            ? requested.salidaOlvidadaEnabled
-              ? t('venue:attendance.forgottenToastEnabled')
-              : t('venue:attendance.forgottenToastDisabled')
-            : requested.requireClockInPhoto !== undefined
-              ? requested.requireClockInPhoto
-                ? t('venue:attendance.photoToastEnabled')
-                : t('venue:attendance.photoToastDisabled')
-              : requested.rotatingShiftsEnabled !== undefined
-                ? requested.rotatingShiftsEnabled
-                  ? t('venue:rotatingShifts.toastEnabled')
-                  : t('venue:rotatingShifts.toastDisabled')
-                : requested.attendanceLateAlertEnabled !== undefined
-                  ? requested.attendanceLateAlertEnabled
-                    ? t('venue:attendance.lateAlertToastEnabled')
-                    : t('venue:attendance.lateAlertToastDisabled')
-                  : requested.attendanceEnabled === undefined
-                    ? t('venue:attendance.toastGraceSaved')
-                    : requested.attendanceEnabled
-                      ? t('venue:attendance.toastEnabled')
-                      : t('venue:attendance.toastDisabled'),
+          requested.salidaOlvidadaCorte !== undefined
+            ? requested.salidaOlvidadaCorte
+              ? t('venue:attendance.forgottenCutoffToast', { hora: requested.salidaOlvidadaCorte })
+              : t('venue:attendance.forgottenCutoffToastDefault')
+            : requested.salidaOlvidadaEnabled !== undefined
+              ? requested.salidaOlvidadaEnabled
+                ? t('venue:attendance.forgottenToastEnabled')
+                : t('venue:attendance.forgottenToastDisabled')
+              : requested.requireClockInPhoto !== undefined
+                ? requested.requireClockInPhoto
+                  ? t('venue:attendance.photoToastEnabled')
+                  : t('venue:attendance.photoToastDisabled')
+                : requested.rotatingShiftsEnabled !== undefined
+                  ? requested.rotatingShiftsEnabled
+                    ? t('venue:rotatingShifts.toastEnabled')
+                    : t('venue:rotatingShifts.toastDisabled')
+                  : requested.attendanceLateAlertEnabled !== undefined
+                    ? requested.attendanceLateAlertEnabled
+                      ? t('venue:attendance.lateAlertToastEnabled')
+                      : t('venue:attendance.lateAlertToastDisabled')
+                    : requested.attendanceEnabled === undefined
+                      ? t('venue:attendance.toastGraceSaved')
+                      : requested.attendanceEnabled
+                        ? t('venue:attendance.toastEnabled')
+                        : t('venue:attendance.toastDisabled'),
       })
       queryClient.invalidateQueries({ queryKey: ['get-venue-data', venueId] })
       // Asistencia lee los ajustes de la sesión (auth/status): sin esto, «Sin foto» y el aviso de checador apagado no
@@ -137,6 +157,7 @@ export default function AsistenciaSettings({ venueId, settings, canEdit }: Props
       setTurnosRotativos(settings?.rotatingShiftsEnabled ?? false)
       setFoto(settings?.requireClockInPhoto ?? false)
       setSalidaOlvidada(settings?.salidaOlvidadaEnabled ?? true)
+      setCorte(corteGuardado.current ?? '')
       toast({ title: t('venue:attendance.toastError'), variant: 'destructive' })
     },
   })
@@ -262,6 +283,36 @@ export default function AsistenciaSettings({ venueId, settings, canEdit }: Props
                 />
               </div>
             </div>
+
+            {/* Su hora de corte (founder 26-nov: «A», como Toast y Square): después de esta hora el turno sin salida queda como
+                olvidado. Vacía = la de fábrica, 4:00 a. m. Se guarda al salir del campo, como la tolerancia. */}
+            {salidaOlvidada && (
+              <div className="mt-3 flex items-center justify-between gap-4 pl-4">
+                <div className="space-y-0.5">
+                  <p className="text-sm font-medium">{t('venue:attendance.forgottenCutoffTitle')}</p>
+                  <p className="text-xs text-muted-foreground">{t('venue:attendance.forgottenCutoffDesc')}</p>
+                </div>
+                <Input
+                  aria-label={t('venue:attendance.forgottenCutoffTitle')}
+                  type="time"
+                  step={60}
+                  className="h-9 w-28"
+                  value={corte}
+                  onFocus={() => (editandoCorte.current = true)}
+                  onChange={e => setCorte(e.target.value)}
+                  onBlur={() => {
+                    editandoCorte.current = false
+                    // Sólo se salta con los ajustes SIN CARGAR (undefined): una sucursal sin fila de ajustes llega con null y su
+                    // primer corte sí se guarda (Codex r1 #3).
+                    if (settings === undefined) return
+                    const nuevo = corte === '' ? null : corte
+                    if (nuevo !== corteGuardado.current) guardar.mutate({ salidaOlvidadaCorte: nuevo })
+                  }}
+                  // Sin los ajustes cargados no se escribe: no habría contra qué guardar (Codex r3 #10).
+                  disabled={!canEdit || ocupado || settings === undefined}
+                />
+              </div>
+            )}
           </div>
         ) : (
           <p className="px-4 pb-4 text-xs text-muted-foreground">{t('venue:attendance.disabledHint')}</p>
