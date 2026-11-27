@@ -14,6 +14,8 @@ import { cn } from '@/lib/utils'
 import { FilterPill, CheckboxFilterContent } from '@/components/filters'
 import { AvisoDeCarga } from '@/components/AvisoDeCarga'
 import { falloDeCarga, type EstadoDeCarga } from '@/lib/falloDeCarga'
+import { CorregirSalidaOlvidada, SalidaOlvidadaBadge } from '@/pages/Attendance/SalidaOlvidada'
+import { notaDeLaSalidaOlvidada } from '@/pages/Attendance/salidaOlvidadaNota'
 
 export interface AttendanceEntry {
   id: string
@@ -43,6 +45,12 @@ export interface AttendanceEntry {
   gpsWarning?: boolean
   checkOutPhotoUrl?: string | null
   depositPhotoUrl?: string | null
+  // La cerró el sistema como «Salida olvidada» (hz:0433f0cb:D3): se marca y el gerente la corrige con la hora real.
+  salidaOlvidada?: boolean
+  // Para corregirla: la entrada en ISO, su sucursal y sus notas (la hora real de una salida tardía del celular sale de ahí).
+  clockInIso?: string | null
+  venueId?: string
+  notes?: string | null
 }
 
 interface AttendanceLogProps {
@@ -53,6 +61,8 @@ interface AttendanceLogProps {
   canManage: boolean
   // Quién mira: su propia checada la valida otra persona (SELF_VALIDATION_FORBIDDEN).
   currentStaffId?: string | null
+  // La zona del negocio: la hora que se teclea al corregir una «Salida olvidada» es la suya, no la del navegador.
+  venueTimezone: string
   onApprove: (entry: AttendanceEntry) => void
   onReject: (id: string) => void
   onResetValidation: (id: string) => void
@@ -65,6 +75,7 @@ export function AttendanceLog({
   query,
   canManage,
   currentStaffId,
+  venueTimezone,
   onApprove,
   onReject,
   onResetValidation,
@@ -75,6 +86,25 @@ export function AttendanceLog({
   // Falla cerrado: sin saber quién mira no se ofrece nada. El servidor lo vuelve a exigir.
   const esPropia = (e: AttendanceEntry) => !!currentStaffId && e.promoterId === currentStaffId
   const puedeValidar = (e: AttendanceEntry) => canManage && !!currentStaffId && !esPropia(e)
+  // «Salida olvidada · revisar», la hora real que mandó el celular y, a quien puede, «Corregir salida» (hz:0433f0cb:D3).
+  const salidaOlvidada = (e: AttendanceEntry) => {
+    if (!e.salidaOlvidada) return null
+    const nota = notaDeLaSalidaOlvidada({ notes: e.notes ?? null })
+    return (
+      <div className="mt-1 flex flex-col items-start gap-1">
+        <SalidaOlvidadaBadge />
+        {nota && <span className="max-w-[260px] text-[11px] leading-tight text-muted-foreground">{nota}</span>}
+        {puedeValidar(e) && e.timeEntryId && e.clockInIso && e.venueId && (
+          <CorregirSalidaOlvidada
+            entry={{ id: e.timeEntryId, clockInTime: e.clockInIso }}
+            venueId={e.venueId}
+            venueTimezone={venueTimezone}
+            staffName={e.promoterName}
+          />
+        )}
+      </div>
+    )
+  }
   const avisoPropia = (
     <span className="max-w-[160px] text-[10px] leading-tight text-muted-foreground">
       {t('managers.attendance.ownEntryHint', { defaultValue: 'Es tu propia checada: la valida otra persona' })}
@@ -451,6 +481,7 @@ export function AttendanceLog({
                           )}
                         </div>
                       )}
+                      {salidaOlvidada(entry)}
                     </div>
                   </td>
 
@@ -526,6 +557,7 @@ export function AttendanceLog({
                   <span className="font-mono">{entry.clockOut || '--:--'}</span>
                 </div>
               </div>
+              {salidaOlvidada(entry)}
               <div className="flex flex-wrap gap-1.5">
                 {entry.clockInPhotoUrl && (
                   <button onClick={() => onViewPhoto(entry, 'clockIn')} className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded border border-green-500/20 bg-green-500/10 text-green-400 cursor-pointer">

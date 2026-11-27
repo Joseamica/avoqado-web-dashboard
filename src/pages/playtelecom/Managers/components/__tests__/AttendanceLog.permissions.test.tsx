@@ -48,6 +48,7 @@ function pintar(entries: AttendanceEntry[], props: { canManage: boolean; current
     <AttendanceLog
       entries={entries}
       query={{ data: entries, isError: false, isFetching: false, isPaused: false, error: null, refetch: () => undefined }}
+      venueTimezone="America/Mexico_City"
       onApprove={() => undefined}
       onReject={() => undefined}
       onResetValidation={() => undefined}
