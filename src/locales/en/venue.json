@@ -647,9 +647,13 @@
     "photoToastEnabled": "Clock-in photo turned on",
     "photoToastDisabled": "Clock-in photo turned off",
     "forgottenTitle": "Missed clock-out",
-    "forgottenDesc": "If someone forgets to clock out, their shift closes by itself when the day ends (4:00 a.m.): at the end time of their schedule, or at 0 hours if they have no schedule. It shows as “Missed clock-out · review” in Attendance so you can fix it. Nobody ends up with multi-day shifts or locked out the next day.",
+    "forgottenDesc": "If someone forgets to clock out, their shift closes by itself at the cutoff time below (by default, 4:00 a.m.): at the end time of their schedule, or at 0 hours if they have no schedule. It shows as “Missed clock-out · review” in Attendance so you can fix it. Nobody ends up with multi-day shifts or locked out the next day.",
     "forgottenToastEnabled": "Missed clock-out turned on",
-    "forgottenToastDisabled": "Missed clock-out turned off: shifts without a clock-out stay open"
+    "forgottenToastDisabled": "Missed clock-out turned off: shifts without a clock-out stay open",
+    "forgottenCutoffTitle": "Cutoff time",
+    "forgottenCutoffDesc": "After this time, a shift without a clock-out becomes a “Missed clock-out”. Empty = 4:00 a.m. If someone clocks in less than an hour before the cutoff, the next day’s cutoff applies.",
+    "forgottenCutoffToast": "Cutoff time saved: {{hora}}",
+    "forgottenCutoffToastDefault": "Default cutoff time: 4:00 a.m."
   },
   "rotatingShifts": {
     "title": "Rotating shifts",

@@ -677,9 +677,13 @@
     "photoToastEnabled": "Foto de entrada activada",
     "photoToastDisabled": "Foto de entrada desactivada",
     "forgottenTitle": "Salida olvidada",
-    "forgottenDesc": "Si alguien no marca su salida, su turno se cierra solo al terminar el día (4:00 a. m.): con la hora de salida de su horario, o en 0 horas si no tiene horario. Queda «Salida olvidada · revisar» en Asistencia para que lo corrijas. Así nadie queda con turnos de días ni bloqueado para entrar al día siguiente.",
+    "forgottenDesc": "Si alguien no marca su salida, su turno se cierra solo a la hora de corte de abajo (de fábrica, 4:00 a. m.): con la hora de salida de su horario, o en 0 horas si no tiene horario. Queda «Salida olvidada · revisar» en Asistencia para que lo corrijas. Así nadie queda con turnos de días ni bloqueado para entrar al día siguiente.",
     "forgottenToastEnabled": "Salida olvidada activada",
-    "forgottenToastDisabled": "Salida olvidada desactivada: los turnos sin salida se quedan abiertos"
+    "forgottenToastDisabled": "Salida olvidada desactivada: los turnos sin salida se quedan abiertos",
+    "forgottenCutoffTitle": "Hora de corte",
+    "forgottenCutoffDesc": "Después de esta hora, un turno sin salida queda como «Salida olvidada». Vacía = 4:00 a. m. Si alguien entra a menos de una hora del corte, cuenta el del día siguiente.",
+    "forgottenCutoffToast": "Hora de corte guardada: {{hora}}",
+    "forgottenCutoffToastDefault": "Hora de corte de fábrica: 4:00 a. m."
   },
   "rotatingShifts": {
     "title": "Turnos rotativos",
