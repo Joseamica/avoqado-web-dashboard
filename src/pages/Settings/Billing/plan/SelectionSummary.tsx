@@ -10,7 +10,7 @@ import { sinIva } from '@/lib/sinIva'
 import { useVenueDateTime } from '@/utils/datetime'
 import type { DependencyFix, PlanOperation, SelectionSummaryModel } from './planActions'
 import type { CotizacionDeTuPlan } from '@/services/features.service'
-import { useNombresDelPlan } from '@/hooks/usePlanOffer'
+import { usePlanOffer, useNombresDelPlan } from '@/hooks/usePlanOffer'
 
 export interface SelectionSummaryProps {
   model: SelectionSummaryModel
@@ -73,6 +73,11 @@ export function SelectionSummary({
   const lang = (['es', 'en', 'fr'] as const).find(code => i18n.language.startsWith(code)) ?? 'es'
   const money = (value: number) => new Intl.NumberFormat(getIntlLocale(i18n.language), { style: 'currency', currency: 'MXN' }).format(value)
   const tierName = useNombresDelPlan(cotizacion)
+  const oferta = usePlanOffer()
+  // D3: con la versión del editor, la línea de un reemplazo híbrido lleva el nombre de la oferta de la rejilla de la que sale su precio.
+  const editor = !!cotizacion || (oferta.estado === 'servidor' && oferta.offerVersion !== null && oferta.offerVersion >= 2)
+  const nombreDeLinea = (line: SelectionSummaryModel['lines'][number]) =>
+    line.plan ? (editor && line.offer?.kind === 'PLAN' && line.offer.name ? line.offer.name : tierName(line.plan)) : ''
   const name = (entry: FeatureGridEntry) =>
     entry.featureCode ? t(`hybrid.featureNames.${entry.featureCode}`, { defaultValue: entry.names[lang] }) : entry.names[lang]
   const codeName = (code: string, entry?: FeatureGridEntry) =>
@@ -161,7 +166,7 @@ export function SelectionSummary({
               {model.lines.map(line => (
                 <li key={line.key} className="space-y-0.5">
                   <div className="flex justify-between gap-3">
-                    <span>{line.plan ? t('plan.selection.plan', { tier: tierName(line.plan) }) : name(line.entry!)}</span>
+                    <span>{line.plan ? t('plan.selection.plan', { tier: nombreDeLinea(line) }) : name(line.entry!)}</span>
                     {line.fueraDeVenta ? (
                       <span className="text-muted-foreground">{t(line.duranteLaPrueba ? 'plan.notDuringTrial' : 'plan.notOnSale')}</span>
                     ) : (

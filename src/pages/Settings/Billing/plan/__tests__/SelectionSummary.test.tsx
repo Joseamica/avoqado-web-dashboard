@@ -518,4 +518,29 @@ describe('SelectionSummary · la prueba de la versión del editor', () => {
     render(<SelectionSummary {...baseProps({ model: model({ hint }), cotizacion: cotizacion as never })} />)
     expect(screen.getByRole('button', { name: 'plan.selection.hintCta|tier=Plus' })).toBeInTheDocument()
   })
+
+  it('D3: reemplazo híbrido con cotización: la línea del plan lleva el nombre de la oferta de la rejilla con su precio, no el de la cotización', () => {
+    ofertaActual.valor = OFERTA_CARGANDO
+    const cotizacion = { versionNumber: 2, planes: { PRO: { displayName: 'Plus', vendible: true, monthly: null, annual: null } } }
+    const lineaPlan = {
+      key: 'plan-PRO',
+      plan: 'PRO' as const,
+      price: 899,
+      offer: {
+        publicationId: 'pub_pro',
+        campaignId: 'c',
+        name: 'Plus Nuevo',
+        kind: 'PLAN' as const,
+        planTier: 'PRO' as const,
+        price: 899,
+        renewal: 'SAME_PRICE' as const,
+        renewalPrice: null,
+        promotionCycles: null,
+        includedFeatureCodes: [],
+      },
+    }
+    render(<SelectionSummary {...baseProps({ model: model({ lines: [lineaPlan], monthlyTotal: 899 }), cotizacion: cotizacion as never })} />)
+    expect(screen.getByText('plan.selection.plan|tier=Plus Nuevo')).toBeInTheDocument()
+    expect(screen.queryByText('plan.selection.plan|tier=Plus')).toBeNull()
+  })
 })
