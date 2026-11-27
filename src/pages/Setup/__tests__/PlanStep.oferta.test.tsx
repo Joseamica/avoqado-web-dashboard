@@ -43,12 +43,8 @@ vi.mock('@/components/billing/PlanPicker', () => ({
 vi.mock('@/components/billing/FeatureCatalogBrowser', () => ({ FeatureCatalogBrowser: () => null }))
 vi.mock('@/components/billing/HybridOnboardingButton', () => ({ HybridOnboardingButton: () => null }))
 vi.mock('@/components/billing/PlanComparison', () => ({ PlanComparison: () => null }))
-// Español real de billing para los nombres; el resto, su `defaultValue` (como las demás pruebas del paso).
-const t = (k: string, o?: any) => {
-  const base = typeof o?.defaultValue === 'string' ? o.defaultValue : k
-  return base.replace(/\{\{(\w+)\}\}/g, (_: string, n: string) => String(o?.[n] ?? ''))
-}
-vi.mock('react-i18next', () => ({ useTranslation: () => ({ t, i18n: { language: 'es' } }) }))
+// El español REAL (setup, billing, common), como el i18next de verdad: la prueba ve lo que ve el cliente.
+vi.mock('react-i18next', () => import('./traduccionesDePrueba'))
 vi.mock('@/hooks/usePlanOffer', async () => {
   const f = await import('@/hooks/__tests__/planOfferFixtures')
   return f.moduloDelHookConOferta(() => f.ofertaActual.valor)
@@ -150,7 +146,7 @@ describe('PlanStep con la versión del editor', () => {
     expect(screen.getByText('Plus')).toBeInTheDocument()
     expect(screen.getByRole('radio', { name: /14 días gratis/ })).toBeInTheDocument()
     expect(screen.queryByText(/30 días/)).toBeNull()
-    expect(screen.getByText(/Empezar 14 días gratis/)).toBeInTheDocument()
+    expect(screen.getByText('Empezar 14 días gratis')).toBeInTheDocument()
   })
 
   it('un plan sin prueba (0 días) no ofrece «0 días gratis»: sólo se paga hoy', async () => {
@@ -175,14 +171,30 @@ describe('PlanStep sin versión: lo de hoy', () => {
     expect(screen.getByText('$999 al mes')).toBeInTheDocument()
   })
 
+  it('🔴 con la v1 confirmada por el hook y sin cotización: el cupón, el «ahorrar» y los 30 días de hoy, tal cual', async () => {
+    pintar(null)
+    expect(screen.getByTestId('plan-picker').dataset.promo).toBe('Paga hoy: 3 meses a $599 + IVA, luego $999.')
+    const user = await alPago()
+    expect(screen.getByRole('radio', { name: /30 días gratis/ })).toBeInTheDocument()
+    expect(screen.getByRole('radio', { name: /Pagar hoy y ahorrar/ })).toBeInTheDocument()
+    expect(screen.getByText('Empezar 30 días gratis')).toBeInTheDocument()
+    await user.click(screen.getByRole('radio', { name: /Pagar hoy y ahorrar/ }))
+    expect(screen.getByRole('button', { name: 'Pagar hoy y ahorrar (3 meses a $599)' })).toBeInTheDocument()
+  })
+
   it.each([OFERTA_CARGANDO, OFERTA_SIN_DATO])(
-    '🔴 con el hook %j, sin cotización: ningún monto de precio (ni $0 ni el de las constantes)',
+    '🔴 con el hook %j y sin cotización la versión se desconoce: ni $599, ni «3 meses», ni «30 días», ni monto; sólo «Pagar hoy»',
     async oferta => {
       ofertaActual.valor = oferta
       pintar(null)
+      expect(screen.getByTestId('plan-picker').dataset.promo).toBe('')
       await alPago()
-      // El precio del resumen no sale de las constantes (la nota de la promo de hoy es el texto sin versión y no es el precio del resumen).
-      expect(document.body.textContent).not.toMatch(/\$999 al mes|\$0\b|\$0\.00/)
+      expect(document.body.textContent).not.toMatch(/\$599|3 meses|30 días|\$999|\$0\b|\$0\.00/)
+      expect(screen.queryByRole('radio')).toBeNull()
+      expect(screen.getByRole('button', { name: 'Pagar hoy' })).toBeInTheDocument()
+      // Sin monto no hay un «+ IVA» suelto ni un « · » colgando.
+      expect(document.body.textContent).not.toMatch(/\+ IVA/)
+      expect(document.body.textContent).not.toMatch(/ · Se cobra/)
     },
   )
 

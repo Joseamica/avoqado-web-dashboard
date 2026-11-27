@@ -949,6 +949,12 @@ describe('A22: el subtítulo del paso de planes sale de la versión', () => {
     expect(await subtitulo()).toBe('14 días gratis, sin tarjeta')
   })
 
+  it('con 1 día: «1 día gratis» (singular)', async () => {
+    const con1 = (p: PlanCotizado): PlanCotizado => ({ ...p, requiresCard: true, trialDays: 1 })
+    pintar(quoteCon(ofertaCon({ PRO: con1(PRO_SIN_TARJETA), PREMIUM: con1(PREMIUM_HOY) })))
+    expect(await subtitulo()).toBe('1 día gratis')
+  })
+
   it('sin oferta: el texto de hoy', async () => {
     pintar(QUOTE_DE_HOY)
     expect(await subtitulo()).toBe('Pro y Premium: 30 días gratis. Cancela antes y no se te cobra.')

@@ -23,7 +23,7 @@ import { PlanPicker, type PrecioCotizado } from '@/components/billing/PlanPicker
 import { PlanComparison } from '@/components/billing/PlanComparison'
 import { BasicPlanCard } from '@/components/billing/BasicPlanCard'
 import { fmtPesos } from '@/utils/pesos'
-import { fmtPesos as fmtPesosDeCentavos } from '@/lib/fmtPesos'
+import { fmtPesos as fmtDePesos } from '@/lib/fmtPesos'
 import { usePublicBasicPlan } from '@/hooks/usePublicBasicPlan'
 import { readHybridOffer } from '@/lib/hybridIntent'
 import { HybridOnboardingButton } from '@/components/billing/HybridOnboardingButton'
@@ -144,7 +144,12 @@ export function PlanStep({
   // «Hay versión del editor»: la cotización la trae, o la oferta vigente es una v2 o más (la alta larga no recibe cotización).
   const conVersion =
     !!ofertaDelAlta || (ofertaVigente.estado === 'servidor' && ofertaVigente.offerVersion !== null && ofertaVigente.offerVersion >= 2)
-  const payNowLabel = payNowLabelFactory(t as unknown as (k: string, o?: Record<string, unknown>) => string, quote, conVersion)
+  // «Hoy»: la versión se CONFIRMÓ como ninguna (el hook dijo 200 con offerVersion null o < 2) o hay cotización sin versión del editor.
+  // Con `cargando`/`sinDato` y sin cotización la versión se DESCONOCE: ni cupón, ni monto, ni días fijos, sólo «Pagar hoy».
+  const hookSinVersion = ofertaVigente.estado === 'servidor' && (ofertaVigente.offerVersion === null || ofertaVigente.offerVersion < 2)
+  const textoDeHoy = !conVersion && (!!quote || hookSinVersion)
+  const versionDesconocida = !conVersion && !textoDeHoy
+  const payNowLabel = payNowLabelFactory(t as unknown as (k: string, o?: Record<string, unknown>) => string, quote, textoDeHoy)
   // Precios SIN IVA del servidor (si los manda): la tarjeta habla en «$ + IVA» con el mismo monto que consiente el cobro.
   // Con la versión del editor, cada plan lleva TAMBIÉN su nombre y sus brutos tal cual los cotizó el SERVIDOR.
   const preciosSinIva = (['PRO', 'PREMIUM'] as const).reduce<Partial<Record<TierId, PrecioCotizado>>>((acc, id) => {
@@ -188,10 +193,10 @@ export function PlanStep({
         intro: formatMXN(introPro.monthlyCents),
         list: formatMXN(quote?.tiers?.PRO?.monthlyCents ?? Number.NaN),
       })
-    : conVersion
-      ? // Con una versión del editor no viene el cupón de introducción: nada de «3 meses a $599».
+    : textoDeHoy
+      ? t('plan.promoLine', { defaultValue: 'Paga hoy: 3 meses a $599 + IVA, luego $999.' })
+      : // Con una versión del editor no viene el cupón de introducción, y sin saber la versión tampoco se promete: nada de «3 meses a $599».
         ''
-      : t('plan.promoLine', { defaultValue: 'Paga hoy: 3 meses a $599 + IVA, luego $999.' })
 
   // La nota bajo el precio de la tarjeta no repite montos CON IVA (la tarjeta ya dice «$ + IVA»): el descuento de
   // introducción sólo trae su monto con IVA, y esos números van en la pantalla de pago.
@@ -207,7 +212,7 @@ export function PlanStep({
   const planVigente = ofertaVigente.estado === 'servidor' && isPaidTier ? ofertaVigente[selectedTier] : undefined
   const trialDays = planCotizado?.trialDays ?? (conVersion ? planVigente?.trialDays : undefined) ?? quote?.trialDays ?? 30
   // Con una versión, un plan de 0 días no tiene prueba: sólo se paga hoy.
-  const sinPrueba = conVersion && isPaidTier && trialDays <= 0
+  const sinPrueba = versionDesconocida || (conVersion && isPaidTier && trialDays <= 0)
   const precioTier = isPaidTier ? quote?.tiers?.[selectedTier] : undefined
   const opcionCotizada = planCotizado?.[interval === 'annual' ? 'annual' : 'monthly']
   const precioRecurrente = opcionCotizada
@@ -244,7 +249,7 @@ export function PlanStep({
             'Hoy no pagas nada. Al terminar los {{count}} días se cobra el precio del plan a esta tarjeta. Cancela antes desde Facturación y no se te cobra.',
           count: trialDays,
         })
-  const conIntroHoy = !basico && !conVersion && selectedTier === 'PRO' && interval === 'monthly'
+  const conIntroHoy = !basico && textoDeHoy && selectedTier === 'PRO' && interval === 'monthly'
   const payNowHint = conIntroHoy
     ? promoLine
     : precioRecurrente != null
@@ -265,7 +270,7 @@ export function PlanStep({
       : precioRecurrente != null
         ? `${formatMXN(precioRecurrente)} ${periodo}`
         : netoVigente != null
-          ? `${fmtPesosDeCentavos(netoVigente / 100)} ${periodo}`
+          ? `${fmtDePesos(netoVigente / 100)} ${periodo}`
           : ''
   const notaIva =
     basico || precioRecurrente == null
@@ -363,7 +368,8 @@ export function PlanStep({
             interval={interval}
             onIntervalChange={setInterval}
             promoNotes={interval === 'monthly' && !basico && promoNotaDeTarjeta ? { PRO: promoNotaDeTarjeta } : undefined}
-            preciosSinIva={preciosSinIva}
+            // Sin cotización el objeto va vacío: el picker lo tomaría por «hay cotización» y apagaría la píldora «2 meses gratis».
+            preciosSinIva={Object.keys(preciosSinIva).length > 0 ? preciosSinIva : undefined}
             fueraDeVenta={fueraDeVenta}
             intervalLocked={basico}
             onSelectTier={handleSelectTier}
@@ -401,7 +407,9 @@ export function PlanStep({
               </p>
               <p className="text-xs text-muted-foreground">
                 {isPaidTier
-                  ? `${precioVisible} · ${notaIva}`
+                  ? precioVisible
+                    ? `${precioVisible} · ${notaIva}`
+                    : ''
                   : t('plan.freeNote', {
                       defaultValue: 'Empieza gratis sin tarjeta. Puedes mejorar tu plan cuando quieras desde Facturación.',
                     })}
@@ -444,7 +452,7 @@ export function PlanStep({
             {precioVisible && <p className="text-3xl font-semibold tabular-nums">{precioVisible}</p>}
             {/* El Básico no cobra nada al terminar la prueba (se contrata ese día): nada de «Se cobra cada mes». */}
             <p className="mt-1 text-sm text-muted-foreground">
-              {notaIva} ·{' '}
+              {precioVisible ? `${notaIva} · ` : ''}
               {basico
                 ? tBilling('plan.basic.trialCopy', {
                     price: precioBasico,
@@ -535,7 +543,7 @@ export function PlanStep({
                 }
                 // Básico: UN solo botón (empezar la prueba); no existe «pagar hoy».
                 trialLabel={
-                  basico || sinPrueba ? null : t('plan.startTrial', { defaultValue: 'Empezar {{days}} días gratis', days: trialDays })
+                  basico || sinPrueba ? null : t('plan.startTrial', { defaultValue: 'Empezar {{count}} días gratis', count: trialDays })
                 }
                 trialOptionTitle={t('plan.optionTrial', { defaultValue: '{{count}} días gratis', count: trialDays })}
                 payNowOptionTitle={
@@ -606,7 +614,7 @@ export function PlanStep({
  * Con cotización, el monto del botón es el del SERVIDOR con IVA — el mismo que dice la tarjeta —;
  * sin ella queda el texto de siempre.
  */
-function payNowLabelFactory(t: (k: string, o?: Record<string, unknown>) => string, quote?: PlanQuote | null, conVersion = false) {
+function payNowLabelFactory(t: (k: string, o?: Record<string, unknown>) => string, quote?: PlanQuote | null, textoDeHoy = true) {
   const intro = quote?.tiers?.PRO?.intro ?? null
   return (tier: 'PRO' | 'PREMIUM', interval: 'monthly' | 'annual') =>
     interval === 'annual'
@@ -618,8 +626,8 @@ function payNowLabelFactory(t: (k: string, o?: Record<string, unknown>) => strin
               count: intro.months,
               intro: formatMXN(intro.monthlyCents),
             })
-          : conVersion
-            ? t('plan.payNow', { defaultValue: 'Pagar hoy' })
-            : t('plan.payNowMonthly', { defaultValue: 'Pagar hoy y ahorrar' })
+          : textoDeHoy
+            ? t('plan.payNowMonthly', { defaultValue: 'Pagar hoy y ahorrar' })
+            : t('plan.payNow', { defaultValue: 'Pagar hoy' })
         : t('plan.payNow', { defaultValue: 'Pagar hoy' })
 }

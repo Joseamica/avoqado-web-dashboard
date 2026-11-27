@@ -90,7 +90,7 @@ function subtituloDeLaVersion(oferta: NonNullable<PlanQuote['oferta']>, t: Tradu
   if (aLaVenta.length === 0) return ''
   const detalle = (p: (typeof aLaVenta)[number], conPlan: boolean) => {
     const clave = p.trialDays <= 0 ? 'PayToday' : p.requiresCard ? 'Trial' : 'TrialNoCard'
-    return t(conPlan ? `plans.subtitlePlan${clave}` : `plans.subtitle${clave}`, { plan: p.displayName, days: p.trialDays })
+    return t(conPlan ? `plans.subtitlePlan${clave}` : `plans.subtitle${clave}`, { plan: p.displayName, count: p.trialDays })
   }
   const primero = aLaVenta[0]
   const iguales = aLaVenta.every(p => p.trialDays === primero.trialDays && p.requiresCard === primero.requiresCard)

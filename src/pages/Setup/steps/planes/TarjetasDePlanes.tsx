@@ -236,7 +236,7 @@ export function TarjetasDePlanes({
                 esLaOferta
                   ? t('plans.chooseOffer', { plan: oferta.planName, price: formatMXN(oferta.promo.monthlyCents) })
                   : cotizado
-                    ? t('plans.chooseBasic', { plan: nombre })
+                    ? t('plans.choosePlan', { plan: nombre })
                     : t(plan === 'PRO' ? 'plans.choosePro' : 'plans.choosePremium')
               }
               bloqueado={bloqueado}
