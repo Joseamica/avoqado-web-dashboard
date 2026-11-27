@@ -936,6 +936,9 @@
     "spotsCount": "{{count}} active spots",
     "legendActive": "Active",
     "legendDisabled": "Disabled",
+    "toggleHint": "Tap a cell to remove it so the map matches your room (for example, a 3 × 3 with the middle cells switched off).",
+    "previewTitle": "This is how your client will see it",
+    "previewFront": "Front · coach",
     "legendInstructor": "Instructor",
     "capacityFromLayout": "Calculated from spot map"
   },

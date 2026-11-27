@@ -931,6 +931,9 @@
     "spotsCount": "{{count}} lugares activos",
     "legendActive": "Activo",
     "legendDisabled": "Desactivado",
+    "toggleHint": "Toca una casilla para quitarla y que el mapa quede como tu salón (por ejemplo, 3 × 3 con las casillas de en medio apagadas).",
+    "previewTitle": "Así lo verá tu clienta",
+    "previewFront": "Frente · coach",
     "legendInstructor": "Instructor",
     "capacityFromLayout": "Calculado desde el mapa de lugares"
   },
