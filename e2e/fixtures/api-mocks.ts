@@ -37,6 +37,11 @@ export interface SetupApiMocksOptions {
    * or `{ hasPlan: true, state: 'active', planTier: 'PRO', grandfathered: false }` (Pro).
    */
   planState?: Partial<MockPlanState>
+  /**
+   * Planes editables (B4): el cuerpo `data` de GET /public/plan-offer. Por omisión, la oferta de hoy sin versión del editor
+   * (`offerVersion: null`, Pro $999 y Premium $1,699 + IVA), como contesta el SERVIDOR mientras nadie publique una versión.
+   */
+  planOffer?: Record<string, unknown>
   /** Override GET /venues/:id/plan/seat-status. Default: unlimited seats, invites allowed. */
   seatStatus?: Partial<MockSeatStatus>
   /** Override GET /venues/:id/plan/downgrade-preview. Default: `required: false`. */
@@ -103,6 +108,30 @@ export async function setupApiMocks(page: Page, options: SetupApiMocksOptions = 
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify({ success: true, data: planState }),
+    }),
+  )
+
+  // Planes editables (B4): la oferta vigente pública que leen los candados, el selector y «Tu plan» (usePlanOffer).
+  const precio = (netCents: number) => ({ netCents, grossCents: Math.round((netCents * 116) / 100) })
+  const plan = (displayName: string, monthly: number, annual: number) => ({
+    displayName,
+    onSale: true,
+    requiresCard: true,
+    trialDays: 30,
+    monthly: precio(monthly),
+    annual: precio(annual),
+  })
+  const planOffer = options.planOffer ?? {
+    offerVersion: null,
+    FREE: { displayName: 'Gratis' },
+    PRO: plan('Pro', 99900, 999000),
+    PREMIUM: plan('Premium', 169900, 1699000),
+  }
+  await page.route('**/api/v1/public/plan-offer', route =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data: planOffer }),
     }),
   )
 

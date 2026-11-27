@@ -79,6 +79,17 @@ describe('PlanCardForm', () => {
   })
 })
 
+describe('PlanCardForm — la opción de prueba que desaparece', () => {
+  it('🔴 si la prueba desaparece con «trial» elegido, el botón dice «Pagar hoy» Y confirma con payNow true', async () => {
+    stripe.confirmSetup.mockResolvedValue({ setupIntent: { payment_method: 'pm_1' } })
+    const onConfirmed = vi.fn()
+    const { rerender } = render(<PlanCardForm payNowLabel="Pagar hoy" trialLabel="Empezar 14 días" onConfirmed={onConfirmed} />)
+    rerender(<PlanCardForm payNowLabel="Pagar hoy" trialLabel={null} onConfirmed={onConfirmed} />)
+    await userEvent.setup().click(screen.getByRole('button', { name: /Pagar hoy/ }))
+    await waitFor(() => expect(onConfirmed).toHaveBeenCalledWith('pm_1', true))
+  })
+})
+
 describe('PlanCardForm — el foco tras un error (D1)', () => {
   it('🔴 tras un reto 3D Secure fallido, el foco va al mensaje: no se queda en el <body>', async () => {
     stripe.confirmSetup.mockImplementation(async () => {

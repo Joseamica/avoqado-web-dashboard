@@ -28,6 +28,8 @@ const TEXTO_ENTERPRISE = 'Hola, me interesa el plan Enterprise de Avoqado para m
 
 interface TarjetaProps {
   plan: Plan
+  /** El nombre que lleva el título: el de la versión del editor, o el de marca de siempre. */
+  nombre: string
   etiqueta?: string
   destacada: boolean
   precio: ReactNode
@@ -37,7 +39,7 @@ interface TarjetaProps {
   onClick: () => void
 }
 
-function Tarjeta({ plan, etiqueta, destacada, precio, puntos, boton, bloqueado, onClick }: TarjetaProps) {
+function Tarjeta({ plan, nombre, etiqueta, destacada, precio, puntos, boton, bloqueado, onClick }: TarjetaProps) {
   const { t } = useTranslation('setup')
   const idTitulo = useId()
   const clave = plan.toLowerCase()
@@ -53,7 +55,7 @@ function Tarjeta({ plan, etiqueta, destacada, precio, puntos, boton, bloqueado, 
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 id={idTitulo} className="text-xl font-semibold">
-          {NOMBRE[plan]}
+          {nombre}
         </h2>
         {etiqueta && <Badge>{etiqueta}</Badge>}
       </div>
@@ -149,6 +151,7 @@ export function TarjetasDePlanes({
               <Tarjeta
                 key={plan}
                 plan={plan}
+                nombre={NOMBRE[plan]}
                 destacada={false}
                 precio={
                   <>
@@ -169,11 +172,14 @@ export function TarjetasDePlanes({
           const tier = planQuote?.tiers?.[plan]
           const cotizado = ofertaDelAlta?.planes[plan]
           const mensual = cotizado?.monthly
+          // B4: con una versión del editor el nombre sale de ELLA (el mismo que el precio); sin ella, el de marca de siempre.
+          const nombre = cotizado?.displayName ?? NOMBRE[plan]
 
           const tarjetaDelPlan = (
             <Tarjeta
               key={plan}
               plan={plan}
+              nombre={nombre}
               etiqueta={
                 esLaOferta ? t('plans.yourOffer') : !oferta && plan === 'PRO' && !basicoRecomendado ? t('plans.recommended') : undefined
               }
@@ -229,7 +235,9 @@ export function TarjetasDePlanes({
               boton={
                 esLaOferta
                   ? t('plans.chooseOffer', { plan: oferta.planName, price: formatMXN(oferta.promo.monthlyCents) })
-                  : t(plan === 'PRO' ? 'plans.choosePro' : 'plans.choosePremium')
+                  : cotizado
+                    ? t('plans.choosePlan', { plan: nombre })
+                    : t(plan === 'PRO' ? 'plans.choosePro' : 'plans.choosePremium')
               }
               bloqueado={bloqueado}
               onClick={() => onElegir(plan)}

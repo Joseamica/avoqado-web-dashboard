@@ -19,6 +19,7 @@ import {
   summarizeSelection,
   tierFeatureCount,
 } from '../planActions'
+import { OFERTA_CARGANDO, OFERTA_SIN_DATO, OFERTA_V1, OFERTA_V2_PLUS, OFERTA_V3_PREMIUM_FUERA } from '@/hooks/__tests__/planOfferFixtures'
 
 const offer = (id: string, price: number, extra: Partial<FeatureGridOffer> = {}): FeatureGridOffer => ({
   publicationId: `pub_${id}`,
@@ -87,7 +88,14 @@ const replacements = (items: { subscriptionId: string; featureCodes: string[]; r
   items,
   total: items.length,
 })
-const base = { grandfathered: false, marked: [] as string[], grid: grid(), replacements: replacements([]), classicRejected: false }
+const base = {
+  oferta: OFERTA_V1,
+  grandfathered: false,
+  marked: [] as string[],
+  grid: grid(),
+  replacements: replacements([]),
+  classicRejected: false,
+}
 const classicSource = replacements([
   { subscriptionId: 'sub_classic', featureCodes: ['LOYALTY_PROGRAM', 'RESERVATIONS'], replaceable: true },
 ])
@@ -686,9 +694,9 @@ describe('summarizeSelection', () => {
 
 describe('prices and counts', () => {
   it('classic prices carry IVA: Pro $1,158.84 and Premium $1,970.84 a month', () => {
-    expect(classicPrice('PRO', 'monthly')).toBe(1158.84)
-    expect(classicPrice('PREMIUM', 'monthly')).toBe(1970.84)
-    expect(classicPrice('PRO', 'annual')).toBe(11588.4)
+    expect(classicPrice('PRO', 'monthly', OFERTA_V1)).toBe(1158.84)
+    expect(classicPrice('PREMIUM', 'monthly', OFERTA_V1)).toBe(1970.84)
+    expect(classicPrice('PRO', 'annual', OFERTA_V1)).toBe(11588.4)
   })
 
   it('counts a plan functions from the catalog, never the quoted ones', () => {
@@ -732,7 +740,7 @@ describe('al pagar se cobra con IVA', () => {
     expect(model.payToday).toBe(1158.84)
     expect(model.monthlyTotal).toBe(1158.84)
     expect(model.lines[0].price).toBe(1158.84)
-    expect(classicPrice('PREMIUM', 'annual')).toBe(19708.4)
+    expect(classicPrice('PREMIUM', 'annual', OFERTA_V1)).toBe(19708.4)
   })
 })
 
@@ -768,19 +776,19 @@ describe('quedarse con el plan durante una prueba regalada (D3)', () => {
 
   it('el resumen lleva la línea del plan, hoy $0 y el primer cobro; anual cuenta por año', () => {
     const mensual = summarizeSelection({ ...base, origin: pruebaPro, target: 'PRO', interval: 'monthly' })
-    expect(mensual.lines).toEqual([expect.objectContaining({ plan: 'PRO', price: classicPrice('PRO', 'monthly') })])
+    expect(mensual.lines).toEqual([expect.objectContaining({ plan: 'PRO', price: classicPrice('PRO', 'monthly', OFERTA_V1) })])
     expect(mensual.payToday).toBe(0)
     expect(mensual.firstChargeAt).toBe(FIN)
-    expect(mensual.monthlyTotal).toBe(classicPrice('PRO', 'monthly'))
+    expect(mensual.monthlyTotal).toBe(classicPrice('PRO', 'monthly', OFERTA_V1))
     const anual = summarizeSelection({ ...base, origin: pruebaPro, target: 'PRO', interval: 'annual' })
-    expect(anual.lines[0]).toMatchObject({ price: classicPrice('PRO', 'annual') })
+    expect(anual.lines[0]).toMatchObject({ price: classicPrice('PRO', 'annual', OFERTA_V1) })
     expect(anual.payToday).toBe(0)
   })
 
   it('REGRESIÓN: la compra clásica desde Gratis sigue cobrando hoy y sin fecha diferida', () => {
     const model = summarizeSelection({ ...base, origin: NO_ORIGIN, target: 'PRO', interval: 'monthly' })
     expect(model.operation).toEqual({ kind: 'CLASSIC_CHECKOUT', tier: 'PRO' })
-    expect(model.payToday).toBe(classicPrice('PRO', 'monthly'))
+    expect(model.payToday).toBe(classicPrice('PRO', 'monthly', OFERTA_V1))
     expect(model.firstChargeAt).toBeNull()
   })
 })
@@ -1129,5 +1137,51 @@ describe('«Tu plan» con la cotización de la versión (B2, Task 12)', () => {
     expect(basicNotice(contrato, NO_ORIGIN)?.kind).toBe('CURRENT')
     const terminaGratis = estado({ trialModality: 'ENDS_FREE', trialEndsAt: FIN, cotizacion: V2 })
     expect(basicNotice(terminaGratis, CLASSIC_PRO)).toEqual({ kind: 'TRIAL_ENDS_FREE', date: FIN })
+  })
+})
+
+// Planes editables (B4, Task 7): los montos salen de la oferta del SERVIDOR; sin ella, ninguno (nunca $0.00).
+describe('montos de lista desde la oferta (B4)', () => {
+  it('v2 «Plus»: classicPrice y la píldora salen de la oferta, con IVA', () => {
+    expect(classicPrice('PRO', 'monthly', OFERTA_V2_PLUS)).toBe(926.84)
+    expect(classicPrice('PRO', 'annual', OFERTA_V2_PLUS)).toBe(9860)
+    const pildora = planPillPrice('PRO', { ...base, origin: NO_ORIGIN, oferta: OFERTA_V2_PLUS, interval: 'monthly' })
+    expect(pildora).toMatchObject({ amount: 926.84, ivaAparte: true })
+  })
+
+  it.each([
+    ['cargando', OFERTA_CARGANDO],
+    ['sinDato', OFERTA_SIN_DATO],
+  ])('con %s no hay monto: classicPrice null y la píldora sin monto', (_nombre, oferta) => {
+    expect(classicPrice('PRO', 'monthly', oferta)).toBeNull()
+    expect(classicPrice('PRO', 'monthly', undefined)).toBeNull()
+    expect(planPillPrice('PRO', { ...base, origin: NO_ORIGIN, oferta, interval: 'monthly' })).toMatchObject({ sinMonto: true })
+  })
+
+  it.each([
+    ['cargando', OFERTA_CARGANDO],
+    ['sinDato', OFERTA_SIN_DATO],
+  ])('con %s «Tu selección» de Pro desde Gratis no trae total ni cobro de hoy (r2 #4)', (_nombre, oferta) => {
+    const model = summarizeSelection({ ...base, origin: NO_ORIGIN, oferta, target: 'PRO', interval: 'monthly' })
+    expect(model.monthlyTotal).toBeNull()
+    expect(model.payToday).toBeNull()
+  })
+
+  it('Gratis conserva su cero real aunque la oferta no cargue', () => {
+    const model = summarizeSelection({ ...base, origin: CLASSIC_PRO, oferta: OFERTA_CARGANDO, target: 'FREE', interval: 'monthly' })
+    expect(model.lines.every(line => line.price !== null)).toBe(true)
+  })
+
+  it('Premium fuera de venta (v3): la píldora lo dice y no trae precio', () => {
+    expect(planPillPrice('PREMIUM', { ...base, origin: NO_ORIGIN, oferta: OFERTA_V3_PREMIUM_FUERA, interval: 'monthly' })).toMatchObject({
+      fueraDeVenta: true,
+    })
+    expect(classicPrice('PREMIUM', 'monthly', OFERTA_V3_PREMIUM_FUERA)).toBeNull()
+  })
+
+  it('includedHint: con la oferta cargando la sugerencia no sale (r3 #2); con v2 sale con el precio de Plus', () => {
+    const input = { ...base, origin: NO_ORIGIN, target: 'FREE' as const, marked: ['LOYALTY_PROGRAM'], interval: 'monthly' as const }
+    expect(summarizeSelection({ ...input, oferta: OFERTA_CARGANDO }).hint).toBeNull()
+    expect(summarizeSelection({ ...input, oferta: OFERTA_V2_PLUS }).hint).toMatchObject({ tier: 'PRO', price: 926.84 })
   })
 })

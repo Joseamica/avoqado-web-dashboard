@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import type { PlanTierDef } from '@/config/plan-catalog'
 import { beneficiosDelPlan, extrasDelPlan } from '@/config/plan-comparison'
+import { useNombreDelPlan } from '@/hooks/usePlanOffer'
 
 interface PlanBenefitsDialogProps {
   tier: PlanTierDef
@@ -23,11 +24,14 @@ interface PlanBenefitsDialogProps {
    * por accidente). Al elegir, la ventana se cierra sola.
    */
   action?: { label: string; onClick: () => void }
+  /** El nombre que la tarjeta ya resolvió (su cotización o la oferta); sin él, el de la oferta vigente. */
+  tierName?: string
 }
 
-export function PlanBenefitsDialog({ tier, open, onOpenChange, accentClassName, action }: PlanBenefitsDialogProps) {
+export function PlanBenefitsDialog({ tier, open, onOpenChange, accentClassName, action, tierName: nombreDeLaTarjeta }: PlanBenefitsDialogProps) {
   const { t } = useTranslation('billing')
-  const tierName = t(`plan.tiers.${tier.key}.name`)
+  const nombreDeLaOferta = useNombreDelPlan(tier.id)
+  const tierName = nombreDeLaTarjeta ?? nombreDeLaOferta
   const extras = extrasDelPlan(tier)
   const categorias = beneficiosDelPlan(tier.id)
 

@@ -10,6 +10,7 @@ import type { FeatureGrid, HybridReplacementOptions } from '@/services/hybridBil
 import { useVenueDateTime } from '@/utils/datetime'
 import { getIntlLocale } from '@/utils/i18n-locale'
 import { sinIva } from '@/lib/sinIva'
+import { usePlanOffer, useNombresDelPlan } from '@/hooks/usePlanOffer'
 import { basicNotice, planPillPrice, tierFeatureCount, type PlanTarget } from './planActions'
 
 const TIERS: PlanTarget[] = ['FREE', 'PRO', 'PREMIUM']
@@ -45,7 +46,9 @@ export function PlanRow(props: PlanRowProps) {
   const { formatDate } = useVenueDateTime()
   const { origin, planState, grandfathered, current, selected, canManage, busy } = props
   const money = (value: number) => new Intl.NumberFormat(getIntlLocale(i18n.language), { style: 'currency', currency: 'MXN' }).format(value)
-  const tierName = (tier: PlanTarget) => t(`plan.tiers.${tier.toLowerCase()}.name`)
+  const oferta = usePlanOffer()
+  const tierName = useNombresDelPlan(planState?.cotizacion)
+  const pro = tierName('PRO')
   const originTier = origin.tier ? tierName(origin.tier) : ''
   const until = origin.cancelAt ?? origin.currentPeriodEnd
   const untilText = until ? formatDate(until) : null
@@ -70,6 +73,7 @@ export function PlanRow(props: PlanRowProps) {
     interval: props.interval,
     preferList: props.preferList,
     cotizacion,
+    oferta,
   }
   // D5: con un cupón vigente, lo que paga, hasta cuándo y el precio después — nunca sólo el precio de lista.
   const descuento = origin.kind === 'CLASSIC' ? origin.discount : null
@@ -162,7 +166,8 @@ export function PlanRow(props: PlanRowProps) {
                       <span className="whitespace-nowrap text-xs text-muted-foreground">
                         {t(price.duranteLaPrueba ? 'plan.notDuringTrial' : 'plan.notOnSale')}
                       </span>
-                    ) : (
+                    ) : price.sinMonto ? null : (
+                      // B4: sin la oferta del SERVIDOR (cargando o sin dato) no hay monto: ni $0.00 ni el de hoy.
                       <>
                         <span className="whitespace-nowrap tabular-nums">
                           {money(price.ivaAparte ? sinIva(price.amount) : price.amount)}
@@ -251,7 +256,7 @@ export function PlanRow(props: PlanRowProps) {
           {origin.kind === 'CLASSIC' &&
             (origin.cancelAt ? (
               <Button size="sm" disabled={!canManage || busy} onClick={props.onReactivate} data-tour="plan-reactivate">
-                {t(basic?.kind === 'TRIAL_ENDS_FREE' ? 'plan.basic.stayPro' : 'plan.row.resume')}
+                {basic?.kind === 'TRIAL_ENDS_FREE' ? t('plan.basic.stayPro', { pro }) : t('plan.row.resume')}
               </Button>
             ) : (
               <Button size="sm" variant="outline" disabled={!canManage || busy} onClick={props.onCancel} data-tour="plan-cancel">
@@ -288,7 +293,7 @@ export function PlanRow(props: PlanRowProps) {
               </p>
               {!basic.active && <p className="text-muted-foreground">{t('plan.basic.inactive', { name: basic.name })}</p>}
               <Button size="sm" disabled={!canManage || busy} onClick={() => props.onSelect('PRO')} data-tour="plan-basic-upgrade">
-                {t('plan.basic.upgrade')}
+                {t('plan.basic.upgrade', { pro })}
               </Button>
             </>
           )}
@@ -304,7 +309,7 @@ export function PlanRow(props: PlanRowProps) {
           {basic.kind === 'CAN_END_PRO' && (
             <>
               <p className="font-medium">{t('plan.basic.preferBasic')}</p>
-              <p className="text-muted-foreground">{t('plan.basic.preferBasicCopy', { price: money(basic.price) })}</p>
+              <p className="text-muted-foreground">{t('plan.basic.preferBasicCopy', { price: money(basic.price), pro })}</p>
               <Button
                 size="sm"
                 variant="outline"
@@ -312,7 +317,7 @@ export function PlanRow(props: PlanRowProps) {
                 onClick={props.onEndProForBasic}
                 data-tour="plan-basic-end-pro"
               >
-                {t('plan.basic.endPro')}
+                {t('plan.basic.endPro', { pro })}
               </Button>
               <p className="w-full text-muted-foreground">{t('plan.basic.endProSeats')}</p>
             </>

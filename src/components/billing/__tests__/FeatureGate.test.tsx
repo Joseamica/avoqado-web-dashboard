@@ -3,7 +3,21 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { FeatureGate } from '../FeatureGate'
+import {
+  OFERTA_V2_CON_CENTAVOS,
+  OFERTA_CARGANDO,
+  OFERTA_SIN_DATO,
+  OFERTA_V1,
+  OFERTA_V2_PLUS,
+  OFERTA_V3_PREMIUM_FUERA,
+  ofertaActual,
+} from '@/hooks/__tests__/planOfferFixtures'
 import type { PlanState } from '@/services/features.service'
+
+vi.mock('@/hooks/usePlanOffer', async () => {
+  const f = await import('@/hooks/__tests__/planOfferFixtures')
+  return f.moduloDelHookConOferta(() => f.ofertaActual.valor)
+})
 
 // ---------------------------------------------------------------------------
 // i18n stub: renders keys as "key:interpolated-value" so assertions are stable
@@ -11,6 +25,9 @@ import type { PlanState } from '@/services/features.service'
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (k: string, o?: Record<string, unknown>) => {
+      // El nombre del plan sale del hook (B4): como el idioma real, «plan.tiers.premium.name» → «Premium».
+      const nombre = /^plan\.tiers\.(\w+)\.name$/.exec(k)
+      if (nombre) return nombre[1].charAt(0).toUpperCase() + nombre[1].slice(1)
       const partes = [k]
       if (o?.tier) partes.push(String(o.tier))
       if (o?.price) partes.push(String(o.price))
@@ -55,7 +72,7 @@ vi.mock('@/services/features.service', () => ({
 // Mock @tanstack/react-query's useQuery so we control planState without HTTP
 // ---------------------------------------------------------------------------
 const mockUseQuery = vi.fn()
-vi.mock('@tanstack/react-query', async (importOriginal) => {
+vi.mock('@tanstack/react-query', async importOriginal => {
   const actual = await importOriginal<typeof import('@tanstack/react-query')>()
   return {
     ...actual,
@@ -105,7 +122,7 @@ function renderGate(children = <div>secret content</div>) {
   return render(
     <QueryClientProvider client={queryClient}>
       <FeatureGate feature="CFDI">{children}</FeatureGate>
-    </QueryClientProvider>
+    </QueryClientProvider>,
   )
 }
 
@@ -115,6 +132,7 @@ function renderGate(children = <div>secret content</div>) {
 describe('FeatureGate', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    ofertaActual.valor = OFERTA_V1
 
     // Default useAccess: non-superadmin, non-white-label OWNER
     mockCanFeature.mockReturnValue(false)
@@ -335,7 +353,10 @@ describe('FeatureGate', () => {
         ...makePlanState('GRATIS'),
         availableFeatures: [{ code: 'CFDI', monthlyPrice: 0, stripePriceId: null }],
         entries: [
-          { featureCode: 'CFDI', offer: { kind: 'FEATURES', includedFeatureCodes: ['CFDI'], price: 149, listPrice: 199, renewal: 'SAME_PRICE' } },
+          {
+            featureCode: 'CFDI',
+            offer: { kind: 'FEATURES', includedFeatureCodes: ['CFDI'], price: 149, listPrice: 199, renewal: 'SAME_PRICE' },
+          },
         ],
       },
       isLoading: false,
@@ -450,8 +471,72 @@ describe('FeatureGate', () => {
 
     renderGate()
 
-    const llamadasAFeatures = mockUseQuery.mock.calls.filter(([opts]) => opts?.queryKey?.[0] === 'venueFeatures' && opts.queryKey[2] !== 'planTier')
+    const llamadasAFeatures = mockUseQuery.mock.calls.filter(
+      ([opts]) => opts?.queryKey?.[0] === 'venueFeatures' && opts.queryKey[2] !== 'planTier',
+    )
     expect(llamadasAFeatures.length).toBeGreaterThan(0)
     expect(llamadasAFeatures.every(([opts]) => opts.enabled === false)).toBe(true)
+  })
+
+  // B4 (planes editables): el nombre y el precio del plan salen de la oferta del SERVIDOR, nunca de un número guardado.
+  describe('oferta vigente', () => {
+    const renderPro = () => {
+      mockUseQuery.mockReturnValue({ data: makePlanState('GRATIS'), isLoading: false })
+      return render(
+        <QueryClientProvider client={new QueryClient()}>
+          <FeatureGate feature="CFDI" requiredTier="PRO">
+            <div>secret content</div>
+          </FeatureGate>
+        </QueryClientProvider>,
+      )
+    }
+
+    it('v2 «Plus»: el cartel dice Plus y $799/mes + IVA', () => {
+      ofertaActual.valor = OFERTA_V2_PLUS
+      renderPro()
+      expect(screen.getByText('featureGate.tierTag:Plus')).toBeInTheDocument()
+      expect(screen.getByText('featureGate.planPrice:Plus:$799')).toBeInTheDocument()
+      expect(screen.getByText('featureGate.upgrade:Plus')).toBeInTheDocument()
+    })
+
+    it.each([
+      ['cargando', OFERTA_CARGANDO],
+      ['sinDato', OFERTA_SIN_DATO],
+    ])('con %s no hay línea de precio del plan (ni $999)', (_n, oferta) => {
+      ofertaActual.valor = oferta
+      renderPro()
+      expect(screen.queryByText(/featureGate\.planPrice/)).not.toBeInTheDocument()
+      expect(document.body.textContent).not.toMatch(/999/)
+      expect(screen.getByText('featureGate.tierTag:Pro')).toBeInTheDocument()
+    })
+
+    it('M6: el precio del plan con centavos enseña «$799.50»; el redondo sigue «$999» (v1)', () => {
+      ofertaActual.valor = OFERTA_V2_CON_CENTAVOS
+      const { unmount } = renderPro()
+      expect(screen.getByText('featureGate.planPrice:Plus:$799.50')).toBeInTheDocument()
+      unmount()
+      ofertaActual.valor = OFERTA_V1
+      renderPro()
+      expect(screen.getByText('featureGate.planPrice:Pro:$999')).toBeInTheDocument()
+    })
+
+    it('M3: fuera de venta y sin permiso de contratar, queda «pídesela al dueño» (no se deja sin guía)', () => {
+      ofertaActual.valor = OFERTA_V3_PREMIUM_FUERA
+      mockCan.mockImplementation((permiso: string) => permiso.endsWith(':read'))
+      mockUseQuery.mockReturnValue({ data: makePlanState('GRATIS'), isLoading: false })
+      renderGate()
+      expect(screen.getByText('featureGate.includedIn:Premium')).toBeInTheDocument()
+      expect(screen.getByText('featureGate.askOwner')).toBeInTheDocument()
+      expect(screen.queryByText(/featureGate\.upgrade/)).not.toBeInTheDocument()
+    })
+
+    it('v3: con Premium fuera de venta, ni precio ni «Mejora a Premium»; dice «Incluida en Premium» (r2 #8)', () => {
+      ofertaActual.valor = OFERTA_V3_PREMIUM_FUERA
+      mockUseQuery.mockReturnValue({ data: makePlanState('GRATIS'), isLoading: false })
+      renderGate()
+      expect(screen.queryByText(/featureGate\.planPrice/)).not.toBeInTheDocument()
+      expect(screen.queryByText(/featureGate\.upgrade/)).not.toBeInTheDocument()
+      expect(screen.getByText('featureGate.includedIn:Premium')).toBeInTheDocument()
+    })
   })
 })

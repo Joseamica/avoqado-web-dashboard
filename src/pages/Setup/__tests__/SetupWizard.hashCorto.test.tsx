@@ -6,6 +6,11 @@ import { render, screen } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { beforeEach, expect, it, vi } from 'vitest'
 
+vi.mock('@/hooks/usePlanOffer', async () => {
+  const f = await import('@/hooks/__tests__/planOfferFixtures')
+  return f.moduloDelHookConOferta(() => f.ofertaActual.valor)
+})
+
 const getProgress = vi.fn()
 vi.mock('@/services/setup.service', () => ({ setupService: { getProgress: (...a: unknown[]) => getProgress(...a) } }))
 vi.mock('@/context/AuthContext', () => ({ useAuth: () => ({ user: { organizationId: 'org_1' }, logout: vi.fn() }) }))

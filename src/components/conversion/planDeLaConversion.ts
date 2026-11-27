@@ -4,6 +4,7 @@
 // (`GET /plan` → `cotizacion`, una versión del editor), el asistente pinta los precios de ESA versión, apaga lo que no está a la venta
 // y manda el plan elegido con el comprobante de su opción. Sin cotización (sin versión del editor), la conversión de hoy, literal.
 import type { TierId } from '@/config/plan-catalog'
+import type { PrecioCotizado } from '@/components/billing/PlanPicker'
 import type { CotizacionDeTuPlan } from '@/services/features.service'
 
 type PlanPagado = 'PRO' | 'PREMIUM'
@@ -35,20 +36,27 @@ export function pedidoDelPlan(
 }
 
 /**
- * Lo que el `PlanPicker` pinta con la cotización: los netos (sin IVA, centavos) de cada plan vendible, y qué planes van apagados.
+ * Lo que el `PlanPicker` pinta con la cotización: el nombre, los netos (sin IVA) y los brutos (con IVA), en centavos, de cada plan vendible, y qué planes van apagados.
  * Un plan sin sus dos periodicidades va apagado (nunca un precio del catálogo en su lugar). `null` sin cotización.
  */
 export function preciosDeLaCotizacion(cotizacion: CotizacionDeTuPlan | undefined): {
-  preciosSinIva: Partial<Record<TierId, { monthlyNetCents: number; annualNetCents: number }>>
+  preciosSinIva: Partial<Record<TierId, PrecioCotizado>>
   fueraDeVenta: Partial<Record<TierId, true>>
 } | null {
   if (!cotizacion) return null
-  const preciosSinIva: Partial<Record<TierId, { monthlyNetCents: number; annualNetCents: number }>> = {}
+  const preciosSinIva: Partial<Record<TierId, PrecioCotizado>> = {}
   const fueraDeVenta: Partial<Record<TierId, true>> = {}
   for (const tier of PAGADOS) {
     const plan = cotizacion.planes?.[tier]
     if (plan?.vendible && plan.monthly && plan.annual)
-      preciosSinIva[tier] = { monthlyNetCents: plan.monthly.netCents, annualNetCents: plan.annual.netCents }
+      // B4: el nombre y los brutos van tal cual los cotizó el SERVIDOR; el picker no deriva ni toma el nombre de otra lectura.
+      preciosSinIva[tier] = {
+        monthlyNetCents: plan.monthly.netCents,
+        annualNetCents: plan.annual.netCents,
+        displayName: plan.displayName,
+        monthlyGrossCents: plan.monthly.precioCents,
+        annualGrossCents: plan.annual.precioCents,
+      }
     else fueraDeVenta[tier] = true
   }
   return { preciosSinIva, fueraDeVenta }

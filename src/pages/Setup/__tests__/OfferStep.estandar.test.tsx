@@ -67,6 +67,11 @@ vi.mock('react-i18next', () => import('./traduccionesDePrueba'))
 import { OfferStep } from '../steps/OfferStep'
 import type { PlanQuote } from '../launchOffer.types'
 
+vi.mock('@/hooks/usePlanOffer', async () => {
+  const f = await import('@/hooks/__tests__/planOfferFixtures')
+  return f.moduloDelHookConOferta(() => f.ofertaActual.valor)
+})
+
 const QUOTE: PlanQuote = {
   currency: 'MXN',
   ivaIncluded: true,

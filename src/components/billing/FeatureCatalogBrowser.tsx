@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useDebounce } from '@/hooks/useDebounce'
 import { FEATURE_CATEGORIES, getFeatureCatalog, type FeatureCategory } from '@/services/featureCatalog.service'
+import { useNombresDelPlan } from '@/hooks/usePlanOffer'
 
 /** A shared, lazy catalog for onboarding and Billing. Purchasing is owned by the published offer. */
 interface CatalogSelection {
@@ -19,6 +20,7 @@ interface CatalogSelection {
 }
 export function FeatureCatalogBrowser({ selection }: { selection?: CatalogSelection } = {}) {
   const { t, i18n } = useTranslation('billing')
+  const tierName = useNombresDelPlan()
   // While choosing, the offer's own features go first; the full paged catalog is only for exploring.
   const [open, setOpen] = useState(false)
   const available = selection ? selection.eligibleCodes.filter(code => !selection.includedCodes.includes(code)).length : 0
@@ -148,7 +150,9 @@ export function FeatureCatalogBrowser({ selection }: { selection?: CatalogSelect
           ) : (
             data && (
               <>
-                <div className="mt-4 empty:hidden"><AvisoDeCarga query={catalogoQuery} hayDatos /></div>
+                <div className="mt-4 empty:hidden">
+                  <AvisoDeCarga query={catalogoQuery} hayDatos />
+                </div>
                 <p role="status" className="my-4 text-sm text-muted-foreground">
                   {t('catalog.total', { count: data.total })}
                 </p>
@@ -171,7 +175,7 @@ export function FeatureCatalogBrowser({ selection }: { selection?: CatalogSelect
                           : feature.minimumTier === 'FREE'
                             ? t('catalog.base')
                             : t('catalog.fromTier', {
-                                tier: feature.minimumTier ? t(`plan.tiers.${feature.minimumTier.toLowerCase()}.name`) : '—',
+                                tier: feature.minimumTier ? tierName(feature.minimumTier) : '—',
                               })}
                       </p>
                     </li>

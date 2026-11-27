@@ -1,14 +1,24 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (k: string, o?: { defaultValue?: string }) => o?.defaultValue ?? k }),
 }))
 
 import { PlanComparison } from '../PlanComparison'
+import { OFERTA_V1, OFERTA_V2_PLUS, ofertaActual } from '@/hooks/__tests__/planOfferFixtures'
+
+vi.mock('@/hooks/usePlanOffer', async () => {
+  const f = await import('@/hooks/__tests__/planOfferFixtures')
+  return f.moduloDelHookConOferta(() => f.ofertaActual.valor)
+})
 
 describe('PlanComparison', () => {
+  afterEach(() => {
+    ofertaActual.valor = OFERTA_V1
+  })
+
   it('arranca cerrada: la elección de plan sigue simple', () => {
     render(<PlanComparison />)
     expect(screen.getByRole('button', { name: /Ver todo lo que incluye/i })).toHaveAttribute('aria-expanded', 'false')
@@ -90,5 +100,12 @@ describe('PlanComparison', () => {
       expect(screen.getByRole('table')).toBeInTheDocument()
       expect(screen.queryByRole('button')).not.toBeInTheDocument()
     })
+  })
+
+  it('M4: con la v2 «Plus», el encabezado de Pro dice Plus', async () => {
+    ofertaActual.valor = OFERTA_V2_PLUS
+    render(<PlanComparison />)
+    await userEvent.setup().click(screen.getByRole('button', { name: /Ver todo lo que incluye/i }))
+    expect(screen.getByRole('columnheader', { name: /Plus/ })).toBeInTheDocument()
   })
 })

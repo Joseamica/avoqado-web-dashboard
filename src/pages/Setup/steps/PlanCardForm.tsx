@@ -148,7 +148,8 @@ export function PlanCardForm({
         { id: 'pay', titulo: payNowOptionTitle ?? payNowLabel, detalle: payNowHint },
       ] as const)
     : null
-  const pagaHoy = eleccion === 'pay'
+  // Sin opción de prueba (cambió mientras el formulario estaba abierto) sólo queda pagar hoy: el botón y el `payNow` coinciden.
+  const pagaHoy = !trialLabel || eleccion === 'pay'
   const etiqueta = pagaHoy ? payNowLabel : (trialLabel ?? payNowLabel)
 
   return (

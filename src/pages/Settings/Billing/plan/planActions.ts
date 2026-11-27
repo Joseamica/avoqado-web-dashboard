@@ -1,6 +1,6 @@
 // src/pages/Settings/Billing/plan/planActions.ts
 import { esPrecioDeLista } from '@/lib/sinIva'
-import { getTierDef } from '@/config/plan-catalog'
+import type { OfertaDePlanes } from '@/hooks/usePlanOffer'
 import type { CotizacionDeTuPlan, OpcionCotizada, PlanOrigin, PlanState } from '@/services/features.service'
 import type {
   FeatureGrid,
@@ -14,7 +14,6 @@ import type {
 export type PlanTarget = 'FREE' | 'PRO' | 'PREMIUM'
 /** A hybrid quote takes at most eight offers (the server's `hybridQuoteBody`). */
 export const MAX_OFFERS = 8
-const IVA_RATE = 0.16
 export const TIER_RANK = { FREE: 0, PRO: 1, PREMIUM: 2, ENTERPRISE: 3 } as const
 
 export const NO_ORIGIN: PlanOrigin = {
@@ -49,12 +48,18 @@ export function originOf(plan: PlanState | undefined): PlanOrigin {
 
 export const currentTarget = (origin: PlanOrigin): PlanTarget => (origin.kind === 'NONE' ? 'FREE' : (origin.tier ?? 'FREE'))
 
-/** The classic checkout's first charge, IVA included: PLAN_TIERS carries prices before IVA. */
-export function classicPrice(tier: 'PRO' | 'PREMIUM', interval: 'monthly' | 'annual'): number {
-  const def = getTierDef(tier)
-  const beforeIva = (interval === 'annual' ? def.priceAnnual : def.priceMonthly) ?? 0
-  return Math.round(beforeIva * (1 + IVA_RATE) * 100) / 100
+/**
+ * The classic checkout's first charge, IVA included, from the SERVIDOR's current offer (B4: never a stored number).
+ * `null` = no amount to show: the offer is loading / unavailable, or the plan is not on sale.
+ */
+export function classicPrice(tier: 'PRO' | 'PREMIUM', interval: 'monthly' | 'annual', oferta: OfertaDePlanes | undefined): number | null {
+  if (oferta?.estado !== 'servidor' || !oferta[tier].onSale) return null
+  return oferta[tier][interval].grossCents / 100
 }
+
+/** The offer says this plan is not sold today (only a 200 can say so). */
+const fueraDeVentaEnOferta = (tier: 'PRO' | 'PREMIUM', oferta: OfertaDePlanes | undefined) =>
+  oferta?.estado === 'servidor' && !oferta[tier].onSale
 
 /** How many functions a plan brings, counted from the catalog (functions sold by quote don't count). */
 export function tierFeatureCount(entries: FeatureGridEntry[], tier: PlanTarget): number {
@@ -96,6 +101,8 @@ export interface SelectionInput {
   cotizacion?: CotizacionDeTuPlan
   /** Mensual o anual de la compra clásica: con `cotizacion`, decide qué comprobante viaja. Sin cotización no cambia nada. */
   interval?: 'monthly' | 'annual'
+  /** La oferta vigente del SERVIDOR (`usePlanOffer()`). Sin ella (o cargando / sin dato) no hay monto de lista que enseñar. */
+  oferta?: OfertaDePlanes
 }
 
 /** La opción cotizada de un plan en esa periodicidad: sólo si el plan es vendible hoy (nunca un checkout sin su comprobante). */
@@ -358,7 +365,7 @@ export function isMarkable(entry: FeatureGridEntry, mode: GridMode): boolean {
 export function planPillPrice(
   tier: PlanTarget,
   input: Omit<SelectionInput, 'target' | 'marked'> & { interval: 'monthly' | 'annual' },
-): { amount: number; per: 'month' | 'year'; ivaAparte: boolean; fueraDeVenta?: true; duranteLaPrueba?: true } {
+): { amount: number; per: 'month' | 'year'; ivaAparte: boolean; fueraDeVenta?: true; duranteLaPrueba?: true; sinMonto?: true } {
   if (tier === 'FREE') return { amount: 0, per: 'month', ivaAparte: false }
   const origin = input.cotizacion ? origenQueCompra(input) : input.origin
   if (tier === currentTarget(origin) && origin.price)
@@ -376,19 +383,26 @@ export function planPillPrice(
     return { amount: 0, per, ivaAparte: false, fueraDeVenta: true, duranteLaPrueba: true }
   if (input.cotizacion && !pruebaViva(input.cotizacion) && !opcionCotizada(input.cotizacion, tier, input.interval))
     return { amount: 0, per, ivaAparte: false, fueraDeVenta: true }
+  // B4: la oferta vigente dice que el plan no se vende hoy (sólo un 200 lo dice).
+  if (!input.cotizacion && fueraDeVentaEnOferta(tier, input.oferta)) return { amount: 0, per, ivaAparte: false, fueraDeVenta: true }
   const op = planOperation({ ...input, target: tier, marked: [] })
   if (op.kind === 'CLASSIC_CHECKOUT') {
     // B2: con la cotización, el precio de la versión que firmó el SERVIDOR (con IVA), nunca el del catálogo.
     const opcion = op.quoteToken ? opcionCotizada(input.cotizacion, tier, input.interval) : null
     if (opcion) return { amount: opcion.precioCents / 100, per: input.interval === 'annual' ? 'year' : 'month', ivaAparte: false }
-    return { amount: classicPrice(tier, input.interval), per: input.interval === 'annual' ? 'year' : 'month', ivaAparte: true }
+    const lista = classicPrice(tier, input.interval, input.oferta)
+    // Sin oferta del SERVIDOR no hay monto: nunca $0.00 ni el número de hoy.
+    if (lista === null) return { amount: 0, per, ivaAparte: true, sinMonto: true }
+    return { amount: lista, per, ivaAparte: true }
   }
   const offer = op.kind === 'HYBRID_REPLACE' ? chosenPlanOffer(input.grid, tier, input.preferList) : null
   if (offer) return { amount: offer.price, per: 'month', ivaAparte: esPrecioDeLista(offer) }
   // B2: de referencia, el precio mensual de la versión si el plan se vende hoy; si no, el del catálogo, como hoy.
   const referencia = opcionCotizada(input.cotizacion, tier, 'monthly')
   if (referencia) return { amount: referencia.precioCents / 100, per: 'month', ivaAparte: false }
-  return { amount: classicPrice(tier, 'monthly'), per: 'month', ivaAparte: true }
+  const lista = classicPrice(tier, 'monthly', input.oferta)
+  if (lista === null) return { amount: 0, per: 'month', ivaAparte: true, sinMonto: true }
+  return { amount: lista, per: 'month', ivaAparte: true }
 }
 
 export interface SummaryLine {
@@ -426,6 +440,7 @@ function includedHint(
   marked: string[],
   current: PlanTarget,
   cotizacion?: CotizacionDeTuPlan,
+  oferta?: OfertaDePlanes,
 ): SelectionSummaryModel['hint'] {
   if (!marked.length) return null
   for (const tier of ['PRO', 'PREMIUM'] as const) {
@@ -438,7 +453,9 @@ function includedHint(
     // Un plan que la versión no vende no se sugiere (revisión 2), ni otro plan durante una prueba viva (revisión 3).
     const referencia = opcionCotizada(cotizacion, tier, 'monthly')
     if (cotizacion && (!referencia || pruebaViva(cotizacion))) continue
-    const price = referencia ? referencia.precioCents / 100 : classicPrice(tier, 'monthly')
+    const price = referencia ? referencia.precioCents / 100 : classicPrice(tier, 'monthly', oferta)
+    // Sin monto (oferta cargando, sin dato o plan fuera de venta) la sugerencia no sale: nunca un plan con precio $0 (r3 #2).
+    if (price === null) continue
     if (covered === marked.length) return { tier, covered, more: Math.max(0, tierFeatureCount(entries, tier) - covered), price }
   }
   return null
@@ -462,7 +479,7 @@ export function summarizeSelection(input: SelectionInput & { interval: 'monthly'
     key: `plan-${input.target}`,
     plan: input.target,
     offer: operation.kind === 'HYBRID_REPLACE' ? (chosenPlanOffer(input.grid, operation.tier, input.preferList) ?? undefined) : undefined,
-    price: pildora.fueraDeVenta ? null : pildora.amount,
+    price: pildora.fueraDeVenta || pildora.sinMonto ? null : pildora.amount,
     ...(pildora.fueraDeVenta ? { fueraDeVenta: true as const } : {}),
     ...(pildora.duranteLaPrueba ? { duranteLaPrueba: true as const } : {}),
   }
@@ -488,11 +505,15 @@ export function summarizeSelection(input: SelectionInput & { interval: 'monthly'
     target: input.target,
     lines,
     // Un plan fuera de venta no tiene total: «$0.00» sería un precio inventado (revisión 2).
-    monthlyTotal: priced && !lines.some(line => line.fueraDeVenta) ? lines.reduce((sum, line) => sum + (line.price ?? 0), 0) : null,
+    // Una línea pagada sin monto (`price === null` sin estar fuera de venta) deja el total en null: nunca $0.00 (r2 #4).
+    monthlyTotal:
+      priced && !lines.some(line => line.fueraDeVenta || line.price === null)
+        ? lines.reduce((sum, line) => sum + (line.price ?? 0), 0)
+        : null,
     payToday: operation.kind === 'CLASSIC_CHECKOUT' ? (quedarse ? 0 : planLine.price) : null,
     firstChargeAt: quedarse && operation.kind === 'CLASSIC_CHECKOUT' ? (operation.firstChargeAt ?? null) : null,
     lose,
-    hint: operation.kind === 'FEATURES' ? includedHint(entries, input.marked, current, input.cotizacion) : null,
+    hint: operation.kind === 'FEATURES' ? includedHint(entries, input.marked, current, input.cotizacion, input.oferta) : null,
     seatNotice: input.target === 'FREE' && current !== 'FREE',
     tooMany: input.marked.length > MAX_OFFERS,
   }

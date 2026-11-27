@@ -79,6 +79,25 @@ const NOMBRE_DEL_PLAN = { PRO: 'Pro', PREMIUM: 'Premium' } as const
 
 type PlanDePago = 'PRO' | 'PREMIUM'
 
+type TraductorDeSubtitulo = (clave: string, opciones?: Record<string, unknown>) => string
+
+/**
+ * El subtítulo del paso de planes con la versión del editor (A22): sólo cuentan los planes a la venta. Si todos dan los mismos
+ * días y piden lo mismo, una sola frase; si todos cobran hoy, «Pagas hoy y entras»; si no, una línea por plan.
+ */
+function subtituloDeLaVersion(oferta: NonNullable<PlanQuote['oferta']>, t: TraductorDeSubtitulo): string {
+  const aLaVenta = (['PRO', 'PREMIUM'] as const).map(tier => oferta.planes[tier]).filter((p): p is NonNullable<typeof p> => !!p && p.onSale)
+  if (aLaVenta.length === 0) return ''
+  const detalle = (p: (typeof aLaVenta)[number], conPlan: boolean) => {
+    const clave = p.trialDays <= 0 ? 'PayToday' : p.requiresCard ? 'Trial' : 'TrialNoCard'
+    return t(conPlan ? `plans.subtitlePlan${clave}` : `plans.subtitle${clave}`, { plan: p.displayName, count: p.trialDays })
+  }
+  const primero = aLaVenta[0]
+  const iguales = aLaVenta.every(p => p.trialDays === primero.trialDays && p.requiresCard === primero.requiresCard)
+  if (iguales) return detalle(primero, false)
+  return aLaVenta.map(p => detalle(p, true)).join(' · ')
+}
+
 const BENEFICIOS_POR_CATEGORIA: Partial<Record<BusinessCategory, JuegoDeBeneficios>> = {
   FOOD_SERVICE: 'restaurante',
   RETAIL: 'comercio',
@@ -186,6 +205,8 @@ export function OfferStep({
   const noDisponible = launchOffer && !launchOffer.available ? launchOffer : null
   // Planes editables (B2): la versión del editor que publica el SERVIDOR. Sin ella, el alta de hoy.
   const ofertaDelAlta = planQuote?.oferta ?? null
+  // A22: con una versión del editor, el subtítulo dice las pruebas de ESA versión; sin ella, el texto de hoy.
+  const subtituloDePlanes = ofertaDelAlta ? subtituloDeLaVersion(ofertaDelAlta, t) : t('plans.subtitle')
 
   // «Ignorar la oferta»: lo pone la caída tras un 409 (`caerAEstandar`). Las tarjetas pasan a la prueba
   // de 30 días y el precio normal hay que volver a tocarlo.
@@ -1058,7 +1079,7 @@ export function OfferStep({
           {mostrarOferta ? (
             oferta!.copy.subheadline && <p className="text-sm text-muted-foreground">{oferta!.copy.subheadline}</p>
           ) : (
-            <p className="text-sm text-muted-foreground">{t('plans.subtitle')}</p>
+            <p className="text-sm text-muted-foreground">{subtituloDePlanes}</p>
           )}
           <Button
             type="button"

@@ -443,6 +443,7 @@
     "trialPremium": "Trial Premium - 2 días gratis",
     "featuresIncluded": "Features incluidos:",
     "freePlan": "Plan Gratuito",
+    "freePlanNamed": "Plan {{name}}",
     "businessInfo": "Información del negocio",
     "venueName": "Nombre del venue:",
     "rfc": "RFC:",

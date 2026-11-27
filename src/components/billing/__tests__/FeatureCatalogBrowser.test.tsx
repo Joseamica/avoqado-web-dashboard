@@ -4,6 +4,12 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { getFeatureCatalog, type FeatureCatalogPage } from '@/services/featureCatalog.service'
 import { FeatureCatalogBrowser } from '../FeatureCatalogBrowser'
+import { OFERTA_V1, OFERTA_V2_PLUS, ofertaActual } from '@/hooks/__tests__/planOfferFixtures'
+
+vi.mock('@/hooks/usePlanOffer', async () => {
+  const f = await import('@/hooks/__tests__/planOfferFixtures')
+  return f.moduloDelHookConOferta(() => f.ofertaActual.valor)
+})
 
 vi.mock('@/services/featureCatalog.service', async importOriginal => ({
   ...(await importOriginal<typeof import('@/services/featureCatalog.service')>()),
@@ -49,6 +55,7 @@ function mount(props: Parameters<typeof FeatureCatalogBrowser>[0] = {}) {
 }
 
 beforeEach(() => {
+  ofertaActual.valor = OFERTA_V1
   vi.mocked(getFeatureCatalog).mockImplementation(async params => page(params.page))
 })
 
@@ -56,7 +63,13 @@ describe('FeatureCatalogBrowser', () => {
   it('shows the offer choices first, without paging the catalog, and keeps included features outside the count', async () => {
     const onChange = vi.fn()
     mount({
-      selection: { eligibleCodes: ['CFDI', 'LOYALTY_PROGRAM', 'CHATBOT'], selectedCodes: [], includedCodes: ['CHATBOT'], choiceCount: 2, onChange },
+      selection: {
+        eligibleCodes: ['CFDI', 'LOYALTY_PROGRAM', 'CHATBOT'],
+        selectedCodes: [],
+        includedCodes: ['CHATBOT'],
+        choiceCount: 2,
+        onChange,
+      },
     })
     expect(getFeatureCatalog).not.toHaveBeenCalled()
     expect(screen.getByRole('checkbox', { name: 'Chatbot' })).toBeDisabled()
@@ -119,5 +132,11 @@ describe('FeatureCatalogBrowser', () => {
     vi.mocked(getFeatureCatalog).mockResolvedValue(page(1))
     await user.click(screen.getByRole('button', { name: 'Retry' }))
     expect(await screen.findByText('Feature page 1')).toBeInTheDocument()
+  })
+  it('M4: con la v2 «Plus», «Desde el plan» nombra Plus', async () => {
+    ofertaActual.valor = OFERTA_V2_PLUS
+    mount()
+    await userEvent.setup().click(screen.getByRole('button', { name: /Explore all features/ }))
+    expect((await screen.findAllByText('From the Plus plan')).length).toBeGreaterThan(0)
   })
 })

@@ -44,17 +44,37 @@ describe('planDeLaConversion', () => {
     expect(pedidoDelPlan(sinAnual, 'PRO', 'annual')).toEqual({ kind: 'FUERA_DE_VENTA' })
   })
 
-  it('preciosDeLaCotizacion: los netos de la v2 (Pro mensual 79900) y Pro marcado fuera de venta cuando vendible es false', () => {
+  it('preciosDeLaCotizacion: el nombre, los netos y los brutos de la v2 (Pro mensual 79900) y Pro marcado fuera de venta cuando vendible es false', () => {
     expect(preciosDeLaCotizacion(undefined)).toBeNull()
     expect(preciosDeLaCotizacion(V2)).toEqual({
       preciosSinIva: {
-        PRO: { monthlyNetCents: 79900, annualNetCents: 799000 },
-        PREMIUM: { monthlyNetCents: 169900, annualNetCents: 1699000 },
+        PRO: {
+          monthlyNetCents: 79900,
+          annualNetCents: 799000,
+          displayName: 'Pro',
+          monthlyGrossCents: 92684,
+          annualGrossCents: 926840,
+        },
+        PREMIUM: {
+          monthlyNetCents: 169900,
+          annualNetCents: 1699000,
+          displayName: 'Premium',
+          monthlyGrossCents: 197084,
+          annualGrossCents: 1970840,
+        },
       },
       fueraDeVenta: {},
     })
     expect(preciosDeLaCotizacion(PRO_FUERA)).toEqual({
-      preciosSinIva: { PREMIUM: { monthlyNetCents: 169900, annualNetCents: 1699000 } },
+      preciosSinIva: {
+        PREMIUM: {
+          monthlyNetCents: 169900,
+          annualNetCents: 1699000,
+          displayName: 'Premium',
+          monthlyGrossCents: 197084,
+          annualGrossCents: 1970840,
+        },
+      },
       fueraDeVenta: { PRO: true },
     })
   })

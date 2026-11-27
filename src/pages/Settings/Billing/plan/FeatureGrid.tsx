@@ -9,6 +9,7 @@ import { useVenueDateTime } from '@/utils/datetime'
 import { getIntlLocale } from '@/utils/i18n-locale'
 import { featureIcon } from './featureIcons'
 import { MAX_OFFERS, TIER_RANK, chosenOffer, type GridMode, type PlanTarget } from './planActions'
+import { useNombresDelPlan } from '@/hooks/usePlanOffer'
 
 const CATEGORY_ORDER = ['sell', 'customers', 'inventory', 'money', 'team', 'ai', 'custom'] as const
 
@@ -41,6 +42,7 @@ export function FeatureGrid({
   preferList,
 }: FeatureGridProps) {
   const { t, i18n } = useTranslation('billing')
+  const tierName = useNombresDelPlan()
   const { formatDate } = useVenueDateTime()
   const lang = (['es', 'en', 'fr'] as const).find(code => i18n.language.startsWith(code)) ?? 'es'
   const money = (value: number) => new Intl.NumberFormat(getIntlLocale(i18n.language), { style: 'currency', currency: 'MXN' }).format(value)
@@ -78,8 +80,7 @@ export function FeatureGrid({
             : t('plan.grid.owned'),
         owned: true,
       }
-    if (entry.minimumTier && entry.minimumTier !== 'FREE')
-      return { text: t(`plan.tiers.${entry.minimumTier.toLowerCase()}.name`), owned: false }
+    if (entry.minimumTier && entry.minimumTier !== 'FREE') return { text: tierName(entry.minimumTier), owned: false }
     return { text: null, owned: false }
   }
 
@@ -168,7 +169,7 @@ export function FeatureGrid({
         <button
           type="button"
           onClick={() => onPickTier(upsellTier)}
-          aria-label={t('plan.grid.pickTier', { name: name(entry), tier: t(`plan.tiers.${upsellTier.toLowerCase()}.name`) })}
+          aria-label={t('plan.grid.pickTier', { name: name(entry), tier: tierName(upsellTier) })}
           className={cn(className, 'hover:bg-muted/50')}
           data-tour={tour}
         >

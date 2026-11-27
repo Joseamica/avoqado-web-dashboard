@@ -1,10 +1,16 @@
 // src/pages/Settings/Billing/plan/__tests__/PlanRow.test.tsx
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { PlanOrigin } from '@/services/features.service'
 import { PlanRow, type PlanRowProps } from '../PlanRow'
 import { NO_ORIGIN } from '../planActions'
+import { OFERTA_CARGANDO, OFERTA_SIN_DATO, OFERTA_V1, OFERTA_V2_PLUS, ofertaActual } from '@/hooks/__tests__/planOfferFixtures'
+
+vi.mock('@/hooks/usePlanOffer', async () => {
+  const f = await import('@/hooks/__tests__/planOfferFixtures')
+  return f.moduloDelHookConOferta(() => f.ofertaActual.valor)
+})
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -45,6 +51,10 @@ const CLASSIC = origin({
 })
 
 describe('PlanRow', () => {
+  beforeEach(() => {
+    ofertaActual.valor = OFERTA_V1
+  })
+
   it('shows Gratis, Pro and Premium with list prices before IVA, marks the current plan and selects', async () => {
     const onSelect = vi.fn()
     render(<PlanRow {...props({ onSelect })} />)
@@ -310,5 +320,44 @@ describe('PlanRow', () => {
   it('REGRESIÓN: sin cupón no aparece ninguna línea de descuento', () => {
     render(<PlanRow {...props({ origin: CLASSIC, current: 'PRO', selected: 'PRO' })} />)
     expect(screen.queryByText(/plan\.row\.discount/)).toBeNull()
+  })
+
+  // B4: las píldoras sin cotización salen de la oferta vigente; sin ella, ningún monto.
+  it('v2 «Plus»: la píldora de Pro dice Plus y $799 + IVA (no $999)', () => {
+    ofertaActual.valor = OFERTA_V2_PLUS
+    render(<PlanRow {...props()} />)
+    const pro = screen.getAllByRole('radio')[1]
+    expect(within(pro).getByText('Plus')).toBeInTheDocument()
+    expect(within(pro).getByText(/799\.00/)).toBeInTheDocument()
+    expect(within(pro).getByText('plan.plusIva')).toBeInTheDocument()
+    expect(pro).not.toHaveTextContent('999')
+  })
+
+  it.each([
+    ['cargando', OFERTA_CARGANDO],
+    ['sinDato', OFERTA_SIN_DATO],
+  ])('con %s las píldoras de Pro y Premium no traen monto (ni $999, ni $0.00)', (_n, oferta) => {
+    ofertaActual.valor = oferta
+    render(<PlanRow {...props()} />)
+    const [, pro, premium] = screen.getAllByRole('radio')
+    for (const pildora of [pro, premium]) {
+      expect(pildora).not.toHaveTextContent(/\$|plan\.plusIva/)
+    }
+    expect(pro).toHaveTextContent('plan.tiers.pro.name')
+  })
+
+  it('I3: con una cotización firmada, el nombre del plan sale de ELLA aunque la oferta no cargue', () => {
+    ofertaActual.valor = OFERTA_CARGANDO
+    const cotizacion = {
+      versionNumber: 2,
+      planes: {
+        PRO: { displayName: 'Plus', vendible: true, monthly: null, annual: null },
+        PREMIUM: { displayName: 'Elite', vendible: true, monthly: null, annual: null },
+      },
+    }
+    render(<PlanRow {...props({ planState: { cotizacion } as never })} />)
+    const [, pro, premium] = screen.getAllByRole('radio')
+    expect(within(pro).getByText('Plus')).toBeInTheDocument()
+    expect(within(premium).getByText('Elite')).toBeInTheDocument()
   })
 })

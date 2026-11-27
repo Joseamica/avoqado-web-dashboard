@@ -1,12 +1,33 @@
 // src/components/billing/__tests__/PlanPicker.test.tsx
-import { describe, it, expect, vi } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { render, screen, fireEvent, within } from '@testing-library/react'
 import { PlanPicker } from '../PlanPicker'
+import {
+  OFERTA_V2_CON_CENTAVOS,
+  OFERTA_V2_PREMIUM_11X,
+  OFERTA_CARGANDO,
+  OFERTA_SIN_DATO,
+  OFERTA_V1,
+  OFERTA_V2_PLUS,
+  OFERTA_V3_PREMIUM_FUERA,
+  ofertaActual,
+} from '@/hooks/__tests__/planOfferFixtures'
+
+vi.mock('@/hooks/usePlanOffer', async () => {
+  const f = await import('@/hooks/__tests__/planOfferFixtures')
+  return f.moduloDelHookConOferta(() => f.ofertaActual.valor)
+})
 
 // i18n returns the key (or interpolated) so assertions are deterministic
 vi.mock('react-i18next', () => ({
-  useTranslation: () => ({ t: (k: string, o?: any) => (o?.tier ? `${k}:${o.tier}` : o?.price ? `${k}:${o.price}` : k) }),
+  useTranslation: () => ({
+    t: (k: string, o?: any) => (o?.tier ? `${k}:${o.tier}` : o?.price ? `${k}:${o.price}` : o?.amount ? `${k}:${o.amount}` : k),
+  }),
 }))
+
+beforeEach(() => {
+  ofertaActual.valor = OFERTA_V1
+})
 
 describe('PlanPicker', () => {
   it('renders the 4 tier cards and marks the current one', () => {
@@ -228,5 +249,120 @@ describe('PlanPicker — «Ver todos» de cada plan (founder, 25-sep)', () => {
     expect(ventana.textContent).toMatch(/plan\.features\.whiteLabel/)
     expect(ventana.textContent).toMatch(/plan\.compare\.rows\.cfdi/)
     expect(ventana.textContent).not.toMatch(/plan\.features\.allPremium/)
+  })
+
+  // B4: nombres, montos y texto del anual salen de la oferta vigente del SERVIDOR.
+  it('v2 «Plus» en anual: dice «ahorras $1,262.08 al año, IVA incluido», no «2 meses gratis»', () => {
+    ofertaActual.valor = OFERTA_V2_PLUS
+    render(<PlanPicker currentTier="FREE" onSelectTier={() => {}} interval="annual" />)
+    const pro = within(document.querySelector('[data-tour="plan-card-pro"]') as HTMLElement)
+    // El monto es el BRUTO (con IVA): 79,900 × 1.16 × 12 − 850,000 × 1.16 = $1,262.08; con el neto saldría $1,088.00.
+    expect(pro.getByText(/plan\.annualSaves:\$1,262\.08/)).toBeInTheDocument()
+    expect(screen.getByText('plan.billing.annual').closest('button')).not.toHaveTextContent('plan.billing.save')
+    expect(pro.queryByText(/plan\.billing\.save/)).not.toBeInTheDocument()
+    expect(screen.getByText('plan.annualEquiv:$8,500')).toBeInTheDocument()
+  })
+
+  it('v2 «Plus»: el nombre sale de la oferta y el precio mensual es $799', () => {
+    ofertaActual.valor = OFERTA_V2_PLUS
+    render(<PlanPicker currentTier="FREE" onSelectTier={() => {}} />)
+    expect(screen.getByText('Plus')).toBeInTheDocument()
+    expect(screen.getByText('$799')).toBeInTheDocument()
+    expect(screen.queryByText('$999')).not.toBeInTheDocument()
+  })
+
+  it('con la v1 (10 mensualidades) la píldora del anual sigue diciendo «2 meses gratis»', () => {
+    render(<PlanPicker currentTier="FREE" onSelectTier={() => {}} />)
+    expect(screen.getByText('plan.billing.save')).toBeInTheDocument()
+  })
+
+  it.each([
+    ['cargando', OFERTA_CARGANDO],
+    ['sinDato', OFERTA_SIN_DATO],
+  ])('con %s ningún monto de Pro ni de Premium (ni $999, ni $1,699, ni $0)', (_n, oferta) => {
+    ofertaActual.valor = oferta
+    render(<PlanPicker currentTier="FREE" onSelectTier={() => {}} />)
+    expect(document.body.textContent).not.toMatch(/999|1,699|9,990/)
+    expect(screen.queryByText('plan.billing.save')).not.toBeInTheDocument()
+    expect(screen.getByText('plan.tiers.pro.name')).toBeInTheDocument()
+  })
+
+  it('v3: Premium fuera de venta se pinta «No disponible» y no ofrece contratarlo', () => {
+    ofertaActual.valor = OFERTA_V3_PREMIUM_FUERA
+    render(<PlanPicker currentTier="FREE" onSelectTier={() => {}} />)
+    expect(screen.getAllByText('plan.notOnSale').length).toBeGreaterThan(0)
+    expect(screen.queryByText('plan.cta.upgrade:Premium')).not.toBeInTheDocument()
+  })
+
+  it('con la cotización del llamador, el nombre y el texto del anual salen de ELLA', () => {
+    render(
+      <PlanPicker
+        currentTier="FREE"
+        onSelectTier={() => {}}
+        interval="annual"
+        preciosSinIva={{ PRO: { monthlyNetCents: 79900, annualNetCents: 850000, displayName: 'Plus' } }}
+      />,
+    )
+    expect(screen.getByText('Plus')).toBeInTheDocument()
+    expect(screen.getByText(/plan\.annualSaves/)).toBeInTheDocument()
+  })
+
+  it('I1: si un plan de pago no cumple «2 meses gratis», la píldora del toggle no sale y su tarjeta dice cuánto ahorra', () => {
+    ofertaActual.valor = OFERTA_V2_PREMIUM_11X
+    render(<PlanPicker currentTier="FREE" onSelectTier={() => {}} interval="annual" />)
+    expect(screen.getByText('plan.billing.annual').closest('button')).not.toHaveTextContent('plan.billing.save')
+    const premium = within(document.querySelector('[data-tour="plan-card-premium"]') as HTMLElement)
+    expect(premium.getByText(/plan\.annualSaves:\$1,970\.84/)).toBeInTheDocument()
+    const pro = within(document.querySelector('[data-tour="plan-card-pro"]') as HTMLElement)
+    expect(pro.getByText(/plan\.billing\.save/)).toBeInTheDocument()
+  })
+
+  it('la píldora del toggle sale cuando TODOS los planes a la venta dan «2 meses gratis» (v1)', () => {
+    render(<PlanPicker currentTier="FREE" onSelectTier={() => {}} />)
+    expect(screen.getByText('plan.billing.annual').closest('button')).toHaveTextContent('plan.billing.save')
+  })
+
+  it('D6: el equivalente mensual del anual lleva centavos con la v2 (hook y cotización) y pesos enteros con la v1', () => {
+    ofertaActual.valor = OFERTA_V2_PLUS
+    const a = render(<PlanPicker currentTier="FREE" onSelectTier={() => {}} interval="annual" />)
+    expect(screen.getByText('$708.33')).toBeInTheDocument()
+    a.unmount()
+    ofertaActual.valor = OFERTA_CARGANDO
+    const b = render(
+      <PlanPicker
+        currentTier="FREE"
+        onSelectTier={() => {}}
+        interval="annual"
+        preciosSinIva={{ PRO: { monthlyNetCents: 79900, annualNetCents: 850000 } }}
+      />,
+    )
+    expect(screen.getByText('$708.33')).toBeInTheDocument()
+    b.unmount()
+    ofertaActual.valor = OFERTA_V1
+    render(<PlanPicker currentTier="FREE" onSelectTier={() => {}} interval="annual" />)
+    expect(screen.getByText('$833')).toBeInTheDocument()
+  })
+
+  it('D7: «Ver todos» usa el nombre que ya resolvió la tarjeta (la cotización) aunque la oferta siga cargando', () => {
+    ofertaActual.valor = OFERTA_CARGANDO
+    render(
+      <PlanPicker
+        currentTier="FREE"
+        onSelectTier={() => {}}
+        preciosSinIva={{ PRO: { monthlyNetCents: 79900, annualNetCents: 850000, displayName: 'Plus' } }}
+      />,
+    )
+    fireEvent.click(document.querySelector('[data-tour="plan-see-all-pro"]')!)
+    expect(within(screen.getByTestId('plan-benefits-PRO')).getByText('plan.benefits.title:Plus')).toBeInTheDocument()
+  })
+
+  it('M6: un precio con centavos enseña dos decimales; uno redondo se queda como hoy', () => {
+    ofertaActual.valor = OFERTA_V2_CON_CENTAVOS
+    const { unmount } = render(<PlanPicker currentTier="FREE" onSelectTier={() => {}} />)
+    expect(screen.getByText('$799.50')).toBeInTheDocument()
+    unmount()
+    ofertaActual.valor = OFERTA_V1
+    render(<PlanPicker currentTier="FREE" onSelectTier={() => {}} />)
+    expect(screen.getByText('$999')).toBeInTheDocument()
   })
 })

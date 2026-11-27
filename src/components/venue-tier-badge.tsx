@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next'
 import { getTierDef, type TierId } from '@/config/plan-catalog'
 import { useVenuePlanTier } from '@/hooks/use-tier-feature-access'
 import { cn } from '@/lib/utils'
+import { usePlanOffer } from '@/hooks/usePlanOffer'
 
 // Accent styles per tier. FREE stays on neutral semantic tokens so paid tiers pop;
 // PRO/PREMIUM/ENTERPRISE use intentional brand accents (same family as the plan cards & sidebar TierBadge).
@@ -30,6 +31,7 @@ interface VenueTierBadgeProps {
  */
 export function VenueTierBadge({ tier, basic = false, showIcon = true, className }: VenueTierBadgeProps) {
   const { t } = useTranslation()
+  const oferta = usePlanOffer()
   if (!tier) return null
   const isBasic = basic && tier === 'FREE'
 
@@ -44,7 +46,11 @@ export function VenueTierBadge({ tier, basic = false, showIcon = true, className
       )}
     >
       {showIcon && <Icon className="size-2.5 shrink-0" />}
-      {t(isBasic ? 'venuesSwitcher.tier.basic' : `venuesSwitcher.tier.${tier.toLowerCase()}`)}
+      {isBasic
+        ? t('venuesSwitcher.tier.basic')
+        : tier !== 'ENTERPRISE' && oferta.estado === 'servidor' && oferta.offerVersion !== null && oferta.offerVersion >= 2
+          ? oferta[tier].displayName
+          : t(`venuesSwitcher.tier.${tier.toLowerCase()}`)}
     </span>
   )
 }
