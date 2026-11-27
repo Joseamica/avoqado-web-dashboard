@@ -101,6 +101,8 @@ const PETICIONES_DE_LA_PAGINA = [
   exacta('GET', '/api/v1/dashboard/impersonation/status'),
   exacta('GET', '/api/v1/organizations/org-test-001/venues'),
   exacta('GET', '/api/v1/organizations/org-test-001/stats'),
+  // Planes editables (B4): la oferta vigente pública que lee la insignia del plan del menú; `setupApiMocks` la finge (la de hoy).
+  exacta('GET', '/api/v1/public/plan-offer'),
 ]
 const PERMITIDAS = [
   // Lo que esta suite finge a propósito (con el id del negocio, no el slug).
