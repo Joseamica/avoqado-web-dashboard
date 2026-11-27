@@ -9,6 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import api from '@/api'
 import { createPlanCheckoutSession, getVenuePlan } from '@/services/features.service'
 import { ConversionWizard } from '../ConversionWizard'
+import { OFERTA_CARGANDO, OFERTA_SIN_DATO, OFERTA_V1, OFERTA_V2_PLUS, ofertaActual } from '@/hooks/__tests__/planOfferFixtures'
 
 vi.mock('@/hooks/usePlanOffer', async () => {
   const f = await import('@/hooks/__tests__/planOfferFixtures')
@@ -363,4 +364,64 @@ describe('ConversionWizard · ronda final (Minors 4 y 5 de la revisión)', () =>
     await waitFor(() => expect(within(tarjeta('pro')).getByText('$999')).toBeInTheDocument())
     expect(siguiente()).not.toBeDisabled()
   })
+})
+
+describe('ConversionWizard · B4 (A21): nombre, montos y texto del anual salen de la cotización o del hook', () => {
+  // Pro se llama «Plus»: $799 + IVA al mes ($926.84) y $8,500 + IVA al año ($9,860); ahorro bruto de $1,262.08 al año.
+  const PLUS = {
+    versionNumber: 2,
+    planes: {
+      PRO: { displayName: 'Plus', vendible: true, monthly: opcion(92684, 79900), annual: opcion(986000, 850000) },
+      PREMIUM: V2.planes.PREMIUM,
+    },
+  }
+  beforeEach(() => {
+    ofertaActual.valor = OFERTA_V1
+  })
+  afterEach(() => {
+    ofertaActual.valor = OFERTA_V1
+  })
+
+  it('🔴 con la cotización «Plus» dice «Plus» y «ahorras $1,262.08 al año, IVA incluido», aunque el hook siga cargando; el resumen y el botón también dicen «Plus»', async () => {
+    ofertaActual.valor = OFERTA_CARGANDO
+    vi.mocked(getVenuePlan).mockResolvedValue(planDeLaDemo(PLUS) as never)
+    abrir()
+    await alPasoDePlanes()
+    await waitFor(() => expect(within(tarjeta('pro')).getByText('Plus')).toBeInTheDocument())
+    await userEvent.click(within(document.body).getByRole('button', { name: /^Anual/ }))
+    expect(await within(tarjeta('pro')).findByText(/ahorras \$1,262\.08 al año, IVA incluido/)).toBeInTheDocument()
+    await userEvent.click(tarjeta('pro'))
+    expect(siguiente()).toHaveTextContent('Continuar con Plus')
+    await userEvent.click(siguiente())
+    expect(await screen.findByText('Plus')).toBeInTheDocument()
+    expect(screen.queryByText(/^Pro$/)).toBeNull()
+  })
+
+  it('sin cotización y con el hook en la v2 («Plus» a $799): el resumen dice «Plus» y $799 + IVA', async () => {
+    ofertaActual.valor = OFERTA_V2_PLUS
+    vi.mocked(getVenuePlan).mockResolvedValue(planDeLaDemo() as never)
+    abrir()
+    await alPasoDePlanes()
+    await waitFor(() => expect(getVenuePlan).toHaveBeenCalled())
+    await userEvent.click(tarjeta('pro'))
+    await userEvent.click(siguiente())
+    expect(await screen.findByText('Plan mensual · $799 MXN/mes + IVA')).toBeInTheDocument()
+    expect(screen.getByText('Plus')).toBeInTheDocument()
+  })
+
+  it.each([OFERTA_CARGANDO, OFERTA_SIN_DATO])(
+    '🔴 sin cotización y con el hook %j: el resumen no dice ningún monto (ni $0 ni el del catálogo)',
+    async oferta => {
+      ofertaActual.valor = oferta
+      vi.mocked(getVenuePlan).mockResolvedValue(planDeLaDemo() as never)
+      abrir()
+      await alPasoDePlanes()
+      await waitFor(() => expect(getVenuePlan).toHaveBeenCalled())
+      await userEvent.click(tarjeta('pro'))
+      await userEvent.click(siguiente())
+      await screen.findByText('Plan seleccionado')
+      expect(screen.queryByText(/MXN\/mes \+ IVA/)).toBeNull()
+      expect(screen.queryByText(/\$999|\$0\b/)).toBeNull()
+    },
+  )
 })

@@ -914,3 +914,43 @@ describe('la pantalla final y la salida del asistente', () => {
     expect(screen.queryByRole('button', { name: 'Confirmar mi pago' })).not.toBeInTheDocument()
   })
 })
+
+/** El párrafo bajo el título del paso de planes (las tarjetas repiten algunas frases). */
+async function subtitulo() {
+  const h1 = await screen.findByRole('heading', { level: 1 })
+  return h1.parentElement!.querySelector('p')!.textContent
+}
+
+describe('A22: el subtítulo del paso de planes sale de la versión', () => {
+  it('Pro 14 días sin tarjeta y Premium pagando hoy: una línea por plan', async () => {
+    pintar(quoteCon(ofertaCon()))
+    expect(await subtitulo()).toBe('Pro: 14 días gratis, sin tarjeta · Premium: pagas hoy')
+  })
+
+  it('los dos con 21 días y tarjeta: «21 días gratis»', async () => {
+    const con21 = (p: PlanCotizado): PlanCotizado => ({ ...p, requiresCard: true, trialDays: 21 })
+    pintar(quoteCon(ofertaCon({ PRO: con21(PRO_SIN_TARJETA), PREMIUM: con21(PREMIUM_HOY) })))
+    expect(await subtitulo()).toBe('21 días gratis')
+  })
+
+  it('los dos con 21 días y sin tarjeta: «21 días gratis, sin tarjeta»', async () => {
+    const sin = (p: PlanCotizado): PlanCotizado => ({ ...p, requiresCard: false, trialDays: 21 })
+    pintar(quoteCon(ofertaCon({ PRO: sin(PRO_SIN_TARJETA), PREMIUM: sin(PREMIUM_HOY) })))
+    expect(await subtitulo()).toBe('21 días gratis, sin tarjeta')
+  })
+
+  it('los dos en 0 días: «Pagas hoy y entras»', async () => {
+    pintar(quoteCon(ofertaCon({ PRO: { ...PREMIUM_HOY, displayName: 'Pro' } })))
+    expect(await subtitulo()).toBe('Pagas hoy y entras')
+  })
+
+  it('un plan fuera de venta no cuenta: con sólo Pro a la venta, su línea sola', async () => {
+    pintar(quoteCon(ofertaCon({ PREMIUM: FUERA_DE_VENTA('Premium') })))
+    expect(await subtitulo()).toBe('14 días gratis, sin tarjeta')
+  })
+
+  it('sin oferta: el texto de hoy', async () => {
+    pintar(QUOTE_DE_HOY)
+    expect(await subtitulo()).toBe('Pro y Premium: 30 días gratis. Cancela antes y no se te cobra.')
+  })
+})

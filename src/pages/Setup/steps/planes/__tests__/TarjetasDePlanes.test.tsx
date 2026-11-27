@@ -386,6 +386,16 @@ describe('TarjetasDePlanes con la versión del editor (planes editables, B2)', (
     },
   })
 
+  it('B4: con la versión, el título y el botón llevan el nombre de ESA versión («Plus»); sin versión, el de marca', () => {
+    const base = conOferta({})
+    pinta({
+      planQuote: conOferta({ PRO: { ...base.oferta!.planes.PRO, displayName: 'Plus' } }),
+    })
+    expect(within(tarjeta('PRO')).getByRole('heading', { name: 'Plus' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Elegir Plus' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Elegir Pro' })).not.toBeInTheDocument()
+  })
+
   it('con oferta: un plan fuera de venta no tiene tarjeta; Pro sin tarjeta dice «14 días gratis, sin tarjeta» y «Luego $926.84 al mes»', () => {
     pinta({ planQuote: conOferta({}) })
     expect(orden()).toEqual(['PRO', 'ENTERPRISE'])
