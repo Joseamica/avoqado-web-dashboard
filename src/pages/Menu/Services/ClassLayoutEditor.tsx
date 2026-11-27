@@ -342,7 +342,7 @@ export function ClassLayoutEditor({ value, onChange }: ClassLayoutEditorProps) {
             <p className="text-xs text-muted-foreground text-center">
               {t('layout.toggleHint', {
                 defaultValue:
-                  'Toca una casilla para quitarla y que el mapa quede como tu salón (por ejemplo, 3 × 3 con las casillas de en medio apagadas).',
+                  'Toca una casilla para quitarla y que el mapa quede como tu salón (por ejemplo, 3 × 3 con la casilla de en medio de cada orilla apagada, como un dado).',
               })}
             </p>
             {/* Instructor — separate element at the front */}

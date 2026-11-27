@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button'
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
@@ -112,6 +113,9 @@ const BADGE_ICON_COMPONENTS: Record<CreditPackBadgeIcon, LucideIcon> = {
   trophy: Trophy,
 }
 const BADGE_TEXT_MAX = 40
+/** El componente del ícono, o nada si el paquete trae uno que este panel todavía no conoce: la vista previa enseña sólo el texto. */
+const componenteDeIcono = (icono: string | null): LucideIcon | null =>
+  icono && Object.prototype.hasOwnProperty.call(BADGE_ICON_COMPONENTS, icono) ? BADGE_ICON_COMPONENTS[icono as CreditPackBadgeIcon] : null
 
 interface FormValues extends Omit<CreateCreditPackRequest, 'price'> {
   price: number | undefined
@@ -185,6 +189,9 @@ export default function CreditPackFormModal({ open, onClose, packId, onSuccess }
   const destacadoCargado = useRef<string>(JSON.stringify(['', null]))
   const badgeText = form.watch('badgeText') ?? ''
   const badgeIcon = form.watch('badgeIcon') ?? null
+  // Sin texto no hay destacado: los íconos esperan a que se escriba la etiqueta.
+  const sinTextoDestacado = !badgeText.trim()
+  const IconoDeVistaPrevia = componenteDeIcono(badgeIcon)
 
   // Reset form when modal opens/closes or pack changes
   useEffect(() => {
@@ -459,32 +466,46 @@ export default function CreditPackFormModal({ open, onClose, packId, onSuccess }
                   <h3 className="font-medium text-sm">{t('form.badgeTitle')}</h3>
                 </div>
 
-                <Input
-                  placeholder={t('form.placeholders.badgeText')}
-                  maxLength={BADGE_TEXT_MAX}
-                  className="h-12 text-base"
-                  value={badgeText}
-                  onChange={e => form.setValue('badgeText', e.target.value, { shouldDirty: true })}
-                />
+                <div className="space-y-2">
+                  <Label htmlFor="credit-pack-badge-text">{t('form.fields.badgeText')}</Label>
+                  <Input
+                    id="credit-pack-badge-text"
+                    placeholder={t('form.placeholders.badgeText')}
+                    maxLength={BADGE_TEXT_MAX}
+                    className="h-12 text-base"
+                    value={badgeText}
+                    onChange={e => form.setValue('badgeText', e.target.value, { shouldDirty: true })}
+                  />
+                </div>
 
-                <div className="flex flex-wrap gap-2">
-                  {CREDIT_PACK_BADGE_ICONS.map(name => {
-                    const Icon = BADGE_ICON_COMPONENTS[name]
-                    const selected = badgeIcon === name
-                    return (
-                      <Button
-                        key={name}
-                        type="button"
-                        variant={selected ? 'default' : 'outline'}
-                        size="icon"
-                        aria-label={t(`form.badgeIcons.${name}`)}
-                        aria-pressed={selected}
-                        onClick={() => form.setValue('badgeIcon', selected ? null : name, { shouldDirty: true })}
-                      >
-                        <Icon className="h-4 w-4" />
-                      </Button>
-                    )
-                  })}
+                <div className="space-y-2">
+                  <div className="flex flex-wrap gap-2">
+                    {CREDIT_PACK_BADGE_ICONS.map(name => {
+                      const Icon = BADGE_ICON_COMPONENTS[name]
+                      const selected = badgeIcon === name
+                      return (
+                        <Button
+                          key={name}
+                          type="button"
+                          variant={selected ? 'default' : 'outline'}
+                          size="icon"
+                          aria-label={t(`form.badgeIcons.${name}`)}
+                          aria-pressed={selected}
+                          disabled={sinTextoDestacado}
+                          aria-disabled={sinTextoDestacado}
+                          aria-describedby={sinTextoDestacado ? 'credit-pack-badge-icons-help' : undefined}
+                          onClick={() => form.setValue('badgeIcon', selected ? null : name, { shouldDirty: true })}
+                        >
+                          <Icon className="h-4 w-4" />
+                        </Button>
+                      )
+                    })}
+                  </div>
+                  {sinTextoDestacado && (
+                    <p id="credit-pack-badge-icons-help" className="text-xs text-muted-foreground">
+                      {t('form.badgeIconsNeedText')}
+                    </p>
+                  )}
                 </div>
 
                 {badgeText.trim() && (
@@ -494,11 +515,7 @@ export default function CreditPackFormModal({ open, onClose, packId, onSuccess }
                       data-testid="badge-preview"
                       className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2.5 py-1 text-xs font-medium text-amber-700 dark:text-amber-300"
                     >
-                      {badgeIcon &&
-                        (() => {
-                          const Icon = BADGE_ICON_COMPONENTS[badgeIcon]
-                          return <Icon className="h-3.5 w-3.5" />
-                        })()}
+                      {IconoDeVistaPrevia && <IconoDeVistaPrevia className="h-3.5 w-3.5" />}
                       {badgeText.trim()}
                     </span>
                   </div>

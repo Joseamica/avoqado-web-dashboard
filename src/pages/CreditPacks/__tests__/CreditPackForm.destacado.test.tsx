@@ -139,6 +139,44 @@ describe('CreditPackForm · destacado', () => {
     await screen.findByRole('button', { name: 'elegir Lagree' })
     expect(campoDestacado()).toHaveAttribute('maxLength', '40')
   })
+
+  it('el campo del texto lleva una etiqueta visible', async () => {
+    pintar()
+    await screen.findByRole('button', { name: 'elegir Lagree' })
+    expect(screen.getByLabelText('form.fields.badgeText')).toBe(campoDestacado())
+  })
+
+  it('sin texto los seis íconos están deshabilitados con su ayuda; con texto se habilitan', async () => {
+    pintar()
+    await screen.findByRole('button', { name: 'elegir Lagree' })
+    const iconos = ['star', 'tag', 'flame', 'heart', 'sparkles', 'trophy'].map(n =>
+      screen.getByRole('button', { name: `form.badgeIcons.${n}` }),
+    )
+    for (const icono of iconos) {
+      expect(icono).toBeDisabled()
+      expect(icono).toHaveAttribute('aria-disabled', 'true')
+    }
+    expect(screen.getByText('form.badgeIconsNeedText')).toBeInTheDocument()
+
+    fireEvent.change(campoDestacado(), { target: { value: '   ' } })
+    for (const icono of iconos) expect(icono).toBeDisabled()
+
+    fireEvent.change(campoDestacado(), { target: { value: 'Más popular' } })
+    for (const icono of iconos) {
+      expect(icono).toBeEnabled()
+      expect(icono).not.toHaveAttribute('aria-disabled', 'true')
+    }
+    expect(screen.queryByText('form.badgeIconsNeedText')).toBeNull()
+  })
+
+  it('con un ícono que este panel no conoce, la vista previa enseña sólo el texto', async () => {
+    paquetes.getCreditPack.mockResolvedValue(paqueteConDestacado({ badgeIcon: 'corona' }))
+    pintar('pk1')
+    await screen.findByText('Lagree')
+    const vista = screen.getByTestId('badge-preview')
+    expect(vista).toHaveTextContent('Más popular')
+    expect(vista.querySelector('svg')).toBeNull()
+  })
 })
 
 describe('textos del destacado', () => {
@@ -150,5 +188,9 @@ describe('textos del destacado', () => {
     expect(en.form.badgeTitle).toBeTruthy()
     expect(en.form.badgeHelp).toBeTruthy()
     expect(en.form.placeholders.badgeText).toBeTruthy()
+    expect(es.form.fields.badgeText).toBe('Etiqueta (opcional)')
+    expect(es.form.badgeIconsNeedText).toBe('Escribe primero la etiqueta')
+    expect(en.form.fields.badgeText).toBeTruthy()
+    expect(en.form.badgeIconsNeedText).toBeTruthy()
   })
 })

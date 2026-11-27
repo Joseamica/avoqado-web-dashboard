@@ -39,7 +39,8 @@
       "addItem": "Add Item",
       "product": "Product",
       "quantity": "Quantity",
-      "unlimited": "Unlimited"
+      "unlimited": "Unlimited",
+      "badgeText": "Label (optional)"
     },
     "placeholders": {
       "name": "e.g., 10-Class Pack",
@@ -63,6 +64,7 @@
     "unlimitedHelp": "Personal: only in the buyer's name, one spot per class",
     "badgeTitle": "Highlight this pack (optional)",
     "badgeHelp": "Shown above the pack on your booking page, for example \"Most popular\"",
+    "badgeIconsNeedText": "Type the label first",
     "badgePreview": "Preview",
     "badgeIcons": {
       "star": "Star",

@@ -39,7 +39,8 @@
       "addItem": "Agregar Item",
       "product": "Producto",
       "quantity": "Cantidad",
-      "unlimited": "Ilimitado"
+      "unlimited": "Ilimitado",
+      "badgeText": "Etiqueta (opcional)"
     },
     "placeholders": {
       "name": "ej., Paquete 10 Clases",
@@ -63,6 +64,7 @@
     "unlimitedHelp": "Personal: sólo a nombre de quien lo compra, un lugar por clase",
     "badgeTitle": "Destacar este paquete (opcional)",
     "badgeHelp": "Sale arriba del paquete en tu página de reservas, por ejemplo \"Más popular\"",
+    "badgeIconsNeedText": "Escribe primero la etiqueta",
     "badgePreview": "Vista previa",
     "badgeIcons": {
       "star": "Estrella",

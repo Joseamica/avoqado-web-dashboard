@@ -4,10 +4,28 @@
 import { render, screen, within } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 
+import en from '@/locales/en/menu.json'
+import es from '@/locales/es/menu.json'
+
 import { ClassLayoutEditor, type LayoutConfig, type LayoutSpot } from '../ClassLayoutEditor'
 import { ClassLayoutPreview } from '../ClassLayoutPreview'
 
-vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (k: string) => k }) }))
+// Guarda el texto por defecto de cada llave para comprobar que el editor trae el mismo que el español.
+const porDefecto = vi.hoisted(() => new Map<string, string | undefined>())
+vi.mock('react-i18next', () => ({
+  useTranslation: () => ({
+    t: (k: string, o?: { defaultValue?: string }) => {
+      porDefecto.set(k, o?.defaultValue)
+      return k
+    },
+  }),
+}))
+
+// El ejemplo es el «5» de un dado: el centro y las esquinas quedan, se apaga la casilla de en medio de cada orilla.
+const AYUDA_ES =
+  'Toca una casilla para quitarla y que el mapa quede como tu salón (por ejemplo, 3 × 3 con la casilla de en medio de cada orilla apagada, como un dado).'
+const AYUDA_EN =
+  'Tap a cell to remove it so the map matches your room (for example, a 3 × 3 with the middle cell of each edge switched off, like a die).'
 
 const ON = new Set(['0-0', '0-2', '1-1', '2-0', '2-2'])
 
@@ -53,5 +71,12 @@ describe('ClassLayoutEditor — ayuda', () => {
     render(<ClassLayoutEditor value={dado()} onChange={() => {}} />)
     expect(screen.getByText('layout.toggleHint')).toBeTruthy()
     expect(screen.getByText('layout.previewTitle')).toBeTruthy()
+  })
+
+  it('la ayuda describe bien el ejemplo del dado, en español, en inglés y en el texto por defecto', () => {
+    render(<ClassLayoutEditor value={dado()} onChange={() => {}} />)
+    expect(es.layout.toggleHint).toBe(AYUDA_ES)
+    expect(en.layout.toggleHint).toBe(AYUDA_EN)
+    expect(porDefecto.get('layout.toggleHint')).toBe(AYUDA_ES)
   })
 })

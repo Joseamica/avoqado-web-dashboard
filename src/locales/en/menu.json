@@ -936,7 +936,7 @@
     "spotsCount": "{{count}} active spots",
     "legendActive": "Active",
     "legendDisabled": "Disabled",
-    "toggleHint": "Tap a cell to remove it so the map matches your room (for example, a 3 × 3 with the middle cells switched off).",
+    "toggleHint": "Tap a cell to remove it so the map matches your room (for example, a 3 × 3 with the middle cell of each edge switched off, like a die).",
     "previewTitle": "This is how your client will see it",
     "previewFront": "Front · coach",
     "legendInstructor": "Instructor",
