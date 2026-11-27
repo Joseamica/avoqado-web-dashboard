@@ -193,7 +193,7 @@
       ...lista.plans.map(p => {
         const n = lista.features.filter(f => f.kind === 'SUELTA' && f.includedIn.includes(p.tier)).length
         return el('div', { className: 'card' },
-          el('b', { textContent: `Plan ${p.name}` }),
+          el('b', { textContent: `Plan ${p.displayName || p.name}` }),
           el('div', { className: 'p' }, money.format(sinIva(p.price)), el('span', { className: 'iva', textContent: ' + IVA/mes' })),
           el('small', { textContent: `Trae ${n} de las funciones de abajo` }))
       }),
@@ -215,6 +215,12 @@
     total()
   }
 
+  // Con versión del editor (displayName) manda el nombre vigente; sin ella, el rótulo de siempre.
+  function nombreDelPlan(tier) {
+    const p = lista.plans.find(x => x.tier === tier)
+    return (p && p.displayName) || (tier === 'PRO' ? 'Pro' : 'Premium')
+  }
+
   function fila(f) {
     const id = `f-${f.id}`
     const forz = f.kind === 'SUELTA' ? forzadoPor(f.id) : null
@@ -223,7 +229,7 @@
     if (f.requirement) meta.append(el('span', { textContent: f.requirement }))
     if (forz) meta.append(el('span', { className: 'need', textContent: `La necesita ${forz.name}` }))
     if (f.kind === 'SUELTA' && f.includedIn.length)
-      meta.append(el('span', { textContent: `Incluida en ${f.includedIn.map(t => (t === 'PRO' ? 'Pro' : 'Premium')).join(' y ')}` }))
+      meta.append(el('span', { textContent: `Incluida en ${f.includedIn.map(nombreDelPlan).join(' y ')}` }))
     const precio =
       f.kind === 'SUELTA' ? el('div', { className: 'price' }, money.format(sinIva(f.price)), el('span', { className: 'iva', textContent: ' + IVA' }))
       : el('div', { className: 'price muted', textContent: f.kind === 'INCLUIDO' ? 'Incluido' : 'Se cotiza' })

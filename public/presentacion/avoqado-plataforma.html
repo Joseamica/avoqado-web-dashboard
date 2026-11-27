@@ -1051,14 +1051,15 @@ code{ font-family:'DM Mono',monospace; font-size:0.9em; color:var(--green-ink); 
   <div class="eyebrow">Empaquetado</div>
   <h2 class="title">Cuatro niveles, <span class="grad">una sola plataforma.</span></h2>
   <div class="body">
-    <div class="grid4">
-      <div class="plan"><div class="pt">FREE</div><div class="pd">Lo esencial para empezar: POS, cobro y básicos.</div><div style="margin-top:12px; padding-top:12px; border-top:1px solid var(--line); font-size:19px; font-weight:700; color:var(--ink);">$0</div></div>
-      <div class="plan feature"><div class="pt">PRO</div><div class="pd">Reservas, servicio de mesas, lealtad, referidos, promociones, pantalla de cocina, IA, pago al personal, reportes avanzados, marca blanca.</div><div style="margin-top:12px; padding-top:12px; border-top:1px solid var(--line); font-size:19px; font-weight:700; color:var(--green-ink);">$999 <span style="font-size:11px; font-weight:500; color:var(--ink3);">+IVA/mes</span></div></div>
-      <div class="plan feature"><div class="pbadge">Más completo</div><div class="pt">PREMIUM</div><div class="pd">Todo lo de PRO + facturación CFDI, contabilidad, comisiones e inventario completo.</div><div style="margin-top:12px; padding-top:12px; border-top:1px solid var(--line); font-size:19px; font-weight:700; color:var(--green-ink);">$1,699 <span style="font-size:11px; font-weight:500; color:var(--ink3);">+IVA/mes</span></div></div>
+    <div data-plan-status role="status" aria-live="polite" style="text-align:center; padding:40px 0; font-size:16px; color:var(--ink2);">Cargando precios…</div>
+    <div class="grid4" hidden>
+      <div class="plan"><div class="pt" data-plan-free>FREE</div><div class="pd">Lo esencial para empezar: POS, cobro y básicos.</div><div style="margin-top:12px; padding-top:12px; border-top:1px solid var(--line); font-size:19px; font-weight:700; color:var(--ink);">$0</div></div>
+      <div class="plan feature" data-plan-card="PRO" hidden><div class="pt" data-plan-name>PRO</div><div class="pd">Reservas, servicio de mesas, lealtad, referidos, promociones, pantalla de cocina, IA, pago al personal, reportes avanzados, marca blanca.</div><div style="margin-top:12px; padding-top:12px; border-top:1px solid var(--line); font-size:19px; font-weight:700; color:var(--green-ink);"><span data-plan-price></span> <span data-plan-iva style="font-size:11px; font-weight:500; color:var(--ink3);">+IVA/mes</span></div></div>
+      <div class="plan feature" data-plan-card="PREMIUM" hidden><div class="pbadge">Más completo</div><div class="pt" data-plan-name>PREMIUM</div><div class="pd">Todo lo de PRO + facturación CFDI, contabilidad, comisiones e inventario completo.</div><div style="margin-top:12px; padding-top:12px; border-top:1px solid var(--line); font-size:19px; font-weight:700; color:var(--green-ink);"><span data-plan-price></span> <span data-plan-iva style="font-size:11px; font-weight:500; color:var(--ink3);">+IVA/mes</span></div></div>
       <div class="plan"><div class="pt">ENTERPRISE</div><div class="pd">Paquetes a la medida, SLA y soporte prioritario.</div><div style="margin-top:12px; padding-top:12px; border-top:1px solid var(--line); font-size:19px; font-weight:700; color:var(--ink);">Cotización</div></div>
     </div>
-    <div class="callout" style="margin-top:26px; text-align:center;">
-      <div class="cd" style="text-align:center;">Precios <b style="color:var(--ink)">+ IVA</b>, facturación mensual. Con pago anual: <b class="hl">2 meses gratis</b> (Pro $9,990/año · Premium $16,990/año). Esquema de comisiones para socios disponible aparte.</div>
+    <div class="callout" data-plan-callout hidden style="margin-top:26px; text-align:center;">
+      <div class="cd" data-plan-annual style="text-align:center;"></div>
     </div>
   </div>
   <div class="foot"><div class="brand"><img loading="lazy" src="assets/logo-h-black.png" alt="Avoqado"></div><span class="pg">26 / 32</span></div>
@@ -1332,6 +1333,103 @@ code{ font-family:'DM Mono',monospace; font-size:0.9em; color:var(--green-ink); 
 <button class="avq-close" type="button" autofocus>Cerrar</button>
 <h2 id="avq-dialog-title"></h2><div class="avq-dialog-content"></div>
 </dialog>
+<script>
+(() => {
+  // Los precios y nombres de los planes salen de la oferta vigente del SERVIDOR; aquí no hay respaldo escrito.
+  // Misma resolución de la base que precios.html: destino fijo por dominio; en localhost, ?api= sólo hacia otro puerto local.
+  const API = (() => {
+    const host = location.hostname
+    if (host !== 'localhost' && host !== '127.0.0.1') return 'https://api.avoqado.io'
+    const pedido = new URLSearchParams(location.search).get('api') || ''
+    return /^http:\/\/(localhost|127\.0\.0\.1):\d{2,5}$/.test(pedido) ? pedido : 'http://localhost:3000'
+  })() + '/api/v1/public'
+
+  const $ = sel => document.querySelector('#seccion-26 ' + sel)
+  const estado = $('[data-plan-status]')
+  const rejilla = $('.grid4')
+  const nota = $('[data-plan-callout]')
+  const dinero = cents => '$' + new Intl.NumberFormat('es-MX', { minimumFractionDigits: cents % 100 ? 2 : 0, maximumFractionDigits: 2 }).format(cents / 100)
+  const ETIQUETA = { PRO: 'Pro', PREMIUM: 'Premium' }
+
+  // Anual, regla en IVA incluido (igual que el editor del SUPERADMIN): «2 meses gratis» sólo si anual = 10 × mensual.
+  function anual(p) {
+    const dosMeses = p.annual.grossCents === 10 * p.monthly.grossCents
+    const ahorro = 12 * p.monthly.grossCents - p.annual.grossCents
+    return { dosMeses, ahorro: !dosMeses && ahorro > 0 ? ahorro : 0 }
+  }
+
+  function pintar(o) {
+    const editado = o.offerVersion != null && o.offerVersion >= 2
+    const ids = ['PRO', 'PREMIUM']
+    const libre = $('[data-plan-free]')
+    if (editado && o.FREE && o.FREE.displayName) libre.textContent = o.FREE.displayName
+    const venta = []
+    for (const id of ids) {
+      const plan = o[id]
+      const card = $(`[data-plan-card="${id}"]`)
+      card.hidden = !plan || plan.onSale === false
+      if (card.hidden) continue
+      card.querySelector('[data-plan-name]').textContent = editado ? plan.displayName : id
+      card.querySelector('[data-plan-price]').textContent = dinero(plan.monthly.netCents)
+      card.querySelector('[data-plan-iva]').textContent = editado ? '+ IVA/mes' : '+IVA/mes'
+      venta.push({ id, plan, nombre: editado ? plan.displayName : ETIQUETA[id] })
+    }
+    const partes = venta.map(v => ({ ...v, a: anual(v.plan) }))
+    const caja = $('[data-plan-annual]')
+    caja.replaceChildren('Precios ')
+    const mas = document.createElement('b')
+    mas.style.color = 'var(--ink)'
+    mas.textContent = '+ IVA'
+    caja.append(mas, ', facturación mensual.')
+    if (partes.length) {
+      caja.append(' Con pago anual: ')
+      const todos = partes.every(v => v.a.dosMeses)
+      if (todos) {
+        const g = document.createElement('b')
+        g.className = 'hl'
+        g.textContent = '2 meses gratis'
+        caja.append(g, ` (${partes.map(v => `${v.nombre} ${dinero(v.plan.annual.netCents)}/año`).join(' · ')}).`)
+      } else {
+        caja.append(partes.map(v => `${v.nombre} ${dinero(v.plan.annual.netCents)}/año` +
+          (v.a.dosMeses ? ' (2 meses gratis)' : v.a.ahorro ? ` (ahorras ${dinero(v.a.ahorro)} al año, IVA incluido)` : '')).join(' · ') + '.')
+      }
+    }
+    caja.append(' Esquema de comisiones para socios disponible aparte.')
+    estado.hidden = true
+    rejilla.hidden = false
+    nota.hidden = false
+  }
+
+  function fallo() {
+    rejilla.hidden = true
+    nota.hidden = true
+    estado.hidden = false
+    const boton = document.createElement('button')
+    boton.type = 'button'
+    boton.textContent = 'Reintentar'
+    boton.style.cssText = 'margin-left:12px; padding:6px 14px; cursor:pointer;'
+    boton.addEventListener('click', cargar)
+    estado.replaceChildren('No pudimos cargar los precios', boton)
+  }
+
+  async function cargar() {
+    estado.hidden = false
+    rejilla.hidden = true
+    nota.hidden = true
+    estado.replaceChildren('Cargando precios…')
+    try {
+      const r = await fetch(`${API}/plan-offer`, { cache: 'no-store' })
+      if (!r.ok) throw new Error(String(r.status))
+      const cuerpo = await r.json()
+      if (!cuerpo || !cuerpo.data) throw new Error('sin datos')
+      pintar(cuerpo.data)
+    } catch {
+      fallo()
+    }
+  }
+  cargar()
+})()
+</script>
 <script src="presentation-story.js" defer></script>
 <script src="presentation-web.js" defer></script>
 <script src="presentation-analytics.js" defer></script>
