@@ -47,7 +47,8 @@
       "price": "0.00",
       "validityDays": "Sin expiración",
       "maxPerCustomer": "Sin límite",
-      "displayOrder": "0"
+      "displayOrder": "0",
+      "badgeText": "Más popular"
     },
     "validation": {
       "nameRequired": "El nombre es requerido",
@@ -59,7 +60,18 @@
       "quantityPositive": "La cantidad debe ser mayor a 0",
       "unlimitedNeedsValidity": "Un paquete Ilimitado necesita días de vigencia"
     },
-    "unlimitedHelp": "Personal: sólo a nombre de quien lo compra, un lugar por clase"
+    "unlimitedHelp": "Personal: sólo a nombre de quien lo compra, un lugar por clase",
+    "badgeTitle": "Destacar este paquete (opcional)",
+    "badgeHelp": "Sale arriba del paquete en tu página de reservas, por ejemplo \"Más popular\"",
+    "badgePreview": "Vista previa",
+    "badgeIcons": {
+      "star": "Estrella",
+      "tag": "Etiqueta",
+      "flame": "Llama",
+      "heart": "Corazón",
+      "sparkles": "Destellos",
+      "trophy": "Trofeo"
+    }
   },
   "purchases": {
     "title": "Compras",

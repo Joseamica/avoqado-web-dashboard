@@ -10,6 +10,9 @@ export interface CreditPackItem {
 	unlimited?: boolean
 }
 
+export const CREDIT_PACK_BADGE_ICONS = ['star', 'tag', 'flame', 'heart', 'sparkles', 'trophy'] as const
+export type CreditPackBadgeIcon = (typeof CREDIT_PACK_BADGE_ICONS)[number]
+
 export interface CreditPack {
 	id: string
 	venueId: string
@@ -24,6 +27,9 @@ export interface CreditPack {
 	stripeProductId?: string
 	stripePriceId?: string
 	items: CreditPackItem[]
+	/** Etiqueta destacada que sale arriba del paquete en la página de reservas. */
+	badgeText?: string | null
+	badgeIcon?: CreditPackBadgeIcon | null
 	createdAt: string
 	updatedAt: string
 }
@@ -78,6 +84,8 @@ export interface CreateCreditPackRequest {
 	validityDays?: number
 	maxPerCustomer?: number
 	displayOrder?: number
+	badgeText?: string | null
+	badgeIcon?: CreditPackBadgeIcon | null
 	/** Cada renglón manda `unlimited` (true o false): así el SERVIDOR sabe que es un panel nuevo (D679, W4). Un Ilimitado no
 	 * manda cantidad. */
 	items: { productId: string; quantity?: number; unlimited: boolean }[]
