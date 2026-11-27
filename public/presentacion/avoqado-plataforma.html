@@ -1391,6 +1391,17 @@ code{ font-family:'DM Mono',monospace; font-size:0.9em; color:var(--green-ink); 
       card.querySelector('[data-plan-iva]').textContent = editado ? '+ IVA/mes' : '+IVA/mes'
       venta.push({ id, plan, nombre: editado ? plan.displayName : ETIQUETA[id] })
     }
+    // Los niveles que se ven: Gratis y Enterprise siempre, más los de pago a la venta. El título, su liga del índice y las columnas
+    // los cuentan (con los cuatro de hoy queda igual que antes)
+    const niveles = 2 + venta.length
+    const palabra = { 2: 'Dos', 3: 'Tres', 4: 'Cuatro' }[niveles]
+    if (palabra) {
+      const titulo = document.querySelector('#seccion-26 h2.title')
+      if (titulo && titulo.firstChild) titulo.firstChild.textContent = `${palabra} niveles, `
+      const liga = document.querySelector('a[href="#seccion-26"]')
+      if (liga) liga.textContent = `${palabra} niveles, una sola plataforma.`
+    }
+    rejilla.style.gridTemplateColumns = `repeat(${niveles}, 1fr)`
     const partes = venta.map(v => ({ ...v, a: anual(v.plan) }))
     const caja = $('[data-plan-annual]')
     caja.replaceChildren('Precios ')

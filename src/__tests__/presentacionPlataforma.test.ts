@@ -12,7 +12,16 @@ const plan = (displayName: string, netM: number, netA: number, extra = {}) => ({
   ...extra,
 })
 const v1 = { offerVersion: null, FREE: { displayName: 'FREE' }, PRO: plan('PRO', 99900, 999000), PREMIUM: plan('PREMIUM', 169900, 1699000) }
-const v2 = { ...v1, offerVersion: 2, FREE: { displayName: 'Gratis' }, PRO: { ...plan('Plus', 79900, 850000), annual: { netCents: 850000, grossCents: 986000 }, monthly: { netCents: 79900, grossCents: 92684 } } }
+const v2 = {
+  ...v1,
+  offerVersion: 2,
+  FREE: { displayName: 'Gratis' },
+  PRO: {
+    ...plan('Plus', 79900, 850000),
+    annual: { netCents: 850000, grossCents: 986000 },
+    monthly: { netCents: 79900, grossCents: 92684 },
+  },
+}
 const v3 = { ...v2, offerVersion: 3, PREMIUM: plan('Premium', 169900, 1699000, { onSale: false }) }
 
 const ok = (data: unknown): Respuesta => ({ status: 200, body: { success: true, data } })
@@ -65,6 +74,20 @@ describe('presentación de la plataforma: lee la oferta vigente', () => {
     const anual = norm(d.querySelector('[data-plan-annual]')!.textContent)
     expect(anual).not.toContain('Premium')
     expect(anual).not.toContain('16,990')
+  })
+
+  it('el título y la rejilla cuentan los niveles que se ven (banco, 27-nov: la v3 decía «Cuatro niveles» con tres)', async () => {
+    const titulo = (d: Document) => norm(d.querySelector(SECCION + ' h2.title')!.textContent)
+    const indice = (d: Document) => norm(d.querySelector('a[href="#seccion-26"]')!.textContent)
+    const a = cargar(ok(v3))
+    await espera()
+    expect(titulo(a.document)).toBe('Tres niveles, una sola plataforma.')
+    expect(indice(a.document)).toBe('Tres niveles, una sola plataforma.')
+    expect((a.document.querySelector(SECCION + ' .grid4') as HTMLElement).style.gridTemplateColumns).toBe('repeat(3, 1fr)')
+    const b = cargar(ok(v1))
+    await espera()
+    expect(titulo(b.document)).toBe('Cuatro niveles, una sola plataforma.')
+    expect(indice(b.document)).toBe('Cuatro niveles, una sola plataforma.')
   })
 
   it('mientras no contesta no hay montos ni tarjetas', async () => {
