@@ -33,6 +33,14 @@ export const OFERTA_V3_PREMIUM_FUERA: OfertaDePlanes = {
   offerVersion: 3,
   PREMIUM: plan('Premium', 169900, 1699000, false),
 }
+/** v2 con Pro a 10 mensualidades («2 meses gratis») y Premium a 11 (un mes gratis, ahorro bruto $1,970.84). */
+export const OFERTA_V2_PREMIUM_11X: OfertaDePlanes = {
+  ...OFERTA_V2_PLUS,
+  PRO: plan('Pro', 79900, 799000),
+  PREMIUM: plan('Premium', 169900, 1868900),
+}
+/** v2 con un precio que trae centavos: Pro $799.50 + IVA al mes. */
+export const OFERTA_V2_CON_CENTAVOS: OfertaDePlanes = { ...OFERTA_V2_PLUS, PRO: plan('Plus', 79950, 850000) }
 export const OFERTA_CARGANDO: OfertaDePlanes = { estado: 'cargando' }
 export const OFERTA_SIN_DATO: OfertaDePlanes = { estado: 'sinDato' }
 
@@ -50,9 +58,9 @@ export async function moduloDelHookConOferta(leer: () => OfertaDePlanes) {
       const { t } = useTranslation('billing')
       return actual.nombreDelPlanDe(leer(), tier, t)
     },
-    useNombresDelPlan: () => {
+    useNombresDelPlan: (cotizacion?: Parameters<typeof actual.nombreConCotizacion>[3]) => {
       const { t } = useTranslation('billing')
-      return (tier: string) => actual.nombreDelPlanDe(leer(), tier.toUpperCase() as Parameters<typeof actual.nombreDelPlanDe>[1], t)
+      return (tier: string) => actual.nombreConCotizacion(leer(), tier, t, cotizacion)
     },
   }
 }

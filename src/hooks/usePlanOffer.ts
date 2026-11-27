@@ -24,8 +24,14 @@ type TierDeNombre = 'FREE' | 'PRO' | 'PREMIUM' | 'ENTERPRISE'
 
 /** Con offerVersion null (o sin datos): el nombre localizado de hoy; con una del editor (≥ 2), su displayName. Un nombre no es dinero. */
 export function nombreDelPlanDe(oferta: OfertaDePlanes, tier: TierDeNombre, t: (key: string) => string): string {
-  if (tier !== 'ENTERPRISE' && oferta.estado === 'servidor' && oferta.offerVersion !== null && oferta.offerVersion >= 2)
-    return oferta[tier].displayName
+  // Un nivel que la oferta no trae (ENTERPRISE, o uno desconocido como 'GRATIS') cae al nombre localizado: nunca truena.
+  if (
+    (tier === 'FREE' || tier === 'PRO' || tier === 'PREMIUM') &&
+    oferta.estado === 'servidor' &&
+    oferta.offerVersion !== null &&
+    oferta.offerVersion >= 2
+  )
+    return oferta[tier]?.displayName ?? t(`plan.tiers.${tier.toLowerCase()}.name`)
   return t(`plan.tiers.${tier.toLowerCase()}.name`)
 }
 
@@ -35,8 +41,23 @@ export function useNombreDelPlan(tier: TierDeNombre): string {
 }
 
 /** Para listas y mapas: UNA lectura de la oferta y una función que da el nombre de cualquier plan (un hook no va dentro de un `map`). */
-export function useNombresDelPlan(): (tier: TierDeNombre | string) => string {
+export function useNombresDelPlan(cotizacion?: CotizadoParaNombres): (tier: TierDeNombre | string) => string {
   const { t } = useTranslation('billing')
   const oferta = usePlanOffer()
-  return tier => nombreDelPlanDe(oferta, tier.toUpperCase() as TierDeNombre, t)
+  return tier => nombreConCotizacion(oferta, tier, t, cotizacion)
+}
+
+/** Lo único que se lee de la cotización firmada de GET `/plan`: el nombre de cada plan de esa versión. */
+export type CotizadoParaNombres = { planes?: Partial<Record<'PRO' | 'PREMIUM', { displayName: string } | undefined>> } | undefined
+
+/** Con una cotización firmada, el nombre sale de ELLA (el mismo que el precio que se cobra); si no, de la oferta vigente. */
+export function nombreConCotizacion(
+  oferta: OfertaDePlanes,
+  tier: string,
+  t: (key: string) => string,
+  cotizacion?: CotizadoParaNombres,
+): string {
+  const nivel = tier.toUpperCase()
+  const cotizado = nivel === 'PRO' || nivel === 'PREMIUM' ? cotizacion?.planes?.[nivel]?.displayName : undefined
+  return cotizado ?? nombreDelPlanDe(oferta, nivel as TierDeNombre, t)
 }

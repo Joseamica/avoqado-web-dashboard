@@ -3,6 +3,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, within } from '@testing-library/react'
 import { PlanPicker } from '../PlanPicker'
 import {
+  OFERTA_V2_CON_CENTAVOS,
+  OFERTA_V2_PREMIUM_11X,
   OFERTA_CARGANDO,
   OFERTA_SIN_DATO,
   OFERTA_V1,
@@ -18,7 +20,9 @@ vi.mock('@/hooks/usePlanOffer', async () => {
 
 // i18n returns the key (or interpolated) so assertions are deterministic
 vi.mock('react-i18next', () => ({
-  useTranslation: () => ({ t: (k: string, o?: any) => (o?.tier ? `${k}:${o.tier}` : o?.price ? `${k}:${o.price}` : k) }),
+  useTranslation: () => ({
+    t: (k: string, o?: any) => (o?.tier ? `${k}:${o.tier}` : o?.price ? `${k}:${o.price}` : o?.amount ? `${k}:${o.amount}` : k),
+  }),
 }))
 
 beforeEach(() => {
@@ -252,7 +256,9 @@ describe('PlanPicker — «Ver todos» de cada plan (founder, 25-sep)', () => {
     ofertaActual.valor = OFERTA_V2_PLUS
     render(<PlanPicker currentTier="FREE" onSelectTier={() => {}} interval="annual" />)
     const pro = within(document.querySelector('[data-tour="plan-card-pro"]') as HTMLElement)
-    expect(pro.getByText(/plan\.annualSaves/)).toBeInTheDocument()
+    // El monto es el BRUTO (con IVA): 79,900 × 1.16 × 12 − 850,000 × 1.16 = $1,262.08; con el neto saldría $1,088.00.
+    expect(pro.getByText(/plan\.annualSaves:\$1,262\.08/)).toBeInTheDocument()
+    expect(screen.getByText('plan.billing.annual').closest('button')).not.toHaveTextContent('plan.billing.save')
     expect(pro.queryByText(/plan\.billing\.save/)).not.toBeInTheDocument()
     expect(screen.getByText('plan.annualEquiv:$8,500')).toBeInTheDocument()
   })
@@ -299,5 +305,30 @@ describe('PlanPicker — «Ver todos» de cada plan (founder, 25-sep)', () => {
     )
     expect(screen.getByText('Plus')).toBeInTheDocument()
     expect(screen.getByText(/plan\.annualSaves/)).toBeInTheDocument()
+  })
+
+  it('I1: si un plan de pago no cumple «2 meses gratis», la píldora del toggle no sale y su tarjeta dice cuánto ahorra', () => {
+    ofertaActual.valor = OFERTA_V2_PREMIUM_11X
+    render(<PlanPicker currentTier="FREE" onSelectTier={() => {}} interval="annual" />)
+    expect(screen.getByText('plan.billing.annual').closest('button')).not.toHaveTextContent('plan.billing.save')
+    const premium = within(document.querySelector('[data-tour="plan-card-premium"]') as HTMLElement)
+    expect(premium.getByText(/plan\.annualSaves:\$1,970\.84/)).toBeInTheDocument()
+    const pro = within(document.querySelector('[data-tour="plan-card-pro"]') as HTMLElement)
+    expect(pro.getByText(/plan\.billing\.save/)).toBeInTheDocument()
+  })
+
+  it('la píldora del toggle sale cuando TODOS los planes a la venta dan «2 meses gratis» (v1)', () => {
+    render(<PlanPicker currentTier="FREE" onSelectTier={() => {}} />)
+    expect(screen.getByText('plan.billing.annual').closest('button')).toHaveTextContent('plan.billing.save')
+  })
+
+  it('M6: un precio con centavos enseña dos decimales; uno redondo se queda como hoy', () => {
+    ofertaActual.valor = OFERTA_V2_CON_CENTAVOS
+    const { unmount } = render(<PlanPicker currentTier="FREE" onSelectTier={() => {}} />)
+    expect(screen.getByText('$799.50')).toBeInTheDocument()
+    unmount()
+    ofertaActual.valor = OFERTA_V1
+    render(<PlanPicker currentTier="FREE" onSelectTier={() => {}} />)
+    expect(screen.getByText('$999')).toBeInTheDocument()
   })
 })

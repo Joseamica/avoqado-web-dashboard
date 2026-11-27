@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { getTierDef, type TierId } from '@/config/plan-catalog'
 import { usePlanOffer, useNombreDelPlan } from '@/hooks/usePlanOffer'
 import { sinIva } from '@/lib/sinIva'
+import { fmtPesos } from '@/lib/fmtPesos'
 import { cn } from '@/lib/utils'
 
 interface FeatureGateProps {
@@ -23,7 +24,7 @@ interface FeatureGateProps {
  * Las funciones sueltas también se anuncian sin IVA («+ IVA»), aunque `syncFeaturesToStripe` cobra
  * `monthlyPrice` tal cual, con el IVA adentro. Una oferta que no es de lista sigue «IVA incluido».
  */
-const fmtMxn = (n: number) => `$${n.toLocaleString('es-MX')}`
+const fmtMxn = fmtPesos
 // Dos decimales siempre en el suelto: $79 → «$68.10», nunca «$68.1».
 const fmtMxn2 = (n: number) => `$${n.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 
@@ -119,6 +120,8 @@ export function FeatureGate({ feature, requiredTier, children }: FeatureGateProp
                   >
                     {t('featureGate.aloneContact')}
                   </a>
+                ) : !canPurchase ? (
+                  <p className="mb-1 text-xs text-muted-foreground">{t('featureGate.askOwner')}</p>
                 ) : null
               ) : canPurchase ? (
                 <Button className="cursor-pointer gap-2" onClick={() => navigate(`${fullBasePath}/settings/billing/subscriptions`)}>

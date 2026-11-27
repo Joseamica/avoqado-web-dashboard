@@ -47,7 +47,7 @@ export function PlanRow(props: PlanRowProps) {
   const { origin, planState, grandfathered, current, selected, canManage, busy } = props
   const money = (value: number) => new Intl.NumberFormat(getIntlLocale(i18n.language), { style: 'currency', currency: 'MXN' }).format(value)
   const oferta = usePlanOffer()
-  const tierName = useNombresDelPlan()
+  const tierName = useNombresDelPlan(planState?.cotizacion)
   const pro = tierName('PRO')
   const originTier = origin.tier ? tierName(origin.tier) : ''
   const until = origin.cancelAt ?? origin.currentPeriodEnd

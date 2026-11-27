@@ -102,7 +102,7 @@ export default function Subscriptions() {
   })
 
   const oferta = usePlanOffer()
-  const nombreDelPlan = useNombresDelPlan()
+  const nombreDelPlan = useNombresDelPlan(plan.data?.cotizacion)
   const nombreRef = useRef(nombreDelPlan)
   nombreRef.current = nombreDelPlan
   const origin = originOf(plan.data)
@@ -542,6 +542,7 @@ export default function Subscriptions() {
                 error={error?.message ?? null}
                 dependency={error?.issue ? dependencyFix(error.issue, selection) : null}
                 onPreferList={preferListFor}
+                cotizacion={plan.data?.cotizacion}
                 onReview={() => void review()}
                 onPickTier={pick}
                 onAssisted={assistTier !== 'FREE' ? () => setAssistedTier(assistTier) : undefined}

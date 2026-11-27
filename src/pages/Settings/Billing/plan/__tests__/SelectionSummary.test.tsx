@@ -1,10 +1,11 @@
 // src/pages/Settings/Billing/plan/__tests__/SelectionSummary.test.tsx
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { FeatureGridEntry } from '@/services/hybridBilling.service'
 import { SelectionSummary, type SelectionSummaryProps } from '../SelectionSummary'
 import type { SelectionSummaryModel } from '../planActions'
+import { OFERTA_CARGANDO, OFERTA_V1, OFERTA_V2_PLUS, ofertaActual } from '@/hooks/__tests__/planOfferFixtures'
 
 vi.mock('@/hooks/usePlanOffer', async () => {
   const f = await import('@/hooks/__tests__/planOfferFixtures')
@@ -60,6 +61,17 @@ const model = (over: Partial<SelectionSummaryModel> = {}): SelectionSummaryModel
   tooMany: false,
   ...over,
 })
+const baseProps = (over: Partial<SelectionSummaryProps> = {}): SelectionSummaryProps => ({
+  model: model(),
+  seatRule: 'CHOOSE',
+  canManage: true,
+  busy: false,
+  error: null,
+  onReview: vi.fn(),
+  onPickTier: vi.fn(),
+  onAssisted: vi.fn(),
+  ...over,
+})
 const renderSummary = (over: Partial<SelectionSummaryProps> = {}) => {
   const props: SelectionSummaryProps = {
     model: model(),
@@ -78,6 +90,10 @@ const renderSummary = (over: Partial<SelectionSummaryProps> = {}) => {
 const review = () => document.querySelector('[data-tour="plan-review"]') as HTMLButtonElement
 
 describe('SelectionSummary', () => {
+  beforeEach(() => {
+    ofertaActual.valor = OFERTA_V1
+  })
+
   it('lists what changes, the monthly total and that today is calculated at review for a hybrid purchase', () => {
     renderSummary()
     expect(screen.getByText('plan.selection.plan|tier=plan.tiers.free.name')).toBeInTheDocument()
@@ -489,5 +505,17 @@ describe('SelectionSummary · la prueba de la versión del editor', () => {
     expect(screen.getAllByText('plan.selection.finishAcceptance|tier=plan.tiers.premium.name').length).toBeGreaterThan(0)
     await userEvent.click(review())
     expect(props.onReview).toHaveBeenCalledTimes(1)
+  })
+
+  it('M4 + I3: con la v2 «Plus» el plan se llama Plus; con una cotización firmada, el nombre sale de ella aunque la oferta no cargue', async () => {
+    const hint = { tier: 'PRO' as const, covered: 1, more: 17, price: 926.84 }
+    ofertaActual.valor = OFERTA_V2_PLUS
+    const { unmount } = render(<SelectionSummary {...baseProps({ model: model({ hint }) })} />)
+    expect(screen.getByRole('button', { name: 'plan.selection.hintCta|tier=Plus' })).toBeInTheDocument()
+    unmount()
+    ofertaActual.valor = OFERTA_CARGANDO
+    const cotizacion = { versionNumber: 2, planes: { PRO: { displayName: 'Plus', vendible: true, monthly: null, annual: null } } }
+    render(<SelectionSummary {...baseProps({ model: model({ hint }), cotizacion: cotizacion as never })} />)
+    expect(screen.getByRole('button', { name: 'plan.selection.hintCta|tier=Plus' })).toBeInTheDocument()
   })
 })

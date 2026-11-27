@@ -9,6 +9,7 @@ import { getIntlLocale } from '@/utils/i18n-locale'
 import { sinIva } from '@/lib/sinIva'
 import { useVenueDateTime } from '@/utils/datetime'
 import type { DependencyFix, PlanOperation, SelectionSummaryModel } from './planActions'
+import type { CotizacionDeTuPlan } from '@/services/features.service'
 import { useNombresDelPlan } from '@/hooks/usePlanOffer'
 
 export interface SelectionSummaryProps {
@@ -29,6 +30,8 @@ export interface SelectionSummaryProps {
   dependency?: DependencyFix | null
   /** Quote that function (or `'PLAN'`) at its list price instead. */
   onPreferList?: (code: string) => void
+  /** La cotización firmada de GET `/plan`: de ella salen los nombres de los planes (el mismo que el precio). */
+  cotizacion?: CotizacionDeTuPlan
 }
 
 const PURCHASES: PlanOperation['kind'][] = ['FEATURES', 'CLASSIC_CHECKOUT', 'HYBRID_REPLACE', 'HYBRID_DROP']
@@ -63,12 +66,13 @@ export function SelectionSummary({
   onFallbackDrop,
   dependency,
   onPreferList,
+  cotizacion,
 }: SelectionSummaryProps) {
   const { t, i18n } = useTranslation('billing')
   const { formatDate } = useVenueDateTime()
   const lang = (['es', 'en', 'fr'] as const).find(code => i18n.language.startsWith(code)) ?? 'es'
   const money = (value: number) => new Intl.NumberFormat(getIntlLocale(i18n.language), { style: 'currency', currency: 'MXN' }).format(value)
-  const tierName = useNombresDelPlan()
+  const tierName = useNombresDelPlan(cotizacion)
   const name = (entry: FeatureGridEntry) =>
     entry.featureCode ? t(`hybrid.featureNames.${entry.featureCode}`, { defaultValue: entry.names[lang] }) : entry.names[lang]
   const codeName = (code: string, entry?: FeatureGridEntry) =>

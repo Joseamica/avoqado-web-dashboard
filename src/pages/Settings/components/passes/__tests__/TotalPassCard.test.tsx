@@ -41,6 +41,7 @@ vi.mock('react-router-dom', async importOriginal => ({
 }))
 
 import { TotalPassCard } from '../TotalPassCard'
+import { OFERTA_V1, OFERTA_V2_PLUS, ofertaActual } from '@/hooks/__tests__/planOfferFixtures'
 
 vi.mock('@/hooks/usePlanOffer', async () => {
   const f = await import('@/hooks/__tests__/planOfferFixtures')
@@ -83,6 +84,7 @@ function renderCard(connection: PassConnectionView, canManage = true, planPaused
 }
 
 beforeEach(() => {
+  ofertaActual.valor = OFERTA_V1
   access.allowed = ['billing:subscriptions:manage']
   invalidateSpy.mockResolvedValue(undefined)
   svc.connectTotalPass.mockResolvedValue(CONNECTED)
@@ -498,5 +500,11 @@ describe('TotalPassCard', () => {
     expect(screen.getByText('billing:featureGate.askOwner')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: UPGRADE })).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'totalpass.disconnect' })).toBeDisabled()
+  })
+
+  it('M4: con la v2 «Plus», el aviso de la pausa dice «Mejora a Plus»', () => {
+    ofertaActual.valor = OFERTA_V2_PLUS
+    renderCard(CONNECTED, true, true)
+    expect(screen.getByRole('button', { name: 'billing:featureGate.upgrade:{"tier":"Plus"}' })).toBeInTheDocument()
   })
 })

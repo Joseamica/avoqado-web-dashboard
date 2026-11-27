@@ -345,4 +345,19 @@ describe('PlanRow', () => {
     }
     expect(pro).toHaveTextContent('plan.tiers.pro.name')
   })
+
+  it('I3: con una cotización firmada, el nombre del plan sale de ELLA aunque la oferta no cargue', () => {
+    ofertaActual.valor = OFERTA_CARGANDO
+    const cotizacion = {
+      versionNumber: 2,
+      planes: {
+        PRO: { displayName: 'Plus', vendible: true, monthly: null, annual: null },
+        PREMIUM: { displayName: 'Elite', vendible: true, monthly: null, annual: null },
+      },
+    }
+    render(<PlanRow {...props({ planState: { cotizacion } as never })} />)
+    const [, pro, premium] = screen.getAllByRole('radio')
+    expect(within(pro).getByText('Plus')).toBeInTheDocument()
+    expect(within(premium).getByText('Elite')).toBeInTheDocument()
+  })
 })

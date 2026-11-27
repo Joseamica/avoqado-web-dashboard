@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from 'vitest'
 import type { FeatureAccessSource, FeatureGridEntry } from '@/services/hybridBilling.service'
 import { FeatureGrid, type FeatureGridProps } from '../FeatureGrid'
 import { isMarkable } from '../planActions'
+import { OFERTA_V1, OFERTA_V2_PLUS, ofertaActual } from '@/hooks/__tests__/planOfferFixtures'
 
 vi.mock('@/hooks/usePlanOffer', async () => {
   const f = await import('@/hooks/__tests__/planOfferFixtures')
@@ -352,5 +353,16 @@ describe('FeatureGrid', () => {
     expect(screen.queryByRole('button')).not.toBeInTheDocument()
     expect(screen.queryByRole('checkbox')).not.toBeInTheDocument()
     expect(props.onPickTier).not.toHaveBeenCalled()
+  })
+
+  it('M4: con la v2 «Plus», la función de Pro manda a «Plus»', () => {
+    ofertaActual.valor = OFERTA_V2_PLUS
+    try {
+      const entries = [...ENTRIES, entry('TABLE_SERVICE', 'sell', 'PRO', 'NONE', null)]
+      renderGrid({ entries, purchasesEnabled: false, mode: 'VIEW', target: 'FREE' })
+      expect(screen.getByRole('button', { name: 'plan.grid.pickTier|name=n-TABLE_SERVICE|tier=Plus' })).toBeInTheDocument()
+    } finally {
+      ofertaActual.valor = OFERTA_V1
+    }
   })
 })

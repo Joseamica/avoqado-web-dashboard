@@ -4,6 +4,7 @@ import { render, screen } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { FeatureGate } from '../FeatureGate'
 import {
+  OFERTA_V2_CON_CENTAVOS,
   OFERTA_CARGANDO,
   OFERTA_SIN_DATO,
   OFERTA_V1,
@@ -507,6 +508,26 @@ describe('FeatureGate', () => {
       expect(screen.queryByText(/featureGate\.planPrice/)).not.toBeInTheDocument()
       expect(document.body.textContent).not.toMatch(/999/)
       expect(screen.getByText('featureGate.tierTag:Pro')).toBeInTheDocument()
+    })
+
+    it('M6: el precio del plan con centavos enseña «$799.50»; el redondo sigue «$999» (v1)', () => {
+      ofertaActual.valor = OFERTA_V2_CON_CENTAVOS
+      const { unmount } = renderPro()
+      expect(screen.getByText('featureGate.planPrice:Plus:$799.50')).toBeInTheDocument()
+      unmount()
+      ofertaActual.valor = OFERTA_V1
+      renderPro()
+      expect(screen.getByText('featureGate.planPrice:Pro:$999')).toBeInTheDocument()
+    })
+
+    it('M3: fuera de venta y sin permiso de contratar, queda «pídesela al dueño» (no se deja sin guía)', () => {
+      ofertaActual.valor = OFERTA_V3_PREMIUM_FUERA
+      mockCan.mockImplementation((permiso: string) => permiso.endsWith(':read'))
+      mockUseQuery.mockReturnValue({ data: makePlanState('GRATIS'), isLoading: false })
+      renderGate()
+      expect(screen.getByText('featureGate.includedIn:Premium')).toBeInTheDocument()
+      expect(screen.getByText('featureGate.askOwner')).toBeInTheDocument()
+      expect(screen.queryByText(/featureGate\.upgrade/)).not.toBeInTheDocument()
     })
 
     it('v3: con Premium fuera de venta, ni precio ni «Mejora a Premium»; dice «Incluida en Premium» (r2 #8)', () => {

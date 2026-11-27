@@ -9,6 +9,7 @@ import { PLAN_TIERS, TIER_ORDER, type TierId, type PlanTierDef } from '@/config/
 import { totalDeBeneficios } from '@/config/plan-comparison'
 import { PlanBenefitsDialog } from './PlanBenefitsDialog'
 import { usePlanOffer, useNombreDelPlan } from '@/hooks/usePlanOffer'
+import { fmtPesos } from '@/lib/fmtPesos'
 import { textoDelAnual } from '@/lib/textoDelAnual'
 import { Currency } from '@/utils/currency'
 
@@ -28,7 +29,7 @@ const ACCENT_BG: Record<PlanTierDef['accent'], string> = {
 /** Beneficios que la tarjeta enseña a la vista; el resto vive en «Ver todos» (founder, 25-sep). */
 const PRINCIPALES_VISIBLES = 4
 
-const fmt = (n: number) => `$${n.toLocaleString('es-MX')}`
+const fmt = fmtPesos
 /**
  * What `currentTier` means to the caller.
  *
@@ -115,17 +116,27 @@ export function PlanPicker({
   }
 
   const tiers = useMemo(() => PLAN_TIERS, [])
-  // La píldora del anual sale de la oferta (o de la cotización) de Pro: «2 meses gratis» sólo si el anual es 10 mensualidades.
+  // La píldora del anual habla de TODOS los planes de pago a la venta: «2 meses gratis» sólo si cada uno lo cumple (anual = 10
+  // mensualidades). De la cotización, si la hay; si no, de la oferta vigente. Ningún plan decide solo.
   const oferta = usePlanOffer()
-  const cotizadoPro = preciosSinIva?.PRO
-  const textoPildora = cotizadoPro
-    ? textoDelAnual(
-        cotizadoPro.monthlyGrossCents ?? brutoDe(cotizadoPro.monthlyNetCents),
-        cotizadoPro.annualGrossCents ?? brutoDe(cotizadoPro.annualNetCents),
-      )
+  const textosDelAnual = preciosSinIva
+    ? (['PRO', 'PREMIUM'] as const).flatMap(id => {
+        const cotizado = preciosSinIva[id]
+        return cotizado
+          ? [
+              textoDelAnual(
+                cotizado.monthlyGrossCents ?? brutoDe(cotizado.monthlyNetCents),
+                cotizado.annualGrossCents ?? brutoDe(cotizado.annualNetCents),
+              ),
+            ]
+          : []
+      })
     : oferta.estado === 'servidor'
-      ? textoDelAnual(oferta.PRO.monthly.grossCents, oferta.PRO.annual.grossCents)
-      : null
+      ? (['PRO', 'PREMIUM'] as const).flatMap(id =>
+          oferta[id].onSale ? [textoDelAnual(oferta[id].monthly.grossCents, oferta[id].annual.grossCents)] : [],
+        )
+      : []
+  const pildoraDosMesesGratis = textosDelAnual.length > 0 && textosDelAnual.every(texto => texto?.tipo === 'dosMesesGratis')
 
   return (
     // `@container` + `@`-variants below: the grid must react to the width of ITS OWN box,
@@ -149,7 +160,7 @@ export function PlanPicker({
               )}
             >
               {t(`plan.billing.${i}`)}
-              {i === 'annual' && textoPildora?.tipo === 'dosMesesGratis' && (
+              {i === 'annual' && pildoraDosMesesGratis && (
                 <span
                   className={cn(
                     'rounded-full px-1.5 py-0.5 text-[10px] font-bold leading-none',

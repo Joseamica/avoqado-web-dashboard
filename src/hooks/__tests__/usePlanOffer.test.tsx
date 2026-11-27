@@ -7,7 +7,7 @@ import i18n from '@/i18n'
 const get = vi.hoisted(() => vi.fn())
 vi.mock('@/api', () => ({ default: {}, publicApi: { get } }))
 
-import { useNombreDelPlan, usePlanOffer } from '../usePlanOffer'
+import { useNombreDelPlan, useNombresDelPlan, usePlanOffer } from '../usePlanOffer'
 
 const precio = { netCents: 100, grossCents: 116 }
 const plan = (displayName: string) => ({ displayName, onSale: true, requiresCard: true, trialDays: 5, monthly: precio, annual: precio })
@@ -70,5 +70,13 @@ describe('useNombreDelPlan', () => {
     const { result } = renderHook(() => ({ n: useNombreDelPlan('PREMIUM'), ...usePlanOffer() }), { wrapper })
     await waitFor(() => expect(result.current.estado).toBe('sinDato'), { timeout: 4000 })
     expect(result.current.n).toBe('Premium')
+  })
+
+  it('M5: un nivel desconocido cae al nombre localizado en vez de tronar (aunque haya v2)', async () => {
+    get.mockResolvedValue({ data: oferta(2, 'Plus') })
+    const { result } = renderHook(() => ({ oferta: usePlanOffer(), nombre: useNombresDelPlan() }), { wrapper })
+    await waitFor(() => expect(result.current.oferta.estado).toBe('servidor'))
+    expect(() => result.current.nombre('GRATIS')).not.toThrow()
+    expect(result.current.nombre('PRO')).toBe('Plus')
   })
 })
