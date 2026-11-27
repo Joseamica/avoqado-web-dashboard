@@ -21,6 +21,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 
+vi.mock('@/hooks/usePlanOffer', async () => {
+  const f = await import('@/hooks/__tests__/planOfferFixtures')
+  return f.moduloDelHookConOferta(() => f.ofertaActual.valor)
+})
+
 const activatePlan = vi.fn()
 const saveStep = vi.fn()
 const planSetupIntent = vi.fn()

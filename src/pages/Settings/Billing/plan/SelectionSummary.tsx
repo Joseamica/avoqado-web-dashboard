@@ -9,6 +9,7 @@ import { getIntlLocale } from '@/utils/i18n-locale'
 import { sinIva } from '@/lib/sinIva'
 import { useVenueDateTime } from '@/utils/datetime'
 import type { DependencyFix, PlanOperation, SelectionSummaryModel } from './planActions'
+import { useNombresDelPlan } from '@/hooks/usePlanOffer'
 
 export interface SelectionSummaryProps {
   model: SelectionSummaryModel
@@ -67,7 +68,7 @@ export function SelectionSummary({
   const { formatDate } = useVenueDateTime()
   const lang = (['es', 'en', 'fr'] as const).find(code => i18n.language.startsWith(code)) ?? 'es'
   const money = (value: number) => new Intl.NumberFormat(getIntlLocale(i18n.language), { style: 'currency', currency: 'MXN' }).format(value)
-  const tierName = (tier: string) => t(`plan.tiers.${tier.toLowerCase()}.name`)
+  const tierName = useNombresDelPlan()
   const name = (entry: FeatureGridEntry) =>
     entry.featureCode ? t(`hybrid.featureNames.${entry.featureCode}`, { defaultValue: entry.names[lang] }) : entry.names[lang]
   const codeName = (code: string, entry?: FeatureGridEntry) =>

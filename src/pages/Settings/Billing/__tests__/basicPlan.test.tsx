@@ -11,6 +11,11 @@ import { downgradeVenueToFree, getDowngradePreview, getVenuePlan, reactivateVenu
 import { hybridBilling } from '@/services/hybridBilling.service'
 import esBilling from '@/locales/es/billing.json'
 
+vi.mock('@/hooks/usePlanOffer', async () => {
+  const f = await import('@/hooks/__tests__/planOfferFixtures')
+  return f.moduloDelHookConOferta(() => f.ofertaActual.valor)
+})
+
 const access = { manage: true }
 vi.mock('react-i18next', async () => {
   const { default: es } = await import('@/locales/es/billing.json')
@@ -139,7 +144,7 @@ describe('«Tu plan» con el Plan Básico', () => {
     expect(await screen.findByText(fill(B.current, { name: 'Básico', price: '$499.00' }))).toBeInTheDocument()
     expect(screen.getByRole('radio', { name: /Básico/ })).toHaveAttribute('aria-checked', 'true')
     expect(screen.queryByRole('radio', { name: /Gratis/ })).not.toBeInTheDocument()
-    await userEvent.click(screen.getByRole('button', { name: B.upgrade }))
+    await userEvent.click(screen.getByRole('button', { name: fill(B.upgrade, { pro: 'Pro' }) }))
     expect(screen.getByRole('radio', { name: /Pro/ })).toHaveAttribute('aria-checked', 'true')
   })
 
@@ -176,7 +181,7 @@ describe('«Tu plan» con el Plan Básico', () => {
     expect(await screen.findByRole('button', { name: esBilling.plan.row.resume })).toBeInTheDocument()
     expect(screen.queryByText(fill(B.trialEnds, { date: '2026-12-01' }))).not.toBeInTheDocument()
     expect(screen.queryByText(B.trialEndsNoDate)).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: B.stayPro })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: fill(B.stayPro, { pro: 'Pro' }) })).not.toBeInTheDocument()
   })
 
   it('sin permiso: el botón está apagado y dice a quién pedirlo', async () => {
@@ -201,7 +206,7 @@ describe('«Tu plan» con el Plan Básico', () => {
     )
     renderPage()
     expect(await screen.findByText(fill(B.trialEnds, { date: '2026-12-01' }))).toBeInTheDocument()
-    await userEvent.click(screen.getByRole('button', { name: B.stayPro }))
+    await userEvent.click(screen.getByRole('button', { name: fill(B.stayPro, { pro: 'Pro' }) }))
     await waitFor(() => expect(reactivateVenuePlan).toHaveBeenCalledWith('venue'))
   })
 
@@ -211,7 +216,7 @@ describe('«Tu plan» con el Plan Básico', () => {
     expect(await screen.findByText(B.preferBasic)).toBeInTheDocument()
     // T9/R14: antes de terminar, el aviso de qué pasa con el equipo si no contrata el Básico ese día.
     expect(screen.getByText(B.endProSeats)).toBeInTheDocument()
-    await userEvent.click(screen.getByRole('button', { name: B.endPro }))
+    await userEvent.click(screen.getByRole('button', { name: fill(B.endPro, { pro: 'Pro' }) }))
     await waitFor(() => expect(downgradeVenueToFree).toHaveBeenCalledWith('venue', [], { purpose: 'BASIC_PLAN' }))
   })
 
@@ -219,7 +224,7 @@ describe('«Tu plan» con el Plan Básico', () => {
     vi.mocked(getDowngradePreview).mockClear()
     vi.mocked(getVenuePlan).mockResolvedValue(plan(CLASSIC_PRO, { basicOffer: offer({ canEndProNow: true }) }) as never)
     renderPage()
-    const boton = await screen.findByRole('button', { name: B.endPro })
+    const boton = await screen.findByRole('button', { name: fill(B.endPro, { pro: 'Pro' }) })
     // Dos clics en el mismo instante: los dos llegan antes de que `busy` vuelva a pintar el botón apagado.
     act(() => {
       fireEvent.click(boton)
@@ -236,7 +241,7 @@ describe('«Tu plan» con el Plan Básico', () => {
     vi.mocked(downgradeVenueToFree).mockRejectedValue({ response: { status: 409, data: { message: mensaje } } })
     vi.mocked(getVenuePlan).mockResolvedValue(plan(CLASSIC_PRO, { basicOffer: offer({ canEndProNow: true }) }) as never)
     renderPage()
-    await userEvent.click(await screen.findByRole('button', { name: B.endPro }))
+    await userEvent.click(await screen.findByRole('button', { name: fill(B.endPro, { pro: 'Pro' }) }))
     await waitFor(() => expect(toastSpy).toHaveBeenCalledWith(expect.objectContaining({ title: mensaje, variant: 'destructive' })))
   })
 
@@ -246,7 +251,7 @@ describe('«Tu plan» con el Plan Básico', () => {
     )
     renderPage()
     expect(await screen.findByText(fill(B.discountUntil, { date: '2027-03-05' }))).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: B.endPro })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: fill(B.endPro, { pro: 'Pro' }) })).not.toBeInTheDocument()
   })
 
   it('descuento sin fecha (forever): la frase sin fecha, nunca «null»', async () => {
@@ -254,7 +259,7 @@ describe('«Tu plan» con el Plan Básico', () => {
     renderPage()
     expect(await screen.findByText(B.discountNoDate)).toBeInTheDocument()
     expect(screen.queryByText(/null/)).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: B.endPro })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: fill(B.endPro, { pro: 'Pro' }) })).not.toBeInTheDocument()
   })
 
   it('Pro que ya termina: «Ese día podrás contratar el Básico», sin botón de terminar', async () => {

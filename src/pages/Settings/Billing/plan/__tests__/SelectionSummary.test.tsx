@@ -6,6 +6,11 @@ import type { FeatureGridEntry } from '@/services/hybridBilling.service'
 import { SelectionSummary, type SelectionSummaryProps } from '../SelectionSummary'
 import type { SelectionSummaryModel } from '../planActions'
 
+vi.mock('@/hooks/usePlanOffer', async () => {
+  const f = await import('@/hooks/__tests__/planOfferFixtures')
+  return f.moduloDelHookConOferta(() => f.ofertaActual.valor)
+})
+
 vi.mock('@/utils/datetime', () => ({ useVenueDateTime: () => ({ formatDate: (value: string) => value.slice(0, 10) }) }))
 
 vi.mock('react-i18next', () => ({

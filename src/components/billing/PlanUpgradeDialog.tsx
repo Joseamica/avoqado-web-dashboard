@@ -3,12 +3,13 @@ import { useTranslation } from 'react-i18next'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { getTierDef, salesWhatsAppLink, type TierId } from '@/config/plan-catalog'
+import { useNombreDelPlan } from '@/hooks/usePlanOffer'
 
 export function PlanUpgradeDialog({ tier, onClose, title }: { tier: TierId | null; onClose: () => void; title?: string }) {
   const { t } = useTranslation('billing')
+  const tierName = useNombreDelPlan(tier ?? 'FREE')
   if (!tier) return null
   const def = getTierDef(tier)
-  const tierName = t(`plan.tiers.${def.key}.name`)
   const Icon = def.icon
 
   return (

@@ -52,6 +52,11 @@ vi.mock('react-i18next', () => ({ useTranslation: () => ({ t, i18n: { language: 
 
 import { PlanStep } from '../steps/PlanStep'
 
+vi.mock('@/hooks/usePlanOffer', async () => {
+  const f = await import('@/hooks/__tests__/planOfferFixtures')
+  return f.moduloDelHookConOferta(() => f.ofertaActual.valor)
+})
+
 const BASICO = {
   slug: 'plan-basico',
   name: 'Plan Básico',

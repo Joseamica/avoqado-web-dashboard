@@ -78,7 +78,8 @@
     "ivaIncluded": "IVA incluido",
     "forever": "Para siempre",
     "billedMonthly": "Se cobra mensual",
-    "annualEquiv": "{{price}}/año · 2 meses gratis",
+    "annualEquiv": "{{price}}/año",
+    "annualSaves": "ahorras {{amount}} al año, IVA incluido",
     "comingSoon": "Muy pronto",
     "popular": "Más popular",
     "basic": {
@@ -88,16 +89,16 @@
       "current": "{{name}} · {{price}} + IVA al mes",
       "currentNoPrice": "Tu plan es {{name}}.",
       "inactive": "Tu {{name}} no da acceso hoy: revisa tus contrataciones más abajo.",
-      "upgrade": "Subir a Pro",
+      "upgrade": "Subir a {{pro}}",
       "buyCopy": "¿Quieres más que Gratis? El Básico cuesta {{price}} + IVA al mes.",
       "buy": "Contratar Básico",
       "trialEnds": "Tu prueba termina el {{date}}. Ese día podrás contratar el Básico.",
       "trialEndsNoDate": "Cuando termine tu prueba podrás contratar el Básico.",
-      "stayPro": "Quedarme en Pro",
+      "stayPro": "Quedarme en {{pro}}",
       "afterPro": "Ese día podrás contratar el Básico por {{price}} + IVA al mes.",
       "preferBasic": "¿Prefieres el Básico?",
-      "preferBasicCopy": "Cuesta {{price}} + IVA al mes. Tu Pro sigue hasta que acabe este periodo y ese día lo contratas.",
-      "endPro": "Terminar mi Pro al acabar el periodo",
+      "preferBasicCopy": "Cuesta {{price}} + IVA al mes. Tu {{pro}} sigue hasta que acabe este periodo y ese día lo contratas.",
+      "endPro": "Terminar mi {{pro}} al acabar el periodo",
       "endProSeats": "Si no contratas el Básico ese día, tu equipo queda en el tope de Gratis hasta que lo contrates.",
       "discountUntil": "Tu descuento sigue hasta el {{date}}. Te avisaremos antes para que elijas el Básico.",
       "discountNoDate": "Tu descuento sigue vigente. Te avisaremos antes para que elijas el Básico."
@@ -105,7 +106,7 @@
     "compareCta": "Compara todos los planes",
     "assistedBody": "Activamos tu plan contigo para que todo quede perfecto. Escríbenos y lo dejamos listo hoy.",
     "assistedCta": "Hablar con un asesor",
-    "checkoutSuccess": "¡Bienvenido a Pro! Tu plan está activo.",
+    "checkoutSuccess": "¡Bienvenido a {{plan}}! Tu plan está activo.",
     "checkoutCanceled": "Pago cancelado. Tu plan no cambió.",
     "checkoutError": "No pudimos abrir el pago. Intenta de nuevo.",
     "cta": {
@@ -351,11 +352,15 @@
     "notOnSale": "No disponible por ahora",
     "notDuringTrial": "No se puede cambiar de plan durante tu prueba"
   },
+  "checkout": {
+    "welcomeGeneric": "¡Listo! Tu plan quedó activo."
+  },
   "featureGate": {
     "tierTag": "Incluido en {{tier}}",
     "body": "Esta función es parte del plan {{tier}}. Mejora para empezar a usarla en tu local.",
     "upgrade": "Mejora a {{tier}}",
     "seeAll": "Ver todos los planes",
+    "includedIn": "Incluida en {{tier}}",
     "planPrice": "El plan {{tier}} cuesta {{price}}/mes + IVA",
     "alonePrice": "O contrátala sola por {{price}}/mes + IVA",
     "alonePriceIvaIncluido": "O contrátala sola por {{price}}/mes, IVA incluido",

@@ -31,6 +31,7 @@ import { apiErrorDescription } from '@/utils/apiError'
 import type { PassConfirmMode, PassConnectionView, PassIntegrationsOverview } from '@/types/passes'
 import { passConnectionIsLive } from './passConnection'
 import { ProductLinksEditor } from './ProductLinksEditor'
+import { useNombreDelPlan } from '@/hooks/usePlanOffer'
 
 interface TotalPassCardProps {
   venueId: string
@@ -62,7 +63,7 @@ function PlanPausedNotice({ confirmMode }: { confirmMode: PassConfirmMode }) {
   const def = getTierDef(getTierForFeature(FEATURE) ?? 'PRO')
   const TierIcon = def.icon
   // Igual que FeatureGate: «pro» → «Pro» para la interpolación.
-  const tierName = def.key.charAt(0).toUpperCase() + def.key.slice(1)
+  const tierName = useNombreDelPlan(def.id)
   return (
     <Alert className="border-warning-border bg-warning-muted text-warning-foreground" data-tour="passes-totalpass-plan-paused">
       <PauseCircle className="h-4 w-4" />

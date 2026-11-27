@@ -47,6 +47,11 @@ vi.mock('react-i18next', () => ({
 
 import { PlanStep } from '../steps/PlanStep'
 
+vi.mock('@/hooks/usePlanOffer', async () => {
+  const f = await import('@/hooks/__tests__/planOfferFixtures')
+  return f.moduloDelHookConOferta(() => f.ofertaActual.valor)
+})
+
 /** Fase 1 → fase 2: la tarjeta vive en su propia pantalla, después de elegir el plan. */
 async function alPago(user = userEvent.setup()) {
   await user.click(screen.getByRole('button', { name: /^Continuar$/ }))

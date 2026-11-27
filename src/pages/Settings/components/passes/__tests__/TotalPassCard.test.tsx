@@ -21,7 +21,14 @@ vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: toastSpy }) }))
 const invalidateSpy = vi.hoisted(() => vi.fn())
 vi.mock('@/hooks/use-passes', () => ({ useInvalidatePasses: () => invalidateSpy }))
 vi.mock('react-i18next', () => ({
-  useTranslation: () => ({ t: (key: string, opts?: Record<string, unknown>) => (opts ? `${key}:${JSON.stringify(opts)}` : key) }),
+  useTranslation: () => ({
+    t: (key: string, opts?: Record<string, unknown>) => {
+      // El nombre del plan sale del hook (B4): «plan.tiers.pro.name» → «Pro», como en el idioma real.
+      const nombre = /^plan\.tiers\.(\w+)\.name$/.exec(key)
+      if (nombre) return nombre[1].charAt(0).toUpperCase() + nombre[1].slice(1)
+      return opts ? `${key}:${JSON.stringify(opts)}` : key
+    },
+  }),
 }))
 // El aviso de la pausa por el plan (R62) usa el CTA del paywall: permiso de contratar, ruta del venue y navegación.
 const access = vi.hoisted(() => ({ allowed: [] as string[] }))
@@ -34,6 +41,11 @@ vi.mock('react-router-dom', async importOriginal => ({
 }))
 
 import { TotalPassCard } from '../TotalPassCard'
+
+vi.mock('@/hooks/usePlanOffer', async () => {
+  const f = await import('@/hooks/__tests__/planOfferFixtures')
+  return f.moduloDelHookConOferta(() => f.ofertaActual.valor)
+})
 
 const base: PassConnectionView = {
   provider: 'TOTALPASS',
@@ -295,7 +307,10 @@ describe('TotalPassCard', () => {
   it('el aviso de un Desconectar rechazado se va al llegar otra conexión del server o al volver a abrir el diálogo', async () => {
     const user = userEvent.setup()
     svc.disconnectPassProvider.mockRejectedValue({
-      response: { status: 409, data: { message: 'Todavía no se puede desconectar TotalPass: 2 reservas.', code: 'PASS_DISCONNECT_BLOCKED' } },
+      response: {
+        status: 409,
+        data: { message: 'Todavía no se puede desconectar TotalPass: 2 reservas.', code: 'PASS_DISCONNECT_BLOCKED' },
+      },
     })
     const TOUCHED = { ...CONNECTED, updatedAt: '2026-10-03T12:00:00.000Z' }
     const { rerenderWith } = renderCard(TOUCHED)

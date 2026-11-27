@@ -10,6 +10,11 @@ import api from '@/api'
 import { createPlanCheckoutSession, getVenuePlan } from '@/services/features.service'
 import { ConversionWizard } from '../ConversionWizard'
 
+vi.mock('@/hooks/usePlanOffer', async () => {
+  const f = await import('@/hooks/__tests__/planOfferFixtures')
+  return f.moduloDelHookConOferta(() => f.ofertaActual.valor)
+})
+
 vi.mock('react-i18next', async () => {
   const [{ default: common }, { default: onboarding }, { default: billing }] = await Promise.all([
     import('@/locales/es/common.json'),

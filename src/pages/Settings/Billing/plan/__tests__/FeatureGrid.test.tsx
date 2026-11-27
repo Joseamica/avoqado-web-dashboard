@@ -6,6 +6,11 @@ import type { FeatureAccessSource, FeatureGridEntry } from '@/services/hybridBil
 import { FeatureGrid, type FeatureGridProps } from '../FeatureGrid'
 import { isMarkable } from '../planActions'
 
+vi.mock('@/hooks/usePlanOffer', async () => {
+  const f = await import('@/hooks/__tests__/planOfferFixtures')
+  return f.moduloDelHookConOferta(() => f.ofertaActual.valor)
+})
+
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     i18n: { language: 'es' },

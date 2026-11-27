@@ -1,12 +1,29 @@
 // src/components/billing/__tests__/PlanPicker.test.tsx
-import { describe, it, expect, vi } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { render, screen, fireEvent, within } from '@testing-library/react'
 import { PlanPicker } from '../PlanPicker'
+import {
+  OFERTA_CARGANDO,
+  OFERTA_SIN_DATO,
+  OFERTA_V1,
+  OFERTA_V2_PLUS,
+  OFERTA_V3_PREMIUM_FUERA,
+  ofertaActual,
+} from '@/hooks/__tests__/planOfferFixtures'
+
+vi.mock('@/hooks/usePlanOffer', async () => {
+  const f = await import('@/hooks/__tests__/planOfferFixtures')
+  return f.moduloDelHookConOferta(() => f.ofertaActual.valor)
+})
 
 // i18n returns the key (or interpolated) so assertions are deterministic
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (k: string, o?: any) => (o?.tier ? `${k}:${o.tier}` : o?.price ? `${k}:${o.price}` : k) }),
 }))
+
+beforeEach(() => {
+  ofertaActual.valor = OFERTA_V1
+})
 
 describe('PlanPicker', () => {
   it('renders the 4 tier cards and marks the current one', () => {
@@ -228,5 +245,59 @@ describe('PlanPicker — «Ver todos» de cada plan (founder, 25-sep)', () => {
     expect(ventana.textContent).toMatch(/plan\.features\.whiteLabel/)
     expect(ventana.textContent).toMatch(/plan\.compare\.rows\.cfdi/)
     expect(ventana.textContent).not.toMatch(/plan\.features\.allPremium/)
+  })
+
+  // B4: nombres, montos y texto del anual salen de la oferta vigente del SERVIDOR.
+  it('v2 «Plus» en anual: dice «ahorras $1,262.08 al año, IVA incluido», no «2 meses gratis»', () => {
+    ofertaActual.valor = OFERTA_V2_PLUS
+    render(<PlanPicker currentTier="FREE" onSelectTier={() => {}} interval="annual" />)
+    const pro = within(document.querySelector('[data-tour="plan-card-pro"]') as HTMLElement)
+    expect(pro.getByText(/plan\.annualSaves/)).toBeInTheDocument()
+    expect(pro.queryByText(/plan\.billing\.save/)).not.toBeInTheDocument()
+    expect(screen.getByText('plan.annualEquiv:$8,500')).toBeInTheDocument()
+  })
+
+  it('v2 «Plus»: el nombre sale de la oferta y el precio mensual es $799', () => {
+    ofertaActual.valor = OFERTA_V2_PLUS
+    render(<PlanPicker currentTier="FREE" onSelectTier={() => {}} />)
+    expect(screen.getByText('Plus')).toBeInTheDocument()
+    expect(screen.getByText('$799')).toBeInTheDocument()
+    expect(screen.queryByText('$999')).not.toBeInTheDocument()
+  })
+
+  it('con la v1 (10 mensualidades) la píldora del anual sigue diciendo «2 meses gratis»', () => {
+    render(<PlanPicker currentTier="FREE" onSelectTier={() => {}} />)
+    expect(screen.getByText('plan.billing.save')).toBeInTheDocument()
+  })
+
+  it.each([
+    ['cargando', OFERTA_CARGANDO],
+    ['sinDato', OFERTA_SIN_DATO],
+  ])('con %s ningún monto de Pro ni de Premium (ni $999, ni $1,699, ni $0)', (_n, oferta) => {
+    ofertaActual.valor = oferta
+    render(<PlanPicker currentTier="FREE" onSelectTier={() => {}} />)
+    expect(document.body.textContent).not.toMatch(/999|1,699|9,990/)
+    expect(screen.queryByText('plan.billing.save')).not.toBeInTheDocument()
+    expect(screen.getByText('plan.tiers.pro.name')).toBeInTheDocument()
+  })
+
+  it('v3: Premium fuera de venta se pinta «No disponible» y no ofrece contratarlo', () => {
+    ofertaActual.valor = OFERTA_V3_PREMIUM_FUERA
+    render(<PlanPicker currentTier="FREE" onSelectTier={() => {}} />)
+    expect(screen.getAllByText('plan.notOnSale').length).toBeGreaterThan(0)
+    expect(screen.queryByText('plan.cta.upgrade:Premium')).not.toBeInTheDocument()
+  })
+
+  it('con la cotización del llamador, el nombre y el texto del anual salen de ELLA', () => {
+    render(
+      <PlanPicker
+        currentTier="FREE"
+        onSelectTier={() => {}}
+        interval="annual"
+        preciosSinIva={{ PRO: { monthlyNetCents: 79900, annualNetCents: 850000, displayName: 'Plus' } }}
+      />,
+    )
+    expect(screen.getByText('Plus')).toBeInTheDocument()
+    expect(screen.getByText(/plan\.annualSaves/)).toBeInTheDocument()
   })
 })

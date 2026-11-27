@@ -8,8 +8,9 @@ import { useTranslation } from 'react-i18next'
 import { Check, ChevronDown, Minus } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
-import { getTierDef, type TierId } from '@/config/plan-catalog'
+import type { TierId } from '@/config/plan-catalog'
 import { PLAN_COMPARISON, TIERS_COMPARADOS, esComun, valorDeCelda, type ValorDeCelda } from '@/config/plan-comparison'
+import { useNombresDelPlan } from '@/hooks/usePlanOffer'
 
 interface PlanComparisonProps {
   /** Plan elegido en este momento: su columna se resalta. */
@@ -23,6 +24,7 @@ interface PlanComparisonProps {
 
 export function PlanComparison({ selectedTier, defaultOpen = false, ocultarGratis = false, siempreAbierta = false }: PlanComparisonProps) {
   const { t } = useTranslation('billing')
+  const tierName = useNombresDelPlan()
   const [desplegada, setDesplegada] = useState(defaultOpen)
   const abierta = siempreAbierta || desplegada
   const panelId = useId()
@@ -91,7 +93,7 @@ export function PlanComparison({ selectedTier, defaultOpen = false, ocultarGrati
                   selectedTier === tier && 'bg-muted/60',
                 )}
               >
-                {t(`plan.tiers.${getTierDef(tier).key}.name`)}
+                {tierName(tier)}
               </div>
             ))}
           </div>

@@ -8,6 +8,9 @@ import { Button } from '@/components/ui/button'
 import { PLAN_TIERS, TIER_ORDER, type TierId, type PlanTierDef } from '@/config/plan-catalog'
 import { totalDeBeneficios } from '@/config/plan-comparison'
 import { PlanBenefitsDialog } from './PlanBenefitsDialog'
+import { usePlanOffer, useNombreDelPlan } from '@/hooks/usePlanOffer'
+import { textoDelAnual } from '@/lib/textoDelAnual'
+import { Currency } from '@/utils/currency'
 
 const ACCENT: Record<PlanTierDef['accent'], string> = {
   free: 'text-muted-foreground',
@@ -38,6 +41,18 @@ const fmt = (n: number) => `$${n.toLocaleString('es-MX')}`
  *   "Tu plan actual". Using `'owned'` in a wizard is what left the pre-selected PRO card
  *   with a dead button and no way forward.
  */
+/** Lo que cotizó el SERVIDOR para un plan. Con `displayName` y los brutos, el nombre y el texto del anual salen de ESA cotización. */
+export interface PrecioCotizado {
+  monthlyNetCents: number
+  annualNetCents: number
+  displayName?: string
+  monthlyGrossCents?: number
+  annualGrossCents?: number
+}
+
+/** IVA de México: el bruto de una cotización que no lo trae se saca con la misma regla del SERVIDOR. */
+const brutoDe = (netCents: number) => Math.round(netCents * 1.16)
+
 export type PlanSelectionMode = 'owned' | 'choice'
 
 interface PlanPickerProps {
@@ -66,7 +81,7 @@ interface PlanPickerProps {
    * Precios SIN IVA que publica el servidor (el alta). Presentes ⇒ la tarjeta pinta ESE monto + «+ IVA», el mismo que
    * consiente el cobro; ausentes ⇒ el del catálogo. Nunca se derivan aquí.
    */
-  preciosSinIva?: Partial<Record<TierId, { monthlyNetCents: number; annualNetCents: number }>>
+  preciosSinIva?: Partial<Record<TierId, PrecioCotizado>>
   /** El plan elegido sólo existe mensual (el Básico): el selector Mensual/Anual se apaga en vez de no hacer nada. */
   intervalLocked?: boolean
   /** La tarjeta de `leadingCard` es la elegida: ninguna de las demás se pinta como elegida. */
@@ -100,6 +115,17 @@ export function PlanPicker({
   }
 
   const tiers = useMemo(() => PLAN_TIERS, [])
+  // La píldora del anual sale de la oferta (o de la cotización) de Pro: «2 meses gratis» sólo si el anual es 10 mensualidades.
+  const oferta = usePlanOffer()
+  const cotizadoPro = preciosSinIva?.PRO
+  const textoPildora = cotizadoPro
+    ? textoDelAnual(
+        cotizadoPro.monthlyGrossCents ?? brutoDe(cotizadoPro.monthlyNetCents),
+        cotizadoPro.annualGrossCents ?? brutoDe(cotizadoPro.annualNetCents),
+      )
+    : oferta.estado === 'servidor'
+      ? textoDelAnual(oferta.PRO.monthly.grossCents, oferta.PRO.annual.grossCents)
+      : null
 
   return (
     // `@container` + `@`-variants below: the grid must react to the width of ITS OWN box,
@@ -123,7 +149,7 @@ export function PlanPicker({
               )}
             >
               {t(`plan.billing.${i}`)}
-              {i === 'annual' && (
+              {i === 'annual' && textoPildora?.tipo === 'dosMesesGratis' && (
                 <span
                   className={cn(
                     'rounded-full px-1.5 py-0.5 text-[10px] font-bold leading-none',
@@ -180,7 +206,7 @@ function PlanCard({
   isDowngrade,
   promoNote,
   precioSinIva,
-  noDisponible = false,
+  noDisponible: noDisponibleProp = false,
   onSelect,
 }: {
   tier: PlanTierDef
@@ -189,25 +215,58 @@ function PlanCard({
   isCurrent: boolean
   isDowngrade: boolean
   promoNote?: string
-  precioSinIva?: { monthlyNetCents: number; annualNetCents: number }
+  precioSinIva?: PrecioCotizado
   /** B2: la versión del editor no vende este plan hoy (ver `fueraDeVenta`). */
   noDisponible?: boolean
   onSelect: () => void
 }) {
   const { t } = useTranslation('billing')
   const Icon = tier.icon
-  const tierName = t(`plan.tiers.${tier.key}.name`)
+  const oferta = usePlanOffer()
+  const nombreDelPlan = useNombreDelPlan(tier.id)
+  // Con la cotización del llamador, el nombre sale de ELLA; si no, de la oferta vigente (o del nombre localizado).
+  const tierName = precioSinIva?.displayName ?? nombreDelPlan
+  const esDePago = tier.id === 'PRO' || tier.id === 'PREMIUM'
+  // De dónde sale el dinero: la cotización del llamador, o la oferta vigente (un 200). Nunca un número guardado en el catálogo (B4).
+  const fuente = precioSinIva
+    ? {
+        monthlyNet: precioSinIva.monthlyNetCents,
+        annualNet: precioSinIva.annualNetCents,
+        monthlyGross: precioSinIva.monthlyGrossCents ?? brutoDe(precioSinIva.monthlyNetCents),
+        annualGross: precioSinIva.annualGrossCents ?? brutoDe(precioSinIva.annualNetCents),
+      }
+    : esDePago && oferta.estado === 'servidor'
+      ? {
+          monthlyNet: oferta[tier.id as 'PRO' | 'PREMIUM'].monthly.netCents,
+          annualNet: oferta[tier.id as 'PRO' | 'PREMIUM'].annual.netCents,
+          monthlyGross: oferta[tier.id as 'PRO' | 'PREMIUM'].monthly.grossCents,
+          annualGross: oferta[tier.id as 'PRO' | 'PREMIUM'].annual.grossCents,
+        }
+      : null
+  const fueraDeVentaEnOferta = !precioSinIva && esDePago && oferta.estado === 'servidor' && !oferta[tier.id as 'PRO' | 'PREMIUM'].onSale
+  const noDisponible = noDisponibleProp || fueraDeVentaEnOferta
   // Always show the effective MONTHLY price as the headline; annual shows the per-month
   // equivalent with the yearly total in the subtitle (matches the approved mockup).
-  const precioAnual = precioSinIva ? precioSinIva.annualNetCents / 100 : tier.priceAnnual
-  const monthlyEquiv = precioSinIva
-    ? interval === 'monthly'
-      ? precioSinIva.monthlyNetCents / 100
-      : Math.round(precioSinIva.annualNetCents / 12) / 100
-    : interval === 'monthly'
-      ? tier.priceMonthly
-      : tier.priceAnnual != null
-        ? Math.round(tier.priceAnnual / 12)
+  const precioAnual = fuente ? fuente.annualNet / 100 : tier.id === 'FREE' ? 0 : undefined
+  const monthlyEquiv: number | null | undefined = fuente
+    ? precioSinIva
+      ? interval === 'monthly'
+        ? fuente.monthlyNet / 100
+        : Math.round(fuente.annualNet / 12) / 100
+      : interval === 'monthly'
+        ? fuente.monthlyNet / 100
+        : Math.round(fuente.annualNet / 100 / 12)
+    : tier.id === 'FREE'
+      ? 0
+      : tier.priceMonthly === null
+        ? null
+        : undefined // sin dato del SERVIDOR: ningún monto (ni $0.00)
+  const textoAnual = fuente ? textoDelAnual(fuente.monthlyGross, fuente.annualGross) : null
+  const textoAnualPintado =
+    textoAnual?.tipo === 'dosMesesGratis'
+      ? t('plan.billing.save')
+      : textoAnual?.tipo === 'ahorras'
+        ? t('plan.annualSaves', { amount: Currency(textoAnual.grossCentsAlAnio, true) })
         : null
 
   const isChoice = selectionMode === 'choice'
@@ -305,7 +364,7 @@ function PlanCard({
             <span className="text-xl font-extrabold text-muted-foreground">{t('plan.notOnSale')}</span>
           ) : monthlyEquiv === null ? (
             <span className="text-xl font-extrabold">{t('plan.cta.contact')}</span>
-          ) : (
+          ) : monthlyEquiv === undefined ? null : (
             <>
               <span className="text-3xl font-extrabold tracking-tight">{fmt(monthlyEquiv)}</span>
               <span className="whitespace-nowrap text-xs text-muted-foreground">
@@ -316,15 +375,20 @@ function PlanCard({
           )}
         </div>
         <div className="min-h-[16px] text-xs text-muted-foreground">
-          {noDisponible
-            ? ''
-            : tier.id === 'FREE'
-              ? t('plan.forever')
-              : tier.priceMonthly === null
-                ? ''
-                : interval === 'annual' && precioAnual != null
-                  ? t('plan.annualEquiv', { price: fmt(precioAnual) })
-                  : t('plan.billedMonthly')}
+          {noDisponible ? (
+            ''
+          ) : tier.id === 'FREE' ? (
+            t('plan.forever')
+          ) : tier.priceMonthly === null || monthlyEquiv === undefined ? (
+            ''
+          ) : interval === 'annual' && precioAnual != null ? (
+            <>
+              <span>{t('plan.annualEquiv', { price: fmt(precioAnual) })}</span>
+              {textoAnualPintado && <span> · {textoAnualPintado}</span>}
+            </>
+          ) : (
+            t('plan.billedMonthly')
+          )}
         </div>
         {promoNote && <div className="rounded-lg bg-emerald-400/10 px-2.5 py-1.5 text-xs font-medium text-emerald-500">{promoNote}</div>}
 

@@ -4,6 +4,7 @@
 // the contracts (whose panel also hosts the hybrid checkout) and the superadmin tools. Which server operation each
 // choice opens is decided by plan/planActions.ts; this file only composes and orchestrates the dialogs.
 import { useEffect, useRef, useState } from 'react'
+import { usePlanOffer, useNombresDelPlan } from '@/hooks/usePlanOffer'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { AvisoDeCarga, BotonReintentar } from '@/components/AvisoDeCarga'
 import { falloDeCarga } from '@/lib/falloDeCarga'
@@ -100,6 +101,10 @@ export default function Subscriptions() {
     retry: false,
   })
 
+  const oferta = usePlanOffer()
+  const nombreDelPlan = useNombresDelPlan()
+  const nombreRef = useRef(nombreDelPlan)
+  nombreRef.current = nombreDelPlan
   const origin = originOf(plan.data)
   const grandfathered = plan.data?.grandfathered ?? false
   const current = currentTarget(origin)
@@ -136,6 +141,7 @@ export default function Subscriptions() {
     // B2: sin versión del editor no viaja, y todo es lo de hoy.
     cotizacion: plan.data?.cotizacion,
     interval: billingInterval,
+    oferta,
   }
   const model = summarizeSelection({ ...selection, interval: billingInterval })
   const mode = gridMode(target, current, canDropWithFeatures(origin, replacements.data))
@@ -160,7 +166,15 @@ export default function Subscriptions() {
       // saying "pending", or the toast contradicts a row that shows the plan a moment later.
       void (async () => {
         let granted = false
-        let plan: { state?: string; stripeSubscriptionId?: string | null; trialEndsAt?: string | null } | undefined
+        let plan:
+          | {
+              state?: string
+              stripeSubscriptionId?: string | null
+              trialEndsAt?: string | null
+              planTier?: string | null
+              tier?: string | null
+            }
+          | undefined
         for (const wait of CHECKOUT_REREADS_MS) {
           if (wait) await new Promise(resolve => setTimeout(resolve, wait))
           await Promise.all([
@@ -175,13 +189,20 @@ export default function Subscriptions() {
           granted = sinCobroHoy ? contratacionLigada(plan) : planDePagoConcedido(plan?.state)
           if (granted) break
         }
+        // r1 #12: «¡Bienvenido a {{plan}}!» con el plan del GET /plan que se releyó; mientras no llegue, el aviso genérico.
+        const bienvenida = (leido: typeof plan) => {
+          const tier = String(leido?.tier ?? leido?.planTier ?? '').toUpperCase()
+          return tier === 'PRO' || tier === 'PREMIUM'
+            ? t('plan.checkoutSuccess', { plan: nombreRef.current(tier) })
+            : t('checkout.welcomeGeneric')
+        }
         toast({
           title: sinCobroHoy
             ? granted && plan?.trialEndsAt
               ? t('plan.checkoutCardSaved', { date: formatDate(plan.trialEndsAt) })
               : t(granted ? 'plan.checkoutCardSavedNoDate' : 'plan.checkoutCardPending')
             : granted
-              ? t('plan.checkoutSuccess')
+              ? bienvenida(plan)
               : t('plan.checkoutPending'),
         })
       })()
@@ -430,7 +451,7 @@ export default function Subscriptions() {
     void review(planOperation({ ...selection, preferList: next }))
   }
 
-  const tierName = origin.tier ? t(`plan.tiers.${origin.tier.toLowerCase()}.name`) : ''
+  const tierName = origin.tier ? nombreDelPlan(origin.tier) : ''
   const until = origin.currentPeriodEnd ? formatDate(origin.currentPeriodEnd) : null
   // Every write in flight blocks every write control: quote and downgrade carry no idempotency key.
   const busy = Object.values(ops).some(op => op.isPending)

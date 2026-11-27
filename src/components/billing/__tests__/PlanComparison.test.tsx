@@ -8,6 +8,11 @@ vi.mock('react-i18next', () => ({
 
 import { PlanComparison } from '../PlanComparison'
 
+vi.mock('@/hooks/usePlanOffer', async () => {
+  const f = await import('@/hooks/__tests__/planOfferFixtures')
+  return f.moduloDelHookConOferta(() => f.ofertaActual.valor)
+})
+
 describe('PlanComparison', () => {
   it('arranca cerrada: la elección de plan sigue simple', () => {
     render(<PlanComparison />)

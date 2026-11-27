@@ -20,10 +20,23 @@ export function usePlanOffer(): OfertaDePlanes {
   return { estado: isPending ? 'cargando' : 'sinDato' }
 }
 
+type TierDeNombre = 'FREE' | 'PRO' | 'PREMIUM' | 'ENTERPRISE'
+
 /** Con offerVersion null (o sin datos): el nombre localizado de hoy; con una del editor (≥ 2), su displayName. Un nombre no es dinero. */
-export function useNombreDelPlan(tier: 'FREE' | 'PRO' | 'PREMIUM'): string {
+export function nombreDelPlanDe(oferta: OfertaDePlanes, tier: TierDeNombre, t: (key: string) => string): string {
+  if (tier !== 'ENTERPRISE' && oferta.estado === 'servidor' && oferta.offerVersion !== null && oferta.offerVersion >= 2)
+    return oferta[tier].displayName
+  return t(`plan.tiers.${tier.toLowerCase()}.name`)
+}
+
+export function useNombreDelPlan(tier: TierDeNombre): string {
+  const { t } = useTranslation('billing')
+  return nombreDelPlanDe(usePlanOffer(), tier, t)
+}
+
+/** Para listas y mapas: UNA lectura de la oferta y una función que da el nombre de cualquier plan (un hook no va dentro de un `map`). */
+export function useNombresDelPlan(): (tier: TierDeNombre | string) => string {
   const { t } = useTranslation('billing')
   const oferta = usePlanOffer()
-  if (oferta.estado === 'servidor' && oferta.offerVersion !== null && oferta.offerVersion >= 2) return oferta[tier].displayName
-  return t(`plan.tiers.${tier.toLowerCase()}.name`)
+  return tier => nombreDelPlanDe(oferta, tier.toUpperCase() as TierDeNombre, t)
 }

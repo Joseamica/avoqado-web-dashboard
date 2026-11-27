@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import type { PlanTierDef } from '@/config/plan-catalog'
 import { beneficiosDelPlan, extrasDelPlan } from '@/config/plan-comparison'
+import { useNombreDelPlan } from '@/hooks/usePlanOffer'
 
 interface PlanBenefitsDialogProps {
   tier: PlanTierDef
@@ -27,7 +28,7 @@ interface PlanBenefitsDialogProps {
 
 export function PlanBenefitsDialog({ tier, open, onOpenChange, accentClassName, action }: PlanBenefitsDialogProps) {
   const { t } = useTranslation('billing')
-  const tierName = t(`plan.tiers.${tier.key}.name`)
+  const tierName = useNombreDelPlan(tier.id)
   const extras = extrasDelPlan(tier)
   const categorias = beneficiosDelPlan(tier.id)
 

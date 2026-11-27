@@ -15,6 +15,12 @@ import {
 import api from '@/api'
 import { hybridBilling } from '@/services/hybridBilling.service'
 import esBilling from '@/locales/es/billing.json'
+import { OFERTA_V1, OFERTA_V2_PLUS, ofertaActual } from '@/hooks/__tests__/planOfferFixtures'
+
+vi.mock('@/hooks/usePlanOffer', async () => {
+  const f = await import('@/hooks/__tests__/planOfferFixtures')
+  return f.moduloDelHookConOferta(() => f.ofertaActual.valor)
+})
 
 const access = { manage: true }
 vi.mock('react-i18next', async () => {
@@ -182,6 +188,7 @@ const renderPage = (url = '/') =>
 const review = () => document.querySelector('[data-tour="plan-review"]') as HTMLButtonElement
 
 beforeEach(() => {
+  ofertaActual.valor = OFERTA_V1
   access.manage = true
   toastSpy.mockReset()
   vi.mocked(getVenuePlan).mockResolvedValue(plan({}) as never)
@@ -710,8 +717,25 @@ describe('back from Stripe', () => {
       .mockResolvedValueOnce(plan({}) as never)
       .mockResolvedValue(plan(CLASSIC_PRO, { hasPlan: true, state: 'active', planTier: 'PRO' }) as never)
     renderPage('/?checkout=success')
-    await waitFor(() => expect(toastSpy).toHaveBeenCalledWith({ title: esBilling.plan.checkoutSuccess }), { timeout: 8000 })
+    await waitFor(() => expect(toastSpy).toHaveBeenCalledWith({ title: esBilling.plan.checkoutSuccess.replace('{{plan}}', 'Pro') }), {
+      timeout: 8000,
+    })
     expect(toastSpy).not.toHaveBeenCalledWith({ title: esBilling.plan.checkoutPending })
+  }, 10000)
+
+  it('B4 (r1 #12): «¡Bienvenido a Plus!» con el plan que se releyó, con la v2 de la oferta', async () => {
+    ofertaActual.valor = OFERTA_V2_PLUS
+    vi.mocked(getVenuePlan).mockResolvedValue(plan(CLASSIC_PRO, { hasPlan: true, state: 'active', planTier: 'PRO' }) as never)
+    renderPage('/?checkout=success')
+    await waitFor(() => expect(toastSpy).toHaveBeenCalledWith({ title: esBilling.plan.checkoutSuccess.replace('{{plan}}', 'Plus') }), {
+      timeout: 8000,
+    })
+  }, 10000)
+
+  it('B4 (r1 #12): si el plan releído no trae su nivel, el aviso es el genérico «Tu plan quedó activo»', async () => {
+    vi.mocked(getVenuePlan).mockResolvedValue(plan(CLASSIC_PRO, { hasPlan: true, state: 'active', planTier: null, tier: null }) as never)
+    renderPage('/?checkout=success')
+    await waitFor(() => expect(toastSpy).toHaveBeenCalledWith({ title: esBilling.checkout.welcomeGeneric }), { timeout: 8000 })
   }, 10000)
 })
 
