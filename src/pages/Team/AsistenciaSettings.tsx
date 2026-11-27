@@ -59,6 +59,8 @@ export default function AsistenciaSettings({ venueId, settings, canEdit }: Props
    * guardar: un segundo cambio rápido (22:00 → 23:00 → 22:00) se perdía al compararse contra el valor viejo (Codex r1 #4).
    */
   const corteGuardado = useRef<string | null>(settings?.salidaOlvidadaCorte ?? null)
+  /** Mientras la persona escribe la hora, ni la recarga ni la respuesta de un guardado le pisan el texto (Codex r2 #5). */
+  const editandoCorte = useRef(false)
 
   /**
    * 🔴 El estado local es una CAPA OPTIMISTA sobre los ajustes, no una copia que se saca una vez.
@@ -82,8 +84,8 @@ export default function AsistenciaSettings({ venueId, settings, canEdit }: Props
     setTurnosRotativos(settings?.rotatingShiftsEnabled ?? false)
     setFoto(settings?.requireClockInPhoto ?? false)
     setSalidaOlvidada(settings?.salidaOlvidadaEnabled ?? true)
-    setCorte(settings?.salidaOlvidadaCorte ?? '')
     corteGuardado.current = settings?.salidaOlvidadaCorte ?? null
+    if (!editandoCorte.current) setCorte(settings?.salidaOlvidadaCorte ?? '')
   }, [venueId, settings])
 
   const guardar = useMutation({
@@ -110,7 +112,7 @@ export default function AsistenciaSettings({ venueId, settings, canEdit }: Props
       if (requested.salidaOlvidadaEnabled !== undefined) setSalidaOlvidada(saved.salidaOlvidadaEnabled ?? requested.salidaOlvidadaEnabled)
       if (requested.salidaOlvidadaCorte !== undefined) {
         corteGuardado.current = saved.salidaOlvidadaCorte ?? null
-        setCorte(saved.salidaOlvidadaCorte ?? '')
+        if (!editandoCorte.current) setCorte(saved.salidaOlvidadaCorte ?? '')
       }
 
       toast({
@@ -296,8 +298,10 @@ export default function AsistenciaSettings({ venueId, settings, canEdit }: Props
                   step={60}
                   className="h-9 w-28"
                   value={corte}
+                  onFocus={() => (editandoCorte.current = true)}
                   onChange={e => setCorte(e.target.value)}
                   onBlur={() => {
+                    editandoCorte.current = false
                     // Sólo se salta con los ajustes SIN CARGAR (undefined): una sucursal sin fila de ajustes llega con null y su
                     // primer corte sí se guarda (Codex r1 #3).
                     if (settings === undefined) return

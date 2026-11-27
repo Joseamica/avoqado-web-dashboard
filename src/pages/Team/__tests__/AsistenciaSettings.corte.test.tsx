@@ -82,6 +82,25 @@ describe('AsistenciaSettings — hora de corte de la salida olvidada', () => {
     await waitFor(() => expect(put).toHaveBeenLastCalledWith(URL, { salidaOlvidadaCorte: '22:00' }))
   })
 
+  it('Codex r2 #5: la recarga que llega mientras escribe no le pisa el texto, y al salir se guarda lo que escribió', async () => {
+    put.mockResolvedValue({ data: { data: { salidaOlvidadaCorte: '21:00' } } })
+    const client = new QueryClient({ defaultOptions: { mutations: { retry: false } } })
+    const ui = (s: Record<string, unknown>) => (
+      <QueryClientProvider client={client}>
+        <AsistenciaSettings venueId="venue-1" settings={s} canEdit />
+      </QueryClientProvider>
+    )
+    const { rerender } = render(ui({ attendanceEnabled: true, salidaOlvidadaCorte: '22:00' }))
+    fireEvent.focus(campo())
+    fireEvent.change(campo(), { target: { value: '21:00' } })
+    // Llega la recarga de otro guardado con 23:00 mientras escribe.
+    rerender(ui({ attendanceEnabled: true, salidaOlvidadaCorte: '23:00' }))
+    expect(campo().value).toBe('21:00')
+
+    fireEvent.blur(campo())
+    await waitFor(() => expect(put).toHaveBeenCalledWith(URL, { salidaOlvidadaCorte: '21:00' }))
+  })
+
   it('con los ajustes sin cargar, salir del campo vacío no guarda nada encima', () => {
     pintar(undefined)
     fireEvent.blur(campo())
