@@ -206,6 +206,7 @@
     "save": "Save clock-out",
     "saved": "{{name}}'s clock-out fixed",
     "error": "Couldn't save the clock-out",
+    "alreadyFixed": "This clock-out was already fixed.",
     "invalid": "Enter a valid date and time",
     "filter": "To review: {{count}}",
     "prev": "Previous",

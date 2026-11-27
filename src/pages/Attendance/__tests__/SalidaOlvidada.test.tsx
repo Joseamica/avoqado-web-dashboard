@@ -69,6 +69,43 @@ describe('CorregirSalidaOlvidada', () => {
   })
 })
 
+describe('CorregirSalidaOlvidada · un solo envío y la bitácora de marca blanca (hz:0433f0cb:D3)', () => {
+  it('dos clics en el mismo instante en «Guardar» mandan una sola corrección', async () => {
+    corregir.mockReturnValue(new Promise(() => undefined))
+    montar()
+
+    fireEvent.click(screen.getByText('forgotten.fix'))
+    const guardar = screen.getByText('forgotten.save')
+    fireEvent.click(guardar)
+    fireEvent.click(guardar)
+
+    await waitFor(() => expect(corregir).toHaveBeenCalledTimes(1))
+  })
+
+  // Codex D3 r1 #5: si la respuesta se perdió, el reintento automático recibe 409 aunque la salida sí quedó corregida.
+  it('si ya no está como «Salida olvidada» (otro guardado ganó o la respuesta se perdió), lo dice sin error, cierra y refresca', async () => {
+    corregir.mockRejectedValue({ response: { status: 409, data: { code: 'NO_ES_SALIDA_OLVIDADA', message: 'Esta checada ya no está como «Salida olvidada».' } } })
+    const { invalidar } = montar()
+
+    fireEvent.click(screen.getByText('forgotten.fix'))
+    fireEvent.click(screen.getByText('forgotten.save'))
+
+    await waitFor(() => expect(toast).toHaveBeenCalledWith({ title: 'forgotten.alreadyFixed' }))
+    expect(screen.queryByLabelText('forgotten.label')).toBeNull()
+    expect(invalidar).toHaveBeenCalledWith({ queryKey: ['stores-analysis'] })
+  })
+
+  it('al guardar también refresca la bitácora de asistencia de los gerentes', async () => {
+    corregir.mockResolvedValue({ timeEntryId: 'te-1', clockOutTime: '2026-11-04T00:00:00.000Z', totalHours: 9 })
+    const { invalidar } = montar()
+
+    fireEvent.click(screen.getByText('forgotten.fix'))
+    fireEvent.click(screen.getByText('forgotten.save'))
+
+    await waitFor(() => expect(invalidar).toHaveBeenCalledWith({ queryKey: ['stores-analysis'] }))
+  })
+})
+
 describe('SalidaOlvidadaBadge y la nota', () => {
   it('pinta la marca', () => {
     render(<SalidaOlvidadaBadge />)

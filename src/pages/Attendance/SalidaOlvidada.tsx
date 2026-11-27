@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { AlertTriangle, Loader2 } from 'lucide-react'
 import { DateTime } from 'luxon'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Badge } from '@/components/ui/badge'
@@ -28,7 +28,8 @@ export function SalidaOlvidadaBadge() {
 }
 
 interface Props {
-  entry: TimeEntry
+  // También la usa la bitácora de los gerentes de marca blanca (hz:0433f0cb:D3), que no trae la checada entera.
+  entry: Pick<TimeEntry, 'id' | 'clockInTime'>
   venueId: string
   venueTimezone: string
   staffName: string
@@ -41,6 +42,8 @@ export function CorregirSalidaOlvidada({ entry, venueId, venueTimezone, staffNam
   const [abierto, setAbierto] = useState(false)
   // Hora de pared del NEGOCIO, no la del navegador: por defecto, la de la entrada.
   const [valor, setValor] = useState('')
+  // Dos clics en el mismo instante mandaban dos correcciones (r3 H-2): el estado del envío todavía no se pintaba.
+  const enviando = useRef(false)
 
   const abrir = () => {
     setValor(DateTime.fromISO(entry.clockInTime, { zone: venueTimezone }).toFormat("yyyy-MM-dd'T'HH:mm"))
@@ -57,11 +60,30 @@ export function CorregirSalidaOlvidada({ entry, venueId, venueTimezone, staffNam
       toast({ title: t('forgotten.saved', { name: staffName }) })
       setAbierto(false)
       queryClient.invalidateQueries({ queryKey: ['attendance'] })
+      queryClient.invalidateQueries({ queryKey: ['stores-analysis'] })
     },
     onError: (error: any) => {
+      // Ya no está como «Salida olvidada»: otro guardado ganó, o se perdió la respuesta del nuestro y el reintento automático
+      // llegó después (Codex D3 r1 #5). No es un error: se dice, se cierra y se relee para ver la hora que quedó. ponytail: si
+      // en ese mismo segundo llegó la salida tardía del celular, el reintento vuelve a quitar su marca (queda la nota).
+      if (error?.response?.data?.code === 'NO_ES_SALIDA_OLVIDADA') {
+        toast({ title: t('forgotten.alreadyFixed') })
+        setAbierto(false)
+        queryClient.invalidateQueries({ queryKey: ['attendance'] })
+        queryClient.invalidateQueries({ queryKey: ['stores-analysis'] })
+        return
+      }
       toast({ title: error?.response?.data?.message ?? error?.message ?? t('forgotten.error'), variant: 'destructive' })
     },
+    onSettled: () => {
+      enviando.current = false
+    },
   })
+  const mandar = () => {
+    if (enviando.current) return
+    enviando.current = true
+    guardar.mutate()
+  }
 
   return (
     <>
@@ -88,7 +110,7 @@ export function CorregirSalidaOlvidada({ entry, venueId, venueTimezone, staffNam
             <Button variant="ghost" onClick={() => setAbierto(false)} disabled={guardar.isPending}>
               {t('forgotten.cancel')}
             </Button>
-            <Button onClick={() => guardar.mutate()} disabled={!valor || guardar.isPending}>
+            <Button onClick={mandar} disabled={!valor || guardar.isPending}>
               {guardar.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {t('forgotten.save')}
             </Button>

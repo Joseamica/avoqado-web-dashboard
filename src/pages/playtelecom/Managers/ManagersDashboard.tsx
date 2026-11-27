@@ -185,7 +185,7 @@ export function ManagersDashboard() {
 
     const buildRow = (
       entry: (typeof attendanceData.staff)[number],
-      te: { id?: string; clockInTime: string | null; clockOutTime: string | null; checkInPhotoUrl?: string | null; facadePhotoUrl?: string | null; checkOutPhotoUrl?: string | null; depositPhotoUrl?: string | null; clockInLocation?: { lat: number; lng: number } | null; clockOutLocation?: { lat: number; lng: number } | null; validationStatus?: string; cashSales?: number; isLate?: boolean },
+      te: { id?: string; clockInTime: string | null; clockOutTime: string | null; checkInPhotoUrl?: string | null; facadePhotoUrl?: string | null; checkOutPhotoUrl?: string | null; depositPhotoUrl?: string | null; clockInLocation?: { lat: number; lng: number } | null; clockOutLocation?: { lat: number; lng: number } | null; validationStatus?: string; cashSales?: number; isLate?: boolean; salidaOlvidada?: boolean; notaSalidaOlvidada?: string | null },
     ): AttendanceEntry => {
       const clockInDate = new Date(te.clockInTime!)
       const isLate = te.isLate ?? false
@@ -229,6 +229,12 @@ export function ManagersDashboard() {
         incidents,
         isLate,
         gpsWarning: !hasGps,
+        // «Salida olvidada · revisar» y su corrección (hz:0433f0cb:D3): la sucursal de la checada con su zona y la entrada en ISO.
+        salidaOlvidada: te.salidaOlvidada ?? false,
+        clockInIso: te.clockInTime,
+        venueId: entry.venueId,
+        venueTimezone: (entry as { venueTimezone?: string }).venueTimezone,
+        notaSalidaOlvidada: te.notaSalidaOlvidada ?? null,
       }
     }
 
@@ -248,6 +254,8 @@ export function ManagersDashboard() {
           validationStatus?: string
           cashSales?: number
           isLate?: boolean
+          salidaOlvidada?: boolean
+          notaSalidaOlvidada?: string | null
         }> | undefined
 
         if (allEntries && allEntries.length > 0) {
@@ -571,6 +579,8 @@ export function ManagersDashboard() {
         query={attendanceQuery}
         canManage={can('attendance:manage')}
         currentStaffId={user?.id}
+        venueTimezone={venueTimezone}
+        panelVenueId={venueId}
         entries={attendanceEntries}
         onApprove={handleApprove}
         onReject={handleReject}
