@@ -5,6 +5,7 @@
 // choice opens is decided by plan/planActions.ts; this file only composes and orchestrates the dialogs.
 import { useEffect, useRef, useState } from 'react'
 import { usePlanOffer, useNombresDelPlan } from '@/hooks/usePlanOffer'
+import type { CotizacionDeTuPlan } from '@/services/features.service'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { AvisoDeCarga, BotonReintentar } from '@/components/AvisoDeCarga'
 import { falloDeCarga } from '@/lib/falloDeCarga'
@@ -181,7 +182,12 @@ export default function Subscriptions() {
             queryClient.refetchQueries({ queryKey: ['venuePlan', venueId] }),
             queryClient.refetchQueries({ queryKey: ['featureGrid', venueId] }),
           ])
-          plan = queryClient.getQueryData<{ state?: string; stripeSubscriptionId?: string | null; trialEndsAt?: string | null }>([
+          plan = queryClient.getQueryData<{
+            state?: string
+            stripeSubscriptionId?: string | null
+            trialEndsAt?: string | null
+            cotizacion?: CotizacionDeTuPlan | null
+          }>([
             'venuePlan',
             venueId,
           ])
@@ -193,7 +199,8 @@ export default function Subscriptions() {
         const bienvenida = (leido: typeof plan) => {
           const tier = String(leido?.tier ?? leido?.planTier ?? '').toUpperCase()
           return tier === 'PRO' || tier === 'PREMIUM'
-            ? t('plan.checkoutSuccess', { plan: nombreRef.current(tier) })
+            ? // D4: el nombre de la MISMA lectura que se releyó (su cotización firmada); si no trae, el de la oferta.
+              t('plan.checkoutSuccess', { plan: leido?.cotizacion?.planes?.[tier]?.displayName ?? nombreRef.current(tier) })
             : t('checkout.welcomeGeneric')
         }
         toast({

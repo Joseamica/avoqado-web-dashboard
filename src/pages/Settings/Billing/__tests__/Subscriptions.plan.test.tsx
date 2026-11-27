@@ -15,7 +15,7 @@ import {
 import api from '@/api'
 import { hybridBilling } from '@/services/hybridBilling.service'
 import esBilling from '@/locales/es/billing.json'
-import { OFERTA_V1, OFERTA_V2_PLUS, ofertaActual } from '@/hooks/__tests__/planOfferFixtures'
+import { OFERTA_CARGANDO, OFERTA_V1, OFERTA_V2_PLUS, ofertaActual } from '@/hooks/__tests__/planOfferFixtures'
 
 vi.mock('@/hooks/usePlanOffer', async () => {
   const f = await import('@/hooks/__tests__/planOfferFixtures')
@@ -726,6 +726,18 @@ describe('back from Stripe', () => {
   it('B4 (r1 #12): «¡Bienvenido a Plus!» con el plan que se releyó, con la v2 de la oferta', async () => {
     ofertaActual.valor = OFERTA_V2_PLUS
     vi.mocked(getVenuePlan).mockResolvedValue(plan(CLASSIC_PRO, { hasPlan: true, state: 'active', planTier: 'PRO' }) as never)
+    renderPage('/?checkout=success')
+    await waitFor(() => expect(toastSpy).toHaveBeenCalledWith({ title: esBilling.plan.checkoutSuccess.replace('{{plan}}', 'Plus') }), {
+      timeout: 8000,
+    })
+  }, 10000)
+
+  it('D4: «¡Bienvenido a Plus!» sale de la cotización del plan releído aunque la oferta siga cargando', async () => {
+    ofertaActual.valor = OFERTA_CARGANDO
+    const cotizacion = { versionNumber: 2, planes: { PRO: { displayName: 'Plus', vendible: true, monthly: null, annual: null } } }
+    vi.mocked(getVenuePlan).mockResolvedValue(
+      plan(CLASSIC_PRO, { hasPlan: true, state: 'active', planTier: 'PRO', cotizacion }) as never,
+    )
     renderPage('/?checkout=success')
     await waitFor(() => expect(toastSpy).toHaveBeenCalledWith({ title: esBilling.plan.checkoutSuccess.replace('{{plan}}', 'Plus') }), {
       timeout: 8000,
