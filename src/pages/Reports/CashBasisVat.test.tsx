@@ -21,6 +21,8 @@ vi.mock('@/hooks/useIvaCashflow', () => ({ useIvaCashflow: vi.fn() }))
 vi.mock('@/hooks/use-tier-feature-access', () => ({
   useTierFeatureAccess: () => ({ hasAccess: true, requiredTier: 'premium', isLoading: false, isResolved: true }),
 }))
+// B4: el cartel del FeatureGate lee la oferta vigente (usePlanOffer); aquí hay acceso y no se pinta: se simula sin red ni QueryClient.
+vi.mock('@/hooks/usePlanOffer', () => ({ usePlanOffer: () => ({ estado: 'cargando' }), useNombreDelPlan: () => 'Premium' }))
 vi.mock('@/hooks/use-feature-price', () => ({ useFeaturePrice: () => ({ price: null, canSeePrices: false, canPurchase: false }) }))
 vi.mock('@/hooks/useExpenses', () => ({ useDiot: () => ({ data: undefined, isLoading: false, isError: false }) }))
 
