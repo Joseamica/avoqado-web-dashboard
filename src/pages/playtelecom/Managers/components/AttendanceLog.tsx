@@ -96,7 +96,7 @@ export function AttendanceLog({
     return (
       <div className="mt-1 flex flex-col items-start gap-1">
         <SalidaOlvidadaBadge />
-        {nota && <span className="max-w-[260px] text-[11px] leading-tight text-muted-foreground">{nota}</span>}
+        {nota && <span className="max-w-[260px] whitespace-pre-line text-[11px] leading-tight text-muted-foreground">{nota}</span>}
         {puedeValidar(e) && e.timeEntryId && e.clockInIso && e.venueId && e.venueId === panelVenueId && (
           <CorregirSalidaOlvidada
             entry={{ id: e.timeEntryId, clockInTime: e.clockInIso }}

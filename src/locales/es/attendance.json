@@ -206,7 +206,7 @@
     "save": "Guardar salida",
     "saved": "Salida de {{name}} corregida",
     "error": "No se pudo guardar la salida",
-    "alreadyFixed": "Esta salida ya estaba corregida: se actualizó la lista con la hora que quedó.",
+    "alreadyFixed": "Esta salida ya estaba corregida.",
     "invalid": "Escribe una fecha y hora válidas",
     "filter": "Por revisar: {{count}}",
     "prev": "Anteriores",

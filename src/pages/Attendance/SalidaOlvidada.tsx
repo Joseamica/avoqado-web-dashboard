@@ -64,7 +64,8 @@ export function CorregirSalidaOlvidada({ entry, venueId, venueTimezone, staffNam
     },
     onError: (error: any) => {
       // Ya no está como «Salida olvidada»: otro guardado ganó, o se perdió la respuesta del nuestro y el reintento automático
-      // llegó después (Codex D3 r1 #5). No es un error: se dice, se cierra y se relee para ver la hora que quedó.
+      // llegó después (Codex D3 r1 #5). No es un error: se dice, se cierra y se relee para ver la hora que quedó. ponytail: si
+      // en ese mismo segundo llegó la salida tardía del celular, el reintento vuelve a quitar su marca (queda la nota).
       if (error?.response?.data?.code === 'NO_ES_SALIDA_OLVIDADA') {
         toast({ title: t('forgotten.alreadyFixed') })
         setAbierto(false)
