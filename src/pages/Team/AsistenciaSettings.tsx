@@ -308,7 +308,8 @@ export default function AsistenciaSettings({ venueId, settings, canEdit }: Props
                     const nuevo = corte === '' ? null : corte
                     if (nuevo !== corteGuardado.current) guardar.mutate({ salidaOlvidadaCorte: nuevo })
                   }}
-                  disabled={!canEdit || ocupado}
+                  // Sin los ajustes cargados no se escribe: no habría contra qué guardar (Codex r3 #10).
+                  disabled={!canEdit || ocupado || settings === undefined}
                 />
               </div>
             )}

@@ -101,8 +101,9 @@ describe('AsistenciaSettings — hora de corte de la salida olvidada', () => {
     await waitFor(() => expect(put).toHaveBeenCalledWith(URL, { salidaOlvidadaCorte: '21:00' }))
   })
 
-  it('con los ajustes sin cargar, salir del campo vacío no guarda nada encima', () => {
+  it('con los ajustes sin cargar el campo no se puede escribir (Codex r3 #10), y salir de él no guarda nada', () => {
     pintar(undefined)
+    expect(campo()).toBeDisabled()
     fireEvent.blur(campo())
     expect(put).not.toHaveBeenCalled()
   })
