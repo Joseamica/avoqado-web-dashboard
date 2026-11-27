@@ -27,8 +27,32 @@ export function cargarPagina(archivo: string, responder: (url: string) => Respue
 
 export const espera = () => new Promise(r => setTimeout(r, 20))
 
-/** Un nodo está a la vista si ni él ni sus ancestros están `hidden`. */
+/**
+ * `display` efectivo de un nodo, como lo resolvería un navegador: una regla de la hoja de estilos de la página
+ * (con !important manda; si no, la última que coincide) pisa el `[hidden]` del navegador, que es lo que se rompió con `.grid4{display:grid}`.
+ * No usa getComputedStyle: jsdom truena con `border:… var(--x)` de la página.
+ */
+function displayEfectivo(n: Element): string {
+  const inline = (n as HTMLElement).style?.display
+  if (inline) return inline
+  let valor = ''
+  let importante = false
+  for (const hoja of Array.from(n.ownerDocument.styleSheets)) {
+    for (const regla of Array.from((hoja as CSSStyleSheet).cssRules) as CSSStyleRule[]) {
+      if (!regla.selectorText || !regla.style?.display) continue
+      let coincide = false
+      try { coincide = n.matches(regla.selectorText) } catch { /* selector que jsdom no entiende */ }
+      if (!coincide) continue
+      const imp = regla.style.getPropertyPriority('display') === 'important'
+      if (imp || !importante) { valor = regla.style.display; importante = imp }
+    }
+  }
+  return valor || ((n as HTMLElement).hidden ? 'none' : 'block')
+}
+
+/** Un nodo está a la vista si ni él ni sus ancestros tienen `display:none` efectivo. */
 export function visible(nodo: Element | null): boolean {
-  for (let n: Element | null = nodo; n; n = n.parentElement) if ((n as HTMLElement).hidden) return false
-  return !!nodo
+  if (!nodo) return false
+  for (let n: Element | null = nodo; n; n = n.parentElement) if (displayEfectivo(n) === 'none') return false
+  return true
 }

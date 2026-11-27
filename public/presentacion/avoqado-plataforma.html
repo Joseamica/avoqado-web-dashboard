@@ -68,6 +68,7 @@ a{ text-decoration:none; color:inherit; cursor:pointer;}
 .slide:has(.phead) .body{ justify-content:flex-start; padding-top:0.14in;}
 .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:26px; }
 .grid3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:20px; }
+#seccion-26 [hidden]{ display:none !important; }
 .grid4{ display:grid; grid-template-columns:repeat(4,1fr); gap:16px; }
 .row{ display:flex; gap:28px; align-items:stretch;}
 
@@ -1358,6 +1359,20 @@ code{ font-family:'DM Mono',monospace; font-size:0.9em; color:var(--green-ink); 
     return { dosMeses, ahorro: !dosMeses && ahorro > 0 ? ahorro : 0 }
   }
 
+  const num = v => typeof v === 'number' && Number.isFinite(v)
+  const montos = m => !!m && num(m.netCents) && num(m.grossCents)
+  // Oferta dañada = no hay oferta: se rechaza ENTERA para no pintar a medias ni inventar nombres.
+  function valida(o) {
+    if (!o || typeof o !== 'object') return false
+    const editado = o.offerVersion != null && o.offerVersion >= 2
+    if (editado && !(o.FREE && typeof o.FREE.displayName === 'string' && o.FREE.displayName.trim())) return false
+    return ['PRO', 'PREMIUM'].every(id => {
+      const p = o[id]
+      if (!p || typeof p.onSale !== 'boolean' || !montos(p.monthly) || !montos(p.annual)) return false
+      return !editado || (typeof p.displayName === 'string' && p.displayName.trim() !== '')
+    })
+  }
+
   function pintar(o) {
     const editado = o.offerVersion != null && o.offerVersion >= 2
     const ids = ['PRO', 'PREMIUM']
@@ -1421,7 +1436,7 @@ code{ font-family:'DM Mono',monospace; font-size:0.9em; color:var(--green-ink); 
       const r = await fetch(`${API}/plan-offer`, { cache: 'no-store' })
       if (!r.ok) throw new Error(String(r.status))
       const cuerpo = await r.json()
-      if (!cuerpo || !cuerpo.data) throw new Error('sin datos')
+      if (!cuerpo || cuerpo.success !== true || !valida(cuerpo.data)) throw new Error('oferta dañada')
       pintar(cuerpo.data)
     } catch {
       fallo()

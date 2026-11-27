@@ -89,6 +89,28 @@ describe('presentación de la plataforma: lee la oferta vigente', () => {
     })
   }
 
+  const dañadas: Array<[string, unknown]> = [
+    ['success:false', { success: false, data: {} }],
+    ['sin PRO', { success: true, data: { ...v1, PRO: undefined } }],
+    ['sin PREMIUM', { success: true, data: { ...v1, PREMIUM: undefined } }],
+    ['montos como texto', { success: true, data: { ...v1, PRO: { ...v1.PRO, monthly: { netCents: '99900', grossCents: '115884' } } } }],
+    ['onSale que no es booleano', { success: true, data: { ...v1, PRO: { ...v1.PRO, onSale: 'si' } } }],
+    ['v2 sin displayName', { success: true, data: { ...v2, PRO: { ...v2.PRO, displayName: '' } } }],
+    ['v2 sin FREE.displayName', { success: true, data: { ...v2, FREE: {} } }],
+  ]
+  for (const [nombre, body] of dañadas) {
+    it(`una oferta dañada (${nombre}) cae en «No pudimos cargar»`, async () => {
+      const { document: d } = cargar({ status: 200, body })
+      await espera()
+      const est = d.querySelector('[data-plan-status]')!
+      expect(visible(est)).toBe(true)
+      expect(norm(est.textContent)).toContain('No pudimos cargar los precios')
+      expect([...est.querySelectorAll('button')].some(b => b.textContent === 'Reintentar')).toBe(true)
+      expect(visible(d.querySelector(SECCION + ' .grid4'))).toBe(false)
+      expect(visible(d.querySelector('[data-plan-callout]'))).toBe(false)
+    })
+  }
+
   it('con error de red avisa igual', async () => {
     const { document: d } = cargar('red')
     await espera()
