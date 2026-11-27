@@ -16,7 +16,7 @@ vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (k: string) => k }
 const put = vi.mocked(api.put)
 const URL = '/api/v1/dashboard/venues/venue-1/settings'
 
-function pintar(settings: Record<string, unknown> | undefined, canEdit = true) {
+function pintar(settings: Record<string, unknown> | null | undefined, canEdit = true) {
   const client = new QueryClient({ defaultOptions: { mutations: { retry: false } } })
   return render(
     <QueryClientProvider client={client}>
@@ -59,6 +59,27 @@ describe('AsistenciaSettings — hora de corte de la salida olvidada', () => {
     fireEvent.change(campo(), { target: { value: '23:00' } })
     fireEvent.blur(campo())
     await waitFor(() => expect(campo().value).toBe('22:00'))
+  })
+
+  it('Codex r1 #3: una sucursal SIN fila de ajustes (null) guarda su primer corte', async () => {
+    put.mockResolvedValue({ data: { data: { salidaOlvidadaCorte: '22:00' } } })
+    pintar(null)
+    fireEvent.change(campo(), { target: { value: '22:00' } })
+    fireEvent.blur(campo())
+    await waitFor(() => expect(put).toHaveBeenCalledWith(URL, { salidaOlvidadaCorte: '22:00' }))
+  })
+
+  it('Codex r1 #4: un segundo cambio rápido se guarda aunque los ajustes todavía no se recarguen', async () => {
+    put.mockImplementation(async (_u, body) => ({ data: { data: body } }))
+    pintar({ attendanceEnabled: true, salidaOlvidadaCorte: '22:00' })
+    fireEvent.change(campo(), { target: { value: '23:00' } })
+    fireEvent.blur(campo())
+    await waitFor(() => expect(put).toHaveBeenCalledWith(URL, { salidaOlvidadaCorte: '23:00' }))
+    await waitFor(() => expect(campo()).not.toBeDisabled())
+
+    fireEvent.change(campo(), { target: { value: '22:00' } })
+    fireEvent.blur(campo())
+    await waitFor(() => expect(put).toHaveBeenLastCalledWith(URL, { salidaOlvidadaCorte: '22:00' }))
   })
 
   it('con los ajustes sin cargar, salir del campo vacío no guarda nada encima', () => {

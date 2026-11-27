@@ -54,6 +54,11 @@ export default function AsistenciaSettings({ venueId, settings, canEdit }: Props
   const [foto, setFoto] = useState(settings?.requireClockInPhoto ?? false)
   const [salidaOlvidada, setSalidaOlvidada] = useState(settings?.salidaOlvidadaEnabled ?? true)
   const [corte, setCorte] = useState(settings?.salidaOlvidadaCorte ?? '')
+  /**
+   * Lo último que el SERVIDOR guardó de la hora de corte. Se compara contra esto, no contra [settings], que llega tarde tras
+   * guardar: un segundo cambio rápido (22:00 → 23:00 → 22:00) se perdía al compararse contra el valor viejo (Codex r1 #4).
+   */
+  const corteGuardado = useRef<string | null>(settings?.salidaOlvidadaCorte ?? null)
 
   /**
    * 🔴 El estado local es una CAPA OPTIMISTA sobre los ajustes, no una copia que se saca una vez.
@@ -78,6 +83,7 @@ export default function AsistenciaSettings({ venueId, settings, canEdit }: Props
     setFoto(settings?.requireClockInPhoto ?? false)
     setSalidaOlvidada(settings?.salidaOlvidadaEnabled ?? true)
     setCorte(settings?.salidaOlvidadaCorte ?? '')
+    corteGuardado.current = settings?.salidaOlvidadaCorte ?? null
   }, [venueId, settings])
 
   const guardar = useMutation({
@@ -102,7 +108,10 @@ export default function AsistenciaSettings({ venueId, settings, canEdit }: Props
       if (requested.rotatingShiftsEnabled !== undefined) setTurnosRotativos(saved.rotatingShiftsEnabled ?? requested.rotatingShiftsEnabled)
       if (requested.requireClockInPhoto !== undefined) setFoto(saved.requireClockInPhoto ?? requested.requireClockInPhoto)
       if (requested.salidaOlvidadaEnabled !== undefined) setSalidaOlvidada(saved.salidaOlvidadaEnabled ?? requested.salidaOlvidadaEnabled)
-      if (requested.salidaOlvidadaCorte !== undefined) setCorte(saved.salidaOlvidadaCorte ?? '')
+      if (requested.salidaOlvidadaCorte !== undefined) {
+        corteGuardado.current = saved.salidaOlvidadaCorte ?? null
+        setCorte(saved.salidaOlvidadaCorte ?? '')
+      }
 
       toast({
         title:
@@ -146,7 +155,7 @@ export default function AsistenciaSettings({ venueId, settings, canEdit }: Props
       setTurnosRotativos(settings?.rotatingShiftsEnabled ?? false)
       setFoto(settings?.requireClockInPhoto ?? false)
       setSalidaOlvidada(settings?.salidaOlvidadaEnabled ?? true)
-      setCorte(settings?.salidaOlvidadaCorte ?? '')
+      setCorte(corteGuardado.current ?? '')
       toast({ title: t('venue:attendance.toastError'), variant: 'destructive' })
     },
   })
@@ -289,10 +298,11 @@ export default function AsistenciaSettings({ venueId, settings, canEdit }: Props
                   value={corte}
                   onChange={e => setCorte(e.target.value)}
                   onBlur={() => {
-                    // Sin ajustes cargados no se compara contra el vacío provisional (P2 #1 de Codex, igual que la tolerancia).
-                    if (!settings) return
+                    // Sólo se salta con los ajustes SIN CARGAR (undefined): una sucursal sin fila de ajustes llega con null y su
+                    // primer corte sí se guarda (Codex r1 #3).
+                    if (settings === undefined) return
                     const nuevo = corte === '' ? null : corte
-                    if (nuevo !== (settings.salidaOlvidadaCorte ?? null)) guardar.mutate({ salidaOlvidadaCorte: nuevo })
+                    if (nuevo !== corteGuardado.current) guardar.mutate({ salidaOlvidadaCorte: nuevo })
                   }}
                   disabled={!canEdit || ocupado}
                 />
