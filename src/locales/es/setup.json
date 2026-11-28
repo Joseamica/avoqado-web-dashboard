@@ -385,13 +385,13 @@
         "4": "Lealtad, promociones y reservas"
       },
       "premium": {
-        "1": "Todo lo de Pro",
+        "1": "Todo lo de {{plan}}",
         "2": "Facturación CFDI",
         "3": "Inventario con recetas y costeo",
         "4": "Delivery: Uber Eats, Rappi y DiDi"
       },
       "enterprise": {
-        "1": "Todo lo de Premium",
+        "1": "Todo lo de {{plan}}",
         "2": "Marca propia",
         "3": "API e integraciones",
         "4": "Soporte dedicado"
@@ -404,7 +404,7 @@
           "4": "Lealtad y promociones"
         },
         "premium": {
-          "1": "Todo lo de Pro",
+          "1": "Todo lo de {{plan}}",
           "2": "Facturación CFDI",
           "3": "Inventario y existencias por tienda",
           "4": "Reorden automático de mercancía"
@@ -418,7 +418,7 @@
           "4": "Lealtad y promociones"
         },
         "premium": {
-          "1": "Todo lo de Pro",
+          "1": "Todo lo de {{plan}}",
           "2": "Facturación CFDI",
           "3": "Comisiones del personal",
           "4": "Control de asistencia del equipo"
@@ -432,7 +432,7 @@
           "4": "Lealtad, promociones y reservas"
         },
         "premium": {
-          "1": "Todo lo de Pro",
+          "1": "Todo lo de {{plan}}",
           "2": "Facturación CFDI",
           "3": "Control de inventario",
           "4": "Comisiones del personal"

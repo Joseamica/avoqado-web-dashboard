@@ -396,6 +396,34 @@ describe('TarjetasDePlanes con la versión del editor (planes editables, B2)', (
     expect(screen.queryByRole('button', { name: 'Elegir Pro' })).not.toBeInTheDocument()
   })
 
+  it.each(['restaurante', 'comercio', 'servicios', 'generico'] as const)(
+    'los beneficios de %s usan el nombre cotizado del plan anterior',
+    beneficios => {
+      const base = conOferta({}).oferta!
+      pinta({
+        beneficios,
+        planQuote: conOferta({
+          PRO: { ...base.planes.PRO, displayName: 'Plus' },
+          PREMIUM: { ...base.planes.PREMIUM, displayName: 'Avanzado', onSale: true },
+        }),
+      })
+      expect(within(tarjeta('PREMIUM')).getByText('Todo lo de Plus')).toBeInTheDocument()
+      expect(within(tarjeta('ENTERPRISE')).getByText('Todo lo de Avanzado')).toBeInTheDocument()
+    },
+  )
+
+  it('omite la referencia al plan anterior cuando la cotización indica que está fuera de venta', () => {
+    const base = conOferta({}).oferta!
+    pinta({
+      planQuote: conOferta({
+        PRO: { ...base.planes.PRO, displayName: 'Plus', onSale: false },
+        PREMIUM: { ...base.planes.PREMIUM, onSale: true },
+      }),
+    })
+    expect(within(tarjeta('PREMIUM')).queryByText(/^Todo lo de /)).not.toBeInTheDocument()
+    expect(within(tarjeta('PREMIUM')).getByText('Facturación CFDI')).toBeInTheDocument()
+  })
+
   it('con oferta: un plan fuera de venta no tiene tarjeta; Pro sin tarjeta dice «14 días gratis, sin tarjeta» y «Luego $926.84 al mes»', () => {
     pinta({ planQuote: conOferta({}) })
     expect(orden()).toEqual(['PRO', 'ENTERPRISE'])
@@ -439,6 +467,7 @@ describe('TarjetasDePlanes con la versión del editor (planes editables, B2)', (
     expect(orden()).toEqual(['PRO', 'PREMIUM', 'ENTERPRISE'])
     expect(screen.getAllByText('30 días gratis')).toHaveLength(2)
     expect(screen.queryByText(/sin tarjeta/)).not.toBeInTheDocument()
+    expect(within(tarjeta('PREMIUM')).getByText('Todo lo de Pro')).toBeInTheDocument()
     expect(screen.getByText(/Luego \$999\.00 \+ IVA = \$1,158\.84 al mes/)).toBeInTheDocument()
   })
 })

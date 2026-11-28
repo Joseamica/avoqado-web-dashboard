@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import type { TFunction } from 'i18next'
 import { useTranslation } from 'react-i18next'
 import { planOfferService, type PlanDeLaOferta } from '@/services/planOffer.service'
 
@@ -36,6 +37,11 @@ export function nombreDelPlanDe(oferta: OfertaDePlanes, tier: TierDeNombre, t: (
   )
     return oferta[tier]?.displayName ?? t(`plan.tiers.${tier.toLowerCase()}.name`)
   return t(`plan.tiers.${tier.toLowerCase()}.name`)
+}
+
+export function nombreDeGratisEnBeneficios(oferta: OfertaDePlanes, t: TFunction, idioma?: string): string {
+  // Los textos de herencia en francés usaban «Free» antes del editor.
+  return nombreDelPlanDe(oferta, 'FREE', idioma === 'fr' ? key => t(key, { lng: 'en' }) : t)
 }
 
 export function useNombreDelPlan(tier: TierDeNombre, opciones?: { enabled?: boolean }): string {

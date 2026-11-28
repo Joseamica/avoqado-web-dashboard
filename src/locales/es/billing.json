@@ -142,12 +142,12 @@
       "dailyReports": "Reportes del día",
       "chatbotBeta": "Chatbot",
       "seats2": "Hasta 2 usuarios",
-      "allFree": "Todo lo de Gratis",
+      "allFree": "Todo lo de {{plan}}",
       "aiMcp": "Asistente IA + MCP",
-      "allPro": "Todo lo de Pro",
+      "allPro": "Todo lo de {{plan}}",
       "cfdi": "Facturación CFDI",
       "delivery": "Delivery (Uber Eats, Rappi, DiDi)",
-      "allPremium": "Todo lo de Premium",
+      "allPremium": "Todo lo de {{plan}}",
       "whiteLabel": "Marca propia (white-label)",
       "apiIntegrations": "API e integraciones",
       "slaSupport": "SLA y soporte dedicado",
@@ -224,8 +224,8 @@
         "unlimited": "Ilimitados"
       },
       "allPlansInclude": "Todos los planes incluyen: {{list}}.",
-      "plusFree": "Todo lo de Gratis, más:",
-      "plusPro": "Todo lo de Pro, más:"
+      "plusFree": "Todo lo de {{plan}}, más:",
+      "plusPro": "Todo lo de {{plan}}, más:"
     },
     "benefits": {
       "seeAll": "Ver todos ({{count}})",

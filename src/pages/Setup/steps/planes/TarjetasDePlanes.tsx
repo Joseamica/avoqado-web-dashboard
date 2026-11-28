@@ -117,6 +117,13 @@ export function TarjetasDePlanes({
   // Planes editables (B2): con una versión del editor, cada plan dice SU prueba y SU precio, y uno fuera de venta no tiene
   // tarjeta. Sin ella (`planQuote.oferta` ausente), las tarjetas de hoy.
   const ofertaDelAlta = planQuote?.oferta ?? null
+  const nombreDelPlan = (plan: Plan) => (plan === 'ENTERPRISE' ? undefined : ofertaDelAlta?.planes[plan]?.displayName) ?? NOMBRE[plan]
+  const puntosDelPlan = (plan: Plan) => {
+    const anterior = plan === 'ENTERPRISE' ? 'PREMIUM' : plan === 'PREMIUM' ? 'PRO' : undefined
+    const prefijo = plan === 'ENTERPRISE' ? 'plans.benefits' : prefijoDeBeneficios
+    const puntos = anterior && ofertaDelAlta?.planes[anterior]?.onSale === false ? [2, 3, 4] : [1, 2, 3, 4]
+    return puntos.map(n => t(`${prefijo}.${plan.toLowerCase()}.${n}`, { plan: anterior && nombreDelPlan(anterior) }))
+  }
   // La tarjeta de la campaña (Pro o Premium) lleva la oferta y el botón fuerte; sin campaña es Pro.
   const planDestacado: Plan = oferta?.planTier ?? 'PRO'
   // Con el Básico, Enterprise deja su lugar y baja a un enlace: siempre 3 tarjetas (founder, 18-nov, «A»).
@@ -151,7 +158,7 @@ export function TarjetasDePlanes({
               <Tarjeta
                 key={plan}
                 plan={plan}
-                nombre={NOMBRE[plan]}
+                nombre={nombreDelPlan(plan)}
                 destacada={false}
                 precio={
                   <>
@@ -159,7 +166,7 @@ export function TarjetasDePlanes({
                     <p className="text-sm text-muted-foreground">{t('plans.enterpriseSub')}</p>
                   </>
                 }
-                puntos={[1, 2, 3, 4].map(n => t(`plans.benefits.enterprise.${n}`))}
+                puntos={puntosDelPlan(plan)}
                 boton={t('plans.talkToSales')}
                 bloqueado={bloqueado}
                 onClick={abrirVentas}
@@ -167,13 +174,12 @@ export function TarjetasDePlanes({
             )
           }
 
-          const clave = plan.toLowerCase()
           const esLaOferta = oferta?.planTier === plan
           const tier = planQuote?.tiers?.[plan]
           const cotizado = ofertaDelAlta?.planes[plan]
           const mensual = cotizado?.monthly
           // B4: con una versión del editor el nombre sale de ELLA (el mismo que el precio); sin ella, el de marca de siempre.
-          const nombre = cotizado?.displayName ?? NOMBRE[plan]
+          const nombre = nombreDelPlan(plan)
 
           const tarjetaDelPlan = (
             <Tarjeta
@@ -227,11 +233,7 @@ export function TarjetasDePlanes({
                   </>
                 )
               }
-              puntos={
-                esLaOferta && oferta.copy.bullets.length > 0
-                  ? oferta.copy.bullets
-                  : [1, 2, 3, 4].map(n => t(`${prefijoDeBeneficios}.${clave}.${n}`))
-              }
+              puntos={esLaOferta && oferta.copy.bullets.length > 0 ? oferta.copy.bullets : puntosDelPlan(plan)}
               boton={
                 esLaOferta
                   ? t('plans.chooseOffer', { plan: oferta.planName, price: formatMXN(oferta.promo.monthlyCents) })
