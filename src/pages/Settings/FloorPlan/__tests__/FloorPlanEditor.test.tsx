@@ -353,7 +353,7 @@ describe('FloorPlanEditor', () => {
     // Donde estaba en el plano guardado (0.8 × 40 = 32; 0.5 × 25 = 12.5), con su punto de cuenta abierta y seleccionada.
     expect(screen.getByTestId('floor-table-2')).toHaveAttribute('transform', 'rotate(0 32 12.5)')
     expect(screen.getByTestId('floor-open-order-2')).toBeInTheDocument()
-    expect(screen.getByText('inspector.table:2')).toBeInTheDocument()
+    expect(screen.getByText('common:tableName:2')).toBeInTheDocument()
     // Ya se sabe que tiene cuenta: Supr no la vuelve a quitar.
     await user.keyboard('{Delete}')
     expect(screen.getByTestId('floor-table-2')).toBeInTheDocument()

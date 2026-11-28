@@ -23,7 +23,12 @@ export function tableNumber(t: Translate, number: string | number): string {
   return n
 }
 
-/** La etiqueta suelta de una mesa: «Mesa 1», sea que se guardó «1» o «Mesa 1». */
+/**
+ * La etiqueta suelta de una mesa: «Mesa 1», sea que se guardó «1» o «Mesa 1».
+ * 🔴 D2 (27-nov): el número es texto libre y un plano puede tener «Mesa 1» y «Bar 1». Si lo guardado ya trae una palabra
+ * (dos letras seguidas: «Bar 1», «Terraza 3»), se muestra tal cual; sólo un número o un código («5», «A1», «12B») lleva «Mesa».
+ */
 export function tableName(t: Translate, number: string | number): string {
-  return t('common:tableName', { number: tableNumber(t, number) })
+  const n = tableNumber(t, number)
+  return /\p{L}{2}/u.test(n) ? n : t('common:tableName', { number: n })
 }
