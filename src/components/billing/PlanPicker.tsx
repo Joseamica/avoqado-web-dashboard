@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { PLAN_TIERS, TIER_ORDER, type TierId, type PlanTierDef } from '@/config/plan-catalog'
 import { totalDeBeneficios } from '@/config/plan-comparison'
 import { PlanBenefitsDialog } from './PlanBenefitsDialog'
-import { usePlanOffer, useNombreDelPlan } from '@/hooks/usePlanOffer'
+import { nombreDeGratisEnBeneficios, nombreDelPlanDe, usePlanOffer, type OfertaDePlanes } from '@/hooks/usePlanOffer'
 import { fmtPesos } from '@/lib/fmtPesos'
 import { textoDelAnual } from '@/lib/textoDelAnual'
 import { Currency } from '@/utils/currency'
@@ -28,6 +28,7 @@ const ACCENT_BG: Record<PlanTierDef['accent'], string> = {
 
 /** Beneficios que la tarjeta enseña a la vista; el resto vive en «Ver todos» (founder, 25-sep). */
 const PRINCIPALES_VISIBLES = 4
+const PLAN_ANTERIOR: Partial<Record<string, TierId>> = { allFree: 'FREE', allPro: 'PRO', allPremium: 'PREMIUM' }
 
 const fmt = fmtPesos
 /**
@@ -107,7 +108,7 @@ export function PlanPicker({
   intervalLocked = false,
   fueraDeVenta,
 }: PlanPickerProps) {
-  const { t } = useTranslation('billing')
+  const { t, i18n } = useTranslation('billing')
   const [internalInterval, setInternalInterval] = useState<'monthly' | 'annual'>('monthly')
   const interval = controlledInterval ?? internalInterval
   const setInterval = (i: 'monthly' | 'annual') => {
@@ -119,6 +120,20 @@ export function PlanPicker({
   // La píldora del anual habla de TODOS los planes de pago a la venta: «2 meses gratis» sólo si cada uno lo cumple (anual = 10
   // mensualidades). De la cotización, si la hay; si no, de la oferta vigente. Ningún plan decide solo.
   const oferta = usePlanOffer()
+  const nombreDelPlan = (id: TierId) => preciosSinIva?.[id]?.displayName ?? nombreDelPlanDe(oferta, id, t)
+  const noSeVende = (id: TierId) =>
+    !!fueraDeVenta?.[id] ||
+    (!preciosSinIva?.[id] && (id === 'PRO' || id === 'PREMIUM') && oferta.estado === 'servidor' && !oferta[id].onSale)
+  const textoDelBeneficio = (clave: string) => {
+    const anterior = PLAN_ANTERIOR[clave]
+    if (!anterior) return t(`plan.features.${clave}`)
+    if (noSeVende(anterior)) return null
+    const plan =
+      anterior === 'FREE'
+        ? (preciosSinIva?.FREE?.displayName ?? nombreDeGratisEnBeneficios(oferta, t, i18n?.resolvedLanguage ?? i18n?.language))
+        : nombreDelPlan(anterior)
+    return t(`plan.features.${clave}`, { plan })
+  }
   const textosDelAnual = preciosSinIva
     ? (['PRO', 'PREMIUM'] as const).flatMap(id => {
         const cotizado = preciosSinIva[id]
@@ -197,7 +212,10 @@ export function PlanPicker({
               isDowngrade={TIER_ORDER.indexOf(tier.id) < TIER_ORDER.indexOf(currentTier)}
               promoNote={promoNotes?.[tier.id]}
               precioSinIva={preciosSinIva?.[tier.id]}
-              noDisponible={!!fueraDeVenta?.[tier.id]}
+              oferta={oferta}
+              tierName={nombreDelPlan(tier.id)}
+              noDisponible={noSeVende(tier.id)}
+              textoDelBeneficio={textoDelBeneficio}
               onSelect={() => {
                 if (!fueraDeVenta?.[tier.id]) onSelectTier(tier.id, interval)
               }}
@@ -217,7 +235,10 @@ function PlanCard({
   isDowngrade,
   promoNote,
   precioSinIva,
-  noDisponible: noDisponibleProp = false,
+  oferta,
+  tierName,
+  noDisponible,
+  textoDelBeneficio,
   onSelect,
 }: {
   tier: PlanTierDef
@@ -227,16 +248,14 @@ function PlanCard({
   isDowngrade: boolean
   promoNote?: string
   precioSinIva?: PrecioCotizado
-  /** B2: la versión del editor no vende este plan hoy (ver `fueraDeVenta`). */
-  noDisponible?: boolean
+  oferta: OfertaDePlanes
+  tierName: string
+  noDisponible: boolean
+  textoDelBeneficio: (clave: string) => string | null
   onSelect: () => void
 }) {
   const { t } = useTranslation('billing')
   const Icon = tier.icon
-  const oferta = usePlanOffer()
-  const nombreDelPlan = useNombreDelPlan(tier.id)
-  // Con la cotización del llamador, el nombre sale de ELLA; si no, de la oferta vigente (o del nombre localizado).
-  const tierName = precioSinIva?.displayName ?? nombreDelPlan
   const esDePago = tier.id === 'PRO' || tier.id === 'PREMIUM'
   // De dónde sale el dinero: la cotización del llamador, o la oferta vigente (un 200). Nunca un número guardado en el catálogo (B4).
   const fuente = precioSinIva
@@ -254,8 +273,6 @@ function PlanCard({
           annualGross: oferta[tier.id as 'PRO' | 'PREMIUM'].annual.grossCents,
         }
       : null
-  const fueraDeVentaEnOferta = !precioSinIva && esDePago && oferta.estado === 'servidor' && !oferta[tier.id as 'PRO' | 'PREMIUM'].onSale
-  const noDisponible = noDisponibleProp || fueraDeVentaEnOferta
   // Always show the effective MONTHLY price as the headline; annual shows the per-month
   // equivalent with the yearly total in the subtitle (matches the approved mockup).
   const precioAnual = fuente ? fuente.annualNet / 100 : tier.id === 'FREE' ? 0 : undefined
@@ -407,19 +424,23 @@ function PlanCard({
         {promoNote && <div className="rounded-lg bg-emerald-400/10 px-2.5 py-1.5 text-xs font-medium text-emerald-500">{promoNote}</div>}
 
         <ul className="mt-1 flex flex-col gap-2.5">
-          {tier.featureKeys.slice(0, PRINCIPALES_VISIBLES).map(fk => (
-            <li key={fk} className="flex items-start gap-2 text-sm">
-              <Check className={cn('mt-0.5 h-4 w-4 shrink-0', ACCENT[tier.accent])} />
-              <span>
-                {t(`plan.features.${fk}`)}
-                {fk === 'chatbotBeta' && (
-                  <Badge variant="outline" className="ml-1.5 h-4 px-1 text-[9px]">
-                    Beta
-                  </Badge>
-                )}
-              </span>
-            </li>
-          ))}
+          {tier.featureKeys.slice(0, PRINCIPALES_VISIBLES).map(fk => {
+            const texto = textoDelBeneficio(fk)
+            if (texto === null) return null
+            return (
+              <li key={fk} className="flex items-start gap-2 text-sm">
+                <Check className={cn('mt-0.5 h-4 w-4 shrink-0', ACCENT[tier.accent])} />
+                <span>
+                  {texto}
+                  {fk === 'chatbotBeta' && (
+                    <Badge variant="outline" className="ml-1.5 h-4 px-1 text-[9px]">
+                      Beta
+                    </Badge>
+                  )}
+                </span>
+              </li>
+            )
+          })}
         </ul>
 
         {/* Al fondo (`mt-auto`) para que quede a la misma altura en las cuatro tarjetas. Abre la lista

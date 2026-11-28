@@ -37,8 +37,15 @@ vi.mock('@stripe/react-stripe-js', () => ({
 vi.mock('@/components/billing/PlanPicker', () => ({ PlanPicker: () => <div data-testid="plan-picker" /> }))
 vi.mock('@/components/billing/FeatureCatalogBrowser', () => ({ FeatureCatalogBrowser: () => <div data-testid="feature-catalog" /> }))
 // `t` ESTABLE, como el de i18next: uno nuevo en cada render re-dispara los efectos que dependen de él.
+// Los nombres de hoy de los planes viven en billing.json (`plan.tiers.<plan>.name`), sin defaultValue en el código.
+const NOMBRES_DE_HOY: Record<string, string> = {
+  'plan.tiers.free.name': 'Gratis',
+  'plan.tiers.pro.name': 'Pro',
+  'plan.tiers.premium.name': 'Premium',
+  'plan.tiers.enterprise.name': 'Enterprise',
+}
 const tEstable = (k: string, o?: any) => {
-  const base = typeof o?.defaultValue === 'string' ? o.defaultValue : k
+  const base = typeof o?.defaultValue === 'string' ? o.defaultValue : (NOMBRES_DE_HOY[k] ?? k)
   return base.replace(/\{\{(\w+)\}\}/g, (_: string, n: string) => String(o?.[n] ?? ''))
 }
 vi.mock('react-i18next', () => ({

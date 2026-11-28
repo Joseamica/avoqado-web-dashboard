@@ -1,7 +1,11 @@
 // src/components/billing/__tests__/PlanPicker.test.tsx
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { assert, describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, within } from '@testing-library/react'
+import i18next, { type i18n } from 'i18next'
 import { PlanPicker } from '../PlanPicker'
+import billing from '@/locales/es/billing.json'
+import billingEn from '@/locales/en/billing.json'
+import billingFr from '@/locales/fr/billing.json'
 import {
   OFERTA_V2_CON_CENTAVOS,
   OFERTA_V2_PREMIUM_11X,
@@ -18,15 +22,27 @@ vi.mock('@/hooks/usePlanOffer', async () => {
   return f.moduloDelHookConOferta(() => f.ofertaActual.valor)
 })
 
-// i18n returns the key (or interpolated) so assertions are deterministic
+const traducciones = vi.hoisted(() => ({ reales: null as i18n | null }))
+
+// Las viñetas de herencia usan el español real; el resto conserva las llaves de prueba.
 vi.mock('react-i18next', () => ({
-  useTranslation: () => ({
-    t: (k: string, o?: any) => (o?.tier ? `${k}:${o.tier}` : o?.price ? `${k}:${o.price}` : o?.amount ? `${k}:${o.amount}` : k),
-  }),
+  useTranslation: () =>
+    traducciones.reales
+      ? { t: traducciones.reales.getFixedT(null, 'billing'), i18n: traducciones.reales }
+      : {
+          t: (k: string, o?: any) => {
+            const clave = k.replace(/^plan\.features\./, '')
+            if (clave === 'allFree' || clave === 'allPro' || clave === 'allPremium') {
+              return billing.plan.features[clave].replace('{{plan}}', o?.plan ?? '')
+            }
+            return o?.tier ? `${k}:${o.tier}` : o?.price ? `${k}:${o.price}` : o?.amount ? `${k}:${o.amount}` : k
+          },
+        },
 }))
 
 beforeEach(() => {
   ofertaActual.valor = OFERTA_V1
+  traducciones.reales = null
 })
 
 describe('PlanPicker', () => {
@@ -248,7 +264,7 @@ describe('PlanPicker — «Ver todos» de cada plan (founder, 25-sep)', () => {
     const ventana = screen.getByTestId('plan-benefits-ENTERPRISE')
     expect(ventana.textContent).toMatch(/plan\.features\.whiteLabel/)
     expect(ventana.textContent).toMatch(/plan\.compare\.rows\.cfdi/)
-    expect(ventana.textContent).not.toMatch(/plan\.features\.allPremium/)
+    expect(ventana.textContent).not.toMatch(/Todo lo de /)
   })
 
   // B4: nombres, montos y texto del anual salen de la oferta vigente del SERVIDOR.
@@ -269,6 +285,43 @@ describe('PlanPicker — «Ver todos» de cada plan (founder, 25-sep)', () => {
     expect(screen.getByText('Plus')).toBeInTheDocument()
     expect(screen.getByText('$799')).toBeInTheDocument()
     expect(screen.queryByText('$999')).not.toBeInTheDocument()
+    expect(screen.getByText('Todo lo de Plus')).toBeInTheDocument()
+  })
+
+  it('los beneficios toman el nombre anterior de la cotización antes que el de la oferta vigente', () => {
+    ofertaActual.valor = OFERTA_V2_PLUS
+    render(
+      <PlanPicker
+        currentTier="FREE"
+        onSelectTier={vi.fn()}
+        preciosSinIva={{ PRO: { monthlyNetCents: 79900, annualNetCents: 850000, displayName: 'Plan cotizado' } }}
+      />,
+    )
+    expect(screen.getByText('Todo lo de Plan cotizado')).toBeInTheDocument()
+  })
+
+  it('omite la referencia al plan anterior fuera de venta según la oferta o la cotización', () => {
+    ofertaActual.valor = OFERTA_V3_PREMIUM_FUERA
+    const { rerender } = render(<PlanPicker currentTier="FREE" onSelectTier={vi.fn()} />)
+    expect(screen.queryByText('Todo lo de Premium')).not.toBeInTheDocument()
+    rerender(<PlanPicker currentTier="FREE" onSelectTier={vi.fn()} fueraDeVenta={{ PRO: true }} />)
+    expect(screen.queryByText(/^Todo lo de (Pro|Plus)$/)).not.toBeInTheDocument()
+  })
+
+  it('en francés conserva la viñeta anterior sin versión y usa el nombre del editor cuando existe', async () => {
+    const i18n = i18next.createInstance()
+    await i18n.init({
+      lng: 'fr',
+      fallbackLng: 'en',
+      resources: { en: { billing: billingEn }, fr: { billing: billingFr } },
+    })
+    traducciones.reales = i18n
+    const { rerender } = render(<PlanPicker currentTier="FREE" onSelectTier={vi.fn()} />)
+    expect(screen.getByText('Everything in Free')).toBeInTheDocument()
+    assert(OFERTA_V2_PLUS.estado === 'servidor')
+    ofertaActual.valor = { ...OFERTA_V2_PLUS, FREE: { displayName: 'Découverte' } }
+    rerender(<PlanPicker currentTier="FREE" onSelectTier={vi.fn()} />)
+    expect(screen.getByText('Everything in Découverte')).toBeInTheDocument()
   })
 
   it('con la v1 (10 mensualidades) la píldora del anual sigue diciendo «2 meses gratis»', () => {

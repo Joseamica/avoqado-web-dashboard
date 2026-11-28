@@ -385,13 +385,13 @@
         "4": "Loyalty, promotions and reservations"
       },
       "premium": {
-        "1": "Everything in Pro",
+        "1": "Everything in {{plan}}",
         "2": "CFDI invoicing",
         "3": "Inventory with recipes and costing",
         "4": "Delivery: Uber Eats, Rappi and DiDi"
       },
       "enterprise": {
-        "1": "Everything in Premium",
+        "1": "Everything in {{plan}}",
         "2": "Your own branding",
         "3": "API and integrations",
         "4": "Dedicated support"
@@ -404,7 +404,7 @@
           "4": "Loyalty and promotions"
         },
         "premium": {
-          "1": "Everything in Pro",
+          "1": "Everything in {{plan}}",
           "2": "CFDI invoicing",
           "3": "Inventory and stock per store",
           "4": "Automatic stock reordering"
@@ -418,7 +418,7 @@
           "4": "Loyalty and promotions"
         },
         "premium": {
-          "1": "Everything in Pro",
+          "1": "Everything in {{plan}}",
           "2": "CFDI invoicing",
           "3": "Staff commissions",
           "4": "Team attendance tracking"
@@ -432,7 +432,7 @@
           "4": "Loyalty, promotions and reservations"
         },
         "premium": {
-          "1": "Everything in Pro",
+          "1": "Everything in {{plan}}",
           "2": "CFDI invoicing",
           "3": "Inventory control",
           "4": "Staff commissions"

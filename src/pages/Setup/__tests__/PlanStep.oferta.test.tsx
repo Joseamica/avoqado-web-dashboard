@@ -108,8 +108,17 @@ beforeEach(() => {
   confirmSetup.mockReset().mockResolvedValue({ setupIntent: { payment_method: 'pm_1' } })
 })
 
-const pintar = (quote?: PlanQuote | null) =>
-  render(<PlanStep data={{}} onNext={vi.fn()} venueId="venue_1" organizationId="org_1" quote={quote} activateBeforeContinue={vi.fn()} />)
+const pintar = (quote?: PlanQuote | null, tier: 'PRO' | 'PREMIUM' = 'PRO') =>
+  render(
+    <PlanStep
+      data={tier === 'PRO' ? {} : { plan: { tier } }}
+      onNext={vi.fn()}
+      venueId="venue_1"
+      organizationId="org_1"
+      quote={quote}
+      activateBeforeContinue={vi.fn()}
+    />,
+  )
 
 async function alPago() {
   const user = userEvent.setup()
@@ -119,6 +128,18 @@ async function alPago() {
 }
 
 describe('PlanStep con la versión del editor', () => {
+  it('el resumen de Premium usa el nombre de Pro de la cotización para los beneficios', async () => {
+    pintar(QUOTE_V2, 'PREMIUM')
+    await alPago()
+    expect(screen.getByText('Todo lo de Plus, más:')).toBeInTheDocument()
+  })
+
+  it('el resumen de Premium omite la referencia a Pro cuando la cotización no lo vende', async () => {
+    pintar({ ...QUOTE_V2, oferta: { ...OFERTA, planes: { ...OFERTA.planes, PRO: { ...OFERTA.planes.PRO, onSale: false } } } }, 'PREMIUM')
+    await alPago()
+    expect(screen.queryByText(/^Todo lo de /)).not.toBeInTheDocument()
+  })
+
   it('🔴 con la cotización de una v2 (sin intro) no menciona «3 meses» ni «$599»: ni en la nota de la tarjeta ni en la ventana de pago', async () => {
     pintar(QUOTE_V2)
     expect(screen.getByTestId('plan-picker').dataset.promo).toBe('')

@@ -279,7 +279,7 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
     const cents = ofertaVigente[selectedTier as 'PRO' | 'PREMIUM'][selectedInterval === 'annual' ? 'annual' : 'monthly'].netCents
     return (cents / 100).toLocaleString('es-MX', cents % 100 === 0 ? undefined : { minimumFractionDigits: 2, maximumFractionDigits: 2 })
   }, [cotizacion, isPaidTier, ofertaVigente, selectedTier, selectedInterval, elegidoFueraDeVentaEnOferta])
-  const nombreElegido = isPaidTier ? nombreDelPlan(selectedTier) : tOnboarding(`plan.tierNames.${selectedTier}`)
+  const nombreElegido = nombreDelPlan(selectedTier)
 
   const handleNext = async () => {
     let isValid = false

@@ -79,8 +79,8 @@
         "unlimited": "Illimités"
       },
       "allPlansInclude": "Tous les plans incluent : {{list}}.",
-      "plusFree": "Tout ce qui est dans Free, plus :",
-      "plusPro": "Tout ce qui est dans Pro, plus :"
+      "plusFree": "Tout ce qui est dans {{plan}}, plus :",
+      "plusPro": "Tout ce qui est dans {{plan}}, plus :"
     },
     "benefits": {
       "seeAll": "Tout voir ({{count}})",

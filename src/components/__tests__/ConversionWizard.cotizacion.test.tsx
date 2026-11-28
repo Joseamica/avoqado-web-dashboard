@@ -454,6 +454,15 @@ describe('ConversionWizard · B4 (A21): nombre, montos y texto del anual salen d
     expect(await screen.findByText('Plan Gratuito')).toBeInTheDocument()
   })
 
+  it('con la v2 y Pro llamado «Plus», el botón para FREE dice «Continuar con Gratis»', async () => {
+    ofertaActual.valor = OFERTA_V2_PLUS
+    vi.mocked(getVenuePlan).mockResolvedValue(planDeLaDemo() as never)
+    abrir()
+    await alPasoDePlanes()
+    await userEvent.click(tarjeta('free'))
+    expect(siguiente()).toHaveTextContent('Continuar con Gratis')
+  })
+
   it('D8: con la v2 y FREE llamado «Inicio»: «Plan Inicio»', async () => {
     ofertaActual.valor = { ...OFERTA_V2_PLUS, FREE: { displayName: 'Inicio' } } as never
     vi.mocked(getVenuePlan).mockResolvedValue(planDeLaDemo() as never)
@@ -461,6 +470,7 @@ describe('ConversionWizard · B4 (A21): nombre, montos y texto del anual salen d
     await alPasoDePlanes()
     await waitFor(() => expect(getVenuePlan).toHaveBeenCalled())
     await userEvent.click(tarjeta('free'))
+    expect(siguiente()).toHaveTextContent('Continuar con Inicio')
     await userEvent.click(siguiente())
     expect(await screen.findByText('Plan Inicio')).toBeInTheDocument()
     expect(screen.queryByText('Plan Gratuito')).toBeNull()

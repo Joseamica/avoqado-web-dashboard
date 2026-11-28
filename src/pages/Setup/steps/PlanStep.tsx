@@ -29,7 +29,7 @@ import { readHybridOffer } from '@/lib/hybridIntent'
 import { HybridOnboardingButton } from '@/components/billing/HybridOnboardingButton'
 import { FeatureCatalogBrowser } from '@/components/billing/FeatureCatalogBrowser'
 import { salesWhatsAppLink, type TierId } from '@/config/plan-catalog'
-import { useNombresDelPlan, usePlanOffer } from '@/hooks/usePlanOffer'
+import { nombreDeGratisEnBeneficios, useNombresDelPlan, usePlanOffer } from '@/hooks/usePlanOffer'
 import { novedadesDelPlan, valorDeCelda } from '@/config/plan-comparison'
 import { setupService } from '@/services/setup.service'
 import { pedidoCompartido, type PedidoEnVuelo } from './pedidoCompartido'
@@ -180,6 +180,7 @@ export function PlanStep({
         {},
       )
     : undefined
+  const proFueraDeVenta = !!fueraDeVenta?.PRO || (!preciosSinIva.PRO && ofertaVigente.estado === 'servidor' && !ofertaVigente.PRO.onSale)
   const isPaidTier = selectedTier === 'PRO' || selectedTier === 'PREMIUM'
   const tierName = basico && planBasico ? planBasico.name : nombreDelPlan(selectedTier)
 
@@ -465,11 +466,17 @@ export function PlanStep({
           </div>
           {!basico && (selectedTier === 'PRO' || selectedTier === 'PREMIUM') && (
             <div data-testid="plan-summary-features" className="flex flex-col gap-3 border-t border-input pt-5">
-              <p className="text-sm font-medium">
-                {selectedTier === 'PRO'
-                  ? tBilling('plan.compare.plusFree', { defaultValue: 'Todo lo de Gratis, más:' })
-                  : tBilling('plan.compare.plusPro', { defaultValue: 'Todo lo de Pro, más:' })}
-              </p>
+              {(selectedTier === 'PRO' || !proFueraDeVenta) && (
+                <p className="text-sm font-medium">
+                  {tBilling(selectedTier === 'PRO' ? 'plan.compare.plusFree' : 'plan.compare.plusPro', {
+                    plan:
+                      selectedTier === 'PRO'
+                        ? nombreDeGratisEnBeneficios(ofertaVigente, tBilling, i18n?.resolvedLanguage ?? i18n?.language)
+                        : nombreDelPlan('PRO'),
+                    defaultValue: 'Todo lo de {{plan}}, más:',
+                  })}
+                </p>
+              )}
               {/* Lo que este plan agrega sobre el de abajo, una línea por categoría: completo, pero corto. */}
               <ul className="flex flex-col gap-2.5">
                 {novedadesDelPlan(selectedTier).map(grupo => (
