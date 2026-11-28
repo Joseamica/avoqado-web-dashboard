@@ -39,7 +39,8 @@
       "addItem": "Add Item",
       "product": "Product",
       "quantity": "Quantity",
-      "unlimited": "Unlimited"
+      "unlimited": "Unlimited",
+      "badgeText": "Label (optional)"
     },
     "placeholders": {
       "name": "e.g., 10-Class Pack",
@@ -47,7 +48,8 @@
       "price": "0.00",
       "validityDays": "No expiry",
       "maxPerCustomer": "No limit",
-      "displayOrder": "0"
+      "displayOrder": "0",
+      "badgeText": "Most popular"
     },
     "validation": {
       "nameRequired": "Name is required",
@@ -59,7 +61,19 @@
       "quantityPositive": "Quantity must be greater than 0",
       "unlimitedNeedsValidity": "An unlimited pack needs validity days"
     },
-    "unlimitedHelp": "Personal: only in the buyer's name, one spot per class"
+    "unlimitedHelp": "Personal: only in the buyer's name, one spot per class",
+    "badgeTitle": "Highlight this pack (optional)",
+    "badgeHelp": "Shown above the pack on your booking page, for example \"Most popular\"",
+    "badgeIconsNeedText": "Type the label first",
+    "badgePreview": "Preview",
+    "badgeIcons": {
+      "star": "Star",
+      "tag": "Tag",
+      "flame": "Flame",
+      "heart": "Heart",
+      "sparkles": "Sparkles",
+      "trophy": "Trophy"
+    }
   },
   "purchases": {
     "title": "Purchases",

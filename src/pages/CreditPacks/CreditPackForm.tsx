@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Package, Plus, Trash2, X } from 'lucide-react'
+import { Flame, Heart, Package, Plus, Sparkles, Star, Tag, Trash2, Trophy, X, type LucideIcon } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useFieldArray, useForm, type ControllerRenderProps } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button'
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
@@ -19,7 +20,7 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
 import { includesNormalized } from '@/lib/utils'
 import creditPackService from '@/services/creditPack.service'
-import type { CreateCreditPackRequest } from '@/types/creditPack'
+import { CREDIT_PACK_BADGE_ICONS, type CreateCreditPackRequest, type CreditPackBadgeIcon } from '@/types/creditPack'
 import api from '@/api'
 
 interface ProductOption {
@@ -49,10 +50,7 @@ interface ProductPickerProps {
 function ProductPicker({ products, field, placeholder, changeLabel }: ProductPickerProps) {
   const [search, setSearch] = useState('')
 
-  const selected = useMemo(
-    () => (field.value ? products.find(p => p.id === field.value) ?? null : null),
-    [products, field.value],
-  )
+  const selected = useMemo(() => (field.value ? (products.find(p => p.id === field.value) ?? null) : null), [products, field.value])
 
   const items = useMemo<SearchComboboxItem[]>(() => {
     return products
@@ -60,8 +58,7 @@ function ProductPicker({ products, field, placeholder, changeLabel }: ProductPic
       .map(p => ({
         id: p.id,
         label: p.name,
-        endLabel:
-          p.price != null && Number(p.price) > 0 ? `$${Number(p.price).toFixed(2)}` : undefined,
+        endLabel: p.price != null && Number(p.price) > 0 ? `$${Number(p.price).toFixed(2)}` : undefined,
       }))
   }, [products, search])
 
@@ -106,6 +103,19 @@ interface CreditPackFormModalProps {
   packId?: string
   onSuccess: () => void
 }
+
+const BADGE_ICON_COMPONENTS: Record<CreditPackBadgeIcon, LucideIcon> = {
+  star: Star,
+  tag: Tag,
+  flame: Flame,
+  heart: Heart,
+  sparkles: Sparkles,
+  trophy: Trophy,
+}
+const BADGE_TEXT_MAX = 40
+/** El componente del ícono, o nada si el paquete trae uno que este panel todavía no conoce: la vista previa enseña sólo el texto. */
+const componenteDeIcono = (icono: string | null): LucideIcon | null =>
+  icono && Object.prototype.hasOwnProperty.call(BADGE_ICON_COMPONENTS, icono) ? BADGE_ICON_COMPONENTS[icono as CreditPackBadgeIcon] : null
 
 interface FormValues extends Omit<CreateCreditPackRequest, 'price'> {
   price: number | undefined
@@ -162,6 +172,8 @@ export default function CreditPackFormModal({ open, onClose, packId, onSuccess }
       maxPerCustomer: undefined,
       displayOrder: 0,
       items: [{ productId: '', quantity: 1, unlimited: false }],
+      badgeText: '',
+      badgeIcon: null,
       active: true,
     },
   })
@@ -173,6 +185,13 @@ export default function CreditPackFormModal({ open, onClose, packId, onSuccess }
   const renglones = form.watch('items')
   // Los renglones tal como se cargaron del paquete: al editar sólo se mandan si la persona tocó alguno (Codex pantallas r1 #5).
   const renglonesCargados = useRef<string | null>(null)
+  // El destacado tal como se cargó: sólo se manda si la persona cambió el texto o el ícono.
+  const destacadoCargado = useRef<string>(JSON.stringify(['', null]))
+  const badgeText = form.watch('badgeText') ?? ''
+  const badgeIcon = form.watch('badgeIcon') ?? null
+  // Sin texto no hay destacado: los íconos esperan a que se escriba la etiqueta.
+  const sinTextoDestacado = !badgeText.trim()
+  const IconoDeVistaPrevia = componenteDeIcono(badgeIcon)
 
   // Reset form when modal opens/closes or pack changes
   useEffect(() => {
@@ -185,6 +204,7 @@ export default function CreditPackFormModal({ open, onClose, packId, onSuccess }
         unlimited: item.unlimited === true,
       }))
       renglonesCargados.current = JSON.stringify(renglonesParaGuardar(items))
+      destacadoCargado.current = JSON.stringify([existingPack.badgeText ?? '', existingPack.badgeIcon ?? null])
       form.reset({
         name: existingPack.name,
         description: existingPack.description || '',
@@ -194,9 +214,12 @@ export default function CreditPackFormModal({ open, onClose, packId, onSuccess }
         maxPerCustomer: existingPack.maxPerCustomer || undefined,
         displayOrder: existingPack.displayOrder,
         items,
+        badgeText: existingPack.badgeText ?? '',
+        badgeIcon: existingPack.badgeIcon ?? null,
         active: existingPack.active,
       })
     } else if (!isEditing) {
+      destacadoCargado.current = JSON.stringify(['', null])
       form.reset({
         name: '',
         description: '',
@@ -206,6 +229,8 @@ export default function CreditPackFormModal({ open, onClose, packId, onSuccess }
         maxPerCustomer: undefined,
         displayOrder: 0,
         items: [{ productId: '', quantity: 1, unlimited: false }],
+        badgeText: '',
+        badgeIcon: null,
         active: true,
       })
     }
@@ -213,7 +238,7 @@ export default function CreditPackFormModal({ open, onClose, packId, onSuccess }
 
   const mutation = useMutation({
     mutationFn: async (data: FormValues) => {
-      const { active, items: renglonesDelFormulario, ...packData } = data
+      const { active, items: renglonesDelFormulario, badgeText: textoDestacado, badgeIcon: iconoDestacado, ...packData } = data
       const cleaned = {
         ...packData,
         description: packData.description || undefined,
@@ -221,14 +246,28 @@ export default function CreditPackFormModal({ open, onClose, packId, onSuccess }
         maxPerCustomer: packData.maxPerCustomer || undefined,
       }
       const items = renglonesParaGuardar(renglonesDelFormulario)
+      const texto = (textoDestacado ?? '').trim()
+      // Sin texto no hay destacado: el ícono solo no se manda (el SERVIDOR lo rechaza).
+      const icono = texto ? (iconoDestacado ?? null) : null
       if (isEditing) {
         // Sin tocar ningún renglón no se mandan: si otra persona cambió los renglones con este formulario abierto, guardar sólo
         // el nombre o el precio no los pisa con los de antes (p. ej. no vuelve a prender un Ilimitado que ella apagó). Un PATCH
         // sin `items` deja los renglones como estén en el SERVIDOR.
         const tocoRenglones = JSON.stringify(items) !== renglonesCargados.current
-        return creditPackService.updateCreditPack(venueId, packId!, tocoRenglones ? { ...cleaned, items } : cleaned)
+        // El destacado igual: si cambió el texto o el ícono se mandan LOS DOS juntos (vaciar el texto manda null y null); si no
+        // cambió ninguno, no se manda nada y no pisa lo que otra persona haya puesto.
+        const tocoDestacado = JSON.stringify([texto, icono]) !== destacadoCargado.current
+        return creditPackService.updateCreditPack(venueId, packId!, {
+          ...cleaned,
+          ...(tocoRenglones ? { items } : {}),
+          ...(tocoDestacado ? { badgeText: texto || null, badgeIcon: icono } : {}),
+        })
       }
-      return creditPackService.createCreditPack(venueId, { ...cleaned, items })
+      return creditPackService.createCreditPack(venueId, {
+        ...cleaned,
+        items,
+        ...(texto ? { badgeText: texto, ...(icono ? { badgeIcon: icono } : {}) } : {}),
+      })
     },
     onSuccess: () => {
       toast({
@@ -257,12 +296,7 @@ export default function CreditPackFormModal({ open, onClose, packId, onSuccess }
       title={form.watch('name') || (isEditing ? t('edit.title') : t('create.title'))}
       contentClassName="bg-muted/30"
       actions={
-        <LoadingButton
-          loading={mutation.isPending}
-          disabled={lecturaPendiente}
-          onClick={form.handleSubmit(onSubmit)}
-          variant="default"
-        >
+        <LoadingButton loading={mutation.isPending} disabled={lecturaPendiente} onClick={form.handleSubmit(onSubmit)} variant="default">
           {mutation.isPending ? tCommon('saving') : t('actions.save')}
         </LoadingButton>
       }
@@ -284,9 +318,7 @@ export default function CreditPackFormModal({ open, onClose, packId, onSuccess }
                   <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-500/5">
                     <Package className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                   </div>
-                  <h3 className="font-medium text-sm">
-                    {isEditing ? t('edit.title') : t('create.title')}
-                  </h3>
+                  <h3 className="font-medium text-sm">{isEditing ? t('edit.title') : t('create.title')}</h3>
                 </div>
 
                 <FormField
@@ -380,9 +412,7 @@ export default function CreditPackFormModal({ open, onClose, packId, onSuccess }
                     name="validityDays"
                     rules={{
                       validate: (v, values) =>
-                        !values.items?.some(item => item.unlimited) ||
-                        (v != null && v > 0) ||
-                        t('form.validation.unlimitedNeedsValidity'),
+                        !values.items?.some(item => item.unlimited) || (v != null && v > 0) || t('form.validation.unlimitedNeedsValidity'),
                     }}
                     render={({ field }) => (
                       <FormItem>
@@ -425,6 +455,73 @@ export default function CreditPackFormModal({ open, onClose, packId, onSuccess }
                     )}
                   />
                 </div>
+              </div>
+
+              {/* Destacar este paquete */}
+              <div className="rounded-2xl border border-border/50 bg-card p-6 space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-xl bg-gradient-to-br from-amber-500/20 to-amber-500/5">
+                    <Star className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                  </div>
+                  <h3 className="font-medium text-sm">{t('form.badgeTitle')}</h3>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="credit-pack-badge-text">{t('form.fields.badgeText')}</Label>
+                  <Input
+                    id="credit-pack-badge-text"
+                    placeholder={t('form.placeholders.badgeText')}
+                    maxLength={BADGE_TEXT_MAX}
+                    className="h-12 text-base"
+                    value={badgeText}
+                    onChange={e => form.setValue('badgeText', e.target.value, { shouldDirty: true })}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex flex-wrap gap-2">
+                    {CREDIT_PACK_BADGE_ICONS.map(name => {
+                      const Icon = BADGE_ICON_COMPONENTS[name]
+                      const selected = badgeIcon === name
+                      return (
+                        <Button
+                          key={name}
+                          type="button"
+                          variant={selected ? 'default' : 'outline'}
+                          size="icon"
+                          aria-label={t(`form.badgeIcons.${name}`)}
+                          aria-pressed={selected}
+                          disabled={sinTextoDestacado}
+                          aria-disabled={sinTextoDestacado}
+                          aria-describedby={sinTextoDestacado ? 'credit-pack-badge-icons-help' : undefined}
+                          onClick={() => form.setValue('badgeIcon', selected ? null : name, { shouldDirty: true })}
+                        >
+                          <Icon className="h-4 w-4" />
+                        </Button>
+                      )
+                    })}
+                  </div>
+                  {sinTextoDestacado && (
+                    <p id="credit-pack-badge-icons-help" className="text-xs text-muted-foreground">
+                      {t('form.badgeIconsNeedText')}
+                    </p>
+                  )}
+                </div>
+
+                {badgeText.trim() && (
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <span>{t('form.badgePreview')}</span>
+                    <span
+                      data-testid="badge-preview"
+                      className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2.5 py-1 text-xs font-medium text-amber-700 dark:text-amber-300"
+                    >
+                      {IconoDeVistaPrevia && <IconoDeVistaPrevia className="h-3.5 w-3.5" />}
+                      {badgeText.trim()}
+                    </span>
+                  </div>
+                )}
+
+                <p className="text-xs text-muted-foreground">{t('form.badgeHelp')}</p>
               </div>
 
               {/* Items Card */}

@@ -11,6 +11,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
+import { ClassLayoutPreview } from './ClassLayoutPreview'
 
 // ═══════════════════════════════════════════════════
 // Types
@@ -338,6 +339,12 @@ export function ClassLayoutEditor({ value, onChange }: ClassLayoutEditorProps) {
 
           {/* Grid area */}
           <div className="flex flex-col items-center gap-4 p-6 bg-background">
+            <p className="text-xs text-muted-foreground text-center">
+              {t('layout.toggleHint', {
+                defaultValue:
+                  'Toca una casilla para quitarla y que el mapa quede como tu salón (por ejemplo, 3 × 3 con la casilla de en medio de cada orilla apagada, como un dado).',
+              })}
+            </p>
             {/* Instructor — separate element at the front */}
             {layout.showInstructor && (
               <div className="flex flex-col items-center gap-1.5 mb-2">
@@ -412,6 +419,8 @@ export function ClassLayoutEditor({ value, onChange }: ClassLayoutEditorProps) {
               })}
             </span>
           </div>
+
+          <ClassLayoutPreview layout={layout} />
         </div>
       )}
     </div>
