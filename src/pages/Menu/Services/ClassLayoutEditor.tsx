@@ -74,14 +74,36 @@ function generateSpots(rows: number, cols: number): LayoutSpot[] {
   return spots
 }
 
+/**
+ * hz:nube0000:na7eb164: el `id` de una casilla NO cambia al redibujar el mapa; sólo cambia el número que se enseña.
+ * Las reservas guardan el `id` (`Reservation.spotIds`): antes, el id era el número y al apagar una casilla se renumeraban,
+ * así que el «lugar 5» de una clienta pasaba a señalar otra máquina. Ahora la clienta conserva SU casilla (aunque su
+ * número a la vista se recorra) y una casilla apagada guarda su id por si se vuelve a prender.
+ * Una casilla que nunca tuvo id real (las `disabled-…` de los mapas viejos, o una nueva al agrandar) recibe `r{fila}c{col}`:
+ * los ids sólo se crean en su posición y las posiciones no se mueven, así que nunca chocan con los numéricos de antes.
+ */
+function idEstable(spot: Pick<LayoutSpot, 'id' | 'row' | 'col'> | undefined, row: number, col: number): string {
+  return spot && spot.id && !spot.id.startsWith('disabled-') ? spot.id : `r${row}c${col}`
+}
+
 function renumberSpots(spots: LayoutSpot[]): LayoutSpot[] {
   let counter = 1
   return spots.map(s => {
-    if (s.enabled) {
-      return { ...s, id: String(counter), label: String(counter++) }
-    }
-    return { ...s, id: `disabled-${s.row}-${s.col}`, label: '' }
+    const id = idEstable(s, s.row, s.col)
+    return s.enabled ? { ...s, id, label: String(counter++) } : { ...s, id, label: '' }
   })
+}
+
+/** Rejilla nueva de `rows × cols` que conserva el id (y si estaba prendida) de cada casilla que ya existía. */
+function resizeSpots(prev: LayoutSpot[], rows: number, cols: number, { encenderTodas = false } = {}): LayoutSpot[] {
+  const spots: LayoutSpot[] = []
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const antes = prev.find(s => s.row === r && s.col === c)
+      spots.push({ id: idEstable(antes, r, c), row: r, col: c, label: '', enabled: encenderTodas || !antes ? true : antes.enabled })
+    }
+  }
+  return renumberSpots(spots)
 }
 
 // ═══════════════════════════════════════════════════
@@ -180,12 +202,7 @@ export function ClassLayoutEditor({ value, onChange }: ClassLayoutEditorProps) {
       rows: Math.max(1, Math.min(20, newRows)),
       cols: Math.max(1, Math.min(20, newCols)),
     }
-    const spots = generateSpots(clamped.rows, clamped.cols)
-    for (const spot of spots) {
-      const prev = layout.spots.find(s => s.row === spot.row && s.col === spot.col)
-      if (prev) spot.enabled = prev.enabled
-    }
-    const numbered = renumberSpots(spots)
+    const numbered = resizeSpots(layout.spots, clamped.rows, clamped.cols)
     onChange({
       ...layout,
       rows: clamped.rows,
@@ -204,7 +221,8 @@ export function ClassLayoutEditor({ value, onChange }: ClassLayoutEditorProps) {
   const handleReset = useCallback(() => {
     onChange({
       ...layout,
-      spots: generateSpots(layout.rows, layout.cols),
+      // Reiniciar prende todas las casillas pero conserva sus ids: las reservas siguen en su lugar.
+      spots: resizeSpots(layout.spots, layout.rows, layout.cols, { encenderTodas: true }),
     })
   }, [layout, onChange])
 
@@ -373,6 +391,7 @@ export function ClassLayoutEditor({ value, onChange }: ClassLayoutEditorProps) {
                     <button
                       key={`${row}-${col}`}
                       type="button"
+                      data-spot-cell=""
                       className={cn(
                         'w-12 h-12 rounded-xl border-2 flex flex-col items-center justify-center transition-all text-xs font-medium',
                         isEnabled
