@@ -87,7 +87,7 @@ describe('FloorPlanEditor — ola final', () => {
     const lienzo = screen.getByTestId('floor-canvas')
     expect(within(lienzo).getByTestId('floor-table-1')).toBeInTheDocument()
     expect(within(lienzo).queryByTestId('floor-table-2')).not.toBeInTheDocument()
-    expect(screen.getByText('inspector.table:1')).toBeInTheDocument()
+    expect(screen.getByText('common:tableName:1')).toBeInTheDocument()
     await user.keyboard('{Delete}')
     // Supr quitó sólo la que se ve; la 2 sigue en Salón.
     await user.click(screen.getByTestId('floor-area-tab-Salón'))

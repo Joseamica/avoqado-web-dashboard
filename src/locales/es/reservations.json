@@ -143,7 +143,7 @@
     "noService": "Sin servicio",
     "selectTable": "Seleccionar mesa",
     "selectStaff": "Seleccionar personal",
-    "tableCapacity": "Mesa {{number}} ({{capacity}} personas)",
+    "tableCapacity": "{{name}} ({{capacity}} personas)",
     "slotFull": "Lleno",
     "staffNotEligible": "No elegible",
     "staffUnavailable": "No disponible",

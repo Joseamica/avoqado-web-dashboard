@@ -40,6 +40,13 @@ describe('tableName: la etiqueta suelta', () => {
     expect(tableName(tEn('en'), 'Mesa 1')).toBe('Table 1')
     expect(tableName(es_, 'A1')).toBe('Mesa A1')
   })
+
+  it('🔴 D2: una mesa con nombre propio se ve tal cual, nunca «Mesa Bar 1»', () => {
+    expect(tableName(es_, 'Bar 1')).toBe('Bar 1')
+    expect(tableName(es_, 'Terraza 3')).toBe('Terraza 3')
+    expect(tableName(tEn('en'), 'Barra')).toBe('Barra')
+    expect(tableName(es_, '12B')).toBe('Mesa 12B')
+  })
 })
 
 describe('🔴 frases con artículo: conservan «La mesa 5» (e2e del plano, CI de #295)', () => {
@@ -56,6 +63,7 @@ describe('🔴 frases con artículo: conservan «La mesa 5» (e2e del plano, CI 
     expect(interpolar(esPlano.inspector.numberTaken, { number: n })).toBe('Ya hay una mesa 1')
     expect(interpolar(esPlano.tray.place, { number: n })).toBe('Poner la mesa 1 en el plano')
     expect(interpolar(esPlano.duplicates.title_one, { numbers: n })).toBe('Hay más de una mesa con el número 1')
-    expect(interpolar(esReservas.form.tableCapacity, { number: n, capacity: 4 })).toBe('Mesa 1 (4 personas)')
+    expect(interpolar(esReservas.form.tableCapacity, { name: tableName(es_, 'Mesa 1'), capacity: 4 })).toBe('Mesa 1 (4 personas)')
+    expect(interpolar(esReservas.form.tableCapacity, { name: tableName(es_, 'Bar 1'), capacity: 2 })).toBe('Bar 1 (2 personas)')
   })
 })
